@@ -1737,7 +1737,16 @@
 			};
 		}
 	});
+
+	function handleWindowKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && valueMoveMode) {
+			e.preventDefault();
+			propExplorer?.cancelValueMoveMode();
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleWindowKeydown} />
 
 {#if !minimalStyle}
 	<NavbarTabs

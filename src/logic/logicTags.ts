@@ -69,6 +69,8 @@ export class TagsLogic {
 		);
 
 		for (const [tagWithHash, count] of entries) {
+			if (count <= 0) continue;
+
 			const fullPath = tagWithHash.replace(/^#/, '');
 			const parts = fullPath.split('/');
 			let currentPath = '';

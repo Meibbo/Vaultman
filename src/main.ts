@@ -1,3 +1,27 @@
+//********************************************************************\\
+//*      ___|^___^|___      .-~*´¨¯¨¯¯¨¯¨`*~-.     ___|^___^|___     *\\
+//*     |   Meibbo   |     | Vaultman v1.2.5 |    | August 2026 |     *\\
+//*     \___/`*´\___/      `-~*´¨¯¨¯¯¨¯¨`*~-´     \___/`*´\____/      *\\
+//*                                                                  *\\
+//*           Made with love for tools that last and help.           *\\
+//*                                                                  *\\
+//*      (づ￣ 3￣)づ    ☆*: .｡. o(≧▽≦)o .｡.:*☆     ╰(*°▽°*)╯     *\\
+//********************************************************************\\
+
+/*------------------————————————————————————————————-------------------/
+/########|||-------|                                |------|||#########/
+/#===°°===°°===°°==|      Main TypeScript File      |==°°===°°===°°===#/
+/########|||-------|                                |------|||#########/
+/-------------------————————————————————————————————------------------*/
+//        Here is defined the connection between the different        \\
+//    services and modules that Obsidian uses to communicate with     \\
+//    the plugin, thus the declared foundation of components that     \\
+//    will be used throughout the systems which Vaultman offers       \\
+//    to the user. From here, the compiler connects everything        \\
+//    into a single main.js file that is executable from Obsidian.    \\
+//--------------------------------------------------------------------\\
+
+//...----------—————————————(   IMPORTS   )————————————------------...\\
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
@@ -46,6 +70,7 @@ import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 
+//...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
 	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();

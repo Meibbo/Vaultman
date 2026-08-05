@@ -90,28 +90,49 @@ export function projectActiveFileProps(
 ): TreeNode<PropMeta>[] {
 	if (!frontmatter) return [];
 
-	const byProperty = new Map(snapshot.map((node) => [node.meta.propName, node]));
 	const nodes: TreeNode<PropMeta>[] = [];
+	const seenProps = new Set<string>();
 
-	for (const [propName, raw] of Object.entries(frontmatter)) {
-		if (NOT_A_PROPERTY.has(propName)) continue;
+	for (const node of snapshot) {
+		if (node.meta.isValueNode) continue;
+		const propName = node.meta.propName;
+		if (!(propName in frontmatter) || NOT_A_PROPERTY.has(propName)) continue;
 
-		const source = byProperty.get(propName);
-		const propType = source?.meta.propType ?? 'text';
-		const children = valuesOf(raw).map((rawValue) =>
-			valueNode(source, propName, propType, rawValue),
+		seenProps.add(propName);
+		const raw = frontmatter[propName];
+		const fileValues = new Set(valuesOf(raw));
+		const children = (node.children || []).filter(child => 
+			fileValues.has(child.meta.rawValue!)
 		);
+		// Also create missing value nodes if the file has values not in the vault snapshot yet
+		const snapshotValues = new Set(children.map(c => c.meta.rawValue!));
+		for (const val of fileValues) {
+			if (!snapshotValues.has(val)) {
+				children.push(valueNode(node, propName, node.meta.propType, val));
+			}
+		}
 
 		nodes.push({
-			id: source?.id ?? propName,
-			label: source?.label ?? propName,
-			// The count is this file's values, not the vault's. The vault-wide
-			// `count` Cell resolves unavailable in reveal for the same reason.
+			...node,
+			children,
+			count: children.length,
+		});
+	}
+
+	for (const [propName, raw] of Object.entries(frontmatter)) {
+		if (seenProps.has(propName) || NOT_A_PROPERTY.has(propName)) continue;
+		const propType = 'text';
+		const children = valuesOf(raw).map((rawValue) =>
+			valueNode(undefined, propName, propType, rawValue),
+		);
+		nodes.push({
+			id: propName,
+			label: propName,
 			count: children.length,
 			depth: 0,
-			coreCls: source?.coreCls ?? 'tree-item-self tappable is-clickable',
+			coreCls: 'tree-item-self tappable is-clickable',
 			children,
-			meta: source?.meta ?? { propName, propType, isValueNode: false },
+			meta: { propName, propType, isValueNode: false },
 		});
 	}
 

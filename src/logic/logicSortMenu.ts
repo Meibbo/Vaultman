@@ -113,11 +113,12 @@ export const SORT_MENU_OPTIONS: Record<
 };
 
 export const NODE_TYPE_MENU_OPTIONS: Record<
-	'props' | 'tags',
+	'props' | 'tags' | 'files',
 	readonly BuiltInNodeTypeMenuOption[]
 > = {
 	props: [
 		{ id: 'all', icon: 'lucide-list-filter', labelKey: 'sort.type.all' },
+		{ id: 'props-only', icon: 'lucide-type', labelKey: 'sort.type.props_only' },
 		...PROP_TYPE_ORDER.map((id) => ({
 			id,
 			icon: TYPE_ICON_MAP[id],
@@ -131,6 +132,10 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 			icon: id === 'nested' ? 'lucide-git-branch' : 'lucide-tag',
 			labelKey: `sort.type.${id}`,
 		})),
+	],
+	files: [
+		{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
+		{ id: 'folders-only', icon: 'lucide-folder', labelKey: 'sort.type.folders_only' },
 	],
 };
 

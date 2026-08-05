@@ -208,13 +208,13 @@ export function sameExplorerSortState(
 export function sortTwoLevel<T extends { children?: T[] }>(
 	nodes: readonly T[],
 	compareProperties: (a: T, b: T) => number,
-	compareValues: (a: T, b: T) => number,
+	compareValues: (a: T, b: T, parent: T) => number,
 ): T[] {
 	return [...nodes]
 		.sort(compareProperties)
 		.map((node) =>
 			node.children?.length
-				? { ...node, children: [...node.children].sort(compareValues) }
+				? { ...node, children: [...node.children].sort((a, b) => compareValues(a, b, node)) }
 				: node,
 		);
 }

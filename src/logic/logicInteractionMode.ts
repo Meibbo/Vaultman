@@ -18,7 +18,7 @@ export const DEFAULT_INTERACTION_MODE: Record<InteractionTab, InteractionMode> =
 	};
 
 const INTERACTION_MODES: Record<InteractionTab, readonly InteractionMode[]> = {
-	files: ['open', 'add', 'select'],
+	files: ['open', 'filter', 'add', 'select'],
 	props: ['open', 'filter', 'add', 'select'],
 	tags: ['open', 'filter', 'add', 'select'],
 	snippets: ['open', 'select'],

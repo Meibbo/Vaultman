@@ -79,36 +79,39 @@
 	     fighting it for the same corner. -->
 	{#if categoryIcon || createIcon || trailingActions.length > 0}
 		<div class="input-right-decorator vaultman-filters-search-decorator">
-			{#if categoryIcon}
-				<button
-					type="button"
-					class="vaultman-filters-search-mode"
-					aria-label={categoryLabel}
-					use:icon={categoryIcon}
-					onclick={() => onCycleCategory?.()}
-				></button>
+			{#if trailingActions.length > 0}
+				{#each trailingActions as action, i (action.id)}
+					<button
+						type="button"
+						class={i === 0 ? "vaultman-filters-search-mode" : "vaultman-filters-search-create"}
+						aria-label={action.label}
+						title={action.label}
+						class:is-active={action.checked}
+						use:icon={action.icon}
+						onclick={() => onAction?.(action)}
+					></button>
+				{/each}
+			{:else}
+				{#if categoryIcon}
+					<button
+						type="button"
+						class="vaultman-filters-search-mode"
+						aria-label={categoryLabel}
+						use:icon={categoryIcon}
+						onclick={() => onCycleCategory?.()}
+					></button>
+				{/if}
+				{#if createIcon}
+					<button
+						type="button"
+						class="vaultman-filters-search-create"
+						aria-label={createLabel}
+						title={createLabel}
+						use:icon={createIcon}
+						onclick={() => onCreateTarget?.()}
+					></button>
+				{/if}
 			{/if}
-			{#if createIcon}
-				<button
-					type="button"
-					class="vaultman-filters-search-create"
-					aria-label={createLabel}
-					title={createLabel}
-					use:icon={createIcon}
-					onclick={() => onCreateTarget?.()}
-				></button>
-			{/if}
-			{#each trailingActions as action (action.id)}
-				<button
-					type="button"
-					class="vaultman-filters-search-trailing-action"
-					aria-label={action.label}
-					title={action.label}
-					disabled={action.available === false}
-					use:icon={action.icon}
-					onclick={() => onAction?.(action)}
-				></button>
-			{/each}
 		</div>
 	{/if}
 </div>

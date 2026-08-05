@@ -57,13 +57,14 @@ export interface TreeViewOptions {
 	/** U121-013: provider-neutral, independently composable highlight channels. */
 	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
-	selectionCheckboxPosition?: 'start' | 'end';
+	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	onSelectionToggle?: (id: string, selected: boolean) => void;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	editingId?: string | null;
 	onRename?: (id: string, newLabel: string) => void;
 	onCancelRename?: () => void;
+	onOpenRichRename?: (id: string, currentValue: string) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
@@ -956,11 +957,11 @@ export class UnifiedTreeView {
 			Boolean(node.icon) &&
 			!showCaret;
 		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
-		const emitSelectionCheckbox = (): void => {
+		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
 			if (!opts.onSelectionToggle) return;
 			const checkbox = row.createEl('input', {
 				type: 'checkbox',
-				cls: 'metadata-input-checkbox vaultman-selection-checkbox',
+				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,
 				attr: { 'aria-label': `Select ${node.label}` },
 			});
 			checkbox.checked = isSelected;
@@ -971,7 +972,7 @@ export class UnifiedTreeView {
 			};
 		};
 		if ((opts.selectionCheckboxPosition ?? 'start') === 'start') {
-			emitSelectionCheckbox();
+			emitSelectionCheckbox('start');
 		}
 
 		if (showCaret) {
@@ -1135,6 +1136,16 @@ export class UnifiedTreeView {
 					opts.onCancelRename?.();
 				}
 			});
+
+			if (opts.onOpenRichRename) {
+				const btn = row.createSpan({ cls: 'vaultman-tree-rename-rich-btn clickable-icon', attr: { 'aria-label': 'Open detailed rename' } });
+				setIcon(btn, 'lucide-maximize-2');
+				btn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent input blur
+				btn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					opts.onOpenRichRename?.(node.id, input.value);
+				});
+			}
 		} else if (showLabel && !usesActivationOrder) {
 			if (opts.renderLabel?.(row, node)) {
 				// Custom renderer emitted the complete label cell.
@@ -1245,7 +1256,7 @@ export class UnifiedTreeView {
 			// Frequency counter second
 			if (!usesActivationOrder) emitCount(badgeZone);
 		}
-		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox();
+		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox('end');
 
 		return row;
 	}

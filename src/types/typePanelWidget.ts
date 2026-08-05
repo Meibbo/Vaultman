@@ -32,6 +32,7 @@ export interface PanelWidgetNode {
 	available: boolean;
 	condensable?: boolean;
 	action?: PanelWidgetActionReference;
+	checked?: boolean;
 }
 
 export interface PanelWidgetPvpuiConfig {
@@ -67,6 +68,7 @@ export interface PanelWidgetExplorerPort {
 	setVisibleCells(cells: Set<string>): void;
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void;
 	setInteractionMode?(mode: InteractionMode): void;
+	setInteractionModeChangeHandler?(handler?: (mode: InteractionMode) => void): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
@@ -128,6 +130,7 @@ export interface PanelWidgetHeaderAction {
 	icon: string;
 	disabled?: boolean;
 	onClick: (event: MouseEvent) => void;
+	order?: number;
 }
 
 export type PanelWidgetSearchCategoryState = Record<

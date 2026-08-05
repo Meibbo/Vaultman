@@ -29,6 +29,7 @@ import {
 	type BubbleIndex,
 } from '../../logic/logicBadgeBubbling';
 import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
+import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -44,7 +45,8 @@ import {
 } from '../../logic/logicNodeTypeFilters';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
-import { FileRenameModal } from '../../modals/modalFileRename';
+import { buildFileRenameChange, FileRenameModal, formatFileRenameTargetName } from '../../modals/modalFileRename';
+
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
@@ -132,6 +134,10 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import {
+	DeferredFilterClickCoordinator,
+	filterStateToPolarity,
+} from '../../logic/logicFilterPolarity';
+import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
 	type VaultmanDragNodePayload,
@@ -162,6 +168,18 @@ function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	return true;
 }
 
+export interface FileMoveOwner {
+	providerId: string;
+	generation: number;
+}
+
+export interface FileMoveModeState {
+	origins: (TFile | TFolder)[];
+	destinations: string[]; // Node IDs of selected destination folders
+	restore: { interactionMode: string; searchOpen: boolean };
+	owner: FileMoveOwner;
+}
+
 export class FilesExplorerPanel extends Component {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
@@ -180,9 +198,14 @@ export class FilesExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private sortState = normalizeExplorerSortState('files', null);
+
+	private fileMoveMode: FileMoveModeState | null = null;
+	private onFileMoveChange?: () => void;
+	private fileMoveGeneration = 0;
 	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
 	private interactionMode: InteractionMode = 'open';
+	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
 	private selectedFilePaths = new Set<string>();
 	private selectionAnchorPath: string | null = null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
@@ -242,6 +265,21 @@ export class FilesExplorerPanel extends Component {
 		this.plugin = plugin;
 		this.logic = new FilesLogic(plugin.app);
 		this.onSelectionChange = onSelectionChange;
+		this.filterClicks = new DeferredFilterClickCoordinator({
+			onEffect: (folderPath, polarity) => {
+				const current = filterStateToPolarity(
+					this.plugin.filterService.getFilterState('folder', folderPath),
+				);
+				if (current === polarity) return;
+				const intent =
+					polarity === 'none'
+						? 'remove'
+						: polarity === 'inclusive'
+							? 'include'
+							: 'exclude';
+				this.plugin.filterService.applyIntent('folder', folderPath, intent);
+			},
+		});
 	}
 
 	onload(): void {
@@ -340,12 +378,11 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				new FileRenameModal(
-					this.plugin.app,
-					this.plugin.propertyIndex,
-					[meta.file],
-					(change) => this.plugin.queueService.addOrRun(change),
-				).open();
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				else {
+					this._editingId = ctx.node.id as string;
+					this._render();
+				}
 			},
 		});
 
@@ -378,9 +415,17 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				new FileMoveModal(this.plugin.app, [meta.file], (change) =>
-					this.plugin.queueService.addOrRun(change),
-				).open();
+				
+				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
+					this._enterFileMoveMode(ctx);
+				} else {
+					const filesToMove = this.selectedFilePaths.has(ctx.node.id) 
+						? this.getSelectedFiles() 
+						: [meta.file];
+					new FileMoveModal(this.plugin.app, filesToMove, (change) =>
+						this.plugin.queueService.addOrRun(change),
+					).open();
+				}
 			},
 		});
 
@@ -473,6 +518,20 @@ export class FilesExplorerPanel extends Component {
 		});
 
 		svc.registerAction({
+			id: 'file.move.proceed',
+			nodeTypes: ['folder', 'file'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.move_to_prop.proceed'), // Can reuse this or add a new one, but let's reuse
+			icon: 'lucide-check',
+			when: (ctx) => {
+				const meta = ctx.node.meta as FileMeta;
+				return this._fileMoveProceedAvailable() && 
+					this.fileMoveMode?.destinations.some(d => meta.file && (meta.file.path === d || (meta.file instanceof TFile && meta.file.parent?.path === d))) === true;
+			},
+			run: () => this.proceedFileMove(),
+		});
+
+		svc.registerAction({
 			id: 'folder.filter_include',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
@@ -545,21 +604,26 @@ export class FilesExplorerPanel extends Component {
 			run: async (ctx: MenuCtx) => {
 				const folder = this._folderFromCtx(ctx);
 				if (!folder) return;
-				const target = await showInputModal(
-					this.plugin.app,
-					translate('folder.prompt.move'),
-				);
-				if (target === null) return;
-				const targetFolder = target.trim().replace(/^\/|\/$/g, '');
-				const newPath = targetFolder
-					? `${targetFolder}/${folder.name}`
-					: folder.name;
-				if (newPath === folder.path) return;
-				this._queueFolderMove(
-					folder,
-					newPath,
-					`Move folder "${folder.path}" to "${newPath}"`,
-				);
+				
+				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
+					this._enterFileMoveMode(ctx);
+				} else {
+					const target = await showInputModal(
+						this.plugin.app,
+						translate('folder.prompt.move'),
+					);
+					if (target === null) return;
+					const targetFolder = target.trim().replace(/^\/|\/$/g, '');
+					const newPath = targetFolder
+						? `${targetFolder}/${folder.name}`
+						: folder.name;
+					if (newPath === folder.path) return;
+					this._queueFolderMove(
+						folder,
+						newPath,
+						`Move folder "${folder.path}" to "${newPath}"`,
+					);
+				}
 			},
 		});
 
@@ -696,11 +760,21 @@ export class FilesExplorerPanel extends Component {
 		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
+		this.filterClicks.dispose();
 		super.onunload();
 	}
 
+	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
+	setInteractionModeChangeHandler(handler?: (mode: InteractionMode) => void): void {
+		this.interactionModeChangeHandler = handler;
+	}
+
 	setInteractionMode(mode: InteractionMode): void {
-		this.interactionMode = normalizeInteractionMode('files', mode);
+		const next = normalizeInteractionMode('files', mode);
+		if (this.interactionMode === next) return;
+		this.interactionMode = next;
+		this.interactionModeChangeHandler?.(next);
+		void this._render();
 	}
 
 	configurePanelWidgetProjection(
@@ -1235,6 +1309,20 @@ export class FilesExplorerPanel extends Component {
 			this.interactionMode,
 			false,
 		);
+		if (action === 'filter') {
+			const folderPath =
+				file.parent?.path === '/' ? '' : file.parent?.path ?? '';
+			const filterState = this.plugin.filterService.getFilterState(
+				'folder',
+				folderPath,
+			);
+			this.filterClicks.click(
+				folderPath,
+				folderPath,
+				filterStateToPolarity(filterState),
+			);
+			return;
+		}
 		let selectionGesture = fileSelectionGesture(event, action === 'add');
 		if (action === 'select' && !event?.shiftKey) {
 			selectionGesture = 'toggle';
@@ -1250,6 +1338,12 @@ export class FilesExplorerPanel extends Component {
 			file.path,
 			selectionGesture,
 		);
+
+		if (this.fileMoveMode && selectionGesture !== 'open') {
+			this._registerFileMoveDestination(file);
+			// We handle visual selection in _registerFileMoveDestination
+			return;
+		}
 		if (selectionGesture !== 'open') {
 			this._applyFileSelection(selection);
 			return;
@@ -1323,6 +1417,173 @@ export class FilesExplorerPanel extends Component {
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
+	}
+
+	getFileMoveMode(): FileMoveModeState | null {
+		return this.fileMoveMode;
+	}
+
+	setFileMoveChangeHandler(handler?: () => void): void {
+		this.onFileMoveChange = handler;
+	}
+
+	private _setFileMoveMode(next: FileMoveModeState | null): void {
+		this.fileMoveMode = next;
+		this.onFileMoveChange?.();
+	}
+
+	private _fileMoveOwner(): FileMoveOwner {
+		return { providerId: 'files', generation: this.fileMoveGeneration };
+	}
+
+	reconcileFileMoveOwner(owner: FileMoveOwner): void {
+		if (!this.fileMoveMode) return;
+		if (this.fileMoveMode.owner.providerId === owner.providerId && this.fileMoveMode.owner.generation === owner.generation) return;
+		this._exitFileMoveMode();
+	}
+
+	private _enterFileMoveMode(ctx: { node: { meta?: unknown } }): void {
+		if (this.fileMoveMode) {
+			this._exitFileMoveMode();
+			return;
+		}
+
+		const meta = ctx.node.meta as FileMeta;
+		if (!meta.file) return;
+
+		// The origins are whatever was selected, or the clicked node if no selection.
+		const origins: (TFile | TFolder)[] = [];
+		const selectedPaths = new Set<string>();
+		
+		if (this.selectedFilePaths.has(meta.file.path)) {
+			// Clicked node is in selection, use full selection
+			for (const id of this.selectedFilePaths) {
+				const node = this._findNode(id, this._lastRenderTree);
+				const nmeta = node?.meta;
+				if (nmeta?.file && !selectedPaths.has(nmeta.file.path)) {
+					origins.push(nmeta.file);
+					selectedPaths.add(nmeta.file.path);
+				}
+			}
+		} else {
+			// Clicked node not in selection, use just clicked node
+			origins.push(meta.file);
+		}
+
+		if (origins.length === 0) return;
+
+		this.fileMoveGeneration += 1;
+		this._setFileMoveMode({
+			origins,
+			destinations: [],
+			owner: this._fileMoveOwner(),
+			restore: {
+				interactionMode: this.interactionMode,
+				searchOpen: false, // We don't force search open for file move
+			},
+		});
+
+		this.selectedFilePaths = new Set<string>();
+		this.setInteractionMode('select');
+		this._render();
+	}
+
+	private _registerFileMoveDestination(file: TFile | TFolder): void {
+		if (!this.fileMoveMode) return;
+		
+		const targetFolder = file instanceof TFolder ? file : file.parent;
+		if (!targetFolder) return;
+
+		// Check if it's a valid move (e.g. not moving a folder into itself)
+		const isInvalid = this.fileMoveMode.origins.some(origin => {
+			if (origin instanceof TFolder && (targetFolder.path === origin.path || targetFolder.path.startsWith(origin.path + '/'))) {
+				return true;
+			}
+			return false;
+		});
+
+		if (isInvalid) {
+			new Notice(translate('explorer.move_to_folder.rejected'));
+			return;
+		}
+
+		this.fileMoveGeneration += 1;
+		this._setFileMoveMode({
+			...this.fileMoveMode,
+			destinations: [targetFolder.path]
+		});
+		
+		// Update visual selection to show the destination
+		const newSelection = new Set<string>();
+		newSelection.add(targetFolder.path);
+		this.selectedFilePaths = newSelection;
+		this.selectionAnchorPath = targetFolder.path;
+		this._render();
+	}
+
+	private _exitFileMoveMode(): void {
+		const restore = this.fileMoveMode?.restore;
+		this._setFileMoveMode(null);
+		if (restore) {
+			this.setInteractionMode(restore.interactionMode as InteractionMode);
+		}
+		this._render();
+	}
+
+	cancelFileMoveMode(): void {
+		this._exitFileMoveMode();
+	}
+
+	proceedFileMove(): void {
+		if (!this.fileMoveMode || this.fileMoveMode.destinations.length === 0) return;
+		
+		const destId = this.fileMoveMode.destinations[0];
+		const destNode = this._findNode(destId, this._lastRenderTree);
+		const destMeta = destNode?.meta;
+		
+		if (destMeta?.file instanceof TFolder) {
+			const targetFolder = destMeta.file;
+			const targetPath = targetFolder.path.replace(/^\/|\/$/g, '');
+			
+			for (const file of this.fileMoveMode.origins) {
+				const newPath = targetPath ? `${targetPath}/${file.name}` : file.name;
+				if (newPath === file.path) continue;
+
+				if (file instanceof TFile) {
+					this.plugin.queueService.addOrRun({
+						type: 'file_move',
+						action: 'move',
+						details: `Move file "${file.path}" to "${newPath}"`,
+						files: [file],
+						targetFolder: targetPath,
+						customLogic: true,
+						logicFunc: () => ({ [MOVE_FILE]: newPath }),
+					});
+				} else if (file instanceof TFolder) {
+					this._queueFolderMove(file, newPath, `Move folder "${file.path}" to "${newPath}"`);
+				}
+			}
+		}
+		
+		this._exitFileMoveMode();
+	}
+
+	private _fileMoveProceedAvailable(): boolean {
+		return this.fileMoveMode !== null && this.fileMoveMode.destinations.length > 0;
+	}
+
+	getFileMoveSlotNodes(params: {
+		moveMode: {
+			proceed: { id: string; available: boolean };
+			cancel: { id: string; available: boolean };
+		} | null;
+	}) {
+		const nodes = [];
+		if (params.moveMode) {
+			nodes.push({ ...params.moveMode.proceed, available: this._fileMoveProceedAvailable() });
+			nodes.push({ ...params.moveMode.cancel, available: true });
+		}
+		return nodes;
 	}
 
 	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
@@ -1691,8 +1952,52 @@ export class FilesExplorerPanel extends Component {
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
 					this._prepareTreeNode(node as TreeNode<FileMeta>),
+				editingId: this._editingId,
+				onRename: (id: string, newLabel: string) => {
+					this._editingId = undefined;
+					const node = this._findNode(id, renderTree);
+					const file = node?.meta.file;
+					if (file) {
+						const fm = this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+						const resolved = formatFileRenameTargetName(file, newLabel, fm, 0);
+						const change = buildFileRenameChange(file, resolved);
+						this.plugin.queueService.addOrRun(change);
+					}
+					this._render();
+				},
+				onCancelRename: () => {
+					this._editingId = undefined;
+					this._render();
+				},
+				onOpenRichRename: (id: string, _currentValue: string) => {
+					this._editingId = undefined;
+					const node = this._findNode(id, renderTree);
+					const file = node?.meta.file;
+					if (file) {
+						new FileRenameModal(
+							this.plugin.app,
+							this.plugin.propertyIndex,
+							[file],
+							(change) => this.plugin.queueService.addOrRun(change)
+						).open();
+					}
+					this._render();
+				},
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
+				renderLabel: (row, node) => {
+					const queue = this.plugin.queueService.queue;
+					const target = renameTargetFromQueue(queue, node.id);
+					if (target) {
+						const label = row.createSpan({
+							cls: 'vaultman-tree-label vaultman-rename-preview',
+							text: target,
+						});
+						if (node.labelColor) label.style.color = node.labelColor;
+						return true;
+					}
+					return false;
+				},
 				onToggle: (id: string) => {
 					this._toggleExpanded(id);
 					this._refreshTreeExpansion(id, [id]);
@@ -1704,6 +2009,24 @@ export class FilesExplorerPanel extends Component {
 					const meta = node.meta;
 					if (meta.isFolder) {
 						if (event?.button === 1) return;
+						const action = resolveInteractionAction(
+							'files',
+							this.interactionMode,
+							false,
+						);
+						if (action === 'filter' && meta.folderPath !== undefined) {
+							const folderPath = meta.folderPath;
+							const filterState = this.plugin.filterService.getFilterState(
+								'folder',
+								folderPath,
+							);
+							this.filterClicks.click(
+								folderPath,
+								folderPath,
+								filterStateToPolarity(filterState),
+							);
+							return;
+						}
 						if (!this._nestedEnabled()) return;
 						this._toggleExpanded(id);
 						this._refreshTreeExpansion(id, [id]);
@@ -1745,6 +2068,10 @@ export class FilesExplorerPanel extends Component {
 							surface: 'panel',
 							file: meta.file,
 							...this._viewFilterMenuActions(),
+							invokeRename: (targetId: string) => {
+								this._editingId = targetId;
+								this._render();
+							},
 						},
 						e,
 					);
@@ -2435,6 +2762,7 @@ export class FilesExplorerPanel extends Component {
 		const decorateNode = (node: TreeNode<FileMeta>): void => {
 			for (const child of node.children ?? []) decorateNode(child);
 			if (!node.meta.file) return;
+
 			const badges = this._badgesForFile(node.meta.file);
 			node.badges = badges;
 			if (badges.some((badge) => badge.color === 'red')) {
@@ -2524,6 +2852,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _iconicRenderQueued = false;
+	private _editingId?: string;
 	private _currentGlyphSettingsSignature(): string {
 		return [
 			this.plugin.settings.explorerGlyphColor,
@@ -3130,6 +3459,7 @@ export class FilesExplorerPanel extends Component {
 				: ('specific' as const),
 			window: this.plugin.settings.timestampRelativeWindow ?? '24h',
 			cutoffs: this.plugin.settings.timestampRelativeCutoffs,
+			hideRelativePredicate: this.plugin.settings.timestampRelativeHidePredicate === true,
 		};
 		// LivreUI: the flag is raised here rather than in the tree decoration
 		// because tree, grid and table each reach this formatter by a different
@@ -3151,6 +3481,7 @@ export class FilesExplorerPanel extends Component {
 				: 'specific',
 			window: this.plugin.settings.tooltipTimestampRelativeWindow ?? '24h',
 			cutoffs: this.plugin.settings.tooltipTimestampRelativeCutoffs,
+			hideRelativePredicate: this.plugin.settings.tooltipTimestampRelativeHidePredicate === true,
 			translate,
 		});
 
@@ -3674,18 +4005,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _hasActiveConstraints(): boolean {
+		const typeFilters = this.nodeTypeFilters.filter((t) => t !== 'folders-only');
 		return (
 			this.plugin.filterService.activeFilter.children.length > 0 ||
 			Boolean(
-				this.searchName || this.searchFolder || this.nodeTypeFilters.length > 0,
+				this.searchName || this.searchFolder || typeFilters.length > 0,
 			)
 		);
 	}
 
 	private _hasNarrowingConstraintsBeyondFolderScopes(): boolean {
+		const typeFilters = this.nodeTypeFilters.filter((t) => t !== 'folders-only');
 		return (
 			Boolean(
-				this.searchName || this.searchFolder || this.nodeTypeFilters.length > 0,
+				this.searchName || this.searchFolder || typeFilters.length > 0,
 			) ||
 			this._hasEnabledNonFolderIncludeFilter(
 				this.plugin.filterService.activeFilter,

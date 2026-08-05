@@ -434,6 +434,7 @@
 			presentation: PanelWidgetNode['presentation'] = 'button',
 			condensable = true,
 			available = true,
+			order?: number,
 		) => {
 			nodes.push({
 				id: panelWidgetNodeId(localId),
@@ -442,7 +443,7 @@
 				presentation,
 				label,
 				icon: iconName,
-				order: nodes.length,
+				order: order ?? nodes.length,
 				available,
 				condensable,
 				action: { id: localId },
@@ -453,14 +454,18 @@
 			append('tabs', currentTabsLabel, currentTabsIcon, 'tabs', false);
 		}
 		for (const action of headerActions) {
-			append(
-				`header:${action.id}`,
-				action.label,
-				action.icon,
-				'button',
-				true,
-				action.disabled !== true,
-			);
+			nodes.push({
+				id: panelWidgetNodeId(`header:${action.id}`),
+				nodeKind: 'action',
+				cellKind: 'action',
+				presentation: 'button',
+				label: action.label,
+				icon: action.icon,
+				order: action.order ?? 0,
+				available: !action.disabled,
+				action: { id: `header:${action.id}` },
+				condensable: false,
+			});
 		}
 		if (!showExplorerControls) return nodes;
 
@@ -482,27 +487,41 @@
 			'lucide-search',
 			'search',
 			false,
+			true,
+			10,
 		);
 		if (activeTab === 'files') {
 			append(
 				'reveal-active-file',
 				translate('filter.auto_reveal'),
 				'lucide-gallery-vertical',
+				'button',
+				true,
+				true,
+				20,
 			);
 		}
 		if (expansionActionAvailableForActiveTab) {
-			append('toggle-expansion', expansionLabel, expansionIcon, 'toggle');
+			append('toggle-expansion', expansionLabel, expansionIcon, 'toggle', true, true, 30);
 		}
 		if (activeTab === 'files' && createActionsPlacement === 'toolbar') {
 			append(
 				'create-file',
 				translate('folder.ctx.new_note'),
 				'lucide-file-plus',
+				'button',
+				true,
+				true,
+				40,
 			);
 			append(
 				'create-folder',
 				translate('folder.ctx.new_folder'),
 				'lucide-folder-plus',
+				'button',
+				true,
+				true,
+				41,
 			);
 		}
 		for (const command of commandActions) {
@@ -513,9 +532,10 @@
 				'button',
 				true,
 				command.available,
+				50,
 			);
 		}
-		return nodes;
+		return nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 	});
 	const panelWidgetProjection = $derived(
 		resolvePanelWidgetProjection({
@@ -1097,18 +1117,22 @@
 
 		// Rendering engines are the final section.
 		menu.addSeparator();
-		for (const option of minimalNativeViewModes) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate(option.labelKey))
-					.setIcon(option.icon)
-					.setChecked(activeView === option.id)
-					.setDisabled(option.locked ?? false);
-				if (!option.locked) {
-					item.onClick(() => selectNativeViewMode(option.id));
-				}
-			});
-		}
+		menu.addItem((submenuItem) => {
+			submenuItem.setTitle('Engines').setIcon('lucide-layout');
+			const submenu = (submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() || new Menu();
+			for (const option of minimalNativeViewModes) {
+				submenu.addItem((item) => {
+					item
+						.setTitle(translate(option.labelKey))
+						.setIcon(option.icon)
+						.setChecked(activeView === option.id)
+						.setDisabled(option.locked ?? false);
+					if (!option.locked) {
+						item.onClick(() => selectNativeViewMode(option.id));
+					}
+				});
+			}
+		});
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1619,12 +1643,22 @@
 				applySortState(tab, normalizedState);
 				if (interactionMode) applyInteractionMode(tab, interactionMode);
 			}
+			fileList.setInteractionModeChangeHandler?.((mode) => {
+				if (interactionModeByTab['files'] !== mode) {
+					interactionModeByTab['files'] = mode;
+				}
+			});
 		}
 		if (tab === 'props' && propExplorer) {
 			applyViewMode(tab, viewMode);
 			applyVisibleCells(tab, cells);
 			applySortState(tab, sortState);
 			if (interactionMode) applyInteractionMode(tab, interactionMode);
+			propExplorer.setInteractionModeChangeHandler?.((mode) => {
+				if (interactionModeByTab['props'] !== mode) {
+					interactionModeByTab['props'] = mode;
+				}
+			});
 		}
 		if (tab === 'tags' && tagsExplorer) {
 			applyViewMode(tab, viewMode);
@@ -1654,14 +1688,14 @@
 			? panelWidgetNodeOrder('search')
 			: undefined}
 		clearLabel={translate('filter.search_clear')}
-		categoryIcon={CATEGORY_ICONS[activeTab].length > 1
+		categoryIcon={searchTrailingActions.length > 0 ? undefined : (CATEGORY_ICONS[activeTab].length > 1
 			? currentCategoryIcon
-			: undefined}
+			: undefined)}
 		categoryLabel={CATEGORY_LABELS[activeTab]?.[
 			filtersSearchCategory[activeTab] ?? 0
 		] ?? translate('filter.search_mode')}
 		onCycleCategory={cycleSearchCategory}
-		createIcon={canCreateSearchTarget ? currentCreateIcon : undefined}
+		createIcon={searchTrailingActions.length > 0 ? undefined : (canCreateSearchTarget ? currentCreateIcon : undefined)}
 		createLabel={translate('filter.create')}
 		onCreateTarget={createSearchTarget}
 		onValueChange={setFiltersSearch}
@@ -1992,6 +2026,39 @@
 										}
 									}}
 									use:icon={command.icon ?? 'lucide-terminal'}
+								></div>
+							{/if}
+						{/each}
+						{#each headerActions as action (action.id)}
+							{#if toolbarNodeVisible(`header:${action.id}`)}
+								<div
+									class={headerActionClass}
+									class:is-disabled={action.disabled}
+									data-panel-widget-node-id={panelWidgetNodeId(
+										`header:${action.id}`,
+									)}
+									style:order={panelWidgetNodeOrder(`header:${action.id}`)}
+									role="button"
+									tabindex="0"
+									aria-label={action.label}
+									title={action.disabled
+										? translate('command.unavailable')
+										: (minimalStyle ? undefined : action.label)}
+									onclick={(event) => {
+										if (!action.disabled && action.onClick) {
+											action.onClick(event as unknown as MouseEvent);
+										}
+									}}
+									onkeydown={(e: KeyboardEvent) => {
+										if (
+											!action.disabled && action.onClick &&
+											(e.key === 'Enter' || e.key === ' ')
+										) {
+											e.preventDefault();
+											action.onClick(e as unknown as MouseEvent);
+										}
+									}}
+									use:icon={action.icon ?? 'lucide-square'}
 								></div>
 							{/if}
 						{/each}

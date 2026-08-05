@@ -11,6 +11,7 @@ import {
 	type OperationTarget,
 } from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
+import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
 	DeferredFilterClickCoordinator,
@@ -40,7 +41,7 @@ export interface PanelPluginCtx {
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
-		selectionCheckboxPosition?: 'start' | 'end';
+		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -207,8 +208,11 @@ export class TagsExplorerPanel extends Component {
 			label: 'Rename',
 			icon: 'lucide-pencil',
 			run: (ctx: MenuCtx) => {
-				this.editingId = ctx.node.id;
-				this._render();
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				else {
+					this.editingId = ctx.node.id as string;
+					this._render();
+				}
 			},
 		});
 
@@ -301,6 +305,7 @@ export class TagsExplorerPanel extends Component {
 		if (this.interactionMode !== 'select') return;
 		const position =
 			this.plugin.settings?.selectionCheckboxPosition ?? 'start';
+		if (position === 'hidden') return;
 		card.dataset.id = node.id;
 		const checkbox = card.createEl('input', {
 			type: 'checkbox',
@@ -792,7 +797,15 @@ export class TagsExplorerPanel extends Component {
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this.plugin.contextMenuService.openPanelMenu(
-						{ nodeType: 'tag', node, surface: 'panel' },
+						{
+							nodeType: 'tag',
+							node,
+							surface: 'panel',
+							invokeRename: (targetId: string) => {
+								this.editingId = targetId;
+								void this._render();
+							},
+						},
 						event,
 					);
 				},
@@ -836,6 +849,19 @@ export class TagsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			renderLabel: (row, node) => {
+				const queue = this.plugin.queueService.queue;
+				const target = renameTargetFromQueue(queue, node.id);
+				if (target) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-rename-preview',
+						text: target,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+				return false;
+			},
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
 				inclusive: activeFilterIds,
@@ -846,6 +872,7 @@ export class TagsExplorerPanel extends Component {
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
 			onRename: (id, newLabel) => {
+				newLabel = newLabel.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
 				// BT5-077: a rejected name keeps the inline editor open, so the
 				// typed text can be corrected instead of being discarded.
 				const check = validateTagName(newLabel);
@@ -878,7 +905,15 @@ export class TagsExplorerPanel extends Component {
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
-					{ nodeType: 'tag', node, surface: 'panel' },
+					{
+						nodeType: 'tag',
+						node,
+						surface: 'panel',
+						invokeRename: (targetId: string) => {
+							this.editingId = targetId;
+							void this._render();
+						},
+					},
 					e,
 				);
 			},
@@ -1274,6 +1309,14 @@ export class TagsExplorerPanel extends Component {
 						color: 'blue',
 						queueIndex: opIdx,
 					});
+					const match = op.details.match(/to "#(.*?)"/);
+					if (match && match[1]) {
+						// Tags can be nested, so we only want the leaf name for the label!
+						// But node.label contains just the leaf.
+						// match[1] contains the full path! We split it.
+						node.label = match[1].split('/').pop() ?? match[1];
+						node.cls = `${node.cls ?? ''} vaultman-rename-preview`.trim();
+					}
 				} else if (op.action === 'add') {
 					badges.push({
 						text: 'Add',

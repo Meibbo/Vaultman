@@ -71,6 +71,7 @@ export interface FormatTimestampOptions {
 	window?: TimestampRelativeWindow;
 	/** Partial overrides; unset fields use `DEFAULT_RELATIVE_TIME_CUTOFFS`. */
 	cutoffs?: Partial<RelativeTimeCutoffs>;
+	hideRelativePredicate?: boolean;
 	translate: TimestampTranslate;
 }
 
@@ -178,9 +179,10 @@ export function formatTimestampCell(
 		// Clamped so a shortened cutoff can never print "0 hours ago".
 		const count = Math.max(1, Math.floor(age / rung.unit));
 		if (rung.cutoff === null || count < Math.max(1, cutoffs[rung.cutoff])) {
-			return options.translate(count === 1 ? rung.singular : rung.plural, {
+			const text = options.translate(count === 1 ? rung.singular : rung.plural, {
 				count,
 			});
+			return options.hideRelativePredicate ? text.replace(/ ago$/i, '').replace(/^hace /i, '') : text;
 		}
 	}
 	// Unreachable: the year rung has no cutoff.

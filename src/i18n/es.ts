@@ -227,6 +227,10 @@ export const es: Record<string, string> = {
 	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
 	'settings.explorer_page': 'Panel: Explorer',
+	'settings.explorer_file_move_mode': 'Modo de IU para Move To',
+	'settings.explorer_file_move_mode.desc': 'Cómo se presenta la función de mover a carpeta en el File Scene.',
+	'settings.explorer_file_move_mode.inline': 'Inline (Modo Árbol)',
+	'settings.explorer_file_move_mode.modal': 'Modal Clásico',
 	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
@@ -597,6 +601,8 @@ export const es: Record<string, string> = {
 	'explorer.sort.alpha': 'Alfabético',
 	'explorer.sort.count': 'Por ocurrencias',
 	'explorer.sort.type': 'Por tipo',
+	'explorer.sort.type.props_only': 'Solo propiedades',
+	'explorer.sort.type.folders_only': 'Solo carpetas',
 	'explorer.sort.values': 'Por cantidad de valores',
 
 	// Explorer context menu — properties
@@ -611,10 +617,11 @@ export const es: Record<string, string> = {
 	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
 	'explorer.ctx.move_to_prop.cancel': 'Cancelar',
 	'explorer.move_to_prop.write.append': 'Agregar al destino',
-	'explorer.move_to_prop.write.replace': 'Reemplazar el destino',
-	'explorer.move_to_prop.origin.move': 'Quitar el valor original',
-	'explorer.move_to_prop.origin.copy': 'Conservar el valor original',
-	'explorer.move_to_prop.summary': 'Revisa este movimiento',
+	'explorer.move_to_prop.write.replace': 'Reemplazar en el destino',
+	'explorer.move_to_prop.origin.move': 'Mover',
+	'explorer.move_to_prop.origin.copy': 'Copiar',
+	'explorer.move_to_folder.rejected': 'No se puede mover una carpeta dentro de sí misma.',
+	'explorer.move_to_prop.summary': 'Revisar este movimiento',
 	'explorer.move_to_prop.summary.files': '{count} archivos',
 	'explorer.move_to_prop.summary.confirm': 'Ejecutar ahora',
 	'explorer.move_to_prop.rejected':

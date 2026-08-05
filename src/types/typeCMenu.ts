@@ -19,6 +19,7 @@ export interface MenuCtx {
 	file?: TFile;
 	hasViewFilters?: () => boolean;
 	clearViewFilters?: () => void;
+	invokeRename?: (id: string) => void;
 }
 
 export interface ActionDef {

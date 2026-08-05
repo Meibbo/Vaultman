@@ -41,7 +41,7 @@ export interface CoreMetadataTreeRenderOptions {
 	excludedFilterIds?: Set<string>;
 	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
-	selectionCheckboxPosition?: 'start' | 'end';
+	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	onSelectionToggle?: (id: string, selected: boolean) => void;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
@@ -293,6 +293,7 @@ export class CoreMetadataTreeView {
 		opts: CoreMetadataTreeRenderOptions,
 	): void {
 		if (!opts.onSelectionToggle) return;
+		if (opts.selectionCheckboxPosition === 'hidden') return;
 		const checkbox = container.createEl('input', {
 			type: 'checkbox',
 			cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${opts.selectionCheckboxPosition ?? 'start'}`,

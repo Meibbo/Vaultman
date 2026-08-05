@@ -316,6 +316,51 @@ export class FilterService extends Component {
 		if (changed) this.applyFilters();
 	}
 
+	/** Replace both possible tag polarities and publish one filter change. */
+	setFolderNodePolarity(folderPath: string, next: FilterPolarity): void {
+		let changed = this.removeRulesMatching(
+			this.activeFilter,
+			(rule) =>
+				(rule.filterType === 'folder' || rule.filterType === 'folder_exclude') &&
+				rule.values.includes(folderPath),
+		);
+
+		if (next !== 'none') {
+			this.activeFilter.children.push({
+				type: 'rule',
+				filterType: next === 'inclusive' ? 'folder' : 'folder_exclude',
+				property: '',
+				values: [folderPath],
+				id: Math.random().toString(36).substring(2, 11),
+				enabled: true,
+			});
+			changed = true;
+		}
+
+		if (changed) this.applyFilters();
+	}
+
+	applyIntent(
+		type: 'folder' | 'tag' | 'prop' | 'value',
+		property: string,
+		intent: 'include' | 'exclude' | 'remove',
+		value?: string,
+	): void {
+		const polarity =
+			intent === 'remove'
+				? 'none'
+				: intent === 'include'
+					? 'inclusive'
+					: 'exclusive';
+		if (type === 'folder') {
+			this.setFolderNodePolarity(property, polarity);
+		} else if (type === 'tag') {
+			this.setTagNodePolarity(property, polarity);
+		} else if (type === 'prop' || type === 'value') {
+			this.setPropertyNodePolarity(property, value, polarity);
+		}
+	}
+
 	/** Toggle-helper: remove either rule polarity matching tag value. */
 	removeNodeByTag(tagId: string): void {
 		this.setTagNodePolarity(tagId, 'none');
@@ -627,7 +672,7 @@ export class FilterService extends Component {
 	}
 
 	getFilterState(
-		type: 'tag' | 'prop' | 'value',
+		type: 'folder' | 'tag' | 'prop' | 'value',
 		property: string,
 		value?: string,
 	): 'included' | 'excluded' | 'none' {
@@ -644,6 +689,19 @@ export class FilterService extends Component {
 				else if (
 					type === 'tag' &&
 					node.filterType === 'not_has_tag' &&
+					node.values.includes(property)
+				) {
+					matched = true;
+					isExcluded = true;
+				} else if (
+					type === 'folder' &&
+					node.filterType === 'folder' &&
+					node.values.includes(property)
+				) {
+					matched = true;
+				} else if (
+					type === 'folder' &&
+					node.filterType === 'folder_exclude' &&
 					node.values.includes(property)
 				) {
 					matched = true;

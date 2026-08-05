@@ -37,7 +37,7 @@ export interface PanelPluginCtx {
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
-		selectionCheckboxPosition?: 'start' | 'end';
+		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		/** U121-003: how far a type-incompatibility warning decorates its node. */
 		propConflictWarnings?: PropConflictWarnings;
 		/** U121-003: what `Move to prop...` does with an unwilling destination. */
@@ -138,10 +138,11 @@ import {
 	replaceMatchingPropertyValue,
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
+import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
 	renderPropertyValue,
-	resolveCorePropertyWidget,
 } from '../../utils/renderPropertyValue';
+import { executeObsidianCommand } from '../../utils/obsidianCommands';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -177,6 +178,7 @@ export class PropsExplorerPanel extends Component {
 	private containerEl: HTMLElement;
 	private view: UnifiedTreeView;
 	private tableView: NodeTableView<PropMeta> | null = null;
+	private _editingId?: string;
 	private expandedIds = new Set<string>();
 	private searchTerm = '';
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
@@ -285,7 +287,9 @@ export class PropsExplorerPanel extends Component {
 			surfaces: ['panel'],
 			label: translate('explorer.ctx.move_to_prop.proceed'),
 			icon: 'lucide-check',
-			when: () => this._valueMoveProceedAvailable(),
+			when: (ctx) => 
+				this._valueMoveProceedAvailable() &&
+				this.valueMoveMode?.destinations.includes(ctx.node.id) === true,
 			run: () => this._proceedValueMove(),
 		});
 
@@ -314,7 +318,13 @@ export class PropsExplorerPanel extends Component {
 			label: (ctx) => `Rename "${ctx.node.label}"`,
 			icon: 'lucide-pencil',
 			when: (ctx) => !(ctx.node.meta as PropMeta).isValueNode,
-			run: (ctx) => this._renameProp(ctx.node.label),
+			run: (ctx) => {
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				else {
+					this._editingId = ctx.node.id as string;
+					void this._render();
+				}
+			},
 		});
 
 		svc.registerAction({
@@ -522,6 +532,11 @@ export class PropsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
 
+	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
+	setInteractionModeChangeHandler(handler?: (mode: InteractionMode) => void): void {
+		this.interactionModeChangeHandler = handler;
+	}
+
 	setInteractionMode(
 		mode: InteractionMode,
 		onContentSearch?: (query: string) => void,
@@ -530,6 +545,7 @@ export class PropsExplorerPanel extends Component {
 		this.onContentSearch = onContentSearch;
 		if (this.interactionMode === normalized) return;
 		this.interactionMode = normalized;
+		this.interactionModeChangeHandler?.(normalized);
 		this._render();
 	}
 
@@ -556,12 +572,18 @@ export class PropsExplorerPanel extends Component {
 		if (this.interactionMode !== 'select') return;
 		const position =
 			this.plugin.settings?.selectionCheckboxPosition ?? 'start';
+		if (position === 'hidden') return;
 		card.dataset.id = node.id;
-		const checkbox = card.createEl('input', {
+		const checkbox = createEl('input', {
 			type: 'checkbox',
 			cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,
 			attr: { 'aria-label': `Select ${node.label}` },
 		});
+		if (position === 'start') {
+			card.prepend(checkbox);
+		} else {
+			card.append(checkbox);
+		}
 		checkbox.checked = this.selectedNodeIds.has(node.id);
 		checkbox.addEventListener('click', (event) => event.stopPropagation());
 		checkbox.addEventListener('change', (event) => {
@@ -705,6 +727,7 @@ export class PropsExplorerPanel extends Component {
 		void category;
 		if (!propName) {
 			this.interactionMode = 'add';
+			this.interactionModeChangeHandler?.('add');
 			new Notice('Select a property to stage it');
 			return;
 		}
@@ -764,13 +787,13 @@ export class PropsExplorerPanel extends Component {
 					const ref = vault.on('rename', (file, oldPath) => {
 						if (file instanceof TFile) listener(file, oldPath);
 					});
-					return () => vault.offref(ref);
+					return () => workspace.offref(ref);
 				},
 				onDelete: (listener) => {
 					const ref = vault.on('delete', (file) => {
 						if (file instanceof TFile) listener(file);
 					});
-					return () => vault.offref(ref);
+					return () => workspace.offref(ref);
 				},
 			},
 			(path) => {
@@ -899,6 +922,7 @@ export class PropsExplorerPanel extends Component {
 			}),
 		);
 		this.interactionMode = 'select';
+		this.interactionModeChangeHandler?.('select');
 		void this._render();
 	}
 
@@ -913,6 +937,7 @@ export class PropsExplorerPanel extends Component {
 			'props',
 			restore.interactionMode,
 		);
+		this.interactionModeChangeHandler?.(this.interactionMode);
 		this.valueMoveSearchOpen = restore.searchOpen;
 		void this._render();
 	}
@@ -1318,7 +1343,15 @@ export class PropsExplorerPanel extends Component {
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
 		this.plugin.contextMenuService.openPanelMenu(
-			{ nodeType, node, surface: 'panel' },
+			{
+				nodeType,
+				node,
+				surface: 'panel',
+				invokeRename: (targetId: string) => {
+					this._editingId = targetId;
+					void this._render();
+				},
+			},
 			e,
 		);
 	}
@@ -1499,7 +1532,7 @@ export class PropsExplorerPanel extends Component {
 				: null;
 
 		const sorted = this._applySort(tree);
-		const coreMetadataReveal =
+		// 
 			this.viewMode === 'tree' && this.isRevealingActiveFile();
 		let nodesWithIcons = this._resolveIcons(
 			sorted,
@@ -1508,7 +1541,7 @@ export class PropsExplorerPanel extends Component {
 			searchFunc,
 			this.plugin.queueService.queue,
 		);
-		if (!this._nestedEnabled() && !coreMetadataReveal) {
+		if (!this._nestedEnabled()) {
 			nodesWithIcons = this._sortFlat(
 				flattenPropertyValues(nodesWithIcons, {
 					showParent: this.visibleCells.has('parent'),
@@ -1576,9 +1609,21 @@ export class PropsExplorerPanel extends Component {
 					void this._render();
 				},
 				badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
-				renderLabel: (container, node) =>
-					this._renderPropertyValueLabel(container, node),
+				renderLabel: (container, node) => {
+					const queue = this.plugin.queueService.queue;
+					const target = renameTargetFromQueue(queue, node.id);
+					if (target) {
+						const label = container.createSpan({
+							cls: 'vaultman-tree-label vaultman-rename-preview',
+							text: target,
+						});
+						if (node.labelColor) label.style.color = node.labelColor;
+						return true;
+					}
+					return this._renderPropertyValueLabel(container, node);
+				},
 			});
+			this._renderAddPropertyButtonIfNeeded();
 			return;
 		}
 
@@ -1588,28 +1633,19 @@ export class PropsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
-			renderLabel: (container, node) =>
-				this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>),
-			coreMetadata: coreMetadataReveal
-				? {
-						heading: translate('filter.prop_browser.title'),
-						addButtonLabel: translate('ops.add_property'),
-						propertyKey: (node: TreeNode) =>
-							(node.meta as PropMeta).propName,
-						propertyType: (node: TreeNode) =>
-							resolveCorePropertyWidget((node.meta as PropMeta).propType),
-						renderValue: (
-							container: HTMLElement,
-							node: TreeNode,
-							propertyAttributeContainer: HTMLElement,
-						) =>
-							this._renderPropertyValueLabel(
-								container,
-								node as TreeNode<PropMeta>,
-								propertyAttributeContainer,
-							),
-					}
-				: undefined,
+			renderLabel: (container, node) => {
+				const queue = this.plugin.queueService.queue;
+				const target = renameTargetFromQueue(queue, node.id);
+				if (target) {
+					const label = container.createSpan({
+						cls: 'vaultman-tree-label vaultman-rename-preview',
+						text: target,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+				return this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>);
+			},
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
 				inclusive: activeFilterIds,
@@ -1619,6 +1655,20 @@ export class PropsExplorerPanel extends Component {
 			statusDotLabel: () => translate('filter.active_descendant'),
 			warningIds,
 			searchHighlightIds: highlightIds,
+			editingId: this._editingId,
+			onRename: (id: string, newLabel: string) => {
+				this._editingId = undefined;
+				const node = this._findNode(id, tree);
+				if (node && !node.meta.isValueNode) {
+					newLabel = newLabel.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
+					void this._renamePropQueued(node.meta.propName, newLabel);
+				}
+				void this._render();
+			},
+			onCancelRename: () => {
+				this._editingId = undefined;
+				void this._render();
+			},
 			onToggle: (id: string) => {
 				this._toggleExpanded(id);
 				void this._render();
@@ -1656,6 +1706,30 @@ export class PropsExplorerPanel extends Component {
 			},
 			badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 		});
+		this._renderAddPropertyButtonIfNeeded();
+	}
+
+	private _renderAddPropertyButtonIfNeeded(): void {
+		if (!this.isRevealingActiveFile()) return;
+		const addButton = this.containerEl.createDiv({
+			cls: 'metadata-add-button text-icon-button',
+			attr: { tabIndex: 0 },
+		});
+		const addIcon = addButton.createSpan({ cls: 'text-button-icon' });
+		void import('obsidian').then(({ setIcon }) => setIcon(addIcon, 'lucide-plus'));
+		addButton.createSpan({
+			cls: 'text-button-label',
+			text: translate('ops.add_property'),
+		});
+		addButton.onclick = () => {
+			executeObsidianCommand(this.plugin.app, 'file-explorer:add-property');
+		};
+		addButton.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				addButton.click();
+			}
+		};
 	}
 
 	private _renderPropertyValueLabel(
@@ -1664,6 +1738,18 @@ export class PropsExplorerPanel extends Component {
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {
 		if (!node.meta.isValueNode || !this.visibleCells.has('format')) return false;
+
+		const queue = this.plugin.queueService.queue;
+		const target = renameTargetFromQueue(queue, node.id);
+		if (target) {
+			const label = container.createSpan({
+				cls: 'vaultman-tree-label vaultman-rename-preview',
+				text: target,
+			});
+			if (node.labelColor) label.style.color = node.labelColor;
+			return true;
+		}
+
 		if (node.meta.flatLabelPrefix) {
 			container.createSpan({
 				cls: 'vaultman-property-value-prefix',
@@ -1698,6 +1784,9 @@ export class PropsExplorerPanel extends Component {
 				});
 			},
 			onRenameValue: (next) => {
+				if (propType === 'text') {
+					next = next.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
+				}
 				// The context menu's Rename reaches the same vault path through a
 				// modal; inline editing is a second way to enter the value, not a
 				// second way to write it.
@@ -1775,10 +1864,21 @@ export class PropsExplorerPanel extends Component {
 		nodeTypeFilters: readonly string[],
 	): TreeNode<PropMeta>[] {
 		const selectedTypes = new Set(nodeTypeFilters);
-		return nodes.filter((node) => {
+		const showPropsOnly = selectedTypes.has('props-only');
+		const typeFiltersActive = nodeTypeFilters.filter((t) => t !== 'props-only').length > 0;
+
+		const filtered = nodes.filter((node) => {
 			if (node.meta.isValueNode) return false;
-			return selectedTypes.has(this._effectivePropType(node.meta));
+			if (typeFiltersActive && !selectedTypes.has(this._effectivePropType(node.meta))) {
+				return false;
+			}
+			return true;
 		});
+
+		if (showPropsOnly) {
+			return filtered.map((node) => ({ ...node, children: [] }));
+		}
+		return filtered;
 	}
 
 	private _nestedEnabled(): boolean {
@@ -1900,7 +2000,13 @@ export class PropsExplorerPanel extends Component {
 					propertiesTimeIndex,
 					propertiesTypeIndex,
 				),
-			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
+			(a, b, parent) => {
+				if (this._effectivePropType(parent.meta) !== 'list') {
+					// "el sort_option de 'values' debería ordenar los valores solamente de las propiedades tipo lista"
+					return 0;
+				}
+				return this._compareNodes(a, b, valuesSort, valuesTimeIndex);
+			}
 		);
 	}
 
@@ -2291,13 +2397,26 @@ export class PropsExplorerPanel extends Component {
 						color: 'red',
 						queueIndex: opIdx,
 					});
-				else if (action === 'rename' || action === 'set')
+				else if (action === 'rename' || action === 'set') {
 					badges.push({
 						text: 'Update',
 						icon: 'lucide-pencil',
 						color: 'blue',
 						queueIndex: opIdx,
 					});
+					if (action === 'rename') {
+						if (meta.isValueNode && op.value !== undefined) {
+							node.label = String(op.value);
+							node.cls = `${node.cls ?? ''} vaultman-rename-preview`.trim();
+						} else if (!meta.isValueNode) {
+							const match = op.details.match(/→ "(.*?)"/);
+							if (match && match[1]) {
+								node.label = match[1];
+								node.cls = `${node.cls ?? ''} vaultman-rename-preview`.trim();
+							}
+						}
+					}
+				}
 				else if (action === 'move')
 					badges.push({
 						text: 'Move',
@@ -2381,11 +2500,7 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	private async _renameProp(propName: string): Promise<void> {
-		const newName = await showInputModal(
-			this.plugin.app,
-			`Rename "${propName}" to:`,
-		);
+	private async _renamePropQueued(propName: string, newName: string): Promise<void> {
 		if (!newName) return;
 		const files = this._getFilesWithProp(propName);
 		this.plugin.queueService.addOrRun({
@@ -2504,7 +2619,7 @@ export class PropsExplorerPanel extends Component {
 		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
-			action: 'set',
+			action: 'rename',
 			details: label
 				? `Convert "${oldValue}" to ${label}`
 				: `Rename value "${oldValue}" → "${String(newValue)}"`,

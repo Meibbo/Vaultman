@@ -58,6 +58,23 @@ export class RelativeTimeCutoffsModal extends Modal {
 			'semesterFromQuarters',
 			'yearFromSemesters',
 		];
+
+		const hidePredicateKey = this.target === 'timestampRelativeCutoffs' 
+			? 'timestampRelativeHidePredicate' 
+			: 'tooltipTimestampRelativeHidePredicate';
+
+		new Setting(contentEl)
+			.setName('Hide relative time predicate')
+			.setDesc("Hides the 'ago' / 'hace' wording from relative timestamps (e.g. '5 minutes').")
+			.addToggle((toggle) => 
+				toggle
+					.setValue(this.host.settings[hidePredicateKey] as boolean)
+					.onChange(async (value) => {
+						(this.host.settings[hidePredicateKey] as boolean) = value;
+						await this.host.saveSettings();
+					})
+			);
+
 		for (const field of fields) {
 			const fallback = DEFAULT_RELATIVE_TIME_CUTOFFS[field];
 			new Setting(contentEl)

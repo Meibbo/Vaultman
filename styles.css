@@ -7229,3 +7229,6 @@ body {
   --vaultman-rainbow-pastel-9: hsl(300, 100%, 89%);
   --vaultman-rainbow-pastel-10: hsl(324, 100%, 83%);
 }
+
+.vaultman-tree-rename-rich-btn { margin-left: var(--size-4-2); opacity: 0.6; }
+.vaultman-tree-rename-rich-btn:hover { opacity: 1; }

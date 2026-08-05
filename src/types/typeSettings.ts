@@ -82,6 +82,8 @@ export interface VaultmanSettings {
 	explorerSearchHighlights: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
+	/** How to present the File Move UI: inline within the explorer or in a modal */
+	explorerFileMoveMode: 'inline' | 'modal';
 	/** Position of the operations panel */
 	operationsPanelPosition: 'right' | 'bottom' | 'replace';
 	/** Path to last .base file used with Vaultman */
@@ -118,6 +120,7 @@ export interface VaultmanSettings {
 	 * `DEFAULT_RELATIVE_TIME_CUTOFFS`.
 	 */
 	timestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
+	timestampRelativeHidePredicate: boolean;
 	/**
 	 * U121-027 (QA 2026-07-31): the hover-info tooltip entries carry their own
 	 * relative-time options — the Cells-section trio above only shapes the
@@ -126,6 +129,7 @@ export interface VaultmanSettings {
 	tooltipTimestampRelative: boolean;
 	tooltipTimestampRelativeWindow: TimestampRelativeWindow;
 	tooltipTimestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
+	tooltipTimestampRelativeHidePredicate: boolean;
 	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
@@ -232,7 +236,7 @@ export interface VaultmanSettings {
 	/** BT5-015: put the node icon in the caret slot when nothing can expand */
 	iconInCaretSlot: boolean;
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
-	selectionCheckboxPosition: 'start' | 'end';
+	selectionCheckboxPosition: 'start' | 'end' | 'hidden';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
 	filesContextMenuLayout: FilesMenuItem[];
 	/** BT5-036: configured layouts for the other node context menus, by kind. */
@@ -324,6 +328,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,
 	explorerOperationScope: 'auto',
+	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',
 	basesOpenMode: 'last-used',
@@ -336,9 +341,11 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',
 	timestampRelativeCutoffs: {},
+	timestampRelativeHidePredicate: false,
 	tooltipTimestampRelative: true,
 	tooltipTimestampRelativeWindow: '24h',
 	tooltipTimestampRelativeCutoffs: {},
+	tooltipTimestampRelativeHidePredicate: false,
 	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',

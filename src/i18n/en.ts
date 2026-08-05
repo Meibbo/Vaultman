@@ -229,6 +229,10 @@ export const en: Record<string, string> = {
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
 	'settings.explorer_page': 'Panel: Explorer',
+	'settings.explorer_file_move_mode': 'File Move UI Mode',
+	'settings.explorer_file_move_mode.desc': 'How the move-to-folder feature is presented in the File Scene.',
+	'settings.explorer_file_move_mode.inline': 'Inline (Tree Mode)',
+	'settings.explorer_file_move_mode.modal': 'Classic Modal',
 	'settings.cells_section': 'Cells',
 	'settings.explorer_page.desc':
 		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
@@ -248,11 +252,12 @@ export const en: Record<string, string> = {
 	'settings.icon_in_caret_slot': 'Icon in the caret slot',
 	'settings.icon_in_caret_slot.desc':
 		'Nodes that show an icon and reserve no caret draw it in the caret column instead of before the label, so every label lines up with the nodes that have no icon.',
-	'settings.selection_checkbox_position': 'Selection checkbox position',
+	'settings.selection_checkbox_position': 'Selection Checkbox position',
 	'settings.selection_checkbox_position.desc':
-		'Place the select-mode checkbox cell at the start or end of explorer nodes.',
-	'settings.selection_checkbox_position.start': 'Start / left',
-	'settings.selection_checkbox_position.end': 'End / right',
+		'Where to display the selection checkbox on the file or item.',
+	'settings.selection_checkbox_position.start': 'Start',
+	'settings.selection_checkbox_position.end': 'End',
+	'settings.selection_checkbox_position.hidden': 'Hidden',
 	'settings.order_cells_by_activation': 'Order cells by activation',
 	'settings.order_cells_by_activation.desc':
 		'Render cells in the order you switch them on instead of a fixed order.',
@@ -586,6 +591,8 @@ export const en: Record<string, string> = {
 	'explorer.sort.alpha': 'Alphabetical',
 	'explorer.sort.count': 'By occurrence',
 	'explorer.sort.type': 'By type',
+	'explorer.sort.type.props_only': 'Properties only',
+	'explorer.sort.type.folders_only': 'Folders only',
 	'explorer.sort.values': 'By number of values',
 
 	// Explorer context menu — properties
@@ -603,6 +610,7 @@ export const en: Record<string, string> = {
 	'explorer.move_to_prop.write.replace': 'Replace the destination',
 	'explorer.move_to_prop.origin.move': 'Remove the original value',
 	'explorer.move_to_prop.origin.copy': 'Keep the original value',
+	'explorer.move_to_folder.rejected': 'Cannot move a folder into itself.',
 	'explorer.move_to_prop.summary': 'Review this move',
 	'explorer.move_to_prop.summary.files': '{count} files',
 	'explorer.move_to_prop.summary.confirm': 'Run now',

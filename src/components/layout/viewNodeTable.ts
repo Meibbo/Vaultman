@@ -42,7 +42,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	expandedIds: Set<string>;
 	visibleCells: Set<string>;
 	selectedIds?: Set<string>;
-	selectionCheckboxPosition?: 'start' | 'end';
+	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	onSelectionToggle?: (id: string, selected: boolean) => void;
 	activeFilterIds?: Set<string>;
 	excludedFilterIds?: Set<string>;
@@ -555,7 +555,7 @@ export class NodeTableView<TMeta = unknown> {
 		for (const column of layout.columns) {
 			this._renderCell(row, node, column, opts);
 		}
-		if (opts.onSelectionToggle) {
+		if (opts.onSelectionToggle && opts.selectionCheckboxPosition !== 'hidden') {
 			const checkbox = row.createEl('input', {
 				type: 'checkbox',
 				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${opts.selectionCheckboxPosition ?? 'start'}`,

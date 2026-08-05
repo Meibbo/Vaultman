@@ -1,7 +1,7 @@
 import type { NodeBadge } from '../types/typeTree';
 import type { PendingChange } from '../types/typeOps';
 
-function renameTargetForPath(
+export function renameTargetForPath(
 	change: PendingChange,
 	path: string,
 ): string | undefined {
@@ -9,9 +9,35 @@ function renameTargetForPath(
 		if (change.sourcePath !== path) return undefined;
 		return change.targetPath.split('/').pop() ?? change.targetPath;
 	}
+	if (change.type === 'tag' && change.action === 'rename') {
+		if (change.tag !== path) return undefined;
+		const match = change.details.match(/to "#(.*?)"/);
+		return match ? match[1] : undefined;
+	}
+	if (change.type === 'property' && change.action === 'rename') {
+		if (change.oldValue !== undefined) {
+			if (path !== `${change.property}::${change.oldValue}`) return undefined;
+			return change.value;
+		} else {
+			if (change.property !== path) return undefined;
+			const match = change.details.match(/→ "(.*?)"/);
+			return match ? match[1] : undefined;
+		}
+	}
 	if (change.type !== 'file_rename') return undefined;
 	if (!change.files.some((file) => file.path === path)) return undefined;
 	return change.newName;
+}
+
+export function renameTargetFromQueue(
+	queue: readonly PendingChange[],
+	path: string,
+): string | undefined {
+	for (const change of queue) {
+		const target = renameTargetForPath(change, path);
+		if (target) return target;
+	}
+	return undefined;
 }
 
 export function queuedRenameBadgeForPath(

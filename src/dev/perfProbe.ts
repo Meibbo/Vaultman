@@ -776,13 +776,11 @@ function flickeringRows(
 }
 
 function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport): void {
-	const overlay =
-		doc.querySelector<HTMLElement>('.vm-scroll-smoke-overlay') ?? doc.createElement('div');
-	if (!overlay.isConnected) {
-		overlay.className = 'vm-scroll-smoke-overlay';
-		overlay.setAttribute('role', 'status');
-		doc.body.appendChild(overlay);
-	}
+	const existing = doc.querySelector<HTMLElement>('.vm-scroll-smoke-overlay');
+	const overlay = existing ?? doc.body.createDiv({
+		cls: 'vm-scroll-smoke-overlay',
+		attr: { role: 'status' },
+	});
 	const latestSample = report.samples.at(-1);
 	const sampleStatus = [
 		formatScrollBurstIndexRange(latestSample),
