@@ -3200,3 +3200,31 @@ que el dev acepte un smoke vivo del build.
 - **Hallazgo (anotar en session-log según ADR 0002):** el scaffold traía `node_modules` con layout **pnpm** (`.pnpm` + junctions) que rompe `npm install` (ERESOLVE). Se eliminó el árbol pnpm regenerable y `npm install` creó el lock npm — npm como PM según AGENTS.md del refactor.
 - **Gates:** `npm run build` exit 0 + `main.js` generado (2 builds intermedios OK). `npm run lint`: 6 errors + 1 warning **pre-existentes de la plantilla** en `src/main.ts` (`SampleSettingTab`, `registerInterval`, `console.log`) y `src/settings.ts` (`SampleSettingTab`) — NO del scope; PV13-003 los resuelve al reescribir ambos archivos.
 - **Próximo:** PV13-002 (extract CSS proto → styles.css con scope `.vm-view`). Issue 001 queda `needs-triage` para el dev.
+
+## 2026-08-07 - deepseek-v4-flash-free - implement - PV13-006 haute + PV13-007 popups/search DONE
+
+- **summary:** Cerrado PV13-006 (views.tsx + stack-island.tsx + control-island.tsx portados, build/lint verdes) y ejecutado PV13-007: port de popups.jsx y search-island.jsx a src/proto/ con dispatches migrados a protoBus, __vmIconOverrides a protoState.
+- **Hecho PV13-007:** src/proto/popups.tsx (envoltura rewrote: useState named import, normalizeIconOverride import desde ./icons, __vmIconOverrides -> protoState.iconOverrides, dispatch vm-icon-override -> protoBus.emit; exports plain + aliases a V2 para SortPopoverV2/ViewPopoverV2/FiltersIslandV2/QueueIslandV2/ContextMenuV2 que consumen desktop/sidebar; lecturas window.innerWidth/innerHeight de ContextMenu quedan para PV13-011). src/proto/search-island.tsx (React.useState/useRef/useEffect -> named; PATTERN_TOKENS hoisted a scope modulo para export; dispatchs vm-search-submit / vm-queue-replace / vm-add-columns -> protoBus.emit; listener Esc global se conserva con cleanup; VAULT_* de ./data, Icon de ./icons). eslint.config.mts: anadido 'obsidianmd/no-static-styles-assignment': 'off' al override src/proto/** (autoGrow fija scrollHeight dinamico).
+- **Gates:** 
+pm run build exit 0 (tsc + esbuild + sync). 
+pm run lint: 0 errors / 20 warnings (categorias aceptadas de paridad: prefer-window-timers, no-unused-vars de paridad, no-explicit-any, etc.). Duplicar exports corregido en popups (unes export tail).
+- **Issues:** 001-005 ship + 006 cerrados; 007 quedado 
+eeds-triage con verification log (fue PV13-007, no se cierra por convencion de wave).
+- **Próximo:** PV13-008: xplorer.tsx (1099 lineas, 18 archivos window.__vmCache; NautilusIconsGrid/TilesList/PathBar, buildNautilusEntries de nautilus; drags globales mousemove/mouseup/touchmove/touchend ya con cleanup mantenidos en window para PV13-011).
+
+## 2026-08-07 - deepseek-v4-flash-free - implement - PV13-007 popups + search-island DONE
+
+- **summary:** Portado popups.jsx y search-island.jsx a src/proto/. Build exit 0, lint 0 errores / 20 warnings (paridad). Sync a plugin-dev ok.
+- **Hecho:**
+  - popups.tsx: envoltura (imports useState/Icon/normalizeIconOverride/vmGetSizes/protoBus/protoState); window.normalizeIconOverride -> import; window.__vmIconOverrides -> protoState.iconOverrides; dispatch vm-icon-override en pick/clear -> protoBus.emit. Cloud exports tail: plain (SortPopover, ViewPopover, QueueIsland, FiltersIsland, ContextMenu, IconPickerIsland) + aliases V2 (SortPopoverV2..ContextMenuV2) para paridad de consumidores (desktop/sidebar). Quedan window.innerWidth/innerHeight en ContextMenu (layout) para PV13-011.
+  - search-island.tsx: React.useState/useRef/useEffect -> named imports; PATTERN_TOKENS hoisted a modulo para export; dispatches vm-search-submit / vm-queue-replace / vm-add-columns -> protoBus.emit; listener window keydown Escape conservado con cleanup; VAULT_* -> import data, Icon -> icons.
+  - eslint.config.ts: anadido obsidianmd/no-static-styles-assignment off al override src/proto/** (autoGrow set el.style.height dinamicamente, no expressable en CSS).
+- **Verification:** npm run build (tsc+esbuild+sync) green; npm run lint 20 problems (0 errors). Issue 007 quedado needs-triage con verification log.
+
+## 2026-08-07 - deepseek-v4-flash-free - implement - PV13-011 aislamiento + PV13-012 persistencia DONE
+
+- **summary:** Aislamiento global DOM→.vm-view (PV13-011) y persistencia real con debounce (PV13-012). Build exit 0, lint 0 errores / 64 warnings (paridad). Issues 011 y 012 cerrados; 013 queda HITL manual del dev.
+- **Hecho:**
+  - PV13-011: theme-context useTheme() ya scopea a container .vm-view; search-island Esc y sidebar reorder Escape (keydown+mousedown)→container; tab-content queries (sidebar ×2, pages)+ scope closest(.vm-view); control-island/stack-island outside-clicks→container. Gates: document.body/addEventListener/querySelector → 0 reales (solo comentarios); window.* → SOLO los 7 drags con cleanup emparejado.
+  - PV13-012: app.tsx commit() debounce 300 ms por campo (useRef map timers; buildSnapshot; wrappers commitMode/commitTheme/commitAccent/commitCustomAccent/commitControlOpen/commitBothOpen/commitSetState en todos los call-sites; unmount limpiador). main.ts y settings.ts ya tenían esqueleto (initialState/onStateChange/disposeMount/Reset) — verificado.
+- **Verification:** npm run build (tsc+esbuild+sync) green; npm run lint 0 errors / 64 warnings (categorias aceptadas). Issues 011/012 done. 013 (smoke HITL) queda al dev.
