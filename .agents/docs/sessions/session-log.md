@@ -3192,3 +3192,11 @@ debilitar, añadiendo aserción extra de que el adapter pasa `propertyKey`.
 **Pendiente U121-003:** 9.4 (política de mutación: queued semantics, live order),
 6.4 (matriz viva), 6.5 (review + aceptación del dev). U121-003 no cierra hasta
 que el dev acepte un smoke vivo del build.
+
+## 2026-08-07 - deepseek-v4-flash-free - implement - PV13-001 toolchain + identidad DONE
+
+- **summary:** Executado `next-agent-prompt.md` (PV13-001, primer agente de la wave v13). Toolchain + identidad del plugin en `C:\Users\vic_A\Desktop\refactor` completos y verificados con build.
+- **Hecho:** `npm install react@18.3.1 react-dom@18.3.1` → `dependencies` con caret + `package-lock.json` creado (317 paquetes). Identidad renombrada `vaultman-prototype@0.1.0` en package.json/manifest.json (id `vaultman-prototype`, author Meibbo, isDesktopOnly false)/versions.json `{ "0.1.0": "1.0.0" }`. esbuild.config.mjs: `loader {'.jsx','.tsx'}` + `jsx:'automatic'`. tsconfig.json: `jsx: react-jsx`, `lib` +`DOM.Iterable`, `types:[node]`, include `src/**/*.tsx`. `src/` intacto (PV13-003 lo reescribe). pnpm-lock.yaml intacto.
+- **Hallazgo (anotar en session-log según ADR 0002):** el scaffold traía `node_modules` con layout **pnpm** (`.pnpm` + junctions) que rompe `npm install` (ERESOLVE). Se eliminó el árbol pnpm regenerable y `npm install` creó el lock npm — npm como PM según AGENTS.md del refactor.
+- **Gates:** `npm run build` exit 0 + `main.js` generado (2 builds intermedios OK). `npm run lint`: 6 errors + 1 warning **pre-existentes de la plantilla** en `src/main.ts` (`SampleSettingTab`, `registerInterval`, `console.log`) y `src/settings.ts` (`SampleSettingTab`) — NO del scope; PV13-003 los resuelve al reescribir ambos archivos.
+- **Próximo:** PV13-002 (extract CSS proto → styles.css con scope `.vm-view`). Issue 001 queda `needs-triage` para el dev.
