@@ -3234,3 +3234,7 @@ eeds-triage con verification log (fue PV13-007, no se cierra por convencion de w
 - **summary:** Dev validó el smoke HITL (PV13-013) en Obsidian el 2026-08-08 sin desviaciones. Wave PV13 cerrada: issues 007-010 documentados como done (port ya existía en código con build verde; se añadieron verification logs, checkboxes y notas de desviación) y 013 done (HITL).
 - **Hecho:** 008: buildCtxItems local (no export) - desviación documentada; drags window 224-225/1247 conservados; protoBus vp13-* verificado coherente. 009: sidebar/desktop exports completos. 010: mountPrototype + main.ts wiring verificado. Index wave - con estado de cierre.
 - **Deuda registrada:** 5 artefactos de verificación en raíz de REF (sim.cjs, sim.js, test.cjs, src/data.ts, src/state.ts) rompen el lint global fuera del override src/proto/** - no afectan al bundle; limpiar o ignorar en próximo pase toolchain.
+
+## 2026-08-08 - opencode-m2 - update - PV13 deuda lint resuelta: artefactos ignorados en eslint config
+
+- **Hecho:** Añadidos los 5 artefactos de verificación (sim.cjs, sim.js, test.cjs, src/data.ts, src/state.ts) a globalIgnores de eslint.config.mts en REF (decisión del dev: ignorar, no borrar). Lint global pasa de 84 errors/53 warnings a 1 error/53 warnings; el único error restante es pre-existente de la plantilla en src/settings.ts:71 (minAppVersion 1.7.2 vs Plugin.settings 1.13.0, documentado en PV13-001). Build no afectado.
