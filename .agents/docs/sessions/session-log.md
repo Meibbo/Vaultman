@@ -3228,3 +3228,9 @@ eeds-triage con verification log (fue PV13-007, no se cierra por convencion de w
   - PV13-011: theme-context useTheme() ya scopea a container .vm-view; search-island Esc y sidebar reorder Escape (keydown+mousedown)→container; tab-content queries (sidebar ×2, pages)+ scope closest(.vm-view); control-island/stack-island outside-clicks→container. Gates: document.body/addEventListener/querySelector → 0 reales (solo comentarios); window.* → SOLO los 7 drags con cleanup emparejado.
   - PV13-012: app.tsx commit() debounce 300 ms por campo (useRef map timers; buildSnapshot; wrappers commitMode/commitTheme/commitAccent/commitCustomAccent/commitControlOpen/commitBothOpen/commitSetState en todos los call-sites; unmount limpiador). main.ts y settings.ts ya tenían esqueleto (initialState/onStateChange/disposeMount/Reset) — verificado.
 - **Verification:** npm run build (tsc+esbuild+sync) green; npm run lint 0 errors / 64 warnings (categorias aceptadas). Issues 011/012 done. 013 (smoke HITL) queda al dev.
+
+## 2026-08-08 - opencode-m2 - update - PV13 wave CERRADA: smoke dev OK + issues 007-013 done
+
+- **summary:** Dev validó el smoke HITL (PV13-013) en Obsidian el 2026-08-08 sin desviaciones. Wave PV13 cerrada: issues 007-010 documentados como done (port ya existía en código con build verde; se añadieron verification logs, checkboxes y notas de desviación) y 013 done (HITL).
+- **Hecho:** 008: buildCtxItems local (no export) - desviación documentada; drags window 224-225/1247 conservados; protoBus vp13-* verificado coherente. 009: sidebar/desktop exports completos. 010: mountPrototype + main.ts wiring verificado. Index wave - con estado de cierre.
+- **Deuda registrada:** 5 artefactos de verificación en raíz de REF (sim.cjs, sim.js, test.cjs, src/data.ts, src/state.ts) rompen el lint global fuera del override src/proto/** - no afectan al bundle; limpiar o ignorar en próximo pase toolchain.

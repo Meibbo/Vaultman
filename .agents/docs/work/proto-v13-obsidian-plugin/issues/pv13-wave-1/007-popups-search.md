@@ -1,16 +1,16 @@
 ---
 title: "PV13-007 — popups.tsx, search-island.tsx"
 type: issue
-status: needs-triage
+status: done
 lifecycle: active
 priority: P1
 execution: AFK
 parent: "[[docs/work/proto-v13-obsidian-plugin/issues/pv13-wave-1/index|PV13 wave 1]]"
 dateCreated: 2026-08-07T00:00:00
-dateUpdated: 2026-08-07T02:40:00
-updated_by: deepseek-v4-flash-free
+dateUpdated: 2026-08-08T00:00:00
+updated_by: opencode-m2
 created_by: deepseek-v4-flash-free
-tags: [agent/issue, triage/needs-triage, initiative/proto-v13-obsidian-plugin, modules, popups, search]
+tags: [agent/issue, initiative/proto-v13-obsidian-plugin, modules, popups, search]
 ---
 
 # PV13-007 — `popups.tsx`, `search-island.tsx`
@@ -19,9 +19,9 @@ tags: [agent/issue, triage/needs-triage, initiative/proto-v13-obsidian-plugin, m
 
 Portar `popups.jsx` (popovers, IconPicker) y `search-island.jsx` (buscador y dispatch de `vm-search-submit`/`vm-queue-replace`) al árbol `src/proto/`.
 
-## Done — ambos módulos portados y gate verde
+## Done — ambos módulos portados y gate verde + smoke del dev
 
-`popups.tsx` y `search-island.tsx` creados en `src/proto/`. Build exit 0; lint 0 errores / 20 warnings (categorías aceptadas de paridad). Sync a vault dev ok.
+`popups.tsx` y `search-island.tsx` creados en `src/proto/`. Build exit 0; lint 0 errores / 20 warnings (categorías aceptadas de paridad). Sync a vault dev ok. Smoke del dev en Obsidian aprobado (2026-08-08): popovers/buscador funcionales.
 
 ## Acceptance criteria
 
@@ -34,6 +34,7 @@ Portar `popups.jsx` (popovers, IconPicker) y `search-island.jsx` (buscador y dis
 
 - `npm run build` → tsc + esbuild + `scripts/sync-test-build.mjs` → Synced ok.
 - `npm run lint` → `✖ 20 problems (0 errors, 20 warnings)`; `--fix` no aplicado (paridad 1:1).
+- Smoke dev 2026-08-08: OK (popups/buscador operativos en Obsidian).
 
 ## Notes
 
