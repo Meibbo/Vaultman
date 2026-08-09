@@ -1423,7 +1423,7 @@
 	function nodeTypeOptionsForActiveTab(): readonly NodeTypeMenuOption[] {
 		if (activeTab === 'files') {
 			return [
-				{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
+				...NODE_TYPE_MENU_OPTIONS.files,
 				...(fileList?.getFileTypeOptions() ?? []),
 			];
 		}
