@@ -2902,7 +2902,9 @@ body.vaultman-bases-column-separators table th {
   justify-content: center;
   flex-wrap: nowrap;
   gap: 2px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
   min-width: 0;
   overflow: hidden;
   background: transparent;
@@ -3157,7 +3159,7 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-filters-header-search-pill--inline {
-  flex: 0 1 220px;
+  flex: 0 1 clamp(10rem, 18rem, 25rem);
 }
 
 .vaultman-filters-header-search-pill--row {
@@ -6208,8 +6210,6 @@ button.vaultman-content-scope-hint:focus-visible {
   position: relative;
   overflow: visible;
   width: 100%;
-  max-width: 520px;
-  margin-inline: auto;
 }
 
 /* Slide-in animations for Level 4 popups */

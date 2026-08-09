@@ -502,7 +502,15 @@
 			);
 		}
 		if (expansionActionAvailableForActiveTab) {
-			append('toggle-expansion', expansionLabel, expansionIcon, 'toggle', true, true, 30);
+			append(
+				'toggle-expansion',
+				expansionLabel,
+				expansionIcon,
+				'toggle',
+				true,
+				true,
+				30,
+			);
 		}
 		if (activeTab === 'files' && createActionsPlacement === 'toolbar') {
 			append(
@@ -1119,7 +1127,9 @@
 		menu.addSeparator();
 		menu.addItem((submenuItem) => {
 			submenuItem.setTitle('Engines').setIcon('lucide-layout');
-			const submenu = (submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() || new Menu();
+			const submenu =
+				(submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
+				new Menu();
 			for (const option of minimalNativeViewModes) {
 				submenu.addItem((item) => {
 					item
@@ -1688,14 +1698,20 @@
 			? panelWidgetNodeOrder('search')
 			: undefined}
 		clearLabel={translate('filter.search_clear')}
-		categoryIcon={searchTrailingActions.length > 0 ? undefined : (CATEGORY_ICONS[activeTab].length > 1
-			? currentCategoryIcon
-			: undefined)}
+		categoryIcon={searchTrailingActions.length > 0
+			? undefined
+			: CATEGORY_ICONS[activeTab].length > 1
+				? currentCategoryIcon
+				: undefined}
 		categoryLabel={CATEGORY_LABELS[activeTab]?.[
 			filtersSearchCategory[activeTab] ?? 0
 		] ?? translate('filter.search_mode')}
 		onCycleCategory={cycleSearchCategory}
-		createIcon={searchTrailingActions.length > 0 ? undefined : (canCreateSearchTarget ? currentCreateIcon : undefined)}
+		createIcon={searchTrailingActions.length > 0
+			? undefined
+			: canCreateSearchTarget
+				? currentCreateIcon
+				: undefined}
 		createLabel={translate('filter.create')}
 		onCreateTarget={createSearchTarget}
 		onValueChange={setFiltersSearch}
@@ -2026,39 +2042,6 @@
 										}
 									}}
 									use:icon={command.icon ?? 'lucide-terminal'}
-								></div>
-							{/if}
-						{/each}
-						{#each headerActions as action (action.id)}
-							{#if toolbarNodeVisible(`header:${action.id}`)}
-								<div
-									class={headerActionClass}
-									class:is-disabled={action.disabled}
-									data-panel-widget-node-id={panelWidgetNodeId(
-										`header:${action.id}`,
-									)}
-									style:order={panelWidgetNodeOrder(`header:${action.id}`)}
-									role="button"
-									tabindex="0"
-									aria-label={action.label}
-									title={action.disabled
-										? translate('command.unavailable')
-										: (minimalStyle ? undefined : action.label)}
-									onclick={(event) => {
-										if (!action.disabled && action.onClick) {
-											action.onClick(event as unknown as MouseEvent);
-										}
-									}}
-									onkeydown={(e: KeyboardEvent) => {
-										if (
-											!action.disabled && action.onClick &&
-											(e.key === 'Enter' || e.key === ' ')
-										) {
-											e.preventDefault();
-											action.onClick(e as unknown as MouseEvent);
-										}
-									}}
-									use:icon={action.icon ?? 'lucide-square'}
 								></div>
 							{/if}
 						{/each}
