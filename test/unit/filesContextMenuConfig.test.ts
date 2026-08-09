@@ -79,9 +79,9 @@ describe('BT5-018 Files context menu configuration', () => {
 			'file.open_tab',
 		]);
 		// A saved hidden flag survives the merge.
-		expect(
-			merged.find((item) => item.id === 'file.open_tab'),
-		).toMatchObject({ visible: false });
+		expect(merged.find((item) => item.id === 'file.open_tab')).toMatchObject({
+			visible: false,
+		});
 	});
 
 	it('loads a config whose ids were retired without breaking', () => {
@@ -127,17 +127,17 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(submenu).toMatchObject({ kind: 'submenu', label: 'Convert' });
 
 		// An empty submenu is dropped; a populated one survives.
-		expect(normalizeFilesMenuLayout(layout).map((item) => item.id)).not.toContain(
-			submenu?.id,
-		);
+		expect(
+			normalizeFilesMenuLayout(layout).map((item) => item.id),
+		).not.toContain(submenu?.id);
 		const populated = setFilesMenuParent(
 			layout,
 			'file.rename',
 			submenu?.id ?? '',
 		);
-		expect(normalizeFilesMenuLayout(populated).map((item) => item.id)).toContain(
-			submenu?.id,
-		);
+		expect(
+			normalizeFilesMenuLayout(populated).map((item) => item.id),
+		).toContain(submenu?.id);
 	});
 
 	it('detaches its children when a submenu is removed', () => {
@@ -157,7 +157,9 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(actionIds(moved)[0]).toBe('file.delete');
 		expect(moved).toHaveLength(layout.length);
 		// An unknown target leaves the list untouched.
-		expect(reorderFilesMenuItems(layout, 'file.delete', 'nope')).toEqual(layout);
+		expect(reorderFilesMenuItems(layout, 'file.delete', 'nope')).toEqual(
+			layout,
+		);
 	});
 
 	it('projects exactly what the menu should emit', () => {
@@ -180,10 +182,9 @@ describe('BT5-018 Files context menu configuration', () => {
 			'divider',
 			'action',
 		]);
-		expect(narrow.map((step) => step.id).filter((id) => !id.startsWith('divider:'))).toEqual([
-			'file.open_tab',
-			'folder.delete',
-		]);
+		expect(
+			narrow.map((step) => step.id).filter((id) => !id.startsWith('divider:')),
+		).toEqual(['file.open_tab', 'folder.delete']);
 	});
 
 	it('derives a stable, collision-proof id for an intercepted item', () => {
@@ -212,11 +213,7 @@ describe('BT5-018 Files context menu configuration', () => {
 			{ kind: 'action', id: known, visible: true },
 			{ kind: 'action', id: 'file.delete', visible: true },
 		];
-		const merged = mergeFilesMenuLayout(saved, [
-			known,
-			fresh,
-			'file.delete',
-		]);
+		const merged = mergeFilesMenuLayout(saved, [known, fresh, 'file.delete']);
 		expect(actionIds(merged)[0]).toBe(fresh);
 	});
 
@@ -237,13 +234,14 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(contextMenuSource).toContain('nativePanelActionId(title)');
 		// Native rows in the settings page carry no drag grip.
 		expect(settingsSource).toContain('if (!isNative) {');
-		expect(settingsSource).toContain(
-			"settings.files_context_menu.intercepted",
-		);
+		expect(settingsSource).toContain('settings.files_context_menu.intercepted');
 	});
 
 	it('exposes the sub-page with reset and both creators', () => {
-		expect(settingsSource).toContain("page = 'files-context-menu'");
+		// U121-029: the per-kind menu is a page nested inside Context menus.
+		expect(settingsSource).toContain(
+			'items: this.getFilesContextMenuPageItems(kind),',
+		);
 		expect(settingsSource).toContain('addFilesMenuDivider(');
 		expect(settingsSource).toContain('addFilesMenuSubmenu(');
 		expect(settingsSource).toContain('defaultFilesMenuLayout(');

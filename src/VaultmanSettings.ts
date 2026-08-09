@@ -47,10 +47,17 @@ import {
 	normalizeGlyphCustomColor,
 	type GlyphColorChoice,
 } from './logic/logicGlyphColor';
+import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
+import { PayloadPreviewModal } from './modals/modalPayloadPreview';
+import {
+	buildFilterTemplatePreview,
+	buildQueueTemplatePreview,
+	buildSavedLayoutPreview,
+} from './logic/logicPayloadPreview';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
@@ -62,6 +69,141 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+
+		items.push(...this.getRootItems());
+
+		return items;
+	}
+
+	/**
+	 * The root page. Its order is the one the imperative tab had: the operation
+	 * settings first, then Layout Configuration, Operations, the templates and
+	 * the Add-ons/Developer tail. The sub-pages sit where their `Configure`
+	 * buttons used to be, so a user's muscle memory survives the port.
+	 */
+	private getRootItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.open_mode'),
+			desc: translate('settings.open_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							sidebar: translate('settings.open_mode.sidebar'),
+							main: translate('settings.open_mode.main'),
+							new_instance: translate('settings.open_mode.new_instance'),
+						})
+						.setValue(
+							this.plugin.settings.openMode === 'both'
+								? 'new_instance'
+								: this.plugin.settings.openMode,
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.openMode = value as
+								'sidebar' | 'main' | 'new_instance';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.operation_scope'),
+			desc: translate('settings.operation_scope.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							auto: translate('settings.scope.auto'),
+							selected: translate('settings.scope.selected'),
+							filtered: translate('settings.scope.filtered'),
+							all: translate('settings.scope.all'),
+						})
+						.setValue(this.plugin.settings.explorerOperationScope)
+						.onChange(async (value) => {
+							this.plugin.settings.explorerOperationScope = value as
+								'auto' | 'selected' | 'filtered' | 'all';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		// The threshold only means something while the warnings are armed.
+		if (!this.plugin.settings.bypassOperations) {
+			items.push({
+				name: translate('settings.bulk_operation_warning_threshold'),
+				desc: translate('settings.bulk_operation_warning_threshold.desc'),
+				render: (setting: Setting) => {
+					setting.addSlider((slider) =>
+						slider
+							.setLimits(50, 2000, 50)
+							.setValue(
+								this.plugin.settings.bulkOperationWarningThreshold ?? 400,
+							)
+							.setDynamicTooltip()
+							.onChange(async (value) => {
+								this.plugin.settings.bulkOperationWarningThreshold = value;
+								await this.plugin.saveSettings();
+							}),
+					);
+				},
+			});
+		}
+
+		items.push({
+			name: translate('settings.prop_move_conflict'),
+			desc: translate('settings.prop_move_conflict.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							coerce: translate('settings.prop_move_conflict.coerce'),
+							block: translate('settings.prop_move_conflict.block'),
+							ask: translate('settings.prop_move_conflict.ask'),
+						})
+						// Normalized in both directions, so a stale persisted choice
+						// shows the default rather than an empty dropdown.
+						.setValue(
+							normalizePropMoveTypeConflict(
+								this.plugin.settings.propMoveTypeConflict,
+							),
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.propMoveTypeConflict =
+								normalizePropMoveTypeConflict(value);
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.bypass_operations'),
+			desc: translate('settings.bypass_operations.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.bypassOperations)
+						.onChange(async (value) => {
+							this.plugin.settings.bypassOperations = value;
+							this.plugin.queueService?.setBypassOperations(value);
+							await this.plugin.saveSettings();
+							// The threshold row appears and disappears with this toggle.
+							this.update();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.style_config'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
 
 		items.push({
 			type: 'page',
@@ -78,26 +220,370 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
-			type: 'page',
-			name: translate('settings.files_hover'),
-			desc: translate('settings.files_hover.desc'),
-			items: this.getFilesHoverPageItems(),
+			name: translate('settings.operations'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		items.push({
+			name: translate('settings.queue_warn_supersede'),
+			desc: translate('settings.queue_warn_supersede.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.queueWarnOnSupersede)
+						.onChange(async (value) => {
+							this.plugin.settings.queueWarnOnSupersede = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.text_search_intercepts'),
+			desc: translate('settings.text_search_intercepts.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
+						.onChange(async (value) => {
+							this.plugin.settings.textSearchInterceptsCoreSearch = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.show_dock'),
+			desc: translate('settings.show_dock.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.showDock)
+						.onChange(async (value) => {
+							this.plugin.settings.showDock = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
 		});
 
 		items.push({
 			type: 'page',
-			name: translate('settings.explorer'),
-			desc: translate('settings.explorer.desc'),
+			name: translate('settings.explorer_page'),
+			desc: translate('settings.explorer_page.desc'),
 			items: this.getExplorerPageItems(),
 		});
 
 		items.push({
 			type: 'page',
-			name: translate('settings.context_menus'),
-			desc: translate('settings.context_menus.desc'),
+			name: translate('settings.context_menu'),
+			desc: translate('settings.context_menu.page_desc'),
 			items: this.getContextMenusPageItems(),
 		});
 
+		items.push({
+			type: 'page',
+			name: translate('settings.files_hover_info'),
+			desc: translate('settings.files_hover_info.desc'),
+			items: this.getFilesHoverPageItems(),
+		});
+
+		items.push({
+			name: translate('settings.style_preset'),
+			desc: translate('settings.style_preset.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('minimal', translate('settings.style_preset.minimal'))
+						.addOption(
+							'experimental',
+							translate('settings.style_preset.experimental'),
+						)
+						.setValue(
+							this.plugin.settings.minimalStyle ? 'minimal' : 'experimental',
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.minimalStyle = value === 'minimal';
+							await this.plugin.saveSettings();
+							this.plugin.updateGlassBlur();
+							// The blur slider only exists in the experimental preset.
+							this.update();
+						}),
+				);
+			},
+		});
+
+		if (!this.plugin.settings.minimalStyle) {
+			items.push({
+				name: translate('settings.background_blur'),
+				desc: translate('settings.background_blur.desc'),
+				render: (setting: Setting) => {
+					setting.addSlider((slider) =>
+						slider
+							.setLimits(0, 100, 1)
+							.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
+							.setDynamicTooltip()
+							.onChange(async (value) => {
+								this.plugin.settings.glassBlurIntensity = value;
+								await this.plugin.saveSettings();
+								this.plugin.updateGlassBlur();
+							}),
+					);
+				},
+			});
+		}
+
+		items.push(...this.getFilterTemplateItems());
+		items.push(...this.getQueueTemplateItems());
+		items.push(...this.getSavedLayoutItems());
+
+		items.push({
+			name: translate('settings.addons'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		items.push({
+			name: translate('settings.addons.iconic'),
+			desc: translate('settings.addons.iconic.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.iconicEnabled !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.iconicEnabled = value;
+							this.plugin.iconicService?.setEnabled(value);
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.developer_tools'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		items.push({
+			name: translate('settings.performance_monitor'),
+			desc: translate('settings.performance_monitor.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.performanceHudEnabled)
+						.onChange(async (value) => {
+							this.plugin.settings.performanceHudEnabled = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		return items;
+	}
+
+	/** Saved filter templates: preview the payload or drop the template. */
+	private getFilterTemplateItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.templates'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		const templates = this.plugin.settings.filterTemplates;
+		if (templates.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.templates.desc'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const template of templates) {
+			items.push({
+				name: template.name,
+				desc: `${template.root.children.length} filters`,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: template.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildFilterTemplatePreview(template),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('filter.template.delete'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.filterTemplates =
+										this.plugin.settings.filterTemplates.filter(
+											(item) => item.name !== template.name,
+										);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
+
+	/** Operation sets, plus the bulk-warning toggle that governs them. */
+	private getQueueTemplateItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('queue.template.templates'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		items.push({
+			name: translate('settings.bulk_operation_warning'),
+			desc: translate('settings.bulk_operation_warning.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						// The setting stores the suppression; the toggle shows the warning.
+						.setValue(!this.plugin.settings.suppressBulkOperationWarning)
+						.onChange(async (value) => {
+							this.plugin.settings.suppressBulkOperationWarning = !value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		const templates = this.plugin.settings.queueTemplates;
+		if (templates.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.queue_templates.desc'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const template of templates) {
+			items.push({
+				name: template.name,
+				desc: `${template.changes.length} operations`,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: template.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildQueueTemplatePreview(template),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('filter.template.delete'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.queueTemplates =
+										this.plugin.settings.queueTemplates.filter(
+											(item) => item.name !== template.name,
+										);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
+
+	/** Saved compositions of the explorer view. */
+	private getSavedLayoutItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.saved_view_config'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		const layouts = this.plugin.settings.savedLayouts ?? [];
+		if (layouts.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.saved_view_config.empty'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const layout of layouts) {
+			items.push({
+				name: layout.name,
+				desc: layout.summary,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: layout.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildSavedLayoutPreview(layout),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('settings.saved_view_config.clear'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.savedLayouts = (
+										this.plugin.settings.savedLayouts ?? []
+									).filter((entry) => entry.name !== layout.name);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
 		return items;
 	}
 

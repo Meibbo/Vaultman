@@ -5,6 +5,14 @@ import { es } from '../../src/i18n/es';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import typeSettingsSource from '../../src/types/typeSettings.ts?raw';
+import {
+	FILTER_TEMPLATES,
+	FLOATING_TOC_PAGE,
+	ROOT,
+	TOOLBAR_COMMANDS,
+	TOOLBAR_PAGE,
+	sliceBetween,
+} from './settingsSourceAnchors';
 
 describe('Vaultman Settings layout', () => {
 	it('stores the full explorer sort state in saved view configs', () => {
@@ -15,6 +23,59 @@ describe('Vaultman Settings layout', () => {
 	it('uses the current operation-template labels in both languages', () => {
 		expect(en['queue.template.templates']).toBe('Operation Sets');
 		expect(es['queue.template.templates']).toBe('Presets de operaciones');
+	});
+
+	// U121-029: the port invented `settings.explorer`, `settings.context_menus`
+	// and `settings.files_hover` for the sub-page entries. Neither language had
+	// them, so the tab rendered the raw key. `translate()` falls back to the key
+	// instead of throwing, so only a guard catches this.
+	it('resolves every settings label in both languages', () => {
+		const keys = [
+			...new Set(
+				Array.from(
+					settingsSource.matchAll(/translate\(\s*'([^']+)'/g),
+					(match) => match[1],
+				),
+			),
+		];
+
+		expect(keys.length).toBeGreaterThan(100);
+		expect(keys.filter((key) => !(key in en))).toEqual([]);
+		expect(keys.filter((key) => !(key in es))).toEqual([]);
+	});
+
+	// The keys the tab builds from a template literal, which the scan above
+	// cannot see. Every member of the union needs copy in both languages.
+	it('resolves the computed label families in both languages', () => {
+		const families: Record<string, readonly string[]> = {
+			'settings.context_menu_kind.': [
+				'files',
+				'props',
+				'tags',
+				'content',
+				'snippets',
+				'plugins',
+			],
+			'settings.glyph_color.': [
+				'default',
+				'accent',
+				'faint',
+				'rainbow',
+				'rainbow-pastel',
+				'custom',
+			],
+			'settings.prop_conflict_warnings.': ['off', 'badge', 'full'],
+		};
+
+		const missing: string[] = [];
+		for (const [prefix, members] of Object.entries(families)) {
+			for (const member of members) {
+				const key = `${prefix}${member}`;
+				if (!(key in en)) missing.push(`en:${key}`);
+				if (!(key in es)) missing.push(`es:${key}`);
+			}
+		}
+		expect(missing).toEqual([]);
 	});
 
 	// BT5-065: Layout Configuration moved ahead of the templates/sets/saved
@@ -41,13 +102,7 @@ describe('Vaultman Settings layout', () => {
 	});
 
 	it('places the Files tools toggle immediately after Show toolbar in its sub-page', () => {
-		const toolbarStart = settingsSource.indexOf(
-			'private displayToolbarPage(containerEl: HTMLElement)',
-		);
-		const toolbarEnd = settingsSource.indexOf(
-			'private displayFilesHoverPage(containerEl: HTMLElement)',
-		);
-		const toolbarSource = settingsSource.slice(toolbarStart, toolbarEnd);
+		const toolbarSource = sliceBetween(TOOLBAR_PAGE, TOOLBAR_COMMANDS);
 		const showToolbarIndex = toolbarSource.indexOf(
 			"translate('settings.show_toolbar')",
 		);
@@ -55,17 +110,12 @@ describe('Vaultman Settings layout', () => {
 			"translate('settings.toolbar_tools_menu')",
 		);
 
+		expect(showToolbarIndex).toBeGreaterThan(-1);
 		expect(toolsIndex).toBeGreaterThan(showToolbarIndex);
 	});
 
 	it('renders the inline-sort setting independently from the tools toggle callback', () => {
-		const toolbarStart = settingsSource.indexOf(
-			'private displayToolbarPage(containerEl: HTMLElement)',
-		);
-		const toolbarEnd = settingsSource.indexOf(
-			'private displayExplorerPage(containerEl: HTMLElement)',
-		);
-		const toolbarSource = settingsSource.slice(toolbarStart, toolbarEnd);
+		const toolbarSource = sliceBetween(TOOLBAR_PAGE, TOOLBAR_COMMANDS);
 		const toolsIndex = toolbarSource.indexOf(
 			"translate('settings.toolbar_tools_menu')",
 		);
@@ -73,12 +123,9 @@ describe('Vaultman Settings layout', () => {
 			"translate('settings.sort_level_inline')",
 		);
 		// BT5-023 inserts the Create File binding between the tools toggle and
-		// the inline-sort setting, so the tools block ends at the NEXT setting,
-		// not at the inline-sort one.
-		const nextSettingIndex = toolbarSource.indexOf(
-			'new Setting(containerEl)',
-			toolsIndex,
-		);
+		// the inline-sort setting, so the tools block ends at the NEXT item
+		// pushed, not at the inline-sort one.
+		const nextSettingIndex = toolbarSource.indexOf('items.push({', toolsIndex);
 		const toolsBlock = toolbarSource.slice(toolsIndex, nextSettingIndex);
 
 		expect(inlineSortIndex).toBeGreaterThan(toolsIndex);
@@ -90,20 +137,14 @@ describe('Vaultman Settings layout', () => {
 		);
 	});
 
-	it('routes Floating TOC to an internal Layout Settings page on Obsidian 1.12', () => {
+	it('routes Floating TOC to a declarative sub-page reachable from the root', () => {
+		// Obsidian 1.13 renders and indexes the page from the definition tree,
+		// which is what makes it reachable from the settings search.
 		expect(settingsSource).toMatch(
-			/private page:[\s\S]*?'explorer'[\s\S]*?'context-menus' = 'root'/,
-		);
-		expect(settingsSource).toContain("if (this.page === 'floating-toc')");
-		expect(settingsSource).toContain(
-			'this.displayFloatingTocPage(containerEl)',
+			/type: 'page',[\s\S]*?items: this\.getFloatingTocPageItems\(\),/,
 		);
 
-		const displayStart = settingsSource.indexOf('display(): void');
-		const subpageStart = settingsSource.indexOf(
-			'private displayFloatingTocPage(containerEl: HTMLElement)',
-		);
-		const rootSource = settingsSource.slice(displayStart, subpageStart);
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
 		const styleIndex = rootSource.indexOf("translate('settings.style_config')");
 		const tocLinkIndex = rootSource.indexOf(
 			"translate('settings.floating_toc')",
@@ -117,14 +158,10 @@ describe('Vaultman Settings layout', () => {
 			"translate('settings.floating_toc_enable')",
 		);
 
-		const subpageSource = settingsSource.slice(subpageStart);
-		expect(subpageSource).toContain(
-			"translate('settings.back_to_layout_settings')",
-		);
+		const subpageSource = sliceBetween(FLOATING_TOC_PAGE);
 		expect(subpageSource).toContain(
 			"translate('settings.floating_toc_enable')",
 		);
-		expect(subpageSource).toContain("this.page = 'root'");
 	});
 
 	it('places Performance monitor in its own Developer Tools section', () => {
