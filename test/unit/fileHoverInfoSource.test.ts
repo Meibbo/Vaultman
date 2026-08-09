@@ -37,7 +37,8 @@ describe('Files hover info source guards', () => {
 	});
 
 	it('keeps the settings page and legacy IndexedDB records compatible', () => {
-		expect(settingsSource).toContain("this.page = 'files-hover'");
+		// U121-029: a declarative sub-page instead of a page-state assignment.
+		expect(settingsSource).toContain('items: this.getFilesHoverPageItems(),');
 		// BT5-010: the hover field list now comes from the shared cell
 		// registry instead of a settings-local constant.
 		expect(settingsSource).toContain('fileHoverEntries()');

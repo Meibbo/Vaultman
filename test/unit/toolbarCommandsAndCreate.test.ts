@@ -47,9 +47,7 @@ describe('BT5-024 custom command toolbar actions', () => {
 
 	it('projects resolved commands as toolbar nodes that run by id', () => {
 		expect(navbarSource).toContain('{#each commandActions as command');
-		expect(navbarSource).toContain(
-			'invokeSceneAction(`command:${command.id}`',
-		);
+		expect(navbarSource).toContain('invokeSceneAction(`command:${command.id}`');
 		// A retired command is disabled and labelled, not silently dropped.
 		expect(navbarSource).toContain('class:is-disabled={!command.available}');
 		expect(navbarSource).toContain("translate('command.unavailable')");
@@ -61,14 +59,16 @@ describe('BT5-024 custom command toolbar actions', () => {
 		expect(pageFiltersSource).toContain(
 			"invocation.actionId.startsWith('command:')",
 		);
-		expect(pageFiltersSource).toContain("invocation.actionId.slice('command:'.length)");
+		expect(pageFiltersSource).toContain(
+			"invocation.actionId.slice('command:'.length)",
+		);
 	});
 
 	it('manages the list with add, remove and reorder in settings', () => {
-		expect(settingsSource).toContain('renderToolbarCommandActions(');
+		expect(settingsSource).toContain('getToolbarCommandActionsItems(');
 		expect(settingsSource).toContain('addCommandId(');
 		expect(settingsSource).toContain('removeCommandId(');
 		expect(settingsSource).toContain('reorderCommandIds(');
-		expect(settingsSource).toContain("settings.toolbar_commands");
+		expect(settingsSource).toContain('settings.toolbar_commands');
 	});
 });

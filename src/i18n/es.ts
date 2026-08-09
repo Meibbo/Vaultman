@@ -184,34 +184,22 @@ export const es: Record<string, string> = {
 	'settings.rainbow_folders': 'Carpetas arcoíris',
 	'settings.rainbow_folders.desc':
 		'Colorea cada subárbol de carpeta de primer nivel en el árbol de files; usa la paleta del snippet fancyfile-explorer-rainbow si está instalado.',
-	'settings.glyph_color.default':
-		'Predeterminado',
-	'settings.glyph_color.faint':
-		'Tenue',
-	'settings.glyph_color.accent':
-		'Acento',
-	'settings.glyph_color.custom':
-		'Personalizado',
-	'settings.glyph_color.rainbow':
-		'Arcoíris',
-	'settings.glyph_color.rainbow-pastel':
-		'Arcoíris pastel',
-	'settings.glyph_color.custom_pick':
-		'Color personalizado',
-	'settings.explorer_glyph_color':
-		'Color de glyph del explorer',
+	'settings.glyph_color.default': 'Predeterminado',
+	'settings.glyph_color.faint': 'Tenue',
+	'settings.glyph_color.accent': 'Acento',
+	'settings.glyph_color.custom': 'Personalizado',
+	'settings.glyph_color.rainbow': 'Arcoíris',
+	'settings.glyph_color.rainbow-pastel': 'Arcoíris pastel',
+	'settings.glyph_color.custom_pick': 'Color personalizado',
+	'settings.explorer_glyph_color': 'Color de glyph del explorer',
 	'settings.explorer_glyph_color.desc':
 		'Colorea los glyphs de los nodos del explorer con la paleta compartida. Predeterminado los deja sin color.',
-	'settings.explorer_glyph_scope':
-		'Alcance del color de glyph',
+	'settings.explorer_glyph_scope': 'Alcance del color de glyph',
 	'settings.explorer_glyph_scope.desc':
 		'A qué nodos se aplica el color de glyph.',
-	'settings.explorer_glyph_scope.folders':
-		'Carpetas',
-	'settings.explorer_glyph_scope.files':
-		'Archivos',
-	'settings.explorer_glyph_scope.both':
-		'Ambos',
+	'settings.explorer_glyph_scope.folders': 'Carpetas',
+	'settings.explorer_glyph_scope.files': 'Archivos',
+	'settings.explorer_glyph_scope.both': 'Ambos',
 	'settings.toc_glyph_color': 'Color de glyphs',
 	'settings.toc_glyph_color.desc': 'Color de los glyphs del índice flotante.',
 	'settings.toc_glyph_color.default': 'Por defecto',
@@ -228,7 +216,8 @@ export const es: Record<string, string> = {
 	'file.ctx.exclude': 'Excluir archivo',
 	'settings.explorer_page': 'Panel: Explorer',
 	'settings.explorer_file_move_mode': 'Modo de IU para Move To',
-	'settings.explorer_file_move_mode.desc': 'Cómo se presenta la función de mover a carpeta en el File Scene.',
+	'settings.explorer_file_move_mode.desc':
+		'Cómo se presenta la función de mover a carpeta en el File Scene.',
 	'settings.explorer_file_move_mode.inline': 'Inline (Modo Árbol)',
 	'settings.explorer_file_move_mode.modal': 'Modal Clásico',
 	'settings.cells_section': 'Celdas',
@@ -255,17 +244,15 @@ export const es: Record<string, string> = {
 		'Coloca el cell_checkbox del modo seleccionar al inicio o al final de los nodos.',
 	'settings.selection_checkbox_position.start': 'Inicio / izquierda',
 	'settings.selection_checkbox_position.end': 'Final / derecha',
+	'settings.selection_checkbox_position.hidden': 'Oculta',
 	'settings.order_cells_by_activation': 'Ordenar celdas por activación',
 	'settings.order_cells_by_activation.desc':
 		'Muestra las celdas en el orden en que las activas en vez de un orden fijo.',
-	'settings.collapsed_folder_badges':
-		'Actividad de folder colapsado',
+	'settings.collapsed_folder_badges': 'Actividad de folder colapsado',
 	'settings.collapsed_folder_badges.desc':
 		'Cómo un folder colapsado muestra el estado que oculta: un dot de que sus childs tienen actividad (una operación pendiente o un filtro activo), o los badges propios de los descendientes junto al dot de filtro.',
-	'settings.collapsed_folder_badges.dot':
-		'Un dot indicativo',
-	'settings.collapsed_folder_badges.badges':
-		'Badges de descendientes',
+	'settings.collapsed_folder_badges.dot': 'Un dot indicativo',
+	'settings.collapsed_folder_badges.badges': 'Badges de descendientes',
 	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
@@ -288,44 +275,31 @@ export const es: Record<string, string> = {
 	'settings.show_toolbar': 'Mostrar barra de herramientas',
 	'settings.show_toolbar.desc':
 		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
-	'command.picker.search':
-		'Buscar comandos…',
-	'command.picker.empty':
-		'Ningún comando coincide.',
-	'command.picker.default':
-		'Predeterminado de Vaultman',
+	'command.picker.search': 'Buscar comandos…',
+	'command.picker.empty': 'Ningún comando coincide.',
+	'command.picker.default': 'Predeterminado de Vaultman',
 	'command.missing':
 		'El comando "{id}" no está disponible; se usó el predeterminado de Vaultman.',
 	'command.unavailable':
 		'El comando "{id}" no está disponible (retirado o plugin deshabilitado).',
-	'settings.create_actions_placement':
-		'Ubicación de acciones Crear',
+	'settings.create_actions_placement': 'Ubicación de acciones Crear',
 	'settings.create_actions_placement.desc':
 		'Si Crear archivo y Crear carpeta viven en la caja de búsqueda o como nodos de acción del toolbar.',
-	'settings.create_actions_placement.searchbox':
-		'Caja de búsqueda',
-	'settings.create_actions_placement.toolbar':
-		'Toolbar',
-	'settings.toolbar_commands':
-		'Comandos del toolbar',
+	'settings.create_actions_placement.searchbox': 'Caja de búsqueda',
+	'settings.create_actions_placement.toolbar': 'Toolbar',
+	'settings.toolbar_commands': 'Comandos del toolbar',
 	'settings.toolbar_commands.desc':
 		'Comandos de Obsidian mostrados como nodos de acción del toolbar de Files. El toolbar ejecuta el comando de inmediato al activarlo.',
-	'settings.toolbar_commands.add':
-		'Añadir comando',
-	'settings.toolbar_commands.remove':
-		'Eliminar',
-	'settings.create_file_command':
-		'Acción Crear archivo',
+	'settings.toolbar_commands.add': 'Añadir comando',
+	'settings.toolbar_commands.remove': 'Eliminar',
+	'settings.create_file_command': 'Acción Crear archivo',
 	'settings.create_file_command.desc':
 		'Qué ejecuta la acción Crear archivo: la creación de nota integrada de Vaultman, o un comando de Obsidian elegido.',
-	'settings.toolbar_overflow':
-		'Overflow del toolbar',
+	'settings.toolbar_overflow': 'Overflow del toolbar',
 	'settings.toolbar_overflow.desc':
 		'Cómo maneja el toolbar de Files más acciones de las que caben: condensar los extras en el menú Herramientas, o mantener cada acción en una sola línea con scroll horizontal.',
-	'settings.toolbar_overflow.condensed':
-		'Menú condensado',
-	'settings.toolbar_overflow.scroll':
-		'Scroll horizontal',
+	'settings.toolbar_overflow.condensed': 'Menú condensado',
+	'settings.toolbar_overflow.scroll': 'Scroll horizontal',
 	'settings.toolbar_overflow.wrap': 'Varias filas',
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
@@ -339,27 +313,20 @@ export const es: Record<string, string> = {
 	'settings.context_menu_kind.content': 'Menú de nodos de Texto',
 	'settings.context_menu_kind.snippets': 'Menú de nodos Snippets',
 	'settings.context_menu_kind.plugins': 'Menú de nodos Plugins',
-	'settings.files_context_menu':
-		'Menú contextual de Files',
+	'settings.files_context_menu': 'Menú contextual de Files',
 	'settings.files_context_menu.desc':
 		'Elige qué acciones muestra el menú contextual de los nodos de Files, en qué orden, y agrúpalas con separadores y submenús.',
-	'settings.files_context_menu.add_divider':
-		'Añadir separador',
-	'settings.files_context_menu.add_submenu':
-		'Añadir submenú',
-	'settings.files_context_menu.submenu_name':
-		'Submenú',
-	'settings.files_context_menu.intercepted': 'Item interceptado: se puede mostrar u ocultar',
-	'settings.files_context_menu.divider':
-		'Separador',
+	'settings.files_context_menu.add_divider': 'Añadir separador',
+	'settings.files_context_menu.add_submenu': 'Añadir submenú',
+	'settings.files_context_menu.submenu_name': 'Submenú',
+	'settings.files_context_menu.intercepted':
+		'Item interceptado: se puede mostrar u ocultar',
+	'settings.files_context_menu.divider': 'Separador',
 	'settings.files_context_menu.submenu':
 		'Submenú: asigna acciones con el selector',
-	'settings.files_context_menu.no_submenu':
-		'Nivel principal',
-	'settings.files_context_menu.remove':
-		'Eliminar',
-	'settings.files_context_menu.reset':
-		'Restaurar el orden por defecto',
+	'settings.files_context_menu.no_submenu': 'Nivel principal',
+	'settings.files_context_menu.remove': 'Eliminar',
+	'settings.files_context_menu.reset': 'Restaurar el orden por defecto',
 	'settings.files_hover_info': 'Tooltip de Files',
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
@@ -620,12 +587,12 @@ export const es: Record<string, string> = {
 	'explorer.move_to_prop.write.replace': 'Reemplazar en el destino',
 	'explorer.move_to_prop.origin.move': 'Mover',
 	'explorer.move_to_prop.origin.copy': 'Copiar',
-	'explorer.move_to_folder.rejected': 'No se puede mover una carpeta dentro de sí misma.',
+	'explorer.move_to_folder.rejected':
+		'No se puede mover una carpeta dentro de sí misma.',
 	'explorer.move_to_prop.summary': 'Revisar este movimiento',
 	'explorer.move_to_prop.summary.files': '{count} archivos',
 	'explorer.move_to_prop.summary.confirm': 'Ejecutar ahora',
-	'explorer.move_to_prop.rejected':
-		'{property} es donde este valor ya vive',
+	'explorer.move_to_prop.rejected': '{property} es donde este valor ya vive',
 	'explorer.prop_move.blocked.scalar_occupied':
 		'{property} ya tiene un valor y no es una lista',
 	'explorer.prop_move.blocked.type_mismatch':
@@ -883,19 +850,22 @@ export const es: Record<string, string> = {
 	'content.show_more_context': 'Mostrar más contexto',
 	'content.show_more_files': 'Mostrar {count} fichero(s) más',
 	'content.show_more_matches': 'Mostrar {count} coincidencia(s) más',
-	'settings.text_search_intercepts': 'Buscar la selección en el explorador de Texto',
+	'settings.text_search_intercepts':
+		'Buscar la selección en el explorador de Texto',
 	'settings.text_search_intercepts.desc':
 		'Añade una entrada de menú que busca el texto seleccionado en Vaultman en vez de en la búsqueda de Obsidian.',
 	'content.search_selection': 'Buscar la selección en Vaultman',
 	'content.current_note': 'Abierta ahora',
 	'content.replace_occurrence': 'Reemplazar esta coincidencia',
-	'content.replace_occurrence_needs_value': 'Reemplazar esta coincidencia (escribe antes un reemplazo)',
+	'content.replace_occurrence_needs_value':
+		'Reemplazar esta coincidencia (escribe antes un reemplazo)',
 	'content.more_context_here': 'Mostrar más contexto aquí',
 	'content.reset_context_here': 'Restablecer el contexto aquí',
 	'queue.guard.superseded':
 		'Se reemplazó {count} operación(es) en cola sobre el mismo texto.',
 	'settings.operations': 'Operaciones',
-	'settings.queue_warn_supersede': 'Avisar cuando se reemplaza una operación en cola',
+	'settings.queue_warn_supersede':
+		'Avisar cuando se reemplaza una operación en cola',
 	'settings.queue_warn_supersede.desc':
 		'Encolar un segundo reemplazo del mismo texto sustituye al primero, porque el primero dejaría al segundo sin nada que coincidir. Esto decide si se avisa.',
 	'content.copy_results_action': 'Copiar resultados',
@@ -909,7 +879,8 @@ export const es: Record<string, string> = {
 	'content.copy_no_results': 'No hay resultados que copiar.',
 	'content.bookmarked': 'Búsqueda guardada: {query}',
 	'content.bookmarks_unavailable': 'El plugin Marcadores está desactivado.',
-	'content.copy_unavailable': 'La búsqueda de Obsidian no está disponible en esta bóveda.',
+	'content.copy_unavailable':
+		'La búsqueda de Obsidian no está disponible en esta bóveda.',
 	'sort.level.nested': 'Anidado',
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'settings.sort_level_inline': 'Opciones By level en línea',
@@ -1059,7 +1030,8 @@ export const es: Record<string, string> = {
 	'settings.timestamp_cutoffs.quarterFromMonths': 'Trimestres desde (meses)',
 	'settings.timestamp_cutoffs.quarterFromMonths.desc':
 		'A partir de estos meses la celda cuenta en trimestres.',
-	'settings.timestamp_cutoffs.semesterFromQuarters': 'Semestres desde (trimestres)',
+	'settings.timestamp_cutoffs.semesterFromQuarters':
+		'Semestres desde (trimestres)',
 	'settings.timestamp_cutoffs.semesterFromQuarters.desc':
 		'A partir de estos trimestres la celda cuenta en semestres.',
 	'settings.timestamp_cutoffs.yearFromSemesters': 'Años desde (semestres)',

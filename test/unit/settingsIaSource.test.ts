@@ -12,14 +12,19 @@ import {
 	cellsForExplorer,
 	defaultVisibleCells,
 } from '../../src/logic/logicCellRegistry';
+import {
+	CONTEXT_MENUS_PAGE,
+	EXPLORER_PAGE,
+	FILTER_TEMPLATES,
+	ROOT,
+	TOOLBAR_COMMANDS,
+	TOOLBAR_PAGE,
+	sliceBetween,
+} from './settingsSourceAnchors';
 
 describe('BT3 settings information architecture source guards', () => {
 	it('removes language from UI and exposes the locked heading copy', () => {
-		const rootStart = settingsSource.indexOf('display(): void');
-		const rootEnd = settingsSource.indexOf(
-			'private displayToolbarPage(containerEl: HTMLElement)',
-		);
-		const rootSource = settingsSource.slice(rootStart, rootEnd);
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
 
 		expect(rootSource).not.toContain("translate('settings.language')");
 		// Renamed to Layout Configuration (dev request 2026-07-20).
@@ -36,24 +41,15 @@ describe('BT3 settings information architecture source guards', () => {
 	});
 
 	it('routes the three toolbar controls into one Layout Settings sub-page', () => {
+		// The sub-page is a declarative `type: 'page'` entry, so Obsidian owns
+		// the navigation and the search index reaches its items.
+		expect(settingsSource).toContain('getSettingDefinitions()');
 		expect(settingsSource).toMatch(
-			/private page:[\s\S]*?'explorer'[\s\S]*?'context-menus' = 'root'/,
+			/type: 'page',[\s\S]*?items: this\.getToolbarPageItems\(\),/,
 		);
-		expect(settingsSource).toContain("if (this.page === 'toolbar')");
-		expect(settingsSource).toContain('this.displayToolbarPage(containerEl)');
 
-		const rootStart = settingsSource.indexOf('display(): void');
-		const toolbarPageStart = settingsSource.indexOf(
-			'private displayToolbarPage(containerEl: HTMLElement)',
-		);
-		const toolbarPageEnd = settingsSource.indexOf(
-			'private displayFilesHoverPage(containerEl: HTMLElement)',
-		);
-		const rootSource = settingsSource.slice(rootStart, toolbarPageStart);
-		const toolbarSource = settingsSource.slice(
-			toolbarPageStart,
-			toolbarPageEnd,
-		);
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
+		const toolbarSource = sliceBetween(TOOLBAR_PAGE, TOOLBAR_COMMANDS);
 
 		expect(rootSource).toContain("translate('settings.toolbar')");
 		for (const key of [
@@ -65,10 +61,11 @@ describe('BT3 settings information architecture source guards', () => {
 		}
 		expect(toolbarSource).toContain('if (!Platform.isMobile)');
 		expect(toolbarSource).toContain("translate('settings.show_toolbar')");
-		expect(toolbarSource).toContain(
-			"translate('settings.back_to_layout_settings')",
-		);
+		// Navigation is the framework's job now: no hand-rolled back buttons and
+		// no page state machine of our own.
+		expect(settingsSource).not.toContain('settings.back_to_layout_settings');
 		expect(settingsSource).not.toContain('settings.back_to_style_config');
+		expect(settingsSource).not.toContain('this.page =');
 	});
 
 	it('gates blur rendering and delegates the runtime CSS update', () => {
@@ -88,7 +85,8 @@ describe('BT3 settings information architecture source guards', () => {
 		);
 		const presetSource = settingsSource.slice(presetStart, blurIndex);
 		expect(presetSource).toContain('this.plugin.updateGlassBlur()');
-		expect(presetSource).toContain('this.display()');
+		// The preset shows and hides the blur slider, so it re-renders the tab.
+		expect(presetSource).toContain('this.update()');
 		expect(DEFAULT_SETTINGS.glassBlurIntensity).toBe(60);
 	});
 
@@ -142,12 +140,7 @@ describe('BT4-010 settings IA (D34)', () => {
 	});
 
 	it('groups explorer cells/badges/highlights into the Explorer sub-page', () => {
-		const page = settingsSource.slice(
-			settingsSource.indexOf('displayExplorerPage(containerEl: HTMLElement)'),
-			settingsSource.indexOf(
-				'displayContextMenusPage(containerEl: HTMLElement)',
-			),
-		);
+		const page = sliceBetween(EXPLORER_PAGE, CONTEXT_MENUS_PAGE);
 		for (const key of [
 			"settings.addon_cell_style'",
 			"settings.badge_colors'",
@@ -159,11 +152,7 @@ describe('BT4-010 settings IA (D34)', () => {
 	});
 
 	it('turns the context-menu section into a trailing Layout Settings sub-page', () => {
-		const page = settingsSource.slice(
-			settingsSource.indexOf(
-				'displayContextMenusPage(containerEl: HTMLElement)',
-			),
-		);
+		const page = sliceBetween(CONTEXT_MENUS_PAGE);
 		expect(page).toContain("settings.context_menu.file_menu'");
 		expect(page).toContain("settings.context_menu.editor_menu'");
 		expect(page).toContain("settings.context_menu.more_options'");
@@ -176,5 +165,88 @@ describe('BT4-010 settings IA (D34)', () => {
 		);
 		expect(explorerBtn).toBeGreaterThan(-1);
 		expect(explorerBtn).toBeLessThan(addonsHeading);
+	});
+});
+
+// U121-029: the port to the declarative tab carried the five sub-pages over
+// but dropped the whole root page, so the build shipped a handful of settings
+// where it used to show dozens. This is the inventory guard for the root: every
+// control that has no sub-page of its own must be reachable from it.
+describe('U121-029 declarative settings root inventory', () => {
+	const ROOT_CONTROLS = [
+		'settings.open_mode',
+		'settings.operation_scope',
+		'settings.bulk_operation_warning_threshold',
+		'settings.prop_move_conflict',
+		'settings.bypass_operations',
+		'settings.queue_warn_supersede',
+		'settings.text_search_intercepts',
+		'settings.show_dock',
+		'settings.style_preset',
+		'settings.background_blur',
+		'settings.addons.iconic',
+		'settings.performance_monitor',
+	];
+
+	const ROOT_HEADINGS = [
+		'settings.style_config',
+		'settings.operations',
+		'settings.addons',
+		'settings.developer_tools',
+	];
+
+	it('keeps every root-only control on the root page', () => {
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
+		const missing = [...ROOT_CONTROLS, ...ROOT_HEADINGS].filter(
+			(key) => !rootSource.includes(`translate('${key}')`),
+		);
+		expect(missing).toEqual([]);
+	});
+
+	it('keeps the template and saved-composition sections on the root page', () => {
+		const templates = sliceBetween(FILTER_TEMPLATES, TOOLBAR_PAGE);
+		for (const key of [
+			'settings.templates',
+			'queue.template.templates',
+			'settings.bulk_operation_warning',
+			'settings.saved_view_config',
+		]) {
+			expect(templates).toContain(`translate('${key}')`);
+		}
+		// The lists render the persisted payloads, not just their headings.
+		expect(templates).toContain('this.plugin.settings.filterTemplates');
+		expect(templates).toContain('this.plugin.settings.queueTemplates');
+		expect(templates).toContain('this.plugin.settings.savedLayouts');
+		expect(templates).toContain('PayloadPreviewModal');
+	});
+
+	it('wires all five sub-pages into the root', () => {
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
+		for (const builder of [
+			'getToolbarPageItems',
+			'getFloatingTocPageItems',
+			'getExplorerPageItems',
+			'getContextMenusPageItems',
+			'getFilesHoverPageItems',
+		]) {
+			expect(rootSource).toContain(`items: this.${builder}(),`);
+		}
+	});
+
+	it('re-renders the tab from the toggles that add or remove rows', () => {
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
+		// The threshold row is gated on bypassOperations and the blur slider on
+		// minimalStyle; both toggles have to ask for a re-render.
+		expect(rootSource).toContain('if (!this.plugin.settings.bypassOperations)');
+		expect(rootSource).toContain('if (!this.plugin.settings.minimalStyle)');
+		const bypassStart = rootSource.indexOf(
+			"translate('settings.bypass_operations')",
+		);
+		const styleConfig = rootSource.indexOf(
+			"translate('settings.style_config')",
+		);
+		expect(rootSource.slice(bypassStart, styleConfig)).toContain(
+			'this.update()',
+		);
 	});
 });
