@@ -277,6 +277,17 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		],
 	},
 	{
+		id: 'sub',
+		role: 'value',
+		labelKey: 'viewmode.pill.sub',
+		icon: 'lucide-indent',
+		sortId: 'sub',
+		supports: [
+			{ explorer: 'props', viewModes: ['tree'], fixedRank: 45, defaultOn: false },
+			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 45, defaultOn: false },
+		],
+	},
+	{
 		id: 'mtime',
 		role: 'value',
 		labelKey: 'viewmode.pill.mtime',

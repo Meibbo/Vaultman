@@ -1499,6 +1499,16 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
+	private _decorateSubCounts(nodes: TreeNode<PropMeta>[]): void {
+		for (const node of nodes) {
+			node.subCountText =
+				node.children && node.children.length > 0
+					? String(node.children.length)
+					: undefined;
+			this._decorateSubCounts(node.children ?? []);
+		}
+	}
+
 	private _render(): void {
 		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
@@ -1550,12 +1560,14 @@ export class PropsExplorerPanel extends Component {
 			);
 		}
 		this._setIndexRoots(nodesWithIcons);
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(nodesWithIcons);
+		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
 		}
 		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
-
 		if (this.viewMode === 'table') {
 			if (!this.tableView) {
 				this.tableView = new NodeTableView<PropMeta>(this.containerEl);
