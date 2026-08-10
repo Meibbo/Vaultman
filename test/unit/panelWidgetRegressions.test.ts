@@ -90,8 +90,9 @@ describe('U121-029 panelWidget overflow regressions', () => {
 		// roomy toolbar.
 		expect(navbarSource).toContain('overflowMeasured');
 		const forced =
-			navbarSource.match(/const forcedOverflowIds = \$derived\.by\([\s\S]*?\n\t\}\);/)?.[0] ??
-			'';
+			navbarSource.match(
+				/const forcedOverflowIds = \$derived\.by\([\s\S]*?\n\t\}\);/,
+			)?.[0] ?? '';
 		expect(forced).not.toBe('');
 		expect(forced).toContain('overflowMeasured');
 	});
@@ -168,7 +169,10 @@ describe('U121-029 search field second row', () => {
 	it('answers on the boundary, not on a breakpoint', () => {
 		const base = { nodeWidths: [100], gap: 0, toolsWidth: 0 };
 		expect(
-			searchNeedsOwnRow({ ...base, availableWidth: 100 + MIN_INLINE_SEARCH_WIDTH }),
+			searchNeedsOwnRow({
+				...base,
+				availableWidth: 100 + MIN_INLINE_SEARCH_WIDTH,
+			}),
 		).toBe(false);
 		expect(
 			searchNeedsOwnRow({
@@ -215,9 +219,10 @@ describe('U121-029 search field second row', () => {
 
 	it('measures only the Search action node, never the auxiliary field', () => {
 		expect(navbarSource).not.toContain('const measuredPresentationKey =');
-		const control = navbarSource.match(
-			/\{#snippet searchControl[\s\S]*?\{\/snippet\}/,
-		)?.[0] ?? '';
+		const control =
+			navbarSource.match(
+				/\{#snippet searchControl[\s\S]*?\{\/snippet\}/,
+			)?.[0] ?? '';
 		expect(control).not.toContain('data-panel-widget-node-id');
 		expect(navbarSource).toContain(
 			'measuredNodeWidths.set(measuredWidthKey(id), width)',
@@ -225,9 +230,10 @@ describe('U121-029 search field second row', () => {
 		expect(navbarSource).not.toContain(
 			"searchOwnsRow && measuredWidthKey(node.id) === 'search'",
 		);
-		const widthBudget = navbarSource.match(
-			/const barNodeWidths = panelWidgetProjection\.nodes[\s\S]*?const nextSearchOwnsRow/,
-		)?.[0] ?? '';
+		const widthBudget =
+			navbarSource.match(
+				/const barNodeWidths = panelWidgetProjection\.nodes[\s\S]*?const nextSearchOwnsRow/,
+			)?.[0] ?? '';
 		expect(widthBudget).not.toContain("!== 'search'");
 	});
 
@@ -236,19 +242,22 @@ describe('U121-029 search field second row', () => {
 		expect(searchControlSource).toContain('search-input-clear-button');
 		expect(searchControlSource).toContain('type="search"');
 		expect(searchControlSource).toContain('enterkeyhint="search"');
-		expect(navbarSource).toContain(
-			'class:is-active={searchExpanded}',
+		expect(navbarSource).toContain('class:is-active={searchExpanded}');
+		expect(stylesSource).not.toContain(
+			'.vaultman-panel-widget-action--primary',
 		);
-		expect(stylesSource).not.toContain('.vaultman-panel-widget-action--primary');
 		expect(stylesSource).not.toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
 		);
 	});
 
 	it('moves search before condensing any action node', () => {
+		// U121-029: `append` gained condensable/priority/order arguments, so the
+		// call no longer ends right after the `false`. Anchor on the node being
+		// appended with the `search` presentation instead of on its arity.
 		const searchNode =
 			navbarSource.match(
-				/append\(\s*'search',[\s\S]*?'search',\s*false,\s*\);/,
+				/append\(\s*'search',[\s\S]*?'search',[\s\S]*?\);/,
 			)?.[0] ?? '';
 		expect(searchNode).not.toBe('');
 		const measure =
@@ -288,7 +297,9 @@ describe('U121-029 Tools menu follows the projection', () => {
 			)?.[0] ?? '';
 		expect(menu).not.toBe('');
 		expect(menu).toContain('for (const node of panelWidgetProjection.nodes)');
-		expect(menu).toContain('if (!forcedOverflowIds.includes(node.id)) continue;');
+		expect(menu).toContain(
+			'if (!forcedOverflowIds.includes(node.id)) continue;',
+		);
 		expect(menu).toContain('.setTitle(node.label)');
 		// No per-id availability conditions may reappear in the menu.
 		expect(menu).not.toContain('expansionActionAvailableForActiveTab');
@@ -299,7 +310,9 @@ describe('U121-029 Tools menu follows the projection', () => {
 	it('preserves disabled state in the projected node used by Tools', () => {
 		expect(navbarSource).toContain('available = true');
 		expect(navbarSource).toContain('available,\n\t\t\t\tcondensable');
-		expect(navbarSource).toContain('action.disabled !== true');
+		// Same invariant, current spelling: the header action's disabled flag is
+		// carried into the projected node rather than dropped.
+		expect(navbarSource).toContain('available: !action.disabled');
 		expect(navbarSource).toContain('command.available');
 	});
 });
@@ -355,19 +368,19 @@ describe('U121-029 phone toolbar anchoring', () => {
 describe('U121-003 statistics provider handoff', () => {
 	it('publishes the requested provider before Filters takes ownership of the host', () => {
 		const navigation =
-			frameSource.match(
-				/function navigateToDataTab\([\s\S]*?\n\t\}/,
-			)?.[0] ?? '';
+			frameSource.match(/function navigateToDataTab\([\s\S]*?\n\t\}/)?.[0] ??
+			'';
 		expect(navigation).not.toBe('');
 		expect(navigation).not.toContain('await tick();');
 	});
 
 	it('rejects late Statistics publication during Files -> Statistics -> Props -> Files sequence', async () => {
-		const { ScenePanelWidgetController } = await import(
-			'../../src/logic/logicScenePanelWidgetController'
-		);
+		const { ScenePanelWidgetController } =
+			await import('../../src/logic/logicScenePanelWidgetController');
 		const controller = new ScenePanelWidgetController('scene-test');
-		const mockProjection = (providerId: string): import('../../src/types/typePanelWidget').NavbarPanelWidgetState => ({
+		const mockProjection = (
+			providerId: string,
+		): import('../../src/types/typePanelWidget').NavbarPanelWidgetState => ({
 			providerId,
 			actionPort: { invoke: async () => true },
 			activeTab: 'files',
@@ -442,5 +455,52 @@ describe('U121-029 labelled node click area', () => {
 		expect(block).toContain('padding-inline: 8px');
 		expect(block).toContain('min-block-size: var(--clickable-icon-size)');
 		expect(block).toContain('width: auto');
+	});
+});
+
+describe('U121-029 search field surface variants', () => {
+	// The search field is mounted on three surfaces and the stylesheet dresses
+	// each one differently. Collapsing them to an `ownRow` boolean sent the phone
+	// drawer's field out as `--inline`, and the drawer hides `--inline` outright
+	// because that surface has its own row — so activating search in the mobile
+	// side leaf showed nothing at all while the row's padding still nudged the
+	// explorer down. The three classes and the three call sites have to agree.
+	const VARIANTS = ['inline', 'phone', 'row'] as const;
+
+	it('emits one pill modifier per surface', () => {
+		for (const variant of VARIANTS) {
+			expect(searchControlSource).toContain(
+				`class:vaultman-filters-header-search-pill--${variant}={variant === '${variant}'}`,
+			);
+			// Every modifier the component emits is a modifier the stylesheet
+			// actually dresses; an orphan class is a field styled by nothing.
+			expect(stylesSource).toContain(
+				`.vaultman-filters-header-search-pill--${variant}`,
+			);
+		}
+		expect(searchControlSource).not.toContain('ownRow');
+	});
+
+	it('passes the surface through instead of flattening it to a boolean', () => {
+		expect(navbarSource).toContain(
+			"type SearchControlVariant = 'inline' | 'phone' | 'row';",
+		);
+		expect(navbarSource).toMatch(
+			/\{#snippet searchControl\(variant: SearchControlVariant\)\}[\s\S]{0,400}\{variant\}/,
+		);
+		for (const variant of VARIANTS) {
+			expect(navbarSource).toContain(`searchControl('${variant}')`);
+		}
+	});
+
+	it('keeps the phone drawer field visible while hiding the inline one', () => {
+		// The drawer's own row replaces the inline field; if the field mounted
+		// there ever carries `--inline` again it inherits this `display: none`.
+		expect(stylesSource).toMatch(
+			/\.is-phone \.workspace-drawer[^{]*\.vaultman-filters-header-search-pill--inline\s*\{\s*display: none;/,
+		);
+		expect(stylesSource).toMatch(
+			/\.is-phone \.workspace-drawer[^{]*\.vaultman-filters-phone-search-row\s*\{\s*display: block;/,
+		);
 	});
 });

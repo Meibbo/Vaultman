@@ -1,10 +1,19 @@
 <script lang="ts">
 	import type { PanelWidgetNode } from '../../types/typePanelWidget';
 
+	/**
+	 * Where this search field is mounted. The three values are not cosmetic:
+	 * the stylesheet dresses each one differently and, in the phone drawer,
+	 * hides `--inline` outright because that surface uses its own row. Collapsing
+	 * them to a boolean made the phone field render as `--inline` and disappear,
+	 * leaving only the row's padding pushing the explorer down.
+	 */
+	type SearchControlVariant = 'inline' | 'phone' | 'row';
+
 	let {
 		value,
 		placeholder,
-		ownRow = false,
+		variant = 'inline',
 		styleOrder = undefined,
 		trailingActions = [],
 		clearLabel = 'Clear search',
@@ -20,7 +29,7 @@
 	}: {
 		value: string;
 		placeholder: string;
-		ownRow?: boolean;
+		variant?: SearchControlVariant;
 		styleOrder?: number;
 		trailingActions?: readonly PanelWidgetNode[];
 		clearLabel?: string;
@@ -38,9 +47,10 @@
 
 <div
 	class="search-input-container vaultman-filters-header-search-pill"
-	class:vaultman-filters-header-search-pill--row={ownRow}
-	class:vaultman-filters-header-search-pill--inline={!ownRow}
-	data-search-own-row={ownRow ? 'true' : undefined}
+	class:vaultman-filters-header-search-pill--row={variant === 'row'}
+	class:vaultman-filters-header-search-pill--inline={variant === 'inline'}
+	class:vaultman-filters-header-search-pill--phone={variant === 'phone'}
+	data-search-own-row={variant === 'row' ? 'true' : undefined}
 	style:order={styleOrder}
 >
 	<input
@@ -83,7 +93,9 @@
 				{#each trailingActions as action, i (action.id)}
 					<button
 						type="button"
-						class={i === 0 ? "vaultman-filters-search-mode" : "vaultman-filters-search-create"}
+						class={i === 0
+							? 'vaultman-filters-search-mode'
+							: 'vaultman-filters-search-create'}
 						aria-label={action.label}
 						title={action.label}
 						class:is-active={action.checked}

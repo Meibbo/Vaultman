@@ -1693,7 +1693,7 @@
 	<SearchControl
 		value={filtersSearch}
 		placeholder={translate('filter.search_placeholder')}
-		ownRow={variant === 'row'}
+		{variant}
 		styleOrder={variant === 'inline'
 			? panelWidgetNodeOrder('search')
 			: undefined}

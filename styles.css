@@ -2985,6 +2985,20 @@ body.vaultman-bases-column-separators table th {
   -webkit-backdrop-filter: none;
 }
 
+/* U121-029: the action row shrink-wraps its nodes (`width: max-content`) so the
+   toolbar stays centered on desktop and in the main leaf. In the phone drawer
+   that same box is the one carrying Core's `nav-buttons-container`, and Core
+   paints its gradient across the whole drawer — so a shrink-wrapped box cuts the
+   gradient down to the span between the first and the last node. Here the box
+   takes the full width and lets the flexbox it already has do the centering.
+   Scoped to this surface on purpose: the other toolbar contexts keep the
+   shrink-wrap that fixed the searchbox placement. */
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-navbar-filters.vaultman-glass::before,
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav--minimal.vaultman-glass::before {
   display: none;

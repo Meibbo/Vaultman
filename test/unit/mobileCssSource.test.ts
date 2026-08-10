@@ -45,9 +45,15 @@ describe('mobile CSS source guards', () => {
 		expect(stylesSource).toContain('position: static');
 		expect(stylesSource).toContain('padding: 8px 8px 4px');
 		expect(stylesSource).toContain('background: transparent');
-		expect(stylesSource).toContain('border-bottom-color: var(--background-modifier-border)');
-		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--inline');
-		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--phone');
+		expect(stylesSource).toContain(
+			'border-bottom-color: var(--background-modifier-border)',
+		);
+		expect(stylesSource).toContain(
+			'.vaultman-filters-header-search-pill--inline',
+		);
+		expect(stylesSource).toContain(
+			'.vaultman-filters-header-search-pill--phone',
+		);
 		const searchBlock =
 			stylesSource.match(
 				/\.vaultman-filters-header-search-pill\s*\{[\s\S]*?\n\}/,
@@ -72,21 +78,44 @@ describe('mobile CSS source guards', () => {
 		const navbarBlock =
 			stylesSource.match(/\.vaultman-navbar-filters\s*\{[\s\S]*?\n\}/)?.[0] ??
 			'';
-		const headerWrapBlocks = Array.from(
-			stylesSource.matchAll(
-				/(?:^|\n)\.vaultman-filters-header-wrap\s*\{[\s\S]*?\n\}/g,
-			),
-			(match) => match[0],
-		);
-		const globalHeaderWrapBlock =
-			headerWrapBlocks.find((block) => block.includes('max-width: 520px')) ??
-			'';
 
 		expect(pageBlock).not.toContain('container-type');
 		expect(navbarBlock).toContain('container-type: inline-size');
-		expect(navbarBlock).not.toContain('max-width: 520px');
-		expect(globalHeaderWrapBlock).toContain('max-width: 520px');
-		expect(globalHeaderWrapBlock).toContain('margin-inline: auto');
+	});
+
+	it('centers the toolbar by shrink-wrapping the action row', () => {
+		// U121-029: the toolbar used to be centered by capping the header wrap at
+		// a fixed 520px, which is narrower than a wide leaf and wider than a
+		// sidebar. The action row shrink-wraps its own nodes instead, so the
+		// centering follows the nodes at any width.
+		const actionsBlock =
+			stylesSource.match(
+				/(?:^|\n)\.vaultman-filters-actions\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+
+		expect(actionsBlock).toContain('width: max-content');
+		expect(actionsBlock).toContain('max-width: 100%');
+		expect(actionsBlock).toContain('margin-inline: auto');
+		expect(actionsBlock).toContain('justify-content: center');
+		expect(stylesSource).not.toContain('520px');
+	});
+
+	it('lets Core paint its drawer gradient across the whole phone side leaf', () => {
+		// The action row is the box that opts into Core's `nav-buttons-container`,
+		// and Core's gradient spans the entire drawer. Shrink-wrapping it there
+		// cropped the gradient to the span between the first and the last node, so
+		// this surface — and only this one — takes the full width back and leans
+		// on the flexbox centering the base rule already declares.
+		const phoneDrawerActions =
+			stylesSource.match(
+				/\.is-phone \.workspace-drawer[^{]*\.vaultman-filters-actions\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+
+		expect(phoneDrawerActions).not.toBe('');
+		expect(phoneDrawerActions).toContain('width: 100%');
+		expect(phoneDrawerActions).not.toContain('max-content');
+		// Still Core's contract, not a reimplementation of its gradient.
+		expect(phoneDrawerActions).not.toContain('linear-gradient');
 	});
 
 	it('aligns phone explorer viewport padding with core panes instead of custom side padding', () => {
