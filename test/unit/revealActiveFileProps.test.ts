@@ -7,6 +7,8 @@ import {
 import revealSource from '../../src/logic/logicRevealActiveFileProps.ts?raw';
 import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
 import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
+import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import { PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER } from '../../src/logic/logicPanelWidgetProjection';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 
@@ -50,12 +52,32 @@ const snapshot: TreeNode<PropMeta>[] = [
 ];
 
 describe('reveal projects the active file over the vault-wide index', () => {
+	// U121-029: this order is not cosmetic and it is not the snapshot's. The
+	// order the active file declares its properties — and, inside each one, its
+	// values — is the file's own order, and it is the first precedent of the
+	// CUSTOM_SORT option the sort menu will offer. That option is planned to
+	// reach every scene and provider through the explorer/widget/navbar panels,
+	// so a rewrite that projects reveal from the snapshot instead of from the
+	// frontmatter silently destroys the seed of that feature.
 	it('returns only the properties the file carries, in frontmatter key order', () => {
 		const nodes = projectActiveFileProps(snapshot, {
 			tags: ['casa'],
 			lugar: 'cocina',
 		});
 		expect(nodes.map((node) => node.id)).toEqual(['tags', 'lugar']);
+		// The vault-wide order is the other one, so this cannot pass by accident.
+		expect(snapshot.map((node) => node.id)).toEqual(['lugar', 'peso', 'tags']);
+	});
+
+	it('orders the values of a property as the file declares them', () => {
+		// 'patio' follows 'cocina' in the snapshot and precedes it in the file.
+		const nodes = projectActiveFileProps(snapshot, {
+			lugar: ['patio', 'cocina'],
+		});
+		expect(nodes[0].children?.map((child) => child.label)).toEqual([
+			'patio',
+			'cocina',
+		]);
 	});
 
 	it('keeps node identity so selection and expansion survive the toggle', () => {
@@ -72,7 +94,9 @@ describe('reveal projects the active file over the vault-wide index', () => {
 	});
 
 	it('narrows a property to the values this file actually holds', () => {
-		const nodes = projectActiveFileProps(snapshot, { lugar: ['cocina', 'patio'] });
+		const nodes = projectActiveFileProps(snapshot, {
+			lugar: ['cocina', 'patio'],
+		});
 		expect(nodes[0].children?.map((child) => child.label)).toEqual([
 			'cocina',
 			'patio',
@@ -179,6 +203,39 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		// rather than each deciding for itself what reveal means.
 		expect(propsExplorerSource).toContain(
 			'this._revealProjection(this.logic.getTree())',
+		);
+	});
+
+	it('wears the same glyph and holds the same slot as the other scenes', () => {
+		// Files, Content and Props all answer "show me this file", so they answer
+		// it with one glyph in one place. A tagScene reveal joins this list.
+		// Anchored on the node id and lazy to its own `icon:` — no character
+		// budget, so a comment between the two cannot silently blind the guard.
+		const propsIcon = filtersPageSource.match(
+			/id: 'props\.reveal-this-file',[\s\S]*?icon: '([^']+)'/,
+		)?.[1];
+		const contentIcon = filtersPageSource.match(
+			/id: 'content-reveal',[\s\S]*?icon: '([^']+)'/,
+		)?.[1];
+		const filesIcon = navbarSource.match(
+			/append\(\s*'reveal-active-file',[\s\S]*?'(lucide-[^']+)'/,
+		)?.[1];
+
+		expect(propsIcon).toBe('lucide-gallery-vertical');
+		expect(contentIcon).toBe(propsIcon);
+		expect(filesIcon).toBe(propsIcon);
+
+		// And it sits between search and expand/collapse, by order rather than by
+		// source position, so a reordered `append` block cannot drift the slot.
+		const orderOf = (id: string): number =>
+			Number(
+				navbarSource.match(
+					new RegExp(`append\\(\\s*'${id}',[\\s\\S]*?(\\d+),\\s*\\);`),
+				)?.[1],
+			);
+		expect(orderOf('search')).toBeLessThan(PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER);
+		expect(orderOf('toggle-expansion')).toBeGreaterThan(
+			PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 		);
 	});
 

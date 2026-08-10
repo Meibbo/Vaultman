@@ -79,6 +79,16 @@ function valueNode(
  * The active file's properties as node_props and node_values, in the order the
  * file's frontmatter declares them.
  *
+ * The iteration is driven by the frontmatter, not by the snapshot, and that is
+ * load-bearing. The order in which a file declares its properties — and, inside
+ * each one, its values — is the file's own order, and it is the first precedent
+ * of the CUSTOM_SORT option the sort menu will offer. That option is meant to
+ * reach every scene and provider through the explorer/widget/navbar panels, so
+ * reveal must not quietly substitute the vault-wide order for the file's.
+ *
+ * What comes from the snapshot is identity, not order: a property the vault
+ * already knows keeps its node, and with it its ID, label, color and badges.
+ *
  * `frontmatter` is `null` when there is no active file. Both that and an empty
  * frontmatter produce the canonical empty state rather than falling back to the
  * vault-wide set: showing properties the file does not have, while claiming to
@@ -90,50 +100,41 @@ export function projectActiveFileProps(
 ): TreeNode<PropMeta>[] {
 	if (!frontmatter) return [];
 
-	const nodes: TreeNode<PropMeta>[] = [];
-	const seenProps = new Set<string>();
-
+	const byProperty = new Map<string, TreeNode<PropMeta>>();
 	for (const node of snapshot) {
 		if (node.meta.isValueNode) continue;
-		const propName = node.meta.propName;
-		if (!(propName in frontmatter) || NOT_A_PROPERTY.has(propName)) continue;
-
-		seenProps.add(propName);
-		const raw = frontmatter[propName];
-		const fileValues = new Set(valuesOf(raw));
-		const children = (node.children || []).filter(child => 
-			fileValues.has(child.meta.rawValue!)
-		);
-		// Also create missing value nodes if the file has values not in the vault snapshot yet
-		const snapshotValues = new Set(children.map(c => c.meta.rawValue!));
-		for (const val of fileValues) {
-			if (!snapshotValues.has(val)) {
-				children.push(valueNode(node, propName, node.meta.propType, val));
-			}
-		}
-
-		nodes.push({
-			...node,
-			children,
-			count: children.length,
-		});
+		byProperty.set(node.meta.propName, node);
 	}
 
+	const nodes: TreeNode<PropMeta>[] = [];
+
 	for (const [propName, raw] of Object.entries(frontmatter)) {
-		if (seenProps.has(propName) || NOT_A_PROPERTY.has(propName)) continue;
-		const propType = 'text';
+		if (NOT_A_PROPERTY.has(propName)) continue;
+
+		const source = byProperty.get(propName);
+		const propType = source?.meta.propType ?? 'text';
+		// A value the index has not seen yet is projected rather than dropped:
+		// the cache can lag a just-typed value, and hiding it would make the file
+		// look like it does not hold what the user just wrote.
 		const children = valuesOf(raw).map((rawValue) =>
-			valueNode(undefined, propName, propType, rawValue),
+			valueNode(source, propName, propType, rawValue),
 		);
-		nodes.push({
-			id: propName,
-			label: propName,
-			count: children.length,
-			depth: 0,
-			coreCls: 'tree-item-self tappable is-clickable',
-			children,
-			meta: { propName, propType, isValueNode: false },
-		});
+
+		// The count is this file's values, not the vault's. The vault-wide
+		// `count` Cell resolves unavailable in reveal for the same reason.
+		nodes.push(
+			source
+				? { ...source, children, count: children.length }
+				: {
+						id: propName,
+						label: propName,
+						count: children.length,
+						depth: 0,
+						coreCls: 'tree-item-self tappable is-clickable',
+						children,
+						meta: { propName, propType, isValueNode: false },
+					},
+		);
 	}
 
 	return nodes;

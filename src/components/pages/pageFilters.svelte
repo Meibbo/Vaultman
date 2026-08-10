@@ -73,7 +73,12 @@
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab =
-		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins';
+		| 'files'
+		| 'props'
+		| 'tags'
+		| 'content'
+		| 'snippets'
+		| 'plugins';
 	type SearchTab = Exclude<FiltersTab, 'content'>;
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
@@ -694,7 +699,10 @@
 							cellKind: 'action',
 							presentation: 'toggle',
 							label: translate('explorer.ctx.reveal_this_file'),
-							icon: 'lucide-file-search-2',
+							// The glyph Files and Content already use for their reveal
+							// node, in the slot they already put it in: one gesture,
+							// one icon, wherever the user meets it.
+							icon: 'lucide-gallery-vertical',
 							order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 							available: true,
 							action: { id: 'props.reveal-this-file.toggle' },
