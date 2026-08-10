@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
-import {
-	SORT_MENU_OPTIONS,
-	visibleSortOptions,
-} from '../../src/logic/logicSortMenu';
+import { SORT_MENU_OPTIONS, visibleSortOptions } from '../../src/logic/logicSortMenu';
 import { isSortOptionVisible } from '../../src/logic/logicScopedSort';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
 import tagsExplorerSource from '../../src/components/containers/explorerTags.ts?raw';
 import sortPopupSource from '../../src/components/layout/popupSort.svelte?raw';
+import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
 
 /**
  * U121-029 — `Custom` sorts by the anchored note's own order: the order its
@@ -30,36 +29,39 @@ describe('U121-029 Custom sort option', () => {
 		expect(SORT_MENU_OPTIONS.files.some((o) => o.id === 'custom')).toBe(false);
 	});
 
-	it('exists only while a note is anchored', () => {
+	it('is offered unconditionally for now, with the reveal gate still plumbed', () => {
 		const context = {
 			tab: 'props' as const,
 			nestedActive: true,
 			activeScope: 'properties' as const,
 		};
-		expect(isSortOptionVisible('custom', context)).toBe(false);
-		expect(
-			isSortOptionVisible('custom', { ...context, revealActive: false }),
-		).toBe(false);
-		expect(
-			isSortOptionVisible('custom', { ...context, revealActive: true }),
-		).toBe(true);
-		// It does not gate anything else.
+		// The anchoring modes (Current File / Scope drill) are not built yet, so
+		// the option is exercised without them. `revealActive` still reaches this
+		// function, which is what makes restoring the gate a one-line change.
+		expect(isSortOptionVisible('custom', context)).toBe(true);
+		expect(isSortOptionVisible('custom', { ...context, revealActive: true })).toBe(
+			true,
+		);
 		expect(isSortOptionVisible('name', context)).toBe(true);
 	});
 
-	it('appears in the menu only when the surface reports reveal', () => {
-		const state = normalizeExplorerSortState('props', null);
-		const idsWithout = visibleSortOptions('props', state, true).map(
-			(o) => o.id,
-		);
-		const idsWith = visibleSortOptions('props', state, true, true).map(
-			(o) => o.id,
-		);
+	it('keeps the reveal signal wired end to end for when the gate returns', () => {
+		// pageFilters publishes it, the host spreads it, the navbar forwards it and
+		// the popup passes it to the filter. If any link breaks, re-gating would
+		// silently hide the option instead of following the mode.
+		expect(filtersPageSource).toContain('revealActive: revealingActiveFile');
+		expect(navbarSource).toContain('{revealActive}');
+		expect(sortPopupSource).toContain('revealActive = false');
+	});
 
-		expect(idsWithout).not.toContain('custom');
-		expect(idsWith).toContain('custom');
-		// Nothing else moves in or out with it.
-		expect(idsWith.filter((id) => id !== 'custom')).toEqual(idsWithout);
+	it('appears in the sort row for both node providers', () => {
+		const state = normalizeExplorerSortState('props', null);
+		for (const tab of ['props', 'tags'] as const) {
+			const ids = visibleSortOptions(tab, state, true).map((option) => option.id);
+			expect(ids).toContain('custom');
+		}
+		const fileIds = visibleSortOptions('files', state, true).map((o) => o.id);
+		expect(fileIds).not.toContain('custom');
 	});
 
 	it('leaves the projected order untouched in both node providers', () => {
@@ -67,7 +69,9 @@ describe('U121-029 Custom sort option', () => {
 		// job is to not re-sort it. The sort is stable, so returning 0 preserves
 		// the sequence exactly — for properties and for each property's values.
 		for (const source of [propsExplorerSource, tagsExplorerSource]) {
-			expect(source).toMatch(/normalizedSortBy === 'custom'\) return 0;/);
+			expect(source).toMatch(
+				/normalizedSortBy === 'custom'\) return 0;/,
+			);
 		}
 	});
 
