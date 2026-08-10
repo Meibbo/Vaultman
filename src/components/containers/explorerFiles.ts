@@ -1939,6 +1939,10 @@ export class FilesExplorerPanel extends Component {
 								this._foldersForCurrentView(),
 								{
 									rebaseFolderPaths,
+									// Folders-only draws no file rows, so a folder whose
+									// only content is files is a leaf here. Its caret
+									// would open onto the level the projection removed.
+									emptyFolderCarets: !foldersOnly,
 									...this._treeOrderingOptions(),
 								},
 							),

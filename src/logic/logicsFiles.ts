@@ -49,6 +49,14 @@ export interface BuildFileTreeOptions {
 	 * folder stays distinguishable without a second textual cell.
 	 */
 	labelMode?: 'name' | 'path';
+	/**
+	 * Whether a folder that ends up with no children still reserves a caret.
+	 * Core draws one on every folder, so the default keeps that. The
+	 * folders-only projection turns it off: there, a childless folder has
+	 * nothing left to reveal and the caret would promise a level that the
+	 * projection itself removed.
+	 */
+	emptyFolderCarets?: boolean;
 	compareNodes?: (
 		a: TreeNode<FileMeta>,
 		b: TreeNode<FileMeta>,
@@ -240,6 +248,12 @@ export class FilesLogic {
 			};
 
 			(parentFolder?.children ?? root).push(fileNode);
+		}
+		if (options.emptyFolderCarets === false) {
+			for (const folderNode of folderMap.values()) {
+				if ((folderNode.children?.length ?? 0) === 0)
+					folderNode.showCaret = false;
+			}
 		}
 		return this.sortFileTreeNodes(root, {
 			...options,
