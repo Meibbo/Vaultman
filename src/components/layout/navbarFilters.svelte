@@ -115,6 +115,7 @@
 		tabMenuActions = [],
 		headerActions = [],
 		revealActive = false,
+		onRequestRevealPick,
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -1405,6 +1406,26 @@
 									fixedFolders: !option.checked,
 								});
 							}
+							if (option.id === 'filtered') {
+								handleFilterChange({
+									...current,
+									filtered: !option.checked,
+								});
+							}
+							return;
+						}
+						if (option.kind === 'reveal') {
+							if (option.id === 'reveal-drill') {
+								onRequestRevealPick?.();
+								return;
+							}
+							// Releases the pinned note; the projection follows the
+							// workspace again from the next flush.
+							handleScopeChange({
+								...current,
+								revealAnchor: 'current-file',
+								revealAnchorPath: null,
+							});
 							return;
 						}
 						if (option.scope === 'drill') {
@@ -2103,6 +2124,7 @@
 					initialSortState={sortStateByTab[activeTab]}
 					nestedActive={nestedActiveFor(activeTab)}
 					{revealActive}
+					{onRequestRevealPick}
 					treeCapable={treeCapableFor(activeTab)}
 					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}

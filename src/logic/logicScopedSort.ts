@@ -79,6 +79,23 @@ function normalizeNodeFilters(
 	};
 }
 
+function normalizeRevealAnchor(
+	value: Record<string, unknown>,
+): Pick<ExplorerSortState, 'filtered' | 'revealAnchor' | 'revealAnchorPath'> {
+	// A pinned anchor without a path is not an anchor, so it falls back to
+	// following the workspace rather than projecting nothing.
+	const path =
+		typeof value.revealAnchorPath === 'string' && value.revealAnchorPath
+			? value.revealAnchorPath
+			: null;
+	const pinned = value.revealAnchor === 'pinned' && path !== null;
+	return {
+		filtered: value.filtered === true,
+		revealAnchor: pinned ? 'pinned' : 'current-file',
+		revealAnchorPath: pinned ? path : null,
+	};
+}
+
 export function normalizeExplorerSortState(
 	tab: ExplorerTabId,
 	value: unknown,
@@ -94,6 +111,7 @@ export function normalizeExplorerSortState(
 			...fallback,
 			sorts: { [DEFAULT_SCOPE_BY_TAB[tab]]: legacySort },
 			...nodeFilters,
+			...normalizeRevealAnchor(value),
 			...(tab === 'files' && typeof value.parentsFirst === 'boolean'
 				? { parentsFirst: value.parentsFirst }
 				: {}),
@@ -144,6 +162,7 @@ export function normalizeExplorerSortState(
 		activeScope,
 		...(isHierarchicalTab(tab) ? { drillNodeId } : {}),
 		...nodeFilters,
+		...normalizeRevealAnchor(value),
 		...(tab === 'files'
 			? {
 					parentsFirst:
@@ -200,6 +219,9 @@ export function sameExplorerSortState(
 		a.activeScope === b.activeScope &&
 		a.drillNodeId === b.drillNodeId &&
 		a.nodeTypeFilter === b.nodeTypeFilter &&
+		a.filtered === b.filtered &&
+		a.revealAnchor === b.revealAnchor &&
+		a.revealAnchorPath === b.revealAnchorPath &&
 		JSON.stringify(a.nodeTypeFilters ?? []) ===
 			JSON.stringify(b.nodeTypeFilters ?? [])
 	);
@@ -210,18 +232,16 @@ export function sortTwoLevel<T extends { children?: T[] }>(
 	compareProperties: (a: T, b: T) => number,
 	compareValues: (a: T, b: T, parent: T) => number,
 ): T[] {
-	return [...nodes]
-		.sort(compareProperties)
-		.map((node) =>
-			node.children?.length
-				? {
-						...node,
-						children: [...node.children].sort((a, b) =>
-							compareValues(a, b, node),
-						),
-					}
-				: node,
-		);
+	return [...nodes].sort(compareProperties).map((node) =>
+		node.children?.length
+			? {
+					...node,
+					children: [...node.children].sort((a, b) =>
+						compareValues(a, b, node),
+					),
+				}
+			: node,
+	);
 }
 
 export function sortAllWithDrill<T extends SortableTreeNode<T>>(

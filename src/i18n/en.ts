@@ -995,6 +995,9 @@ export const en: Record<string, string> = {
 	'content.bookmarks_unavailable': 'The Bookmarks core plugin is disabled.',
 	'content.copy_unavailable': 'Core search is unavailable in this vault.',
 	'sort.level.nested': 'Nested',
+	'sort.level.filtered': 'Filtered',
+	'sort.reveal.current_file': 'Current file',
+	'sort.reveal.drill': 'Pin a note',
 	'sort.level.fixed_folders': 'Fixed folders',
 	'settings.sort_level_inline': 'Inline By level options',
 	'settings.sort_level_inline.desc':

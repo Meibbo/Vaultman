@@ -37,6 +37,7 @@
 		onFilterChange,
 		onScopeChange,
 		onRequestDrillPick,
+		onRequestRevealPick,
 		onNestedToggle,
 		initialSortState,
 		nestedActive = false,
@@ -50,6 +51,7 @@
 		onFilterChange?: (state: ExplorerSortState) => void;
 		onScopeChange?: (state: ExplorerSortState) => void;
 		onRequestDrillPick?: () => void;
+		onRequestRevealPick?: () => void;
 		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
@@ -72,7 +74,7 @@
 	);
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
 	const levelModel = $derived(
-		byLevelModel(activeTab, sortState, nestedActive, treeCapable),
+		byLevelModel(activeTab, sortState, nestedActive, treeCapable, revealActive),
 	);
 	const visibleSortOptionsForActiveTab = $derived(
 		visibleSortOptions(activeTab, sortState, nestedActive, revealActive),
@@ -174,15 +176,47 @@
 		emitSortChange();
 	}
 
+	function toggleFiltered() {
+		sortState = {
+			...sortState,
+			filtered: sortState.filtered !== true,
+		};
+		emitFilterChange();
+	}
+
+	function selectRevealAnchor(id: 'reveal-current-file' | 'reveal-drill') {
+		if (id === 'reveal-drill') {
+			// The pick itself happens outside the popup: the surface switches to
+			// Files, takes one click, and comes back. It reports the note it got.
+			onRequestRevealPick?.();
+			levelDrawerOpen = false;
+			return;
+		}
+		// Back to following the workspace: the pinned note is released, not kept
+		// as a stale fallback.
+		sortState = {
+			...sortState,
+			revealAnchor: 'current-file',
+			revealAnchorPath: null,
+		};
+		levelDrawerOpen = false;
+		onScopeChange?.(sortState);
+	}
+
 	function activateByLevelItem(item: ByLevelMenuItem) {
 		if (item.kind === 'separator') return;
 		if (item.kind === 'scope') {
 			selectScope(item.scope);
 			return;
 		}
+		if (item.kind === 'reveal') {
+			selectRevealAnchor(item.id);
+			return;
+		}
 		if (item.id === 'nested') onNestedToggle?.();
 		if (item.id === 'parentsFirst') toggleParentsFirst();
 		if (item.id === 'fixedFolders') toggleFixedFolders();
+		if (item.id === 'filtered') toggleFiltered();
 	}
 
 	const vertTopIcon = $derived(

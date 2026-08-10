@@ -883,6 +883,9 @@ export const es: Record<string, string> = {
 	'content.copy_unavailable':
 		'La búsqueda de Obsidian no está disponible en esta bóveda.',
 	'sort.level.nested': 'Anidado',
+	'sort.level.filtered': 'Filtrado',
+	'sort.reveal.current_file': 'Archivo actual',
+	'sort.reveal.drill': 'Anclar una nota',
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'settings.sort_level_inline': 'Opciones By level en línea',
 	'settings.sort_level_inline.desc':

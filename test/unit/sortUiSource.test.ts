@@ -49,7 +49,13 @@ describe('explorer sort UI source', () => {
 				normalizeExplorerSortState('props', null),
 				true,
 			)?.items.map((item) => item.id),
-		).toEqual(['nested', 'scope-separator', 'properties', 'values']);
+		).toEqual([
+			'filtered',
+			'nested',
+			'scope-separator',
+			'properties',
+			'values',
+		]);
 		expect(
 			byLevelModel(
 				'files',
@@ -124,10 +130,9 @@ describe('explorer sort UI source', () => {
 	});
 
 	it('puts the Files Folders toggle directly below All types', () => {
-		expect(NODE_TYPE_MENU_OPTIONS.files.slice(0, 2).map((option) => option.id)).toEqual([
-			'all',
-			'folders-only',
-		]);
+		expect(
+			NODE_TYPE_MENU_OPTIONS.files.slice(0, 2).map((option) => option.id),
+		).toEqual(['all', 'folders-only']);
 		expect(NODE_TYPE_MENU_OPTIONS.files[1]?.labelKey).toBe('sort.type.folders');
 		expect(navbarSource).toContain('...NODE_TYPE_MENU_OPTIONS.files');
 		expect(en['sort.type.folders']).toBe('Folders');

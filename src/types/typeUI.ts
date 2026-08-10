@@ -97,4 +97,18 @@ export interface ExplorerSortState {
 	parentsFirst?: boolean;
 	/** Files: folders-first keeps a stable name order, immune to the sort */
 	fixedFolders?: boolean;
+	/**
+	 * Props/Tags: narrow the projection to the nodes present in the filtered
+	 * file set instead of the whole vault. Off by default — "global" is simply
+	 * this being off, which is why there is no separate global switch.
+	 */
+	filtered?: boolean;
+	/**
+	 * Which note the reveal projection follows. `current-file` tracks the
+	 * workspace's active file; `pinned` holds `revealAnchorPath` until the user
+	 * picks Current File again, so changing focus no longer changes the list.
+	 */
+	revealAnchor?: 'current-file' | 'pinned';
+	/** The note `revealAnchor: 'pinned'` is held to. */
+	revealAnchorPath?: string | null;
 }

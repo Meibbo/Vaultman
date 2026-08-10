@@ -139,7 +139,11 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	],
 	files: [
 		{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
-		{ id: 'folders-only', icon: 'lucide-folder', labelKey: 'sort.type.folders' },
+		{
+			id: 'folders-only',
+			icon: 'lucide-folder',
+			labelKey: 'sort.type.folders',
+		},
 	],
 };
 
@@ -151,7 +155,17 @@ interface ByLevelBaseItem {
 
 export interface ByLevelToggleItem extends ByLevelBaseItem {
 	kind: 'toggle';
-	id: 'nested' | 'parentsFirst' | 'fixedFolders';
+	id: 'nested' | 'parentsFirst' | 'fixedFolders' | 'filtered';
+}
+
+/**
+ * Which note the reveal projection follows. Mutually exclusive, so they read as
+ * radios rather than switches: picking Current File releases a pinned note, and
+ * picking Scope drill starts the pick that pins one.
+ */
+export interface ByLevelRevealItem extends ByLevelBaseItem {
+	kind: 'reveal';
+	id: 'reveal-current-file' | 'reveal-drill';
 }
 
 export interface ByLevelScopeItem extends ByLevelBaseItem {
@@ -162,12 +176,13 @@ export interface ByLevelScopeItem extends ByLevelBaseItem {
 
 export interface ByLevelSeparatorItem {
 	kind: 'separator';
-	id: 'scope-separator';
+	id: 'scope-separator' | 'reveal-separator';
 }
 
 export type ByLevelMenuItem =
 	| ByLevelToggleItem
 	| ByLevelScopeItem
+	| ByLevelRevealItem
 	| ByLevelSeparatorItem;
 
 export interface ByLevelMenuModel {
@@ -228,19 +243,55 @@ export function byLevelModel(
 	// nothing to order. Callers pass false for those view modes and the whole
 	// group disappears. Defaults true so existing callers keep the tree shape.
 	treeCapable = true,
+	// While a note is anchored, the drawer leads with the two modes that decide
+	// *which* note, separated from everything that shapes the level below.
+	revealActive = false,
 ): ByLevelMenuModel | null {
 	if (!supportsByLevel(tab)) return null;
 	if (!treeCapable) return null;
 
-	const items: ByLevelMenuItem[] = [
-		{
+	const items: ByLevelMenuItem[] = [];
+
+	if (revealActive && (tab === 'props' || tab === 'tags')) {
+		const pinned = state.revealAnchor === 'pinned';
+		items.push(
+			{
+				kind: 'reveal',
+				id: 'reveal-current-file',
+				icon: 'lucide-file-clock',
+				labelKey: 'sort.reveal.current_file',
+				checked: !pinned,
+			},
+			{
+				kind: 'reveal',
+				id: 'reveal-drill',
+				icon: 'lucide-pin',
+				labelKey: 'sort.reveal.drill',
+				checked: pinned,
+			},
+			{ kind: 'separator', id: 'reveal-separator' },
+		);
+	}
+
+	// No divider under this one: it belongs with Nested, both shaping what the
+	// level below is drawn from. Off by default — "global" is this being off.
+	if (tab === 'props' || tab === 'tags') {
+		items.push({
 			kind: 'toggle',
-			id: 'nested',
-			icon: 'lucide-list-tree',
-			labelKey: 'sort.level.nested',
-			checked: nestedActive,
-		},
-	];
+			id: 'filtered',
+			icon: 'lucide-filter',
+			labelKey: 'sort.level.filtered',
+			checked: state.filtered === true,
+		});
+	}
+
+	items.push({
+		kind: 'toggle',
+		id: 'nested',
+		icon: 'lucide-list-tree',
+		labelKey: 'sort.level.nested',
+		checked: nestedActive,
+	});
 
 	// With nesting off the view is a single flat level, so folders-first,
 	// fixed-folders and the level scopes have nothing to act on: only the

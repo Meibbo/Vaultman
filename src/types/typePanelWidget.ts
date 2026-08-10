@@ -164,6 +164,13 @@ export interface NavbarPanelWidgetState {
 	 */
 	revealActive?: boolean;
 	/**
+	 * Asks the surface to pin the reveal projection to a note the user picks.
+	 * The pick itself belongs to the surface, not the menu: it switches to
+	 * Files, takes one click and comes back. Left unset while that flow is
+	 * being built, which leaves the menu entry inert rather than wrong.
+	 */
+	onRequestRevealPick?: () => void;
+	/**
 	 * Trailing controls rendered inside the searchbox. An operation mode that
 	 * needs its own switches publishes them here rather than adding a bar.
 	 */
