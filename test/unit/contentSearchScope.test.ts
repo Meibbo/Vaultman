@@ -79,15 +79,14 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 		// The teardown used to call `nativeSearchAdapter.cancel()`, which killed
 		// an in-flight scan whenever the effect re-ran — including on a provider
 		// switch. Only the debounce may be torn down now.
-		const teardownIndex = pageFiltersSource.indexOf(
-			'return () => {\n\t\t\twindow.clearTimeout(timer);',
+		// Matched on a regex rather than an exact string: an editor that saves
+		// this file with CRLF must not be able to disarm the guard, which is
+		// exactly what happened to it once.
+		const teardownMatch = pageFiltersSource.match(
+			/return \(\) => \{\s*window\.clearTimeout\(timer\);[\s\S]{0,120}/,
 		);
-		expect(teardownIndex).toBeGreaterThan(-1);
-		const teardown = pageFiltersSource.slice(
-			teardownIndex,
-			teardownIndex + 120,
-		);
-		expect(teardown).not.toContain('nativeSearchAdapter.cancel()');
+		expect(teardownMatch).not.toBeNull();
+		expect(teardownMatch?.[0]).not.toContain('nativeSearchAdapter.cancel()');
 
 		expect(pageFiltersSource).toContain('resumeFrom,');
 		expect(pageFiltersSource).toContain('onProgress: (nextIndex) => {');
@@ -123,7 +122,7 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 		);
 		const applyIndex = pageFiltersSource.indexOf(
 			'setContentSearchRule(',
-			tokenIndex
+			tokenIndex,
 		);
 		expect(tokenIndex).toBeGreaterThan(-1);
 		expect(applyIndex).toBeGreaterThan(tokenIndex);
@@ -145,8 +144,9 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 		// an `|| reconciled.phase === 'running'` arm, and folding it in on U121-017
 		// moved this line two rows down without changing what guards it.
 		const intentBranch =
-			pageFiltersSource.match(/if \(intentChanged\) \{[\s\S]*?\n\t{3}\}/)?.[0] ??
-			'';
+			pageFiltersSource.match(
+				/if \(intentChanged\) \{[\s\S]*?\n\t{3}\}/,
+			)?.[0] ?? '';
 		expect(intentBranch).not.toBe('');
 		expect(intentBranch).toContain('nativeSearchAdapter.resetRetained();');
 		expect(intentBranch).toContain('nativeSearchAdapter.cancel();');

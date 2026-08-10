@@ -152,7 +152,9 @@ class TestElement {
 	}
 
 	contains(target: TestElement): boolean {
-		return target === this || this.children.some((child) => child.contains(target));
+		return (
+			target === this || this.children.some((child) => child.contains(target))
+		);
 	}
 
 	empty(): void {
@@ -243,9 +245,7 @@ const property: TreeNode<PropMeta> = {
 	meta: { propName: 'status', propType: 'text', isValueNode: false },
 };
 
-function metadataOptions(
-	onReorderStart = vi.fn(),
-): TreeViewOptions {
+function metadataOptions(onReorderStart = vi.fn()): TreeViewOptions {
 	const coreMetadata: CoreMetadataTreeAnatomy = {
 		heading: 'Properties',
 		addButtonLabel: 'Add property',
@@ -301,9 +301,9 @@ describe('U121-003 shard 9.3 — Core file-properties Tree anatomy', () => {
 
 		expect(container.classList.contains('metadata-container')).toBe(true);
 		const heading = container.querySelector('.metadata-properties-heading');
-		expect(heading?.querySelector('.metadata-properties-title')?.textContent).toBe(
-			'Properties',
-		);
+		expect(
+			heading?.querySelector('.metadata-properties-title')?.textContent,
+		).toBe('Properties');
 		const properties = container.querySelector('.metadata-properties');
 		const row = properties?.querySelector('.metadata-property');
 		expect(row?.getAttribute('data-property-key')).toBe('status');
@@ -321,9 +321,9 @@ describe('U121-003 shard 9.3 — Core file-properties Tree anatomy', () => {
 		expect(value?.getAttribute('data-property-key')).toBe('status');
 		expect(value?.getAttribute('data-property-type')).toBe('text');
 		expect(value?.children[0]?.dataset.id).toBe('status::done');
-		expect(value?.querySelector('.vaultman-property-value-text')?.textContent).toBe(
-			'done',
-		);
+		expect(
+			value?.querySelector('.vaultman-property-value-text')?.textContent,
+		).toBe('done');
 		expect(container.querySelector('.metadata-add-button')).not.toBeNull();
 	});
 
@@ -388,10 +388,21 @@ describe('U121-003 shard 9.3 — Core file-properties Tree anatomy', () => {
 		).toBe('done');
 	});
 
-	it('uses shard 07’s value renderer instead of creating a second formatter', () => {
+	// U121-029: the two guards below assert the *wiring* from the Props explorer
+	// into the Core anatomy — `coreMetadata:` on the render call and the
+	// `coreMetadataReveal` branch of the projection. Both were deliberately
+	// commented out when the `reveal this file` composition was taken back to the
+	// drawing board; the renderer itself (viewCoreMetadataTree) is untouched and
+	// the five guards above still cover it. Parked rather than deleted, because
+	// the plan is to reach the same result from another angle — reveal as a
+	// composition over the propScene, extended to the tagScene — not to drop it.
+	it.skip('uses shard 07’s value renderer instead of creating a second formatter', () => {
 		const treeBranch = propsExplorerSource.slice(
 			propsExplorerSource.indexOf('this.view.render({'),
-			propsExplorerSource.indexOf('\n\t}\n', propsExplorerSource.indexOf('this.view.render({')),
+			propsExplorerSource.indexOf(
+				'\n\t}\n',
+				propsExplorerSource.indexOf('this.view.render({'),
+			),
 		);
 		expect(treeBranch).toContain('coreMetadata:');
 		expect(treeBranch).toContain('this._renderPropertyValueLabel');
@@ -409,12 +420,14 @@ describe('U121-003 shard 9.3 — Core file-properties Tree anatomy', () => {
 		);
 		expect(tableBranch).toContain('nodes: nodesWithIcons');
 		expect(tableBranch).not.toContain('coreMetadata');
-		expect(cardsBranch).toContain('this._revealProjection(this.logic.getTree())');
+		expect(cardsBranch).toContain(
+			'this._revealProjection(this.logic.getTree())',
+		);
 		expect(cardsBranch).not.toContain('metadata-property');
 		expect(tableSource).not.toContain('metadata-property');
 	});
 
-	it('keeps the property/value pairs intact for Core while retaining NAVCO sort', () => {
+	it.skip('keeps the property/value pairs intact for Core while retaining NAVCO sort', () => {
 		const projection = propsExplorerSource.slice(
 			propsExplorerSource.indexOf('const sorted = this._applySort(tree);'),
 			propsExplorerSource.indexOf("if (this.viewMode === 'table')"),

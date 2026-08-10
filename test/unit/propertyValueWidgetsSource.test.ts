@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-
 import { readFileSync } from 'node:fs';
 
 import rendererSource from '../../src/utils/renderPropertyValue.ts?raw';
@@ -51,9 +50,19 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 	// every caller publishes instead of just this one. The Props adapter still
 	// has to pass the key through for the attribute to appear.
 	it('publishes both attributes those plugins select on', () => {
-		expect(propsExplorerSource).toContain('resolveCorePropertyWidget');
 		expect(rendererSource).toContain("'data-property-type'");
 		expect(rendererSource).toContain("'data-property-key'");
+	});
+
+	// U121-029: the Props explorer stopped wiring the Core widget bridge when the
+	// `reveal this file` composition was taken back to the drawing board — the
+	// renderer above is untouched and still guarded, only its caller is parked.
+	// The intent was never to discard the work but to reach the same result from
+	// another angle: reveal as a composition the user configures over the
+	// propScene, extended to the tagScene, with `this file properties` closer to
+	// a form than to a tree. Un-skip when that composition lands.
+	it.skip('wires the Core widget bridge from the Props explorer', () => {
+		expect(propsExplorerSource).toContain('resolveCorePropertyWidget');
 		expect(propsExplorerSource).toContain('propertyKey: node.meta.propName');
 	});
 
@@ -102,9 +111,7 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 	});
 
 	it('never restyles Core property panels outside Vaultman', () => {
-		const unscoped = stylesSource.match(
-			/^\.metadata-property-value[^\n]*\{/gm,
-		);
+		const unscoped = stylesSource.match(/^\.metadata-property-value[^\n]*\{/gm);
 		expect(unscoped).toBeNull();
 	});
 });

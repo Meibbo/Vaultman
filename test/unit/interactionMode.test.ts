@@ -9,7 +9,15 @@ import {
 
 describe('explorer interaction modes', () => {
 	it('defines the locked per-tab mode order and defaults', () => {
-		expect(interactionModesForTab('files')).toEqual(['open', 'add', 'select']);
+		// U121-029: Files gained `filter`, so the three node providers now offer
+		// the same four modes in the same order. Files still *defaults* to
+		// `open` — the mode is available, not preselected.
+		expect(interactionModesForTab('files')).toEqual([
+			'open',
+			'filter',
+			'add',
+			'select',
+		]);
 		expect(interactionModesForTab('props')).toEqual([
 			'open',
 			'filter',
@@ -35,8 +43,12 @@ describe('explorer interaction modes', () => {
 
 	it('dispatches every Files mode', () => {
 		expect(resolveInteractionAction('files', 'open', false)).toBe('open');
+		expect(resolveInteractionAction('files', 'filter', false)).toBe('filter');
 		expect(resolveInteractionAction('files', 'add', false)).toBe('add');
 		expect(resolveInteractionAction('files', 'select', false)).toBe('select');
+		// Files opens the note; unlike Props and Tags, `open` is not expansion,
+		// so the modifier does not turn it into a content search.
+		expect(resolveInteractionAction('files', 'open', true)).toBe('open');
 	});
 
 	it('dispatches every Props and Tags mode', () => {
@@ -59,7 +71,12 @@ describe('explorer interaction modes', () => {
 	});
 
 	it('normalizes stale or cross-tab saved values to each tab default', () => {
-		expect(normalizeInteractionMode('files', 'filter')).toBe('open');
+		// `filter` is a real Files mode now, so the cross-tab case has to come
+		// from a provider that genuinely lacks it.
+		expect(normalizeInteractionMode('snippets', 'filter')).toBe('open');
+		expect(normalizeInteractionMode('plugins', 'add')).toBe('open');
+		expect(normalizeInteractionMode('files', 'retired-mode')).toBe('open');
+		expect(normalizeInteractionMode('files', 'filter')).toBe('filter');
 		expect(normalizeInteractionMode('props', 'select')).toBe('select');
 		expect(normalizeInteractionMode('tags', undefined)).toBe('filter');
 	});

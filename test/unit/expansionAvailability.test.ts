@@ -33,9 +33,14 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 			'if (!forcedOverflowIds.includes(node.id)) continue;',
 		);
 		expect(toolsSource).not.toContain('expansionActionAvailableForActiveTab');
-		expect(navbarSource).toContain("append(\n\t\t\t\t'reveal-active-file'");
-		expect(navbarSource).toContain(
-			"if (expansionActionAvailableForActiveTab) {\n\t\t\tappend('toggle-expansion'",
+		// Formatting-tolerant: what matters is which branch appends which node,
+		// not how Prettier happened to wrap the argument list. The exact-string
+		// form of these two silently broke the moment the calls went multi-line.
+		expect(navbarSource).toMatch(
+			/if \(activeTab === 'files'\) \{\s*append\(\s*'reveal-active-file'/,
+		);
+		expect(navbarSource).toMatch(
+			/if \(expansionActionAvailableForActiveTab\) \{\s*append\(\s*'toggle-expansion'/,
 		);
 
 		expect(navbarSource).toContain('{#if compactPanelWidgetTools}');
