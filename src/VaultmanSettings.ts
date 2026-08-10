@@ -63,6 +63,8 @@ import { Notice } from 'obsidian';
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
 
+	icon = 'lucide-vault';
+
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
