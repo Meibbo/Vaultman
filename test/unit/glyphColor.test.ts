@@ -222,4 +222,11 @@ describe('BT5-025 shared glyph color palette', () => {
 		expect(explorerFilesSource).toContain('resolved?.color');
 		expect(explorerFilesSource).toContain('this.plugin.settings.explorerGlyphScope');
 	});
+
+	it('tints hover backgrounds only for non-default glyph-colored surfaces', () => {
+		expect(stylesSource).toContain('.vaultman-glyph-colored:hover');
+		expect(stylesSource).toContain(
+			'color-mix(\n\t\tin srgb,\n\t\tvar(--vaultman-glyph-color),\n\t\ttransparent 80%\n\t)',
+		);
+	});
 });

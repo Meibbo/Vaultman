@@ -56,6 +56,28 @@ function makeApp(
 	} as App;
 }
 
+describe('FilesLogic.buildFlatFolderNodes', () => {
+	it('projects folders as flat structural rows without file nodes', () => {
+		const logic = new FilesLogic(makeApp({}));
+		const nodes = logic.buildFlatFolderNodes(
+			[makeFolder('zeta'), makeFolder('alpha/beta'), makeFolder('alpha')],
+			{ labelMode: 'path' },
+		);
+
+		expect(nodes.map((node) => node.label)).toEqual([
+			'alpha',
+			'alpha/beta',
+			'zeta',
+		]);
+		expect(nodes.every((node) => node.depth === 0 && !node.children?.length)).toBe(
+			true,
+		);
+		expect(nodes.every((node) => node.meta.isFolder && node.meta.file === null)).toBe(
+			true,
+		);
+	});
+});
+
 describe('FilesLogic.buildFileTree', () => {
 	it('creates ancestor folders and keeps folders before files at every level', () => {
 		const files = [

@@ -578,6 +578,13 @@ export class GridView {
 		row.empty();
 		row.className = 'bases-tr vaultman-file-row vaultman-file-table-row';
 		row.dataset.renderSignature = signature;
+		if (glyphColor) {
+			row.addClass('vaultman-glyph-colored');
+			row.style.setProperty('--vaultman-glyph-color', glyphColor);
+		} else {
+			row.removeClass('vaultman-glyph-colored');
+			row.style.setProperty('--vaultman-glyph-color', '');
+		}
 		row.toggleClass('is-selected', this.selectedFiles.has(file.path));
 
 		for (const column of layout.columns) {

@@ -29,5 +29,9 @@ describe('Files grid view source guards', () => {
 		expect(filesGridSource).toContain(
 			'resolvedIcon.color ?? glyphColor ?? undefined',
 		);
+		expect(filesGridSource).toContain("card.addClass('vaultman-glyph-colored')");
+		expect(filesGridSource).toContain(
+			"card.style.setProperty('--vaultman-glyph-color', glyphColor)",
+		);
 	});
 });

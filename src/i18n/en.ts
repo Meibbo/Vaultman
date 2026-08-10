@@ -367,6 +367,9 @@ export const en: Record<string, string> = {
 	'settings.folder_aggregate_cells': 'Folder cell totals',
 	'settings.folder_aggregate_cells.desc':
 		'Folders in the Files tree show the recursive sum of their files countable cells (properties, words, tasks), including the totals of their subfolders.',
+	'settings.sticky_parent_rows': 'Sticky parent rows',
+	'settings.sticky_parent_rows.desc':
+		'Keep expanded parent nodes visible while scrolling through their tree.',
 	'settings.node_icon_scope': 'Node icon scope',
 	'settings.node_icon_scope.desc':
 		'Which explorer nodes may show an icon: files and folders, files only, folders only, or only nodes with a custom icon.',

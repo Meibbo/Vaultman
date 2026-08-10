@@ -27,6 +27,10 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.explorerSearchHighlights).toBe(false);
 	});
 
+	it('enables sticky parent rows for both style presets by default', () => {
+		expect(DEFAULT_SETTINGS.stickyParentRows).toBe(true);
+	});
+
 	it('keeps floating TOC soft scrolling opt-in', () => {
 		expect(DEFAULT_SETTINGS.tocSoftScroll).toBe(false);
 	});

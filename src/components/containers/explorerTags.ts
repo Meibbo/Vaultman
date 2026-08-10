@@ -37,6 +37,7 @@ export interface PanelPluginCtx {
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
 	settings?: {
+		stickyParentRows?: boolean;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
@@ -847,6 +848,7 @@ export class TagsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (row, node) => {

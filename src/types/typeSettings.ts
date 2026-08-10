@@ -142,6 +142,8 @@ export interface VaultmanSettings {
 	filtersShowTabLabels: boolean;
 	/** Use compact Obsidian-native controls for header and dock actions */
 	minimalStyle: boolean;
+	/** Keep expanded parent rows visible above the virtualized tree window. */
+	stickyParentRows: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
 	/** Render add-on enabled state as an Obsidian toggle or compact badge. */
@@ -354,6 +356,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	// migration keys off a saved value, not off this default.
 	filtersShowTabLabels: false,
 	minimalStyle: true,
+	stickyParentRows: true,
 	coloredBadges: false,
 	addonCellStyle: 'native',
 	iconicEnabled: true,

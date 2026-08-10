@@ -6981,6 +6981,21 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-rainbow-folders .vaultman-tree-row.nav-folder-title {
 	color: var(--folder-color, var(--text-muted));
 }
+
+/* FAS File Explorer Rainbow parity: a non-default glyph color also tints the
+   hovered node background instead of falling back to Core's neutral hover. */
+:is(
+		.vaultman-tree-row,
+		.vaultman-file-table-row,
+		.vaultman-files-grid-card
+	).vaultman-glyph-colored:hover {
+	background-color: color-mix(
+		in srgb,
+		var(--vaultman-glyph-color),
+		transparent 80%
+	);
+}
+
 .vaultman-prop-card.is-excluded-filter,
 .vaultman-tag-card.is-excluded-filter,
 .vaultman-node-table-row.is-excluded-filter,
