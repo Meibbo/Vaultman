@@ -1751,7 +1751,7 @@ export class PropsExplorerPanel extends Component {
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {
-		if (!node.meta.isValueNode || !this.visibleCells.has('format')) return false;
+		if (!node.meta.isValueNode) return false;
 
 		const queue = this.plugin.queueService.queue;
 		const target = renameTargetFromQueue(queue, node.id);
@@ -1763,6 +1763,20 @@ export class PropsExplorerPanel extends Component {
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
 		}
+
+		// The empty value node: the model labels it `empty`, and the projection
+		// shows the translated word in faint whether the Format cell is on or
+		// off — off would paint the raw model word, on would render an empty
+		// widget.
+		if ((node.meta.rawValue ?? '') === '') {
+			container.createSpan({
+				cls: 'vaultman-tree-label vaultman-property-value-empty',
+				text: translate('prop.value.empty'),
+			});
+			return true;
+		}
+
+		if (!this.visibleCells.has('format')) return false;
 
 		if (node.meta.flatLabelPrefix) {
 			container.createSpan({

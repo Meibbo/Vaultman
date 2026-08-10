@@ -7152,6 +7152,12 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 	white-space: nowrap;
 }
 
+/* The empty value node: the model labels it `empty`, and the projection shows
+   the translated word in faint whether the Format cell is on or off. */
+.vaultman-property-value-empty {
+	color: var(--vaultman-text-faint);
+}
+
 /* While editing, the caret needs the full value, so the ellipsis gives way to
    a scroll rather than hiding what is being typed. */
 .vaultman-property-value-editable[contenteditable='true'] {

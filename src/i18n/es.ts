@@ -110,6 +110,7 @@ export const es: Record<string, string> = {
 	'prop.scope.selected': 'Solo archivos seleccionados',
 	'prop.property': 'Propiedad',
 	'prop.value': 'Valor',
+	'prop.value.empty': 'Vacío',
 	'prop.action': 'Acción',
 	'prop.action.set': 'Establecer / Crear',
 	'prop.action.rename': 'Renombrar',

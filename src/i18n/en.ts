@@ -111,6 +111,7 @@ export const en: Record<string, string> = {
 	'prop.scope.selected': 'Selected files only',
 	'prop.property': 'Property',
 	'prop.value': 'Value',
+	'prop.value.empty': 'Empty',
 	'prop.action': 'Action',
 	'prop.action.set': 'Set / Create',
 	'prop.action.rename': 'Rename',
