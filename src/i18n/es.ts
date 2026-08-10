@@ -899,6 +899,7 @@ export const es: Record<string, string> = {
 	'sort.vertcol.direct_toggle': 'Alternar dirección',
 	'sort.vertcol.scope_drawer': 'Abrir filtro de tipo',
 	'sort.type.all': 'Todos los tipos',
+	'sort.type.folders': 'Carpetas',
 	'sort.type.tags': 'Etiquetas',
 	'sort.type.list': 'Lista',
 	'sort.type.text': 'Texto',

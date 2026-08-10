@@ -139,11 +139,7 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	],
 	files: [
 		{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
-		{
-			id: 'folders-only',
-			icon: 'lucide-folder',
-			labelKey: 'sort.type.folders_only',
-		},
+		{ id: 'folders-only', icon: 'lucide-folder', labelKey: 'sort.type.folders' },
 	],
 };
 

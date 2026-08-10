@@ -1011,6 +1011,7 @@ export const en: Record<string, string> = {
 	'sort.vertcol.direct_toggle': 'Toggle direct',
 	'sort.vertcol.scope_drawer': 'Open scope drawer',
 	'sort.type.all': 'All types',
+	'sort.type.folders': 'Folders',
 	'sort.type.tags': 'Tags',
 	'sort.type.list': 'List',
 	'sort.type.text': 'Text',

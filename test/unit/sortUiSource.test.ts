@@ -11,6 +11,7 @@ import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import {
 	byLevelModel,
+	NODE_TYPE_MENU_OPTIONS,
 	SORT_MENU_OPTIONS,
 	visibleSortOptions,
 } from '../../src/logic/logicSortMenu';
@@ -120,6 +121,17 @@ describe('explorer sort UI source', () => {
 		expect(navbarSource).toContain('toggleNodeTypeFilter(');
 		expect(popupSource).toContain('nodeTypeFilters.includes(opt.id)');
 		expect(popupSource).toContain('toggleNodeTypeFilter(nodeTypeFilters, id)');
+	});
+
+	it('puts the Files Folders toggle directly below All types', () => {
+		expect(NODE_TYPE_MENU_OPTIONS.files.slice(0, 2).map((option) => option.id)).toEqual([
+			'all',
+			'folders-only',
+		]);
+		expect(NODE_TYPE_MENU_OPTIONS.files[1]?.labelKey).toBe('sort.type.folders');
+		expect(navbarSource).toContain('...NODE_TYPE_MENU_OPTIONS.files');
+		expect(en['sort.type.folders']).toBe('Folders');
+		expect(es['sort.type.folders']).toBe('Carpetas');
 	});
 
 	it('applies node filters without applying a newly selected sort scope', () => {
