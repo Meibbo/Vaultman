@@ -298,7 +298,12 @@ export function byLevelModel(
 	// Nested toggle (to turn hierarchy back on) stays.
 	if (!nestedActive) return { items };
 
-	if (tab === 'files') {
+	// Folders-only draws no file rows, so folders-first has nothing to order
+	// against and fixed-folders has nothing to hold still. Both disappear rather
+	// than sitting there inert.
+	const foldersOnly = state.nodeTypeFilters?.includes('folders-only') === true;
+
+	if (tab === 'files' && !foldersOnly) {
 		const parentsFirst = state.parentsFirst ?? true;
 		items.push({
 			kind: 'toggle',
