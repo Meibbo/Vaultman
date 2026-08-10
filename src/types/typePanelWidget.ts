@@ -3,10 +3,7 @@ import type { ResolvedCommandAction } from '../logic/logicCommandActions';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { ToolbarOverflowStrategy } from '../logic/logicResponsiveLayout';
 import type { SavedLayout } from './typeSettings';
-import type {
-	ExplorerSortState,
-	ExplorerTabId,
-} from './typeUI';
+import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 
 export type PanelWidgetNodeKind = 'action' | 'data' | 'container';
 export type PanelWidgetCellKind =
@@ -68,22 +65,22 @@ export interface PanelWidgetExplorerPort {
 	setVisibleCells(cells: Set<string>): void;
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void;
 	setInteractionMode?(mode: InteractionMode): void;
-	setInteractionModeChangeHandler?(handler?: (mode: InteractionMode) => void): void;
+	setInteractionModeChangeHandler?(
+		handler?: (mode: InteractionMode) => void,
+	): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
 }
 
-export interface PanelWidgetExpandableExplorerPort
-	extends PanelWidgetExplorerPort {
+export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPort {
 	expandAll(): void;
 	collapseAll(): void;
 	hasExpandedNodes(): boolean;
 	setExpansionChangeHandler(handler?: () => void): void;
 }
 
-export interface PanelWidgetFilesExplorerPort
-	extends PanelWidgetExpandableExplorerPort {
+export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplorerPort {
 	autoRevealActiveFile(): void;
 	createFromSearch(category: number, term: string): void | Promise<void>;
 	getFileTypeOptions(): Array<{ id: string; icon: string; label: string }>;
@@ -94,8 +91,7 @@ export interface PanelWidgetFilesExplorerPort
 	setSortStateChangeHandler(handler?: (state: ExplorerSortState) => void): void;
 }
 
-export interface PanelWidgetTreeExplorerPort
-	extends PanelWidgetExpandableExplorerPort {
+export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplorerPort {
 	createFromSearch(term: string, category?: number): void | Promise<void>;
 	hasSortNode?(id: string): boolean;
 	scopeRootForNode(id: string): string | null;
@@ -104,7 +100,9 @@ export interface PanelWidgetTreeExplorerPort
 		mode: InteractionMode,
 		onContentSearch?: (query: string) => void,
 	): void;
-	setSortStateChangeHandler?(handler?: (state: ExplorerSortState) => void): void;
+	setSortStateChangeHandler?(
+		handler?: (state: ExplorerSortState) => void,
+	): void;
 }
 
 export interface PanelWidgetHeaderTabOption {
@@ -131,6 +129,12 @@ export interface PanelWidgetHeaderAction {
 	disabled?: boolean;
 	onClick: (event: MouseEvent) => void;
 	order?: number;
+	/**
+	 * Held state for actions that toggle something. Rendered with the same
+	 * decoration the search node wears while its box is open. Left undefined by
+	 * actions that simply fire, so they carry no pressed state at all.
+	 */
+	checked?: boolean;
 }
 
 export type PanelWidgetSearchCategoryState = Record<

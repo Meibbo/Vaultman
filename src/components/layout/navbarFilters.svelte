@@ -463,6 +463,7 @@
 				icon: action.icon,
 				order: action.order ?? 0,
 				available: !action.disabled,
+				checked: action.checked,
 				action: { id: `header:${action.id}` },
 				condensable: false,
 			});
@@ -1781,6 +1782,7 @@
 							<div
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
+								class:is-active={action.checked}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									`header:${action.id}`,
 								)}
@@ -1788,6 +1790,7 @@
 								role="button"
 								tabindex={action.disabled ? -1 : 0}
 								aria-label={action.label}
+								aria-pressed={action.checked}
 								aria-disabled={action.disabled ? 'true' : undefined}
 								title={minimalStyle ? undefined : action.label}
 								onclick={(event: MouseEvent) => {

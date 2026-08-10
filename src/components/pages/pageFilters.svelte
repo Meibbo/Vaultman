@@ -661,6 +661,16 @@
 		}
 	});
 
+	// The reveal toggle reads its own state from the explorer that owns it, on
+	// the same revision counter the move mode uses, so the node redraws as
+	// checked the moment the mode flips either way.
+	const revealingActiveFile = $derived.by(() => {
+		void valueMoveRevision;
+		return filtersActiveTab === 'props'
+			? (propExplorer?.isRevealingActiveFile() ?? false)
+			: false;
+	});
+
 	const searchTrailingActions = $derived(
 		valueMoveMode
 			? resolveValueMoveToggleNodes({
@@ -705,6 +715,9 @@
 							icon: 'lucide-gallery-vertical',
 							order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 							available: true,
+							// Same decoration the search node wears while its box is
+							// open: the slot reads as held, not merely clicked.
+							checked: revealingActiveFile,
 							action: { id: 'props.reveal-this-file.toggle' },
 						}
 					: null,
@@ -743,6 +756,11 @@
 			label: node.label,
 			icon: node.icon,
 			disabled: !node.available,
+			// The slot's whole point is *where* it sits — between search and
+			// expand/collapse. Dropping `order` here let the navbar fall back to 0,
+			// which parked the node next to the provider selector.
+			order: node.order,
+			checked: node.checked,
 			onClick: () => {
 				if (node.id === 'props.reveal-this-file') {
 					propExplorer?.toggleRevealActiveFile();

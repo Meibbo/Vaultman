@@ -239,6 +239,35 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		);
 	});
 
+	it('carries the slot order and the held state across the header-action seam', () => {
+		// The node declares `order` and `checked`, but the page projects it into a
+		// `PanelWidgetHeaderAction` on the way to the navbar. Dropping either
+		// field there is silent: the toolbar just renders the node at CSS order 0,
+		// next to the provider selector, with no pressed state.
+		const mapping = filtersPageSource.slice(
+			filtersPageSource.indexOf('valueMoveSlotNodes.map((node) => ({'),
+			filtersPageSource.indexOf('const contentHeaderActions'),
+		);
+		expect(mapping).not.toBe('');
+		expect(mapping).toContain('order: node.order');
+		expect(mapping).toContain('checked: node.checked');
+		expect(navbarSource).toContain('checked: action.checked');
+	});
+
+	it('wears the decoration the search node wears while its box is open', () => {
+		// "Same decoration" has to be the same class, not a lookalike: both the
+		// search toggle and a checked header action mark themselves `is-active`
+		// and expose it as `aria-pressed`.
+		expect(navbarSource).toContain('class:is-active={searchExpanded}');
+		expect(navbarSource).toContain('aria-pressed={searchExpanded}');
+		expect(navbarSource).toContain('class:is-active={action.checked}');
+		expect(navbarSource).toContain('aria-pressed={action.checked}');
+		expect(filtersPageSource).toContain('checked: revealingActiveFile');
+		expect(filtersPageSource).toContain(
+			'propExplorer?.isRevealingActiveFile()',
+		);
+	});
+
 	it('records that the capability resolver still has no caller', () => {
 		// `reveal` is part of CellCapabilityContext and the resolver withdraws
 		// the vault-wide count for it, but `resolveCellCapabilities` is not
