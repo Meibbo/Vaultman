@@ -1545,6 +1545,7 @@
 								}),
 							),
 					);
+					if (option.separatorAfter) sub.addSeparator();
 				}
 			});
 		}

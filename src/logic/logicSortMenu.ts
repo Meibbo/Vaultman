@@ -18,6 +18,7 @@ export interface NodeTypeMenuOption {
 	icon: string;
 	label?: string;
 	labelKey?: string;
+	separatorAfter?: boolean;
 }
 
 interface BuiltInNodeTypeMenuOption extends NodeTypeMenuOption {
@@ -122,7 +123,12 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 > = {
 	props: [
 		{ id: 'all', icon: 'lucide-list-filter', labelKey: 'sort.type.all' },
-		{ id: 'props-only', icon: 'lucide-type', labelKey: 'sort.type.props_only' },
+		{
+			id: 'props-only',
+			icon: 'lucide-type',
+			labelKey: 'sort.type.props_only',
+			separatorAfter: true,
+		},
 		...PROP_TYPE_ORDER.map((id) => ({
 			id,
 			icon: TYPE_ICON_MAP[id],
@@ -130,7 +136,7 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 		})),
 	],
 	tags: [
-		{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all' },
+		{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all', separatorAfter: true },
 		...TAG_STRUCTURE_ORDER.map((id) => ({
 			id,
 			icon: id === 'nested' ? 'lucide-git-branch' : 'lucide-tag',
@@ -143,6 +149,7 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 			id: 'folders-only',
 			icon: 'lucide-folder',
 			labelKey: 'sort.type.folders',
+			separatorAfter: true,
 		},
 	],
 };
