@@ -426,6 +426,13 @@ export class FilesGridView {
 		card.empty();
 		card.className = 'vaultman-files-grid-card';
 		card.dataset.renderSignature = signature;
+		if (glyphColor) {
+			card.addClass('vaultman-glyph-colored');
+			card.style.setProperty('--vaultman-glyph-color', glyphColor);
+		} else {
+			card.removeClass('vaultman-glyph-colored');
+			card.style.setProperty('--vaultman-glyph-color', '');
+		}
 		card.setAttribute('role', 'button');
 		card.setAttribute('tabindex', '0');
 		card.setAttribute('aria-label', file.path);

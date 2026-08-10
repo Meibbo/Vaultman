@@ -737,7 +737,7 @@ describe('UnifiedTreeView behavior', () => {
 		expect(active?.classList.contains('is-active')).toBe(true);
 	});
 
-	it('repaints a recycled row when only labelColor changes', async () => {
+	it('repaints a recycled row and carries glyph color into hover styling', async () => {
 		const { UnifiedTreeView } =
 			await import('../../src/components/layout/viewTree');
 		const container = new TinyElement('div');
@@ -763,9 +763,12 @@ describe('UnifiedTreeView behavior', () => {
 				},
 			],
 		});
+		const firstRow = container.findByDataId('Alpha.md');
 		const firstLabel = container.querySelector(
 			'.vaultman-tree-label',
 		);
+		expect(firstRow?.classList.contains('vaultman-glyph-colored')).toBe(true);
+		expect(firstRow?.style['--vaultman-glyph-color']).toBe('#111111');
 
 		view.render({
 			...options,
@@ -779,13 +782,24 @@ describe('UnifiedTreeView behavior', () => {
 				},
 			],
 		});
+		const secondRow = container.findByDataId('Alpha.md');
 		const secondLabel = container.querySelector(
 			'.vaultman-tree-label',
 		);
 
 		expect(firstLabel?.style.color).toBe('#111111');
 		expect(secondLabel?.style.color).toBe('#222222');
+		expect(secondRow?.classList.contains('vaultman-glyph-colored')).toBe(true);
+		expect(secondRow?.style['--vaultman-glyph-color']).toBe('#222222');
 		expect(secondLabel).not.toBe(firstLabel);
+
+		view.render({
+			...options,
+			nodes: [{ id: 'Alpha.md', label: 'Alpha', depth: 0, meta: {} }],
+		});
+		const defaultRow = container.findByDataId('Alpha.md');
+		expect(defaultRow?.classList.contains('vaultman-glyph-colored')).toBe(false);
+		expect(defaultRow?.style['--vaultman-glyph-color']).toBe('');
 	});
 
 	it('renders every generic highlight channel independently on one row', async () => {

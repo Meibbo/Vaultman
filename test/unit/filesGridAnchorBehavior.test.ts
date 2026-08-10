@@ -18,7 +18,14 @@ import {
 class StubEl {
 	children: StubEl[] = [];
 	parent: StubEl | null = null;
-	style: Record<string, string> = {};
+	style: {
+		[name: string]: string | ((name: string, value: string) => void);
+		setProperty: (name: string, value: string) => void;
+	} = {
+		setProperty: (name, value) => {
+			this.style[name] = value;
+		},
+	};
 	dataset: Record<string, string> = {};
 	classes = new Set<string>();
 	textContent = '';
@@ -167,7 +174,7 @@ function makeHarness(
 	scrollEl.clientWidth = 120;
 	// Real-browser behavior: scrollTop can never exceed content - viewport.
 	scrollEl.maxScrollProvider = () =>
-		Number.parseFloat(spacerEl.style.height ?? '0') - scrollEl.clientHeight;
+		Number.parseFloat(String(spacerEl.style.height ?? '0')) - scrollEl.clientHeight;
 	return { view, container, scrollEl, spacerEl, contentEl };
 }
 
@@ -296,7 +303,7 @@ describe('FilesGridView anchor behavior near the bottom (browser-like clamp)', (
 
 		// floor(18100/92)=196 → 196*72=14112 → clamped to 200*72-300=14100
 		expect(harness.scrollEl.scrollTop).toBe(14100);
-		expect(Number.parseFloat(harness.spacerEl.style.height)).toBe(14400);
+		expect(Number.parseFloat(String(harness.spacerEl.style.height))).toBe(14400);
 		expect(renderedPaths(harness.contentEl).length).toBeGreaterThan(0);
 		expect(renderedPaths(harness.contentEl)).toContain('note-0199.md');
 	});
@@ -312,7 +319,7 @@ describe('FilesGridView anchor behavior near the bottom (browser-like clamp)', (
 		// Anchor row floor(14100/72)=195 → 195*92=17940. If the spacer is not
 		// grown before assigning scrollTop, the browser clamps to the OLD max
 		// (14100) and the anchor is silently lost.
-		expect(Number.parseFloat(harness.spacerEl.style.height)).toBe(18400);
+		expect(Number.parseFloat(String(harness.spacerEl.style.height))).toBe(18400);
 		expect(harness.scrollEl.scrollTop).toBe(17940);
 		expect(renderedPaths(harness.contentEl)).toContain('note-0195.md');
 	});

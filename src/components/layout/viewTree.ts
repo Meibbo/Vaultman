@@ -930,6 +930,13 @@ export class UnifiedTreeView {
 		row.empty();
 		row.className = 'vaultman-tree-row';
 		row.dataset.renderSignature = signature;
+		if (node.labelColor) {
+			row.addClass('vaultman-glyph-colored');
+			row.style.setProperty('--vaultman-glyph-color', node.labelColor);
+		} else {
+			row.removeClass('vaultman-glyph-colored');
+			row.style.setProperty('--vaultman-glyph-color', '');
+		}
 		this.applyCoreRowClasses(row, node);
 		if (typeof node.cls === 'string' && node.cls.trim()) {
 			for (const c of node.cls.trim().split(/\s+/)) row.addClass(c);

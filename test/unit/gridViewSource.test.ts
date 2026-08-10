@@ -93,6 +93,10 @@ describe('GridView source guards', () => {
 		expect(gridViewSource).toContain(
 			'if (glyphColor) nameEl.style.color = glyphColor',
 		);
+		expect(gridViewSource).toContain("row.addClass('vaultman-glyph-colored')");
+		expect(gridViewSource).toContain(
+			"row.style.setProperty('--vaultman-glyph-color', glyphColor)",
+		);
 		for (const className of [
 			'tree-item-self',
 			'nav-file-title',
