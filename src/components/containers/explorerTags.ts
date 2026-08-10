@@ -303,8 +303,7 @@ export class TagsExplorerPanel extends Component {
 		node: TreeNode<TagMeta>,
 	): void {
 		if (this.interactionMode !== 'select') return;
-		const position =
-			this.plugin.settings?.selectionCheckboxPosition ?? 'start';
+		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
 		if (position === 'hidden') return;
 		card.dataset.id = node.id;
 		const checkbox = card.createEl('input', {
@@ -439,6 +438,9 @@ export class TagsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
+		// 'custom' is the anchored note's own order; the projection already
+		// carries it, so the comparator leaves the sequence untouched.
+		if (normalizedSortBy === 'custom') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
@@ -594,9 +596,7 @@ export class TagsExplorerPanel extends Component {
 		const toTarget = (
 			node: TreeNode<TagMeta> | null,
 		): AddToFilesTarget | null =>
-			node?.meta
-				? { id: node.id, kind: 'tag', tag: node.meta.tagPath }
-				: null;
+			node?.meta ? { id: node.id, kind: 'tag', tag: node.meta.tagPath } : null;
 		const wrap = (
 			target: AddToFilesTarget | null,
 		): OperationTarget<AddToFilesTarget> | null =>
@@ -872,12 +872,17 @@ export class TagsExplorerPanel extends Component {
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
 			onRename: (id, newLabel) => {
-				newLabel = newLabel.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
+				newLabel = newLabel.replace(
+					/\{date\}|\[fecha\]/gi,
+					new Date().toISOString().slice(0, 10),
+				);
 				// BT5-077: a rejected name keeps the inline editor open, so the
 				// typed text can be corrected instead of being discarded.
 				const check = validateTagName(newLabel);
 				if (!check.valid || !check.name) {
-					new Notice(translate(tagNameProblemKey(check.reason ?? 'invalid_char')));
+					new Notice(
+						translate(tagNameProblemKey(check.reason ?? 'invalid_char')),
+					);
 					void this._render();
 					return;
 				}
@@ -980,7 +985,8 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		if (action === 'select') {
-			if (this.selectedNodeIds.has(node.id)) this.selectedNodeIds.delete(node.id);
+			if (this.selectedNodeIds.has(node.id))
+				this.selectedNodeIds.delete(node.id);
 			else this.selectedNodeIds.add(node.id);
 			void this._render();
 			return;

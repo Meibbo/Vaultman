@@ -139,9 +139,7 @@ import {
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
-import {
-	renderPropertyValue,
-} from '../../utils/renderPropertyValue';
+import { renderPropertyValue } from '../../utils/renderPropertyValue';
 import { executeObsidianCommand } from '../../utils/obsidianCommands';
 import {
 	readVaultmanDragPayload,
@@ -287,7 +285,7 @@ export class PropsExplorerPanel extends Component {
 			surfaces: ['panel'],
 			label: translate('explorer.ctx.move_to_prop.proceed'),
 			icon: 'lucide-check',
-			when: (ctx) => 
+			when: (ctx) =>
 				this._valueMoveProceedAvailable() &&
 				this.valueMoveMode?.destinations.includes(ctx.node.id) === true,
 			run: () => this._proceedValueMove(),
@@ -533,7 +531,9 @@ export class PropsExplorerPanel extends Component {
 	private onContentSearch?: (query: string) => void;
 
 	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
-	setInteractionModeChangeHandler(handler?: (mode: InteractionMode) => void): void {
+	setInteractionModeChangeHandler(
+		handler?: (mode: InteractionMode) => void,
+	): void {
 		this.interactionModeChangeHandler = handler;
 	}
 
@@ -570,8 +570,7 @@ export class PropsExplorerPanel extends Component {
 		node: TreeNode<PropMeta>,
 	): void {
 		if (this.interactionMode !== 'select') return;
-		const position =
-			this.plugin.settings?.selectionCheckboxPosition ?? 'start';
+		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
 		if (position === 'hidden') return;
 		card.dataset.id = node.id;
 		const checkbox = createEl('input', {
@@ -815,9 +814,7 @@ export class PropsExplorerPanel extends Component {
 		if (!path) return null;
 		const file = this.plugin.app.vault.getFileByPath(path);
 		if (!(file instanceof TFile)) return null;
-		return (
-			(this.plugin.app.metadataCache.getFileCache(file)?.frontmatter) ?? {}
-		);
+		return this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 	}
 
 	/** Narrows an already-built snapshot; it never asks for a new one. */
@@ -875,7 +872,9 @@ export class PropsExplorerPanel extends Component {
 		node: { id: string; label: string; meta?: unknown };
 	}): ValueMoveOrigin[] {
 		const tree = this.logic.getTree();
-		const toOrigin = (node: TreeNode<PropMeta> | null): ValueMoveOrigin | null => {
+		const toOrigin = (
+			node: TreeNode<PropMeta> | null,
+		): ValueMoveOrigin | null => {
 			const meta = node?.meta;
 			if (!node || !meta?.isValueNode) return null;
 			return {
@@ -1281,7 +1280,8 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		if (action === 'select') {
-			if (this.selectedNodeIds.has(node.id)) this.selectedNodeIds.delete(node.id);
+			if (this.selectedNodeIds.has(node.id))
+				this.selectedNodeIds.delete(node.id);
 			else this.selectedNodeIds.add(node.id);
 			// While the move mode is composing, the same selection gesture also
 			// names a destination; a value node names its parent property.
@@ -1532,8 +1532,8 @@ export class PropsExplorerPanel extends Component {
 				: null;
 
 		const sorted = this._applySort(tree);
-		// 
-			this.viewMode === 'tree' && this.isRevealingActiveFile();
+		//
+		this.viewMode === 'tree' && this.isRevealingActiveFile();
 		let nodesWithIcons = this._resolveIcons(
 			sorted,
 			warningIds,
@@ -1644,7 +1644,10 @@ export class PropsExplorerPanel extends Component {
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
 				}
-				return this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>);
+				return this._renderPropertyValueLabel(
+					container,
+					node as TreeNode<PropMeta>,
+				);
 			},
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
@@ -1660,7 +1663,10 @@ export class PropsExplorerPanel extends Component {
 				this._editingId = undefined;
 				const node = this._findNode(id, tree);
 				if (node && !node.meta.isValueNode) {
-					newLabel = newLabel.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
+					newLabel = newLabel.replace(
+						/\{date\}|\[fecha\]/gi,
+						new Date().toISOString().slice(0, 10),
+					);
 					void this._renamePropQueued(node.meta.propName, newLabel);
 				}
 				void this._render();
@@ -1716,7 +1722,9 @@ export class PropsExplorerPanel extends Component {
 			attr: { tabIndex: 0 },
 		});
 		const addIcon = addButton.createSpan({ cls: 'text-button-icon' });
-		void import('obsidian').then(({ setIcon }) => setIcon(addIcon, 'lucide-plus'));
+		void import('obsidian').then(({ setIcon }) =>
+			setIcon(addIcon, 'lucide-plus'),
+		);
 		addButton.createSpan({
 			cls: 'text-button-label',
 			text: translate('ops.add_property'),
@@ -1737,7 +1745,8 @@ export class PropsExplorerPanel extends Component {
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {
-		if (!node.meta.isValueNode || !this.visibleCells.has('format')) return false;
+		if (!node.meta.isValueNode || !this.visibleCells.has('format'))
+			return false;
 
 		const queue = this.plugin.queueService.queue;
 		const target = renameTargetFromQueue(queue, node.id);
@@ -1785,7 +1794,10 @@ export class PropsExplorerPanel extends Component {
 			},
 			onRenameValue: (next) => {
 				if (propType === 'text') {
-					next = next.replace(/\{date\}|\[fecha\]/gi, new Date().toISOString().slice(0, 10));
+					next = next.replace(
+						/\{date\}|\[fecha\]/gi,
+						new Date().toISOString().slice(0, 10),
+					);
 				}
 				// The context menu's Rename reaches the same vault path through a
 				// modal; inline editing is a second way to enter the value, not a
@@ -1865,11 +1877,15 @@ export class PropsExplorerPanel extends Component {
 	): TreeNode<PropMeta>[] {
 		const selectedTypes = new Set(nodeTypeFilters);
 		const showPropsOnly = selectedTypes.has('props-only');
-		const typeFiltersActive = nodeTypeFilters.filter((t) => t !== 'props-only').length > 0;
+		const typeFiltersActive =
+			nodeTypeFilters.filter((t) => t !== 'props-only').length > 0;
 
 		const filtered = nodes.filter((node) => {
 			if (node.meta.isValueNode) return false;
-			if (typeFiltersActive && !selectedTypes.has(this._effectivePropType(node.meta))) {
+			if (
+				typeFiltersActive &&
+				!selectedTypes.has(this._effectivePropType(node.meta))
+			) {
 				return false;
 			}
 			return true;
@@ -1924,6 +1940,11 @@ export class PropsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
+		// 'custom' is the anchored note's own order. The projection already comes
+		// out in that order, so the comparator's job is to leave it alone: the
+		// sort is stable, and returning 0 preserves the frontmatter sequence for
+		// properties and, one level down, for each property's values.
+		if (normalizedSortBy === 'custom') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
@@ -1955,9 +1976,7 @@ export class PropsExplorerPanel extends Component {
 	 * by property whatever was chosen. One level means one sort: Name compares
 	 * values across properties, Parent restores the grouping deliberately.
 	 */
-	private _sortFlat(
-		nodes: TreeNode<PropMeta>[],
-	): TreeNode<PropMeta>[] {
+	private _sortFlat(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
 		const sort = activeScopeSort('props', this.sortState, 'values');
 		const sortBy = normalizeExplorerSortBy(sort.sortBy);
 		if (sortBy !== 'name' && sortBy !== 'parent') return nodes;
@@ -2006,7 +2025,7 @@ export class PropsExplorerPanel extends Component {
 					return 0;
 				}
 				return this._compareNodes(a, b, valuesSort, valuesTimeIndex);
-			}
+			},
 		);
 	}
 
@@ -2416,8 +2435,7 @@ export class PropsExplorerPanel extends Component {
 							}
 						}
 					}
-				}
-				else if (action === 'move')
+				} else if (action === 'move')
 					badges.push({
 						text: 'Move',
 						icon: 'lucide-move',
@@ -2500,7 +2518,10 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	private async _renamePropQueued(propName: string, newName: string): Promise<void> {
+	private async _renamePropQueued(
+		propName: string,
+		newName: string,
+	): Promise<void> {
 		if (!newName) return;
 		const files = this._getFilesWithProp(propName);
 		this.plugin.queueService.addOrRun({

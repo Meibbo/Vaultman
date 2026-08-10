@@ -158,6 +158,12 @@ export interface NavbarPanelWidgetState {
 	searchExpanded?: boolean;
 	onSearchExpandedChange?: (expanded: boolean) => void;
 	/**
+	 * Whether the active provider is projecting a single anchored note rather
+	 * than the vault-wide set. The sort menu reads it to offer the options that
+	 * only mean something against one note's own order.
+	 */
+	revealActive?: boolean;
+	/**
 	 * Trailing controls rendered inside the searchbox. An operation mode that
 	 * needs its own switches publishes them here rather than adding a bar.
 	 */

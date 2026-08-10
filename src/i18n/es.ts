@@ -829,6 +829,7 @@ export const es: Record<string, string> = {
 	'sort.by.parent': 'Padre',
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
+	'sort.by.custom': 'Personalizado',
 	'sort.by.columns': 'Columnas',
 	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',

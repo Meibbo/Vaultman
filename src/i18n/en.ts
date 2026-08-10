@@ -186,34 +186,22 @@ export const en: Record<string, string> = {
 	'settings.rainbow_folders': 'Rainbow folders',
 	'settings.rainbow_folders.desc':
 		'Color each top-level folder subtree in the files tree; picks up the fancyfile-explorer-rainbow snippet palette when installed.',
-	'settings.glyph_color.default':
-		'Default',
-	'settings.glyph_color.faint':
-		'Faint',
-	'settings.glyph_color.accent':
-		'Accent',
-	'settings.glyph_color.custom':
-		'Custom',
-	'settings.glyph_color.rainbow':
-		'Rainbow',
-	'settings.glyph_color.rainbow-pastel':
-		'Pastel rainbow',
-	'settings.glyph_color.custom_pick':
-		'Custom color',
-	'settings.explorer_glyph_color':
-		'Explorer glyph color',
+	'settings.glyph_color.default': 'Default',
+	'settings.glyph_color.faint': 'Faint',
+	'settings.glyph_color.accent': 'Accent',
+	'settings.glyph_color.custom': 'Custom',
+	'settings.glyph_color.rainbow': 'Rainbow',
+	'settings.glyph_color.rainbow-pastel': 'Pastel rainbow',
+	'settings.glyph_color.custom_pick': 'Custom color',
+	'settings.explorer_glyph_color': 'Explorer glyph color',
 	'settings.explorer_glyph_color.desc':
 		'Color the explorer node glyphs from the shared palette. Default leaves them uncolored.',
-	'settings.explorer_glyph_scope':
-		'Glyph color scope',
+	'settings.explorer_glyph_scope': 'Glyph color scope',
 	'settings.explorer_glyph_scope.desc':
 		'Which nodes the glyph color applies to.',
-	'settings.explorer_glyph_scope.folders':
-		'Folders',
-	'settings.explorer_glyph_scope.files':
-		'Files',
-	'settings.explorer_glyph_scope.both':
-		'Both',
+	'settings.explorer_glyph_scope.folders': 'Folders',
+	'settings.explorer_glyph_scope.files': 'Files',
+	'settings.explorer_glyph_scope.both': 'Both',
 	'settings.toc_glyph_color': 'Glyph color',
 	'settings.toc_glyph_color.desc': 'Color for the floating index glyphs.',
 	'settings.toc_glyph_color.default': 'Default',
@@ -230,7 +218,8 @@ export const en: Record<string, string> = {
 	'file.ctx.exclude': 'Exclude file',
 	'settings.explorer_page': 'Panel: Explorer',
 	'settings.explorer_file_move_mode': 'File Move UI Mode',
-	'settings.explorer_file_move_mode.desc': 'How the move-to-folder feature is presented in the File Scene.',
+	'settings.explorer_file_move_mode.desc':
+		'How the move-to-folder feature is presented in the File Scene.',
 	'settings.explorer_file_move_mode.inline': 'Inline (Tree Mode)',
 	'settings.explorer_file_move_mode.modal': 'Classic Modal',
 	'settings.cells_section': 'Cells',
@@ -261,14 +250,11 @@ export const en: Record<string, string> = {
 	'settings.order_cells_by_activation': 'Order cells by activation',
 	'settings.order_cells_by_activation.desc':
 		'Render cells in the order you switch them on instead of a fixed order.',
-	'settings.collapsed_folder_badges':
-		'Collapsed folder activity',
+	'settings.collapsed_folder_badges': 'Collapsed folder activity',
 	'settings.collapsed_folder_badges.desc':
 		"How a collapsed folder shows the state hidden inside it: one dot that its children have activity (a pending operation or an active filter), or the descendants' own badges alongside the filter dot.",
-	'settings.collapsed_folder_badges.dot':
-		'One indicator dot',
-	'settings.collapsed_folder_badges.badges':
-		'Descendant badges',
+	'settings.collapsed_folder_badges.dot': 'One indicator dot',
+	'settings.collapsed_folder_badges.badges': 'Descendant badges',
 	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
@@ -291,77 +277,58 @@ export const en: Record<string, string> = {
 	'settings.show_toolbar': 'Show toolbar',
 	'settings.show_toolbar.desc':
 		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
-	'command.picker.search':
-		'Search commands…',
-	'command.picker.empty':
-		'No matching command.',
-	'command.picker.default':
-		'Vaultman default',
+	'command.picker.search': 'Search commands…',
+	'command.picker.empty': 'No matching command.',
+	'command.picker.default': 'Vaultman default',
 	'command.missing':
 		'Command "{id}" is not available; used the Vaultman default instead.',
 	'command.unavailable':
 		'Command "{id}" is not available (retired or disabled plugin).',
-	'settings.create_actions_placement':
-		'Create actions placement',
+	'settings.create_actions_placement': 'Create actions placement',
 	'settings.create_actions_placement.desc':
 		'Whether Create File and Create Folder live on the search box or as toolbar action nodes.',
-	'settings.create_actions_placement.searchbox':
-		'Search box',
-	'settings.create_actions_placement.toolbar':
-		'Toolbar',
-	'settings.toolbar_commands':
-		'Toolbar commands',
+	'settings.create_actions_placement.searchbox': 'Search box',
+	'settings.create_actions_placement.toolbar': 'Toolbar',
+	'settings.toolbar_commands': 'Toolbar commands',
 	'settings.toolbar_commands.desc':
 		'Obsidian commands shown as Files toolbar action nodes. The toolbar runs a command immediately when you activate it.',
-	'settings.toolbar_commands.add':
-		'Add a command',
-	'settings.toolbar_commands.remove':
-		'Remove',
-	'settings.create_file_command':
-		'Create File action',
+	'settings.toolbar_commands.add': 'Add a command',
+	'settings.toolbar_commands.remove': 'Remove',
+	'settings.create_file_command': 'Create File action',
 	'settings.create_file_command.desc':
 		'What the Create File action runs: the Vaultman built-in note creation, or a chosen Obsidian command.',
-	'settings.toolbar_overflow':
-		'Toolbar overflow',
+	'settings.toolbar_overflow': 'Toolbar overflow',
 	'settings.toolbar_overflow.desc':
 		'How the Files toolbar handles more actions than fit: condense the extras into the Tools menu, or keep every action on one horizontally scrollable line.',
-	'settings.toolbar_overflow.condensed':
-		'Condensed menu',
-	'settings.toolbar_overflow.scroll':
-		'Horizontal scroll',
+	'settings.toolbar_overflow.condensed': 'Condensed menu',
+	'settings.toolbar_overflow.scroll': 'Horizontal scroll',
 	'settings.toolbar_overflow.wrap': 'Wrap to multiple rows',
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
 	'settings.toolbar': 'Widget: Toolbar',
-	'settings.toolbar.desc': 'Configure how this navbar and its buttons behaves. Or add custom commands here.',
+	'settings.toolbar.desc':
+		'Configure how this navbar and its buttons behaves. Or add custom commands here.',
 	'settings.context_menu_kind.files': 'Files node menu',
 	'settings.context_menu_kind.props': 'Properties node menu',
 	'settings.context_menu_kind.tags': 'Tags node menu',
 	'settings.context_menu_kind.content': 'Text node menu',
 	'settings.context_menu_kind.snippets': 'Snippets node menu',
 	'settings.context_menu_kind.plugins': 'Plugins node menu',
-	'settings.files_context_menu':
-		'Files context menu',
+	'settings.files_context_menu': 'Files context menu',
 	'settings.files_context_menu.desc':
 		'Choose which actions the Files node context menu shows, in which order, and group them with dividers and submenus.',
-	'settings.files_context_menu.add_divider':
-		'Add a divider',
-	'settings.files_context_menu.add_submenu':
-		'Add a submenu',
-	'settings.files_context_menu.submenu_name':
-		'Submenu',
-	'settings.files_context_menu.intercepted': 'Intercepted item — can be shown or hidden',
-	'settings.files_context_menu.divider':
-		'Divider',
+	'settings.files_context_menu.add_divider': 'Add a divider',
+	'settings.files_context_menu.add_submenu': 'Add a submenu',
+	'settings.files_context_menu.submenu_name': 'Submenu',
+	'settings.files_context_menu.intercepted':
+		'Intercepted item — can be shown or hidden',
+	'settings.files_context_menu.divider': 'Divider',
 	'settings.files_context_menu.submenu':
 		'Submenu — drop actions into it with the selector',
-	'settings.files_context_menu.no_submenu':
-		'Top level',
-	'settings.files_context_menu.remove':
-		'Remove',
-	'settings.files_context_menu.reset':
-		'Restore the default order',
+	'settings.files_context_menu.no_submenu': 'Top level',
+	'settings.files_context_menu.remove': 'Remove',
+	'settings.files_context_menu.reset': 'Restore the default order',
 	'settings.files_hover_info': 'Files tooltip',
 	'settings.files_hover_info.desc':
 		'Choose which cached metadata and reading statistics appear when hovering a Files node.',
@@ -975,6 +942,7 @@ export const en: Record<string, string> = {
 	'sort.by.parent': 'Parent',
 	'sort.by.sub': 'Sub-elements',
 	'sort.by.subtags': 'Sub-tags',
+	'sort.by.custom': 'Custom',
 	'sort.by.columns': 'Columns',
 	'sort.parents_first': 'Folders first',
 	'sort.scope.label': 'Sort scope',
@@ -1004,7 +972,8 @@ export const en: Record<string, string> = {
 	'content.search_selection': 'Search selection in Vaultman',
 	'content.current_note': 'Currently open',
 	'content.replace_occurrence': 'Replace this occurrence',
-	'content.replace_occurrence_needs_value': 'Replace this occurrence (set a replacement first)',
+	'content.replace_occurrence_needs_value':
+		'Replace this occurrence (set a replacement first)',
 	'content.more_context_here': 'Show more context here',
 	'content.reset_context_here': 'Reset context here',
 	'queue.guard.superseded':
@@ -1157,7 +1126,8 @@ export const en: Record<string, string> = {
 	'settings.timestamp_cutoffs.quarterFromMonths': 'Quarters from (months)',
 	'settings.timestamp_cutoffs.quarterFromMonths.desc':
 		'From this many months the cell counts in quarters.',
-	'settings.timestamp_cutoffs.semesterFromQuarters': 'Semesters from (quarters)',
+	'settings.timestamp_cutoffs.semesterFromQuarters':
+		'Semesters from (quarters)',
 	'settings.timestamp_cutoffs.semesterFromQuarters.desc':
 		'From this many quarters the cell counts in semesters.',
 	'settings.timestamp_cutoffs.yearFromSemesters': 'Years from (semesters)',

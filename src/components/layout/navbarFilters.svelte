@@ -114,6 +114,7 @@
 		tabOptions = [],
 		tabMenuActions = [],
 		headerActions = [],
+		revealActive = false,
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -2101,6 +2102,7 @@
 					onRequestDrillPick={() => beginDrillPick(activeTab)}
 					initialSortState={sortStateByTab[activeTab]}
 					nestedActive={nestedActiveFor(activeTab)}
+					{revealActive}
 					treeCapable={treeCapableFor(activeTab)}
 					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}

@@ -40,6 +40,7 @@
 		onNestedToggle,
 		initialSortState,
 		nestedActive = false,
+		revealActive = false,
 		treeCapable = true,
 		icon,
 	}: {
@@ -52,6 +53,7 @@
 		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
+		revealActive?: boolean;
 		treeCapable?: boolean;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
@@ -73,7 +75,7 @@
 		byLevelModel(activeTab, sortState, nestedActive, treeCapable),
 	);
 	const visibleSortOptionsForActiveTab = $derived(
-		visibleSortOptions(activeTab, sortState, nestedActive),
+		visibleSortOptions(activeTab, sortState, nestedActive, revealActive),
 	);
 
 	// Close transient drawers only when switching explorer surfaces.

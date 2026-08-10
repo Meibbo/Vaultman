@@ -44,6 +44,9 @@ export const SORT_MENU_OPTIONS: Record<
 			labelKey: 'sort.by.created',
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
+		// Last on purpose: it only appears while a note is anchored, and a
+		// leading slot would shift every other option each time reveal toggles.
+		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
@@ -61,6 +64,7 @@ export const SORT_MENU_OPTIONS: Record<
 			labelKey: 'sort.by.created',
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
+		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
 	],
 	files: [
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
@@ -135,7 +139,11 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	],
 	files: [
 		{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
-		{ id: 'folders-only', icon: 'lucide-folder', labelKey: 'sort.type.folders_only' },
+		{
+			id: 'folders-only',
+			icon: 'lucide-folder',
+			labelKey: 'sort.type.folders_only',
+		},
 	],
 };
 
@@ -282,6 +290,9 @@ export function visibleSortOptions(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
 	nestedActive: boolean,
+	// `custom` sorts by the anchored note's own order, so it has nothing to read
+	// while no note is anchored. Defaults false so existing callers keep it out.
+	revealActive = false,
 ): readonly SortMenuOption[] {
 	return SORT_MENU_OPTIONS[tab].filter(
 		(option) =>
@@ -294,6 +305,7 @@ export function visibleSortOptions(
 				tab,
 				nestedActive,
 				activeScope: state.activeScope,
+				revealActive,
 			}),
 	);
 }

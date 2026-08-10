@@ -214,7 +214,12 @@ export function sortTwoLevel<T extends { children?: T[] }>(
 		.sort(compareProperties)
 		.map((node) =>
 			node.children?.length
-				? { ...node, children: [...node.children].sort((a, b) => compareValues(a, b, node)) }
+				? {
+						...node,
+						children: [...node.children].sort((a, b) =>
+							compareValues(a, b, node),
+						),
+					}
 				: node,
 		);
 }
@@ -252,12 +257,14 @@ export function isSortOptionVisible(
 		tab: ExplorerTabId;
 		nestedActive: boolean;
 		activeScope: SortScopeKey;
+		revealActive?: boolean;
 	},
 ): boolean {
-	if (
-		(optionId === 'path' || optionId === 'parent') &&
-		context.nestedActive
-	) {
+	// 'custom' is the anchored note's own order — the order its frontmatter
+	// declares. With no note anchored there is no order to take, so the option
+	// does not exist rather than silently falling back to another sort.
+	if (optionId === 'custom' && !context.revealActive) return false;
+	if ((optionId === 'path' || optionId === 'parent') && context.nestedActive) {
 		return false;
 	}
 	if (

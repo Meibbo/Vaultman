@@ -1711,6 +1711,7 @@
 			tabOptions: minimalStyle ? filterTabOptions : [],
 			tabMenuActions,
 			headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
+			revealActive: revealingActiveFile,
 			searchTrailingActions,
 			onSearchTrailingAction: runSearchTrailingAction,
 			activeSectionTab: filtersActiveTab,
