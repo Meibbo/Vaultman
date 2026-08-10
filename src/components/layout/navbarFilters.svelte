@@ -1469,7 +1469,15 @@
 		const activeSort = activeScopeSort(activeTab, current);
 
 		const nestedActive = nestedActiveFor(activeTab);
-		for (const option of visibleSortOptions(activeTab, current, nestedActive)) {
+		// The native menu shows the same options as the popup, so it needs the
+		// same reveal signal — without it `custom` was filtered out here even
+		// while a note was anchored, which is why the option never appeared.
+		for (const option of visibleSortOptions(
+			activeTab,
+			current,
+			nestedActive,
+			revealActive,
+		)) {
 			menu.addItem((item) => {
 				const isActive = activeSort.sortBy === option.id;
 				item

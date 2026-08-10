@@ -780,6 +780,8 @@ export const en: Record<string, string> = {
 	'ops.rename': 'Rename',
 	'ops.delete': 'Delete',
 	'ops.add_property': 'Add property',
+	'ops.add_property.unavailable':
+		'Adding a property needs the inline key editor, which is not built yet.',
 	'ops.linter.desc':
 		'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
 	'ops.linter.run': 'Run Linter',

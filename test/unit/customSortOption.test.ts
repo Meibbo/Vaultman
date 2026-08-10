@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
-import { SORT_MENU_OPTIONS, visibleSortOptions } from '../../src/logic/logicSortMenu';
+import {
+	SORT_MENU_OPTIONS,
+	visibleSortOptions,
+} from '../../src/logic/logicSortMenu';
 import { isSortOptionVisible } from '../../src/logic/logicScopedSort';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
@@ -29,39 +32,48 @@ describe('U121-029 Custom sort option', () => {
 		expect(SORT_MENU_OPTIONS.files.some((o) => o.id === 'custom')).toBe(false);
 	});
 
-	it('is offered unconditionally for now, with the reveal gate still plumbed', () => {
+	it('exists only while a note is anchored', () => {
 		const context = {
 			tab: 'props' as const,
 			nestedActive: true,
 			activeScope: 'properties' as const,
 		};
-		// The anchoring modes (Current File / Scope drill) are not built yet, so
-		// the option is exercised without them. `revealActive` still reaches this
-		// function, which is what makes restoring the gate a one-line change.
-		expect(isSortOptionVisible('custom', context)).toBe(true);
-		expect(isSortOptionVisible('custom', { ...context, revealActive: true })).toBe(
-			true,
-		);
+		expect(isSortOptionVisible('custom', context)).toBe(false);
+		expect(
+			isSortOptionVisible('custom', { ...context, revealActive: true }),
+		).toBe(true);
+		// It gates nothing else.
 		expect(isSortOptionVisible('name', context)).toBe(true);
 	});
 
-	it('keeps the reveal signal wired end to end for when the gate returns', () => {
-		// pageFilters publishes it, the host spreads it, the navbar forwards it and
-		// the popup passes it to the filter. If any link breaks, re-gating would
-		// silently hide the option instead of following the mode.
+	it('reaches both menus, so the option is not hidden in one of them', () => {
+		// The popup and the native menu render the same option list from the same
+		// filter. The native caller omitted the reveal signal, which filtered
+		// `custom` out there even while a note was anchored — the option looked
+		// broken rather than gated.
 		expect(filtersPageSource).toContain('revealActive: revealingActiveFile');
 		expect(navbarSource).toContain('{revealActive}');
-		expect(sortPopupSource).toContain('revealActive = false');
+		expect(navbarSource).toMatch(
+			/visibleSortOptions\(\s*activeTab,\s*current,\s*nestedActive,\s*revealActive,\s*\)/,
+		);
+		expect(sortPopupSource).toContain(
+			'visibleSortOptions(activeTab, sortState, nestedActive, revealActive)',
+		);
 	});
 
-	it('appears in the sort row for both node providers', () => {
+	it('appears in the sort row for both node providers once anchored', () => {
 		const state = normalizeExplorerSortState('props', null);
 		for (const tab of ['props', 'tags'] as const) {
-			const ids = visibleSortOptions(tab, state, true).map((option) => option.id);
-			expect(ids).toContain('custom');
+			expect(
+				visibleSortOptions(tab, state, true, false).map((o) => o.id),
+			).not.toContain('custom');
+			expect(
+				visibleSortOptions(tab, state, true, true).map((o) => o.id),
+			).toContain('custom');
 		}
-		const fileIds = visibleSortOptions('files', state, true).map((o) => o.id);
-		expect(fileIds).not.toContain('custom');
+		expect(
+			visibleSortOptions('files', state, true, true).map((o) => o.id),
+		).not.toContain('custom');
 	});
 
 	it('leaves the projected order untouched in both node providers', () => {
@@ -69,9 +81,7 @@ describe('U121-029 Custom sort option', () => {
 		// job is to not re-sort it. The sort is stable, so returning 0 preserves
 		// the sequence exactly — for properties and for each property's values.
 		for (const source of [propsExplorerSource, tagsExplorerSource]) {
-			expect(source).toMatch(
-				/normalizedSortBy === 'custom'\) return 0;/,
-			);
+			expect(source).toMatch(/normalizedSortBy === 'custom'\) return 0;/);
 		}
 	});
 

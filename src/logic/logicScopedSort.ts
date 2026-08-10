@@ -281,12 +281,9 @@ export function isSortOptionVisible(
 	},
 ): boolean {
 	// 'custom' is the anchored note's own order — the order its frontmatter
-	// declares. Once the anchoring modes land (Current File / Scope drill) it
-	// belongs behind `context.revealActive`, because with no note anchored there
-	// is no order to read. It is offered unconditionally for now so the option
-	// can be exercised while those modes are being built; `revealActive` is
-	// already plumbed through to here, so restoring the gate is one line:
-	//   if (optionId === 'custom' && !context.revealActive) return false;
+	// declares. With no note anchored there is no order to read, so the option
+	// does not exist rather than silently falling back to another sort.
+	if (optionId === 'custom' && !context.revealActive) return false;
 	if ((optionId === 'path' || optionId === 'parent') && context.nestedActive) {
 		return false;
 	}

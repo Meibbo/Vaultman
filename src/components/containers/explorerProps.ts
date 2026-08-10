@@ -140,7 +140,6 @@ import {
 } from '../../logic/propertyValueCoercion';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import { renderPropertyValue } from '../../utils/renderPropertyValue';
-import { executeObsidianCommand } from '../../utils/obsidianCommands';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -1716,6 +1715,15 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _renderAddPropertyButtonIfNeeded(): void {
+		// The button is appended to the container the view does not own, so it
+		// survives the view's own re-render. Without this sweep every render left
+		// another copy behind, and the copies outlived reveal itself: turning the
+		// mode off stopped new ones being made but never removed the old ones.
+		for (const stale of Array.from(
+			this.containerEl.querySelectorAll(':scope > .metadata-add-button'),
+		)) {
+			stale.remove();
+		}
 		if (!this.isRevealingActiveFile()) return;
 		const addButton = this.containerEl.createDiv({
 			cls: 'metadata-add-button text-icon-button',
@@ -1729,8 +1737,14 @@ export class PropsExplorerPanel extends Component {
 			cls: 'text-button-label',
 			text: translate('ops.add_property'),
 		});
+		// Core drives this from `addProperty()` on its metadata editor — an
+		// internal method, not a command — so there is no id to invoke and the
+		// previous `executeObsidianCommand` call could never fire. Matching Core
+		// means adding an unnamed property row and focusing its key input, which
+		// is the value-entry input shard 9.4 owns and has not landed yet. Until
+		// then the button reports rather than pretending.
 		addButton.onclick = () => {
-			executeObsidianCommand(this.plugin.app, 'file-explorer:add-property');
+			new Notice(translate('ops.add_property.unavailable'));
 		};
 		addButton.onkeydown = (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {

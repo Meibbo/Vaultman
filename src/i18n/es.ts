@@ -102,6 +102,9 @@ export const es: Record<string, string> = {
 	'ops.apply': 'Aplicar',
 	'ops.clear': 'Limpiar cola',
 	'ops.details': 'Ver detalles',
+	'ops.add_property': 'Agregar propiedad',
+	'ops.add_property.unavailable':
+		'Agregar una propiedad necesita el editor de clave inline, que aún no existe.',
 
 	// Property manager
 	'prop.title': 'Gestor de Propiedades',
