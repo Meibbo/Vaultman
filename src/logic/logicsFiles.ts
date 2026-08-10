@@ -106,6 +106,43 @@ export class FilesLogic {
 		});
 	}
 
+	/** Returns folder-only nodes without structural nesting. */
+	buildFlatFolderNodes(
+		folders: TFolder[],
+		options: BuildFileTreeOptions = {},
+	): TreeNode<FileMeta>[] {
+		const rebaseFolderPaths = normalizeRebaseFolderPaths(
+			options.rebaseFolderPaths ?? [],
+		);
+		const nodes = folders.flatMap((folder) => {
+			const folderPath = folder.path === '/' ? '' : folder.path;
+			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
+			if (!rebaseInfo?.visualPath) return [];
+			const parts = rebaseInfo.visualPath.split('/').filter(Boolean);
+			return [
+				{
+					id: `folder:${folder.path}`,
+					label:
+						options.labelMode === 'path'
+							? rebaseInfo.visualPath
+							: (parts[parts.length - 1] ?? folder.name),
+					icon: 'lucide-folder',
+					showCaret: false,
+					depth: 0,
+					coreCls: 'tree-item-self nav-folder-title is-clickable',
+					children: [],
+					meta: {
+						file: null,
+						folder,
+						isFolder: true,
+						folderPath,
+					},
+				},
+			];
+		});
+		return this.sortFileTreeNodes(nodes, options);
+	}
+
 	/** Returns folder-hierarchy tree from filteredFiles */
 	buildFileTree(
 		filteredFiles: TFile[],

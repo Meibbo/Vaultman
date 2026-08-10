@@ -33,6 +33,7 @@ export interface PanelPluginCtx {
 	queueService: OperationQueueService;
 	settings?: {
 		minimalStyle: boolean;
+		stickyParentRows?: boolean;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
@@ -1631,6 +1632,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (container, node) => {

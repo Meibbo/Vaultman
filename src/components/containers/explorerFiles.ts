@@ -1231,9 +1231,14 @@ export class FilesExplorerPanel extends Component {
 		// BT5-009: exclusion already ran through the filter pipeline upstream, so
 		// there is no parallel excluded-paths pass here.
 		const files = this._currentFiles;
-		if (this.nodeTypeFilters.length === 0) return files;
-		const selectedTypes = new Set(this.nodeTypeFilters);
+		const typeFilters = this.nodeTypeFilters.filter((type) => type !== 'folders-only');
+		if (typeFilters.length === 0) return files;
+		const selectedTypes = new Set(typeFilters);
 		return files.filter((file) => selectedTypes.has(this._fileTypeId(file)));
+	}
+
+	private _foldersOnlyMode(): boolean {
+		return this.nodeTypeFilters.includes('folders-only');
 	}
 
 	private _fileTypeId(file: TFile): string {
@@ -1846,7 +1851,8 @@ export class FilesExplorerPanel extends Component {
 			this._setIndexRoots([], []);
 			return;
 		}
-		const displayFiles = this._filesForDisplay();
+		const foldersOnly = this._foldersOnlyMode();
+		const displayFiles = foldersOnly ? [] : this._filesForDisplay();
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
@@ -1904,6 +1910,11 @@ export class FilesExplorerPanel extends Component {
 							),
 						{ files: sortedFiles.length },
 					)
+				: foldersOnly
+					? this.logic.buildFlatFolderNodes(this._foldersForCurrentView(), {
+							...this._treeOrderingOptions(),
+							labelMode: this._pathLabelActive() ? 'path' : 'name',
+						})
 				: this.logic.buildFlatFileNodes(sortedFiles, {
 						rebaseFolderPaths,
 						labelMode: this._pathLabelActive() ? 'path' : 'name',
@@ -1948,6 +1959,7 @@ export class FilesExplorerPanel extends Component {
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
@@ -3877,6 +3889,7 @@ export class FilesExplorerPanel extends Component {
 			nodes: this._lastRenderTree,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) =>
 				this._prepareTreeNode(node as TreeNode<FileMeta>),

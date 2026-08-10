@@ -19,6 +19,7 @@ import {
 	explorerDensityProfile,
 	usesMobileExplorerDensity,
 } from '../../logic/logicResponsiveLayout';
+import { stickyTreeRows } from '../../logic/logicTreeSticky';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import {
 	buildVirtualTreeWindow,
@@ -110,11 +111,14 @@ export interface TreeViewOptions {
 	 * Expandable nodes are untouched — their caret keeps its affordance.
 	 */
 	iconInCaretSlot?: boolean;
+	/** Keep expanded parent rows visible above the virtualized tree window. */
+	stickyParentRows?: boolean;
 }
 
 export class UnifiedTreeView {
 	private containerEl: HTMLElement;
 	private rowEls = new Map<string, HTMLElement>();
+	private stickyRowEls = new Map<string, HTMLElement>();
 	private _pendingRaf: number | null = null;
 	private _filterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
 	private _excludedFilterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
@@ -136,6 +140,7 @@ export class UnifiedTreeView {
 	} | null = null;
 	private _spacerEl: HTMLElement | null = null;
 	private _contentEl: HTMLElement | null = null;
+	private _stickyLayerEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
 	private _indexById = new Map<string, number>();
 	private _activeId: string | null = null;
@@ -205,6 +210,9 @@ export class UnifiedTreeView {
 		if (opts.coreMetadata) {
 			this.containerEl.removeEventListener('scroll', this._onScroll);
 			this.containerEl.removeClass('vaultman-tree-virtual-viewport');
+			this._stickyLayerEl?.remove();
+			this._stickyLayerEl = null;
+			this.stickyRowEls.clear();
 			this._spacerEl = null;
 			this._contentEl = null;
 			this._rows = opts.nodes;
@@ -301,9 +309,12 @@ export class UnifiedTreeView {
 		this._spacerEl?.remove();
 		this._spacerEl = null;
 		this._contentEl = null;
+		this._stickyLayerEl?.remove();
+		this._stickyLayerEl = null;
 		this._rows = [];
 		this._indexById.clear();
 		this.rowEls.clear();
+		this.stickyRowEls.clear();
 		this._pendingScroll = null;
 		this._expandedIdsSignature = '';
 		this._hasRenderedExpandedState = false;
@@ -458,7 +469,11 @@ export class UnifiedTreeView {
 		this.containerEl.removeEventListener('scroll', this._onScroll);
 		this.containerEl.empty();
 		this.rowEls.clear();
+		this.stickyRowEls.clear();
 		this.containerEl.addClass('vaultman-tree-virtual-viewport');
+		this._stickyLayerEl = this.containerEl.createDiv({
+			cls: 'vaultman-tree-sticky-layer',
+		});
 		this._spacerEl = this.containerEl.createDiv({
 			cls: 'vaultman-tree-virtual-spacer',
 		});
@@ -523,6 +538,7 @@ export class UnifiedTreeView {
 			rowEl.addClass('vaultman-tree-row--virtual');
 			rowEl.style.top = `${row.top}px`;
 		}
+		this._renderStickyRows();
 		this._focusEditingRow(this._opts);
 		vaultmanPerfMonitor.record('tree.window', performance.now() - started, {
 			rows: this._rows.length,
@@ -532,11 +548,45 @@ export class UnifiedTreeView {
 		});
 	}
 
-	private removeStaleRows(visibleIds: Set<string>): void {
-		for (const [id, row] of this.rowEls) {
+	private removeStaleRows(
+		visibleIds: Set<string>,
+		rowMap: Map<string, HTMLElement> = this.rowEls,
+	): void {
+		for (const [id, row] of rowMap) {
 			if (visibleIds.has(id)) continue;
 			row.remove();
-			this.rowEls.delete(id);
+			rowMap.delete(id);
+		}
+	}
+
+	private _renderStickyRows(): void {
+		if (!this._stickyLayerEl || !this._opts?.stickyParentRows) {
+			this.removeStaleRows(new Set(), this.stickyRowEls);
+			return;
+		}
+		const rowHeight = this.rowHeight();
+		const stickyRows = stickyTreeRows(this._rows, {
+			rowHeight,
+			scrollTop: this.containerEl.scrollTop,
+			viewportHeight: this.containerEl.clientHeight,
+		});
+		const visibleIds = new Set(
+			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
+		);
+		this.removeStaleRows(visibleIds, this.stickyRowEls);
+		for (const sticky of stickyRows) {
+			const node = this._rows[sticky.index];
+			if (!node) continue;
+			this._opts.prepareNode?.(node);
+			const row = this._renderRow(
+				node,
+				this._stickyLayerEl,
+				this._opts,
+				this.stickyRowEls,
+			);
+			row.addClass('vaultman-tree-row--sticky');
+			row.dataset.sticky = 'true';
+			row.style.top = `${sticky.top}px`;
 		}
 	}
 
@@ -778,6 +828,7 @@ export class UnifiedTreeView {
 		node: TreeNode,
 		parent: HTMLElement,
 		opts: TreeViewOptions,
+		rowMap: Map<string, HTMLElement> = this.rowEls,
 	): HTMLElement {
 		const hasChildren = (node.children?.length ?? 0) > 0;
 		const showCaret = hasChildren || Boolean(node.showCaret);
@@ -820,7 +871,7 @@ export class UnifiedTreeView {
 		);
 
 		const row =
-			this.rowEls.get(node.id) ??
+			rowMap.get(node.id) ??
 			parent.createDiv({ cls: 'vaultman-tree-row' });
 		// Rows are absolutely positioned, so document order is irrelevant and a
 		// re-parent buys nothing. It costs, though: appendChild on an already
@@ -949,7 +1000,7 @@ export class UnifiedTreeView {
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (isEditing) row.addClass('is-editing');
 
-		this.rowEls.set(node.id, row);
+		rowMap.set(node.id, row);
 
 		// BT5-015: the row is a flex line, so an icon ADDS width and shifts the
 		// label. Siblings that carry no icon therefore sit further left — the

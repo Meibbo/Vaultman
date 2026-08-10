@@ -396,6 +396,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.sticky_parent_rows'),
+			desc: translate('settings.sticky_parent_rows.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.stickyParentRows !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.stickyParentRows = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// U121-027. saveSettings() notifies the settings listeners and the explorer
 		// now subscribes, so toggling this repaints the visible cells immediately.
 		items.push({
