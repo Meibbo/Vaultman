@@ -1122,6 +1122,21 @@ body.vaultman-table-resizing {
   opacity: 0.5;
 }
 
+/* === Settings data transfer modal (export/import filters, queue templates, layouts) === */
+.vaultman-data-transfer-modal {
+  width: 100%;
+  max-width: 640px;
+}
+
+.vaultman-data-transfer-textarea {
+  width: 100%;
+  min-height: 320px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
 /* === Linter Modal === */
 .vaultman-linter-modal {
   max-width: 450px;
@@ -5680,6 +5695,16 @@ button.vaultman-content-scope-hint:focus-visible {
   inset-inline-start: var(--vaultman-tree-guide-start);
 }
 
+/* Settings: "Rounded touch rows on mobile". Mirrors core .tree-item-self,
+   which lets --nav-item-radius become --touch-radius-xs (pill) under
+   .is-mobile. Opt-in: some themes (Oxygen/Velocity) enlarge that token
+   enough that the is-active-filter left accent bar tapers short of the
+   row's rounded top/bottom corners instead of reaching them. */
+body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self,
+body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+  border-radius: var(--nav-item-radius, var(--radius-s));
+}
+
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
   height: 37px;
   min-height: 37px;
@@ -7139,6 +7164,12 @@ button.vaultman-content-scope-hint:focus-visible {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* The empty value node: the model labels it `empty`, and the projection shows
+   the translated word in faint whether the Format cell is on or off. */
+.vaultman-property-value-empty {
+	color: var(--vaultman-text-faint);
 }
 
 /* While editing, the caret needs the full value, so the ellipsis gives way to

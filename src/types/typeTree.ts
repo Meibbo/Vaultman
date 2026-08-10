@@ -63,6 +63,7 @@ export interface TreeNode<TMeta = unknown> {
 	openedText?: string;
 	wordCountText?: string;
 	fileCountText?: string;
+	subCountText?: string;
 	tasksText?: string;
 	/** BT4-014: rainbow bucket color value for folder rows. */
 	folderColor?: string;

@@ -865,6 +865,7 @@ export class UnifiedTreeView {
 		const showOpened = visibleCells ? visibleCells.has('opened') : false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
 		const showFileCount = visibleCells ? visibleCells.has('file-count') : false;
+		const showSub = visibleCells ? visibleCells.has('sub') : false;
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const nodeCells = (node.cells ?? []).filter(
 			(cell) => !visibleCells || visibleCells.has(cell.id),
@@ -1115,6 +1116,13 @@ export class UnifiedTreeView {
 			cell.setAttribute('aria-label', `${node.fileCountText} files`);
 			cell.setAttribute('title', `${node.fileCountText} files`);
 		};
+		const emitSub = (parent: HTMLElement): void => {
+			if (!showSub || !node.subCountText) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-sub-count nav-file-tag',
+				text: node.subCountText,
+			});
+		};
 		const emitTasks = (parent: HTMLElement): void => {
 			if (!showTasks || !node.tasksText) return;
 			parent.createSpan({
@@ -1148,6 +1156,7 @@ export class UnifiedTreeView {
 				emitDate(parent, showOpened ? node.openedText : '', 'opened'),
 			words: emitWords,
 			'file-count': emitFileCount,
+			sub: emitSub,
 			tasks: emitTasks,
 			count: emitCount,
 		};

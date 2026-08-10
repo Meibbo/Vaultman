@@ -1526,6 +1526,16 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
+	private _decorateSubCounts(nodes: TreeNode<PropMeta>[]): void {
+		for (const node of nodes) {
+			node.subCountText =
+				node.children && node.children.length > 0
+					? String(node.children.length)
+					: undefined;
+			this._decorateSubCounts(node.children ?? []);
+		}
+	}
+
 	private _render(): void {
 		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
@@ -1577,12 +1587,14 @@ export class PropsExplorerPanel extends Component {
 			);
 		}
 		this._setIndexRoots(nodesWithIcons);
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(nodesWithIcons);
+		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
 		}
 		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
-
 		if (this.viewMode === 'table') {
 			if (!this.tableView) {
 				this.tableView = new NodeTableView<PropMeta>(this.containerEl);
@@ -1789,8 +1801,7 @@ export class PropsExplorerPanel extends Component {
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {
-		if (!node.meta.isValueNode || !this.visibleCells.has('format'))
-			return false;
+		if (!node.meta.isValueNode) return false;
 
 		const queue = this.plugin.queueService.queue;
 		const target = renameTargetFromQueue(queue, node.id);
@@ -1802,6 +1813,20 @@ export class PropsExplorerPanel extends Component {
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
 		}
+
+		// The empty value node: the model labels it `empty`, and the projection
+		// shows the translated word in faint whether the Format cell is on or
+		// off — off would paint the raw model word, on would render an empty
+		// widget.
+		if ((node.meta.rawValue ?? '') === '') {
+			container.createSpan({
+				cls: 'vaultman-tree-label vaultman-property-value-empty',
+				text: translate('prop.value.empty'),
+			});
+			return true;
+		}
+
+		if (!this.visibleCells.has('format')) return false;
 
 		if (node.meta.flatLabelPrefix) {
 			container.createSpan({

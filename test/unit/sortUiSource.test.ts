@@ -139,6 +139,15 @@ describe('explorer sort UI source', () => {
 		expect(es['sort.type.folders']).toBe('Carpetas');
 	});
 
+	it('translates the Props-only node type label in both languages', () => {
+		const propsOption = NODE_TYPE_MENU_OPTIONS.props.find(
+			(option) => option.id === 'props-only',
+		);
+		expect(propsOption?.labelKey).toBe('sort.type.props_only');
+		expect(en['sort.type.props_only']).toBe('Props');
+		expect(es['sort.type.props_only']).toBe('Props');
+	});
+
 	it('applies node filters without applying a newly selected sort scope', () => {
 		expect(popupSource).toContain(
 			'onFilterChange?: (state: ExplorerSortState) => void;',

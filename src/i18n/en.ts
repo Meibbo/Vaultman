@@ -111,6 +111,7 @@ export const en: Record<string, string> = {
 	'prop.scope.selected': 'Selected files only',
 	'prop.property': 'Property',
 	'prop.value': 'Value',
+	'prop.value.empty': 'Empty',
 	'prop.action': 'Action',
 	'prop.action.set': 'Set / Create',
 	'prop.action.rename': 'Rename',
@@ -253,8 +254,47 @@ export const en: Record<string, string> = {
 	'settings.collapsed_folder_badges': 'Collapsed folder activity',
 	'settings.collapsed_folder_badges.desc':
 		"How a collapsed folder shows the state hidden inside it: one dot that its children have activity (a pending operation or an active filter), or the descendants' own badges alongside the filter dot.",
-	'settings.collapsed_folder_badges.dot': 'One indicator dot',
-	'settings.collapsed_folder_badges.badges': 'Descendant badges',
+	'settings.collapsed_folder_badges.dot':
+		'One indicator dot',
+	'settings.collapsed_folder_badges.badges':
+		'Descendant badges',
+	'settings.mobile_rounded_rows': 'Rounded touch rows on mobile',
+	'settings.mobile_rounded_rows.desc':
+		"Match Obsidian's native rounded row corners on mobile/phone Tree explorers (Files, Properties, Tags, Snippets, Plugins). Off keeps the same corner radius as desktop. Some themes make the active-filter accent bar look slightly short of the corner when this is on.",
+	'settings.developer': 'Developer tools',
+	'settings.developer.desc':
+		'Reset the plugin settings, or back up and restore saved filters, operation sets, and layouts as JSON.',
+	'settings.data_transfer': 'Filters, operation sets & layouts',
+	'settings.data_transfer.desc':
+		'Export saved filter templates, queue templates, and saved layouts as JSON, or import a previously exported file.',
+	'settings.data_transfer.export': 'Export JSON',
+	'settings.data_transfer.import': 'Import JSON',
+	'settings.data_transfer.export.title': 'Export filters, operation sets & layouts',
+	'settings.data_transfer.export.desc':
+		'Copy this JSON to back it up or move it to another vault.',
+	'settings.data_transfer.export.copy': 'Copy to clipboard',
+	'settings.data_transfer.export.copied': 'Copied to clipboard.',
+	'settings.data_transfer.export.copy_failed':
+		'Could not copy automatically — the text is selected, copy it manually.',
+	'settings.data_transfer.import.title': 'Import filters, operation sets & layouts',
+	'settings.data_transfer.import.desc':
+		'Paste a previously exported JSON. Only the arrays present in the JSON are replaced — anything you exported as empty or left out stays untouched.',
+	'settings.data_transfer.import.placeholder': 'Paste exported JSON here…',
+	'settings.data_transfer.import.apply': 'Import',
+	'settings.data_transfer.import.done': 'Import complete.',
+	'settings.data_transfer.import.invalid_json': 'That is not valid JSON.',
+	'settings.data_transfer.import.invalid_shape':
+		'Expected a JSON object with filterTemplates, queueTemplates, and/or savedLayouts.',
+	'settings.data_transfer.import.no_known_keys':
+		'No filterTemplates, queueTemplates, or savedLayouts array found in this JSON.',
+	'settings.reset': 'Reset settings',
+	'settings.reset.desc':
+		'Restore every Vaultman setting to its default value, including saved filters, operation sets, and layouts. Export them first if you want to keep a copy.',
+	'settings.reset.button': 'Reset settings',
+	'settings.reset.confirm_title': 'Reset all Vaultman settings?',
+	'settings.reset.confirm_message':
+		'This restores every setting to its default, including saved filters, operation sets, and layouts. This cannot be undone.',
+	'settings.reset.done': 'Settings reset to defaults.',
 	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
@@ -1020,6 +1060,7 @@ export const en: Record<string, string> = {
 	'sort.vertcol.scope_drawer': 'Open scope drawer',
 	'sort.type.all': 'All types',
 	'sort.type.folders': 'Folders',
+	'sort.type.props_only': 'Props',
 	'sort.type.tags': 'Tags',
 	'sort.type.list': 'List',
 	'sort.type.text': 'Text',
@@ -1047,6 +1088,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.prop_count': 'Props',
 	'viewmode.pill.files': 'Files',
 	'viewmode.pill.nested': 'Nested',
+	'viewmode.pill.sub': 'Sub-elements',
 	'viewmode.pill.date': 'Date',
 	'viewmode.pill.mtime': 'Modified',
 	'viewmode.pill.ctime': 'Created',

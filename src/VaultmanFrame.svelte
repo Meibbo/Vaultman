@@ -217,6 +217,10 @@
 		void settingsRevision;
 		return plugin.settings.coloredBadges === true;
 	});
+	const mobileRoundedRows = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.mobileRoundedRows === true;
+	});
 	let performanceHudInstance: Record<string, never> | null = null;
 
 	function destroyPerformanceHud(): void {
@@ -1337,6 +1341,7 @@
 	style:--vaultman-toc-content-gutter={`${tocLaneLayout.contentGutterPx}px`}
 	style:--vaultman-toc-rail-scrollbar-offset={`${tocLaneLayout.railScrollbarOffsetPx}px`}
 	class:vaultman-badges-colored={coloredBadges}
+	class:vaultman-mobile-rounded-rows={mobileRoundedRows}
 	use:bindViewport
 	use:bindViewRoot
 >

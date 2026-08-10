@@ -113,6 +113,7 @@ export const es: Record<string, string> = {
 	'prop.scope.selected': 'Solo archivos seleccionados',
 	'prop.property': 'Propiedad',
 	'prop.value': 'Valor',
+	'prop.value.empty': 'Vacío',
 	'prop.action': 'Acción',
 	'prop.action.set': 'Establecer / Crear',
 	'prop.action.rename': 'Renombrar',
@@ -254,8 +255,47 @@ export const es: Record<string, string> = {
 	'settings.collapsed_folder_badges': 'Actividad de folder colapsado',
 	'settings.collapsed_folder_badges.desc':
 		'Cómo un folder colapsado muestra el estado que oculta: un dot de que sus childs tienen actividad (una operación pendiente o un filtro activo), o los badges propios de los descendientes junto al dot de filtro.',
-	'settings.collapsed_folder_badges.dot': 'Un dot indicativo',
-	'settings.collapsed_folder_badges.badges': 'Badges de descendientes',
+	'settings.collapsed_folder_badges.dot':
+		'Un dot indicativo',
+	'settings.collapsed_folder_badges.badges':
+		'Badges de descendientes',
+	'settings.mobile_rounded_rows': 'Filas táctiles redondeadas en móvil',
+	'settings.mobile_rounded_rows.desc':
+		'Iguala el radio de esquina nativo de Obsidian en los explorers Tree (Files, Properties, Tags, Snippets, Plugins) cuando el workspace está en móvil/teléfono. Desactivado usa el mismo radio que en PC. Con algunos temas, la barra de acento de filtro activo puede verse ligeramente corta respecto a la esquina cuando está activado.',
+	'settings.developer': 'Herramientas de desarrollador',
+	'settings.developer.desc':
+		'Resetea la configuracion del plugin, o respalda y restaura filtros guardados, sets de operaciones y layouts como JSON.',
+	'settings.data_transfer': 'Filtros, sets de operaciones y layouts',
+	'settings.data_transfer.desc':
+		'Exporta filtros guardados, plantillas de queue y layouts guardados como JSON, o importa un archivo previamente exportado.',
+	'settings.data_transfer.export': 'Exportar JSON',
+	'settings.data_transfer.import': 'Importar JSON',
+	'settings.data_transfer.export.title': 'Exportar filtros, sets de operaciones y layouts',
+	'settings.data_transfer.export.desc':
+		'Copia este JSON para respaldarlo o moverlo a otro vault.',
+	'settings.data_transfer.export.copy': 'Copiar al portapapeles',
+	'settings.data_transfer.export.copied': 'Copiado al portapapeles.',
+	'settings.data_transfer.export.copy_failed':
+		'No se pudo copiar automaticamente — el texto quedo seleccionado, copialo manualmente.',
+	'settings.data_transfer.import.title': 'Importar filtros, sets de operaciones y layouts',
+	'settings.data_transfer.import.desc':
+		'Pega un JSON previamente exportado. Solo se reemplazan los arrays presentes en el JSON — lo que exportaste vacio o dejaste afuera queda intacto.',
+	'settings.data_transfer.import.placeholder': 'Pega aqui el JSON exportado…',
+	'settings.data_transfer.import.apply': 'Importar',
+	'settings.data_transfer.import.done': 'Importacion completa.',
+	'settings.data_transfer.import.invalid_json': 'Eso no es JSON valido.',
+	'settings.data_transfer.import.invalid_shape':
+		'Se esperaba un objeto JSON con filterTemplates, queueTemplates y/o savedLayouts.',
+	'settings.data_transfer.import.no_known_keys':
+		'No se encontro ningun array filterTemplates, queueTemplates o savedLayouts en este JSON.',
+	'settings.reset': 'Resetear configuracion',
+	'settings.reset.desc':
+		'Restaura cada configuracion de Vaultman a su valor por defecto, incluyendo filtros guardados, sets de operaciones y layouts. Expórtalos primero si queres conservar una copia.',
+	'settings.reset.button': 'Resetear configuracion',
+	'settings.reset.confirm_title': 'Resetear toda la configuracion de Vaultman?',
+	'settings.reset.confirm_message':
+		'Esto restaura cada configuracion a su valor por defecto, incluyendo filtros guardados, sets de operaciones y layouts. Esto no se puede deshacer.',
+	'settings.reset.done': 'Configuracion reseteada a los valores por defecto.',
 	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
@@ -909,6 +949,7 @@ export const es: Record<string, string> = {
 	'sort.vertcol.scope_drawer': 'Abrir filtro de tipo',
 	'sort.type.all': 'Todos los tipos',
 	'sort.type.folders': 'Carpetas',
+	'sort.type.props_only': 'Props',
 	'sort.type.tags': 'Etiquetas',
 	'sort.type.list': 'Lista',
 	'sort.type.text': 'Texto',
@@ -932,6 +973,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.prop_count': 'Props',
 	'viewmode.pill.ext': 'Ext',
 	'viewmode.pill.nested': 'Anidadas',
+	'viewmode.pill.sub': 'Subelementos',
 	'viewmode.pill.name': 'Nombre',
 	'viewmode.pill.date': 'Fecha',
 	'viewmode.pill.mtime': 'Modificación',

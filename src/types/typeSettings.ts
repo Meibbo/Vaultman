@@ -215,6 +215,14 @@ export interface VaultmanSettings {
 	explorerRainbowFolders: boolean;
 	/** BT5-042: collapsed folder shows one bubble dot or the descendants' badges */
 	collapsedFolderBadges: 'dot' | 'badges';
+	/**
+	 * Match Obsidian core's rounded touch rows on is-mobile/is-phone Tree rows
+	 * (Files/Props/Tags/Snippets/Plugins). Off keeps the old fixed corner radius
+	 * that PC also uses. Off by default: some themes (seen on Oxygen/Velocity)
+	 * enlarge --nav-item-radius enough that the is-active-filter left accent bar
+	 * visibly tapers short of the row's rounded top/bottom corners.
+	 */
+	mobileRoundedRows: boolean;
 	/** BT5-040: folders show the recursive sum of countable cells of their files */
 	folderAggregateCells: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
@@ -394,6 +402,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
+	mobileRoundedRows: false,
 	folderAggregateCells: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',

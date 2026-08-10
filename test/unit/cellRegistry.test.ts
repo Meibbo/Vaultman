@@ -63,7 +63,6 @@ describe('shared explorer cell registry', () => {
 		expect(cellDef('state')?.role).toBe('control');
 		expect(isIdentityCell('files', 'name', 'tree')).toBe(true);
 		expect(isIdentityCell('files', 'count', 'tree')).toBe(false);
-
 		expect(
 			cellsForExplorer('files', 'tree').map((definition) => definition.id),
 		).toEqual([
@@ -108,6 +107,27 @@ describe('shared explorer cell registry', () => {
 			'file-count',
 			'count',
 		]);
+	});
+
+	it('offers the sub count cell to props and tags tree views only', () => {
+		const def = cellDef('sub');
+		expect(def?.role).toBe('value');
+		expect(def?.labelKey).toBe('viewmode.pill.sub');
+		expect(def?.sortId).toBe('sub');
+		expect(
+			cellsForExplorer('props', 'tree').map(({ id }) => id),
+		).toContain('sub');
+		expect(cellsForExplorer('tags', 'tree').map(({ id }) => id)).toContain(
+			'sub',
+		);
+		expect(cellsForExplorer('files', 'tree').map(({ id }) => id)).not.toContain(
+			'sub',
+		);
+		expect(
+			cellsForExplorer('props', 'table').map(({ id }) => id),
+		).not.toContain('sub');
+		expect(defaultVisibleCells('props', 'tree')).not.toContain('sub');
+		expect(defaultVisibleCells('tags', 'tree')).not.toContain('sub');
 	});
 
 	it('makes one injected definition available to compatible menus and hover', () => {

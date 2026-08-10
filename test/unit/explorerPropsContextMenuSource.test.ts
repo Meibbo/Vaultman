@@ -32,4 +32,17 @@ describe('Props explorer context-menu source guards', () => {
 			/import\s*\{[^}]*parsePropertyValue[^}]*\}\s*from '\.\.\/\.\.\/logic\/propertyValueCoercion';/s,
 		);
 	});
+
+	it('projects the empty value node as the translated word in faint with Format off or on', () => {
+		expect(propsExplorerSource).toContain(
+			"if ((node.meta.rawValue ?? '') === '') {",
+		);
+		expect(propsExplorerSource).toContain(
+			"cls: 'vaultman-tree-label vaultman-property-value-empty'",
+		);
+		expect(propsExplorerSource).toContain("text: translate('prop.value.empty')");
+		expect(propsExplorerSource).toContain(
+			"if (!node.meta.isValueNode) return false;",
+		);
+	});
 });

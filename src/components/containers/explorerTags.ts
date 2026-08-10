@@ -684,6 +684,16 @@ export class TagsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
+	private _decorateSubCounts(nodes: TreeNode<TagMeta>[]): void {
+		for (const node of nodes) {
+			node.subCountText =
+				node.children && node.children.length > 0
+					? String(node.children.length)
+					: undefined;
+			this._decorateSubCounts(node.children ?? []);
+		}
+	}
+
 	private _sortState(): ExplorerSortState {
 		return {
 			...this.sortState,
@@ -755,6 +765,9 @@ export class TagsExplorerPanel extends Component {
 		}
 		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
 		this._setIndexRoots(nodesWithIcons);
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(nodesWithIcons);
+		}
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(

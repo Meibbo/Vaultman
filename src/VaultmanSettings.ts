@@ -6,11 +6,18 @@ import {
 	type SettingDefinitionItem,
 } from 'obsidian';
 import {
+	DEFAULT_SETTINGS,
 	PROP_CONFLICT_WARNINGS,
 	type FilesIconScope,
 	type iVaultmanPlugin,
 	type VaultmanSettings,
 } from './types/typeSettings';
+import { ConfirmModal } from './modals/modalConfirm';
+import {
+	ExportSettingsDataModal,
+	ImportSettingsDataModal,
+	type SettingsDataPayload,
+} from './modals/modalSettingsDataTransfer';
 import {
 	fileHoverEntries,
 	mergeFileHoverOrder,
@@ -52,6 +59,7 @@ import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
+import { Notice } from 'obsidian';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
 	buildFilterTemplatePreview,
@@ -61,6 +69,8 @@ import {
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
+
+	icon = 'lucide-vault';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
@@ -381,6 +391,90 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							this.plugin.settings.performanceHudEnabled = value;
 							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+
+		items.push({
+			type: 'page',
+			name: translate('settings.developer'),
+			desc: translate('settings.developer.desc'),
+			items: this.getDeveloperPageItems(),
+		});
+		return items;
+	}
+
+	private getDeveloperPageItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.data_transfer'),
+			desc: translate('settings.data_transfer.desc'),
+			render: (setting: Setting) => {
+				setting.addButton((button) =>
+					button
+						.setButtonText(translate('settings.data_transfer.export'))
+						.onClick(() => {
+							const payload: SettingsDataPayload = {
+								filterTemplates: this.plugin.settings.filterTemplates,
+								queueTemplates: this.plugin.settings.queueTemplates,
+								savedLayouts: this.plugin.settings.savedLayouts ?? [],
+							};
+							new ExportSettingsDataModal(this.app, payload).open();
+						}),
+				);
+				setting.addButton((button) =>
+					button
+						.setButtonText(translate('settings.data_transfer.import'))
+						.onClick(() => {
+							new ImportSettingsDataModal(this.app, async (payload) => {
+								if (payload.filterTemplates !== undefined) {
+									this.plugin.settings.filterTemplates =
+										payload.filterTemplates;
+								}
+								if (payload.queueTemplates !== undefined) {
+									this.plugin.settings.queueTemplates =
+										payload.queueTemplates;
+								}
+								if (payload.savedLayouts !== undefined) {
+									this.plugin.settings.savedLayouts =
+										payload.savedLayouts;
+								}
+								await this.plugin.saveSettings();
+								new Notice(
+									translate('settings.data_transfer.import.done'),
+								);
+								this.display();
+							}).open();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.reset'),
+			desc: translate('settings.reset.desc'),
+			render: (setting: Setting) => {
+				setting.addButton((button) =>
+					button
+						.setWarning()
+						.setButtonText(translate('settings.reset.button'))
+						.onClick(() => {
+							new ConfirmModal(this.app, {
+								title: translate('settings.reset.confirm_title'),
+								message: translate('settings.reset.confirm_message'),
+								ctaLabel: translate('settings.reset.button'),
+								onConfirm: async () => {
+									this.plugin.settings = JSON.parse(
+										JSON.stringify(DEFAULT_SETTINGS),
+									) as VaultmanSettings;
+									await this.plugin.saveSettings();
+									new Notice(translate('settings.reset.done'));
+									this.display();
+								},
+							}).open();
 						}),
 				);
 			},
@@ -1081,6 +1175,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							this.plugin.settings.collapsedFolderBadges =
 								value === 'badges' ? 'badges' : 'dot';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.mobile_rounded_rows'),
+			desc: translate('settings.mobile_rounded_rows.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.mobileRoundedRows === true)
+						.onChange(async (value) => {
+							this.plugin.settings.mobileRoundedRows = value;
 							await this.plugin.saveSettings();
 						}),
 				);
