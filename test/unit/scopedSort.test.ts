@@ -47,11 +47,17 @@ describe('scoped explorer sort state', () => {
 	);
 
 	it('defaults unknown shapes and migrates file modifiers', () => {
+		// U121-029: the node providers carry the narrowing state explicitly, so an
+		// undefined here cannot read as a change against a false there. Add-on
+		// explorers project no property set and keep the older, smaller shape.
 		expect(normalizeExplorerSortState('tags', { unexpected: true })).toEqual({
 			sorts: {},
 			activeScope: 'all',
 			drillNodeId: null,
 			nodeTypeFilter: null,
+			filtered: false,
+			revealAnchor: 'current-file',
+			revealAnchorPath: null,
 		});
 
 		expect(

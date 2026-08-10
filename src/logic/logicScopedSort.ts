@@ -28,6 +28,11 @@ function isHierarchicalTab(tab: ExplorerTabId): boolean {
 	return tab === 'files' || tab === 'tags';
 }
 
+/** The surfaces that project properties or tags, and so can be narrowed. */
+function isNodeProviderTab(tab: ExplorerTabId): boolean {
+	return tab === 'props' || tab === 'tags';
+}
+
 interface NormalizeSortOptions {
 	isValidDrillNode?: (id: string) => boolean;
 }
@@ -58,6 +63,18 @@ function defaultState(tab: ExplorerTabId): ExplorerSortState {
 		activeScope: DEFAULT_SCOPE_BY_TAB[tab],
 		...(isHierarchicalTab(tab) ? { drillNodeId: null } : {}),
 		nodeTypeFilter: null,
+		// Explicit rather than absent, and only where they mean something:
+		// `sameExplorerSortState` compares these, and an undefined here against a
+		// false there reads as a change that is not one. Off is the resting state
+		// — "global" is `filtered` being off. Add-on explorers project no note
+		// and no property set, so they carry neither field.
+		...(isNodeProviderTab(tab)
+			? {
+					filtered: false,
+					revealAnchor: 'current-file' as const,
+					revealAnchorPath: null,
+				}
+			: {}),
 		...(tab === 'files' ? { parentsFirst: true, fixedFolders: true } : {}),
 	};
 }
@@ -80,8 +97,10 @@ function normalizeNodeFilters(
 }
 
 function normalizeRevealAnchor(
+	tab: ExplorerTabId,
 	value: Record<string, unknown>,
 ): Pick<ExplorerSortState, 'filtered' | 'revealAnchor' | 'revealAnchorPath'> {
+	if (!isNodeProviderTab(tab)) return {};
 	// A pinned anchor without a path is not an anchor, so it falls back to
 	// following the workspace rather than projecting nothing.
 	const path =
@@ -111,7 +130,7 @@ export function normalizeExplorerSortState(
 			...fallback,
 			sorts: { [DEFAULT_SCOPE_BY_TAB[tab]]: legacySort },
 			...nodeFilters,
-			...normalizeRevealAnchor(value),
+			...normalizeRevealAnchor(tab, value),
 			...(tab === 'files' && typeof value.parentsFirst === 'boolean'
 				? { parentsFirst: value.parentsFirst }
 				: {}),
@@ -162,7 +181,7 @@ export function normalizeExplorerSortState(
 		activeScope,
 		...(isHierarchicalTab(tab) ? { drillNodeId } : {}),
 		...nodeFilters,
-		...normalizeRevealAnchor(value),
+		...normalizeRevealAnchor(tab, value),
 		...(tab === 'files'
 			? {
 					parentsFirst:

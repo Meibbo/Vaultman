@@ -126,6 +126,7 @@ import {
 } from '../../logic/logicValueMoveApply';
 import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 import { projectActiveFileProps } from '../../logic/logicRevealActiveFileProps';
+import { projectFilteredProps } from '../../logic/logicFilteredProps';
 import {
 	OperationSummaryModal,
 	type OperationSummaryLine,
@@ -817,12 +818,39 @@ export class PropsExplorerPanel extends Component {
 		return this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 	}
 
-	/** Narrows an already-built snapshot; it never asks for a new one. */
-	private _revealProjection(
+	/**
+	 * Narrows an already-built snapshot; it never asks for a new one. Both modes
+	 * that can narrow it come through here, so search, filters, sort and every
+	 * engine read the same narrowed tree instead of each deciding for itself.
+	 *
+	 * Reveal wins when both are on: it is already a single note, so there is
+	 * nothing left for a file filter to narrow.
+	 */
+	private _scopeProjection(
 		snapshot: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
-		if (!this.revealActiveFile) return snapshot;
-		return projectActiveFileProps(snapshot, this._revealFrontmatter());
+		if (this.revealActiveFile) {
+			return projectActiveFileProps(snapshot, this._revealFrontmatter());
+		}
+		if (this.sortState?.filtered === true) {
+			return projectFilteredProps(snapshot, this._filteredFrontmatters());
+		}
+		return snapshot;
+	}
+
+	/**
+	 * The frontmatter of the files the active filter leaves standing. Reads the
+	 * cache for that set only — no vault scan, no index rebuild — so the switch
+	 * costs what the user is already looking at.
+	 */
+	private _filteredFrontmatters(): Array<Record<string, unknown>> {
+		const frontmatters: Array<Record<string, unknown>> = [];
+		for (const file of this.plugin.filterService.filteredFiles) {
+			const frontmatter =
+				this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+			if (frontmatter) frontmatters.push(frontmatter);
+		}
+		return frontmatters;
 	}
 
 	// --- `Move to prop...` hidden operation mode -------------------------------
@@ -1506,7 +1534,7 @@ export class PropsExplorerPanel extends Component {
 		}
 		// Narrowed before anything else consumes it, so search, filters, sort and
 		// every engine see one projection rather than each deciding for itself.
-		let tree = this._revealProjection(this.logic.getTree());
+		let tree = this._scopeProjection(this.logic.getTree());
 		const filterSets = this._activeFilterIds();
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;
@@ -2095,7 +2123,7 @@ export class PropsExplorerPanel extends Component {
 		this.containerEl.empty();
 		// Narrowed before anything else consumes it, so search, filters, sort and
 		// every engine see one projection rather than each deciding for itself.
-		let tree = this._revealProjection(this.logic.getTree());
+		let tree = this._scopeProjection(this.logic.getTree());
 		const filterSets = this._activeFilterIds();
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;

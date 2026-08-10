@@ -202,7 +202,7 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		// Search, filters, sort and every engine read the same narrowed tree
 		// rather than each deciding for itself what reveal means.
 		expect(propsExplorerSource).toContain(
-			'this._revealProjection(this.logic.getTree())',
+			'this._scopeProjection(this.logic.getTree())',
 		);
 	});
 

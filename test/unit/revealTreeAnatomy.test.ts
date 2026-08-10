@@ -421,7 +421,7 @@ describe('U121-003 shard 9.3 — Core file-properties Tree anatomy', () => {
 		expect(tableBranch).toContain('nodes: nodesWithIcons');
 		expect(tableBranch).not.toContain('coreMetadata');
 		expect(cardsBranch).toContain(
-			'this._revealProjection(this.logic.getTree())',
+			'this._scopeProjection(this.logic.getTree())',
 		);
 		expect(cardsBranch).not.toContain('metadata-property');
 		expect(tableSource).not.toContain('metadata-property');
