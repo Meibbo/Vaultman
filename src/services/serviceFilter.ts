@@ -321,7 +321,8 @@ export class FilterService extends Component {
 		let changed = this.removeRulesMatching(
 			this.activeFilter,
 			(rule) =>
-				(rule.filterType === 'folder' || rule.filterType === 'folder_exclude') &&
+				(rule.filterType === 'folder' ||
+					rule.filterType === 'folder_exclude') &&
 				rule.values.includes(folderPath),
 		);
 
@@ -442,7 +443,8 @@ export class FilterService extends Component {
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
+		changed =
+			this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
@@ -469,7 +471,8 @@ export class FilterService extends Component {
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
+		changed =
+			this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
@@ -892,14 +895,15 @@ export class FilterService extends Component {
 
 	private applyContentSearch(files: TFile[]): TFile[] {
 		if (!this.hasEnabledContentSearchRule()) return files;
-		
+
 		const rules = this.activeFilter.children.filter(
-			(node): node is FilterRule => 
-				node.type === 'rule' && 
-				(node.filterType === 'content_search' || node.filterType === 'content_search_exclude') &&
-				node.enabled !== false
+			(node): node is FilterRule =>
+				node.type === 'rule' &&
+				(node.filterType === 'content_search' ||
+					node.filterType === 'content_search_exclude') &&
+				node.enabled !== false,
 		);
-		
+
 		if (rules.length === 0) return files;
 
 		let result = files;
@@ -907,7 +911,7 @@ export class FilterService extends Component {
 			if (!rule.id) continue;
 			const paths = this.contentSearchPaths.get(rule.id);
 			if (!paths) continue;
-			
+
 			const exclude = rule.filterType === 'content_search_exclude';
 			result = exclude
 				? result.filter((file) => !paths.has(file.path))
@@ -972,7 +976,8 @@ export class FilterService extends Component {
 			searchName: this._searchName,
 			searchFolder: this._searchFolder,
 			activeFilter: this.activeFilter,
-			contentSearchPaths: Object.keys(sortedPaths).length > 0 ? sortedPaths : null,
+			contentSearchPaths:
+				Object.keys(sortedPaths).length > 0 ? sortedPaths : null,
 		});
 	}
 
@@ -1002,6 +1007,15 @@ export class FilterService extends Component {
 				})
 				.filter((node): node is FilterNode => node !== null),
 		};
+	}
+
+	/**
+	 * Whether the active filter actually leaves anything out. O(1): both counts
+	 * are already maintained, so a caller can skip narrowing work entirely when
+	 * there is nothing to narrow — which is the resting state of a fresh vault.
+	 */
+	narrowsVault(): boolean {
+		return this.filteredFiles.length < this.fullMarkdownOrder.length;
 	}
 
 	hasEnabledContentSearchRule(): boolean {

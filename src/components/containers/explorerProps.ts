@@ -826,6 +826,12 @@ export class PropsExplorerPanel extends Component {
 	 * Reveal wins when both are on: it is already a single note, so there is
 	 * nothing left for a file filter to narrow.
 	 */
+	private _filteredProjectionCache: {
+		snapshot: readonly TreeNode<PropMeta>[];
+		files: readonly TFile[];
+		projection: TreeNode<PropMeta>[];
+	} | null = null;
+
 	private _scopeProjection(
 		snapshot: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
@@ -833,9 +839,40 @@ export class PropsExplorerPanel extends Component {
 			return projectActiveFileProps(snapshot, this._revealFrontmatter());
 		}
 		if (this.sortState?.filtered === true) {
-			return projectFilteredProps(snapshot, this._filteredFrontmatters());
+			return this._filteredProjection(snapshot);
 		}
 		return snapshot;
+	}
+
+	/**
+	 * The narrowed projection, computed once per (snapshot, filtered set) pair.
+	 *
+	 * Both inputs are replaced rather than mutated when they change — the props
+	 * index hands out a new array on invalidate, and the filter service only
+	 * reassigns `filteredFiles` when the list actually differs — so identity is
+	 * a sound and O(1) cache key. Without this the whole tally was rebuilt on
+	 * every render, which is what made the switch feel like a stall.
+	 */
+	private _filteredProjection(
+		snapshot: TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		// Nothing filtered out means nothing to narrow: the switch is on but the
+		// projection is the snapshot, and reading every file to rediscover that
+		// is the expensive way to learn nothing.
+		if (!this.plugin.filterService.narrowsVault()) return snapshot;
+
+		const files = this.plugin.filterService.filteredFiles;
+		const cached = this._filteredProjectionCache;
+		if (cached && cached.snapshot === snapshot && cached.files === files) {
+			return cached.projection;
+		}
+
+		const projection = projectFilteredProps(
+			snapshot,
+			this._filteredFrontmatters(),
+		);
+		this._filteredProjectionCache = { snapshot, files, projection };
+		return projection;
 	}
 
 	/**

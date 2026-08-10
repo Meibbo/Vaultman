@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { projectFilteredProps } from '../../src/logic/logicFilteredProps';
 import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import filterServiceSource from '../../src/services/serviceFilter.ts?raw';
 import sortPopupSource from '../../src/components/layout/popupSort.svelte?raw';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import filteredSource from '../../src/logic/logicFilteredProps.ts?raw';
@@ -226,5 +227,41 @@ describe('the Filtered switch reaches the projection', () => {
 		expect(restored.filtered).toBe(true);
 		// Absent means off — global is the resting state.
 		expect(normalizeExplorerSortState('props', null).filtered).toBe(false);
+	});
+
+	it('does no work when the filter narrows nothing', () => {
+		// A fresh vault has every file in the filtered set, so turning the switch
+		// on changes nothing — and reading every file to rediscover that is the
+		// expensive way to learn nothing. This was the stall the dev reported.
+		const scope = propsExplorerSource.slice(
+			propsExplorerSource.indexOf('private _filteredProjection('),
+			propsExplorerSource.indexOf('private _filteredFrontmatters('),
+		);
+		expect(scope).not.toBe('');
+		const shortCircuit = scope.indexOf('narrowsVault()');
+		const readsFiles = scope.indexOf('_filteredFrontmatters(');
+		expect(shortCircuit).toBeGreaterThan(-1);
+		// The check has to come before anything reads the files.
+		expect(shortCircuit).toBeLessThan(readsFiles);
+		expect(filterServiceSource).toContain('narrowsVault(): boolean {');
+		// O(1): counts already maintained, no vault scan to answer it.
+		const predicate = filterServiceSource.slice(
+			filterServiceSource.indexOf('narrowsVault(): boolean {'),
+			filterServiceSource.indexOf('hasEnabledContentSearchRule()'),
+		);
+		expect(predicate).not.toContain('getMarkdownFiles');
+	});
+
+	it('computes the narrowed projection once per snapshot and file set', () => {
+		// Both inputs are replaced rather than mutated when they change, so
+		// identity is a sound cache key; without the memo the whole tally was
+		// rebuilt on every render.
+		const scope = propsExplorerSource.slice(
+			propsExplorerSource.indexOf('private _filteredProjection('),
+			propsExplorerSource.indexOf('private _filteredFrontmatters('),
+		);
+		expect(scope).toContain('cached.snapshot === snapshot');
+		expect(scope).toContain('cached.files === files');
+		expect(propsExplorerSource).toContain('_filteredProjectionCache');
 	});
 });
