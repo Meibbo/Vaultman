@@ -574,7 +574,7 @@ export class UnifiedTreeView {
 			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
 		);
 		this.removeStaleRows(visibleIds, this.stickyRowEls);
-		for (const sticky of stickyRows) {
+		for (const [slot, sticky] of stickyRows.entries()) {
 			const node = this._rows[sticky.index];
 			if (!node) continue;
 			this._opts.prepareNode?.(node);
@@ -585,6 +585,10 @@ export class UnifiedTreeView {
 				this.stickyRowEls,
 			);
 			row.addClass('vaultman-tree-row--sticky');
+			// Only the row the stack ends on separates itself from the scrolling
+			// content below it (the prototype's `.is-stuck`); the ones above it
+			// are still headings of the same block.
+			row.toggleClass('is-stuck', slot === stickyRows.length - 1);
 			row.dataset.sticky = 'true';
 			row.style.top = `${sticky.top}px`;
 		}

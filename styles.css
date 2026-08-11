@@ -5617,6 +5617,46 @@ button.vaultman-content-scope-hint:focus-visible {
   }
 }
 
+/* Sticky parent rows (setting). The prototype pins each parent row in place
+   with `position: sticky` and a per-depth offset, which needs the rows to be
+   in flow — this tree virtualizes them into an absolutely positioned window,
+   so the offsets come from `logicTreeSticky` and the stack lives in its own
+   layer instead. The layer is a zero-height strip pinned to the top of the
+   scrollport: it stays out of the window's geometry — the spacer still owns
+   the full scroll height — while the parent rows it holds float above it. The
+   strip itself is click-through so the empty space below the stack does not
+   swallow the rows underneath. */
+.vaultman-tree-sticky-layer {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The tab surface paints no background of its own, so the pinned rows take the
+   one behind the leaf: side docks and the phone drawer are secondary, the main
+   area is primary. Without it the scrolling rows read straight through. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  background-color: var(--background-secondary);
+}
+
+.workspace-split.mod-root .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  background-color: var(--background-primary);
+}
+
+/* Only the row the stack currently ends on carries the separator, so a nested
+   stack reads as one heading block instead of a ruled table. A border rather
+   than a shadow: the hover state owns this box's `box-shadow`. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is-stuck {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
 .vaultman-tree-toggle {
   color: var(--nav-collapse-icon-color, var(--text-faint));
   display: flex;

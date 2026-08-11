@@ -834,6 +834,50 @@ describe('UnifiedTreeView behavior', () => {
 		expect(row?.style['--vaultman-glyph-color']).toBe('#33aa77');
 	});
 
+	it('floats the scrolled-past parents in the sticky layer', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(container as unknown as HTMLElement);
+		const children = Array.from({ length: 40 }, (_unused, index) => ({
+			id: `root/child-${index}.md`,
+			label: `child-${index}`,
+			depth: 1,
+			meta: {},
+		}));
+
+		view.render({
+			expandedIds: new Set(['root']),
+			stickyParentRows: true,
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+			nodes: [
+				{
+					id: 'root',
+					label: 'root',
+					depth: 0,
+					meta: {},
+					children,
+				},
+			],
+		});
+
+		const layer = container.querySelector('.vaultman-tree-sticky-layer');
+		expect(layer?.children).toHaveLength(0);
+
+		// Past the first row: the parent is above the window but still owns
+		// every row inside it.
+		container.scrollTop = 200;
+		view.refreshViewport();
+
+		expect(layer?.children.map((row) => row.dataset.id)).toEqual(['root']);
+		const stuck = layer?.children[0];
+		expect(stuck?.classList.contains('vaultman-tree-row--sticky')).toBe(true);
+		expect(stuck?.classList.contains('is-stuck')).toBe(true);
+		expect(stuck?.style.top).toBe('0px');
+	});
+
 	it('renders every generic highlight channel independently on one row', async () => {
 		const { UnifiedTreeView } =
 			await import('../../src/components/layout/viewTree');

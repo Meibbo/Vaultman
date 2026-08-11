@@ -1,7 +1,16 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { stickyTreeRows } from '../../src/logic/logicTreeSticky';
 import type { TreeNode } from '../../src/types/typeTree';
+
+// `styles.css?raw` resolves to an empty string under the CSS pipeline, so the
+// stylesheet is read from disk like the other stylesheet guards in this suite.
+const stylesSource = readFileSync(
+	new URL('../../styles.css', import.meta.url),
+	'utf8',
+);
 
 function folder(id: string, depth: number, children: TreeNode[] = []): TreeNode {
 	return {
@@ -60,6 +69,31 @@ describe('stickyTreeRows', () => {
 				viewportHeight: 200,
 			}),
 		).toEqual([]);
+	});
+
+	it('has a layer the rows can actually float in', () => {
+		// The view builds the layer and positions each row inside it, so without
+		// these two rules the whole setting is inert: an unstyled strip scrolls
+		// away with the content it is supposed to stay above.
+		const layer = stylesSource.slice(
+			stylesSource.indexOf('.vaultman-tree-sticky-layer {'),
+			stylesSource.indexOf('.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {'),
+		);
+		expect(layer).not.toBe('');
+		expect(layer).toContain('position: sticky;');
+		expect(layer).toContain('top: 0;');
+		// A strip with height would push the virtual spacer down by its own size.
+		expect(layer).toContain('height: 0;');
+
+		const rowStart = stylesSource.indexOf(
+			'.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {',
+		);
+		const row = stylesSource.slice(
+			rowStart,
+			stylesSource.indexOf('}', rowStart),
+		);
+		expect(row).toContain('position: absolute;');
+		expect(row).toContain('pointer-events: auto;');
 	});
 
 	it('caps the stack at the smaller of seven rows and forty percent height', () => {
