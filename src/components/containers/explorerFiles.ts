@@ -3340,6 +3340,14 @@ export class FilesExplorerPanel extends Component {
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);
+		// Auto-reveal (setting, off by default): the toolbar action reveals once
+		// and then holds still, so a session of jumping between notes needs one
+		// click per note. On, the explorer follows every focus change until it
+		// is switched back off. It runs before the Last-opened paths below
+		// because those return early under every other sort.
+		if (file && this.plugin.settings.autoRevealActiveFile === true) {
+			this.autoRevealActiveFile();
+		}
 		// BT5-013: Last opened is a recency order, so opening a file changes it
 		// immediately — the note has to jump to the top the way a browser
 		// history does. The microtask defers past the plugin's own file-open

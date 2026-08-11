@@ -258,6 +258,9 @@ export const en: Record<string, string> = {
 		'One indicator dot',
 	'settings.collapsed_folder_badges.badges':
 		'Descendant badges',
+	'settings.auto_reveal_active_file': 'Always reveal the current file',
+	'settings.auto_reveal_active_file.desc':
+		'Keep the Files explorer on whatever note has the focus: every time you open one, its folders expand and the row scrolls into view. Off, the toolbar reveal action does the same thing once, on demand.',
 	'settings.mobile_rounded_rows': 'Rounded touch rows on mobile',
 	'settings.mobile_rounded_rows.desc':
 		"Match Obsidian's native rounded row corners on mobile/phone Tree explorers (Files, Properties, Tags, Snippets, Plugins). Off keeps the same corner radius as desktop. Some themes make the active-filter accent bar look slightly short of the corner when this is on.",

@@ -223,6 +223,13 @@ export interface VaultmanSettings {
 	 * visibly tapers short of the row's rounded top/bottom corners.
 	 */
 	mobileRoundedRows: boolean;
+	/**
+	 * Turn the Files reveal action into a standing mode. The action reveals the
+	 * current file once and holds until the next focus change; on, the explorer
+	 * follows every focus change — expanding the ancestors and scrolling the
+	 * note into view — until it is switched back off.
+	 */
+	autoRevealActiveFile: boolean;
 	/** BT5-040: folders show the recursive sum of countable cells of their files */
 	folderAggregateCells: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
@@ -403,6 +410,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
 	mobileRoundedRows: false,
+	autoRevealActiveFile: false,
 	folderAggregateCells: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',

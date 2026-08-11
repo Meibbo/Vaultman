@@ -1182,6 +1182,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.auto_reveal_active_file'),
+			desc: translate('settings.auto_reveal_active_file.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.autoRevealActiveFile === true)
+						.onChange(async (value) => {
+							this.plugin.settings.autoRevealActiveFile = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.mobile_rounded_rows'),
 			desc: translate('settings.mobile_rounded_rows.desc'),
 			render: (setting: Setting) => {

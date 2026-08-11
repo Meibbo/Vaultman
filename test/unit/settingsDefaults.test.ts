@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import settingsSource from '../../src/VaultmanSettings.ts?raw';
+import filesExplorerSource from '../../src/components/containers/explorerFiles.ts?raw';
+import { en } from '../../src/i18n/en';
+import { es } from '../../src/i18n/es';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 
 describe('Vaultman default settings', () => {
@@ -63,5 +67,49 @@ describe('Vaultman default settings', () => {
 	// validation either way.
 	it('hides property conflict warnings by default', () => {
 		expect(DEFAULT_SETTINGS.propConflictWarnings).toBe('off');
+	});
+
+	it('keeps the standing reveal opt-in', () => {
+		expect(DEFAULT_SETTINGS.autoRevealActiveFile).toBe(false);
+	});
+});
+
+// The toolbar reveal action is a one-shot: it reveals the current file and then
+// holds still, so moving between notes costs a click each. The setting turns it
+// into a mode the explorer stays in.
+describe('always reveal the current file', () => {
+	it('follows the focus from the handler the early returns sit under', () => {
+		const handler = filesExplorerSource.slice(
+			filesExplorerSource.indexOf('_handleActiveFileChange = (file'),
+			filesExplorerSource.indexOf(
+				"normalizeExplorerSortBy(this.sortBy) !== 'opened'",
+			),
+		);
+		// Below this point the handler returns early under every sort that is
+		// not Last opened, so a reveal placed there would only fire on one.
+		expect(handler).toContain(
+			'this.plugin.settings.autoRevealActiveFile === true',
+		);
+		expect(handler).toContain('this.autoRevealActiveFile()');
+	});
+
+	it('offers the mode as a setting', () => {
+		expect(settingsSource).toContain(
+			"translate('settings.auto_reveal_active_file')",
+		);
+		expect(settingsSource).toContain(
+			'this.plugin.settings.autoRevealActiveFile = value;',
+		);
+	});
+
+	it('localizes the setting', () => {
+		for (const key of [
+			'settings.auto_reveal_active_file',
+			'settings.auto_reveal_active_file.desc',
+		]) {
+			expect(en[key]).toBeTruthy();
+			expect(es[key]).toBeTruthy();
+			expect(es[key]).not.toBe(en[key]);
+		}
 	});
 });

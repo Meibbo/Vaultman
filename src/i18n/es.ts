@@ -259,6 +259,9 @@ export const es: Record<string, string> = {
 		'Un dot indicativo',
 	'settings.collapsed_folder_badges.badges':
 		'Badges de descendientes',
+	'settings.auto_reveal_active_file': 'Mostrar siempre el archivo actual',
+	'settings.auto_reveal_active_file.desc':
+		'Mantiene el explorer Files sobre la nota que tenga el foco: cada vez que abres una, sus carpetas se despliegan y la fila se desplaza hasta quedar a la vista. Desactivado, la acción de la barra hace lo mismo una sola vez, cuando la pulsas.',
 	'settings.mobile_rounded_rows': 'Filas táctiles redondeadas en móvil',
 	'settings.mobile_rounded_rows.desc':
 		'Iguala el radio de esquina nativo de Obsidian en los explorers Tree (Files, Properties, Tags, Snippets, Plugins) cuando el workspace está en móvil/teléfono. Desactivado usa el mismo radio que en PC. Con algunos temas, la barra de acento de filtro activo puede verse ligeramente corta respecto a la esquina cuando está activado.',
