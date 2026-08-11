@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Menu, Notice } from 'obsidian';
-	import { onMount, untrack } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
@@ -115,7 +115,6 @@
 		tabMenuActions = [],
 		headerActions = [],
 		revealActive = false,
-		onRequestRevealPick,
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -372,6 +371,7 @@
 		return Math.max(own, inner);
 	}
 	let drillPickCleanup: (() => void) | null = null;
+	let revealPickCleanup: (() => void) | null = null;
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
 		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
@@ -1318,6 +1318,114 @@
 		new Notice(translate('sort.level.pick_hint'));
 	}
 
+	function stopRevealPick() {
+		revealPickCleanup?.();
+		revealPickCleanup = null;
+	}
+
+	/**
+	 * Holds the reveal projection to one note and returns to the scene the pick
+	 * started from. The anchor outlives the workspace's own current file — only
+	 * `Current file` in the same drawer releases it.
+	 */
+	function anchorRevealNote(originTab: FiltersTab, path: string) {
+		const current = normalizeSortState(
+			originTab,
+			untrack(
+				() => sortStateByTab[originTab] ?? DEFAULT_SORT_STATE[originTab],
+			),
+		);
+		const anchored: ExplorerSortState = {
+			...current,
+			revealAnchor: 'pinned',
+			revealAnchorPath: path,
+		};
+		stopRevealPick();
+		handleScopeChangeForTab(originTab, anchored);
+		// Scope changes reach the explorer with the next tab pass, and this flow
+		// makes exactly one — but the anchor is the whole point of the gesture,
+		// so it is pushed here rather than left to the round trip.
+		applySortState(originTab, anchored);
+		onSectionTabChange?.(originTab);
+	}
+
+	async function activeTabPane(): Promise<HTMLElement | null> {
+		// The file scene may be mounting for the first time, so the pane is
+		// given a second frame before the pick gives up on it.
+		for (let attempt = 0; attempt < 2; attempt += 1) {
+			await tick();
+			const pane = document.querySelector<HTMLElement>(
+				'.vaultman-filters-tab-pane.is-active',
+			);
+			if (pane) return pane;
+			await new Promise((resolve) => window.setTimeout(resolve, 50));
+		}
+		return null;
+	}
+
+	/**
+	 * Twin of the drill pick, over the file scene: the surface jumps to Files,
+	 * takes one note and comes back. Opening a note in the main leaf counts as
+	 * the same choice, so the pick can also be finished from the editor.
+	 */
+	async function beginRevealPick(originTab: FiltersTab) {
+		if (originTab !== 'props' && originTab !== 'tags') return;
+		stopRevealPick();
+		onSectionTabChange?.('files');
+		const pane = await activeTabPane();
+		if (!pane) return;
+		pane.classList.add('vaultman-sort-pick-mode');
+		const suppressEvent = (event: Event) => {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		};
+		const onPick = (event: PointerEvent) => {
+			const target =
+				event.target instanceof Element
+					? event.target.closest<HTMLElement>('[data-id]')
+					: null;
+			const nodeId = target?.dataset.id;
+			if (!nodeId) return;
+			suppressEvent(event);
+			// A folder row carries a level, not a note, and the anchor is a note.
+			// Rejecting it keeps pick mode armed instead of anchoring nothing.
+			if (nodeId.startsWith('folder:')) {
+				new Notice(translate('sort.reveal.pick_needs_note'));
+				return;
+			}
+			anchorRevealNote(originTab, nodeId);
+		};
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape') return;
+			suppressEvent(event);
+			stopRevealPick();
+			onSectionTabChange?.(originTab);
+		};
+		const workspace = app?.workspace;
+		const fileOpenRef = workspace?.on('file-open', (file) => {
+			if (file) anchorRevealNote(originTab, file.path);
+		});
+		// Longer than the drill pick's: this one can be finished in the editor,
+		// which is a slower gesture than clicking the row under the menu.
+		const timeout = window.setTimeout(stopRevealPick, 20000);
+		pane.addEventListener('pointerdown', onPick, true);
+		pane.addEventListener('click', suppressEvent, true);
+		document.addEventListener('keydown', onKeyDown, true);
+		revealPickCleanup = () => {
+			window.clearTimeout(timeout);
+			pane.classList.remove('vaultman-sort-pick-mode');
+			pane.removeEventListener('pointerdown', onPick, true);
+			document.removeEventListener('keydown', onKeyDown, true);
+			if (fileOpenRef) workspace?.offref(fileOpenRef);
+			// Let the click that completed the pick stay suppressed.
+			window.setTimeout(
+				() => pane.removeEventListener('click', suppressEvent, true),
+				400,
+			);
+		};
+		new Notice(translate('sort.reveal.pick_hint'));
+	}
+
 	function treeCapableFor(tab: FiltersTab): boolean {
 		return isHierarchicalViewMode(viewModeByTab[tab] ?? 'tree');
 	}
@@ -1416,7 +1524,7 @@
 						}
 						if (option.kind === 'reveal') {
 							if (option.id === 'reveal-drill') {
-								onRequestRevealPick?.();
+								void beginRevealPick(activeTab);
 								return;
 							}
 							// Releases the pinned note; the projection follows the
@@ -1645,7 +1753,10 @@
 	});
 
 	$effect(() => {
-		return () => stopDrillPick();
+		return () => {
+			stopDrillPick();
+			stopRevealPick();
+		};
 	});
 
 	$effect(() => {
@@ -2133,7 +2244,7 @@
 					initialSortState={sortStateByTab[activeTab]}
 					nestedActive={nestedActiveFor(activeTab)}
 					{revealActive}
-					{onRequestRevealPick}
+					onRequestRevealPick={() => void beginRevealPick(activeTab)}
 					treeCapable={treeCapableFor(activeTab)}
 					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}

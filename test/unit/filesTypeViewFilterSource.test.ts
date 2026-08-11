@@ -47,8 +47,10 @@ describe('Files type view filter source guards', () => {
 	});
 
 	it('keeps the external Files sort bridge out of the registering effect dependencies', () => {
-		expect(navbarFiltersSource).toContain(
-			"import { onMount, untrack } from 'svelte';",
+		// What this pins is `untrack`, not the shape of the import list — the
+		// component picks up other Svelte helpers over time.
+		expect(navbarFiltersSource).toMatch(
+			/import \{[^}]*\buntrack\b[^}]*\} from 'svelte';/,
 		);
 		expect(navbarFiltersSource).toContain(
 			'const currentByTab = untrack(() => ({',

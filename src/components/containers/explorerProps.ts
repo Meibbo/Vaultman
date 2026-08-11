@@ -809,9 +809,23 @@ export class PropsExplorerPanel extends Component {
 		this.revealActivePath = null;
 	}
 
-	/** The active file's frontmatter, or `null` when there is no active file. */
+	/**
+	 * Which note reveal is projecting. An anchored note outranks the workspace:
+	 * the user picked that one, so opening something else in the editor no
+	 * longer moves the projection — only choosing `Current file` again releases
+	 * it. The watcher keeps running underneath so the release resumes with the
+	 * file that is active by then, instead of a path from before the pick.
+	 */
+	private _revealPath(): string | null {
+		if (this.sortState?.revealAnchor === 'pinned') {
+			return this.sortState.revealAnchorPath ?? null;
+		}
+		return this.revealActivePath;
+	}
+
+	/** The revealed note's frontmatter, or `null` when there is no such note. */
 	private _revealFrontmatter(): Record<string, unknown> | null {
-		const path = this.revealActivePath;
+		const path = this._revealPath();
 		if (!path) return null;
 		const file = this.plugin.app.vault.getFileByPath(path);
 		if (!(file instanceof TFile)) return null;

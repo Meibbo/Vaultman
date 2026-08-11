@@ -289,3 +289,64 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		}
 	});
 });
+
+describe('reveal anchor (CORTE 3)', () => {
+	it('runs the pick on the file scene and comes back on its own', () => {
+		// The drawer entry used to call a callback nobody supplied, which is
+		// what made it inert. The surface owns the flow now, and the round trip
+		// is what makes it a pick and not a mode you have to leave by hand.
+		const pick = navbarSource.slice(
+			navbarSource.indexOf('async function beginRevealPick('),
+			navbarSource.indexOf('function treeCapableFor('),
+		);
+		expect(pick).not.toBe('');
+		expect(pick).toContain("onSectionTabChange?.('files')");
+		expect(pick).toContain('vaultman-sort-pick-mode');
+		expect(pick).toContain('anchorRevealNote(originTab, nodeId)');
+		// A note opened in the main leaf finishes the same pick.
+		expect(pick).toContain("workspace?.on('file-open'");
+		// A folder row is a level, not a note.
+		expect(pick).toContain("nodeId.startsWith('folder:')");
+		expect(navbarSource).toContain('void beginRevealPick(activeTab)');
+		expect(navbarSource).not.toContain('onRequestRevealPick?.()');
+	});
+
+	it('anchors through the sort state and pushes it at the explorer', () => {
+		const anchor = navbarSource.slice(
+			navbarSource.indexOf('function anchorRevealNote('),
+			navbarSource.indexOf('async function activeTabPane('),
+		);
+		expect(anchor).not.toBe('');
+		expect(anchor).toContain("revealAnchor: 'pinned'");
+		expect(anchor).toContain('revealAnchorPath: path');
+		expect(anchor).toContain('applySortState(originTab, anchored)');
+		expect(anchor).toContain('onSectionTabChange?.(originTab)');
+	});
+
+	it('lets the anchored note outrank the workspace in the projection', () => {
+		// Without this the pick would land in the state and change nothing:
+		// the projection read the watcher's path and nothing else.
+		const resolver = propsExplorerSource.slice(
+			propsExplorerSource.indexOf('private _revealPath()'),
+			propsExplorerSource.indexOf('private _revealFrontmatter()'),
+		);
+		expect(resolver).not.toBe('');
+		expect(resolver).toContain("this.sortState?.revealAnchor === 'pinned'");
+		expect(resolver).toContain('this.sortState.revealAnchorPath');
+		expect(resolver).toContain('return this.revealActivePath;');
+		expect(propsExplorerSource).toContain(
+			'const path = this._revealPath();',
+		);
+	});
+
+	it('localizes the pick', () => {
+		for (const key of [
+			'sort.reveal.pick_hint',
+			'sort.reveal.pick_needs_note',
+		] as const) {
+			expect(en[key]).toBeTruthy();
+			expect(es[key]).toBeTruthy();
+			expect(es[key]).not.toBe(en[key]);
+		}
+	});
+});

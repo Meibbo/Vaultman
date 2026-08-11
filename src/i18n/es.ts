@@ -932,6 +932,10 @@ export const es: Record<string, string> = {
 	'sort.level.filtered': 'Filtrado',
 	'sort.reveal.current_file': 'Archivo actual',
 	'sort.reveal.drill': 'Anclar una nota',
+	'sort.reveal.pick_hint':
+		'Haz clic en una nota para anclarla, o abre una en el editor. Esc cancela',
+	'sort.reveal.pick_needs_note':
+		'Elige una nota: una carpeta no se puede anclar',
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'settings.sort_level_inline': 'Opciones By level en línea',
 	'settings.sort_level_inline.desc':

@@ -1043,6 +1043,9 @@ export const en: Record<string, string> = {
 	'sort.level.filtered': 'Filtered',
 	'sort.reveal.current_file': 'Current file',
 	'sort.reveal.drill': 'Pin a note',
+	'sort.reveal.pick_hint':
+		'Click a note to pin it, or open one in the editor. Esc cancels',
+	'sort.reveal.pick_needs_note': 'Pick a note — a folder cannot be pinned',
 	'sort.level.fixed_folders': 'Fixed folders',
 	'settings.sort_level_inline': 'Inline By level options',
 	'settings.sort_level_inline.desc':
