@@ -19,11 +19,18 @@ class StubEl {
 	children: StubEl[] = [];
 	parent: StubEl | null = null;
 	style: {
-		[name: string]: string | ((name: string, value: string) => void);
+		[name: string]:
+			| string
+			| ((name: string, value: string) => void)
+			| ((name: string) => void);
 		setProperty: (name: string, value: string) => void;
+		removeProperty: (name: string) => void;
 	} = {
 		setProperty: (name, value) => {
 			this.style[name] = value;
+		},
+		removeProperty: (name) => {
+			delete this.style[name];
 		},
 	};
 	dataset: Record<string, string> = {};

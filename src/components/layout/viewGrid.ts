@@ -583,7 +583,7 @@ export class GridView {
 			row.style.setProperty('--vaultman-glyph-color', glyphColor);
 		} else {
 			row.removeClass('vaultman-glyph-colored');
-			row.style.setProperty('--vaultman-glyph-color', '');
+			row.style.removeProperty('--vaultman-glyph-color');
 		}
 		row.toggleClass('is-selected', this.selectedFiles.has(file.path));
 

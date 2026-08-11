@@ -431,7 +431,7 @@ export class FilesGridView {
 			card.style.setProperty('--vaultman-glyph-color', glyphColor);
 		} else {
 			card.removeClass('vaultman-glyph-colored');
-			card.style.setProperty('--vaultman-glyph-color', '');
+			card.style.removeProperty('--vaultman-glyph-color');
 		}
 		card.setAttribute('role', 'button');
 		card.setAttribute('tabindex', '0');

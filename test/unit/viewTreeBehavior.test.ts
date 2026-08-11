@@ -54,6 +54,9 @@ class TinyElement {
 		setProperty: (name: string, value: string) => {
 			this.style[name] = value;
 		},
+		removeProperty: (name: string) => {
+			delete this.style[name];
+		},
 	};
 	readonly classList = new TinyClassList();
 	parentElement: TinyElement | null = null;
@@ -799,7 +802,36 @@ describe('UnifiedTreeView behavior', () => {
 		});
 		const defaultRow = container.findByDataId('Alpha.md');
 		expect(defaultRow?.classList.contains('vaultman-glyph-colored')).toBe(false);
-		expect(defaultRow?.style['--vaultman-glyph-color']).toBe('');
+		expect(defaultRow?.style['--vaultman-glyph-color']).toBeUndefined();
+	});
+
+	it('tints from the glyph alone when only the icon is colored', async () => {
+		// The panel explorers colour the glyph through iconColor and never set a
+		// labelColor, so a tint keyed off the label skipped all of them.
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(container as unknown as HTMLElement);
+
+		view.render({
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+			nodes: [
+				{
+					id: 'status',
+					label: 'status',
+					depth: 0,
+					meta: {},
+					iconColor: '#33aa77',
+				},
+			],
+		});
+
+		const row = container.findByDataId('status');
+		expect(row?.classList.contains('vaultman-glyph-colored')).toBe(true);
+		expect(row?.style['--vaultman-glyph-color']).toBe('#33aa77');
 	});
 
 	it('renders every generic highlight channel independently on one row', async () => {

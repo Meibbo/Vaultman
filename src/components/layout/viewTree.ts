@@ -982,12 +982,18 @@ export class UnifiedTreeView {
 		row.empty();
 		row.className = 'vaultman-tree-row';
 		row.dataset.renderSignature = signature;
-		if (node.labelColor) {
+		// The Files explorer colors label and icon together, so a glyph color
+		// always arrives as a labelColor there. The panel explorers color the
+		// glyph alone — Iconic and the addon icon overrides only ever set
+		// iconColor — so keying the tint off the label left every one of them
+		// out of it.
+		const glyphColor = node.labelColor ?? node.iconColor;
+		if (glyphColor) {
 			row.addClass('vaultman-glyph-colored');
-			row.style.setProperty('--vaultman-glyph-color', node.labelColor);
+			row.style.setProperty('--vaultman-glyph-color', glyphColor);
 		} else {
 			row.removeClass('vaultman-glyph-colored');
-			row.style.setProperty('--vaultman-glyph-color', '');
+			row.style.removeProperty('--vaultman-glyph-color');
 		}
 		this.applyCoreRowClasses(row, node);
 		if (typeof node.cls === 'string' && node.cls.trim()) {
