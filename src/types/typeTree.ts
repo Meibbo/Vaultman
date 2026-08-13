@@ -1,5 +1,6 @@
 // src/types/tree.ts
 import type { TFile, TFolder } from 'obsidian';
+import type { TagSource } from '../logic/logicTagSource';
 import type { AddonCellStyle } from './typeSettings';
 
 export interface NodeBadge {
@@ -88,6 +89,13 @@ export interface TreeNode<TMeta = unknown> {
 
 export interface TagMeta {
 	tagPath: string;
+	/**
+	 * Where the tag is written — frontmatter, the body, or both. Set by the
+	 * reveal projection, which knows the one note it is showing; the vault-wide
+	 * tree leaves it out and the explorer resolves it from its source index,
+	 * because the answer there is an aggregate over every note.
+	 */
+	tagSources?: ReadonlySet<TagSource>;
 }
 
 export interface PropMeta {
