@@ -13,7 +13,8 @@ export type CorePropertyWidget =
 	| 'date'
 	| 'datetime'
 	| 'tags'
-	| 'aliases';
+	| 'aliases'
+	| 'unknown';
 
 export const LIST_WIDGETS: ReadonlySet<CorePropertyWidget> = new Set([
 	'tags',
@@ -41,6 +42,7 @@ const KNOWN_WIDGETS: ReadonlySet<string> = new Set<CorePropertyWidget>([
 	'datetime',
 	'tags',
 	'aliases',
+	'unknown',
 ]);
 
 /**
@@ -245,9 +247,12 @@ export function coercePropertyValueForWidget(
 	switch (widget) {
 		// The `LIST_WIDGETS` members, spelled out so the remaining widgets narrow
 		// to the assignable `PropertyType` set `parsePropertyValue` accepts.
+		// `unknown` is read-only (Core's own widget has no input either), so it
+		// never reaches here in practice — handled for exhaustiveness.
 		case 'tags':
 		case 'aliases':
 		case 'multitext':
+		case 'unknown':
 			return raw;
 		default:
 			return parsePropertyValue(raw, widget);

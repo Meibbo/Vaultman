@@ -48,7 +48,7 @@ type PropertyValueRenderer = (context: PropertyValueRenderContext) => void;
  * it must be indistinguishable from the value rendered with Format off, and
  * clicking it only raises a caret.
  */
-function renderEditableText(
+export function renderEditableText(
 	parent: HTMLElement,
 	context: PropertyValueRenderContext,
 ): HTMLElement {
@@ -132,6 +132,20 @@ function beginInlineEdit(
 /** Core Bases renders strings and numbers with `setText`. No input, no box. */
 function renderScalar(context: PropertyValueRenderContext): void {
 	renderEditableText(context.container, context);
+}
+
+/**
+ * Core's `unknown` widget (property.ts `LO`): a plain object or a value with
+ * no registered widget renders read-only, as its raw JSON, painted with
+ * `mod-unknown` — Core's own class, so the warning/orange color tracks the
+ * active theme instead of a hardcoded one here.
+ */
+function renderUnknown(context: PropertyValueRenderContext): void {
+	context.container.createSpan({
+		cls: 'metadata-property-value-item mod-unknown',
+		text: context.raw,
+		attr: { tabindex: '0' },
+	});
 }
 
 /**
@@ -306,6 +320,7 @@ const RENDER_MAP: Readonly<Record<CorePropertyWidget, PropertyValueRenderer>> = 
 	checkbox: renderCheckbox,
 	date: renderDate,
 	datetime: renderDateTime,
+	unknown: renderUnknown,
 };
 
 export function renderPropertyValue(context: PropertyValueRenderContext): void {

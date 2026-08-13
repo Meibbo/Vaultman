@@ -49,7 +49,7 @@ export class SnippetsExplorerPanel
 	private entries: SnippetMeta[] = [];
 	private searchTerm = '';
 	private sortState = normalizeExplorerSortState('snippets', null);
-	private visibleCells = new Set(['icon', 'text', 'state']);
+	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
@@ -254,7 +254,9 @@ export class SnippetsExplorerPanel
 				? {
 						selectedIds: this.selectedNodeIds,
 						selectionCheckboxPosition:
-							this.plugin.settings.selectionCheckboxPosition ?? 'start',
+							this.visibleCells.has('checkbox')
+							? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
+							: 'hidden',
 						onSelectionToggle: (id: string, selected: boolean) => {
 							if (selected) this.selectedNodeIds.add(id);
 							else this.selectedNodeIds.delete(id);

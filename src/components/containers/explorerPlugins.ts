@@ -52,7 +52,7 @@ export class PluginsExplorerPanel
 	private entries: PluginMeta[] = [];
 	private searchTerm = '';
 	private sortState = normalizeExplorerSortState('plugins', null);
-	private visibleCells = new Set(['icon', 'text', 'state', 'config']);
+	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
@@ -262,7 +262,9 @@ export class PluginsExplorerPanel
 				? {
 						selectedIds: this.selectedNodeIds,
 						selectionCheckboxPosition:
-							this.plugin.settings.selectionCheckboxPosition ?? 'start',
+							this.visibleCells.has('checkbox')
+							? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
+							: 'hidden',
 						onSelectionToggle: (id: string, selected: boolean) => {
 							if (selected) this.selectedNodeIds.add(id);
 							else this.selectedNodeIds.delete(id);

@@ -26,6 +26,7 @@ describe('shared explorer cell registry', () => {
 	// flat projection exactly as it was and leaves hiding the ancestry opt-in.
 	it('preserves the current visible-cell defaults exactly', () => {
 		expect(defaultVisibleCells('props', 'tree')).toEqual([
+			'checkbox',
 			'icon',
 			'text',
 			'parent',
@@ -33,6 +34,7 @@ describe('shared explorer cell registry', () => {
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
+			'checkbox',
 			'icon',
 			'text',
 			'parent',
@@ -45,11 +47,13 @@ describe('shared explorer cell registry', () => {
 			'nested',
 		]);
 		expect(defaultVisibleCells('snippets', 'tree')).toEqual([
+			'checkbox',
 			'icon',
 			'text',
 			'state',
 		]);
 		expect(defaultVisibleCells('plugins', 'tree')).toEqual([
+			'checkbox',
 			'icon',
 			'text',
 			'state',

@@ -7,6 +7,7 @@ import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
 import snippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
 import pluginsSource from '../../src/components/containers/explorerPlugins.ts?raw';
 import settingsSource from '../../src/types/typeSettings.ts?raw';
+import registrySource from '../../src/logic/logicCellRegistry.ts?raw';
 
 describe('U121-003 select-mode checkbox cell', () => {
 	it('is rendered by the shared tree and table engines at the configured edge', () => {
@@ -22,6 +23,19 @@ describe('U121-003 select-mode checkbox cell', () => {
 			expect(source).toContain("interactionMode === 'select'");
 			expect(source).toContain('selectedNodeIds');
 			expect(source).toContain('selectionCheckboxPosition');
+		}
+	});
+
+	it('exposes a toggleable checkbox cell in the cell registry', () => {
+		expect(registrySource).toContain("id: 'checkbox'");
+		expect(registrySource).toContain("labelKey: 'viewmode.pill.checkbox'");
+		expect(registrySource).toContain('fixedRank: 1, defaultOn: true');
+	});
+
+	it('hides the checkbox when its cell is off or the edge is hidden', () => {
+		for (const source of [propsSource, tagsSource, snippetsSource, pluginsSource]) {
+			expect(source).toContain("visibleCells.has('checkbox')");
+			expect(source).toContain(": 'hidden',");
 		}
 	});
 

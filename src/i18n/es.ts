@@ -977,6 +977,7 @@ export const es: Record<string, string> = {
 	'viewmode.mode.table': 'Tabla',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icono',
+	'viewmode.pill.checkbox': 'Casilla',
 	'viewmode.pill.text': 'Texto',
 	'viewmode.pill.count': 'Cantidad',
 	'viewmode.pill.prop_count': 'Props',
