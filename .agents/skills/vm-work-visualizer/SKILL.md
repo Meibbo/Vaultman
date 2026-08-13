@@ -6,10 +6,12 @@ description: Create source-backed Mermaid diagrams and Obsidian JSON Canvas maps
 # Vaultman Work Visualizer
 
 Use this skill to turn Vaultman work history into navigable visuals without
-compressing away source detail. Produce two complementary outputs when useful:
+compressing away source detail. Produce complementary outputs when useful:
 
 - A Markdown note containing Mermaid diagrams for quick text review.
 - A `.canvas` file using the `json-canvas` skill for Obsidian navigation.
+- A native `.excalidraw.md` drawing plus SVG preview when spatial review,
+  annotation, or durable visual editing matters.
 
 ## Core Workflow
 
@@ -37,6 +39,33 @@ compressing away source detail. Produce two complementary outputs when useful:
    - For ad hoc current-state maps, use
      `.agents/docs/work/<initiative>/visuals/` when the initiative is clear.
 6. Validate outputs before final response.
+
+## Native Excalidraw Output
+
+Use `scripts/render-excalidraw.mjs` for deterministic, dependency-free native
+Obsidian drawings. The renderer accepts a declarative JSON file and emits both
+`.excalidraw.md` and accessible SVG:
+
+```bash
+node scripts/render-excalidraw.mjs \
+  source/architecture.json \
+  architecture.excalidraw.md \
+  architecture.svg
+```
+
+The input requires `title`, `description`, `width`, `height`, `nodes`, and
+`edges`. Node IDs and edge IDs are stable alphanumeric/dash identifiers of at
+most eight characters. Supported semantic node kinds are `source`,
+`authority`, `runtime`, `decision`, `risk`, and `neutral`.
+Edges may include an optional ordered `via: [{x, y}]` waypoint list. The local
+renderer clips route endpoints just outside node rectangles, binds arrows and
+text to their containers, and applies deterministic bounded wrapping to both
+native Excalidraw and SVG output.
+
+Prefer this local renderer over a live MCP when reproducibility, reviewability,
+or supply-chain minimization is the priority. A live canvas remains useful for
+manual refinement, but it is not required to generate or validate artifacts.
+Never invoke upload/share actions unless the user explicitly requests them.
 
 ## Source Discipline
 
@@ -139,6 +168,9 @@ Before reporting completion:
 4. Confirm referenced local source paths exist.
 5. Inspect Mermaid fences for balanced code blocks and obvious syntax issues.
 6. Run `git diff --check` when files were edited.
+7. Run `node --test test/render-excalidraw.test.mjs` after renderer changes.
+8. Parse every native Drawing JSON block and verify text block IDs are unique.
+9. Inspect every SVG preview as pixels for clipping, overlap, and legibility.
 
 In the final response, list the created visual files and any source gaps,
 conflicts, or verification that could not be completed.
