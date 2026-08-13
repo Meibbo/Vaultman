@@ -1083,6 +1083,7 @@ export const en: Record<string, string> = {
 	'viewmode.mode.table': 'Table',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icon',
+	'viewmode.pill.checkbox': 'Checkbox',
 	'viewmode.pill.text': 'Text',
 	'viewmode.pill.count': 'Count',
 	'viewmode.pill.prop_count': 'Props',
