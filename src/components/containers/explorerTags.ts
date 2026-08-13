@@ -114,7 +114,7 @@ export class TagsExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('tags', null);
 	private nodeTypeFilters: string[] = [];
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
-	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
+	private visibleCells = new Set<string>(['checkbox', 'icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	private hasConnectedSortStateHandler = false;
@@ -288,7 +288,9 @@ export class TagsExplorerPanel extends Component {
 			return {
 				selectedIds: this.selectedNodeIds,
 				selectionCheckboxPosition:
-					this.plugin.settings?.selectionCheckboxPosition ?? 'start',
+					this.visibleCells.has('checkbox')
+						? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+						: 'hidden',
 				onSelectionToggle: (id: string, selected: boolean) => {
 					if (selected) this.selectedNodeIds.add(id);
 					else this.selectedNodeIds.delete(id);
@@ -305,7 +307,7 @@ export class TagsExplorerPanel extends Component {
 	): void {
 		if (this.interactionMode !== 'select') return;
 		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
-		if (position === 'hidden') return;
+		if (position === 'hidden' || !this.visibleCells.has('checkbox')) return;
 		card.dataset.id = node.id;
 		const checkbox = card.createEl('input', {
 			type: 'checkbox',

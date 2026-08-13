@@ -7224,12 +7224,8 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   inset-inline-start: var(--size-4-2);
 }
 
-.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
-  position: static;
-}
-
-.vaultman-tree-row > .vaultman-selection-checkbox--start {
-  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .vaultman-tree-toggle {
+  margin-inline-start: 0;
 }
 
 .vaultman-selection-checkbox--end {
