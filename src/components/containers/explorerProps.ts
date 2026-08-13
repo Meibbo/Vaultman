@@ -141,7 +141,7 @@ import {
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
-import { renderPropertyValue } from '../../utils/renderPropertyValue';
+import { renderEditableText, renderPropertyValue } from '../../utils/renderPropertyValue';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -184,7 +184,7 @@ export class PropsExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('props', null);
 	private searchMode = 0;
 	private nodeTypeFilters: string[] = [];
-	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
+	private visibleCells = new Set<string>(['checkbox', 'icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
@@ -555,7 +555,9 @@ export class PropsExplorerPanel extends Component {
 			return {
 				selectedIds: this.selectedNodeIds,
 				selectionCheckboxPosition:
-					this.plugin.settings?.selectionCheckboxPosition ?? 'start',
+					this.visibleCells.has('checkbox')
+						? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+						: 'hidden',
 				onSelectionToggle: (id: string, selected: boolean) => {
 					if (selected) this.selectedNodeIds.add(id);
 					else this.selectedNodeIds.delete(id);
@@ -572,7 +574,7 @@ export class PropsExplorerPanel extends Component {
 	): void {
 		if (this.interactionMode !== 'select') return;
 		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
-		if (position === 'hidden') return;
+		if (position === 'hidden' || !this.visibleCells.has('checkbox')) return;
 		card.dataset.id = node.id;
 		const checkbox = createEl('input', {
 			type: 'checkbox',
@@ -1819,6 +1821,26 @@ export class PropsExplorerPanel extends Component {
 		// off — off would paint the raw model word, on would render an empty
 		// widget.
 		if ((node.meta.rawValue ?? '') === '') {
+			if (this.visibleCells.has('format')) {
+				const propType = node.meta.propType ?? 'text';
+				const label = container.createSpan({
+					cls: 'vaultman-tree-label vaultman-property-value-empty vaultman-property-value-cell',
+				});
+				renderEditableText(label, {
+					container: label,
+					raw: translate('prop.value.empty'),
+					type: propType,
+					app: this.plugin.app,
+					onRenameValue: (next) => {
+						void this._replaceValueInVault(
+							node.meta.propName,
+							'',
+							coercePropertyValueForWidget(next, propType),
+						);
+					},
+				});
+				return true;
+			}
 			container.createSpan({
 				cls: 'vaultman-tree-label vaultman-property-value-empty',
 				text: translate('prop.value.empty'),
