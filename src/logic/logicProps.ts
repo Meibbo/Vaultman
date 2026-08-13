@@ -183,7 +183,10 @@ export class PropsLogic {
 				if (!valueMap.has(key)) valueMap.set(key, new Map());
 				const vals = Array.isArray(val) && val.length > 0 ? val : [val];
 				for (const v of vals) {
-					const str = v == null ? '' : describeConflictValue(v);
+					const str =
+						v == null || (Array.isArray(v) && v.length === 0)
+							? ''
+							: describeConflictValue(v);
 					const vMap = valueMap.get(key)!;
 					vMap.set(str, (vMap.get(str) ?? 0) + 1);
 				}

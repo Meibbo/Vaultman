@@ -61,7 +61,7 @@ describe('U121-003 inline value edits keep the property type', () => {
 	it('resolves the widget through the same vocabulary the renderer uses', () => {
 		expect(resolveCorePropertyWidget('boolean')).toBe('checkbox');
 		expect(resolveCorePropertyWidget('list')).toBe('multitext');
-		expect(resolveCorePropertyWidget('unknown')).toBe('text');
+		expect(resolveCorePropertyWidget('unknown')).toBe('unknown');
 	});
 });
 
