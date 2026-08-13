@@ -179,7 +179,21 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.type',
 		icon: 'lucide-list-filter',
 		sortId: 'type',
-		supports: [{ explorer: 'props', fixedRank: 30, defaultOn: false }],
+		supports: [
+			{ explorer: 'props', fixedRank: 30, defaultOn: false },
+			// A tag's type is where it is written — frontmatter, the body, or
+			// both. Same cell, same rank, same sort id as the property type:
+			// the question the column answers is the node's own kind.
+			{
+				explorer: 'tags',
+				// The tag cards draw no value cells, so offering it there would
+				// put a switch in the menu that changes nothing on screen.
+				viewModes: ['tree', 'table'],
+				fixedRank: 30,
+				defaultOn: false,
+				labelKey: 'viewmode.pill.tag_type',
+			},
+		],
 	},
 	{
 		id: 'ext',

@@ -168,10 +168,14 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(NODE_TYPE_MENU_OPTIONS.props.map((option) => option.id)).toContain(
 			'datetime',
 		);
+		// U121-030: a tag's type has two halves — its shape, then where it is
+		// written — and the source pair sits below the shapes.
 		expect(NODE_TYPE_MENU_OPTIONS.tags.map((option) => option.id)).toEqual([
 			'all',
 			'nested',
 			'simple',
+			'frontmatter',
+			'inline',
 		]);
 	});
 
@@ -195,7 +199,10 @@ describe('BT5-007 shared sort menu model', () => {
 	it('wires semantic Type comparators into Props and sibling-preserving Tags sort', () => {
 		expect(propsSource).toContain('comparePropTypes(');
 		expect(propsSource).toContain('this._effectivePropType(node.meta)');
-		expect(tagsSource).toContain('compareTagStructure(');
+		// U121-030: the shape comparison moved to its rank so the source half
+		// of the type can slot between it and the label tie break. It is still
+		// the semantic comparator, not a label compare wearing its name.
+		expect(tagsSource).toContain('tagStructureRank(a) - tagStructureRank(b)');
 		expect(tagsSource).toContain('sortAllWithDrill(');
 	});
 

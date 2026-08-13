@@ -666,9 +666,13 @@
 	// checked the moment the mode flips either way.
 	const revealingActiveFile = $derived.by(() => {
 		void valueMoveRevision;
-		return filtersActiveTab === 'props'
-			? (propExplorer?.isRevealingActiveFile() ?? false)
-			: false;
+		if (filtersActiveTab === 'props') {
+			return propExplorer?.isRevealingActiveFile() ?? false;
+		}
+		if (filtersActiveTab === 'tags') {
+			return tagsExplorer?.isRevealingActiveFile() ?? false;
+		}
+		return false;
 	});
 
 	const searchTrailingActions = $derived(
@@ -702,9 +706,14 @@
 			// it rather than crowding it, and its state is restored on exit
 			// because the toggle lives on the explorer, not in the projection.
 			idleNode:
-				filtersActiveTab === 'props'
+				filtersActiveTab === 'props' || filtersActiveTab === 'tags'
 					? {
-							id: 'props.reveal-this-file',
+							// One id per explorer so the click handler below knows
+							// which one owns the toggle without re-reading the tab.
+							id:
+								filtersActiveTab === 'tags'
+									? 'tags.reveal-this-file'
+									: 'props.reveal-this-file',
 							nodeKind: 'action',
 							cellKind: 'action',
 							presentation: 'toggle',
@@ -764,6 +773,11 @@
 			onClick: () => {
 				if (node.id === 'props.reveal-this-file') {
 					propExplorer?.toggleRevealActiveFile();
+					valueMoveRevision += 1;
+					return;
+				}
+				if (node.id === 'tags.reveal-this-file') {
+					tagsExplorer?.toggleRevealActiveFile();
 					valueMoveRevision += 1;
 					return;
 				}

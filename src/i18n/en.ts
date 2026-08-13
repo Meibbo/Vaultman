@@ -1079,6 +1079,8 @@ export const en: Record<string, string> = {
 	'sort.type.unknown': 'Unknown',
 	'sort.type.nested': 'Nested tags',
 	'sort.type.simple': 'Simple tags',
+	'sort.type.frontmatter': 'Frontmatter tags',
+	'sort.type.inline': 'Inline tags',
 
 	// View mode popup (Iter 17)
 	'viewmode.close': 'Close view mode',
@@ -1099,6 +1101,10 @@ export const en: Record<string, string> = {
 	'viewmode.pill.mtime': 'Modified',
 	'viewmode.pill.ctime': 'Created',
 	'viewmode.pill.type': 'Type',
+	'viewmode.pill.tag_type': 'Written in',
+	'tags.source.frontmatter': 'frontmatter',
+	'tags.source.inline': 'inline',
+	'tags.source.both': 'both',
 	'viewmode.pill.format': 'Format',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',

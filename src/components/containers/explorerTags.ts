@@ -1,6 +1,17 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
+import { Component, App, Keymap, Notice, TFile, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
+import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
+import { projectActiveFileTags } from '../../logic/logicRevealActiveFileTags';
+import {
+	matchesTagSource,
+	tagOccurrences,
+	tagSourceLabelKey,
+	tagSourceRank,
+	TAG_SOURCE_ORDER,
+	type TagCacheLike,
+	type TagSource,
+} from '../../logic/logicTagSource';
 import {
 	addToFilesAvailability,
 	applyAddToFile,
@@ -72,10 +83,10 @@ import {
 	normalizeBadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
 import {
-	compareTagStructure,
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
 	sortFlatProjection,
+	tagStructureRank,
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
@@ -120,6 +131,16 @@ export class TagsExplorerPanel extends Component {
 	private hasConnectedSortStateHandler = false;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
+	private revealActiveFile = false;
+	private revealActivePath: string | null = null;
+	private stopRevealWatch?: () => void;
+	/**
+	 * Where each tag is written, across the vault. Built on demand — the type
+	 * cell, the type sort and the source filters are the only readers — and
+	 * dropped whenever the index goes stale, so it never answers for a vault
+	 * that has moved on.
+	 */
+	private tagSourceIndex: Map<string, Set<TagSource>> | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -232,6 +253,7 @@ export class TagsExplorerPanel extends Component {
 		this.registerEvent(
 			this.plugin.app.metadataCache.on('resolved', () => {
 				this.logic.invalidate();
+				this.tagSourceIndex = null;
 				this._deferRender();
 			}),
 		);
@@ -254,6 +276,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	onunload(): void {
+		this._stopRevealWatch();
 		this.deferredRender.dispose();
 		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
@@ -410,7 +433,9 @@ export class TagsExplorerPanel extends Component {
 
 	expandAll(): void {
 		if (!this._nestedEnabled()) return;
-		let tree = this.logic.getTree();
+		// The same tree the render walks, reveal included: expanding rows the
+		// projection does not show would leave the ids behind when it closes.
+		let tree = this._scopeProjection(this.logic.getTree());
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
 		}
@@ -429,6 +454,140 @@ export class TagsExplorerPanel extends Component {
 		this.expandedIds.clear();
 		this._notifyExpansionChanged({ type: 'collapse-all' });
 		this._render();
+	}
+
+	// --- `reveal this file` ----------------------------------------------------
+	//
+	// The Props precedent (`logicRevealActiveFileProps`), applied to tags: a
+	// filter over the snapshot the explorer already built, not a second index.
+	// The order is the note's, which is what makes the `custom` sort mean
+	// something here.
+
+	isRevealingActiveFile(): boolean {
+		return this.revealActiveFile;
+	}
+
+	toggleRevealActiveFile(): void {
+		this.revealActiveFile = !this.revealActiveFile;
+		if (this.revealActiveFile) this._startRevealWatch();
+		else this._stopRevealWatch();
+		this._render();
+	}
+
+	private _startRevealWatch(): void {
+		if (this.stopRevealWatch) return;
+		const workspace = this.plugin.app.workspace;
+		const vault = this.plugin.app.vault;
+		// The watcher that already exists: it resolves open, rename and delete,
+		// so reveal does not add a second idea of which file is active.
+		this.stopRevealWatch = observeActiveContentFile(
+			{
+				current: () => workspace.getActiveFile(),
+				onFileOpen: (listener) => {
+					const ref = workspace.on('file-open', (file) => listener(file));
+					return () => workspace.offref(ref);
+				},
+				onRename: (listener) => {
+					const ref = vault.on('rename', (file, oldPath) => {
+						if (file instanceof TFile) listener(file, oldPath);
+					});
+					return () => workspace.offref(ref);
+				},
+				onDelete: (listener) => {
+					const ref = vault.on('delete', (file) => {
+						if (file instanceof TFile) listener(file);
+					});
+					return () => workspace.offref(ref);
+				},
+			},
+			(path) => {
+				this.revealActivePath = path;
+				this._render();
+			},
+		);
+	}
+
+	private _stopRevealWatch(): void {
+		this.stopRevealWatch?.();
+		this.stopRevealWatch = undefined;
+		this.revealActivePath = null;
+	}
+
+	/**
+	 * Which note reveal is projecting. An anchored note outranks the workspace,
+	 * exactly as in Props: the user picked that one, so opening something else
+	 * no longer moves the projection until `Current file` releases it.
+	 */
+	private _revealPath(): string | null {
+		if (this.sortState?.revealAnchor === 'pinned') {
+			return this.sortState.revealAnchorPath ?? null;
+		}
+		return this.revealActivePath;
+	}
+
+	/** The revealed note's metadata, or `null` when there is no such note. */
+	private _revealCache(): TagCacheLike | null {
+		const path = this._revealPath();
+		if (!path) return null;
+		const file = this.plugin.app.vault.getFileByPath(path);
+		if (!(file instanceof TFile)) return null;
+		return this.plugin.app.metadataCache.getFileCache(file) ?? {};
+	}
+
+	/**
+	 * Narrows an already-built snapshot; it never asks for a new one. Reveal is
+	 * the only narrowing the tags tree has, so this is where any other would
+	 * join it rather than being applied at each call site.
+	 */
+	private _scopeProjection(snapshot: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		if (!this.revealActiveFile) return snapshot;
+		return projectActiveFileTags(snapshot, this._revealCache());
+	}
+
+	/**
+	 * Where each tag in the vault is written. One pass over the metadata cache,
+	 * the same shape as the date index above, kept until the cache resolves
+	 * again.
+	 */
+	private _sourceIndex(): Map<string, Set<TagSource>> {
+		if (this.tagSourceIndex) return this.tagSourceIndex;
+		const index = new Map<string, Set<TagSource>>();
+		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
+			const cache = this.plugin.app.metadataCache.getFileCache(file);
+			for (const occurrence of tagOccurrences(cache)) {
+				// Every ancestor of a nested tag is a row of its own, and it is
+				// written wherever its descendants are — otherwise `parent`
+				// would answer the type question with nothing at all.
+				const parts = occurrence.tagPath.split('/');
+				let path = '';
+				for (const part of parts) {
+					path = path ? `${path}/${part}` : part;
+					const sources = index.get(path) ?? new Set<TagSource>();
+					sources.add(occurrence.source);
+					index.set(path, sources);
+				}
+			}
+		}
+		this.tagSourceIndex = index;
+		return index;
+	}
+
+	/**
+	 * The sources of one node. Reveal carries the note's own answer on the
+	 * node; everything else asks the vault-wide index.
+	 */
+	private _sourcesFor(
+		node: TreeNode<TagMeta>,
+	): ReadonlySet<TagSource> | undefined {
+		return node.meta.tagSources ?? this._sourceIndex().get(node.meta.tagPath);
+	}
+
+	private _decorateTypeText(nodes: TreeNode<TagMeta>[]): void {
+		for (const node of nodes) {
+			const labelKey = tagSourceLabelKey(this._sourcesFor(node));
+			node.typeText = labelKey ? translate(labelKey) : undefined;
+			this._decorateTypeText(node.children ?? []);
+		}
 	}
 
 	private _compareNodes(
@@ -457,7 +616,19 @@ export class TagsExplorerPanel extends Component {
 		if (normalizedSortBy === 'sub')
 			return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
 		if (normalizedSortBy === 'type') {
-			return compareTagStructure(a, b, sort.direction);
+			// A tag's type has two halves — its shape and where it is written —
+			// and the By type menu now offers both. Shape stays the primary key
+			// so the order that shipped is the order that comes back when every
+			// tag is written in the same place; the source only decides the
+			// ties the label used to decide alone.
+			const structure = tagStructureRank(a) - tagStructureRank(b);
+			if (structure !== 0) return dir * structure;
+			const source =
+				tagSourceRank(this._sourcesFor(a)) - tagSourceRank(this._sourcesFor(b));
+			if (source !== 0) return dir * source;
+			// The label tie break stays ascending whichever way the type runs,
+			// as it was when `compareTagStructure` owned the whole comparison.
+			return a.label.localeCompare(b.label);
 		}
 		return dir * a.label.localeCompare(b.label);
 	}
@@ -705,7 +876,10 @@ export class TagsExplorerPanel extends Component {
 
 	private _render(): void {
 		this.deferredRender.satisfy();
-		let tree = this.logic.getTree();
+		// Reveal narrows the snapshot before anything else reads it, so search,
+		// the type filters and every sort work on the same tree instead of each
+		// deciding for itself which one it is looking at.
+		let tree = this._scopeProjection(this.logic.getTree());
 
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
@@ -767,6 +941,9 @@ export class TagsExplorerPanel extends Component {
 		this._setIndexRoots(nodesWithIcons);
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(nodesWithIcons);
+		}
+		if (this.visibleCells.has('type')) {
+			this._decorateTypeText(nodesWithIcons);
 		}
 
 		if (this.viewMode === 'grid') {
@@ -1497,10 +1674,43 @@ export class TagsExplorerPanel extends Component {
 		const selectedTypes = new Set(nodeTypeFilters);
 		const includeSimple = selectedTypes.has('simple');
 		const includeNested = selectedTypes.has('nested');
+		let structured = nodes;
 		if (includeSimple && !includeNested)
-			return groupRootHierarchy(nodes, 'simple');
-		if (includeNested && !includeSimple) return this._collectNested(nodes);
-		return nodes;
+			structured = groupRootHierarchy(nodes, 'simple');
+		else if (includeNested && !includeSimple)
+			structured = this._collectNested(nodes);
+		// Shape and source are separate questions, so the two groups intersect:
+		// picking `nested` and `inline` asks for the tags that are both, not
+		// for the union of two unrelated lists.
+		const sources = TAG_SOURCE_ORDER.filter((source) =>
+			selectedTypes.has(source),
+		);
+		if (sources.length === 0) return structured;
+		return this._filterBySource(structured, sources);
+	}
+
+	/**
+	 * Keeps the tags written where the filter asks. A parent survives when a
+	 * descendant does: hiding it would orphan rows the filter did select, and
+	 * the index already credits it with its descendants' sources.
+	 */
+	private _filterBySource(
+		nodes: TreeNode<TagMeta>[],
+		sources: readonly TagSource[],
+	): TreeNode<TagMeta>[] {
+		const kept: TreeNode<TagMeta>[] = [];
+		for (const node of nodes) {
+			const children = node.children
+				? this._filterBySource(node.children, sources)
+				: [];
+			if (
+				children.length > 0 ||
+				matchesTagSource(this._sourcesFor(node), sources)
+			) {
+				kept.push({ ...node, children });
+			}
+		}
+		return kept;
 	}
 
 	private _nestedEnabled(): boolean {

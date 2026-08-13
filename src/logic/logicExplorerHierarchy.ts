@@ -20,6 +20,17 @@ export function matchesRootHierarchy(
 	return classifyTagStructure(node) === 'simple' || (node.count ?? 0) > 0;
 }
 
+/**
+ * Where a tag sits in the structure half of its type. Exposed because the type
+ * sort now has a second half (where the tag is written) that has to slot
+ * between this rank and the label tie break.
+ */
+export function tagStructureRank(node: {
+	children?: readonly unknown[];
+}): number {
+	return TAG_STRUCTURE_ORDER.indexOf(classifyTagStructure(node));
+}
+
 export function compareTagStructure(
 	left: { children?: readonly unknown[]; label: string },
 	right: { children?: readonly unknown[]; label: string },

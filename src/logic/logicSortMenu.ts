@@ -6,6 +6,7 @@ import type {
 import { isSortOptionVisible } from './logicScopedSort';
 import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
 import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
+import { TAG_SOURCE_ORDER } from './logicTagSource';
 
 export interface SortMenuOption {
 	id: string;
@@ -137,9 +138,19 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	],
 	tags: [
 		{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all', separatorAfter: true },
-		...TAG_STRUCTURE_ORDER.map((id) => ({
+		...TAG_STRUCTURE_ORDER.map((id, index) => ({
 			id,
 			icon: id === 'nested' ? 'lucide-git-branch' : 'lucide-tag',
+			labelKey: `sort.type.${id}`,
+			// The divider marks where the question changes: above it is the
+			// shape of the tag, below it is where the tag is written. They are
+			// separate dimensions and the filter intersects them, so running
+			// the two groups together would read as one list of alternatives.
+			separatorAfter: index === TAG_STRUCTURE_ORDER.length - 1,
+		})),
+		...TAG_SOURCE_ORDER.map((id) => ({
+			id,
+			icon: id === 'frontmatter' ? 'lucide-list-tree' : 'lucide-text',
 			labelKey: `sort.type.${id}`,
 		})),
 	],

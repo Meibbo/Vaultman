@@ -211,8 +211,14 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		// it with one glyph in one place. A tagScene reveal joins this list.
 		// Anchored on the node id and lazy to its own `icon:` — no character
 		// budget, so a comment between the two cannot silently blind the guard.
+		// U121-030: Tags joined the list, and both explorers share one node, so
+		// the id is no longer the literal start of a line — the anchor is the
+		// id itself, wherever the branch that picks it puts it.
 		const propsIcon = filtersPageSource.match(
-			/id: 'props\.reveal-this-file',[\s\S]*?icon: '([^']+)'/,
+			/'props\.reveal-this-file'[\s\S]*?icon: '([^']+)'/,
+		)?.[1];
+		const tagsIcon = filtersPageSource.match(
+			/'tags\.reveal-this-file'[\s\S]*?icon: '([^']+)'/,
 		)?.[1];
 		const contentIcon = filtersPageSource.match(
 			/id: 'content-reveal',[\s\S]*?icon: '([^']+)'/,
@@ -222,6 +228,7 @@ describe('the reveal toggle owns the exclusive slot', () => {
 		)?.[1];
 
 		expect(propsIcon).toBe('lucide-gallery-vertical');
+		expect(tagsIcon).toBe(propsIcon);
 		expect(contentIcon).toBe(propsIcon);
 		expect(filesIcon).toBe(propsIcon);
 
