@@ -26,24 +26,56 @@ and gates. They answer different questions on purpose; neither restates the othe
 - [05 sanitation](../05-saneamiento.md)
 - [06 adversarial pass](../06-riesgos.md)
 
-## Phase 0 — Execution order and gates
+## Phase 0 — Task graph and gates
 
-Plan-level. The drawing shows the destination; this shows the route and what may not
-be reordered. Step 1 must precede step 2 because step 2 destroys the tree that holds
-the only copy of what step 1 rescues.
+Plan-level. The drawing shows the destination; this shows the route and what may not be
+reordered. Tasks are those of [the phase 0 plan](../plan/index.md).
+
+Two hard constraints: Task 1 must precede 3 and 4, because re-cloning destroys the only
+copy of what Task 1 rescues; and Task 2 must precede them too, or the fresh clones
+acquire CRLF on first checkout and F2 returns.
 
 ```mermaid
 flowchart TD
-  s1["1 · Rescue uncommitted work<br/>m1 + m2"] --> s2["2 · Re-clone vaultman<br/>clean tree"]
-  s2 --> s3["3 · .gitattributes<br/>eol=lf"]
-  s3 --> s4["4 · .agents/docs becomes a link<br/>+ neutralise git/symlink"]
-  s2 --> s5["5 · Real .git for the vault<br/>per node"]
-  s4 --> s6["6 · Retire str project vault"]
-  s5 --> s6
-  s6 --> s7["7 · First fidelity pass<br/>repairs the daily notes"]
-  s1 -.->|"gate: dev confirms<br/>nothing discarded"| s2
-  s4 -.->|"gate: Q4 answered"| s6
+  t1["T1 · Rescue unique content<br/>m1 + m2"]
+  t2["T2 · .gitattributes on pc<br/>eol=lf"]
+  t3["T3 · Re-clone vaultman<br/>m2"]
+  t4["T4 · Re-clone vaultman<br/>m1"]
+  t5["T5 · .agents/docs becomes a link<br/>+ skip-worktree"]
+  t6["T6 · Real .git for the vault<br/>+ publication guard"]
+  t7["T7 · Retire str project vault"]
+  t8["T8 · Verification sweep<br/>5 invariants + E2E"]
+
+  t1 --> t3
+  t1 --> t4
+  t2 --> t3
+  t2 --> t4
+  t3 --> t5
+  t4 --> t5
+  t3 --> t6
+  t4 --> t6
+  t5 --> t7
+  t6 --> t7
+  t7 --> t8
+  t1 -.->|"GATE · dev confirms<br/>nothing discarded"| t3
+  t5 -.->|"GATE · git blind to<br/>the symlink"| t7
 ```
+
+The acceptance test is T8 step 7: creating a worktree against `origin/dev` on m2 with a
+clean tree — the thing that is impossible today.
+
+## Transport routes — verified, not assumed
+
+Plan-level. Recorded here because the plan depends on exactly one of these working.
+
+| Route | Result |
+| --- | --- |
+| `vic_a@meibbopc:C:/Users/.../vaultman` | fails — cmd.exe mangles the quoted path |
+| `ssh://vic_a@meibbopc/C:/Users/.../vaultman` | fails — same cause |
+| `ssh://vic@meibbopc:2222/mnt/c/Users/.../vaultman` | **works** — WSL sshd reaches the same repo |
+
+git-direct to `pc` therefore goes through WSL. This is what makes "pc and WSL are one
+node" a mechanical fact rather than a convention.
 
 ## Metadata resolution — collect, validate, rank
 
