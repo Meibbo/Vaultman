@@ -62,7 +62,9 @@ explicitly out of scope and get their own specs.
 | F7 | Symlinks cannot be created **inside** `/sdcard`, but a symlink in Termux home **pointing into** `/sdcard` works for both read and write | `ln -s` → `Permission denied`; reverse direction verified read+write | high (enabler) |
 | F8 | `/sdcard` metadata: `mtime` settable, user xattrs unsupported, birthtime absent, `ctime` equals sync time | `touch -d` OK; `setfattr` → *Operation not supported on transport endpoint*; `stat -c %w` → `-` | high |
 | F9 | Termux home (ext4) does support user extended attributes | `setfattr` + `getfattr` round-trip OK | medium |
-| F10 | `exclude.txt` excludes `**/Agent Docs/**` from rclone; `exclude_mobile.txt` does not — the two exclusion sets disagree about the docs | both files read on m2 | medium |
+| F10 | `exclude.txt` excludes `**/Agent Docs/**` from rclone; `exclude_mobile.txt` does not — nothing declares which set applies where | both files read on m2 | medium |
+| F11 | Each node names its peers differently: m2 has `pc/pc-lan/m1/m1-lan/gdrive/pcwsl`, WSL has `gdrive/m2l/m1l` — a shared policy cannot address nodes by remote name | `rclone listremotes` on both | high |
+| F12 | The Google Drive client is absent: no service, no process, no startup entry. `My Drive` is an ordinary local folder; cloud replication is rclone-only and on demand | `sc query GoogleDriveFS` → 1060; `tasklist`; `Run` key | resolved |
 
 ## Locked Decisions
 
@@ -74,7 +76,10 @@ explicitly out of scope and get their own specs.
 | D4 | `.agents/docs` is a link into the vault on all three nodes — junction on `pc` (already true), symlink from Termux home on `m1`/`m2`. The duplicate is eliminated. |
 | D5 | Start of The Road: a real `.git` per node, git-direct between nodes; rclone retained only for heavy media (`media-lib/`, `_RESOURCES/`, binary attachments). |
 | D6 | Publication scope is a unit property (`local` vs `github`), implemented with branch and refspec discipline — **not** with `.gitignore`. |
-| D7 | Filesystem metadata is a derived artifact. Carriers are the sidecar manifest and the note frontmatter. Derivation cascade: frontmatter → filename → first git commit → oldest observed mtime. Written once, then immutable. **Step 4 of the cascade is not yet safe — see A3 in shard 06; it must be made node-deterministic before implementation.** |
+| D7 | Filesystem metadata is a derived artifact. Carriers are the sidecar manifest and the note frontmatter. Derivation cascade: frontmatter → filename → first git commit → oldest plausible observed timestamp. Written once, then immutable. |
+| D10 | Cross-node timestamp resolution: creation date = oldest **unless absurd** (rejected only when it disagrees with both remaining sources); modification date = newest **only if the content actually differs**, otherwise oldest. Both computed over the manifest, so every node reaches the same answer. |
+| D11 | The policy addresses nodes by logical name (`pc`, `m1`, `m2`); each node maps those to its own rclone/ssh identifiers locally. Resolves F11. |
+| D12 | `exclude.txt` and `exclude_mobile.txt` become named exclusion sets referenced from unit declarations. Hot Obsidian state files are `bulk` with a mobile-scoped set. Resolves F10 and A2. |
 | D8 | The engine lives in `~/bin`, propagated by `devicesync`. It must not live inside anything it synchronizes. |
 | D9 | `vaultman` is re-cloned on `m1`/`m2` rather than repaired in place, after rescuing uncommitted work. |
 
@@ -87,9 +92,10 @@ explicitly out of scope and get their own specs.
 | Q3 | Exact vault path inside the m1 proot archlinux container — not readable from outside the container during this session. | subsystem D |
 | Q4 | How `.agents/docs` content currently reaches vaultman commits given it is a junction: git on Windows traverses it, but the mechanism has not been audited on the phones. | shard 05 step 4 |
 
-Four further items are unresolved and are **blocking for implementation**, not merely
-open: A1 (Google Drive is an undeclared fourth node writing the same tree), A2 (hot
-per-node state files have no declared class), A3 (the fidelity cascade is not
-node-deterministic — a defect in this design), and A6 (`handoff` of genuinely
-uncommitted work is unspecified). All four are stated in full in
-[06-riesgos.md](06-riesgos.md). A1 in particular may force a revision of D5.
+After the dev review of 2026-08-13, A1, A2 and A3 are **resolved** — see D10, D12 and
+F12. One blocking item remains from the adversarial pass: **A6**, the handoff of
+genuinely uncommitted work, which `git stash` cannot carry to a remote and which the
+first invariant forbids moving by a non-git transport. A10/F11 is newly raised and
+resolved by D11. The remaining open hazards — A4 (a destructive git command can delete
+vault notes through the link), A5, A7, A8, A9 — are accepted risks with mitigations
+named in [06-riesgos.md](06-riesgos.md).

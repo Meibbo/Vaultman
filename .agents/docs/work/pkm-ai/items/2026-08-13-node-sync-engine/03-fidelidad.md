@@ -87,10 +87,36 @@ repairs wrong origins:
    anything that has passed through git there is a real, auditable creation date that
    is identical on all three nodes. This is the strongest oracle available and it costs
    nothing to consult.
-4. **Oldest mtime observed across nodes** — last resort, recorded as low-confidence in
-   the manifest.
+4. **Oldest plausible timestamp observed across nodes** — last resort, resolved by the
+   rules below rather than by naive minimum, and recorded as low-confidence in the
+   manifest.
 
-`dateModified` is written from the real mtime. The engine then sets the file's `mtime`
+## Cross-node resolution rules
+
+These decide, when the same file exists on several nodes with disagreeing timestamps,
+which value is real. Both are **pure functions of the manifest** — which carries a
+`(content-hash, mtime, ctime)` tuple per node — so any node computing them reaches the
+same answer without observing the others directly. That is what makes the cascade
+node-deterministic and closes the defect recorded as A3.
+
+**Creation date — oldest wins, unless absurd.** The oldest candidate across all sources
+is taken as the real creation date. A candidate is rejected as corrupt when it diverges
+implausibly from the other sources: a 1962 timestamp against a git first-commit date of
+2025 is filesystem corruption, not history. Rejection requires disagreement with **both**
+of the remaining sources, so a single bad clock cannot veto a good date, and the
+rejected value is recorded in the manifest rather than discarded silently.
+
+**Modification date — newest wins, but only if the change is real.** A newer mtime is
+accepted only when the content actually differs. When two nodes hold **byte-identical
+content** with different mtimes, no edit occurred: the difference is a sync artifact,
+and the **oldest** mtime is taken.
+
+The second rule is not hypothetical — it is exactly the `session-log.md` case in F5:
+415,369 bytes on both `pc` and `m2`, mtimes a week apart, zero content difference. Under
+a naive newest-wins rule the file would be permanently marked as modified on every sync,
+which is how the current drift became invisible.
+
+`dateModified` is written from the resolved mtime. The engine then sets the file's `mtime`
 from the resolved dates so that listings agree across nodes, and sets NTFS
 `CreationTime` on `pc` where the filesystem can hold it.
 
