@@ -72,24 +72,66 @@ Two carriers, in priority order:
 xattrs are used only as an optimisation on nodes that support them (Termux home, NTFS)
 and never as the sole carrier.
 
-## Derivation cascade
+## Collect, validate, rank
 
-Applied per note when `dateCreated` is missing. The order is the design — it is what
-repairs wrong origins:
+An earlier draft short-circuited on the first available source. The dev rejected that
+on 2026-08-13: a frontmatter date is not automatically trustworthy — a future date or a
+corrupt one would be believed blindly. Resolution therefore proceeds in three phases,
+and **no source is consulted for a verdict until every source has been collected**.
 
-1. **Existing frontmatter** — if present, respected and never touched again.
-2. **Date embedded in the filename** — `2025-11-04.md`. This is what fixes the daily
-   notes: the filename tells the truth and the filesystem lies, so the filename wins.
-   Scope of this rule is **Q1**, still open: whole vault, or only folders declared as
-   dated notes.
-3. **First commit that introduced the file** —
-   `git log --diff-filter=A -1 --format=%aI -- <path>`. Both repos are git, so for
-   anything that has passed through git there is a real, auditable creation date that
-   is identical on all three nodes. This is the strongest oracle available and it costs
-   nothing to consult.
-4. **Oldest plausible timestamp observed across nodes** — last resort, resolved by the
-   rules below rather than by naive minimum, and recorded as low-confidence in the
-   manifest.
+### Phase 1 — Collect
+
+Every candidate is gathered with its source, its precision and its confidence. None is
+discarded yet.
+
+| Source | Extraction | Precision |
+| --- | --- | --- |
+| Frontmatter | `dateCreated`, then `date` — the vault's daily notes use `date`, not `dateCreated` (verified on `+/2024-11-16.md`) | as written |
+| Filename | see the accepted patterns below | day, or minute for Zettelkasten IDs |
+| Git | `git log --diff-filter=A -1 --format=%aI -- <path>` | second |
+| Filesystem | per-node `mtime` from the manifest | second |
+
+**Accepted filename patterns**, derived from the live vault rather than invented:
+
+| Pattern | Example | Verdict |
+| --- | --- | --- |
+| `YYYY-MM-DD` prefix, alone or followed by text | `2024-11-16.md`, `2025-08-14 Finneas - Lost my mind.md` | accept |
+| `YYYYMMDDHHMM` Zettelkasten ID prefix | `202507150801 Ideas para controlar el teclado.md` | accept — highest precision available from a name |
+| Bare year, or year followed by non-date text | `2024.md`, `2025.md`, `2000 20's.md` | **reject** — a year is not a creation date |
+| Date not at the start of the name | `notas sobre 2025-01-01.md` | **reject** — the note is *about* the date, not created on it |
+| Ambiguous day/month order | `13-08-2026`, `08-13-2026` | **reject** — unresolvable without a locale assumption |
+
+The rule applies to the **whole vault**, per the dev's decision, because the rejection
+rules above carry the safety rather than a folder allowlist. `2000 20's.md` is the
+reason the allowlist is not needed: it is caught by the pattern rules, not by its
+location.
+
+### Phase 2 — Validate
+
+Each candidate is checked independently, and failures are recorded in the manifest
+rather than dropped silently:
+
+- **Future dates are rejected**, from any source including frontmatter. A creation date
+  later than now is impossible. Note that a *filename* may legitimately carry a future
+  date — a daily note written ahead of time — so the rejection applies to that
+  candidate's use as a creation date, not to the file.
+- **Absurd outliers are rejected**: a candidate is discarded when it disagrees with
+  **both** remaining sources by an implausible margin — a 1962 timestamp against a git
+  first-commit of 2025. Requiring disagreement with both means a single bad clock
+  cannot veto a good date.
+- **Malformed values are rejected** — unparseable frontmatter, ambiguous filename
+  patterns.
+
+### Phase 3 — Rank
+
+Among the survivors, source authority decides:
+
+**frontmatter → filename → git → filesystem**
+
+Frontmatter still wins when present, but now only when it has survived validation,
+which is the whole point of the restructure. When two sources agree — as they do on a
+daily note whose `date` matches its filename — the result is recorded as
+high-confidence in the manifest.
 
 ## Cross-node resolution rules
 

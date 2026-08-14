@@ -149,7 +149,23 @@ already excludes `**/plugins/**/main.js`, `styles.css` and `manifest.json` from 
 the equivalent `.gitignore` entries must exist before D is built, or every test build
 becomes a commit.
 
-## A6 — `handoff` of genuinely uncommitted work is unspecified (medium)
+## A6 — `handoff` of genuinely uncommitted work — RESOLVED (was medium)
+
+**Resolution (dev, 2026-08-13).** A WIP commit on a throwaway branch is not the history
+pollution this pass implied, because the receiving node undoes it on arrival:
+
+1. Origin node commits the dirty tree onto a throwaway branch.
+2. It is pushed to the receiving node's remote.
+3. The receiving node checks it out and runs `git reset --soft HEAD~1`, which restores
+   the dirty working tree exactly as it was and removes the commit.
+4. The throwaway branch is deleted on both sides.
+
+The commit never enters a real branch, so there is nothing to clean up later. Master
+transfers with the handoff.
+
+The original analysis:
+
+## A6 (original) — `handoff` of genuinely uncommitted work is unspecified (medium)
 
 The dev asked for on-request handoff of *work in progress*. Shard 04 says `handoff`
 will "commit or stash", but `git stash` does not travel to a remote. Moving truly

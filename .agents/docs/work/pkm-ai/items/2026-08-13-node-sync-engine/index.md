@@ -76,7 +76,9 @@ explicitly out of scope and get their own specs.
 | D4 | `.agents/docs` is a link into the vault on all three nodes — junction on `pc` (already true), symlink from Termux home on `m1`/`m2`. The duplicate is eliminated. |
 | D5 | Start of The Road: a real `.git` per node, git-direct between nodes; rclone retained only for heavy media (`media-lib/`, `_RESOURCES/`, binary attachments). |
 | D6 | Publication scope is a unit property (`local` vs `github`), implemented with branch and refspec discipline — **not** with `.gitignore`. |
-| D7 | Filesystem metadata is a derived artifact. Carriers are the sidecar manifest and the note frontmatter. Derivation cascade: frontmatter → filename → first git commit → oldest plausible observed timestamp. Written once, then immutable. |
+| D7 | Filesystem metadata is a derived artifact. Carriers are the sidecar manifest and the note frontmatter. Resolution is **collect → validate → rank**, never first-match: every source is gathered before any verdict, invalid candidates (future, absurd, malformed) are rejected, and authority then decides frontmatter → filename → git → filesystem. Written once, then immutable. |
+| D13 | The filename rule applies to the **whole vault**. Safety comes from pattern rejection, not from a folder allowlist: bare years (`2024.md`, `2000 20's.md`), mid-name dates and ambiguous day/month orders are rejected; `YYYY-MM-DD` prefixes and `YYYYMMDDHHMM` Zettelkasten IDs are accepted. Resolves Q1. |
+| D14 | `handoff` of uncommitted work uses a throwaway-branch WIP commit that the receiving node undoes with `git reset --soft HEAD~1`. No real branch is touched. Resolves A6. |
 | D10 | Cross-node timestamp resolution: creation date = oldest **unless absurd** (rejected only when it disagrees with both remaining sources); modification date = newest **only if the content actually differs**, otherwise oldest. Both computed over the manifest, so every node reaches the same answer. |
 | D11 | The policy addresses nodes by logical name (`pc`, `m1`, `m2`); each node maps those to its own rclone/ssh identifiers locally. Resolves F11. |
 | D12 | `exclude.txt` and `exclude_mobile.txt` become named exclusion sets referenced from unit declarations. Hot Obsidian state files are `bulk` with a mobile-scoped set. Resolves F10 and A2. |
@@ -87,15 +89,18 @@ explicitly out of scope and get their own specs.
 
 | ID | Question | Blocks |
 | --- | --- | --- |
-| Q1 | Does the filename-date rule (cascade step 2) apply to the whole vault, or only to folders declared as dated notes (journal, daily)? | shard 03 implementation |
+| ~~Q1~~ | ~~Scope of the filename-date rule~~ — resolved by D13: whole vault, safety by pattern rejection. | — |
 | Q2 | Engine name and command prefix. | shard 04 |
 | Q3 | Exact vault path inside the m1 proot archlinux container — not readable from outside the container during this session. | subsystem D |
 | Q4 | How `.agents/docs` content currently reaches vaultman commits given it is a junction: git on Windows traverses it, but the mechanism has not been audited on the phones. | shard 05 step 4 |
 
-After the dev review of 2026-08-13, A1, A2 and A3 are **resolved** — see D10, D12 and
-F12. One blocking item remains from the adversarial pass: **A6**, the handoff of
-genuinely uncommitted work, which `git stash` cannot carry to a remote and which the
-first invariant forbids moving by a non-git transport. A10/F11 is newly raised and
-resolved by D11. The remaining open hazards — A4 (a destructive git command can delete
-vault notes through the link), A5, A7, A8, A9 — are accepted risks with mitigations
-named in [06-riesgos.md](06-riesgos.md).
+After the dev review of 2026-08-13, **A1, A2, A3 and A6 are resolved** — see D10, D12,
+D14 and F12 — and A10/F11, raised during the same review, is resolved by D11. **No
+blocking item remains.**
+
+The open hazards are accepted risks with mitigations named in
+[06-riesgos.md](06-riesgos.md): A4 (a destructive git command inside `vaultman` can
+delete real vault notes through the link — the sharpest one, and unmitigated on `pc`),
+A5 (the plugin's test target is the git-tracked vault), A7 (no asynchronous path once
+rclone leaves `vaultman`), A8 (git propagates deletions where `str bid` never did), and
+A9 (a commit is now required to propagate a doc).
