@@ -10,9 +10,14 @@ describe('tree scroll perf action', () => {
 	});
 
 	it('reports the displacement and the live configs the gesture ran under', () => {
-		const call = treeSource.slice(treeSource.indexOf("recordAction('tree', 'scroll'"));
-		for (const key of ['delta', 'from', 'to', 'durationMs', 'rows', 'sticky']) {
-			expect(call.slice(0, 400)).toContain(key);
+		const open = treeSource.indexOf("recordAction('tree', 'scroll', {");
+		expect(open).toBeGreaterThan(-1);
+		const detail = treeSource.slice(open, treeSource.indexOf('});', open));
+		for (const key of ['delta', 'from', 'to', 'startedAt', 'durationMs', 'rows', 'sticky']) {
+			// Una CLAVE del objeto, no una mención cualquiera: `startedAt` ya
+			// aparecía dentro de `durationMs: Date.now() - startedAt`, y un
+			// `toContain` suelto daba verde sin que la clave existiera.
+			expect(detail).toMatch(new RegExp(`^\\t+${key}[,:]`, 'm'));
 		}
 	});
 

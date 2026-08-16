@@ -41,6 +41,40 @@ describe('formatPerfTimeline', () => {
 		expect(out).toContain('worst 18 fps');
 	});
 
+	it('gives each gesture its own worst, not the worst of the whole run', () => {
+		const base = 1_700_000_000_000;
+		const stable = { longTasks: 0, longTaskMs: 0, mainThreadPressure: 0 };
+		const out = formatPerfTimeline({
+			samples: [
+				{ at: base, fps: 120, ...stable },
+				{ at: base + 1000, fps: 30, ...stable },
+				{ at: base + 2000, fps: 118, ...stable },
+				{ at: base + 3000, fps: 90, ...stable },
+				{ at: base + 4000, fps: 119, ...stable },
+			],
+			actions: [
+				{
+					surface: 'tree',
+					name: 'scroll',
+					at: base + 1000,
+					// Recorded after settling; the span comes from startedAt.
+					detail: { delta: 5000, durationMs: 1000, startedAt: base + 800 },
+				},
+				{
+					surface: 'tree',
+					name: 'scroll',
+					at: base + 3000,
+					detail: { delta: 300, durationMs: 200, startedAt: base + 2900 },
+				},
+			],
+		});
+
+		// El gesto suave NO hereda la caida del brusco.
+		expect(out).toContain('+1.0s  scroll 5000px in 1000ms -> 30 fps · worst 30 fps');
+		expect(out).toContain('+3.0s  scroll 300px in 200ms -> 90 fps · worst 90 fps');
+		expect(out).toContain('worst overall 30 fps');
+	});
+
 	it('says so instead of throwing when the sampler produced nothing', () => {
 		expect(formatPerfTimeline({ samples: [], actions: [] })).toBe('no samples');
 	});

@@ -542,6 +542,9 @@ export class UnifiedTreeView {
 				delta,
 				from,
 				to,
+				// The action's own `at` is when it was recorded, which is after the
+				// gesture settled; carry the real start so nobody has to work it out.
+				startedAt,
 				durationMs: Date.now() - startedAt,
 				rows: this._rows.length,
 				sticky: this._opts?.stickyParentRows ?? false,
