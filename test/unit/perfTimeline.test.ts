@@ -75,6 +75,49 @@ describe('formatPerfTimeline', () => {
 		expect(out).toContain('worst overall 30 fps');
 	});
 
+	it('keeps a gesture that lands between samples', () => {
+		// El sampler corre cada 2 s. Un gesto a 700 ms de la muestra mas cercana
+		// es de lo mas corriente, y con una tolerancia fija se perdia entero.
+		const base = 1_700_000_000_000;
+		const stable = { longTasks: 0, longTaskMs: 0, mainThreadPressure: 0 };
+		const out = formatPerfTimeline({
+			samples: [
+				{ at: base, fps: 119, ...stable },
+				{ at: base + 2000, fps: 22, ...stable },
+				{ at: base + 4000, fps: 118, ...stable },
+			],
+			actions: [
+				{
+					surface: 'tree',
+					name: 'scroll',
+					at: base + 1300,
+					detail: { delta: 6000, durationMs: 1100, startedAt: base + 1200 },
+				},
+			],
+		});
+
+		expect(out).toContain('scroll 6000px in 1100ms');
+		expect(out.split('\n').filter((line) => line.includes('scroll'))).toHaveLength(1);
+	});
+
+	it('shows both gestures when two land on the same sample', () => {
+		const base = 1_700_000_000_000;
+		const stable = { longTasks: 0, longTaskMs: 0, mainThreadPressure: 0 };
+		const out = formatPerfTimeline({
+			samples: [
+				{ at: base, fps: 119, ...stable },
+				{ at: base + 2000, fps: 40, ...stable },
+			],
+			actions: [
+				{ surface: 'tree', name: 'scroll', at: base + 1900, detail: { delta: 100, durationMs: 90 } },
+				{ surface: 'tree', name: 'scroll', at: base + 2100, detail: { delta: 250, durationMs: 80 } },
+			],
+		});
+
+		expect(out).toContain('scroll 100px in 90ms');
+		expect(out).toContain('scroll 250px in 80ms');
+	});
+
 	it('says so instead of throwing when the sampler produced nothing', () => {
 		expect(formatPerfTimeline({ samples: [], actions: [] })).toBe('no samples');
 	});
@@ -92,5 +135,40 @@ describe('formatPerfTimeline', () => {
 		// El origen es la muestra MAS ANTIGUA, no la primera del array.
 		expect(shuffled.split('\n')[0]).toBe('+0.0s  stable 118 fps');
 		expect(shuffled.split('\n')[1]).toBe('+1.0s  stable 24 fps');
+	});
+	it('narrates an action that is not a gesture without inventing numbers', () => {
+		// `render` no lleva desplazamiento; el volcado real sacaba
+		// "render undefinedpx in undefinedms" justo donde se pega en un issue.
+		const base = 1_700_000_000_000;
+		const out = formatPerfTimeline({
+			samples: [
+				{ at: base, fps: 65, longTasks: 0, longTaskMs: 0, mainThreadPressure: 0 },
+			],
+			actions: [
+				{ surface: 'tree', name: 'render', at: base, detail: { rows: 93 } },
+			],
+		});
+
+		expect(out).not.toContain('undefined');
+		expect(out).toContain('render (rows 93) -> 65 fps');
+	});
+
+	it('rounds the sub-pixel displacement a real gesture reports', () => {
+		const base = 1_700_000_000_000;
+		const out = formatPerfTimeline({
+			samples: [
+				{ at: base, fps: 47, longTasks: 0, longTaskMs: 0, mainThreadPressure: 0 },
+			],
+			actions: [
+				{
+					surface: 'tree',
+					name: 'scroll',
+					at: base,
+					detail: { delta: 62.22216796875, durationMs: 461 },
+				},
+			],
+		});
+
+		expect(out).toContain('scroll 62px in 461ms');
 	});
 });

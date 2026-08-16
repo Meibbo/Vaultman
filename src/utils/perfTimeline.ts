@@ -8,9 +8,6 @@ export interface PerfTimelineInput {
 	actions: VaultmanPerfAction[];
 }
 
-/** Half a sampling interval: how close an action must be to own a sample. */
-const ACTION_WINDOW_MS = 500;
-
 function num(value: unknown): number | null {
 	return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
@@ -25,6 +22,77 @@ function gestureSpan(action: VaultmanPerfAction): { from: number; to: number } {
 	const from = num(detail.startedAt) ?? action.at;
 	const duration = num(detail.durationMs) ?? 0;
 	return { from, to: from + duration };
+}
+
+/**
+ * The sample each action belongs to: the nearest one in time.
+ *
+ * A fixed tolerance cannot work here. The sampler runs every 2s, so any window
+ * narrower than half that drops actions silently -- and one wide enough to
+ * catch them all would let a single action claim two samples. Nearest-wins
+ * places every action exactly once, however the two rates drift.
+ */
+function actionsBySample(
+	samples: VaultmanPerfSample[],
+	actions: VaultmanPerfAction[],
+): Map<number, VaultmanPerfAction[]> {
+	const grouped = new Map<number, VaultmanPerfAction[]>();
+	for (const action of actions) {
+		let nearest = 0;
+		let best = Number.POSITIVE_INFINITY;
+		for (let i = 0; i < samples.length; i += 1) {
+			const distance = Math.abs(samples[i].at - action.at);
+			if (distance < best) {
+				best = distance;
+				nearest = i;
+			}
+		}
+		const bucket = grouped.get(nearest);
+		if (bucket) bucket.push(action);
+		else grouped.set(nearest, [action]);
+	}
+	return grouped;
+}
+
+function describeGesture(
+	action: VaultmanPerfAction,
+	samples: VaultmanPerfSample[],
+	aligned: VaultmanPerfSample,
+): string {
+	const detail = action.detail ?? {};
+	const parts: string[] = [];
+	if (typeof detail.rows === 'number') parts.push(`rows ${detail.rows}`);
+	if (typeof detail.sticky === 'boolean') {
+		parts.push(`sticky ${detail.sticky ? 'on' : 'off'}`);
+	}
+	const suffix = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+
+	// Not every action is a gesture: `render` and `render.metadata` carry no
+	// displacement, and printing "undefinedpx in undefinedms" for them makes the
+	// dump useless exactly where it is meant to be pasted -- into an issue.
+	const delta = num(detail.delta);
+	const durationMs = num(detail.durationMs);
+	const movement =
+		delta !== null && durationMs !== null
+			? ` ${Math.round(delta)}px in ${durationMs}ms`
+			: '';
+
+	const span = gestureSpan(action);
+	const covered = samples.filter(
+		(candidate) => candidate.at >= span.from && candidate.at <= span.to,
+	);
+	// A gesture shorter than the sampling interval can span no sample at all;
+	// the one it was aligned to is still the best evidence there is.
+	const window = covered.length > 0 ? covered : [aligned];
+	const worst = window.reduce(
+		(low, candidate) => (candidate.fps < low ? candidate.fps : low),
+		window[0].fps,
+	);
+
+	return (
+		`${action.name}${movement}${suffix} -> ${aligned.fps} fps` +
+		` · worst ${worst} fps`
+	);
 }
 
 /**
@@ -45,40 +113,20 @@ export function formatPerfTimeline(input: PerfTimelineInput): string {
 	const origin = samples[0].at;
 	const stamp = (at: number) => `+${((at - origin) / 1000).toFixed(1)}s`;
 
+	const grouped = actionsBySample(samples, actions);
 	const lines: string[] = [];
-	for (const sample of samples) {
-		const action = actions.find(
-			(candidate) => Math.abs(candidate.at - sample.at) < ACTION_WINDOW_MS,
-		);
-		if (!action) {
+	for (let i = 0; i < samples.length; i += 1) {
+		const sample = samples[i];
+		const here = grouped.get(i);
+		if (!here) {
 			lines.push(`${stamp(sample.at)}  stable ${sample.fps} fps`);
 			continue;
 		}
-		const detail = action.detail ?? {};
-		const parts: string[] = [];
-		if (typeof detail.rows === 'number') parts.push(`rows ${detail.rows}`);
-		if (typeof detail.sticky === 'boolean') {
-			parts.push(`sticky ${detail.sticky ? 'on' : 'off'}`);
+		for (const action of here) {
+			lines.push(
+				`${stamp(sample.at)}  ${describeGesture(action, samples, sample)}`,
+			);
 		}
-		const suffix = parts.length > 0 ? ` (${parts.join(', ')})` : '';
-
-		const span = gestureSpan(action);
-		const inSpan = samples.filter(
-			(candidate) => candidate.at >= span.from && candidate.at <= span.to,
-		);
-		// A gesture shorter than the sampling interval can span no sample at
-		// all; the one it was aligned to is still the best evidence there is.
-		const covered = inSpan.length > 0 ? inSpan : [sample];
-		const gestureWorst = covered.reduce(
-			(low, candidate) => (candidate.fps < low ? candidate.fps : low),
-			covered[0].fps,
-		);
-
-		lines.push(
-			`${stamp(sample.at)}  ${action.name} ${String(detail.delta)}px in ` +
-				`${String(detail.durationMs)}ms${suffix} -> ${sample.fps} fps` +
-				` · worst ${gestureWorst} fps`,
-		);
 	}
 
 	const overall = samples.reduce(

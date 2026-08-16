@@ -70,6 +70,8 @@ import {
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
+import { vaultmanPerfMonitor } from './utils/performanceMonitor';
+import { formatPerfTimeline } from './utils/perfTimeline';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -133,6 +135,28 @@ export class VaultmanPlugin extends Plugin {
 				activeWindow as unknown as { __vaultmanPerfProbe?: unknown },
 			),
 		);
+
+		// The fps sampler is a module singleton and the timeline formatter had
+		// no caller, so on a device whose only way in is `obsidian eval` a
+		// measurement could not be read back out at all. Same global idiom as
+		// the probe above, and torn down with the plugin.
+		const perfGlobals = activeWindow as unknown as {
+			__vaultmanPerfMonitor?: unknown;
+			__vaultmanPerfTimeline?: unknown;
+		};
+		perfGlobals.__vaultmanPerfMonitor = vaultmanPerfMonitor;
+		perfGlobals.__vaultmanPerfTimeline = (
+			sampleLimit = 180,
+			actionLimit = 120,
+		): string =>
+			formatPerfTimeline({
+				samples: vaultmanPerfMonitor.samples(sampleLimit),
+				actions: vaultmanPerfMonitor.actions(actionLimit),
+			});
+		this.register(() => {
+			delete perfGlobals.__vaultmanPerfMonitor;
+			delete perfGlobals.__vaultmanPerfTimeline;
+		});
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
