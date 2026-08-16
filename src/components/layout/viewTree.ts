@@ -161,7 +161,11 @@ export class UnifiedTreeView {
 	private readonly _overscan = 24;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
 	private readonly _coreMetadataView: CoreMetadataTreeView;
+	private _scrollGestureStart: number | null = null;
+	private _scrollGestureFrom = 0;
+	private _scrollGestureTimer: number | null = null;
 	private readonly _onScroll = () => {
+		this._trackScrollGesture();
 		if (this._hasVisibleRenderedRows()) {
 			this._scheduleWindowRender();
 			return;
@@ -321,6 +325,11 @@ export class UnifiedTreeView {
 		if (this._structureAnimationTimer !== null) {
 			this._treeWindow().clearTimeout(this._structureAnimationTimer);
 			this._structureAnimationTimer = null;
+		}
+		if (this._scrollGestureTimer !== null) {
+			window.clearTimeout(this._scrollGestureTimer);
+			this._scrollGestureTimer = null;
+			this._scrollGestureStart = null;
 		}
 		if (this.containerEl.dataset.vaultmanTreeOwner === this._ownerId) {
 			delete this.containerEl.dataset.vaultmanTreeOwner;
@@ -506,6 +515,38 @@ export class UnifiedTreeView {
 		this.containerEl.addEventListener('scroll', this._onScroll, {
 			passive: true,
 		});
+	}
+
+	/**
+	 * One perf action per gesture, not per event: scroll fires at the panel's
+	 * refresh rate, so recording each callback would evict the action ring
+	 * buffer before anyone could read it.
+	 */
+	private _trackScrollGesture(): void {
+		if (this._scrollGestureStart === null) {
+			this._scrollGestureStart = Date.now();
+			this._scrollGestureFrom = this.containerEl.scrollTop;
+		}
+		if (this._scrollGestureTimer !== null) {
+			window.clearTimeout(this._scrollGestureTimer);
+		}
+		this._scrollGestureTimer = window.setTimeout(() => {
+			this._scrollGestureTimer = null;
+			const startedAt = this._scrollGestureStart ?? Date.now();
+			const from = this._scrollGestureFrom;
+			this._scrollGestureStart = null;
+			const to = this.containerEl.scrollTop;
+			const delta = to - from;
+			if (delta === 0) return;
+			vaultmanPerfMonitor.recordAction('tree', 'scroll', {
+				delta,
+				from,
+				to,
+				durationMs: Date.now() - startedAt,
+				rows: this._rows.length,
+				sticky: this._opts?.stickyParentRows ?? false,
+			});
+		}, 120);
 	}
 
 	private _scheduleWindowRender(): void {
