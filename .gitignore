@@ -74,5 +74,11 @@ docs/superpowers/audits/*
 !docs/archive/superpowers/specs
 !docs/archive/superpowers/specs/*.md
 
-# Drive sync conflict copies inside the conjoined .agents vault (2026-07-02)
-.agents/docs/**/*\ (*.md
+# .agents/docs is NOT a directory: it is a junction (PC) / symlink (m1) into the SOTR
+# Obsidian vault -- "My Drive/Start of The Road/x/Agent Docs". Git on Linux refuses by
+# design to descend into a symlinked directory, so WSL reported all 1256 tracked files
+# as deleted while Windows git reported them as modified: same tree, two verdicts, and
+# ~1087 files of permanent CRLF/LF churn. The SOTR vault's own repo is now the single
+# owner of these docs (dev, 2026-08-15). Supersedes the Drive sync conflict-copy rule
+# added 2026-07-02, which this subsumes.
+.agents/docs
