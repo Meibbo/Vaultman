@@ -8,17 +8,30 @@ Editorial template for the next release (remove this comment before publication)
 
 <a id="vX-Y-Z-channel-N"></a>
 ## X.Y.Z-channel.N — A short benefit-led title
-<!-- reviewed: true -- >
+<!-- reviewed: true -->
 
 One inviting sentence that explains who benefits and why.
 
 - **Benefit, not subsystem:** Explain the user-visible improvement in plain language.
 - **Keep it selective:** Prefer three to five highlights; leave internals to CHANGELOG.
 - **Images are optional:** Use alt text and repository-relative paths, for example
-  `![Explorer preview](../img/explorer-preview.png)`.
+  .
 
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
+
+<a id="v1-3-0-beta-1"></a>
+## 1.3.0-beta.1 — Property workflows, text search parity, and deeper navigation
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.1 introduces Move-to-prop mode, Obsidian Core text search parity, sticky parent navigation, and refined mobile ergonomics.
+
+- **Move-to-prop mode:** Transform and coerce properties across notes with configurable conflict handling.
+- **Text search parity:** Enjoy single-line match rows, bookmarks, and lazy snippets with Core-level responsiveness.
+- **Sticky parent rows:** Keep folder context floating into view during deep hierarchical scrolling.
+- **Live relative times & glyphs:** Instant relative timestamps and live palette projection across geometry views.
+
+[Full changelog](../CHANGELOG.md#130-beta1---2026-08-18)
 
 <a id="v1-2-0"></a>
 ## 1.2.0 | More to configure, more to try, better to use
