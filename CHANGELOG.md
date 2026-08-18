@@ -12,6 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0-beta.1] - 2026-08-18
+
+### Added
+
+- Added live-refreshing relative timestamp cells for items modified within 24 hours, singular time labels, and tooltip formatting options.
+- Added live glyph palette projection to geometry views with tinted hover states for colored notes.
+- Added sticky parent folder rows with an independent floating layer for deep hierarchical navigation.
+- Added a Folders type filter with a self-consistent folders-only explorer projection.
+- Added a Move-to-prop mode state machine with configurable conflict policies in settings, allowing property values to be moved and coerced across properties.
+- Added an exclusive toolbar slot for Properties with an active-file property reveal toggle and persistent property ordering.
+- Added generational panel widget lifecycle ownership to prevent state teardown desyncs during view and navbar tab transitions.
+- Added a mobile rounded rows appearance option and a dedicated settings data transfer modal.
+- Added Custom sort mode for Properties and Tags, reveal anchor modes, and a Filtered switch under By level sorting.
+- Added native match highlighting, lazy snippet loading, search bookmarks that return to the explorer, and single-line match rows with Core-parity navigation headers for Text results.
+
+### Fixed
+
+- Fixed side-leaf search field placement and restored drawer gradient rendering on mobile devices.
+- Fixed property value rendering to preserve empty and unknown property values accurately in formatted views.
+- Fixed pause and resume lifecycle loops in Content search, eliminated full-vault scans on typing, and preserved search expansion state across polling cycles.
+
 ## [1.2.0] - 2026-07-24
 
 ### Added
@@ -732,7 +753,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Versions 0.2–0.6 correspond to the Python script predecessor (PKM Manager).
 > See `docs/pkm_manager_python_architecture.md` for that history.
 
-[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.2.0...HEAD
+[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.3.0-beta.1...HEAD
 [1.2.0-beta.1]: https://github.com/Meibbo/Vaultman/compare/1.1.6...1.2.0-beta.1
 [1.1.6]: https://github.com/Meibbo/Vaultman/compare/1.1.1...1.1.6
 [1.1.1]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.1
@@ -757,3 +778,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.2.0-beta.6]: https://github.com/Meibbo/Vaultman/compare/1.2.0-beta.5...1.2.0-beta.6
 [1.2.0-beta.7]: https://github.com/Meibbo/Vaultman/compare/1.2.0-beta.6...1.2.0-beta.7
 [1.2.0]: https://github.com/Meibbo/Vaultman/compare/1.2.0-beta.7...1.2.0
+[1.3.0-beta.1]: https://github.com/Meibbo/Vaultman/compare/1.2.0...1.3.0-beta.1
