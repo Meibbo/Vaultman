@@ -73,12 +73,7 @@
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab =
-		| 'files'
-		| 'props'
-		| 'tags'
-		| 'content'
-		| 'snippets'
-		| 'plugins';
+		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins';
 	type SearchTab = Exclude<FiltersTab, 'content'>;
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';

@@ -323,9 +323,14 @@ function runGates() {
 }
 
 function runPnpm(args) {
-	if (process.platform !== 'win32') {
-		run('corepack', ['pnpm', ...args]);
+	try {
+		run('pnpm', args);
 		return;
+	} catch (e) {
+		if (process.platform !== 'win32') {
+			run('corepack', ['pnpm', ...args]);
+			return;
+		}
 	}
 	const corepackCli = join(
 		dirname(process.execPath),

@@ -1331,9 +1331,7 @@
 	function anchorRevealNote(originTab: FiltersTab, path: string) {
 		const current = normalizeSortState(
 			originTab,
-			untrack(
-				() => sortStateByTab[originTab] ?? DEFAULT_SORT_STATE[originTab],
-			),
+			untrack(() => sortStateByTab[originTab] ?? DEFAULT_SORT_STATE[originTab]),
 		);
 		const anchored: ExplorerSortState = {
 			...current,
