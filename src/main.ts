@@ -54,6 +54,7 @@ import {
 	isMarkdownDropTarget,
 	shouldAppendTagDrop,
 	tagDragNodes,
+	tagSeparatorBeforeCaret,
 	tagTextForDrop,
 } from './utils/dragEditorDrop';
 import { createPerfProbe } from './dev/perfProbe';
@@ -327,11 +328,7 @@ export class VaultmanPlugin extends Plugin {
 		}
 
 		const tagNodes = tagDragNodes(payload);
-		if (
-			tagNodes.length > 0 &&
-			isMarkdownDropTarget(event.target) &&
-			shouldAppendTagDrop(event.target)
-		) {
+		if (tagNodes.length > 0 && isMarkdownDropTarget(event.target)) {
 			event.preventDefault();
 			event.stopPropagation();
 			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
@@ -380,13 +377,21 @@ export class VaultmanPlugin extends Plugin {
 		const tagNodes = tagDragNodes(payload);
 		if (tagNodes.length === 0) return;
 		if (!isMarkdownDropTarget(event.target)) return;
-		if (!shouldAppendTagDrop(event.target)) return;
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!view) return;
 
 		event.preventDefault();
 		event.stopPropagation();
-		appendTagsToMarkdownView(view, tagTextForDrop(tagNodes));
+		const tagText = tagTextForDrop(tagNodes);
+		if (shouldAppendTagDrop(event.target)) {
+			appendTagsToMarkdownView(view, tagText);
+		} else {
+			const editor = view.editor;
+			const cursor = editor.getCursor();
+			const lineText = editor.getLine(cursor.line);
+			const separator = tagSeparatorBeforeCaret(lineText, cursor.ch);
+			editor.replaceRange(separator + tagText, cursor);
+		}
 		this.clearDragActionGuide();
 	};
 

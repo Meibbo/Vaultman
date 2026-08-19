@@ -32,6 +32,20 @@ export function shouldAppendTagDropFromLineText(lineText: string): boolean {
 	return lineText.trim().length === 0;
 }
 
+/**
+ * Separator a anteponer a un tag que se suelta junto a texto: lee el
+ * caracter previo al caret y solo pide un espacio si ahi hay algo que
+ * no sea ya un espacio o salto de linea. U121-054.
+ */
+export function tagSeparatorBeforeCaret(
+	lineText: string,
+	caretOffset: number,
+): string {
+	const previous = caretOffset > 0 ? lineText[caretOffset - 1] : undefined;
+	if (previous === undefined) return '';
+	return /\s/.test(previous) ? '' : ' ';
+}
+
 export function isMarkdownDropTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined') return false;
 	if (!(target instanceof HTMLElement)) return false;
