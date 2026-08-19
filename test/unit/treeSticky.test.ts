@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { stickyTreeRows } from '../../src/logic/logicTreeSticky';
+import { flattenVisibleTreeWithChain } from '../../src/utils/treeVirtualization';
 import type { TreeNode } from '../../src/types/typeTree';
 
 // `styles.css?raw` resolves to an empty string under the CSS pipeline, so the
@@ -125,6 +126,63 @@ describe('stickyTreeRows', () => {
 			expect(sticky.top + rowHeight).toBeLessThanOrEqual(
 				subtreeBottom - scrollTop,
 			);
+		}
+	});
+
+
+	it('matches the scan it replaces, at every scroll position', () => {
+		// The precomputed chain exists to stop walking every row above the
+		// viewport. It is only worth having if it cannot change the answer, so
+		// this compares the two paths across a deep tree at every row boundary
+		// and half-row in between.
+		const tree: TreeNode[] = Array.from({ length: 6 }, (_, a) =>
+			folder(
+				`a-${a}`,
+				0,
+				Array.from({ length: 4 }, (_, b) =>
+					folder(
+						`b-${a}-${b}`,
+						1,
+						Array.from({ length: 3 }, (_, c) =>
+							folder(`c-${a}-${b}-${c}`, 2, [file(`f-${a}-${b}-${c}`, 3)]),
+						),
+					),
+				),
+			),
+		);
+		const expanded = new Set<string>();
+		const mark = (items: TreeNode[]): void => {
+			for (const item of items) {
+				if (item.children?.length) {
+					expanded.add(item.id);
+					mark(item.children);
+				}
+			}
+		};
+		mark(tree);
+
+		const { rows, parentIndex, subtreeEnd } = flattenVisibleTreeWithChain(
+			tree,
+			expanded,
+		);
+		expect(rows.length).toBeGreaterThan(100);
+
+		const rowHeight = 24;
+		for (let step = 1; step < rows.length * 2; step += 1) {
+			const scrollTop = Math.floor((step * rowHeight) / 2);
+			const scanned = stickyTreeRows(rows, {
+				rowHeight,
+				scrollTop,
+				viewportHeight: 480,
+			});
+			const walked = stickyTreeRows(rows, {
+				rowHeight,
+				scrollTop,
+				viewportHeight: 480,
+				parentIndex,
+				subtreeEnd,
+			});
+			expect(walked).toEqual(scanned);
 		}
 	});
 

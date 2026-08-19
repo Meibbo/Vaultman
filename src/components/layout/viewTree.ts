@@ -24,6 +24,7 @@ import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import {
 	buildVirtualTreeWindow,
 	flattenVisibleTree,
+	flattenVisibleTreeWithChain,
 } from '../../utils/treeVirtualization';
 import {
 	attachBadgeCancelInteraction,
@@ -142,6 +143,10 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _stickyLayerEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
+	/** Emitted with the rows so the sticky stack can walk up to the ancestors
+	 * of the first visible row instead of scanning everything above it. */
+	private _parentIndex: number[] | null = null;
+	private _subtreeEnd: number[] | null = null;
 	private _indexById = new Map<string, number>();
 	private _activeId: string | null = null;
 	private readonly _overscan = 24;
@@ -216,6 +221,9 @@ export class UnifiedTreeView {
 			this._spacerEl = null;
 			this._contentEl = null;
 			this._rows = opts.nodes;
+			// Pre-flattened rows arrive without a chain; the scan still answers.
+			this._parentIndex = null;
+			this._subtreeEnd = null;
 			this._indexById = this._buildIndex(opts.nodes);
 			const renderStarted = performance.now();
 			this._coreMetadataView.render({ ...opts, coreMetadata: opts.coreMetadata });
@@ -234,7 +242,13 @@ export class UnifiedTreeView {
 		const scrollTop = this.containerEl.scrollTop;
 		const rowHeight = this.rowHeight();
 		const modelStarted = performance.now();
-		this._rows = flattenVisibleTree(opts.nodes, opts.expandedIds);
+		const flattened = flattenVisibleTreeWithChain(
+			opts.nodes,
+			opts.expandedIds,
+		);
+		this._rows = flattened.rows;
+		this._parentIndex = flattened.parentIndex;
+		this._subtreeEnd = flattened.subtreeEnd;
 		this._indexById = this._buildIndex(this._rows);
 		this._ensureScaffold();
 		if (this._spacerEl) {
@@ -569,6 +583,8 @@ export class UnifiedTreeView {
 			rowHeight,
 			scrollTop: this.containerEl.scrollTop,
 			viewportHeight: this.containerEl.clientHeight,
+			parentIndex: this._parentIndex ?? undefined,
+			subtreeEnd: this._subtreeEnd ?? undefined,
 		});
 		const visibleIds = new Set(
 			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
