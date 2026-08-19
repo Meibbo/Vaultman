@@ -237,6 +237,28 @@ describe('stickyTreeRows', () => {
 		expect(viewTreeSource).not.toContain('margin-top: -');
 	});
 
+
+	it('fills the whole step so no slit shows between stacked headers', () => {
+		// Measured on the dev's vault: rows step by 28px, their box is 27px and
+		// the last pixel is a bottom margin. Inside the sticky layer that
+		// margin turns into a 1px slit of scrolling content between headers —
+		// one per slot, which is why it reads worse the deeper the stack. On a
+		// phone the mobile rule zeroes the margin, so height and step already
+		// match and nothing shows.
+		const viewTreeSource = readFileSync(
+			new URL('../../src/components/layout/viewTree.ts', import.meta.url),
+			'utf8',
+		);
+		expect(viewTreeSource).toContain('row.style.height = `${rowHeight}px`');
+		// El margen es estatico, asi que vive en CSS: el linter de Obsidian
+		// prohibe asignarlo desde JS. La altura si es dinamica y se queda.
+		const treeCss = readFileSync(
+			new URL('../../src/styles/views/_tree.scss', import.meta.url),
+			'utf8',
+		);
+		expect(treeCss).toContain('margin-bottom: 0');
+	});
+
 	it('has a layer the rows can actually float in', () => {
 		// The view builds the layer and positions each row inside it, so without
 		// these two rules the whole setting is inert: an unstyled strip scrolls

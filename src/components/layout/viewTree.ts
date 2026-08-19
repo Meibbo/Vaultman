@@ -617,6 +617,12 @@ export class UnifiedTreeView {
 			row.toggleClass('is-stuck', slot === stickyRows.length - 1);
 			row.dataset.sticky = 'true';
 			row.style.top = `${sticky.top}px`;
+			// The stack steps by `rowHeight`, but a row's box is shorter than
+			// that: the remainder is its bottom margin, which inside the sticky
+			// layer becomes a slit of scrolling content between two headers.
+			// Height comes from the number that decides `top`, so the two
+			// cannot drift apart.
+			row.style.height = `${rowHeight}px`;
 			// A pushed-off row travels up through the slots above it, so the
 			// shallower ancestor has to paint over it on the way out.
 			row.style.zIndex = `${stickyRows.length - slot}`;

@@ -358,6 +358,12 @@
 }
 
 .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  /* The stack steps by the row pitch while a row box is one pixel
+     shorter, the remainder being its bottom margin. Inside this layer that
+     margin becomes a slit of scrolling content between two headers, one per
+     slot. The mobile rule already zeroes it, which is why the band only
+     shows on desktop. */
+  margin-bottom: 0;
   position: absolute;
   left: 0;
   right: 0;
