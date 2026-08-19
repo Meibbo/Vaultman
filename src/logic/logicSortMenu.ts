@@ -293,7 +293,9 @@ export function byLevelModel(
 
 	// No divider under this one: it belongs with Nested, both shaping what the
 	// level below is drawn from. Off by default — "global" is this being off.
-	if (tab === 'props' || tab === 'tags') {
+	// Files shares it (U121-052): the tree shows the whole vault while off, and
+	// `filtered` hides the files the active filter leaves out.
+	if (tab === 'props' || tab === 'tags' || tab === 'files') {
 		items.push({
 			kind: 'toggle',
 			id: 'filtered',

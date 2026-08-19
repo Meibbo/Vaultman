@@ -857,6 +857,12 @@ export class FilesExplorerPanel extends Component {
 			this.nodeTypeFilters,
 			nextNodeTypeFilters,
 		);
+		// U121-052: flipping `Filtered` swaps the source set itself (whole vault
+		// vs filtered files), so re-sorting the cached tree is not enough — the
+		// projection has to be rebuilt from the new scope.
+		const filteredChanged =
+			(this.sortState.filtered ?? false) !==
+			(normalizedState.filtered ?? false);
 		if (
 			sameExplorerSortState(this.sortState, normalizedState) &&
 			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)
@@ -886,6 +892,10 @@ export class FilesExplorerPanel extends Component {
 			);
 		}
 		this._notifySortStateChanged();
+		if (filteredChanged) {
+			this._refreshFromFilterService();
+			return;
+		}
 		if (!nodeTypeFiltersChanged && this._resortCachedTree()) return;
 		this._render();
 	}
@@ -928,8 +938,16 @@ export class FilesExplorerPanel extends Component {
 
 	render(filteredFiles: TFile[], totalCount: number): void {
 		this.hasSourceProjection = true;
-		this._sourceFiles = filteredFiles;
-		this._currentFiles = filteredFiles;
+		// U121-052: `Filtered` gates the narrowing. Off (default) the tree shows
+		// the whole vault, so building a filter no longer hides the files being
+		// worked on; on, only the files the active filter leaves standing are
+		// drawn. Folders never collapse here: they are derived from the paths of
+		// whatever set is showing, which is the "hide only files" reading.
+		this._sourceFiles =
+			this.sortState.filtered === true
+				? filteredFiles
+				: this.plugin.app.vault.getFiles();
+		this._currentFiles = this._sourceFiles;
 		this._totalCount = totalCount;
 		this.filterProjectionSnapshot = {
 			paths: filteredFiles.map((file) => file.path),
@@ -3986,6 +4004,11 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _filesForCurrentScope(): TFile[] {
+		// U121-052: the Filtered switch is the only thing that narrows the files
+		// tree. While off the whole vault is the source, whatever the filter says.
+		if (this.sortState.filtered !== true) {
+			return this.plugin.app.vault.getFiles();
+		}
 		const activeFolderPaths = this._activeFolderFilterPaths();
 		if (activeFolderPaths.length > 0) {
 			return this.plugin.filterService.filteredVaultFilesForFolderScopes(

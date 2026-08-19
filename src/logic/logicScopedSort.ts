@@ -66,11 +66,13 @@ function defaultState(tab: ExplorerTabId): ExplorerSortState {
 		// Explicit rather than absent, and only where they mean something:
 		// `sameExplorerSortState` compares these, and an undefined here against a
 		// false there reads as a change that is not one. Off is the resting state
-		// — "global" is `filtered` being off. Add-on explorers project no note
-		// and no property set, so they carry neither field.
+		// — "global" is `filtered` being off. Files carries the narrowing switch
+		// too (the tree shows the whole vault until it is on) but has no reveal
+		// projection. Add-on explorers project no note and no property set, so
+		// they carry neither field.
+		...(isNodeProviderTab(tab) || tab === 'files' ? { filtered: false } : {}),
 		...(isNodeProviderTab(tab)
 			? {
-					filtered: false,
 					revealAnchor: 'current-file' as const,
 					revealAnchorPath: null,
 				}
@@ -96,23 +98,29 @@ function normalizeNodeFilters(
 	};
 }
 
-function normalizeRevealAnchor(
+function normalizeNarrowingState(
 	tab: ExplorerTabId,
 	value: Record<string, unknown>,
 ): Pick<ExplorerSortState, 'filtered' | 'revealAnchor' | 'revealAnchorPath'> {
-	if (!isNodeProviderTab(tab)) return {};
-	// A pinned anchor without a path is not an anchor, so it falls back to
-	// following the workspace rather than projecting nothing.
-	const path =
-		typeof value.revealAnchorPath === 'string' && value.revealAnchorPath
-			? value.revealAnchorPath
-			: null;
-	const pinned = value.revealAnchor === 'pinned' && path !== null;
-	return {
-		filtered: value.filtered === true,
-		revealAnchor: pinned ? 'pinned' : 'current-file',
-		revealAnchorPath: pinned ? path : null,
-	};
+	if (tab === 'props' || tab === 'tags') {
+		// A pinned anchor without a path is not an anchor, so it falls back to
+		// following the workspace rather than projecting nothing.
+		const path =
+			typeof value.revealAnchorPath === 'string' && value.revealAnchorPath
+				? value.revealAnchorPath
+				: null;
+		const pinned = value.revealAnchor === 'pinned' && path !== null;
+		return {
+			filtered: value.filtered === true,
+			revealAnchor: pinned ? 'pinned' : 'current-file',
+			revealAnchorPath: pinned ? path : null,
+		};
+	}
+	// Files narrows its source set the same way but has no reveal projection.
+	if (tab === 'files') {
+		return { filtered: value.filtered === true };
+	}
+	return {};
 }
 
 export function normalizeExplorerSortState(
@@ -130,7 +138,7 @@ export function normalizeExplorerSortState(
 			...fallback,
 			sorts: { [DEFAULT_SCOPE_BY_TAB[tab]]: legacySort },
 			...nodeFilters,
-			...normalizeRevealAnchor(tab, value),
+			...normalizeNarrowingState(tab, value),
 			...(tab === 'files' && typeof value.parentsFirst === 'boolean'
 				? { parentsFirst: value.parentsFirst }
 				: {}),
@@ -181,7 +189,7 @@ export function normalizeExplorerSortState(
 		activeScope,
 		...(isHierarchicalTab(tab) ? { drillNodeId } : {}),
 		...nodeFilters,
-		...normalizeRevealAnchor(tab, value),
+		...normalizeNarrowingState(tab, value),
 		...(tab === 'files'
 			? {
 					parentsFirst:

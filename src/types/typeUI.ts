@@ -99,8 +99,11 @@ export interface ExplorerSortState {
 	fixedFolders?: boolean;
 	/**
 	 * Props/Tags: narrow the projection to the nodes present in the filtered
-	 * file set instead of the whole vault. Off by default — "global" is simply
-	 * this being off, which is why there is no separate global switch.
+	 * file set instead of the whole vault. Files (U121-052): hide the files the
+	 * active filter leaves out — while off, the tree shows the whole vault, so
+	 * building a filter no longer hides what is being worked on. Off by default
+	 * — "global" is simply this being off, which is why there is no separate
+	 * global switch.
 	 */
 	filtered?: boolean;
 	/**
