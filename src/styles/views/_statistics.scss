@@ -350,6 +350,13 @@
 /* The tab surface paints no background of its own, so the pinned rows take the
    one behind the leaf: side docks and the phone drawer are secondary, the main
    area is primary. Without it the scrolling rows read straight through. */
+.vaultman-tree-row.is-sticky-twin {
+  /* A sticky header is standing in for this row, so showing it too draws the
+     same node twice and the original reads through from underneath. Hidden,
+     not removed: it still has to hold its slot in the virtual list. */
+  visibility: hidden;
+}
+
 .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
   position: absolute;
   left: 0;

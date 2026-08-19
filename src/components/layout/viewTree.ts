@@ -120,6 +120,9 @@ export class UnifiedTreeView {
 	private containerEl: HTMLElement;
 	private rowEls = new Map<string, HTMLElement>();
 	private stickyRowEls = new Map<string, HTMLElement>();
+	/** Rows whose sticky twin is currently drawn, so the original can be
+	 * hidden instead of showing through underneath it. */
+	private _stickyTwinIds = new Set<string>();
 	private _pendingRaf: number | null = null;
 	private _filterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
 	private _excludedFilterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
@@ -576,6 +579,7 @@ export class UnifiedTreeView {
 	private _renderStickyRows(): void {
 		if (!this._stickyLayerEl || !this._opts?.stickyParentRows) {
 			this.removeStaleRows(new Set(), this.stickyRowEls);
+			this._syncStickyTwins(new Set());
 			return;
 		}
 		const rowHeight = this.rowHeight();
@@ -590,6 +594,7 @@ export class UnifiedTreeView {
 			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
 		);
 		this.removeStaleRows(visibleIds, this.stickyRowEls);
+		this._syncStickyTwins(visibleIds as Set<string>);
 		for (const [slot, sticky] of stickyRows.entries()) {
 			const node = this._rows[sticky.index];
 			if (!node) continue;
@@ -611,6 +616,21 @@ export class UnifiedTreeView {
 			// shallower ancestor has to paint over it on the way out.
 			row.style.zIndex = `${stickyRows.length - slot}`;
 		}
+	}
+
+
+	/** Hide the rows that a sticky header is standing in for, and reveal the
+	 * ones it no longer covers. `visibility` rather than `display`: the row must
+	 * keep its slot in the virtual list or the spacer stops matching. */
+	private _syncStickyTwins(activeIds: Set<string>): void {
+		for (const id of this._stickyTwinIds) {
+			if (activeIds.has(id)) continue;
+			this.rowEls.get(id)?.removeClass('is-sticky-twin');
+		}
+		for (const id of activeIds) {
+			this.rowEls.get(id)?.addClass('is-sticky-twin');
+		}
+		this._stickyTwinIds = new Set(activeIds);
 	}
 
 	private rowSignature(node: TreeNode, opts: TreeViewOptions): string {
