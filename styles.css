@@ -7026,6 +7026,20 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 .vaultman-toolbar-slot.is-hidden-mode.is-peeking .vaultman-navbar-filters {
 	transform: translateY(0);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+	/* The slot reserves no height, so the bar floats over the content below:
+	   it needs the surface behind the leaf — secondary in side docks and the
+	   phone drawer, primary in the main area — or its icons read through it. */
+	background-color: var(--background-secondary);
+}
+.workspace-split.mod-root
+	.vaultman-toolbar-slot.is-hidden-mode.is-peeking
+	.vaultman-navbar-filters {
+	background-color: var(--background-primary);
+}
+.vaultman-toolbar-slot.is-hidden-mode.is-peeking
+	.vaultman-navbar-filters
+	.vaultman-nav-page-icon:hover {
+	background: var(--background-modifier-hover);
 }
 .vaultman-toolbar-peek {
 	position: absolute;
