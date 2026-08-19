@@ -2,16 +2,22 @@
 // Residual Layer: Global Body Modifiers & Interop (~10% SCSS)
 // ============================================================================
 
-body.vm-resizing {
-	cursor: col-resize !important;
-	user-select: none !important;
+/* La clase va repetida a proposito: sube la especificidad para ganar
+   la cascada sin ``, que el scorecard de Obsidian prohibe
+   en styles.css. No la colapses. */
+body.vm-resizing.vm-resizing {
+	cursor: col-resize;
+	user-select: none;
 
 	* {
-		pointer-events: none !important;
+		pointer-events: none;
 	}
 }
 
-body.vm-reduced-motion * {
-	transition-duration: 0.001ms !important;
-	animation-duration: 0.001ms !important;
+/* La clase va repetida a proposito: sube la especificidad para ganar
+   la cascada sin ``, que el scorecard de Obsidian prohibe
+   en styles.css. No la colapses. */
+body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
+	transition-duration: 0.001ms;
+	animation-duration: 0.001ms;
 }
