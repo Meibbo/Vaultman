@@ -1387,7 +1387,7 @@ export class FilesExplorerPanel extends Component {
 			).open();
 			return;
 		}
-		if (this.selectedFilePaths.size > 0) this._applyFileSelection(selection);
+		this._applyFileSelection(selection);
 		const paneType = Keymap.isModEvent(event);
 		void this.plugin.app.workspace.getLeaf(paneType).openFile(file);
 	}

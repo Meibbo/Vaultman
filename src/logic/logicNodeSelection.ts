@@ -32,7 +32,7 @@ export function updateFileSelection(
 	gesture: FileSelectionGesture,
 ): { selectedPaths: Set<string>; anchorPath: string | null } {
 	if (gesture === 'open') {
-		return { selectedPaths: new Set(), anchorPath: null };
+		return { selectedPaths: new Set([targetPath]), anchorPath: targetPath };
 	}
 	if (gesture === 'toggle') {
 		const selectedPaths = new Set(state.selectedPaths);
