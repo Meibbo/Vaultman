@@ -20,6 +20,21 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-2"></a>
+
+## 1.3.0-beta.2 — Sticky navigation that stays out of your way
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.2 is a polish release for the pinned folder headers introduced in beta.1: they now hold still, hand over cleanly, and let you decide how much room they take.
+
+- **Smooth scrolling again:** Pinned headers no longer stutter through long lists or stall when you jump straight to the end.
+- **Nothing showing through:** The hairline between stacked headers is gone, and a folder no longer appears underneath its own pinned header.
+- **Headers that hand over:** Deep levels stay put instead of vanishing behind the ones above, and each folder passes its place to the next one without a jump.
+- **Your call on how much:** A new setting chooses how much of the tree the pinned headers may cover, from 20 to 60 percent, so tall panels can show more levels at once.
+
+[Full changelog](../CHANGELOG.md#130-beta2---2026-08-19)
+
 <a id="v1-3-0-beta-1"></a>
 ## 1.3.0-beta.1 — Property workflows, text search parity, and deeper navigation
 <!-- reviewed: true -->
