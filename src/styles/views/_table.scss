@@ -1,0 +1,31 @@
+/* === Bases table injections === */
+th.vaultman-bases-th-check,
+td.vaultman-bases-td-check {
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  text-align: center;
+  padding: 4px;
+}
+
+td.vaultman-bases-td-check input[type="checkbox"],
+th.vaultman-bases-th-check input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Selected row highlight */
+body table tbody tr.is-selected {
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+}
+
+body table tbody tr.is-selected:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 22%, transparent);
+}
+
+/* Column separators (opt-in) */
+body.vaultman-bases-column-separators table td,
+body.vaultman-bases-column-separators table th {
+  border-right: 1px solid var(--vaultman-border);
+}

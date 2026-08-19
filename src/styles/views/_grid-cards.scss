@@ -1,0 +1,397 @@
+/* === Grid View — properties as rows, value chips in col 2 === */
+
+.vaultman-explorer-grid {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.vaultman-grid-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-grid-td {
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding: 5px 8px;
+  vertical-align: middle;
+}
+
+.vaultman-grid-row:hover .vaultman-grid-td {
+  background: var(--background-modifier-hover);
+}
+
+/* Col 1 — property name */
+.vaultman-grid-td-prop {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  cursor: pointer;
+  min-width: 120px;
+  max-width: 200px;
+  padding-right: 12px;
+}
+
+.vaultman-grid-prop-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* Col 2 — value chips */
+.vaultman-grid-td-values {
+  width: 100%;
+  padding-left: 4px;
+}
+
+.vaultman-grid-value-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  margin: 2px 3px;
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.vaultman-grid-value-chip:hover {
+  background: var(--interactive-hover);
+  border-color: var(--interactive-accent);
+}
+
+.vaultman-grid-value-chip.is-active-filter {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.vaultman-grid-chip-text {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-grid-chip-count {
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
+.vaultman-grid-value-chip.is-active-filter .vaultman-grid-chip-count {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+/* === Cards View === */
+
+.vaultman-explorer-cards {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Cards grid — one card per property */
+
+.vaultman-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  padding: 8px;
+}
+
+.vaultman-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px 8px 10px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  text-align: center;
+}
+
+.vaultman-card:hover {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.vaultman-card.is-active-filter {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-active-hover);
+}
+
+.vaultman-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.vaultman-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-card-title {
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  color: var(--text-normal);
+}
+
+.vaultman-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-top: 2px;
+}
+
+.vaultman-card-stat-count {
+  color: var(--text-muted);
+}
+
+.vaultman-card-stat-type {
+  display: flex;
+  align-items: center;
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+}
+
+.vaultman-card-stat-type svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Cards drilldown */
+
+.vaultman-cards-drill-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 6px;
+}
+
+.vaultman-cards-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vaultman-cards-back:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-cards-drill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.vaultman-cards-drill-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.vaultman-cards-drill-title {
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge styling */
+.vaultman-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 2px;
+  font-size: 0;
+  /* icon only */
+  color: var(--text-normal);
+  /* Reverted to match request */
+  background: transparent;
+  border: none;
+  flex-shrink: 0;
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.vaultman-badge.is-undoable {
+  cursor: pointer;
+}
+
+.vaultman-badge.is-undoable:hover {
+  transform: scale(1.2);
+  filter: brightness(1.2);
+}
+
+.vaultman-badge.is-undoable:active {
+  transform: scale(0.9);
+}
+
+.vaultman-badge.is-inherited {
+  opacity: 0.5;
+  /* Subtler for parent-inherited badges */
+}
+
+.vaultman-badge .vaultman-badge-icon {
+  display: flex;
+  width: 10px;
+  height: 10px;
+  color: inherit;
+}
+
+.vaultman-badge .vaultman-badge-icon svg {
+  width: 10px;
+  height: 10px;
+}
+
+.vaultman-badge--blue,
+.vaultman-badge--red,
+.vaultman-badge--purple,
+.vaultman-badge--orange,
+.vaultman-badge--green {
+  color: var(--text-muted);
+}
+
+.vaultman-badges-colored .vaultman-badge--blue {
+  color: #007aff;
+}
+
+.vaultman-badges-colored .vaultman-badge--red {
+  color: #ff3b30;
+}
+
+.vaultman-badges-colored .vaultman-badge--purple {
+  color: #af52de;
+}
+
+.vaultman-badges-colored .vaultman-badge--orange {
+  color: #ff9500;
+}
+
+.vaultman-badges-colored .vaultman-badge--green {
+  color: #34c759;
+}
+
+
+
+.vaultman-tree-count {
+  font-size: 9px;
+  color: var(--text-faint);
+  opacity: 0.8;
+}
+
+.vaultman-tree-type {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 72px;
+  margin-left: 4px;
+  text-transform: lowercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-tree-icon+/* BT5-011: in activation order every configurable cell is a row sibling.
+   The label keeps flex:1 wherever it lands, and cells that no longer fit
+   clip at the frame edge rather than pushing the row wider. */
+.vaultman-tree-row--activation-order {
+  overflow: hidden;
+}
+
+.vaultman-tree-row--activation-order > * {
+  flex-shrink: 0;
+}
+
+.vaultman-tree-row--activation-order > .vaultman-tree-label {
+  flex-shrink: 1;
+}
+
+.vaultman-tree-label {
+  margin-left: 2px;
+}
+
+/* FAB Badges — Now glass style instead of accent */
+.vaultman-nav-fab-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vaultman-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  /* Glass style: match pill background */
+  background: var(--background-modifier-hover);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.vaultman-fab-badge--warning {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--text-warning);
+  background: var(--background-primary);
+  border-color: var(--background-modifier-border);
+}
+
+.vaultman-fab-badge--warning svg {
+  width: 11px;
+  height: 11px;
+}
+

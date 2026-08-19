@@ -1,0 +1,16 @@
+/* === View Layout (overridden by Svelte redesign rules below) === */
+
+/* === Sections === */
+.vaultman-section {
+  border-bottom: 1px solid var(--vaultman-border);
+  padding: 8px 12px;
+}
+
+.vaultman-section-header h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--vaultman-text-muted);
+  letter-spacing: 0.05em;
+}

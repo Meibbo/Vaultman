@@ -1,0 +1,238 @@
+/* === Property Explorer === */
+.vaultman-explorer-container {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.vaultman-explorer-search {
+  margin-bottom: 6px;
+}
+
+.vaultman-explorer-search-input {
+  width: 100%;
+  font-size: 0.8em;
+  padding: 4px 8px;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.vaultman-explorer-tree {
+  font-size: 0.8em;
+}
+
+.vaultman-explorer-empty {
+  color: var(--vaultman-text-faint);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.vaultman-explorer-node {
+  margin-bottom: 1px;
+}
+
+.vaultman-explorer-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  user-select: none;
+}
+
+.vaultman-explorer-header:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-explorer-header.is-expanded {
+  font-weight: 500;
+}
+
+.vaultman-explorer-toggle {
+  font-size: 0.7em;
+  width: 12px;
+  text-align: center;
+  color: var(--vaultman-text-faint);
+  flex-shrink: 0;
+}
+
+.vaultman-explorer-prop-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+}
+
+.vaultman-explorer-badge {
+  font-size: 0.8em;
+  color: var(--vaultman-text-faint);
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.vaultman-explorer-children {
+  margin-left: 16px;
+  border-left: 1px solid var(--vaultman-border);
+  padding-left: 6px;
+}
+
+.vaultman-explorer-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.vaultman-explorer-value:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-explorer-value-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vaultman-text-muted);
+}
+
+.vaultman-explorer-value:hover .vaultman-explorer-value-text {
+  color: var(--vaultman-accent);
+}
+
+/* Active filter highlight in PropertyExplorer */
+.vaultman-explorer-node.is-active-filter>.vaultman-explorer-header {
+  border-left: 2px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  padding-left: calc(var(--size-4-2) - 2px);
+}
+
+.vaultman-explorer-value.is-active-filter {
+  border-left: 2px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+/* Explorer nav toolbar */
+.vaultman-explorer-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--vaultman-border);
+}
+
+.vaultman-explorer-nav .clickable-icon {
+  padding: 4px;
+  border-radius: var(--radius-s);
+  color: var(--vaultman-text-muted);
+}
+
+.vaultman-explorer-nav .clickable-icon:hover {
+  color: var(--text-normal);
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-explorer-nav .clickable-icon.is-active {
+  color: var(--vaultman-accent);
+}
+
+/* Collapsible search */
+.vaultman-explorer-search-collapsible {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.15s ease;
+}
+
+.vaultman-explorer-search-collapsible.is-open {
+  max-height: 40px;
+}
+
+.vaultman-explorer-search-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vaultman-explorer-search-input-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.vaultman-explorer-search-input-wrap .vaultman-explorer-search-input {
+  width: 100%;
+  padding-right: 28px;
+  box-sizing: border-box;
+}
+
+.vaultman-explorer-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vaultman-explorer-search-clear.is-hidden {
+  display: none;
+}
+
+.vaultman-search-mode-toggle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.vaultman-search-mode-toggle:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-search-mode-toggle.is-active {
+  color: var(--vaultman-accent);
+}
+
+/* Iconic icon in explorer */
+.vaultman-explorer-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vaultman-explorer-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-explorer-icon-default {
+  opacity: 0.5;
+}
+
+/* Queue preview states */
+.vaultman-explorer-pending {
+  opacity: 0.7;
+  border-left: 2px dashed var(--interactive-accent);
+  padding-left: 4px;
+}
+
+.vaultman-explorer-deleting {
+  text-decoration: line-through;
+  opacity: 0.5;
+}

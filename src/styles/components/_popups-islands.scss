@@ -1,0 +1,1495 @@
+/* === Popup overlay — slides up from bottom with spring === */
+.vaultman-popup-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 100;
+  /* Backdrop fade */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.vaultman-popup-overlay.is-open {
+  opacity: 1;
+}
+
+.vaultman-popup-overlay.is-hidden {
+  display: none;
+}
+
+.vaultman-popup-content {
+  background: var(--background-primary);
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  border: 1px solid var(--vaultman-border);
+  border-bottom: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 65%;
+  overflow-y: auto;
+}
+
+.vaultman-popup-overlay.is-open .vaultman-popup-content {
+  transform: translateY(0);
+}
+
+/* Squircle action buttons */
+.vaultman-squircle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.vaultman-squircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.vaultman-squircle:hover {
+  background: rgba(var(--mono-rgb-100), 0.1);
+  color: var(--text-normal);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(var(--mono-rgb-100), 0.2);
+}
+
+.vaultman-squircle-reserved {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Active filter rule rows */
+.vaultman-active-filters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.vaultman-active-filter-rule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  min-height: 28px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.vaultman-active-filter-rule.is-disabled {
+  opacity: 0.45;
+}
+
+.vaultman-active-filter-rule-text {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--font-ui-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-active-filter-row-rule {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-active-filter-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-normal);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-active-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--clickable-icon-radius);
+  border: none;
+  color: var(--text-normal);
+  background: transparent;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.vaultman-active-filter-rule:not(.is-disabled) .vaultman-active-filter-toggle {
+  background: transparent;
+}
+
+.vaultman-active-filter-delete {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vaultman-active-filters-empty {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  padding: 8px;
+  text-align: center;
+}
+
+.vaultman-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.vaultman-popup-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.vaultman-popup-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.vaultman-popup-filter-tree {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* Scope tab description */
+.vaultman-scope-desc {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* Scope popup / tab */
+.vaultman-scope-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vaultman-scope-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  border: 1px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.vaultman-scope-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-scope-item.is-active {
+  border-color: var(--color-accent);
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-scope-icon {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.vaultman-scope-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Disabled scope/view-mode item */
+.vaultman-scope-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Coming soon badge inside a disabled item */
+.vaultman-coming-soon-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Search popup inputs */
+.vaultman-search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.vaultman-search-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary-alt);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  box-sizing: border-box;
+}
+
+.vaultman-search-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Active filters count badge on the filter button */
+.vaultman-active-filters-count {
+  margin-left: 4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+
+/* ============================================================
+   Main view — 3-section layout (Filters | Grid | Ops)
+   ============================================================ */
+
+.vaultman-main-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Section shell */
+.vaultman-main-section {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+/* Grid section grows to fill remaining space */
+.vaultman-main-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Section header row */
+.vaultman-main-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-main-section-toggle {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vaultman-main-section-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vaultman-main-badge {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border-radius: 8px;
+  padding: 0 5px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.vaultman-main-stats {
+  flex: 1;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vaultman-main-section-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Section body — scrolls if collapsed */
+.vaultman-main-section-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 6px 8px;
+}
+
+/* Grid body — no extra padding, grid manages its own scroll */
+.vaultman-main-grid-body {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Collapsed sections: show only header */
+.vaultman-main-section.is-collapsed .vaultman-main-section-body,
+.vaultman-main-section.is-collapsed .vaultman-main-ops-body {
+  display: none;
+}
+
+/* Ops body: slightly taller default, component owns layout */
+.vaultman-main-ops-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── Content tab — Find & Replace ─────────────────────────────────────── */
+
+.vaultman-content-find-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.vaultman-content-search-container {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 1px;
+  position: relative;
+}
+
+.vaultman-content-search-container.search-input-container::before {
+  display: none;
+}
+
+.vaultman-content-input-icon {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-faint);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.vaultman-content-input-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-content-search-container .vaultman-content-input {
+  width: 100%;
+  height: 100%;
+  margin: 0 0 1px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding-inline-start: 30px;
+  padding-inline-end: 34px;
+}
+
+.vaultman-content-search-container .vaultman-content-input:focus {
+  box-shadow: none;
+}
+
+/* Bottom underline for find + replace inputs. Starts at the placeholder text
+   (30px = input padding-inline-start) so it never covers the leading icon. */
+.vaultman-content-search-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 30px;
+  inset-inline-end: 0;
+  height: 1px;
+  background: var(--background-modifier-border);
+  pointer-events: none;
+}
+
+.vaultman-content-search-container:focus-within::after {
+  background: var(--color-accent);
+}
+
+.vaultman-content-clear-button {
+  position: absolute;
+  inset-inline-end: 2px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.vaultman-content-clear-button:hover {
+  background: transparent;
+  color: var(--text-normal);
+}
+
+.vaultman-content-clear-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vaultman-icon-toggle {
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  padding: 4px 7px;
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.vaultman-content-find-row .vaultman-icon-toggle,
+.vaultman-content-replace-row .vaultman-icon-toggle {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.vaultman-content-find-row .vaultman-icon-toggle:hover,
+.vaultman-content-replace-row .vaultman-icon-toggle:hover {
+  background: transparent;
+  color: var(--text-normal);
+}
+
+.vaultman-icon-toggle.is-active {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border-color: var(--color-accent);
+}
+
+.vaultman-content-find-row .vaultman-icon-toggle.is-active,
+.vaultman-content-replace-row .vaultman-icon-toggle.is-active {
+  background: transparent;
+  color: var(--color-accent);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.vaultman-content-regex-error {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-error);
+  margin: -2px 0 6px;
+}
+
+.vaultman-content-replace-toggle svg,
+.vaultman-content-queue-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-content-scope-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin: 4px 0 8px;
+}
+
+button.vaultman-content-scope-hint {
+  display: block;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+button.vaultman-content-scope-hint:hover,
+button.vaultman-content-scope-hint:focus-visible {
+  color: var(--text-normal);
+}
+
+.vaultman-content-landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  gap: 6px;
+  padding: 18px 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.vaultman-content-landing-icon {
+  display: inline-flex;
+  color: var(--text-faint);
+}
+
+.vaultman-content-landing-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-content-landing-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.vaultman-content-landing-desc {
+  max-width: 260px;
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+.vaultman-content-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.vaultman-content-actions .vaultman-btn {
+  flex: 1;
+}
+
+.vaultman-content-preview {
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-content-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text-normal);
+  margin-bottom: 4px;
+  user-select: none;
+  /* U121-019 #51: `.tree-item-self` carries `--nav-item-padding`, whose inline
+     start is sized to clear a collapse icon. This header has none — core prints
+     its result count with neither triangle nor caret — so the count takes that
+     space back instead of sitting behind an indent for a control that is not
+     there. Only the inline start is touched; everything else stays core's. */
+  padding-inline-start: var(--size-4-2);
+}
+
+.vaultman-content-header-actions {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* U121-019 #51: "show more context", per node. Sits between the file row and
+   its matches, so it reads as belonging to that result and not to the pane. */
+.vaultman-content-context-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: flex-end;
+  padding-inline-end: var(--size-4-2);
+}
+
+/* Not a cap notice: these files are in the result and simply have no row yet. */
+.vaultman-content-window-more {
+  display: block;
+  width: 100%;
+  margin-block-start: var(--size-4-2);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.vaultman-content-window-more:hover {
+  color: var(--text-normal);
+}
+
+/* U121-019 #51: core hides both chevrons and toggles them on `mouseover`
+   (`showMoreBeforeEl.hide()` at construction, `toggle(start > 0)` on focus
+   enter). `app.css` carries no rule for that because core does it in JS, so
+   this is the same behaviour expressed where we can express it — not a
+   duplicate of a core rule. Whether there is anywhere to grow is decided in
+   the markup, so a match already at the top of its file shows no up chevron. */
+.search-result-file-match .search-result-hover-button {
+  opacity: 0;
+  transition: opacity 100ms ease-in-out;
+}
+
+@media (hover: hover) {
+  .search-result-file-match:hover .search-result-hover-button {
+    opacity: 0.7;
+  }
+}
+
+/* Header-only, link-style: no button chrome, just clickable accent text. */
+/* BT5-086: exclusion reads as primary text, not accent. Accent is reserved
+   for inclusive state across the explorers, so an exclusion count wearing it
+   claimed a meaning it does not have. */
+.vaultman-content-filter-link {
+  color: var(--text-normal);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vaultman-content-filter-link:hover {
+  color: var(--text-accent);
+}
+
+/* U121-019: the caret needs no rules of ours. `app.css` already styles it
+   through `.collapse-icon`, which this row carries:
+
+     .collapse-icon svg.svg-icon      { color: var(--nav-collapse-icon-color);
+                                        stroke-width: 4px; width: 10px;
+                                        height: 10px;
+                                        transition: transform 100ms ease-in-out }
+     .collapse-icon.is-collapsed svg.svg-icon
+                                      { transform: rotate(... -90deg) }
+
+   `is-collapsed` sits on the same element as `collapse-icon`, so the second
+   rule matches as written. A rotation of our own did not replace it, it
+   composed with it — -90deg on the span over -90deg on the svg — and the caret
+   pointed straight up. Everything here is inherited; nothing is reproduced. */
+
+.vaultman-content-preview-file {
+  color: var(--color-accent);
+  margin-top: 4px;
+}
+
+.vaultman-content-preview-snippet {
+  color: var(--text-muted);
+  padding-left: 10px;
+  overflow-wrap: anywhere;
+}
+
+.vaultman-content-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 2px;
+}
+
+.vaultman-content-queue-btn {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+}
+
+.vaultman-content-preview-snippet mark {
+  background: var(--text-highlight-bg);
+  color: var(--text-normal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ─── Property Browser (Filters page Rules tab) ──────────────────────── */
+.vaultman-prop-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.vaultman-prop-browser-empty {
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+  padding: 8px 4px;
+}
+
+.vaultman-prop-browser-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.vaultman-prop-browser-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-prop-browser-expand {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.vaultman-prop-browser-expand:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-prop-browser-name {
+  flex: 1;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-prop-browser-count {
+  font-size: var(--font-smallest);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vaultman-prop-browser-values {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 20px;
+}
+
+.vaultman-prop-browser-value {
+  padding: 3px 6px;
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  border-radius: 3px;
+  cursor: pointer;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.vaultman-prop-browser-value:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ─── Queue Details — Content Op Snippets ─────────────────────────────── */
+.vaultman-diff-content-section {
+  margin-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 8px;
+}
+
+.vaultman-diff-content-section-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vaultman-diff-content-file {
+  margin-bottom: 8px;
+}
+
+.vaultman-diff-content-file-path {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.vaultman-diff-snippet {
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  padding: 4px 8px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  margin-bottom: 2px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.vaultman-diff-snippet mark {
+  background: var(--vaultman-diff-deleted);
+  color: inherit;
+  border-radius: 2px;
+}
+
+.vaultman-diff-replace-arrow {
+  color: var(--text-muted);
+  margin: 0 4px;
+}
+
+.vaultman-diff-replace-new {
+  background: var(--vaultman-diff-added);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.vaultman-diff-content-no-matches {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  padding: 2px 8px;
+}
+
+/* === Queue Island === */
+.vaultman-queue-island-wrap {
+  position: absolute;
+  bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.vaultman-queue-island {
+  pointer-events: auto;
+  width: calc(100% - 24px);
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* BT5-034: clamp to the frame height like the filters island. */
+  max-height: min(
+    70vh,
+    calc(var(--vaultman-frame-height, 70vh) - var(--vaultman-nav-height, 64px) - 32px)
+  );
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+.vaultman-queue-island.is-open {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.vaultman-queue-island-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  color: var(--text-faint);
+  text-align: center;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.vaultman-queue-island-btns {
+  justify-content: center;
+  position: absolute;
+  top: -18px;
+  /* Float above the body */
+  left: 0;
+  right: 0;
+  margin-bottom: 0;
+  z-index: 10;
+}
+
+.vaultman-squircle.is-accent {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.vaultman-squircle.is-accent:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.vaultman-queue-island-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 80px;
+}
+
+.vaultman-performance-hud {
+  position: fixed;
+  z-index: 10000;
+  width: min(220px, calc(100vw - 20px));
+  pointer-events: none;
+  user-select: none;
+}
+
+.vaultman-performance-host {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.vaultman-performance-hud.is-collapsed {
+  width: auto;
+}
+
+.vaultman-performance-toggle {
+  pointer-events: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  z-index: 1;
+}
+
+.vaultman-performance-panel {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  padding-right: 34px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.vaultman-performance-hud.is-dragging .vaultman-performance-panel {
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.24);
+}
+
+.vaultman-performance-head,
+.vaultman-performance-metrics,
+.vaultman-performance-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vaultman-performance-head {
+  cursor: grab;
+  touch-action: none;
+}
+
+.vaultman-performance-hud.is-dragging .vaultman-performance-head {
+  cursor: grabbing;
+}
+
+.vaultman-performance-title {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.vaultman-performance-fps,
+.vaultman-performance-metrics {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vaultman-performance-chart {
+  width: 100%;
+  height: 34px;
+  overflow: visible;
+}
+
+.vaultman-performance-line {
+  fill: none;
+  stroke: var(--color-green);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.vaultman-performance-line--pressure {
+  stroke: var(--color-red);
+  opacity: 0.7;
+}
+
+.vaultman-performance-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 72px;
+  overflow: hidden;
+}
+
+.vaultman-performance-action {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vaultman-performance-action strong {
+  color: var(--text-normal);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-queue-island-node {
+  border-radius: 6px;
+}
+
+.vaultman-queue-island-node:nth-child(odd) {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-queue-island-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-queue-island-row-files {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.vaultman-queue-island-row-detail {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-queue-island-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 5px 24px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25;
+}
+
+.vaultman-queue-island-warning.is-error {
+  color: var(--text-error);
+}
+
+.vaultman-queue-island-warning-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.vaultman-queue-island-warning-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.vaultman-queue-mode-toggle {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 3px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+
+.vaultman-queue-mode-btn {
+  min-width: 64px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vaultman-queue-mode-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-queue-mode-btn.is-active {
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+}
+
+.vaultman-queue-island-empty {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  text-align: center;
+  padding: 12px 0;
+}
+
+
+/* === Island System (Queue & Filters) === */
+.vaultman-queue-island-wrap,
+.vaultman-filters-island-wrap {
+  position: absolute;
+  bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.vaultman-pages-viewport--dock-off .vaultman-queue-island-wrap,
+.vaultman-pages-viewport--dock-off .vaultman-filters-island-wrap {
+  bottom: 8px;
+}
+
+.vaultman-queue-island,
+.vaultman-active-filters-island {
+  pointer-events: auto;
+  width: calc(100% - 24px);
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  padding: 12px;
+  padding-top: 36px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* BT5-034: clamp to the frame's own height (minus the bottom-bar offset and
+     margins) so a short vertical split scrolls the list instead of hiding it.
+     Falls back to 60vh when the frame height var is not yet measured. */
+  max-height: min(
+    60vh,
+    calc(var(--vaultman-frame-height, 60vh) - var(--vaultman-nav-height, 64px) - 32px)
+  );
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.vaultman-queue-island.is-open,
+.vaultman-active-filters-island.is-open {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.vaultman-queue-island .vaultman-squircle-row,
+.vaultman-active-filters-island .vaultman-squircle-row {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 110;
+  pointer-events: none;
+}
+
+.vaultman-squircle {
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+}
+
+.vaultman-squircle:hover {
+  transform: scale(1.1);
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-squircle.is-accent {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+/* Island Content Layouts */
+.vaultman-queue-island-header,
+.vaultman-active-filters-island-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-queue-island-list,
+.vaultman-active-filters-island-list {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 80px;
+}
+
+.vaultman-queue-island-node {
+  border-radius: 6px;
+}
+
+.vaultman-queue-island-node:nth-child(odd) {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-queue-island-row,
+.vaultman-active-filter-island-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  min-height: 30px;
+  border-radius: 6px;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-active-filters-island-list .vaultman-active-filter-island-row:nth-child(odd) {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-queue-island-row-files {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.vaultman-queue-island-row-detail,
+.vaultman-active-filter-row-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-queue-island-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 6px 28px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25;
+}
+
+.vaultman-queue-island-warning.is-error {
+  color: var(--text-error);
+}
+
+.vaultman-queue-island-warning-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.vaultman-queue-island-warning-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.vaultman-active-filter-row-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.vaultman-active-filter-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vaultman-active-filters-island .vaultman-active-filter-toggle,
+.vaultman-active-filters-popup .vaultman-active-filter-toggle {
+  color: var(--text-normal);
+  background: transparent;
+  border: none;
+  align-self: center;
+}
+
+.vaultman-active-filter-island-row.is-disabled .vaultman-active-filter-toggle,
+.vaultman-active-filter-rule.is-disabled .vaultman-active-filter-toggle {
+  color: var(--text-faint);
+}
+
+.vaultman-queue-island-empty,
+.vaultman-active-filters-island-empty {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* Fix node badges overlapping count */
+.vaultman-tree-badge-zone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* BT5-017: collapsed-activity dot. Descriptive only — never a pointer target,
+   and it exists in the DOM only while a collapsed node hides activity. */
+.vaultman-tree-bubble-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--vaultman-bubble-dot-color, var(--color-accent));
+  pointer-events: none;
+}
+
+.vaultman-tree-bubble-dot--error,
+.vaultman-tree-bubble-dot--red {
+  --vaultman-bubble-dot-color: var(--color-red);
+}
+
+.vaultman-tree-bubble-dot--warning,
+.vaultman-tree-bubble-dot--orange {
+  --vaultman-bubble-dot-color: var(--color-orange);
+}
+
+.vaultman-tree-bubble-dot--accent {
+  --vaultman-bubble-dot-color: var(--color-accent);
+}
+
+.vaultman-tree-bubble-dot--purple {
+  --vaultman-bubble-dot-color: var(--color-purple);
+}
+
+.vaultman-tree-bubble-dot--blue,
+.vaultman-tree-bubble-dot--info {
+  --vaultman-bubble-dot-color: var(--color-blue);
+}
+
+.vaultman-tree-bubble-dot--green,
+.vaultman-tree-bubble-dot--success {
+  --vaultman-bubble-dot-color: var(--color-green);
+}
+
+.vaultman-tree-bubble-dot--faint {
+  --vaultman-bubble-dot-color: var(--text-faint);
+}
+
+/* BT5-038: the active-filter-descendant dot uses the accent so it reads like
+   the filter highlight it stands in for, without decorating the whole row. */
+.vaultman-tree-bubble-dot--filter {
+  --vaultman-bubble-dot-color: var(--interactive-accent);
+}
+
+.vaultman-tree-bubble-dot--filter-excluded {
+  --vaultman-bubble-dot-color: var(--text-normal);
+}
+
+.vaultman-tree-bubble-dot--deletion {
+  --vaultman-bubble-dot-color: var(--text-error);
+}
+
+/* Table rows flag the same case with a small trailing accent dot. */
+.vaultman-node-table-filter-dot .vaultman-node-table-col-name::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--interactive-accent);
+}
+
+.vaultman-node-table-filter-dot--excluded
+  .vaultman-node-table-col-name::after {
+  background: var(--text-normal);
+}
+
+.vaultman-addon-toggle-cell {
+  flex-shrink: 0;
+  margin-inline: 2px 0;
+  transform: scale(0.8);
+  transform-origin: center;
+}
+
+.vaultman-addon-toggle-input {
+  pointer-events: none;
+}
+
+.vaultman-addon-action-cell {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+}
+
+.vaultman-addon-cell.is-clickable {
+  cursor: pointer;
+}
+
+.vaultman-tree-count {
+  margin-left: 2px;
+}

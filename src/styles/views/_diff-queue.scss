@@ -1,0 +1,142 @@
+/* === Queue Details / Diff === */
+.vaultman-queue-details {
+  max-width: 600px;
+}
+
+.vaultman-diff-container {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.vaultman-diff-file {
+  margin-bottom: 12px;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+  padding: 8px;
+}
+
+.vaultman-diff-path {
+  font-size: 0.85em;
+  margin: 0 0 6px 0;
+  word-break: break-all;
+}
+
+.vaultman-diff-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 4px;
+  margin-bottom: 2px;
+  font-size: 0.8em;
+  font-family: var(--font-monospace);
+}
+
+.vaultman-diff-key {
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.vaultman-diff-added {
+  background: var(--vaultman-diff-added);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.vaultman-diff-deleted {
+  background: var(--vaultman-diff-deleted);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Enhanced diff styles */
+.vaultman-diff-summary {
+  font-size: 0.85em;
+  color: var(--vaultman-text-muted);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: var(--vaultman-bg-section);
+  border-radius: var(--radius-s);
+}
+
+.vaultman-diff-ops {
+  margin-bottom: 8px;
+  font-size: 0.8em;
+}
+
+.vaultman-diff-op {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.vaultman-diff-op-index {
+  color: var(--vaultman-text-faint);
+  min-width: 20px;
+}
+
+.vaultman-diff-op-action {
+  font-weight: 600;
+  color: var(--vaultman-accent);
+  text-transform: uppercase;
+}
+
+.vaultman-diff-op-detail {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-diff-op-files {
+  color: var(--vaultman-text-faint);
+  white-space: nowrap;
+}
+
+.vaultman-diff-toggle-row {
+  margin-bottom: 8px;
+  font-size: 0.8em;
+}
+
+.vaultman-diff-toggle {
+  cursor: pointer;
+  color: var(--vaultman-text-muted);
+}
+
+.vaultman-diff-file-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-s);
+}
+
+.vaultman-diff-file-header:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-diff-file-toggle {
+  font-size: 0.7em;
+  color: var(--vaultman-text-faint);
+  width: 12px;
+}
+
+.vaultman-diff-change-count {
+  font-size: 0.85em;
+  color: var(--vaultman-text-faint);
+  margin-left: auto;
+}
+
+.vaultman-diff-collapsed {
+  display: none;
+}
+
+.vaultman-diff-unchanged {
+  opacity: 0.5;
+}
+
+.vaultman-diff-same {
+  color: var(--vaultman-text-faint);
+  padding: 1px 4px;
+}

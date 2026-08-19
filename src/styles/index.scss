@@ -2,11 +2,42 @@
 // Vaultman Central SCSS Orchestrator (SOLID Architecture)
 // ============================================================================
 
+// 1. Tokens & Elastic Chameleon Layer
 @use './tokens';
 @use './elastic';
+
+// 2. Core
+@use './core/variables';
+@use './core/base';
+
+// 3. Components
+@use './components/buttons';
+@use './components/shell';
+@use './components/bottom-nav';
+@use './components/tabs';
+@use './components/popups-islands';
+@use './components/modals';
+
+// 4. Views & Explorers
+@use './views/files';
+@use './views/filters';
+@use './views/operations';
+@use './views/diff-queue';
+@use './views/tags';
+@use './views/props';
+@use './views/explorer-panel';
+@use './views/tree';
+@use './views/table';
+@use './views/grid-cards';
+@use './views/statistics';
+
+// 5. Residual Hardware & Precision Layers
 @use './residual/virtual-list';
 @use './residual/tree-indent';
 @use './residual/glass-masks';
 @use './residual/obsidian-body';
 @use './residual/virtual-scroll-compat';
 @use './residual/mobile-compat';
+
+// 6. Mobile & Touch Overrides
+@use './mobile/mobile';

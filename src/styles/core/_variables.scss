@@ -1,0 +1,16 @@
+/* vaultman — Sidebar Plugin Styles */
+
+/* === CSS Variables (Style Settings compatible) === */
+.vaultman-view,
+.vaultman-frame,
+.vaultman-main-view {
+  --vaultman-accent: var(--interactive-accent);
+  --vaultman-bg-section: var(--background-secondary);
+  --vaultman-bg-hover: var(--background-modifier-hover);
+  --vaultman-border: var(--background-modifier-border);
+  --vaultman-text-muted: var(--text-muted);
+  --vaultman-text-faint: var(--text-faint);
+  --vaultman-diff-added: #2ea04366;
+  --vaultman-diff-deleted: #f8514966;
+  --vaultman-badge-bg: var(--background-modifier-hover);
+}

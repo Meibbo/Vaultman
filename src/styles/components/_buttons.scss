@@ -1,0 +1,38 @@
+/* === Buttons === */
+.vaultman-btn {
+  font-size: 0.8em;
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  background: var(--interactive-normal);
+  border: 1px solid var(--vaultman-border);
+  color: var(--text-normal);
+}
+
+.vaultman-btn:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-btn.mod-cta {
+  background: var(--vaultman-accent);
+  color: var(--text-on-accent);
+  border-color: var(--vaultman-accent);
+}
+
+.vaultman-btn.mod-cta:hover {
+  opacity: 0.9;
+}
+
+.vaultman-btn-small {
+  font-size: 0.75em;
+  padding: 2px 8px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--vaultman-border);
+  color: var(--vaultman-text-muted);
+}
+
+.vaultman-btn-small:hover {
+  background: var(--vaultman-bg-hover);
+}
