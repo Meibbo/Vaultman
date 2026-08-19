@@ -1,6 +1,4 @@
-import type { UserShortcuts } from 'unocss';
-
-export const shortcutsTable: UserShortcuts = [
+export const shortcutsTable: [string, string][] = [
 	['vm-node-table', 'w-full text-left border-collapse select-none'],
 	['vm-node-table-header', 'sticky top-0 z-20 bg-[var(--background-secondary)] text-xs font-semibold text-[var(--text-muted)] border-b border-[var(--background-modifier-border)]'],
 	['vm-node-table-cell', 'px-2.5 py-1.5 text-sm text-[var(--text-normal)] border-b border-[var(--background-modifier-border)]/50 truncate'],

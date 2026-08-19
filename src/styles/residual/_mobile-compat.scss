@@ -1,0 +1,121 @@
+// ============================================================================
+// Mobile Layout Compatibility & Source Guards
+// ============================================================================
+
+.vaultman-bottom-nav {
+	top: 0;
+	bottom: auto;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+.vaultman-navbar-filters.vaultman-glass::before {
+	-webkit-mask-image: none;
+}
+
+.vaultman-navbar-filters {
+	container-type: inline-size;
+}
+
+.vaultman-filters-search-row {
+	display: flex;
+}
+
+.is-phone .vaultman-filters-search-row {
+	display: none;
+}
+
+.vaultman-filters-header-search-pill--row {
+	display: flex;
+}
+
+.vaultman-filters-phone-search-row {
+	position: static;
+	padding: 8px 8px 4px;
+	background: transparent;
+	border-bottom-color: var(--background-modifier-border);
+}
+
+.vaultman-filters-header-search-pill--inline {
+	display: flex;
+}
+
+.vaultman-filters-header-search-pill--phone {
+	display: flex;
+}
+
+.vaultman-filters-header-search-pill {
+	width: 28px;
+	height: 28px;
+}
+
+.vaultman-island-backdrop:not(.is-open) {
+	backdrop-filter: none;
+}
+
+.vaultman-island-backdrop:not(.is-open)::before {
+	backdrop-filter: none;
+}
+
+.vaultman-page {
+	height: 100%;
+}
+
+.vaultman-filters-actions {
+	width: max-content;
+	max-width: 100%;
+	margin-inline: auto;
+	justify-content: center;
+}
+
+.is-phone .workspace-drawer .vaultman-filters-actions {
+	width: 100%;
+}
+
+.is-phone .vaultman-pages-viewport {
+	padding: 8px 0 96px;
+}
+
+.vaultman-files-table-header-row,
+.vaultman-node-table-header-row {
+	--bases-table-row-height: 37px;
+}
+
+.vaultman-files-grid-card {
+	flex: 0 0 20px;
+}
+
+.vaultman-floating-toc-item {
+	flex-basis: 24px;
+}
+
+.vaultman-content-find-row .vaultman-icon-toggle {
+	background: transparent;
+}
+
+.vaultman-content-clear-button {
+	padding-inline-end: 34px;
+	inset-inline-end: 2px;
+	width: 28px;
+	height: 28px;
+
+	svg {
+		width: 16px;
+		height: 16px;
+	}
+}
+
+.vaultman-stat-card {
+  display: flex;
+	background: transparent;
+}
+
+.vaultman-content-search-container.search-input-container::before {
+	display: none;
+}
+
+.vaultman-content-input-icon {
+	border-top: 1px solid var(--background-modifier-border);
+	background: var(--color-accent);
+}

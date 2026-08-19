@@ -1,6 +1,4 @@
-import type { UserShortcuts } from 'unocss';
-
-export const shortcutsButtons: UserShortcuts = [
+export const shortcutsButtons: [string, string][] = [
 	['vm-btn', 'inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 rounded px-2.5 py-1 text-sm bg-transparent border-none text-[var(--text-normal)] hover:bg-[var(--background-modifier-hover)] active:bg-[var(--background-modifier-active)]'],
 	['vm-btn-primary', 'bg-[var(--interactive-accent)] text-[var(--text-on-accent)] hover:bg-[var(--interactive-accent-hover)] font-semibold'],
 	['vm-btn-ghost', 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-normal)] hover:bg-[var(--background-modifier-hover)]'],

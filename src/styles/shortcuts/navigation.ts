@@ -1,6 +1,4 @@
-import type { UserShortcuts } from 'unocss';
-
-export const shortcutsNavigation: UserShortcuts = [
+export const shortcutsNavigation: [string, string][] = [
 	['vm-nav-pill', 'rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer select-none bg-[var(--background-secondary)] text-[var(--text-muted)] hover:text-[var(--text-normal)] hover:bg-[var(--background-modifier-hover)]'],
 	['vm-nav-pill-active', 'bg-[var(--interactive-accent)] text-[var(--text-on-accent)] font-semibold shadow-sm'],
 	['vm-nav-fab', 'fixed bottom-4 right-4 z-40 h-11 w-11 rounded-full bg-[var(--interactive-accent)] text-[var(--text-on-accent)] flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform duration-150 cursor-pointer'],

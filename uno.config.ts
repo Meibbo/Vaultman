@@ -41,7 +41,7 @@ export default defineConfig({
 				native: '.vm-theme-native',
 				vaultman: '.vm-theme-vaultman',
 			},
-		}),
+		}) as any,
 	],
 	safelist: [
 		'vm-root',

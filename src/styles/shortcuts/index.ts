@@ -1,4 +1,3 @@
-import type { UserShortcuts } from 'unocss';
 import { shortcutsButtons } from './buttons';
 import { shortcutsCards } from './cards';
 import { shortcutsNavigation } from './navigation';
@@ -15,7 +14,7 @@ export {
 	shortcutsIslands,
 };
 
-export const allShortcuts: UserShortcuts = [
+export const allShortcuts: [string, string][] = [
 	...shortcutsButtons,
 	...shortcutsCards,
 	...shortcutsNavigation,

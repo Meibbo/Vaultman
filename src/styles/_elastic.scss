@@ -1,0 +1,28 @@
+// ============================================================================
+// Layer 2: Elastic UI & Theme Root Modifiers
+// ============================================================================
+
+.vm-root {
+	font-family: var(--font-interface);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+
+	&.vm-mode-thin {
+		--vm-row-height: 22px;
+		--vm-icon-size: 12px;
+	}
+
+	&.vm-mode-balanced {
+		--vm-row-height: 26px;
+		--vm-icon-size: 14px;
+	}
+
+	&.vm-mode-thick {
+		--vm-row-height: 32px;
+		--vm-icon-size: 16px;
+	}
+
+	&.vm-faint {
+		opacity: 0.7;
+	}
+}

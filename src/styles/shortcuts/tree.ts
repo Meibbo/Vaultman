@@ -1,6 +1,4 @@
-import type { UserShortcuts } from 'unocss';
-
-export const shortcutsTree: UserShortcuts = [
+export const shortcutsTree: [string, string][] = [
 	['vm-tree-row', 'flex items-center gap-1.5 px-2 py-0.5 select-none cursor-pointer rounded transition-colors duration-100 text-[var(--text-normal)] hover:bg-[var(--background-modifier-hover)]'],
 	['vm-tree-row-active', 'bg-[var(--background-modifier-active-hover)] font-medium text-[var(--interactive-accent)]'],
 	['vm-tree-row-focused', 'outline outline-1 outline-[var(--interactive-accent)]'],
