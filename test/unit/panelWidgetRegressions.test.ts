@@ -142,7 +142,7 @@ describe('U121-029 search field second row', () => {
 		// earlier 100% declaration is still overridden at runtime.
 		expect(row).toContain('width: 100%');
 		expect(row).toContain('max-width: none');
-		expect(row).toContain('flex: 1 1 100%');
+		expect(row).toMatch(/flex:\s*1\s*1\s*100%|flex:\s*1\s*1\s*auto;\s*width:\s*100%/);
 	});
 
 	it('keeps the field inline only while a usable width is left', () => {

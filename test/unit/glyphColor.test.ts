@@ -225,8 +225,10 @@ describe('BT5-025 shared glyph color palette', () => {
 
 	it('tints hover backgrounds only for non-default glyph-colored surfaces', () => {
 		expect(stylesSource).toContain('.vaultman-glyph-colored:hover');
-		expect(stylesSource).toContain(
-			'color-mix(\n\t\tin srgb,\n\t\tvar(--vaultman-glyph-color),\n\t\ttransparent 80%\n\t)',
-		);
+		// `styles.css` se genera, asi que comparar la cadena exacta vigilaba el
+		// formato del generador y no la intencion del estilo. Se comprueba la
+		// mezcla en si, sin depender de saltos ni tabulaciones.
+		const flat = stylesSource.replace(/\s+/g, ' ');
+		expect(flat).toContain('color-mix(in srgb, var(--vaultman-glyph-color), transparent 80%)');
 	});
 });
