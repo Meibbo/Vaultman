@@ -1756,12 +1756,31 @@ export class PropsExplorerPanel extends Component {
 			onRename: (id: string, newLabel: string) => {
 				this._editingId = undefined;
 				const node = this._findNode(id, tree);
-				if (node && !node.meta.isValueNode) {
+				if (node && node.meta.isValueNode) {
+					// A value-node rename writes the value, not the property
+					// key, through the same queueable vault path the value
+					// cells use. Previously this branch did not exist and the
+					// committed text was silently discarded.
+					void this._replaceValueInVault(
+						node.meta.propName,
+						node.meta.rawValue ?? '',
+						coercePropertyValueForWidget(
+							newLabel,
+							node.meta.propType ?? 'text',
+						),
+					);
+				} else if (node) {
 					newLabel = newLabel.replace(
 						/\{date\}|\[fecha\]/gi,
 						new Date().toISOString().slice(0, 10),
 					);
 					void this._renamePropQueued(node.meta.propName, newLabel);
+				} else {
+					// Guard: a rename committed on an unknown node must fail
+					// loudly instead of silently discarding the text.
+					throw new Error(
+						`props inline rename: no write path for node "${id}"`,
+					);
 				}
 				void this._render();
 			},
@@ -1877,9 +1896,9 @@ export class PropsExplorerPanel extends Component {
 				const label = container.createSpan({
 					cls: 'vaultman-tree-label vaultman-property-value-empty vaultman-property-value-cell',
 				});
-				renderEditableText(label, {
+				const text = renderEditableText(label, {
 					container: label,
-					raw: translate('prop.value.empty'),
+					raw: '',
 					type: propType,
 					app: this.plugin.app,
 					onRenameValue: (next) => {
@@ -1890,11 +1909,18 @@ export class PropsExplorerPanel extends Component {
 						);
 					},
 				});
+				// The translated word is a placeholder, not the node's label:
+				// the editable text starts empty, so the commit carries only
+				// what the user typed, in every language.
+				text.setAttribute(
+					'data-placeholder',
+					translate('prop.value.empty'),
+				);
 				return true;
 			}
 			container.createSpan({
 				cls: 'vaultman-tree-label vaultman-property-value-empty',
-				text: translate('prop.value.empty'),
+				attr: { 'data-placeholder': translate('prop.value.empty') },
 			});
 			return true;
 		}

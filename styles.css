@@ -7221,9 +7221,16 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 }
 
 /* The empty value node: the model labels it `empty`, and the projection shows
-   the translated word in faint whether the Format cell is on or off. */
+   the translated word as a placeholder in faint, whether the Format cell is on
+   or off. The label stays empty so the inline editor starts blank and the
+   commit carries only what the user typed. */
 .vaultman-property-value-empty {
 	color: var(--vaultman-text-faint);
+}
+
+.vaultman-property-value-empty[data-placeholder]:empty::before,
+.vaultman-property-value-text[data-placeholder]:empty::before {
+	content: attr(data-placeholder);
 }
 
 /* While editing, the caret needs the full value, so the ellipsis gives way to
