@@ -187,9 +187,16 @@ describe('stickyTreeRows', () => {
 	});
 
 
-	it('pushes a deep header as soon as its subtree reaches the sticky area', () => {
-		// Three nested parents, so the stack is root > branch > leafParent, and
-		// leafParent sits at slot 2. Its own subtree is one row.
+	it('slides a deep header up until it is covered, then drops it', () => {
+		// Escrito antes con el modelo equivocado: pedia que la cabecera siguiera
+		// visible en una posicion donde su subarbol ya termina POR ENCIMA de su
+		// propio slot, o sea donde no le corresponde estar.
+		//
+		// Lo correcto: mientras su subarbol la alcanza se desliza hacia arriba
+		// (salida gradual, sin pop); en cuanto quedaria exactamente cubierta por
+		// la de encima se retira, porque dibujarla ahi la esconde detras y deja
+		// su hueco vacio. Ese era el fallo que el dev veia en todo nivel por
+		// debajo del primero.
 		const rows = [
 			folder('root', 0),
 			folder('branch', 1),
@@ -199,22 +206,23 @@ describe('stickyTreeRows', () => {
 			file('tail', 2),
 		];
 		const rowHeight = 20;
-		const at = (scrollTop: number) =>
+		const stackAt = (scrollTop: number) =>
 			stickyTreeRows(rows, { rowHeight, scrollTop, viewportHeight: 400 });
 
-		// leafParent is index 2 and its subtree ends at index 4, so its bottom
-		// edge sits at document y = 80. It occupies slot 2, whose band is
-		// viewport y 40..60. The push has to begin once the subtree bottom
-		// enters that band, i.e. while 80 - scrollTop <= 60, so from scrollTop
-		// 20 onwards — not only when it reaches the very top of the frame.
-		const pushed = at(50).find((row) => row.index === 2);
-		expect(pushed).toBeDefined();
-		// Its bottom edge must never cross its own subtree's bottom edge.
-		expect((pushed?.top ?? 0) + rowHeight).toBeLessThanOrEqual(80 - 50);
-		// Y su slot nominal seria 40: si no se empuja, se queda ahi.
-		expect(pushed?.top).toBeLessThan(40);
-	});
+		// Dentro de su subarbol: fijada en su slot, sin invertir la pila.
+		const inside = stackAt(70);
+		for (let i = 1; i < inside.length; i += 1) {
+			expect(inside[i]?.top).toBeGreaterThanOrEqual(inside[i - 1]?.top ?? 0);
+		}
 
+		// En ninguna posicion puede quedar por encima de su vecina de arriba.
+		for (let scrollTop = 1; scrollTop < rows.length * rowHeight; scrollTop += 5) {
+			const stack = stackAt(scrollTop);
+			for (let i = 1; i < stack.length; i += 1) {
+				expect(stack[i]?.top).toBeGreaterThanOrEqual(stack[i - 1]?.top ?? 0);
+			}
+		}
+	});
 
 	it('parks the sticky layer under whatever the layout overlays', () => {
 		// The band the dev sees between the toolbar and the first pinned row is
@@ -259,6 +267,65 @@ describe('stickyTreeRows', () => {
 		expect(treeCss).toContain('margin-bottom: 0');
 	});
 
+
+	it('never inverts: a header is never drawn above the one it sits under', () => {
+		// The defect the dev reported for every level below the first. Measured
+		// on their vault the deepest header sat at top 71 with the one above it
+		// at 84, so it painted behind and disappeared while its slot stayed
+		// empty. Sweeping a deep tree at half-row steps is the only way to
+		// catch it: it depends on where each subtree happens to end.
+		const tree: TreeNode[] = Array.from({ length: 4 }, (_, a) =>
+			folder(
+				`a-${a}`,
+				0,
+				Array.from({ length: 3 }, (_, b) =>
+					folder(
+						`b-${a}-${b}`,
+						1,
+						Array.from({ length: 2 }, (_, c) =>
+							folder(`c-${a}-${b}-${c}`, 2, [
+								file(`f1-${a}-${b}-${c}`, 3),
+								file(`f2-${a}-${b}-${c}`, 3),
+							]),
+						),
+					),
+				),
+			),
+		);
+		const expanded = new Set<string>();
+		const mark = (items: TreeNode[]): void => {
+			for (const item of items) {
+				if (item.children?.length) {
+					expanded.add(item.id);
+					mark(item.children);
+				}
+			}
+		};
+		mark(tree);
+		const { rows, parentIndex, subtreeEnd } = flattenVisibleTreeWithChain(
+			tree,
+			expanded,
+		);
+
+		const rowHeight = 28;
+		for (let step = 1; step < rows.length * 2; step += 1) {
+			const scrollTop = Math.floor((step * rowHeight) / 2);
+			const stack = stickyTreeRows(rows, {
+				rowHeight,
+				scrollTop,
+				viewportHeight: 600,
+				parentIndex,
+				subtreeEnd,
+			});
+			for (let i = 1; i < stack.length; i += 1) {
+				const above = stack[i - 1];
+				const here = stack[i];
+				if (!above || !here) continue;
+				expect(here.top).toBeGreaterThanOrEqual(above.top);
+			}
+		}
+	});
+
 	it('has a layer the rows can actually float in', () => {
 		// The view builds the layer and positions each row inside it, so without
 		// these two rules the whole setting is inert: an unstyled strip scrolls
@@ -285,9 +352,17 @@ describe('stickyTreeRows', () => {
 	});
 
 	it('caps the stack at the smaller of seven rows and forty percent height', () => {
-		const rows = Array.from({ length: 12 }, (_, index) =>
-			folder(`folder-${index}`, index, [file(`file-${index}`, index + 1)]),
+		// Cola profunda larga a proposito: asi ningun subarbol termina cerca del
+		// borde en esta posicion y la prueba mide el TOPE, que es lo que dice su
+		// nombre. Con el arbol anterior los doce subarboles acababan en el mismo
+		// punto, se empujaban todos a la vez y la longitud acababa dependiendo
+		// del empuje en vez del limite.
+		const rows: TreeNode[] = Array.from({ length: 12 }, (_, depth) =>
+			folder(`folder-${depth}`, depth),
 		);
+		for (let i = 0; i < 30; i += 1) {
+			rows.push(file(`tail-${i}`, 12));
+		}
 		expect(
 			stickyTreeRows(rows, {
 				rowHeight: 20,

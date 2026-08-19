@@ -77,10 +77,19 @@ export function stickyTreeRows(
 		// slot, the incoming p-node pushes the header up instead, and it slides
 		// out behind its own ancestors rather than releasing all at once.
 		const pushedTop = subtreeBottom - scrollTop - rowHeight;
-		result.push({
-			index: candidate.index,
-			top: Math.min(slot * rowHeight, pushedTop),
-		});
+		// The push must not carry the row above the one it sits under. The
+		// stack paints shallower slots on top, so a row that rises past its
+		// neighbour's slot is drawn behind it and vanishes while its own slot
+		// sits empty — which is why every level below the first went missing.
+		// The floor is the slot above: at that point it is exactly covered.
+		const top = Math.min(slot * rowHeight, pushedTop);
+		// Sujetarla al suelo la haria solapar al nodo entrante, que es el bug
+		// original; dejarla pasar la dibuja detras de su vecina y desaparece.
+		// Lo correcto es retirarla: una vez que el empuje la deja exactamente
+		// cubierta por la de encima, ya no aporta nada y su hueco pertenece al
+		// siguiente p-node. La salida sigue siendo gradual hasta ese punto.
+		if (slot > 0 && top < (slot - 1) * rowHeight) continue;
+		result.push({ index: candidate.index, top });
 	}
 	return result;
 }
