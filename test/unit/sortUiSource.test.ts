@@ -63,6 +63,8 @@ describe('explorer sort UI source', () => {
 				true,
 			)?.items.map((item) => item.id),
 		).toEqual([
+			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
+			'filtered',
 			'nested',
 			'parentsFirst',
 			'fixedFolders',
@@ -212,6 +214,8 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 			true,
 		);
 		expect(enabled?.items.map((item) => item.id)).toEqual([
+			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
+			'filtered',
 			'nested',
 			'parentsFirst',
 			'fixedFolders',

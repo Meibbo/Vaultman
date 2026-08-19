@@ -28,6 +28,8 @@ describe('BT5-007 shared sort menu model', () => {
 			true,
 		);
 		expect(enabled?.items.map((item) => item.id)).toEqual([
+			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
+			'filtered',
 			'nested',
 			'parentsFirst',
 			'fixedFolders',
@@ -48,6 +50,8 @@ describe('BT5-007 shared sort menu model', () => {
 			true,
 		);
 		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
+			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
+			'filtered',
 			'nested',
 			'parentsFirst',
 			'scope-separator',
@@ -61,7 +65,10 @@ describe('BT5-007 shared sort menu model', () => {
 		// and scope have no single-level meaning.
 		expect(
 			byLevelModel('files', stateFor('files'), false)?.items.map((i) => i.id),
-		).toEqual(['nested']);
+			// U121-052: `files` gana `filtered` y, por el mismo motivo que ya se
+			// documenta debajo para los node providers, NO se condiciona al anidado:
+			// estrechar el conjunto de origen tambien significa algo en plano.
+		).toEqual(['filtered', 'nested']);
 		// U121-029: the node providers carry `filtered` above Nested, and it is
 		// not gated on nesting — narrowing the source set means something on a
 		// flat level too.

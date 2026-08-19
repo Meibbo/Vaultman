@@ -40,7 +40,12 @@ describe('Props explorer context-menu source guards', () => {
 		expect(propsExplorerSource).toContain(
 			"cls: 'vaultman-tree-label vaultman-property-value-empty'",
 		);
-		expect(propsExplorerSource).toContain("text: translate('prop.value.empty')");
+		// U121-034: la palabra ya NO se escribe en la etiqueta. Si lo hiciera, el
+		// editor en linea arrancaria con ella y el commit buscaria una clave de
+		// frontmatter llamada `empty`. Ahora viaja como placeholder y la etiqueta
+		// queda vacia, asi que el guard vigila el mecanismo nuevo.
+		expect(propsExplorerSource).toContain("'data-placeholder'");
+		expect(propsExplorerSource).toContain("translate('prop.value.empty')");
 		expect(propsExplorerSource).toContain(
 			"if (!node.meta.isValueNode) return false;",
 		);
