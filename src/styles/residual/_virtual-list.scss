@@ -1,0 +1,28 @@
+// ============================================================================
+// Residual Layer: Virtual List & Hardware Transforms (~10% SCSS)
+// ============================================================================
+
+.vm-virtual-scroll {
+	contain: strict;
+	will-change: transform, scroll-position;
+	overflow-y: auto;
+	overflow-x: hidden;
+	position: relative;
+	height: 100%;
+	width: 100%;
+}
+
+.vm-virtual-viewport {
+	position: relative;
+	width: 100%;
+	min-height: 100%;
+}
+
+.vm-virtual-item {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	transform: translate3d(0, var(--vm-virtual-offset-y, 0px), 0);
+	backface-visibility: hidden;
+}

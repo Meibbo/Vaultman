@@ -1,0 +1,23 @@
+// ============================================================================
+// Residual Layer: Dynamic Tree Indent Guides (~10% SCSS)
+// ============================================================================
+
+.vm-tree-indent-guide {
+	position: relative;
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: calc(var(--vm-depth, 0) * var(--vm-indent-step, 14px) + 8px);
+		width: 1px;
+		background-color: var(--background-modifier-border);
+		opacity: 0.6;
+		pointer-events: none;
+	}
+}
+
+.vm-tree-depth-pad {
+	padding-left: calc(var(--vm-depth, 0) * var(--vm-indent-step, 14px));
+}

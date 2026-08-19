@@ -1,0 +1,83 @@
+// ============================================================================
+// Virtual Scroll Compat & Layout
+// ============================================================================
+
+:root {
+	--vaultman-tree-indent-unit: 16px;
+	--vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));
+	--vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
+	--vaultman-tree-row-padding-start: var(--size-4-6);
+	--vaultman-tree-caret-offset: var(--size-4-5);
+	--vaultman-tree-guide-start: 12px;
+}
+
+.vaultman-tree-virtual-viewport {
+	position: relative;
+	width: 100%;
+	min-height: 100%;
+}
+
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	inset-inline-start: var(--vaultman-tree-guide-start);
+	background-image: repeating-linear-gradient(
+		to right,
+		var(--vaultman-tree-indent-line-color) 0,
+		var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
+		transparent var(--vaultman-tree-indent-line-width),
+		transparent var(--vaultman-tree-indent-unit)
+	);
+	width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+	pointer-events: none;
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
+	padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+	padding-inline-end: 8px;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+	transition: top 100ms ease-in-out, background-color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+		transition: none;
+	}
+}
+
+.vaultman-tag-card .vaultman-badge,
+.vaultman-prop-card .vaultman-badge {
+	color: var(--text-muted);
+	background: transparent;
+	opacity: 0.8;
+}
+
+.vaultman-badge--blue {
+	color: var(--color-blue);
+}
+
+.vaultman-badge--orange {
+	color: var(--color-orange);
+}
+
+.vaultman-tree-row.tree-item-self {
+	height: 27px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
+	height: 37px;
+}
+
+.vaultman-files-table {
+	width: 100%;
+}
+
+.vaultman-node-table-scroll,
+.vaultman-files-grid-scroll {
+	position: relative;
+}

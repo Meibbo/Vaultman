@@ -1,0 +1,17 @@
+// ============================================================================
+// Residual Layer: Global Body Modifiers & Interop (~10% SCSS)
+// ============================================================================
+
+body.vm-resizing {
+	cursor: col-resize !important;
+	user-select: none !important;
+
+	* {
+		pointer-events: none !important;
+	}
+}
+
+body.vm-reduced-motion * {
+	transition-duration: 0.001ms !important;
+	animation-duration: 0.001ms !important;
+}

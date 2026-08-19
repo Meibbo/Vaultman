@@ -1,0 +1,19 @@
+// ============================================================================
+// Residual Layer: Glass Masks & Gradient Fades (~10% SCSS)
+// ============================================================================
+
+.vm-glass {
+	background-color: rgba(var(--mono-rgb-0, 0, 0), var(--vm-popup-bg-opacity, 0.92));
+	backdrop-filter: blur(var(--vm-popup-backdrop-blur, 4px));
+	-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 4px));
+}
+
+.vm-fade-mask-bottom {
+	-webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+	mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+.vm-fade-mask-top {
+	-webkit-mask-image: linear-gradient(to top, black 85%, transparent 100%);
+	mask-image: linear-gradient(to top, black 85%, transparent 100%);
+}

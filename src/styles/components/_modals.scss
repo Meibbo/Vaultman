@@ -1,0 +1,152 @@
+/* === Modals === */
+.vaultman-modal {
+  max-width: 500px;
+}
+
+.vaultman-modal h3 {
+  margin-top: 0;
+}
+
+.vaultman-modal-subtitle {
+  font-size: 0.85em;
+  color: var(--vaultman-text-muted);
+  margin-top: -8px;
+}
+
+
+/* === Settings data transfer modal (export/import filters, queue templates, layouts) === */
+.vaultman-data-transfer-modal {
+  width: 100%;
+  max-width: 640px;
+}
+
+.vaultman-data-transfer-textarea {
+  width: 100%;
+  min-height: 320px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* === Linter Modal === */
+.vaultman-linter-modal {
+  max-width: 450px;
+}
+
+.vaultman-linter-warning {
+  color: var(--text-error);
+  font-style: italic;
+}
+
+.vaultman-linter-scope {
+  font-size: 0.85em;
+  color: var(--vaultman-text-muted);
+  margin-bottom: 8px;
+}
+
+.vaultman-linter-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+}
+
+.vaultman-linter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vaultman-border);
+  font-size: 0.85em;
+}
+
+.vaultman-linter-item:last-child {
+  border-bottom: none;
+}
+
+.vaultman-linter-index {
+  color: var(--vaultman-text-faint);
+  font-size: 0.85em;
+  min-width: 20px;
+  text-align: right;
+}
+
+.vaultman-linter-prop {
+  flex: 1;
+  color: var(--text-normal);
+}
+
+.vaultman-linter-add-row {
+  margin-bottom: 12px;
+}
+
+.vaultman-linter-add-input {
+  width: 100%;
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+
+/* === Settings — drag-and-drop page order list === */
+.vaultman-page-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 12px;
+}
+
+.vaultman-page-order-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  cursor: grab;
+  user-select: none;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+
+.vaultman-page-order-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-page-order-row.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.vaultman-page-order-row.drag-over {
+  border-color: var(--color-accent);
+  background: var(--background-modifier-hover);
+  transform: scale(1.01);
+}
+
+.vaultman-page-order-handle {
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vaultman-page-order-pos {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-faint);
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.vaultman-page-order-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  flex: 1;
+}

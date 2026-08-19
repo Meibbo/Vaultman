@@ -1,0 +1,1075 @@
+/* =========================================================
+   Iter 17 — Filters header replacement + popup layouts
+   ========================================================= */
+
+/* Wrapper that gives the header + popups a fixed height so
+   they don't reflow the tab content below. */
+.vaultman-filters-header-wrap {
+  position: relative;
+  overflow: visible;
+  width: 100%;
+}
+
+/* Slide-in animations for Level 4 popups */
+@keyframes vaultman-slide-in-from-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes vaultman-slide-in-from-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.vaultman-filters-popup-slot {
+  width: 100%;
+}
+.vaultman-filters-popup-slot.popup-enter-from-left {
+  animation: vaultman-slide-in-from-left 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.vaultman-filters-popup-slot.popup-enter-from-right {
+  animation: vaultman-slide-in-from-right 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Tab content wrapper for the {#key} fade */
+.vaultman-filters-tab-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.vaultman-filters-tab-pane {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.vaultman-filters-tab-pane.is-active {
+  display: flex;
+}
+
+/* ----------------------------------------------------------
+   Sort Popup
+   ---------------------------------------------------------- */
+.vaultman-sort-popup {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 8px;
+  position: relative;
+  overflow: visible;
+}
+
+/* Vert-col: absolute, floats over tab content */
+.vaultman-sort-vertcol {
+  position: absolute;
+  left: 9px;
+  top: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 50;
+  overflow: visible;
+}
+
+.vaultman-sort-vertcol-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  transition: background 150ms ease, color 150ms ease;
+}
+.vaultman-sort-vertcol-btn:hover,
+.vaultman-sort-vertcol-btn.is-active {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border-color: var(--color-accent);
+}
+.vaultman-sort-vertcol-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Drawer inside vert-col */
+.vaultman-sort-vertcol-drawer {
+  position: absolute;
+  top: 28px;
+  left: 30px;
+  z-index: 55;
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 3px;
+  width: max-content;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: var(--shadow-s);
+}
+.vaultman-sort-drawer-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-muted);
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+.vaultman-sort-drawer-separator {
+  grid-column: 1 / -1;
+  height: 1px;
+  margin: 1px 0;
+  background: var(--background-modifier-border);
+}
+.vaultman-sort-drawer-item:hover,
+.vaultman-sort-drawer-item.is-active {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border);
+}
+
+.vaultman-sort-drawer-item.is-active {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.vaultman-sort-drawer-item svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Main content: rows */
+.vaultman-sort-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  padding-left: 40px; /* leave room for vert-col */
+}
+
+.vaultman-sort-main--flat {
+  padding-left: 0;
+}
+
+.vaultman-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultman-sort-row-controls {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vaultman-sort-row-controls::-webkit-scrollbar {
+  display: none;
+}
+
+/* Scope dropdown */
+.vaultman-sort-scope-select {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Circle buttons in sort row */
+.vaultman-sort-circle-btn,
+.vaultman-sort-close-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+.vaultman-sort-circle-btn:hover,
+.vaultman-sort-close-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.vaultman-sort-circle-btn svg,
+.vaultman-sort-close-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.vaultman-sort-row-controls .vaultman-sort-close-btn {
+  margin-left: auto;
+}
+
+/* Direction indicator inside squircle */
+.vaultman-sort-dir {
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.vaultman-sort-dir svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Icon span inside squircle */
+.vaultman-squircle-icon {
+  display: flex;
+  align-items: center;
+}
+.vaultman-squircle-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Squircle row in sort popup — bounded/centered */
+.vaultman-sort-squircle-row {
+  justify-content: flex-start;
+}
+
+/* ----------------------------------------------------------
+   View Mode Popup
+   ---------------------------------------------------------- */
+.vaultman-viewmode-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.vaultman-viewmode-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultman-viewmode-row-controls {
+  overflow: hidden;
+}
+
+/* Close + circle buttons in view-mode row */
+.vaultman-viewmode-close-btn,
+.vaultman-viewmode-circle-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+.vaultman-viewmode-close-btn:hover,
+.vaultman-viewmode-circle-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.vaultman-viewmode-close-btn svg,
+.vaultman-viewmode-circle-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Pills container: horizontal scroll, no scrollbar */
+.vaultman-viewmode-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+}
+.vaultman-viewmode-pills::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual pill */
+.vaultman-viewmode-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
+}
+.vaultman-viewmode-pill.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  color: var(--text-accent);
+}
+.vaultman-viewmode-pill:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-squircle.is-locked {
+  cursor: default;
+  color: var(--text-faint);
+}
+
+/* ─── Floating TOC rail (v1.2 FTC-001) ─────────────────────────────────────
+   Overlay inside .vaultman-pages-viewport (position:relative). Wrapper strip
+   ignores pointer events so the explorer stays clickable; buttons re-enable. */
+.vaultman-pages-viewport {
+	--vaultman-toc-rail-edge-offset: 2px;
+}
+.is-mobile .vaultman-pages-viewport {
+	--vaultman-toc-rail-edge-offset: 4px;
+}
+.vaultman-pages-viewport--toc-gutter-right
+	:is(
+		.vaultman-tree-virtual-viewport,
+		.vaultman-files-table,
+		.vaultman-node-table-scroll,
+		.vaultman-files-grid-scroll,
+		.vaultman-props-tab-content:not(.vaultman-tree-virtual-viewport):not(
+			.vaultman-node-table-root
+		),
+		.vaultman-tags-tab-content:not(.vaultman-tree-virtual-viewport):not(
+			.vaultman-node-table-root
+		)
+	) {
+	box-sizing: border-box;
+	padding-inline-end: var(--vaultman-toc-content-gutter);
+	scroll-padding-inline-end: var(--vaultman-toc-content-gutter);
+}
+.vaultman-pages-viewport--toc-gutter-left
+	:is(
+		.vaultman-tree-virtual-viewport,
+		.vaultman-files-table,
+		.vaultman-node-table-scroll,
+		.vaultman-files-grid-scroll,
+		.vaultman-props-tab-content:not(.vaultman-tree-virtual-viewport):not(
+			.vaultman-node-table-root
+		),
+		.vaultman-tags-tab-content:not(.vaultman-tree-virtual-viewport):not(
+			.vaultman-node-table-root
+		)
+	) {
+	box-sizing: border-box;
+	padding-inline-start: var(--vaultman-toc-content-gutter);
+	scroll-padding-inline-start: var(--vaultman-toc-content-gutter);
+}
+/* An explicit right lane moves the rail off a visible classic scrollbar.
+   Hide-scrollbar keeps the rail at its overlay edge and only reserves one
+   content gutter, so the two modes never add their footprints together. */
+.vaultman-pages-viewport--toc-explicit-lane-right
+	.vaultman-floating-toc-wrap.pos-right {
+	right: calc(
+		var(--vaultman-toc-rail-edge-offset) +
+			var(--vaultman-toc-rail-scrollbar-offset)
+	);
+}
+.vaultman-floating-toc-wrap {
+	position: absolute;
+	top: 48px;
+	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	right: var(--vaultman-toc-rail-edge-offset);
+	z-index: 12;
+	display: flex;
+	align-items: center;
+	pointer-events: none;
+}
+.vaultman-pages-viewport--dock-off .vaultman-floating-toc-wrap {
+	bottom: 16px;
+}
+.vaultman-floating-toc {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+	max-height: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	pointer-events: auto;
+	scrollbar-width: none;
+	touch-action: pan-y;
+	padding: 2px 0;
+}
+.vaultman-floating-toc::-webkit-scrollbar {
+	display: none;
+}
+.vaultman-floating-toc-item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 15px;
+	pointer-events: auto;
+	width: 18px;
+	height: 15px;
+	padding: 0;
+	border: none;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1;
+	border-radius: 2px;
+	cursor: pointer;
+}
+.vaultman-floating-toc-item:hover {
+	color: var(--text-normal);
+}
+/* ─── Niagara scrub (off by default): magnify wave + glow + name cells ─────── */
+.vaultman-floating-toc-actions,
+.vaultman-floating-toc-glyphs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+}
+.vaultman-floating-toc-glyphs {
+	will-change: transform;
+}
+.vaultman-floating-toc-glyphs.is-niagara {
+	touch-action: none;
+}
+.vaultman-floating-toc.is-scrubbing {
+	overflow: visible;
+}
+.vaultman-floating-toc-glyphs.is-niagara > .vaultman-floating-toc-item,
+.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: right center;
+	flex-direction: row-reverse;
+	gap: 6px;
+	white-space: nowrap;
+	transition:
+		transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+		color 0.1s ease;
+}
+.vaultman-floating-toc-item.is-scrub-active {
+	color: var(--color-accent);
+}
+.vaultman-floating-toc .vaultman-floating-toc-item:hover {
+	color: var(--text-normal);
+}
+/* Radial glow that follows the active glyph. */
+.vaultman-floating-toc-glow {
+	position: absolute;
+	width: 150px;
+	height: 150px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	pointer-events: none;
+	z-index: 0;
+	opacity: 0;
+	background: radial-gradient(
+		circle,
+		color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
+		color-mix(in srgb, var(--color-accent) 12%, transparent) 40%,
+		transparent 70%
+	);
+	filter: blur(3px);
+	transition:
+		opacity 0.18s ease,
+		left 0.13s cubic-bezier(0.22, 1, 0.36, 1),
+		top 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vaultman-floating-toc.is-scrubbing.has-glow .vaultman-floating-toc-glow {
+	opacity: 1;
+}
+/* Name cell that bulges beside the glyph while scrubbing. */
+.vaultman-floating-toc-cell-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+.vaultman-floating-toc-cell-name {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.vaultman-floating-toc-cell-name.is-vertical {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 0.92;
+	max-width: none;
+	overflow: visible;
+}
+.vaultman-floating-toc-vletter {
+	font-size: 9.5px;
+	font-weight: 600;
+}
+.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-name {
+	font-weight: 800;
+	color: var(--color-accent);
+}
+.vaultman-floating-toc.name-pill .vaultman-floating-toc-cell-name {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--background-secondary) 92%, transparent);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+	backdrop-filter: blur(6px);
+}
+.vaultman-floating-toc.name-pill
+	.vaultman-floating-toc-item.is-scrub-active
+	.vaultman-floating-toc-cell-name {
+	background: var(--color-accent);
+	color: var(--text-on-accent);
+}
+.vaultman-floating-toc-fullname {
+	font-size: 10px;
+	font-weight: 600;
+	white-space: nowrap;
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+/* Proto/plain style: one bare surface contract for actions and indexed nodes. */
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-item,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-toggle,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-drill,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-close,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-back {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+	backdrop-filter: none;
+}
+/* Rail position variants. */
+.vaultman-floating-toc-wrap.pos-left {
+	right: auto;
+	left: var(--vaultman-toc-rail-edge-offset);
+}
+.vaultman-floating-toc-wrap.pos-top {
+	top: 4px;
+	bottom: auto;
+	left: var(--vaultman-toc-rail-edge-offset);
+	right: var(--vaultman-toc-rail-edge-offset);
+	align-items: flex-start;
+	justify-content: center;
+}
+.vaultman-floating-toc-wrap.pos-bottom {
+	top: auto;
+	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	left: var(--vaultman-toc-rail-edge-offset);
+	right: var(--vaultman-toc-rail-edge-offset);
+	align-items: flex-end;
+	justify-content: center;
+}
+.vaultman-pages-viewport--dock-off
+	.vaultman-floating-toc-wrap.pos-bottom {
+	bottom: 16px;
+}
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-actions,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-glyphs {
+	flex-direction: row;
+	flex-wrap: nowrap;
+	max-width: 100%;
+	white-space: nowrap;
+}
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-glyphs {
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+}
+
+.vaultman-floating-toc-wrap.is-horizontal
+	:is(.vaultman-floating-toc, .vaultman-floating-toc-glyphs)::-webkit-scrollbar {
+	display: none;
+}
+.vaultman-floating-toc-wrap.pos-left
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-left
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: left center;
+	flex-direction: row;
+}
+.vaultman-floating-toc-wrap.pos-top
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-top
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: center top;
+}
+.vaultman-floating-toc-wrap.pos-bottom
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-bottom
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: center bottom;
+}
+.vaultman-floating-toc-toggle,
+.vaultman-floating-toc-drill,
+.vaultman-floating-toc-close,
+.vaultman-floating-toc-back {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 18px;
+	pointer-events: auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	margin: 0;
+	border: none;
+	border-radius: 3px;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.vaultman-floating-toc-toggle:hover,
+.vaultman-floating-toc-drill:hover,
+.vaultman-floating-toc-close:hover,
+.vaultman-floating-toc-back:hover {
+	color: var(--text-normal);
+}
+.vaultman-floating-toc-drill.is-active {
+	color: var(--text-accent);
+}
+.vaultman-floating-toc-action-icon {
+	display: flex;
+}
+.vaultman-floating-toc-action-icon .svg-icon {
+	width: 12px;
+	height: 12px;
+}
+.vaultman-floating-toc.is-picking {
+	outline: 1px dashed var(--text-faint);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+.is-mobile
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap,
+.is-phone
+	.workspace-drawer
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap {
+	top: 44px;
+}
+.is-mobile
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap.pos-bottom,
+.is-phone
+	.workspace-drawer
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap.pos-bottom {
+	top: auto;
+}
+.is-mobile
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-item {
+	flex: 0 0 20px;
+	width: 24px;
+	height: 20px;
+	font-size: 11px;
+}
+.is-mobile
+	.workspace-leaf-content[data-type='vaultman-frame']
+	:is(
+		.vaultman-floating-toc-toggle,
+		.vaultman-floating-toc-drill,
+		.vaultman-floating-toc-close,
+		.vaultman-floating-toc-back
+	) {
+	flex-basis: 24px;
+	width: 24px;
+	height: 24px;
+}
+.is-mobile
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-action-icon
+	.svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* ─── Toolbar auto-hide + edge peek (FTC-003) ──────────────────────────────
+   Hidden toolbar slides out of the frame and peeks back on hover of the top
+   edge, so it can be re-enabled from its own tabs menu. */
+.vaultman-toolbar-slot.is-hidden-mode {
+	position: sticky;
+	top: 0;
+	z-index: 15;
+	height: 0;
+	overflow: visible;
+}
+.vaultman-toolbar-slot.is-hidden-mode .vaultman-navbar-filters {
+	position: relative;
+	top: auto;
+	transform: translateY(-110%);
+	transition: transform 0.22s ease;
+	will-change: transform;
+}
+.vaultman-toolbar-slot.is-hidden-mode.is-peeking .vaultman-navbar-filters {
+	transform: translateY(0);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+	/* U121-041: the slot reserves no height, so the bar floats over the
+	   content below and needs the surface behind the leaf, or its icons
+	   read through the text. */
+	background-color: var(--background-secondary);
+}
+.workspace-split.mod-root
+	.vaultman-toolbar-slot.is-hidden-mode.is-peeking
+	.vaultman-navbar-filters {
+	background-color: var(--background-primary);
+}
+.vaultman-toolbar-slot.is-hidden-mode.is-peeking
+	.vaultman-navbar-filters
+	.vaultman-nav-page-icon:hover {
+	background: var(--background-modifier-hover);
+}
+.vaultman-toolbar-peek {
+	position: absolute;
+	top: 0;
+	inset-inline: 4px;
+	z-index: 14;
+	height: 6px;
+	margin: 0;
+}
+
+/* Sort scope pick mode (BT4-009 D29): dashed frame while choosing a level. */
+.vaultman-filters-tab-pane.vaultman-sort-pick-mode {
+	outline: 2px dashed var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+/* Rainbow folders (BT4-014, snippet-compatible): row-level var, tree only. */
+.vaultman-rainbow-folders .vaultman-tree-row.nav-folder-title {
+	color: var(--folder-color, var(--text-muted));
+}
+
+/* FAS File Explorer Rainbow parity: a non-default glyph color also tints the
+   hovered node background instead of falling back to Core's neutral hover. */
+:is(
+		.vaultman-tree-row,
+		.vaultman-file-table-row,
+		.vaultman-files-grid-card
+	).vaultman-glyph-colored:hover {
+	background-color: color-mix(
+		in srgb,
+		var(--vaultman-glyph-color),
+		transparent 80%
+	);
+}
+
+.vaultman-prop-card.is-excluded-filter,
+.vaultman-tag-card.is-excluded-filter,
+.vaultman-node-table-row.is-excluded-filter,
+.vaultman-tree-row.is-excluded-filter {
+	background-color: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	border-color: var(--text-normal);
+	color: var(--text-normal);
+	box-shadow: inset 2px 0 0 0 var(--text-normal);
+	opacity: 1;
+}
+
+.vaultman-prop-card.is-excluded-filter:hover,
+.vaultman-tag-card.is-excluded-filter:hover,
+.vaultman-node-table-row.is-excluded-filter:hover,
+.vaultman-tree-row.is-excluded-filter:hover {
+	background-color: color-mix(in srgb, var(--text-normal) 12%, transparent);
+}
+
+.vaultman-prop-card.is-deletion-highlight,
+.vaultman-tag-card.is-deletion-highlight,
+.vaultman-node-table-row.is-deletion-highlight,
+.vaultman-tree-row.is-deletion-highlight {
+  background-color: color-mix(in srgb, var(--text-error) 10%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--text-error);
+}
+
+/* U121-003 shard 07. The cell is a `.bases-rendered-value`, which Core sizes
+   for a Bases table: `padding: var(--metadata-input-padding)` and
+   `font-size: var(--bases-table-font-size)`. Inside an explorer row both are
+   wrong — the value has to sit on the row's own baseline with the row's own
+   type, so Format on looks like Format off plus its affordances. */
+.vaultman-property-value-cell {
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+	padding: 0;
+	font-size: inherit;
+}
+
+.vaultman-property-value-link {
+	color: var(--link-color);
+	text-decoration: var(--link-decoration);
+}
+
+.vaultman-property-value-cell > .metadata-input-checkbox {
+  margin: 0;
+}
+
+/* Editing raises a caret and nothing else: no box, no border, no background,
+   no type change. Anything more would make Format on a different row. */
+.vaultman-property-value-editable {
+	cursor: text;
+}
+
+.vaultman-property-value-editable:focus,
+.vaultman-property-value-editable:focus-visible {
+	outline: none;
+	box-shadow: none;
+	background: none;
+}
+
+/* Value affordances — the delete x and the daily-note shortcut — stay out of
+   the way until the row is hovered. One permanent control per value is the
+   visual noise this projection avoids. They sit beside their value rather than
+   across the cell. */
+.vaultman-property-value-remove,
+.vaultman-property-value-action {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 0 auto;
+	margin-inline-start: var(--size-2-1);
+	padding: 0;
+	opacity: 0;
+	color: var(--text-faint);
+	cursor: var(--cursor);
+	--icon-size: var(--icon-xs);
+	--icon-stroke: var(--icon-xs-stroke-width);
+}
+
+:is(.vaultman-tree-row, .vaultman-node-table-row, .vaultman-prop-card):hover
+	:is(.vaultman-property-value-remove, .vaultman-property-value-action) {
+	opacity: 1;
+}
+
+.vaultman-property-value-remove:hover,
+.vaultman-property-value-action:hover {
+	color: var(--text-normal);
+	background: none;
+}
+
+/* Core sizes `.metadata-input` for a properties panel row. Inside an explorer
+   row it has to collapse to its content: full-width date boxes pushed the
+   daily-note shortcut to the far edge of the cell. The input stays enabled so
+   its picker still opens. */
+.vaultman-property-value-cell .metadata-input {
+	min-height: 0;
+	height: auto;
+	width: auto;
+	padding: 0;
+	border: none;
+	background: transparent;
+	font-size: inherit;
+	font-family: inherit;
+}
+
+/* Core puts the picker glyph before the date and absolutely positions it
+   (app.css:7725), but only while the input is not `disabled="true"`. Enabling
+   the input to get a working picker turned that rule on, and with no positioned
+   ancestor and no padding the glyph landed under the row. Anchor it to its own
+   input and reserve the space it needs. */
+.vaultman-property-value-cell :is(input[type='date'], input[type='datetime-local']) {
+	position: relative;
+	padding-inline-start: calc(var(--size-4-1) + var(--icon-s));
+}
+
+/* A long flat label wrapped and turned the row into a paragraph. Rows are one
+   line: the label ellipsizes like every other explorer label. The property name
+   holds its width and the value gives way, because the name is what tells you
+   which row you are looking at. */
+.vaultman-property-value-prefix {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+/* The value cell takes the row's leftover width, the same as the plain label it
+   replaces. Sizing it to its content instead let the count and badge cells
+   collapse leftward against the value rather than staying at the row's edge. */
+.vaultman-property-value-cell {
+	flex: 1 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.vaultman-property-value-text,
+.vaultman-property-value-cell .value-list-element,
+.vaultman-property-value-cell .value-list-container {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The empty value node: the model labels it `empty`, and the projection shows
+   the translated word in faint whether the Format cell is on or off. */
+.vaultman-property-value-empty {
+	color: var(--vaultman-text-faint);
+}
+
+/* U121-034: the word travels as a placeholder, never as the label.
+   Writing it into the label made the inline editor start with it and the
+   commit go looking for a frontmatter key named `empty`. */
+.vaultman-property-value-empty[data-placeholder]:empty::before,
+.vaultman-property-value-text[data-placeholder]:empty::before {
+	content: attr(data-placeholder);
+}
+
+/* While editing, the caret needs the full value, so the ellipsis gives way to
+   a scroll rather than hiding what is being typed. */
+.vaultman-property-value-editable[contenteditable='true'] {
+	overflow-x: auto;
+	text-overflow: clip;
+}
+
+/* U121-003: Tree delegates reveal-this-file to Core's metadata anatomy. These
+   rules only adapt that native block to an explorer viewport; app.css remains
+   the owner of property geometry, theme variables, focus and narrow-width
+   stacking. */
+.vaultman-core-metadata-tree {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: none;
+	margin-block-end: 0;
+	overflow-y: auto;
+}
+
+.vaultman-core-metadata-tree .metadata-content,
+.vaultman-core-metadata-tree .metadata-property-value,
+.vaultman-core-metadata-tree .metadata-property-value-item {
+	min-width: 0;
+}
+
+.vaultman-core-metadata-tree .metadata-property-value-item {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 1 auto;
+}
+
+.vaultman-core-metadata-tree .metadata-add-button[aria-disabled='true'] {
+	pointer-events: none;
+	opacity: var(--icon-opacity, 0.5);
+}
+
+.vaultman-selection-checkbox {
+  flex: 0 0 auto;
+  margin: 0 var(--size-2-2);
+}
+
+.vaultman-node-table-row > .vaultman-selection-checkbox,
+:is(.vaultman-prop-card, .vaultman-tag-card) > .vaultman-selection-checkbox {
+  position: absolute;
+  top: var(--size-4-2);
+  z-index: 2;
+}
+
+.vaultman-selection-checkbox--start {
+  inset-inline-start: var(--size-4-2);
+}
+
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
+  position: static;
+}
+
+.vaultman-tree-row > .vaultman-selection-checkbox--start {
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+}
+
+.vaultman-selection-checkbox--end {
+  inset-inline-end: var(--size-4-2);
+}
+
+/* ─── Rainbow glyph palettes (U121-029) ────────────────────────────────────
+   The reference snippet (FAS — File Explorer Rainbow) declares
+   `--color-rainbow-1..10` twice: dark tones under `.theme-light` and bright
+   tones under `.theme-dark`, because one fixed palette cannot have correct
+   contrast in both. Vaultman used to freeze the snippet's light values as its
+   only "strong" palette, which is why the rainbow glyphs looked darkened in a
+   dark vault.
+
+   Each slot now chains through `--color-rainbow-N` first, so a vault with the
+   snippet enabled gets glyphs that match its own core file explorer exactly,
+   and a theme can retint ours by declaring the same variables. The literals are
+   the snippet's own per-theme values. `logicGlyphColor.ts` emits
+   `var(--vaultman-rainbow-N)` / `var(--vaultman-rainbow-pastel-N)`. */
+.theme-light {
+  --vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 60%, 40%));
+  --vaultman-rainbow-2: var(--color-rainbow-2, hsl(54, 60%, 40%));
+  --vaultman-rainbow-3: var(--color-rainbow-3, hsl(90, 60%, 40%));
+  --vaultman-rainbow-4: var(--color-rainbow-4, hsl(126, 60%, 40%));
+  --vaultman-rainbow-5: var(--color-rainbow-5, hsl(162, 60%, 40%));
+  --vaultman-rainbow-6: var(--color-rainbow-6, hsl(198, 60%, 40%));
+  --vaultman-rainbow-7: var(--color-rainbow-7, hsl(234, 60%, 40%));
+  --vaultman-rainbow-8: var(--color-rainbow-8, hsl(270, 60%, 40%));
+  --vaultman-rainbow-9: var(--color-rainbow-9, hsl(306, 60%, 40%));
+  --vaultman-rainbow-10: var(--color-rainbow-10, hsl(342, 60%, 40%));
+}
+
+.theme-dark {
+  --vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 70%, 60%));
+  --vaultman-rainbow-2: var(--color-rainbow-2, hsl(54, 70%, 60%));
+  --vaultman-rainbow-3: var(--color-rainbow-3, hsl(90, 70%, 60%));
+  --vaultman-rainbow-4: var(--color-rainbow-4, hsl(126, 70%, 60%));
+  --vaultman-rainbow-5: var(--color-rainbow-5, hsl(162, 70%, 60%));
+  --vaultman-rainbow-6: var(--color-rainbow-6, hsl(198, 70%, 60%));
+  --vaultman-rainbow-7: var(--color-rainbow-7, hsl(234, 70%, 60%));
+  --vaultman-rainbow-8: var(--color-rainbow-8, hsl(270, 70%, 60%));
+  --vaultman-rainbow-9: var(--color-rainbow-9, hsl(306, 70%, 60%));
+  --vaultman-rainbow-10: var(--color-rainbow-10, hsl(342, 70%, 60%));
+}
+
+/* Pastel is an explicit user choice, so it stays the same in both themes —
+   the snippet's own dark-theme tones. */
+body {
+  --vaultman-rainbow-pastel-1: hsl(0, 100%, 84%);
+  --vaultman-rainbow-pastel-2: hsl(33, 100%, 82%);
+  --vaultman-rainbow-pastel-3: hsl(62, 100%, 86%);
+  --vaultman-rainbow-pastel-4: hsl(110, 100%, 87%);
+  --vaultman-rainbow-pastel-5: hsl(193, 100%, 79%);
+  --vaultman-rainbow-pastel-6: hsl(217, 100%, 81%);
+  --vaultman-rainbow-pastel-7: hsl(249, 100%, 85%);
+  --vaultman-rainbow-pastel-8: hsl(270, 100%, 87%);
+  --vaultman-rainbow-pastel-9: hsl(300, 100%, 89%);
+  --vaultman-rainbow-pastel-10: hsl(324, 100%, 83%);
+}
+
+.vaultman-tree-rename-rich-btn { margin-left: var(--size-4-2); opacity: 0.6; }
+.vaultman-tree-rename-rich-btn:hover { opacity: 1; }

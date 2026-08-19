@@ -10,9 +10,10 @@
 		"node": ">=24.0.0"
 	},
 	"scripts": {
-		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/sync-test-build.mjs",
-		"build:plugin": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"dev": "node scripts/build-styles.mjs && node esbuild.config.mjs",
+		"build:styles": "node scripts/build-styles.mjs",
+		"build": "pnpm run build:styles && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/sync-test-build.mjs",
+		"build:plugin": "pnpm run build:styles && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node scripts/version-bump.mjs && git add manifest.json versions.json",
 		"release": "node scripts/release.mjs",
 		"lint": "eslint .",
@@ -52,6 +53,7 @@
 		"obsidian-launcher": "3.1.1",
 		"prettier": "3.9.6",
 		"prettier-plugin-svelte": "4.1.1",
+		"sass": "^1.81.0",
 		"stylelint": "17.14.1",
 		"stylelint-config-recommended": "18.0.0",
 		"stylelint-declaration-block-no-ignored-properties": "3.0.0",
@@ -61,6 +63,9 @@
 		"type-fest": "5.8.0",
 		"typescript": "5.9.3",
 		"typescript-eslint": "8.65.0",
+		"unocss": "^66.7.2",
+		"@unocss/cli": "^66.7.2",
+		"unocss-preset-theme": "^0.14.1",
 		"vitest": "4.1.10",
 		"wdio-obsidian-reporter": "3.1.1",
 		"wdio-obsidian-service": "3.1.1"

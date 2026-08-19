@@ -1,0 +1,1071 @@
+/* ============================================
+   MAIN VIEW (Full-screen)
+   ============================================ */
+
+.vaultman-main-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* --- Navbar (dual-orientation) --- */
+.vaultman-navbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  gap: 2px;
+  border-right: 1px solid var(--vaultman-border);
+  background: var(--vaultman-bg-section);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.vaultman-navbar.is-horizontal {
+  flex-direction: row;
+  width: auto;
+  border-right: none;
+  border-bottom: 1px solid var(--vaultman-border);
+  padding: 4px;
+}
+
+.vaultman-navbar .clickable-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vaultman-navbar .clickable-icon:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-navbar .clickable-icon.is-active {
+  color: var(--vaultman-accent);
+}
+
+.vaultman-navbar-badge {
+  font-size: 0.65em;
+  font-weight: 600;
+  color: var(--text-on-accent);
+  background: var(--vaultman-accent);
+  border-radius: 8px;
+  padding: 0 4px;
+  min-width: 14px;
+  text-align: center;
+  line-height: 14px;
+  position: absolute;
+  top: -2px;
+  right: -4px;
+}
+
+.vaultman-navbar .clickable-icon {
+  position: relative;
+}
+
+/* --- (session row removed in dev) --- */
+
+.vaultman-hidden.vaultman-hidden {
+  display: none;
+}
+
+/* --- Operations Column (LEFT — smart vertical/horizontal tabs) --- */
+.vaultman-ops-column {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--vaultman-border);
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+
+.vaultman-ops-column.is-collapsed {
+  width: 36px;
+}
+
+/* Collapsed: vertical icon strip */
+.vaultman-ops-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  width: 36px;
+  height: 100%;
+}
+
+.vaultman-ops-strip .clickable-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vaultman-ops-strip .clickable-icon:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-ops-strip .clickable-icon.is-active {
+  color: var(--vaultman-accent);
+}
+
+.vaultman-ops-strip-toggle {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vaultman-border);
+}
+
+/* Expanded: horizontal tab bar + content */
+.vaultman-ops-expanded {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vaultman-ops-tabbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--vaultman-border);
+  background: var(--vaultman-bg-section);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.vaultman-ops-tabbar-toggle {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 2px 4px;
+}
+
+.vaultman-ops-tabbar-toggle:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+/* --- Properties Panel (RIGHT) --- */
+.vaultman-properties-panel-right {
+  width: 240px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--vaultman-border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+}
+
+.vaultman-properties-panel-right.is-collapsed {
+  width: 0;
+  border-left: none;
+}
+
+/* Toggle strip between grid and properties */
+.vaultman-props-toggle-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+.vaultman-props-toggle-strip .clickable-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vaultman-props-toggle-strip .clickable-icon:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-props-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--vaultman-border);
+  background: var(--vaultman-bg-section);
+  flex-shrink: 0;
+}
+
+.vaultman-props-toolbar .clickable-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vaultman-props-toolbar .clickable-icon:hover {
+  background: var(--vaultman-bg-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-props-explorer-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.vaultman-popover-anchor {
+  position: relative;
+}
+
+/* Operations panel tabs */
+.vaultman-operations-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--vaultman-border);
+  background: var(--vaultman-bg-section);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.vaultman-operations-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: 0.8em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.vaultman-operations-tab:hover {
+  color: var(--text-normal);
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-operations-tab.is-active {
+  border-bottom-color: var(--vaultman-accent);
+  color: var(--text-normal);
+}
+
+.vaultman-operations-tab svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-operations-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.vaultman-ops-tab-desc {
+  font-size: 0.85em;
+  margin: 0 0 8px;
+}
+
+.vaultman-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.vaultman-template-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: var(--radius-s);
+}
+
+.vaultman-template-row:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-text-muted {
+  color: var(--text-muted);
+}
+
+/* --- Operations panel split layout (pinned queue) --- */
+.vaultman-operations-split {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vaultman-operations-top {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vaultman-operations-top .vaultman-operations-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Pinned queue section (always visible at bottom) */
+.vaultman-operations-pinned-queue {
+  flex-shrink: 0;
+  max-height: 45%;
+  overflow-y: auto;
+  border-top: 1px solid var(--vaultman-border);
+  padding: 6px 8px;
+  background: var(--vaultman-bg-section);
+}
+
+.vaultman-pinned-queue-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.vaultman-pinned-queue-title {
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--vaultman-text-muted);
+}
+
+.vaultman-pinned-queue-badge {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--text-on-accent);
+  background: var(--vaultman-accent);
+  border-radius: 8px;
+  padding: 0 5px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 16px;
+}
+
+.vaultman-pinned-queue-list {
+  margin-bottom: 6px;
+}
+
+.vaultman-pinned-queue-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* --- Toolbar --- */
+.vaultman-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--vaultman-border);
+  background: var(--vaultman-bg-section);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: relative;
+}
+
+.vaultman-toolbar-left,
+.vaultman-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultman-toolbar-select {
+  font-size: 0.85em;
+  max-width: 200px;
+}
+
+.vaultman-toolbar-btn {
+  font-size: 0.8em;
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  background: var(--interactive-normal);
+  border: 1px solid var(--vaultman-border);
+  color: var(--text-normal);
+}
+
+.vaultman-toolbar-btn:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-toolbar-badge {
+  font-size: 0.85em;
+  color: var(--vaultman-accent);
+  font-weight: 600;
+}
+
+/* Sync status indicator */
+.vaultman-sync-indicator {
+  font-size: 0.9em;
+  line-height: 1;
+}
+
+.vaultman-sync-ok {
+  color: #2ea043;
+}
+
+.vaultman-sync-external {
+  color: #d29922;
+}
+
+.vaultman-sync-conflict {
+  color: #f85149;
+}
+
+/* --- Popover panels --- */
+.vaultman-popover {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  z-index: 10;
+  width: 360px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-m);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+}
+
+.vaultman-popover-hidden {
+  display: none;
+}
+
+.vaultman-popover-header h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--vaultman-text-muted);
+}
+
+/* --- Grid wrapper --- */
+.vaultman-grid-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.vaultman-grid-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--vaultman-border);
+  flex-shrink: 0;
+}
+
+.vaultman-grid-search {
+  flex: 1;
+  max-width: 300px;
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.vaultman-grid-filter-toggle {
+  padding: 4px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.vaultman-grid-filter-toggle.is-active {
+  color: var(--vaultman-accent);
+  background: color-mix(in srgb, var(--vaultman-accent) 12%, transparent);
+}
+
+/* --- Table --- */
+.vaultman-grid-table-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.vaultman-grid-table {
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.vaultman-grid-fixed {
+  table-layout: fixed;
+}
+
+.vaultman-grid-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--background-secondary);
+}
+
+.vaultman-grid-th-check {
+  width: 30px;
+  text-align: center;
+  padding: 6px 4px;
+  border-bottom: 2px solid var(--vaultman-border);
+  transition: border-color 0.15s ease;
+}
+
+.vaultman-grid-th-check input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-grid-th-check.is-indeterminate {
+  border-color: var(--vaultman-accent);
+}
+
+.vaultman-grid-th-check.is-indeterminate input[type="checkbox"] {
+  border-color: var(--vaultman-accent);
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
+.vaultman-grid-th-sortable {
+  position: relative;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--vaultman-text-muted);
+  white-space: nowrap;
+  border-bottom: 2px solid var(--vaultman-border);
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-grid-th-label {
+  cursor: pointer;
+}
+
+.vaultman-grid-th-sortable:hover {
+  color: var(--text-normal);
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-grid-th-active {
+  color: var(--text-normal);
+}
+
+/* Column resize handle */
+.vaultman-grid-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+}
+
+.vaultman-grid-resize-handle:hover,
+body.vaultman-resizing .vaultman-grid-resize-handle {
+  background: var(--vaultman-accent);
+  opacity: 0.4;
+}
+
+body.vaultman-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.vaultman-grid-row {
+  border-bottom: 1px solid var(--vaultman-border);
+  cursor: default;
+  user-select: none;
+}
+
+.vaultman-grid-row:hover {
+  background: var(--vaultman-bg-hover);
+}
+
+.vaultman-grid-row.is-selected {
+  background: color-mix(in srgb, var(--vaultman-accent) 12%, transparent);
+}
+
+.vaultman-grid-row.is-selected:hover {
+  background: color-mix(in srgb, var(--vaultman-accent) 18%, transparent);
+}
+
+.vaultman-grid-td-check {
+  width: 30px;
+  text-align: center;
+  padding: 4px;
+}
+
+.vaultman-grid-td-check input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-grid-td-name {
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-grid-name-link {
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.vaultman-grid-name-link:hover {
+  color: var(--vaultman-accent);
+  text-decoration: underline;
+}
+
+.vaultman-grid-td-prop {
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+  cursor: default;
+}
+
+.vaultman-grid-td-prop:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* Inline editing */
+.vaultman-grid-td-prop.vaultman-grid-editing {
+  padding: 2px 4px;
+}
+
+.vaultman-grid-edit-input {
+  width: 100%;
+  font-size: 1em;
+  padding: 2px 4px;
+  border: 2px solid var(--vaultman-accent);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  outline: none;
+}
+
+/* Live preview cells */
+.vaultman-grid-live-cell {
+  overflow: hidden;
+}
+
+.vaultman-grid-live-cell p {
+  margin: 0;
+  line-height: inherit;
+}
+
+.vaultman-grid-live-cell .tag {
+  font-size: 0.85em;
+}
+
+.vaultman-grid-live-cell .internal-link {
+  cursor: pointer;
+}
+
+/* Mobile: taller rows for touch targets */
+@media (pointer: coarse) {
+  .vaultman-grid-row {
+    min-height: 44px;
+  }
+}
+
+/* --- Native Status bar item --- */
+.vaultman-native-statusbar {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+/* --- File Filter Popover --- */
+.vaultman-file-filter-popover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-m);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+}
+
+/* --- Mobile touch targets --- */
+@media (pointer: coarse) {
+  .vaultman-navbar .clickable-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .vaultman-header-bar .clickable-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .vaultman-operations-tab {
+    padding: 8px 12px;
+  }
+}
+
+/* ============================================================
+   Bases attach architecture (v1.1+)
+   ============================================================ */
+
+
+.vaultman-sidebar-toggle-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vaultman-border);
+  flex-shrink: 0;
+}
+
+.vaultman-sidebar-toggle-spacer {
+  flex: 1;
+}
+
+.vaultman-sidebar-toggle-btn {
+  padding: 4px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.vaultman-sidebar-toggle-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-sidebar-toggle-btn.is-active {
+  color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+}
+
+.vaultman-sidebar-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.vaultman-sidebar-stats {
+  padding: 8px 4px 12px;
+  border-bottom: 1px solid var(--vaultman-border);
+  margin-bottom: 8px;
+}
+
+.vaultman-sidebar-stat {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.vaultman-sidebar-stat-pending {
+  color: var(--color-orange);
+}
+
+/* Sliding panels */
+.vaultman-sidebar-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background: var(--background-primary);
+  border: 1px solid var(--vaultman-border);
+  overflow-y: auto;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.vaultman-sidebar-panel-ops {
+  left: 0;
+  transform: translateX(-100%);
+}
+
+.vaultman-sidebar-panel-ops.is-open {
+  transform: translateX(0);
+}
+
+.vaultman-sidebar-panel-explorer {
+  right: 0;
+  transform: translateX(100%);
+}
+
+.vaultman-sidebar-panel-explorer.is-open {
+  transform: translateX(0);
+}
+
+.vaultman-sidebar-panel-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vaultman-border);
+  flex-shrink: 0;
+}
+
+.vaultman-sidebar-panel-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+
+/* === Tree Virtualization & Node Rows (Restored from Monolith) === */
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
+  padding: 8px 0 96px;
+}
+
+.vaultman-tree-virtual-spacer {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+.vaultman-tree-virtual-content {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
+.vaultman-tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-block: 0;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  height: 27px;
+  margin-inline: var(--size-4-1, 4px);
+  margin-bottom: 1px;
+  cursor: pointer;
+  border-radius: var(--tree-item-radius, var(--nav-item-radius, var(--radius-s)));
+  width: calc(100% - (var(--size-4-1, 4px) * 2));
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+
+  /* Sharp UI Fixes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+}
+
+.vaultman-tree-row--virtual {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+  transition:
+    top 100ms ease-in-out,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+    transition:
+      background-color 120ms ease,
+      box-shadow 120ms ease,
+      color 120ms ease;
+  }
+}
+
+/* Sticky parent rows (setting). The prototype pins each parent row in place
+   with `position: sticky` and a per-depth offset, which needs the rows to be
+   in flow — this tree virtualizes them into an absolutely positioned window,
+   so the offsets come from `logicTreeSticky` and the stack lives in its own
+   layer instead. The layer is a zero-height strip pinned to the top of the
+   scrollport: it stays out of the window's geometry — the spacer still owns
+   the full scroll height — while the parent rows it holds float above it. The
+   strip itself is click-through so the empty space below the stack does not
+   swallow the rows underneath. */
+.vaultman-tree-sticky-layer {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The tab surface paints no background of its own, so the pinned rows take the
+   one behind the leaf: side docks and the phone drawer are secondary, the main
+   area is primary. Without it the scrolling rows read straight through. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  background-color: var(--background-secondary);
+}
+
+.workspace-split.mod-root .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  background-color: var(--background-primary);
+}
+
+/* Only the row the stack currently ends on carries the separator, so a nested
+   stack reads as one heading block instead of a ruled table. A border rather
+   than a shadow: the hover state owns this box's `box-shadow`. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is-stuck {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-tree-toggle {
+  color: var(--nav-collapse-icon-color, var(--text-faint));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset));
+  flex-shrink: 0;
+}
+
+.vaultman-tree-row::before {
+  content: '';
+  position: absolute;
+  inset-block: 0 -1px;
+  inset-inline-start: var(--vaultman-tree-guide-start);
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  pointer-events: none;
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--vaultman-tree-indent-line-color) 0,
+    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-unit)
+  );
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
+}
+
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before,
+.vaultman-tree-row[style*="--depth: 0"]::before,
+.vaultman-tree-row:not([style*="--depth"])::before {
+  display: none;
+}
+
+.vaultman-tree-row:hover {
+  background-color: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
+}
+
+.vaultman-tree-row.is-being-dragged,
+.vaultman-node-table-row.is-being-dragged,
+.vaultman-file-row.is-being-dragged {
+  opacity: 0.55;
+}
+
+.vaultman-tree-row.is-being-dragged-over,
+.vaultman-node-table-row.is-being-dragged-over,
+.vaultman-file-row.is-being-dragged-over {
+  background-color: hsla(var(--interactive-accent-hsl), 0.12);
+  color: var(--nav-item-color-highlighted);
+  box-shadow: inset 0 0 0 1px hsla(var(--interactive-accent-hsl), 0.28);
+}
+
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-toggle,
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-icon {
+  color: var(--nav-item-color-highlighted);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
+  gap: normal;
+  height: 37px;
+  margin-bottom: 0;
+  padding-block: 8px;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  line-height: 20.8px;
+  color: var(--text-normal);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
+  inset-inline-start: var(--vaultman-tree-guide-start);
+}
+
+/* Settings: "Rounded touch rows on mobile". Mirrors core .tree-item-self,
+   which lets --nav-item-radius become --touch-radius-xs (pill) under
+   .is-mobile. Opt-in: some themes (Oxygen/Velocity) enlarge that token
+   enough that the is-active-filter left accent bar tapers short of the
+   row's rounded top/bottom corners instead of reaching them. */
+body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self,
+body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+  border-radius: var(--nav-item-radius, var(--radius-s));
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
+  height: 37px;
+  min-height: 37px;
+  --bases-table-row-height: 37px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
+  min-height: 68px;
+  padding-block: 12px 10px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-tree-row.is-active-filter {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+  /* Inset doesn't push */
+}
+

@@ -1,0 +1,678 @@
+/* === Statistics Page === */
+
+.vaultman-statistics-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 8px 80px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.vaultman-statistics-vault-name {
+  font-size: var(--font-ui-large);
+  font-weight: 700;
+  color: var(--text-normal);
+  text-align: center;
+  width: 100%;
+}
+
+/* === Statistics Page (Iteration 15) === */
+.vaultman-statistics-page {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px 12px;
+  min-height: 0;
+}
+
+.vaultman-stat-header {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin: 0 auto;
+}
+
+.vaultman-stat-scope-pills {
+  display: flex;
+  gap: 4px;
+  background: var(--background-secondary);
+  width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--vaultman-border);
+}
+
+.vaultman-stat-scope-pill {
+  flex: 1 1 0;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: var(--radius-s);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.vaultman-stat-scope-pill:hover {
+  background: transparent;
+  color: var(--text-normal);
+}
+
+.vaultman-stat-scope-pill.is-active {
+  background: transparent;
+  border-color: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.vaultman-pill-icon {
+  display: flex;
+  align-items: center;
+}
+
+.vaultman-pill-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.vaultman-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin-inline: auto;
+}
+
+.vaultman-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: transparent;
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  min-width: 0;
+  min-height: 74px;
+}
+
+.vaultman-stat-card:hover {
+  background: transparent;
+  border-color: var(--background-modifier-border-hover);
+}
+
+.vaultman-stat-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.vaultman-stat-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.vaultman-stat-card-value {
+  display: block;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-normal);
+  line-height: 1;
+}
+
+.vaultman-stat-card-label {
+  display: block;
+  font-size: 0.65em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.vaultman-stat-meta-island {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin-inline: auto;
+  background: var(--background-secondary);
+  border: 1px solid var(--vaultman-border);
+  border-radius: var(--radius-s);
+}
+
+.vaultman-stat-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-ui-small);
+}
+
+.vaultman-stat-meta-action {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.vaultman-stat-meta-action:hover .vaultman-meta-label {
+  color: var(--text-normal);
+}
+
+.vaultman-stat-reconcile-status {
+  color: var(--text-muted);
+}
+
+.vaultman-stat-reconcile-status .vaultman-meta-icon,
+.vaultman-stat-reconcile-status .vaultman-meta-label {
+  color: var(--text-faint);
+}
+
+.vaultman-meta-icon {
+  color: var(--text-muted);
+}
+
+.vaultman-meta-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vaultman-meta-label {
+  flex: 1;
+  color: var(--text-muted);
+}
+
+.vaultman-meta-value {
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+/* ── Unified Tree ────────────────────────────────── */
+.vaultman-tree-virtual-viewport {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: paint;
+  --vaultman-tree-indent-unit: 16px;
+  --vaultman-tree-row-padding-start: var(--size-4-6);
+  --vaultman-tree-caret-offset: var(--size-4-5);
+  --vaultman-tree-caret-size: var(--size-4-4);
+  --vaultman-tree-guide-start: calc(var(--vaultman-tree-row-padding-start) - var(--size-4-3));
+  --vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));
+  --vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.vaultman-pages-viewport--toc-hide-scrollbar
+  .vaultman-filters-tab-pane.is-active
+  :is(
+    .vaultman-files-tab-content,
+    .vaultman-props-tab-content,
+    .vaultman-tags-tab-content,
+    .vaultman-snippets-tab-content,
+    .vaultman-plugins-tab-content
+  ) {
+  scrollbar-width: none;
+}
+
+.vaultman-pages-viewport--toc-hide-scrollbar
+  .vaultman-filters-tab-pane.is-active
+  :is(
+    .vaultman-files-tab-content,
+    .vaultman-props-tab-content,
+    .vaultman-tags-tab-content,
+    .vaultman-snippets-tab-content,
+    .vaultman-plugins-tab-content
+  )::-webkit-scrollbar {
+  display: none;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
+  padding: 8px 0 96px;
+}
+
+.vaultman-tree-virtual-spacer {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+.vaultman-tree-virtual-content {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
+.vaultman-tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-block: 0;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  height: 27px;
+  margin-bottom: 1px;
+  cursor: pointer;
+  border-radius: var(--radius-s);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+
+  /* Sharp UI Fixes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+}
+
+.vaultman-tree-row--virtual {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+  transition:
+    top 100ms ease-in-out,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+    transition:
+      background-color 120ms ease,
+      box-shadow 120ms ease,
+      color 120ms ease;
+  }
+}
+
+/* Sticky parent rows (setting). The prototype pins each parent row in place
+   with `position: sticky` and a per-depth offset, which needs the rows to be
+   in flow — this tree virtualizes them into an absolutely positioned window,
+   so the offsets come from `logicTreeSticky` and the stack lives in its own
+   layer instead. The layer is a zero-height strip pinned to the top of the
+   scrollport: it stays out of the window's geometry — the spacer still owns
+   the full scroll height — while the parent rows it holds float above it. The
+   strip itself is click-through so the empty space below the stack does not
+   swallow the rows underneath. */
+.vaultman-tree-sticky-layer {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The tab surface paints no background of its own, so the pinned rows take the
+   one behind the leaf: side docks and the phone drawer are secondary, the main
+   area is primary. Without it the scrolling rows read straight through. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  background-color: var(--background-secondary);
+}
+
+.workspace-split.mod-root .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  background-color: var(--background-primary);
+}
+
+/* Only the row the stack currently ends on carries the separator, so a nested
+   stack reads as one heading block instead of a ruled table. A border rather
+   than a shadow: the hover state owns this box's `box-shadow`. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is-stuck {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-tree-toggle {
+  color: var(--nav-collapse-icon-color, var(--text-faint));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset));
+  flex-shrink: 0;
+}
+
+.vaultman-tree-row::before {
+  content: '';
+  position: absolute;
+  inset-block: 0 -1px;
+  inset-inline-start: var(--vaultman-tree-guide-start);
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  pointer-events: none;
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--vaultman-tree-indent-line-color) 0,
+    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-unit)
+  );
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
+}
+
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before,
+.vaultman-tree-row[style*="--depth: 0"]::before,
+.vaultman-tree-row:not([style*="--depth"])::before {
+  display: none;
+}
+
+.vaultman-tree-row:hover {
+  background-color: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
+}
+
+.vaultman-tree-row.is-being-dragged,
+.vaultman-node-table-row.is-being-dragged,
+.vaultman-file-row.is-being-dragged {
+  opacity: 0.55;
+}
+
+.vaultman-tree-row.is-being-dragged-over,
+.vaultman-node-table-row.is-being-dragged-over,
+.vaultman-file-row.is-being-dragged-over {
+  background-color: hsla(var(--interactive-accent-hsl), 0.12);
+  color: var(--nav-item-color-highlighted);
+  box-shadow: inset 0 0 0 1px hsla(var(--interactive-accent-hsl), 0.28);
+}
+
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-toggle,
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-icon {
+  color: var(--nav-item-color-highlighted);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
+  gap: normal;
+  height: 37px;
+  margin-bottom: 0;
+  padding-block: 8px;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  line-height: 20.8px;
+  color: var(--text-normal);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
+  inset-inline-start: var(--vaultman-tree-guide-start);
+}
+
+/* Settings: "Rounded touch rows on mobile". Mirrors core .tree-item-self,
+   which lets --nav-item-radius become --touch-radius-xs (pill) under
+   .is-mobile. Opt-in: some themes (Oxygen/Velocity) enlarge that token
+   enough that the is-active-filter left accent bar tapers short of the
+   row's rounded top/bottom corners instead of reaching them. */
+body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self,
+body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+  border-radius: var(--nav-item-radius, var(--radius-s));
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
+  height: 37px;
+  min-height: 37px;
+  --bases-table-row-height: 37px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
+  min-height: 68px;
+  padding-block: 12px 10px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-tree-row.is-active-filter {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+  /* Inset doesn't push */
+}
+
+.vaultman-tree-row.is-active-filter :is(.vaultman-tree-toggle, .vaultman-tree-icon, .vaultman-tree-label, .vaultman-tree-type, .vaultman-tree-count, .vaultman-tree-badge, .vaultman-badge-icon) {
+  opacity: 1;
+}
+
+.vaultman-tree-row.is-deleted-prop,
+.vaultman-tree-row.is-deleted-value,
+.vaultman-tree-row.is-deleted-tag {
+  color: var(--text-faint);
+  opacity: 0.5;
+}
+
+.vaultman-tree-row.is-deleted-prop .vaultman-tree-label,
+.vaultman-tree-row.is-deleted-value .vaultman-tree-label,
+.vaultman-tree-row.is-deleted-tag .vaultman-tree-label {
+  text-decoration: line-through;
+}
+
+.vaultman-tree-row.is-deleted-prop .vaultman-tree-count,
+.vaultman-tree-row.is-deleted-value .vaultman-tree-count,
+.vaultman-tree-row.is-deleted-tag .vaultman-tree-count {
+  color: var(--text-faint);
+}
+
+.vaultman-tree-row.is-editing {
+  background: var(--background-modifier-hover);
+}
+
+.vaultman-tree-row.is-active-filter .vaultman-tree-count {
+  font-weight: 600;
+}
+
+.vaultman-tree-row.is-hidden {
+  display: none;
+}
+
+.vaultman-tree-row.vaultman-badge-warning {
+  outline: 1px solid var(--color-yellow);
+}
+
+.vaultman-tree-toggle--empty {
+  pointer-events: none;
+  opacity: 0.22;
+}
+
+/* BT5-015: a row that renders an icon but reserves no caret lifts the icon out
+   of the flex line and into the caret column, so its label lands at the same x
+   as a sibling that has no icon. Purely presentational: the icon keeps its
+   place in the DOM and its normal semantics. */
+.vaultman-tree-row--icon-in-caret > .vaultman-tree-icon {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--vaultman-tree-row-padding-start) + var(--depth, 0) *
+      var(--vaultman-tree-indent-unit) - var(--vaultman-tree-caret-offset)
+  );
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  justify-content: center;
+  pointer-events: none;
+}
+
+.vaultman-tree-icon {
+  min-width: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
+/* The inline editor takes the row's own height instead of imposing a 20px
+   box. The fixed height plus the negative vertical margin made it spill out
+   of the row and cover the cells beside it, and the vertical padding made
+   the rectangle taller than the node it replaces. */
+.vaultman-tree-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  align-self: stretch;
+  background: var(--background-primary);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: inherit;
+  color: var(--text-normal);
+  font-family: inherit;
+}
+
+.vaultman-tree-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+/* Shrink empty icons so they don't consume horizontal space */
+.vaultman-tree-icon:empty {
+  display: none;
+}
+
+.vaultman-tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-ui-small);
+  font-weight: normal;
+  color: inherit;
+}
+
+.vaultman-tree-count {
+  flex-shrink: 0;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-normal);
+  opacity: 0.35;
+  /* Matches caret subtlety */
+  background: transparent;
+  padding: 0;
+}
+
+.vaultman-tree-children {
+  /* Removed expanding animation to prevent flashy redraws */
+  transform-origin: top;
+}
+
+.vaultman-tree-row.vaultman-search-highlight {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--text-normal);
+}
+
+/* ── Menu Curator Panel ──────────────────────────────────────────────────── */
+.vaultman-curator-wrap {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vaultman-curator-title {
+  margin: 0;
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+  color: var(--text-normal);
+}
+
+.vaultman-curator-desc {
+  margin: 0;
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.vaultman-curator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vaultman-curator-empty {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+}
+
+.vaultman-curator-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--vaultman-bg-section);
+}
+
+.vaultman-curator-rule-text {
+  flex: 1;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+}
+
+.vaultman-curator-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 2px;
+}
+
+.vaultman-curator-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vaultman-curator-input {
+  flex: 1;
+  min-width: 120px;
+}
+
+.vaultman-curator-add-btn {
+  white-space: nowrap;
+}

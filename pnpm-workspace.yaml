@@ -9,6 +9,7 @@ publicHoistPattern:
   - webdriverio
 
 allowBuilds:
+  '@parcel/watcher': true
   classic-level: true
   edgedriver: true
   esbuild: true
