@@ -576,11 +576,14 @@ export class TagsExplorerPanel extends Component {
 
 	/**
 	 * The sources of one node. Reveal carries the note's own answer on the
-	 * node; everything else asks the vault-wide index.
+	 * node, and nothing else may answer for the note: the vault-wide index
+	 * aggregates every note, so a tag the revealed note writes in one place
+	 * would come back `both`. Non-reveal trees still ask the index.
 	 */
 	private _sourcesFor(
 		node: TreeNode<TagMeta>,
 	): ReadonlySet<TagSource> | undefined {
+		if (this.revealActiveFile) return node.meta.tagSources;
 		return node.meta.tagSources ?? this._sourceIndex().get(node.meta.tagPath);
 	}
 
