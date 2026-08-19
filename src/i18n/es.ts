@@ -495,7 +495,7 @@ export const es: Record<string, string> = {
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',
-	'viewmenu.in_mode': 'En modo',
+	'viewmenu.in_mode': 'Comportamiento',
 	'viewmenu.in_mode.open': 'Abrir',
 	'viewmenu.in_mode.add': 'Agregar',
 	'viewmenu.in_mode.select': 'Seleccionar',

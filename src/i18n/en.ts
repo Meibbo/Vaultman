@@ -494,7 +494,7 @@ export const en: Record<string, string> = {
 	'viewmenu.layouts': 'Layout',
 	'viewmenu.save_layout': 'Save layout',
 	'viewmenu.saved_config_notice': 'View composition saved',
-	'viewmenu.in_mode': 'In mode',
+	'viewmenu.in_mode': 'Behavior',
 	'viewmenu.in_mode.open': 'Open',
 	'viewmenu.in_mode.add': 'Add',
 	'viewmenu.in_mode.select': 'Select',
