@@ -52,6 +52,11 @@ describe('stickyTreeRows', () => {
 			folder('next', 0),
 		];
 
+		// `branch` is pinned at slot 1 only while its subtree still reaches
+		// under that slot. At scrollTop 40 its subtree ends at viewport y=20,
+		// so pinning it at 20 would float it over `next`, which is not its
+		// descendant. It gets pushed up to 0 instead. This expectation used to
+		// read `top: 20` and encoded exactly the overlap U121-038 reports.
 		expect(
 			stickyTreeRows(rows, {
 				rowHeight: 20,
@@ -60,7 +65,7 @@ describe('stickyTreeRows', () => {
 			}),
 		).toEqual([
 			{ index: 0, top: 0 },
-			{ index: 1, top: 20 },
+			{ index: 1, top: 0 },
 		]);
 		expect(
 			stickyTreeRows(rows, {
@@ -69,6 +74,58 @@ describe('stickyTreeRows', () => {
 				viewportHeight: 200,
 			}),
 		).toEqual([]);
+	});
+
+
+	it('pushes a parent up by the next p-node instead of dropping it', () => {
+		// The repro from U121-038: P at index 10, a single child at 11 and Q at
+		// 12. Pinned at slot 0 the header covered the top of Q; now it is
+		// pushed up so its bottom edge lands exactly on Q's top edge.
+		const rows = [
+			...Array.from({ length: 10 }, (_, index) => file(`lead-${index}`, 0)),
+			folder('p', 0),
+			file('p-child', 1),
+			folder('q', 0),
+			file('q-child', 1),
+		];
+		const rowHeight = 28;
+		const stickyTop = (scrollTop: number) =>
+			stickyTreeRows(rows, { rowHeight, scrollTop, viewportHeight: 400 }).find(
+				(row) => row.index === 10,
+			)?.top;
+
+		// Still fully inside its own subtree: pinned flush to the top.
+		expect(stickyTop(10 * rowHeight)).toBe(0);
+		// Q's top edge is 12 * 28 = 336. At scrollTop 330 it sits at viewport
+		// y=6, so the header must end there, not at 28.
+		expect(stickyTop(330)).toBe(336 - 330 - rowHeight);
+		expect(stickyTop(330)).toBeLessThan(0);
+	});
+
+	it('never lets a sticky row overlap the p-node that follows its subtree', () => {
+		const rows = [
+			folder('p', 0),
+			file('a', 1),
+			file('b', 1),
+			folder('q', 0),
+			file('c', 1),
+		];
+		const rowHeight = 20;
+		const subtreeBottom = 3 * rowHeight;
+		for (let scrollTop = 1; scrollTop < subtreeBottom; scrollTop += 1) {
+			const sticky = stickyTreeRows(rows, {
+				rowHeight,
+				scrollTop,
+				viewportHeight: 200,
+			}).find((row) => row.index === 0);
+			if (!sticky) continue;
+			// `q` starts at document y = subtreeBottom, i.e. viewport y =
+			// subtreeBottom - scrollTop. The header's bottom may touch it but
+			// never cross it.
+			expect(sticky.top + rowHeight).toBeLessThanOrEqual(
+				subtreeBottom - scrollTop,
+			);
+		}
 	});
 
 	it('has a layer the rows can actually float in', () => {

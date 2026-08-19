@@ -34,10 +34,10 @@ export function stickyTreeRows(
 		rows.length - 1,
 		Math.floor(scrollTop / rowHeight),
 	);
-	if (firstVisibleIndex <= 0) return [];
+	if (firstVisibleIndex < 0) return [];
 
 	const ancestors: StickyCandidate[] = [];
-	for (let index = 0; index < firstVisibleIndex; index += 1) {
+	for (let index = 0; index <= firstVisibleIndex; index += 1) {
 		const node = rows[index];
 		if (!node) continue;
 		while (ancestors.length > 0) {
@@ -71,9 +71,16 @@ export function stickyTreeRows(
 		// Once the next sibling reaches the viewport top, this parent is no
 		// longer an ancestor of the visible row.
 		if (subtreeBottom <= scrollTop) continue;
+		// Push-off. Pinning at `slot * rowHeight` unconditionally leaves the
+		// row floating over the NEXT p-node once its own subtree has scrolled
+		// past: with P at 10, one child at 11 and Q at 12 the header still
+		// covered the top of Q. Once the subtree's bottom edge rises into this
+		// slot, the incoming p-node pushes the header up instead, and it slides
+		// out behind its own ancestors rather than releasing all at once.
+		const pushedTop = subtreeBottom - scrollTop - rowHeight;
 		result.push({
 			index: candidate.index,
-			top: slot * rowHeight,
+			top: Math.min(slot * rowHeight, pushedTop),
 		});
 	}
 	return result;

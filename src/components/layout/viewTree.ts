@@ -591,6 +591,9 @@ export class UnifiedTreeView {
 			row.toggleClass('is-stuck', slot === stickyRows.length - 1);
 			row.dataset.sticky = 'true';
 			row.style.top = `${sticky.top}px`;
+			// A pushed-off row travels up through the slots above it, so the
+			// shallower ancestor has to paint over it on the way out.
+			row.style.zIndex = `${stickyRows.length - slot}`;
 		}
 	}
 
