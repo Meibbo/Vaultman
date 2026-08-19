@@ -114,6 +114,10 @@ export interface TreeViewOptions {
 	iconInCaretSlot?: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
+	/** Height to reserve above the pinned rows when the layout overlays nav
+	 * tools on the scrollport. Left undefined it is measured; pass a number
+	 * to override, and 0 for a detached layout that overlays nothing. */
+	stickyTopOffset?: number;
 }
 
 export class UnifiedTreeView {
@@ -583,6 +587,7 @@ export class UnifiedTreeView {
 			return;
 		}
 		const rowHeight = this.rowHeight();
+		this._applyStickyTopOffset();
 		const stickyRows = stickyTreeRows(this._rows, {
 			rowHeight,
 			scrollTop: this.containerEl.scrollTop,
@@ -594,7 +599,7 @@ export class UnifiedTreeView {
 			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
 		);
 		this.removeStaleRows(visibleIds, this.stickyRowEls);
-		this._syncStickyTwins(visibleIds as Set<string>);
+		this._syncStickyTwins(visibleIds);
 		for (const [slot, sticky] of stickyRows.entries()) {
 			const node = this._rows[sticky.index];
 			if (!node) continue;
@@ -631,6 +636,34 @@ export class UnifiedTreeView {
 			this.rowEls.get(id)?.addClass('is-sticky-twin');
 		}
 		this._stickyTwinIds = new Set(activeIds);
+	}
+
+
+	/** Park the sticky layer under whatever the layout overlays on top of the
+	 * scrollport, instead of at its raw top edge.
+	 *
+	 * Without this the pinned rows sit behind the nav tools and leave the band
+	 * the dev sees between the toolbar and the first sticky row. It shows on
+	 * desktop and not on phones because the phone layout overlays nothing, so
+	 * an offset of zero happens to be right there and only there.
+	 *
+	 * Measured rather than wired: the content box already knows where it starts
+	 * relative to the scrollport. Read once per sticky render, never per frame.
+	 */
+	private _applyStickyTopOffset(): void {
+		const layer = this._stickyLayerEl;
+		if (!layer) return;
+		const configured = this._opts?.stickyTopOffset;
+		let offset = configured;
+		if (offset === undefined) {
+			const content = this._contentEl ?? this._spacerEl;
+			if (!content) return;
+			// `offsetTop` is relative to the scroll container, so it already is
+			// the reserved height and needs no rect reads.
+			offset = Math.max(0, content.offsetTop);
+		}
+		const next = `${offset}px`;
+		if (layer.style.top !== next) layer.style.top = next;
 	}
 
 	private rowSignature(node: TreeNode, opts: TreeViewOptions): string {

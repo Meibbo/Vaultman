@@ -186,6 +186,57 @@ describe('stickyTreeRows', () => {
 		}
 	});
 
+
+	it('pushes a deep header as soon as its subtree reaches the sticky area', () => {
+		// Three nested parents, so the stack is root > branch > leafParent, and
+		// leafParent sits at slot 2. Its own subtree is one row.
+		const rows = [
+			folder('root', 0),
+			folder('branch', 1),
+			folder('leafParent', 2),
+			file('leaf', 3),
+			folder('nextBranch', 1),
+			file('tail', 2),
+		];
+		const rowHeight = 20;
+		const at = (scrollTop: number) =>
+			stickyTreeRows(rows, { rowHeight, scrollTop, viewportHeight: 400 });
+
+		// leafParent is index 2 and its subtree ends at index 4, so its bottom
+		// edge sits at document y = 80. It occupies slot 2, whose band is
+		// viewport y 40..60. The push has to begin once the subtree bottom
+		// enters that band, i.e. while 80 - scrollTop <= 60, so from scrollTop
+		// 20 onwards — not only when it reaches the very top of the frame.
+		const pushed = at(50).find((row) => row.index === 2);
+		expect(pushed).toBeDefined();
+		// Its bottom edge must never cross its own subtree's bottom edge.
+		expect((pushed?.top ?? 0) + rowHeight).toBeLessThanOrEqual(80 - 50);
+		// Y su slot nominal seria 40: si no se empuja, se queda ahi.
+		expect(pushed?.top).toBeLessThan(40);
+	});
+
+
+	it('parks the sticky layer under whatever the layout overlays', () => {
+		// The band the dev sees between the toolbar and the first pinned row is
+		// this offset missing. The original design carried it as
+		// `stickyTopOffset` and the rewrite from .svelte to .ts dropped it, so
+		// the layer sat at the raw top edge of the scrollport, behind the nav
+		// tools. Phones overlay nothing, which is why zero looked right there
+		// and only there.
+		//
+		// BT5-059 asks for the real owner to be fixed rather than compensated
+		// with negative margins, so the offset belongs to the layer's own top.
+		const viewTreeSource = readFileSync(
+			new URL('../../src/components/layout/viewTree.ts', import.meta.url),
+			'utf8',
+		);
+		expect(viewTreeSource).toContain('stickyTopOffset');
+		expect(viewTreeSource).toContain('_applyStickyTopOffset');
+		// Measured from the content box, not read back from a rect per frame.
+		expect(viewTreeSource).toContain('content.offsetTop');
+		expect(viewTreeSource).not.toContain('margin-top: -');
+	});
+
 	it('has a layer the rows can actually float in', () => {
 		// The view builds the layer and positions each row inside it, so without
 		// these two rules the whole setting is inert: an unstyled strip scrolls
