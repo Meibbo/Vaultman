@@ -1,48 +1,169 @@
 // ============================================================================
-// Mobile Layout Compatibility & Source Guards (Core Files Parity)
+// Mobile Layout Compatibility & Source Guards (Strict Obsidian Scoping)
 // ============================================================================
 
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav {
-	top: 0;
-	bottom: auto;
-	background: transparent;
-	border: 0;
-	box-shadow: none;
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] {
+	.vaultman-filters-header--minimal.nav-header {
+		display: block;
+		min-height: 0;
+		height: 4px;
+		padding: 4px 16px 0;
+	}
+
+	.vaultman-filters-header-wrap {
+		position: static;
+	}
+
+	.vaultman-navbar-filters {
+		position: static;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+	}
+
+	.vaultman-filters-actions {
+		width: 100%;
+		max-width: 100%;
+		margin-inline: 0;
+	}
+
+	.vaultman-navbar-filters.vaultman-glass::before,
+	.vaultman-bottom-nav--minimal.vaultman-glass::before {
+		display: none;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+
+	.vaultman-page {
+		position: relative;
+		height: 100%;
+	}
+
+	.vaultman-panel-widget-host {
+		position: static;
+	}
+
+	.vaultman-filters-phone-search-row {
+		display: block;
+		position: static;
+		width: 100%;
+		padding: 8px 8px 4px;
+	}
+
+	.vaultman-filters-header-search-pill--inline {
+		display: none;
+	}
+
+	.vaultman-filters-header-search-pill--phone {
+		width: auto;
+		max-width: none;
+		height: 36px;
+		margin: 0;
+		border-radius: var(--radius-s);
+		gap: 8px;
+		padding-inline: 8px;
+		background: transparent;
+		border-color: transparent;
+		border-bottom-color: var(--background-modifier-border);
+		box-shadow: none;
+
+		&:focus-within {
+			border-color: transparent;
+			border-bottom-color: var(--background-modifier-border);
+		}
+	}
+
+	.vaultman-bottom-nav {
+		top: 0;
+		bottom: auto;
+		z-index: 20;
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+	}
+
+	:is(.vaultman-queue-island-wrap, .vaultman-filters-island-wrap) {
+		bottom: calc(56px + 8px);
+	}
+
+	.vaultman-filters-header-search-pill {
+		.vaultman-filters-search-input {
+			font-size: var(--font-ui-medium);
+			min-width: 0;
+			padding-inline-start: 0;
+		}
+
+		:is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+			width: 28px;
+			height: 28px;
+		}
+	}
+
+	:is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
+		padding: 8px 0 96px;
+	}
+
+	.vaultman-tree-row.tree-item-self {
+		gap: normal;
+		height: 37px;
+		margin-bottom: 0;
+		padding-block: 8px;
+		padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+		padding-inline-end: 8px;
+		line-height: 20.8px;
+		color: var(--text-normal);
+
+		&::before {
+			inset-inline-start: var(--vaultman-tree-guide-start);
+		}
+	}
+
+	.vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+		border-radius: var(--nav-item-radius, var(--radius-s));
+	}
+
+	:is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
+		height: 37px;
+		min-height: 37px;
+		--bases-table-row-height: 37px;
+	}
+
+	.vaultman-files-grid-card {
+		min-height: 68px;
+		padding-block: 12px 10px;
+
+		&-icon svg {
+			width: 22px;
+			height: 22px;
+		}
+	}
 }
 
-.vaultman-bottom-nav {
-	top: 0;
-	bottom: auto;
-	background: transparent;
-	border: 0;
-	box-shadow: none;
-}
-
-.vaultman-navbar-filters.vaultman-glass::before {
-	-webkit-mask-image: none;
-}
-
-.vaultman-navbar-filters {
-	container-type: inline-size;
+// ── Search & Filter Shared Rules ────────────────────────────────────────────
+.vaultman-filters-phone-search-row {
+	display: none;
 }
 
 .vaultman-filters-search-row {
+	flex: 0 0 auto;
+	width: 100%;
+	min-width: 100%;
+	box-sizing: border-box;
 	display: flex;
+	align-items: center;
+	margin-top: 4px;
 }
 
-.is-phone .vaultman-filters-search-row {
+.is-phone .workspace-drawer .vaultman-filters-search-row {
 	display: none;
 }
 
 .vaultman-filters-header-search-pill--row {
+	flex: 1 1 auto;
+	width: 100%;
+	max-width: none;
 	display: flex;
-}
-
-.vaultman-filters-phone-search-row {
-	position: static;
-	padding: 8px 8px 4px;
-	background: transparent;
-	border-bottom-color: var(--background-modifier-border);
 }
 
 .vaultman-filters-header-search-pill--inline {
@@ -58,16 +179,12 @@
 	height: 28px;
 }
 
-.vaultman-island-backdrop:not(.is-open) {
-	backdrop-filter: none;
+.vaultman-navbar-filters {
+	container-type: inline-size;
 }
 
-.vaultman-island-backdrop:not(.is-open)::before {
-	backdrop-filter: none;
-}
-
-.vaultman-page {
-	height: 100%;
+.vaultman-navbar-filters.vaultman-glass::before {
+	-webkit-mask-image: none;
 }
 
 .vaultman-filters-actions {
@@ -75,23 +192,16 @@
 	max-width: 100%;
 	margin-inline: auto;
 	justify-content: center;
+	display: flex;
 }
 
 .is-phone .workspace-drawer .vaultman-filters-actions {
-	width: 100%;
-}
-
-.is-phone .vaultman-pages-viewport {
-	padding: 8px 0 96px;
+	overflow: visible;
 }
 
 .vaultman-files-table-header-row,
 .vaultman-node-table-header-row {
 	--bases-table-row-height: 37px;
-}
-
-.vaultman-files-grid-card {
-	flex: 0 0 20px;
 }
 
 .vaultman-floating-toc-item {
@@ -115,7 +225,7 @@
 }
 
 .vaultman-stat-card {
-  display: flex;
+	display: flex;
 	background: transparent;
 }
 
@@ -128,31 +238,10 @@
 	background: var(--color-accent);
 }
 
-// ── Strict Core Parity for Mobile Drawer / Dock ─────────────────────────────
-.is-phone,
-.is-mobile {
-	.workspace-drawer {
-		.vaultman-bottom-nav,
-		.vaultman-bottom-nav--minimal,
-		.vm-dock,
-		.vaultman-filters-actions,
-		.nav-buttons-container {
-			background: transparent !important;
-			border: none !important;
-			border-top: none !important;
-			box-shadow: none !important;
-			backdrop-filter: none !important;
-			-webkit-backdrop-filter: none !important;
+.vaultman-island-backdrop:not(.is-open) {
+	backdrop-filter: none;
 
-			&::before,
-			&::after {
-				display: none !important;
-				background: transparent !important;
-				backdrop-filter: none !important;
-				-webkit-backdrop-filter: none !important;
-				-webkit-mask-image: none !important;
-				mask-image: none !important;
-			}
-		}
+	&::before {
+		backdrop-filter: none;
 	}
 }

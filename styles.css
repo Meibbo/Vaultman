@@ -21,7 +21,7 @@
 .vm-nav-icon{display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;}
 .vm-stat-card{display:flex;flex-direction:column;gap:0.375rem;border-width:1px;border-color:var(--background-modifier-border);border-radius:0.75rem;background-color:var(--background-secondary);padding:0.875rem;}
 .vm-toolbar{display:flex;align-items:center;gap:0.375rem;border-bottom-width:1px;border-color:var(--background-modifier-border);background-color:var(--background-primary);padding:0.25rem;}
-.vm-tree-row{display:flex;cursor:pointer;-webkit-user-select:none;user-select:none;align-items:center;gap:0.375rem;border-radius:0.25rem;padding-left:0.5rem;padding-right:0.5rem;padding-top:0.125rem;padding-bottom:0.125rem;color:var(--text-normal);transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;transition-duration:100ms;}
+.vm-tree-row{display:flex;cursor:pointer;-webkit-user-select:none;user-select:none;align-items:center;gap:0.375rem;border-radius:var(--nav-item-radius,var(--radius-s));padding-left:0.5rem;padding-right:0.5rem;padding-top:0.125rem;padding-bottom:0.125rem;color:var(--text-normal);transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;transition-duration:100ms;}
 .vm-badge{display:inline-flex;align-items:center;border-width:1px;border-color:var(--background-modifier-border);border-radius:9999px;background-color:var(--background-modifier-hover);padding-left:0.375rem;padding-right:0.375rem;padding-top:0.05rem;padding-bottom:0.05rem;font-size:10px;color:var(--text-muted);font-weight:500;}
 .vm-btn{display:inline-flex;cursor:pointer;-webkit-user-select:none;user-select:none;align-items:center;justify-content:center;border-radius:0.25rem;border-style:none;background-color:transparent;padding-left:0.625rem;padding-right:0.625rem;padding-top:0.25rem;padding-bottom:0.25rem;font-size:0.875rem;line-height:1.25rem;color:var(--text-normal);font-weight:500;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms;}
 .vm-toggle-chevron-open{--un-rotate-x:0;--un-rotate-y:0;--un-rotate-z:0;--un-rotate:90deg;transform:translateX(var(--un-translate-x)) translateY(var(--un-translate-y)) translateZ(var(--un-translate-z)) rotate(var(--un-rotate)) rotateX(var(--un-rotate-x)) rotateY(var(--un-rotate-y)) rotateZ(var(--un-rotate-z)) skewX(var(--un-skew-x)) skewY(var(--un-skew-y)) scaleX(var(--un-scale-x)) scaleY(var(--un-scale-y)) scaleZ(var(--un-scale-z));}
@@ -40,12 +40,12 @@
 .vm-badge-accent{border-color:var(--interactive-accent);background-color:var(--interactive-accent);color:var(--interactive-accent);}
 .vm-badge-error{border-color:var(--text-error);background-color:var(--text-error);color:var(--text-error);}
 .vm-badge-warning{border-color:var(--text-warning);background-color:var(--text-warning);color:var(--text-warning);}
+.vm-tree-row-active{border-radius:var(--nav-item-radius,var(--radius-s));background-color:var(--nav-item-background-active,var(--background-modifier-active-hover));color:var(--interactive-accent);font-weight:500;}
 .vm-btn-danger{background-color:var(--text-error);--un-text-opacity:1;color:rgb(255 255 255 / var(--un-text-opacity));}
 .vm-btn-ghost{background-color:transparent;color:var(--text-muted);}
 .vm-btn-primary{background-color:var(--interactive-accent);color:var(--text-on-accent);font-weight:600;}
 .vm-nav-pill-active{background-color:var(--interactive-accent);color:var(--text-on-accent);font-weight:600;--un-shadow:var(--un-shadow-inset) 0 1px 2px 0 var(--un-shadow-color, rgb(0 0 0 / 0.05));box-shadow:var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);}
 .vm-node-table-row-selected{background-color:var(--background-modifier-active-hover);}
-.vm-tree-row-active{background-color:var(--background-modifier-active-hover);color:var(--interactive-accent);font-weight:500;}
 .vm-btn:hover{background-color:var(--background-modifier-hover);}
 .vm-btn-ghost:hover{background-color:var(--background-modifier-hover);color:var(--text-normal);}
 .vm-btn-primary:hover{background-color:var(--interactive-accent-hover);}
@@ -56,7 +56,7 @@
 .vm-nav-pill:hover{background-color:var(--background-modifier-hover);color:var(--text-normal);}
 .vm-node-table-header-resizer:hover{background-color:var(--interactive-accent);}
 .vm-node-table-row:hover{background-color:var(--background-modifier-hover);}
-.vm-tree-row:hover{background-color:var(--background-modifier-hover);}
+.vm-tree-row:hover{background-color:var(--nav-item-background-hover,var(--background-modifier-hover));}
 .vm-btn:active{background-color:var(--background-modifier-active);}
 .vm-stat-card-label{font-size:0.75rem;line-height:1rem;color:var(--text-muted);font-weight:500;letter-spacing:0.05em;text-transform:uppercase;}
 .vm-stat-card-value{font-size:1.5rem;line-height:2rem;color:var(--text-normal);font-weight:700;letter-spacing:-0.025em;}
@@ -5276,6 +5276,214 @@ body.vaultman-resizing {
   font-size: 0.9em;
 }
 
+/* === Tree Virtualization & Node Rows (Restored from Monolith) === */
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
+  padding: 8px 0 96px;
+}
+
+.vaultman-tree-virtual-spacer {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+.vaultman-tree-virtual-content {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
+.vaultman-tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-block: 0;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  height: 27px;
+  margin-inline: var(--size-4-1, 4px);
+  margin-bottom: 1px;
+  cursor: pointer;
+  border-radius: var(--tree-item-radius, var(--nav-item-radius, var(--radius-s)));
+  width: calc(100% - var(--size-4-1, 4px) * 2);
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+  /* Sharp UI Fixes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+}
+
+.vaultman-tree-row--virtual {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+  transition: top 100ms ease-in-out, background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
+    transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+  }
+}
+/* Sticky parent rows (setting). The prototype pins each parent row in place
+   with `position: sticky` and a per-depth offset, which needs the rows to be
+   in flow — this tree virtualizes them into an absolutely positioned window,
+   so the offsets come from `logicTreeSticky` and the stack lives in its own
+   layer instead. The layer is a zero-height strip pinned to the top of the
+   scrollport: it stays out of the window's geometry — the spacer still owns
+   the full scroll height — while the parent rows it holds float above it. The
+   strip itself is click-through so the empty space below the stack does not
+   swallow the rows underneath. */
+.vaultman-tree-sticky-layer {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The tab surface paints no background of its own, so the pinned rows take the
+   one behind the leaf: side docks and the phone drawer are secondary, the main
+   area is primary. Without it the scrolling rows read straight through. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  background-color: var(--background-secondary);
+}
+
+.workspace-split.mod-root .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
+  background-color: var(--background-primary);
+}
+
+/* Only the row the stack currently ends on carries the separator, so a nested
+   stack reads as one heading block instead of a ruled table. A border rather
+   than a shadow: the hover state owns this box's `box-shadow`. */
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is-stuck {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-tree-toggle {
+  color: var(--nav-collapse-icon-color, var(--text-faint));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset));
+  flex-shrink: 0;
+}
+
+.vaultman-tree-row::before {
+  content: "";
+  position: absolute;
+  inset-block: 0 -1px;
+  inset-inline-start: var(--vaultman-tree-guide-start);
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  pointer-events: none;
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
+}
+
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before,
+.vaultman-tree-row[style*="--depth: 0"]::before,
+.vaultman-tree-row:not([style*="--depth"])::before {
+  display: none;
+}
+
+.vaultman-tree-row:hover {
+  background-color: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
+}
+
+.vaultman-tree-row.is-being-dragged,
+.vaultman-node-table-row.is-being-dragged,
+.vaultman-file-row.is-being-dragged {
+  opacity: 0.55;
+}
+
+.vaultman-tree-row.is-being-dragged-over,
+.vaultman-node-table-row.is-being-dragged-over,
+.vaultman-file-row.is-being-dragged-over {
+  background-color: hsla(var(--interactive-accent-hsl), 0.12);
+  color: var(--nav-item-color-highlighted);
+  box-shadow: inset 0 0 0 1px hsla(var(--interactive-accent-hsl), 0.28);
+}
+
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-toggle,
+.vaultman-tree-row.is-being-dragged-over .vaultman-tree-icon {
+  color: var(--nav-item-color-highlighted);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
+  gap: normal;
+  height: 37px;
+  margin-bottom: 0;
+  padding-block: 8px;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  line-height: 20.8px;
+  color: var(--text-normal);
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
+  inset-inline-start: var(--vaultman-tree-guide-start);
+}
+
+/* Settings: "Rounded touch rows on mobile". Mirrors core .tree-item-self,
+   which lets --nav-item-radius become --touch-radius-xs (pill) under
+   .is-mobile. Opt-in: some themes (Oxygen/Velocity) enlarge that token
+   enough that the is-active-filter left accent bar tapers short of the
+   row's rounded top/bottom corners instead of reaching them. */
+body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self,
+body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+  border-radius: var(--nav-item-radius, var(--radius-s));
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
+  height: 37px;
+  min-height: 37px;
+  --bases-table-row-height: 37px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
+  min-height: 68px;
+  padding-block: 12px 10px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-tree-row.is-active-filter {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+  /* Inset doesn't push */
+}
+
 /* === Bases table injections === */
 th.vaultman-bases-th-check,
 td.vaultman-bases-td-check {
@@ -6494,47 +6702,142 @@ body.vm-reduced-motion * {
   position: relative;
 }
 
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header--minimal.nav-header {
+  display: block;
+  min-height: 0;
+  height: 4px;
+  padding: 4px 16px 0;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-wrap {
+  position: static;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-navbar-filters {
+  position: static;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-navbar-filters.vaultman-glass::before,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav--minimal.vaultman-glass::before {
+  display: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-page {
+  position: relative;
+  height: 100%;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-panel-widget-host {
+  position: static;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-phone-search-row {
+  display: block;
+  position: static;
+  width: 100%;
+  padding: 8px 8px 4px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--inline {
+  display: none;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--phone {
+  width: auto;
+  max-width: none;
+  height: 36px;
+  margin: 0;
+  border-radius: var(--radius-s);
+  gap: 8px;
+  padding-inline: 8px;
+  background: transparent;
+  border-color: transparent;
+  border-bottom-color: var(--background-modifier-border);
+  box-shadow: none;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--phone:focus-within {
+  border-color: transparent;
+  border-bottom-color: var(--background-modifier-border);
+}
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav {
   top: 0;
   bottom: auto;
+  z-index: 20;
   background: transparent;
   border: 0;
   box-shadow: none;
 }
-
-.vaultman-bottom-nav {
-  top: 0;
-  bottom: auto;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-queue-island-wrap, .vaultman-filters-island-wrap) {
+  bottom: 64px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill .vaultman-filters-search-input {
+  font-size: var(--font-ui-medium);
+  min-width: 0;
+  padding-inline-start: 0;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+  width: 28px;
+  height: 28px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
+  padding: 8px 0 96px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
+  gap: normal;
+  height: 37px;
+  margin-bottom: 0;
+  padding-block: 8px;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
+  line-height: 20.8px;
+  color: var(--text-normal);
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
+  inset-inline-start: var(--vaultman-tree-guide-start);
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+  border-radius: var(--nav-item-radius, var(--radius-s));
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-table-header-row, .vaultman-node-table-header-row) {
+  height: 37px;
+  min-height: 37px;
+  --bases-table-row-height: 37px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
+  min-height: 68px;
+  padding-block: 12px 10px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
-.vaultman-navbar-filters.vaultman-glass::before {
-  -webkit-mask-image: none;
-}
-
-.vaultman-navbar-filters {
-  container-type: inline-size;
+.vaultman-filters-phone-search-row {
+  display: none;
 }
 
 .vaultman-filters-search-row {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   display: flex;
+  align-items: center;
+  margin-top: 4px;
 }
 
-.is-phone .vaultman-filters-search-row {
+.is-phone .workspace-drawer .vaultman-filters-search-row {
   display: none;
 }
 
 .vaultman-filters-header-search-pill--row {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
   display: flex;
-}
-
-.vaultman-filters-phone-search-row {
-  position: static;
-  padding: 8px 8px 4px;
-  background: transparent;
-  border-bottom-color: var(--background-modifier-border);
 }
 
 .vaultman-filters-header-search-pill--inline {
@@ -6550,16 +6853,12 @@ body.vm-reduced-motion * {
   height: 28px;
 }
 
-.vaultman-island-backdrop:not(.is-open) {
-  backdrop-filter: none;
+.vaultman-navbar-filters {
+  container-type: inline-size;
 }
 
-.vaultman-island-backdrop:not(.is-open)::before {
-  backdrop-filter: none;
-}
-
-.vaultman-page {
-  height: 100%;
+.vaultman-navbar-filters.vaultman-glass::before {
+  -webkit-mask-image: none;
 }
 
 .vaultman-filters-actions {
@@ -6567,23 +6866,16 @@ body.vm-reduced-motion * {
   max-width: 100%;
   margin-inline: auto;
   justify-content: center;
+  display: flex;
 }
 
 .is-phone .workspace-drawer .vaultman-filters-actions {
-  width: 100%;
-}
-
-.is-phone .vaultman-pages-viewport {
-  padding: 8px 0 96px;
+  overflow: visible;
 }
 
 .vaultman-files-table-header-row,
 .vaultman-node-table-header-row {
   --bases-table-row-height: 37px;
-}
-
-.vaultman-files-grid-card {
-  flex: 0 0 20px;
 }
 
 .vaultman-floating-toc-item {
@@ -6619,48 +6911,11 @@ body.vm-reduced-motion * {
   background: var(--color-accent);
 }
 
-.is-phone .workspace-drawer .vaultman-bottom-nav,
-.is-phone .workspace-drawer .vaultman-bottom-nav--minimal,
-.is-phone .workspace-drawer .vm-dock,
-.is-phone .workspace-drawer .vaultman-filters-actions,
-.is-phone .workspace-drawer .nav-buttons-container,
-.is-mobile .workspace-drawer .vaultman-bottom-nav,
-.is-mobile .workspace-drawer .vaultman-bottom-nav--minimal,
-.is-mobile .workspace-drawer .vm-dock,
-.is-mobile .workspace-drawer .vaultman-filters-actions,
-.is-mobile .workspace-drawer .nav-buttons-container {
-  background: transparent !important;
-  border: none !important;
-  border-top: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+.vaultman-island-backdrop:not(.is-open) {
+  backdrop-filter: none;
 }
-.is-phone .workspace-drawer .vaultman-bottom-nav::before, .is-phone .workspace-drawer .vaultman-bottom-nav::after,
-.is-phone .workspace-drawer .vaultman-bottom-nav--minimal::before,
-.is-phone .workspace-drawer .vaultman-bottom-nav--minimal::after,
-.is-phone .workspace-drawer .vm-dock::before,
-.is-phone .workspace-drawer .vm-dock::after,
-.is-phone .workspace-drawer .vaultman-filters-actions::before,
-.is-phone .workspace-drawer .vaultman-filters-actions::after,
-.is-phone .workspace-drawer .nav-buttons-container::before,
-.is-phone .workspace-drawer .nav-buttons-container::after,
-.is-mobile .workspace-drawer .vaultman-bottom-nav::before,
-.is-mobile .workspace-drawer .vaultman-bottom-nav::after,
-.is-mobile .workspace-drawer .vaultman-bottom-nav--minimal::before,
-.is-mobile .workspace-drawer .vaultman-bottom-nav--minimal::after,
-.is-mobile .workspace-drawer .vm-dock::before,
-.is-mobile .workspace-drawer .vm-dock::after,
-.is-mobile .workspace-drawer .vaultman-filters-actions::before,
-.is-mobile .workspace-drawer .vaultman-filters-actions::after,
-.is-mobile .workspace-drawer .nav-buttons-container::before,
-.is-mobile .workspace-drawer .nav-buttons-container::after {
-  display: none !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
+.vaultman-island-backdrop:not(.is-open)::before {
+  backdrop-filter: none;
 }
 
 /* =========================================================
