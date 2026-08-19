@@ -118,6 +118,8 @@ export interface TreeViewOptions {
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
 	stickyTopOffset?: number;
+	/** Share of the tree the pinned headers may cover. */
+	stickyMaxFraction?: number;
 }
 
 export class UnifiedTreeView {
@@ -592,6 +594,7 @@ export class UnifiedTreeView {
 			rowHeight,
 			scrollTop: this.containerEl.scrollTop,
 			viewportHeight: this.containerEl.clientHeight,
+			maxFraction: this._opts?.stickyMaxFraction,
 			parentIndex: this._parentIndex ?? undefined,
 			subtreeEnd: this._subtreeEnd ?? undefined,
 		});

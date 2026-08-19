@@ -10,6 +10,10 @@ export interface StickyTreeRowsOptions {
 	scrollTop: number;
 	viewportHeight: number;
 	maxRows?: number;
+	/** Share of the viewport the stack may cover. Defaults to the 0.4 the
+	 * feature shipped with. Clamped, because a value near 1 would leave the
+	 * tree with no room for its own content. */
+	maxFraction?: number;
 	/** The ancestor chain emitted by `flattenVisibleTreeWithChain`. With it the
 	 * active headers are found by walking pointers up from the first visible
 	 * row — O(depth), about seven steps. Without it the chain is rebuilt by
@@ -33,6 +37,7 @@ export function stickyTreeRows(
 		scrollTop,
 		viewportHeight,
 		maxRows = 7,
+		maxFraction = 0.4,
 		parentIndex,
 		subtreeEnd,
 	}: StickyTreeRowsOptions,
@@ -51,7 +56,8 @@ export function stickyTreeRows(
 	);
 	if (firstVisibleIndex < 0) return [];
 
-	const viewportRowLimit = Math.floor((viewportHeight * 0.4) / rowHeight);
+	const fraction = Math.min(0.6, Math.max(0.2, maxFraction));
+	const viewportRowLimit = Math.floor((viewportHeight * fraction) / rowHeight);
 	const rowLimit = Math.min(maxRows, viewportRowLimit);
 	if (rowLimit <= 0) return [];
 

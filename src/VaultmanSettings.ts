@@ -396,7 +396,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-
 		items.push({
 			type: 'page',
 			name: translate('settings.developer'),
@@ -435,17 +434,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 										payload.filterTemplates;
 								}
 								if (payload.queueTemplates !== undefined) {
-									this.plugin.settings.queueTemplates =
-										payload.queueTemplates;
+									this.plugin.settings.queueTemplates = payload.queueTemplates;
 								}
 								if (payload.savedLayouts !== undefined) {
-									this.plugin.settings.savedLayouts =
-										payload.savedLayouts;
+									this.plugin.settings.savedLayouts = payload.savedLayouts;
 								}
 								await this.plugin.saveSettings();
-								new Notice(
-									translate('settings.data_transfer.import.done'),
-								);
+								new Notice(translate('settings.data_transfer.import.done'));
 								this.display();
 							}).open();
 						}),
@@ -970,6 +965,31 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.folderAggregateCells === true)
 						.onChange(async (value) => {
 							this.plugin.settings.folderAggregateCells = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.sticky_parent_rows_fraction'),
+			desc: translate('settings.sticky_parent_rows_fraction.desc'),
+			render: (setting: Setting) => {
+				// En porcentaje, que es como se lee el limite; se guarda como
+				// fraccion. El rango va de 20 a 60: por debajo no cabe casi
+				// ninguna cabecera y por encima el arbol se queda sin sitio
+				// para su propio contenido.
+				setting.addSlider((slider) =>
+					slider
+						.setLimits(20, 60, 5)
+						.setDynamicTooltip()
+						.setValue(
+							Math.round(
+								(this.plugin.settings.stickyParentRowsMaxFraction ?? 0.4) * 100,
+							),
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.stickyParentRowsMaxFraction = value / 100;
 							await this.plugin.saveSettings();
 						}),
 				);

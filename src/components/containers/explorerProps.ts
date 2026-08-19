@@ -34,6 +34,7 @@ export interface PanelPluginCtx {
 	settings?: {
 		minimalStyle: boolean;
 		stickyParentRows?: boolean;
+		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
@@ -141,7 +142,10 @@ import {
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
-import { renderEditableText, renderPropertyValue } from '../../utils/renderPropertyValue';
+import {
+	renderEditableText,
+	renderPropertyValue,
+} from '../../utils/renderPropertyValue';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -184,7 +188,13 @@ export class PropsExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('props', null);
 	private searchMode = 0;
 	private nodeTypeFilters: string[] = [];
-	private visibleCells = new Set<string>(['checkbox', 'icon', 'text', 'count', 'nested']);
+	private visibleCells = new Set<string>([
+		'checkbox',
+		'icon',
+		'text',
+		'count',
+		'nested',
+	]);
 	private onExpansionChange?: () => void;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
@@ -554,10 +564,9 @@ export class PropsExplorerPanel extends Component {
 		if (this.interactionMode === 'select') {
 			return {
 				selectedIds: this.selectedNodeIds,
-				selectionCheckboxPosition:
-					this.visibleCells.has('checkbox')
-						? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
-						: 'hidden',
+				selectionCheckboxPosition: this.visibleCells.has('checkbox')
+					? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+					: 'hidden',
 				onSelectionToggle: (id: string, selected: boolean) => {
 					if (selected) this.selectedNodeIds.add(id);
 					else this.selectedNodeIds.delete(id);
@@ -1725,6 +1734,7 @@ export class PropsExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (container, node) => {
@@ -1912,10 +1922,7 @@ export class PropsExplorerPanel extends Component {
 				// The translated word is a placeholder, not the node's label:
 				// the editable text starts empty, so the commit carries only
 				// what the user typed, in every language.
-				text.setAttribute(
-					'data-placeholder',
-					translate('prop.value.empty'),
-				);
+				text.setAttribute('data-placeholder', translate('prop.value.empty'));
 				return true;
 			}
 			container.createSpan({

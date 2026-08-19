@@ -414,6 +414,8 @@ export const es: Record<string, string> = {
 	'settings.sticky_parent_rows': 'Filas padre fijas',
 	'settings.sticky_parent_rows.desc':
 		'Mantiene visibles los nodos padre expandidos al recorrer su árbol.',
+	'settings.sticky_parent_rows_fraction': 'Límite de altura de las cabeceras fijadas',
+	'settings.sticky_parent_rows_fraction.desc': 'Parte del árbol que pueden tapar los padres fijados. Un panel corto se queda sin huecos antes del techo de siete filas: al 40 %, un árbol de 413 px admite cinco, así que un sexto nivel nunca se fija.',
 	'settings.node_icon_scope': 'Alcance de icono de nodo',
 	'settings.node_icon_scope.desc':
 		'Qué nodos del explorer pueden mostrar icono: files y folders, solo files, solo folders, o solo nodos con icono personalizado.',

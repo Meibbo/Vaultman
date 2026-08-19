@@ -2016,6 +2016,7 @@ export class FilesExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+				stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
@@ -3961,6 +3962,7 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};

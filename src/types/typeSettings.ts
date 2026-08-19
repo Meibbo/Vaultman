@@ -144,6 +144,10 @@ export interface VaultmanSettings {
 	minimalStyle: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows: boolean;
+	/** Share of the tree's height the pinned headers may cover, 0.2 to 0.6.
+	 * A short panel runs out of slots long before the seven-row ceiling: at
+	 * 413px the default 0.4 allows five, so a sixth level never appears. */
+	stickyParentRowsMaxFraction: number;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
 	/** Render add-on enabled state as an Obsidian toggle or compact badge. */
@@ -372,6 +376,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filtersShowTabLabels: false,
 	minimalStyle: true,
 	stickyParentRows: true,
+	stickyParentRowsMaxFraction: 0.4,
 	coloredBadges: false,
 	addonCellStyle: 'native',
 	iconicEnabled: true,

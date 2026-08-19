@@ -413,6 +413,8 @@ export const en: Record<string, string> = {
 	'settings.sticky_parent_rows': 'Sticky parent rows',
 	'settings.sticky_parent_rows.desc':
 		'Keep expanded parent nodes visible while scrolling through their tree.',
+	'settings.sticky_parent_rows_fraction': 'Sticky headers height limit',
+	'settings.sticky_parent_rows_fraction.desc': 'Share of the tree the pinned parents may cover. A short panel runs out of slots before the seven-row ceiling: a 413px tree fits five at 40%, so a sixth level never pins.',
 	'settings.node_icon_scope': 'Node icon scope',
 	'settings.node_icon_scope.desc':
 		'Which explorer nodes may show an icon: files and folders, files only, folders only, or only nodes with a custom icon.',

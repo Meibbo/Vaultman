@@ -49,6 +49,7 @@ export interface PanelPluginCtx {
 	queueService: OperationQueueService;
 	settings?: {
 		stickyParentRows?: boolean;
+		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
@@ -125,7 +126,13 @@ export class TagsExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('tags', null);
 	private nodeTypeFilters: string[] = [];
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
-	private visibleCells = new Set<string>(['checkbox', 'icon', 'text', 'count', 'nested']);
+	private visibleCells = new Set<string>([
+		'checkbox',
+		'icon',
+		'text',
+		'count',
+		'nested',
+	]);
 	private onExpansionChange?: () => void;
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	private hasConnectedSortStateHandler = false;
@@ -310,10 +317,9 @@ export class TagsExplorerPanel extends Component {
 		if (this.interactionMode === 'select') {
 			return {
 				selectedIds: this.selectedNodeIds,
-				selectionCheckboxPosition:
-					this.visibleCells.has('checkbox')
-						? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
-						: 'hidden',
+				selectionCheckboxPosition: this.visibleCells.has('checkbox')
+					? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+					: 'hidden',
 				onSelectionToggle: (id: string, selected: boolean) => {
 					if (selected) this.selectedNodeIds.add(id);
 					else this.selectedNodeIds.delete(id);
@@ -1044,6 +1050,7 @@ export class TagsExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (row, node) => {
