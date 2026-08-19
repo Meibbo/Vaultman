@@ -51,46 +51,44 @@ export function stickyTreeRows(
 	);
 	if (firstVisibleIndex < 0) return [];
 
-	const ancestors: StickyCandidate[] = collectAncestors(
-		rows,
-		firstVisibleIndex,
-		parentIndex,
-		subtreeEnd,
-	);
-
 	const viewportRowLimit = Math.floor((viewportHeight * 0.4) / rowHeight);
 	const rowLimit = Math.min(maxRows, viewportRowLimit);
 	if (rowLimit <= 0) return [];
 
-	const selected = ancestors.slice(-rowLimit);
 	const result: StickyTreeRow[] = [];
-	for (const candidate of selected) {
-		const slot = result.length;
-		const subtreeBottom = candidate.subtreeEnd * rowHeight;
-		// Once the next sibling reaches the viewport top, this parent is no
-		// longer an ancestor of the visible row.
-		if (subtreeBottom <= scrollTop) continue;
-		// Push-off. Pinning at `slot * rowHeight` unconditionally leaves the
-		// row floating over the NEXT p-node once its own subtree has scrolled
-		// past: with P at 10, one child at 11 and Q at 12 the header still
-		// covered the top of Q. Once the subtree's bottom edge rises into this
-		// slot, the incoming p-node pushes the header up instead, and it slides
-		// out behind its own ancestors rather than releasing all at once.
-		const pushedTop = subtreeBottom - scrollTop - rowHeight;
-		// The push must not carry the row above the one it sits under. The
-		// stack paints shallower slots on top, so a row that rises past its
-		// neighbour's slot is drawn behind it and vanishes while its own slot
-		// sits empty — which is why every level below the first went missing.
-		// The floor is the slot above: at that point it is exactly covered.
-		const top = Math.min(slot * rowHeight, pushedTop);
-		// Sujetarla al suelo la haria solapar al nodo entrante, que es el bug
-		// original; dejarla pasar la dibuja detras de su vecina y desaparece.
-		// Lo correcto es retirarla: una vez que el empuje la deja exactamente
-		// cubierta por la de encima, ya no aporta nada y su hueco pertenece al
-		// siguiente p-node. La salida sigue siendo gradual hasta ese punto.
-		if (slot > 0 && top < (slot - 1) * rowHeight) continue;
+	for (let slot = 0; slot < rowLimit; slot += 1) {
+		// El ancla del slot es la fila que hay bajo lo ya apilado, no la del
+		// borde del viewport. Por eso una cabecera entra ya en su sitio.
+		const anchorTop = scrollTop + slot * rowHeight;
+		const anchorIndex = Math.min(
+			rows.length - 1,
+			Math.floor(anchorTop / rowHeight),
+		);
+		if (anchorIndex < 0) break;
+
+		const chain = collectAncestors(
+			rows,
+			anchorIndex,
+			parentIndex,
+			subtreeEnd,
+		);
+		const candidate = chain[slot];
+		if (!candidate) break;
+
+		// Borde inferior de su subarbol, en coordenadas de viewport.
+		const subtreeBottom = candidate.subtreeEnd * rowHeight - scrollTop;
+		// Si su subarbol termina por encima de este slot, ya fue relevado: el
+		// hueco es del siguiente p-node de su nivel, que es justo quien saldra
+		// como `chain[slot]` en cuanto el ancla entre en su subarbol.
+		if (subtreeBottom <= slot * rowHeight) break;
+
+		// Fijada en su slot mientras su subarbol siga por debajo; empujada solo
+		// cuando ese borde entra en el slot, y entonces su parte inferior
+		// acompaña al borde en vez de saltar.
+		const top = Math.min(slot * rowHeight, subtreeBottom - rowHeight);
 		result.push({ index: candidate.index, top });
 	}
+
 	return result;
 }
 

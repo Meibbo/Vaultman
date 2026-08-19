@@ -53,21 +53,19 @@ describe('stickyTreeRows', () => {
 			folder('next', 0),
 		];
 
-		// `branch` is pinned at slot 1 only while its subtree still reaches
-		// under that slot. At scrollTop 40 its subtree ends at viewport y=20,
-		// so pinning it at 20 would float it over `next`, which is not its
-		// descendant. It gets pushed up to 0 instead. This expectation used to
-		// read `top: 20` and encoded exactly the overlap U121-038 reports.
+		// A scrollTop 40 el unico hijo de `branch` queda integramente cubierto
+		// por el sticky de `root`, asi que `branch` ya no encabeza nada visible
+		// y sale de la pila. Con el modelo anterior seguia dibujado sin
+		// contenido propio debajo, y ese era el sticky de mas que el dev veia
+		// reacomodarse. La expectativa original leia `top: 20`, que ademas lo
+		// hacia flotar sobre `next`, que no es descendiente suyo.
 		expect(
 			stickyTreeRows(rows, {
 				rowHeight: 20,
 				scrollTop: 40,
 				viewportHeight: 200,
 			}),
-		).toEqual([
-			{ index: 0, top: 0 },
-			{ index: 1, top: 0 },
-		]);
+		).toEqual([{ index: 0, top: 0 }]);
 		expect(
 			stickyTreeRows(rows, {
 				rowHeight: 20,
