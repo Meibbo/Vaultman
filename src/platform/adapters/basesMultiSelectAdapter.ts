@@ -1,7 +1,7 @@
 import { Menu, TFile, setIcon, type App } from 'obsidian';
-import { PropertyManagerModal } from '../../modals/modalPropertyManager';
-import { FileRenameModal } from '../../modals/modalFileRename';
-import { FileMoveModal } from '../../modals/modalFileMove';
+import { PropertyManagerModal } from '../../components/modals/modalPropertyManager';
+import { FileRenameModal } from '../../components/modals/modalFileRename';
+import { FileMoveModal } from '../../components/modals/modalFileMove';
 import type { PropertyIndexService } from '../../index/utilPropIndex';
 import { DELETE_FILE, type PendingChange } from '../../types/typeOps';
 import type {
@@ -102,7 +102,7 @@ export class BasesMultiSelectAdapter implements PlatformAdapter {
 			if (!isEventDocument(ctx.doc)) {
 				return { ok: false, reason: 'document event API is not available' };
 			}
-			if (!ctx.doc.body || typeof ctx.doc.body.querySelectorAll !== 'function') {
+			if (!ctx.doc.body || typeof ctx.doc.body.findAll !== 'function') {
 				return { ok: false, reason: 'document body is not available' };
 			}
 			if (typeof vaultResolver(ctx.app) !== 'function') {
@@ -188,13 +188,11 @@ export class BasesMultiSelectAdapter implements PlatformAdapter {
 			this.cancelDefer(handle);
 			return;
 		}
-		clearTimeout(handle as ReturnType<typeof setTimeout>);
+		window.clearTimeout(handle as ReturnType<typeof setTimeout>);
 	}
 
 	private injectIntoOpenNativeMenu(ctx: PlatformAdapterContext, files: TFile[]): boolean {
-		const menus = Array.from(
-			ctx.doc.body.querySelectorAll<HTMLElement>(BASES_NATIVE_MENU_SELECTOR),
-		);
+		const menus = ctx.doc.body.findAll(BASES_NATIVE_MENU_SELECTOR);
 		const menu = menus.at(-1);
 		if (!menu) return false;
 		if (menu.classList.contains(BASES_NATIVE_MENU_ENHANCED_CLASS)) return true;
@@ -329,7 +327,7 @@ export function collectBasesSelectedFiles(
 	root: Element,
 	target: HTMLElement,
 ): TFile[] {
-	const rows = Array.from(root.querySelectorAll<HTMLElement>(BASES_SELECTED_ROW_SELECTOR));
+	const rows = root.findAll(BASES_SELECTED_ROW_SELECTOR);
 	const clickedRow = target.closest<HTMLElement>(BASES_ROW_SELECTOR);
 	if (clickedRow && root.contains(clickedRow) && !rows.includes(clickedRow)) {
 		rows.push(clickedRow);
@@ -384,7 +382,7 @@ export function buildBasesFileDeleteChange(files: readonly TFile[]): PendingChan
 function deferWithDocument(doc: Document, callback: () => void): DeferHandle {
 	const win = doc.defaultView;
 	if (win) return win.setTimeout(callback, 0);
-	return setTimeout(callback, 0);
+	return window.setTimeout(callback, 0);
 }
 
 function vaultResolver(app: App): ((path: string) => unknown) | undefined {
