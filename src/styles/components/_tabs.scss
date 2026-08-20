@@ -579,11 +579,13 @@
   /* spacing for bottom bar */
 }
 
-.tree-item-flair {
+.workspace-leaf-content[data-type="vaultman-frame"] .tree-item-flair,
+.workspace-leaf-content[data-type="vaultman-view"] .tree-item-flair {
   display: flex;
 }
 
-.tree-item-flair svg {
+.workspace-leaf-content[data-type="vaultman-frame"] .tree-item-flair svg,
+.workspace-leaf-content[data-type="vaultman-view"] .tree-item-flair svg {
   width: 18px;
   height: 18px;
   color: var(--text-muted);

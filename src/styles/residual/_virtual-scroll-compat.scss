@@ -65,7 +65,8 @@
 	color: var(--color-orange);
 }
 
-.vaultman-tree-row.tree-item-self {
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-row.tree-item-self {
 	height: 27px;
 }
 

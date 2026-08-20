@@ -665,13 +665,15 @@ button.vaultman-content-scope-hint:focus-visible {
    this is the same behaviour expressed where we can express it — not a
    duplicate of a core rule. Whether there is anywhere to grow is decided in
    the markup, so a match already at the top of its file shows no up chevron. */
-.search-result-file-match .search-result-hover-button {
+.workspace-leaf-content[data-type="vaultman-frame"] .search-result-file-match .search-result-hover-button,
+.workspace-leaf-content[data-type="vaultman-view"] .search-result-file-match .search-result-hover-button {
   opacity: 0;
   transition: opacity 100ms ease-in-out;
 }
 
 @media (hover: hover) {
-  .search-result-file-match:hover .search-result-hover-button {
+  .workspace-leaf-content[data-type="vaultman-frame"] .search-result-file-match:hover .search-result-hover-button,
+  .workspace-leaf-content[data-type="vaultman-view"] .search-result-file-match:hover .search-result-hover-button {
     opacity: 0.7;
   }
 }

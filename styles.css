@@ -1270,11 +1270,13 @@
   /* spacing for bottom bar */
 }
 
-.tree-item-flair {
+.workspace-leaf-content[data-type="vaultman-frame"] .tree-item-flair,
+.workspace-leaf-content[data-type="vaultman-view"] .tree-item-flair {
   display: flex;
 }
 
-.tree-item-flair svg {
+.workspace-leaf-content[data-type="vaultman-frame"] .tree-item-flair svg,
+.workspace-leaf-content[data-type="vaultman-view"] .tree-item-flair svg {
   width: 18px;
   height: 18px;
   color: var(--text-muted);
@@ -2328,13 +2330,15 @@ button.vaultman-content-scope-hint:focus-visible {
    this is the same behaviour expressed where we can express it — not a
    duplicate of a core rule. Whether there is anywhere to grow is decided in
    the markup, so a match already at the top of its file shows no up chevron. */
-.search-result-file-match .search-result-hover-button {
+.workspace-leaf-content[data-type="vaultman-frame"] .search-result-file-match .search-result-hover-button,
+.workspace-leaf-content[data-type="vaultman-view"] .search-result-file-match .search-result-hover-button {
   opacity: 0;
   transition: opacity 100ms ease-in-out;
 }
 
 @media (hover: hover) {
-  .search-result-file-match:hover .search-result-hover-button {
+  .workspace-leaf-content[data-type="vaultman-frame"] .search-result-file-match:hover .search-result-hover-button,
+  .workspace-leaf-content[data-type="vaultman-view"] .search-result-file-match:hover .search-result-hover-button {
     opacity: 0.7;
   }
 }
@@ -6717,7 +6721,8 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   color: var(--color-orange);
 }
 
-.vaultman-tree-row.tree-item-self {
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-row.tree-item-self {
   height: 27px;
 }
 
