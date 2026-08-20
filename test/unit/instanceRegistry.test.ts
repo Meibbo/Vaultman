@@ -73,3 +73,23 @@ describe('setSceneConfig', () => {
 		expect(JSON.stringify(registry)).toBe(snapshot);
 	});
 });
+
+describe('defensas del registro', () => {
+	it('stores a defensive copy so the caller cannot mutate what was already saved', () => {
+		const registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		const cells = ['name'];
+		const next = setSceneConfig(registry, 'vm-1', 'files', { visibleCells: cells });
+		cells.push('count');
+		expect(next.instances['vm-1'].scenes.files?.visibleCells).toEqual(['name']);
+	});
+
+	it('does not hang when the id source is degenerate', () => {
+		const registry = {
+			schema: 1 as const,
+			instances: { 'vm-instance-a': createInstanceRecord('vm-instance-a') },
+		};
+		const id = mintInstanceId(registry, () => 'a');
+		expect(id).not.toBe('vm-instance-a');
+		expect(id.startsWith('vm-instance-')).toBe(true);
+	});
+});
