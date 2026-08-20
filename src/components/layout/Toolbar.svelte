@@ -400,6 +400,9 @@
 			onRenameCancel?.();
 			fnrIslandService?.collapse();
 		}
+		if (event.ctrlKey && (event.key === 'Backspace' || event.key === 'Delete')) {
+			event.stopPropagation();
+		}
 	}
 
 	function handleSearchboxKeydown(event: KeyboardEvent) {
@@ -514,6 +517,8 @@
 					if (e.key === 'Enter') {
 						commitSearchHistory();
 						(e.currentTarget as HTMLInputElement).blur();
+					} else if (e.ctrlKey && (e.key === 'Backspace' || e.key === 'Delete')) {
+						e.stopPropagation();
 					}
 				}}
 				oninput={(e) => {

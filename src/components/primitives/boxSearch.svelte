@@ -35,12 +35,18 @@
 			type="text"
 			placeholder={translate('search.name_placeholder')}
 			bind:value={searchName}
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.ctrlKey && (e.key === 'Backspace' || e.key === 'Delete')) e.stopPropagation();
+			}}
 		/>
 		<input
 			class="vm-search-input"
 			type="text"
 			placeholder={translate('search.folder_placeholder')}
 			bind:value={searchFolder}
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.ctrlKey && (e.key === 'Backspace' || e.key === 'Delete')) e.stopPropagation();
+			}}
 		/>
 	</div>
 </div>
