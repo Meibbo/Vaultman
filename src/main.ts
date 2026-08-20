@@ -5,7 +5,7 @@
 //*                                                                  *\\
 //*           Made with love for tools that last and help.           *\\
 //*                                                                  *\\
-//*      (づ￣ 3￣)づ    ☆*: .｡. o(≧▽≦)o .｡.:*☆     ╰(*°▽°*)╯        *\\
+//*      (づ￣ 3￣)づ    ☆*: .｡. o(≧▽≦)o .｡.:*☆     ╰(*°▽°*)╯     *\\
 //********************************************************************\\
 
 /*------------------————————————————————————————————-------------------/
@@ -81,6 +81,7 @@ import type {
 	IViewService,
 } from './types/typeContracts';
 
+//...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
 	// `declare`: obsidian's Plugin base now types `settings`; this narrows it for
 	// Vaultman without emitting a field that would overwrite the base at runtime.
@@ -181,14 +182,18 @@ export class VaultmanPlugin extends Plugin {
 			}),
 		);
 		this.registerEvent(this.app.vault.on('create', () => debouncedFilesRefresh()));
-		this.registerEvent(this.app.vault.on('delete', () => {
-			debouncedFilesRefresh();
-			debouncedMetadataRefresh();
-		}));
-		this.registerEvent(this.app.vault.on('rename', () => {
-			debouncedFilesRefresh();
-			debouncedMetadataRefresh();
-		}));
+		this.registerEvent(
+			this.app.vault.on('delete', () => {
+				debouncedFilesRefresh();
+				debouncedMetadataRefresh();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('rename', () => {
+				debouncedFilesRefresh();
+				debouncedMetadataRefresh();
+			}),
+		);
 
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app, this.filesIndex);
@@ -343,8 +348,7 @@ export class VaultmanPlugin extends Plugin {
 			getActiveFnRIslandService: () => this.activeFnRIslandService,
 			getActivePanelExplorerApi: () => this.activePanelExplorerApi,
 			focusActivePanel: () => this.focusActivePanelHook?.() ?? false,
-			selectActivePanelVisibleNodes: () =>
-				this.selectActivePanelVisibleNodesHook?.() ?? false,
+			selectActivePanelVisibleNodes: () => this.selectActivePanelVisibleNodesHook?.() ?? false,
 			clearActivePanelSelection: () => this.clearActivePanelSelectionHook?.() ?? false,
 			openFiltersPopup: () => this.openFiltersPopupHook?.(),
 			openQueuePopup: () => this.openQueuePopupHook?.(),
