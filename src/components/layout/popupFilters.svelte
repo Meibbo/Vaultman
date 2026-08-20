@@ -2,7 +2,7 @@
 	import { Menu } from 'obsidian';
 	import { translate } from '../../index/i18n/lang';
 	import type { VaultmanPlugin } from '../../main';
-	import { SaveTemplateModal } from '../../modals/modalSaveTemplate';
+	import { SaveTemplateModal } from '../modals/modalSaveTemplate';
 
 	let {
 		plugin,

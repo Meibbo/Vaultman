@@ -1,8 +1,8 @@
 import { Modal, Setting, type App, type TFile } from 'obsidian';
-import type { PendingChange } from '../types/typeOps';
-import { FolderSuggest } from '../utils/autocomplete';
-import { translate } from '../index/i18n/lang';
-import { buildFileMoveChange } from '../services/serviceFileQueue';
+import type { PendingChange } from '../../types/typeOps';
+import { FolderSuggest } from '../../utils/autocomplete';
+import { translate } from '../../index/i18n/lang';
+import { buildFileMoveChange } from '../../services/serviceFileQueue';
 
 type QueueCallback = (change: PendingChange) => void;
 

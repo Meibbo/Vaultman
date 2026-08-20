@@ -11,9 +11,9 @@ import {
 } from '../logic/logicFiles';
 import type { TreeNode, FileMeta } from '../types/typeNode';
 import type { MenuCtx } from '../types/typeCtxMenu';
-import { FileRenameModal } from '../modals/modalFileRename';
-import { FileMoveModal } from '../modals/modalFileMove';
-import { PropertyManagerModal } from '../modals/modalPropertyManager';
+import { FileRenameModal } from '../components/modals/modalFileRename';
+import { FileMoveModal } from '../components/modals/modalFileMove';
+import { PropertyManagerModal } from '../components/modals/modalPropertyManager';
 import type { ExplorerProvider, ExplorerViewMode } from '../types/typeExplorer';
 import {
 	buildAppendLinksChange,

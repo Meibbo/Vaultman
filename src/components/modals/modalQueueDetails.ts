@@ -4,10 +4,10 @@
  * `twinkling-pearl.md`). Scheduled for deletion in Fase 5. Do not extend.
  */
 import { Modal, Setting, type App } from 'obsidian';
-import type { OperationQueueService } from '../services/serviceQueue.svelte';
-import { translate } from '../index/i18n/lang';
-import { buildDiff, computeBodyHunks, type FileDiff } from '../services/serviceDiff';
-import { serviceMessage } from '../services/serviceMessage';
+import type { OperationQueueService } from '../../services/serviceQueue.svelte';
+import { translate } from '../../index/i18n/lang';
+import { buildDiff, computeBodyHunks, type FileDiff } from '../../services/serviceDiff';
+import { serviceMessage } from '../../services/serviceMessage';
 
 /**
  * Transitional diff preview modal.

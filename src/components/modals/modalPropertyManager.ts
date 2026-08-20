@@ -1,9 +1,9 @@
 import { Modal, Setting, type App, type TFile } from 'obsidian';
-import type { PropertyAction, PropertyType, PendingChange } from '../types/typeOps';
-import { DELETE_PROP, NATIVE_RENAME_PROP } from '../types/typeOps';
-import type { PropertyIndexService } from '../index/utilPropIndex';
-import { PropertySuggest } from '../utils/autocomplete';
-import { translate } from '../index/i18n/lang';
+import type { PropertyAction, PropertyType, PendingChange } from '../../types/typeOps';
+import { DELETE_PROP, NATIVE_RENAME_PROP } from '../../types/typeOps';
+import type { PropertyIndexService } from '../../index/utilPropIndex';
+import { PropertySuggest } from '../../utils/autocomplete';
+import { translate } from '../../index/i18n/lang';
 
 type QueueCallback = (change: PendingChange) => void;
 

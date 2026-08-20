@@ -1,7 +1,7 @@
 import { Modal, Setting, type App } from 'obsidian';
-import type { FilterGroup, FilterTemplate } from '../types/typeFilter';
-import type { VaultmanPlugin } from '../main';
-import { translate } from '../index/i18n/lang';
+import type { FilterGroup, FilterTemplate } from '../../types/typeFilter';
+import type { VaultmanPlugin } from '../../main';
+import { translate } from '../../index/i18n/lang';
 
 /**
  * Modal to save the current filter tree as a named template.
