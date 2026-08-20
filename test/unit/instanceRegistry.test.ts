@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { InstanceRegistryData } from '../../src/types/typeInstance';
 import { createInstanceRecord, EMPTY_REGISTRY } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
@@ -21,7 +22,7 @@ import { ensureInstance, mintInstanceId, setSceneConfig } from '../../src/logic/
 
 describe('ensureInstance', () => {
 	it('creates the record the first time and returns the same one afterwards', () => {
-		let registry = { schema: 1 as const, instances: {} };
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
 		const first = ensureInstance(registry, 'vm-1');
 		registry = first.registry;
 		expect(Object.keys(registry.instances)).toEqual(['vm-1']);
@@ -32,7 +33,7 @@ describe('ensureInstance', () => {
 	});
 
 	it('revives a tombstoned record instead of minting a second one', () => {
-		let registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
 		registry.instances['vm-1'].tombstoned = true;
 		const revived = ensureInstance(registry, 'vm-1');
 		expect(revived.record.tombstoned).toBe(false);
@@ -42,7 +43,7 @@ describe('ensureInstance', () => {
 
 describe('mintInstanceId', () => {
 	it('never collides with an existing id', () => {
-		const registry = { schema: 1 as const, instances: { 'vm-a': createInstanceRecord('vm-a') } };
+		const registry: InstanceRegistryData = { schema: 1, instances: { 'vm-a': createInstanceRecord('vm-a') } };
 		const id = mintInstanceId(registry, () => 'a');
 		expect(id).not.toBe('vm-a');
 	});
@@ -50,14 +51,14 @@ describe('mintInstanceId', () => {
 
 describe('setSceneConfig', () => {
 	it('writes a sparse scene patch and bumps the revision', () => {
-		const registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
 		const next = setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
 		expect(next.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
 		expect(next.instances['vm-1'].revision).toBe(2);
 	});
 
 	it('merges into the existing scene patch instead of replacing it', () => {
-		let registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
 		registry = setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
 		registry = setSceneConfig(registry, 'vm-1', 'files', { visibleCells: ['name'] });
 		expect(registry.instances['vm-1'].scenes.files).toEqual({
@@ -67,7 +68,7 @@ describe('setSceneConfig', () => {
 	});
 
 	it('does not mutate the registry it was given', () => {
-		const registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
 		const snapshot = JSON.stringify(registry);
 		setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
 		expect(JSON.stringify(registry)).toBe(snapshot);
@@ -76,7 +77,7 @@ describe('setSceneConfig', () => {
 
 describe('defensas del registro', () => {
 	it('stores a defensive copy so the caller cannot mutate what was already saved', () => {
-		const registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
 		const cells = ['name'];
 		const next = setSceneConfig(registry, 'vm-1', 'files', { visibleCells: cells });
 		cells.push('count');
@@ -84,8 +85,8 @@ describe('defensas del registro', () => {
 	});
 
 	it('does not hang when the id source is degenerate', () => {
-		const registry = {
-			schema: 1 as const,
+		const registry: InstanceRegistryData = {
+			schema: 1,
 			instances: { 'vm-instance-a': createInstanceRecord('vm-instance-a') },
 		};
 		const id = mintInstanceId(registry, () => 'a');

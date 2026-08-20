@@ -1,4 +1,10 @@
-import type { InstanceRegistryData, WorkspaceInstanceId, WorkspaceInstanceRecord } from '../types/typeInstance';
+import type {
+	InstanceRegistryData,
+	SceneConfig,
+	SceneDefinitionId,
+	WorkspaceInstanceId,
+	WorkspaceInstanceRecord,
+} from '../types/typeInstance';
 
 export const EMPTY_REGISTRY: InstanceRegistryData = { schema: 1, instances: {} };
 
@@ -88,7 +94,8 @@ export function setSceneConfig(
 ): InstanceRegistryData {
 	const record = registry.instances[id];
 	if (!record) return registry;
-	const merged: SceneConfig = cloneSceneConfig({ ...record.scenes[scene], ...patch });
+	const current: SceneConfig = record.scenes[scene] ?? {};
+	const merged: SceneConfig = cloneSceneConfig({ ...current, ...patch });
 	const nextRecord: WorkspaceInstanceRecord = {
 		...record,
 		revision: record.revision + 1,
