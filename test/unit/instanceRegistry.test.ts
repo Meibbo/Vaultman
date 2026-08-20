@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
 import { createInstanceRecord, EMPTY_REGISTRY } from '../../src/logic/logicInstanceRegistry';
+import { reconcileRegistry } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
 	it('mints a record with an opaque id and revision 1', () => {
@@ -92,5 +93,32 @@ describe('defensas del registro', () => {
 		const id = mintInstanceId(registry, () => 'a');
 		expect(id).not.toBe('vm-instance-a');
 		expect(id.startsWith('vm-instance-')).toBe(true);
+	});
+});
+
+describe('reconcileRegistry', () => {
+	it('accepts a well-formed registry unchanged', () => {
+		const registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		expect(reconcileRegistry(registry, ['vm-1'])).toEqual(registry);
+	});
+
+	it('replaces a missing or corrupt registry with the empty one', () => {
+		expect(reconcileRegistry(undefined, [])).toEqual(EMPTY_REGISTRY);
+		expect(reconcileRegistry({ schema: 99 } as never, [])).toEqual(EMPTY_REGISTRY);
+	});
+
+	it('tombstones records whose anchor no longer exists in the workspace', () => {
+		let registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		registry = ensureInstance(registry, 'vm-2').registry;
+		const reconciled = reconcileRegistry(registry, ['vm-1']);
+		expect(reconciled.instances['vm-1'].tombstoned).toBe(false);
+		expect(reconciled.instances['vm-2'].tombstoned).toBe(true);
+	});
+
+	it('keeps the tombstoned payload so a reopened leaf gets its configuration back', () => {
+		let registry = ensureInstance({ schema: 1 as const, instances: {} }, 'vm-1').registry;
+		registry = setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
+		const reconciled = reconcileRegistry(registry, []);
+		expect(reconciled.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
 	});
 });

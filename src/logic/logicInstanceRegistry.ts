@@ -103,3 +103,24 @@ export function setSceneConfig(
 	};
 	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
 }
+
+/**
+ * Se corre UNA vez al arrancar, con la lista de anclas vivas leídas del workspace.
+ * Es idempotente y no borra nada: marcar tombstone conserva el payload, que es lo que permite
+ * que reabrir un panel cerrado recupere su configuración en vez de empezar de cero.
+ */
+export function reconcileRegistry(
+	raw: InstanceRegistryData | undefined,
+	liveAnchors: readonly WorkspaceInstanceId[],
+): InstanceRegistryData {
+	if (!raw || raw.schema !== 1 || typeof raw.instances !== 'object' || raw.instances === null) {
+		return EMPTY_REGISTRY;
+	}
+	const live = new Set(liveAnchors);
+	const instances: Record<WorkspaceInstanceId, WorkspaceInstanceRecord> = {};
+	for (const [id, record] of Object.entries(raw.instances)) {
+		if (!record || typeof record !== 'object' || record.id !== id) continue;
+		instances[id] = { ...record, tombstoned: !live.has(id) };
+	}
+	return { schema: 1, instances };
+}
