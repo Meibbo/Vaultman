@@ -1,13 +1,16 @@
-// test/unit/settingsCascade.test.ts
 import { describe, expect, it } from 'vitest';
 import { resolveSceneConfig } from '../../src/logic/logicSettingsCascade';
 import type { SceneConfig } from '../../src/types/typeInstance';
+import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 
+// El estado de orden NO se escribe a mano: es un objeto con `sorts`, `activeScope` y
+// compatibilidad heredada. Se construye con el mismo helper que usa el componente real, que es
+// lo unico que garantiza que el fixture no idealice los datos.
 const defaults: Required<SceneConfig> = {
 	viewMode: 'tree',
-	interactionMode: 'browse',
+	interactionMode: 'open',
 	visibleCells: ['name', 'count'],
-	sortState: { key: 'name', direction: 'asc', filtered: false },
+	sortState: normalizeExplorerSortState('files', null),
 };
 
 describe('resolveSceneConfig', () => {
@@ -18,7 +21,7 @@ describe('resolveSceneConfig', () => {
 	it('lets each layer override the one above it', () => {
 		const resolved = resolveSceneConfig({
 			defaults,
-			global: { viewMode: 'list' },
+			global: { viewMode: 'cards' },
 			instanceSelf: { viewMode: 'table' },
 			scene: { viewMode: 'grid' },
 		});

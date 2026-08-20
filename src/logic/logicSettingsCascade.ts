@@ -1,4 +1,3 @@
-// src/logic/logicSettingsCascade.ts
 import type { SceneConfig } from '../types/typeInstance';
 
 /**
