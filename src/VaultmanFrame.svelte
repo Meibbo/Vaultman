@@ -48,11 +48,13 @@
 
 	interface Props {
 		plugin: VaultmanPlugin;
+		workspaceInstanceId: string;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
 	}
 	let {
 		plugin,
+		workspaceInstanceId,
 		initialShowToolbar = null,
 		onShowToolbarChange,
 	}: Props = $props();

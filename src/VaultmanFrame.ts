@@ -5,6 +5,11 @@ import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
+	EMPTY_REGISTRY,
+	ensureInstance,
+	mintInstanceId,
+} from './logic/logicInstanceRegistry';
+import {
 	measureSceneAsync,
 	measureSceneSync,
 } from './logic/logicScenePerformance';
@@ -30,6 +35,7 @@ export class VaultmanFrame extends ItemView {
 	private viewportRefreshFrame: number | null = null;
 	private viewportRefreshWindow: Window | null = null;
 	private _showToolbar: boolean | null = null;
+	workspaceInstanceId: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
@@ -54,10 +60,18 @@ export class VaultmanFrame extends ItemView {
 	}
 
 	getState(): Record<string, unknown> {
-		return { showToolbar: this._showToolbar };
+		return {
+			...super.getState(),
+			showToolbar: this._showToolbar,
+			workspaceInstanceId: this.workspaceInstanceId,
+		};
 	}
 
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
+		const anchored = (state as { workspaceInstanceId?: unknown })?.workspaceInstanceId;
+		if (typeof anchored === 'string' && anchored.length > 0) {
+			this.workspaceInstanceId = anchored;
+		}
 		if (
 			typeof state === 'object' &&
 			state !== null &&
@@ -72,6 +86,17 @@ export class VaultmanFrame extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
+		if (!this.workspaceInstanceId) {
+			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
+			this.workspaceInstanceId = mintInstanceId(registry);
+			this.app.workspace.requestSaveLayout();
+		}
+		const ensured = ensureInstance(
+			this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
+			this.workspaceInstanceId,
+		);
+		this.plugin.settings.instanceRegistry = ensured.registry;
+		if (ensured.created) await this.plugin.saveSettings();
 		measureSceneSync('scene.lifecycle.open.shell', undefined, () => {
 			contentEl.empty();
 			contentEl.addClass('vaultman-frame');
@@ -85,6 +110,7 @@ export class VaultmanFrame extends ItemView {
 					target: contentEl,
 					props: {
 						plugin: this.plugin,
+						workspaceInstanceId: this.workspaceInstanceId,
 						initialShowToolbar: this._showToolbar,
 						onShowToolbarChange: (val: boolean) => {
 							this._showToolbar = val;
