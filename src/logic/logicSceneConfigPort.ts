@@ -6,6 +6,12 @@ import type {
 	SceneDefinitionId,
 	WorkspaceInstanceId,
 } from '../types/typeInstance';
+import type {
+	ExplorerSortState,
+	ExplorerTabId,
+	ExplorerViewMode,
+} from '../types/typeUI';
+import type { InteractionMode } from './logicInteractionMode';
 
 export interface SceneConfigPortDeps {
 	instanceId: WorkspaceInstanceId;
@@ -21,6 +27,34 @@ export interface SceneConfigPortDeps {
 export interface SceneConfigPort {
 	read: (scene: SceneDefinitionId) => Required<SceneConfig>;
 	propose: (scene: SceneDefinitionId, next: Required<SceneConfig>) => Promise<void>;
+}
+
+export interface SavedLayoutConfig {
+	viewModeByTab: Partial<Record<ExplorerTabId, ExplorerViewMode>>;
+	interactionModeByTab: Partial<Record<ExplorerTabId, InteractionMode>>;
+	visibleCellsByTab: Partial<Record<ExplorerTabId, string[]>>;
+	sortStateByTab: Partial<Record<ExplorerTabId, ExplorerSortState>>;
+}
+
+export async function applyLayoutToPort(
+	port: SceneConfigPort,
+	layout: SavedLayoutConfig,
+): Promise<void> {
+	const tabs = new Set<ExplorerTabId>([
+		...(Object.keys(layout.viewModeByTab) as ExplorerTabId[]),
+		...(Object.keys(layout.interactionModeByTab) as ExplorerTabId[]),
+		...(Object.keys(layout.visibleCellsByTab) as ExplorerTabId[]),
+		...(Object.keys(layout.sortStateByTab) as ExplorerTabId[]),
+	]);
+	for (const tab of tabs) {
+		const current = port.read(tab);
+		await port.propose(tab, {
+			viewMode: layout.viewModeByTab[tab] ?? current.viewMode,
+			interactionMode: layout.interactionModeByTab[tab] ?? current.interactionMode,
+			visibleCells: layout.visibleCellsByTab[tab] ?? current.visibleCells,
+			sortState: layout.sortStateByTab[tab] ?? current.sortState,
+		});
+	}
 }
 
 export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPort {

@@ -70,7 +70,10 @@
 		searchNeedsOwnRow,
 	} from '../../logic/logicPanelWidgetOverflow';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
-	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
+	import {
+		applyLayoutToPort,
+		type SceneConfigPort,
+	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
 	import type {
 		NavbarPanelWidgetState,
@@ -325,19 +328,16 @@
 				saved.interactionMode,
 			);
 		}
-		configByTab = LAYOUT_TABS.reduce(
-			(next, tab) => ({
-				...next,
-				[tab]: {
-					...next[tab],
-					viewMode: nextView[tab],
-					visibleCells: nextCells[tab],
-					sortState: nextSort[tab],
-					interactionMode: nextInteraction[tab],
-				},
-			}),
-			configByTab,
-		);
+		void applyLayoutToPort(sceneConfigPort, {
+			viewModeByTab: nextView,
+			interactionModeByTab: nextInteraction,
+			visibleCellsByTab: nextCells,
+			sortStateByTab: nextSort,
+		}).then(() => {
+			configByTab = Object.fromEntries(
+				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+			) as Record<FiltersTab, Required<SceneConfig>>;
+		});
 		for (const tab of LAYOUT_TABS) {
 			applyViewMode(tab, nextView[tab]);
 			applyVisibleCells(tab, nextCells[tab]);
