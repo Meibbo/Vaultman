@@ -86,6 +86,9 @@ export class VaultmanFrame extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
+		// A partir de aqui el id es NO nulo. Se guarda en una constante local para que el
+		// compilador lo sepa tambien: la prop lo exige `string`, y un `!` seria decirle al
+		// compilador que confie en vez de demostrarselo.
 		if (!this.workspaceInstanceId) {
 			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
 			this.workspaceInstanceId = mintInstanceId(registry);
@@ -102,6 +105,9 @@ export class VaultmanFrame extends ItemView {
 			contentEl.addClass('vaultman-frame');
 		});
 
+		const workspaceInstanceId = this.workspaceInstanceId;
+		if (!workspaceInstanceId) throw new Error('vaultman: instance id missing at mount');
+
 		this.svelteApp = measureSceneSync(
 			'scene.lifecycle.open.mount',
 			undefined,
@@ -110,7 +116,7 @@ export class VaultmanFrame extends ItemView {
 					target: contentEl,
 					props: {
 						plugin: this.plugin,
-						workspaceInstanceId: this.workspaceInstanceId,
+						workspaceInstanceId,
 						initialShowToolbar: this._showToolbar,
 						onShowToolbarChange: (val: boolean) => {
 							this._showToolbar = val;

@@ -96,7 +96,11 @@ describe('explorer sort UI source', () => {
 		const start = navbarSource.indexOf('function handleScopeChangeForTab(');
 		const end = navbarSource.indexOf('\n\tfunction ', start + 1);
 		const handler = navbarSource.slice(start, end);
-		expect(handler).toContain('commitConfig(tab, { sortState: normalizedState });');
+		// Robusto: lo que importa es que la escritura pase por el camino del puerto y que NO
+		// quede ninguna asignacion directa al Record, que es la regresion que este guard existe
+		// para cazar.
+		expect(handler).toMatch(/commitConfig\(\s*tab\s*,\s*\{\s*sortState/);
+		expect(handler).not.toMatch(/sortStateByTab\s*=/);
 		expect(handler).not.toContain('applySortState(');
 		expect(navbarSource).toContain(
 			'const sortState = untrack(\n\t\t\t() => sortStateByTab[tab]',

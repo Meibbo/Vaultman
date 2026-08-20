@@ -18,7 +18,8 @@ describe('responsive density source guards', () => {
 		expect(frameSource).toContain('{frameWidth}');
 		expect(filtersPageSource).toContain('frameWidth?: number');
 		const projection = filtersPageSource.slice(
-			filtersPageSource.indexOf('const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } = {'),
+			// Robusto: el ancla es la declaracion del estado, sea cual sea su anotacion de tipo.
+			filtersPageSource.search(/const state: NavbarPanelWidgetState[^=]*= \{/),
 			filtersPageSource.indexOf('onPanelWidgetStateChange?.(state)'),
 		);
 		expect(projection).not.toBe('');
