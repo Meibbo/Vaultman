@@ -22,7 +22,7 @@ describe('Scene-owned Navbar panelWidget source guards', () => {
 
 	it('rebinds the renderer atomically when Scene provider ownership changes', () => {
 		expect(hostSource).not.toContain('{#key');
-		expect(hostSource).toContain('<NavbarFilters {...mountedState} />');
+		expect(hostSource).toContain('<NavbarFilters {...mountedState} {sceneConfigPort} />');
 	});
 
 	it('does not wait on tick() before publishing provider navigation', () => {

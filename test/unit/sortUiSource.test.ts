@@ -96,7 +96,7 @@ describe('explorer sort UI source', () => {
 		const start = navbarSource.indexOf('function handleScopeChangeForTab(');
 		const end = navbarSource.indexOf('\n\tfunction ', start + 1);
 		const handler = navbarSource.slice(start, end);
-		expect(handler).toContain('sortStateByTab =');
+		expect(handler).toContain('commitConfig(tab, { sortState: normalizedState });');
 		expect(handler).not.toContain('applySortState(');
 		expect(navbarSource).toContain(
 			'const sortState = untrack(\n\t\t\t() => sortStateByTab[tab]',

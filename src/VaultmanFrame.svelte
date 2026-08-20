@@ -43,6 +43,11 @@
 	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
 	import { refreshExplorerViewport } from './logic/logicExplorerViewportActivation';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
+	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
+	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
+	import { normalizeExplorerSortState } from './logic/logicScopedSort';
+	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
+	import { defaultVisibleCells } from './logic/logicCellRegistry';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -304,6 +309,20 @@
 	const sceneInstanceId = untrack(
 		() => plugin.manifest.id + '-' + Math.random().toString(36).slice(2, 9),
 	);
+	const sceneConfigPort = createSceneConfigPort({
+		instanceId: untrack(() => workspaceInstanceId),
+		readRegistry: () => plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
+		writeRegistry: (next) => {
+			plugin.settings.instanceRegistry = next;
+		},
+		persist: () => plugin.saveSettings(),
+		defaultsFor: (scene) => ({
+			viewMode: 'tree',
+			interactionMode: DEFAULT_INTERACTION_MODE[scene],
+			visibleCells: defaultVisibleCells(scene, 'tree'),
+			sortState: normalizeExplorerSortState(scene, null),
+		}),
+	});
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
 
@@ -1349,6 +1368,7 @@
 >
 	<NavbarPanelWidgetHost
 		providerState={activePanelWidgetState}
+		{sceneConfigPort}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
 		onPointerLeave={() => (panelWidgetPeek = false)}
@@ -1392,6 +1412,7 @@
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}
+							{sceneConfigPort}
 							{frameWidth}
 							sceneInstanceId={sceneController.sceneInstanceId}
 							generation={activeGeneration}

@@ -70,6 +70,8 @@
 		searchNeedsOwnRow,
 	} from '../../logic/logicPanelWidgetOverflow';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
+	import type { SceneConfig } from '../../types/typeInstance';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExplorerPort,
@@ -84,6 +86,7 @@
 	type HeaderTabOption = PanelWidgetHeaderTabOption;
 	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
 	type NavbarRendererState = NavbarPanelWidgetState & {
+		sceneConfigPort: SceneConfigPort;
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
@@ -140,6 +143,7 @@
 		commandActions = [],
 		createActionsPlacement = 'searchbox',
 		pvpuiConfig = {},
+		sceneConfigPort,
 	}: NavbarRendererState = $props();
 
 	function invokeSceneAction(
@@ -214,30 +218,42 @@
 	};
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
-	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
-		props: 'tree',
-		tags: 'tree',
-		files: 'tree',
-		snippets: 'tree',
-		plugins: 'tree',
-	});
-	let interactionModeByTab = $state<Record<FiltersTab, InteractionMode>>({
-		...DEFAULT_INTERACTION_MODE,
-	});
-	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
-		props: defaultVisibleCells('props', 'tree'),
-		tags: defaultVisibleCells('tags', 'tree'),
-		files: defaultVisibleCells('files', 'tree'),
-		snippets: defaultVisibleCells('snippets', 'tree'),
-		plugins: defaultVisibleCells('plugins', 'tree'),
-	});
-	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
-		props: { ...DEFAULT_SORT_STATE.props },
-		tags: { ...DEFAULT_SORT_STATE.tags },
-		files: { ...DEFAULT_SORT_STATE.files },
-		snippets: { ...DEFAULT_SORT_STATE.snippets },
-		plugins: { ...DEFAULT_SORT_STATE.plugins },
-	});
+	const TABS: FiltersTab[] = ['props', 'tags', 'files', 'snippets', 'plugins'];
+	let configByTab = $state<Record<FiltersTab, Required<SceneConfig>>>(
+		Object.fromEntries(TABS.map((tab) => [tab, sceneConfigPort.read(tab)])) as Record<
+			FiltersTab,
+			Required<SceneConfig>
+		>,
+	);
+	const viewModeByTab = $derived(
+		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].viewMode])) as Record<
+			FiltersTab,
+			ExplorerViewMode
+		>,
+	);
+	const interactionModeByTab = $derived(
+		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].interactionMode])) as Record<
+			FiltersTab,
+			InteractionMode
+		>,
+	);
+	const visibleCellsByTab = $derived(
+		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].visibleCells])) as Record<
+			FiltersTab,
+			string[]
+		>,
+	);
+	const sortStateByTab = $derived(
+		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].sortState])) as Record<
+			FiltersTab,
+			ExplorerSortState
+		>,
+	);
+	function commitConfig(tab: FiltersTab, patch: Partial<Required<SceneConfig>>): void {
+		const next = { ...configByTab[tab], ...patch };
+		configByTab = { ...configByTab, [tab]: next };
+		void sceneConfigPort.propose(tab, next);
+	}
 	const appliedSortStateByTab: Record<FiltersTab, ExplorerSortState> = {
 		props: { ...DEFAULT_SORT_STATE.props },
 		tags: { ...DEFAULT_SORT_STATE.tags },
@@ -309,10 +325,19 @@
 				saved.interactionMode,
 			);
 		}
-		viewModeByTab = nextView;
-		visibleCellsByTab = nextCells;
-		sortStateByTab = nextSort;
-		interactionModeByTab = nextInteraction;
+		configByTab = LAYOUT_TABS.reduce(
+			(next, tab) => ({
+				...next,
+				[tab]: {
+					...next[tab],
+					viewMode: nextView[tab],
+					visibleCells: nextCells[tab],
+					sortState: nextSort[tab],
+					interactionMode: nextInteraction[tab],
+				},
+			}),
+			configByTab,
+		);
 		for (const tab of LAYOUT_TABS) {
 			applyViewMode(tab, nextView[tab]);
 			applyVisibleCells(tab, nextCells[tab]);
@@ -847,7 +872,7 @@
 	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
 		const normalizedState = normalizeSortState(tab, state, true);
 		if (!sameSortState(state, normalizedState)) {
-			sortStateByTab = { ...sortStateByTab, [tab]: normalizedState };
+			commitConfig(tab, { sortState: normalizedState });
 		}
 		appliedSortStateByTab[tab] = normalizedState;
 		if (tab === 'files') fileList?.setSortState(normalizedState);
@@ -902,10 +927,7 @@
 
 	function selectInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
-		interactionModeByTab = {
-			...interactionModeByTab,
-			[tab]: normalized,
-		};
+		commitConfig(tab, { interactionMode: normalized });
 		applyInteractionMode(tab, normalized);
 		onViewFiltersChanged?.();
 	}
@@ -916,7 +938,7 @@
 			{ operations: 1 },
 			() => {
 				const normalizedState = normalizeSortState(activeTab, state);
-				sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
+				commitConfig(activeTab, { sortState: normalizedState });
 				applySortState(activeTab, normalizedState);
 				onViewFiltersChanged?.();
 			},
@@ -925,7 +947,7 @@
 
 	function handleScopeChangeForTab(tab: FiltersTab, state: ExplorerSortState) {
 		const normalizedState = normalizeSortState(tab, state);
-		sortStateByTab = { ...sortStateByTab, [tab]: normalizedState };
+		commitConfig(tab, { sortState: normalizedState });
 		onViewFiltersChanged?.();
 	}
 
@@ -936,7 +958,7 @@
 	function handleFilterChange(state: ExplorerSortState) {
 		const normalizedState = normalizeSortState(activeTab, state);
 		const appliedState = appliedSortStateByTab[activeTab];
-		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
+		commitConfig(activeTab, { sortState: normalizedState });
 		applySortState(activeTab, {
 			...normalizedState,
 			sorts: appliedState.sorts,
@@ -966,10 +988,7 @@
 			),
 		}));
 		if (sameSortState(currentByTab.files, normalizedState)) return;
-		sortStateByTab = {
-			...currentByTab,
-			files: normalizedState,
-		};
+		commitConfig('files', { sortState: normalizedState });
 	}
 
 	function handleExternalTagsSortState(state: ExplorerSortState) {
@@ -984,15 +1003,12 @@
 			),
 		}));
 		if (sameSortState(currentByTab.tags, normalizedState)) return;
-		sortStateByTab = {
-			...currentByTab,
-			tags: normalizedState,
-		};
+		commitConfig('tags', { sortState: normalizedState });
 	}
 
 	function handleViewModeChange(mode: ExplorerViewMode) {
 		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
-		viewModeByTab = { ...viewModeByTab, [activeTab]: mode };
+		commitConfig(activeTab, { viewMode: mode });
 		applyViewMode(activeTab, mode);
 	}
 
@@ -1001,7 +1017,7 @@
 			`scene.action.toggle-cell.${activeTab}`,
 			{ operations: 1 },
 			() => {
-				visibleCellsByTab = { ...visibleCellsByTab, [activeTab]: cells };
+				commitConfig(activeTab, { visibleCells: cells });
 				applyVisibleCells(activeTab, cells);
 			},
 		);
@@ -1448,7 +1464,7 @@
 			`scene.action.toggle-nested.${tab}`,
 			{ operations: 1 },
 			() => {
-				visibleCellsByTab = { ...visibleCellsByTab, [tab]: next };
+				commitConfig(tab, { visibleCells: next });
 				applyVisibleCells(tab, next);
 				onViewFiltersChanged?.();
 			},
@@ -1768,10 +1784,7 @@
 		if (tab === 'files' && fileList) {
 			const normalizedState = normalizeSortState(tab, sortState, true);
 			if (!sameSortState(sortState, normalizedState)) {
-				sortStateByTab = {
-					...sortStateByTab,
-					[tab]: normalizedState,
-				};
+				commitConfig(tab, { sortState: normalizedState });
 			}
 			appliedSortStateByTab[tab] = normalizedState;
 			const effectiveMode = panelViewModeForDataSurface(tab, viewMode);
@@ -1796,7 +1809,7 @@
 			}
 			fileList.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['files'] !== mode) {
-					interactionModeByTab['files'] = mode;
+					commitConfig('files', { interactionMode: mode });
 				}
 			});
 		}
@@ -1807,7 +1820,7 @@
 			if (interactionMode) applyInteractionMode(tab, interactionMode);
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['props'] !== mode) {
-					interactionModeByTab['props'] = mode;
+					commitConfig('props', { interactionMode: mode });
 				}
 			});
 		}
