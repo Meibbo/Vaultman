@@ -57,24 +57,20 @@ export function niagaraGaussian(distance: number, sigma: number): number {
 }
 
 /**
- * U121-082: how far the held node sits from the finger, in px, and it is a
- * CONSTANT.
+ * U121-082: how much farther the held node travels than the raw pull says.
  *
- * It used to be `min(raw, cap)` with `cap = max(40, frameWidth - 54)`, so the
- * separation grew with the drag and the bell could end up nearly as wide as
- * the frame. The dev asked for a fixed nudge based on the initial separation:
- * a deformation of a settled size, with anything beyond it dragging the rail
- * body instead -- which is exactly the split `niagaraPullSplit` already
- * computes, and the only thing that makes `stretch` and `slide` differ.
+ * A previous pass read "constant separation" as a fixed px and pinned the
+ * epicentre to the rail, which took away its ability to displace at all. It is
+ * proportional -- the gesture still moves it -- just amplified: 2x on the
+ * first pass, and 25% again after the dev measured the result. 2.5 in total.
  *
- * The number: the 40px cap floor is the settled separation, doubled once
- * (U121-082 first pass) and then 50% again on the dev's read of it.
- *
- * `spread` stays untouched: it is zero at the epicentre, so the horizontal
- * component widens the curve without moving the held node relative to the
- * finger.
+ * The gain belongs here and not inside `niagaraPullSplit`, whose cap decides
+ * how much of the raw gesture becomes bell versus rail-body: a different
+ * question. `spread` stays untouched because it is zero at the epicentre, so
+ * the horizontal component widens the curve without moving the held node
+ * relative to the finger.
  */
-const NIAGARA_NUDGE_PX = 120;
+const NIAGARA_PULL_GAIN = 2.5;
 
 export function niagaraNodeTransform(
 	distance: number,
@@ -85,11 +81,8 @@ export function niagaraNodeTransform(
 	const gaussian = niagaraGaussian(distance, niagaraSigma(nodeCount));
 	return {
 		scale: 1 + 0.5 * gaussian,
-		// `perpendicularPull` now only says WHETHER the gesture is engaged. How
-		// far the node travels is the constant above, so the separation stops
-		// growing under the finger.
 		perpendicular:
-			perpendicularPull > 0 ? direction * NIAGARA_NUDGE_PX * gaussian : 0,
+			direction * Math.max(0, perpendicularPull) * NIAGARA_PULL_GAIN * gaussian,
 		spread: 7 * Math.tanh(distance / 1.5) * gaussian,
 	};
 }

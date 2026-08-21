@@ -78,7 +78,7 @@ describe('minimal filters header source guards', () => {
 		// BT5-012: Path mode is now a registry-gated projection, so the popup
 		// passes its active pills into viewMenuCells.
 		expect(popupViewSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills, selectionMode)',
 		);
 		expect(navbarFiltersSource).not.toContain('const CELL_LABELS');
 		expect(navbarFiltersSource).not.toContain('const CELL_ICONS');

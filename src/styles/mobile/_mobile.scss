@@ -1012,7 +1012,20 @@
 
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
-  margin: 0 var(--size-2-2);
+  /* U121-081: the gap the dev measured against the caret and, at `end`,
+     against the scrollbar was the SAME gap -- because this margin was
+     symmetric. It is the checkbox's own spacing, not anything external. It
+     now hugs the edge it is anchored to and keeps a small gap only on the
+     side that faces the rest of the cells. */
+  margin: 0;
+}
+
+.vaultman-selection-checkbox--start {
+  margin-inline-end: var(--size-2-2);
+}
+
+.vaultman-selection-checkbox--end {
+  margin-inline-start: var(--size-2-2);
 }
 
 .vaultman-node-table-row > .vaultman-selection-checkbox,

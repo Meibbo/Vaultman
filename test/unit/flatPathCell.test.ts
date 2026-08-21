@@ -160,7 +160,7 @@ describe('BT5-012 path label projection', () => {
 			"labelMode: this._pathLabelActive() ? 'path' : 'name'",
 		);
 		expect(popupViewSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills, selectionMode)',
 		);
 	});
 });

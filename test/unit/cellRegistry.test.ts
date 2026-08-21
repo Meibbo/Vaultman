@@ -103,7 +103,9 @@ describe('shared explorer cell registry', () => {
 			'nested',
 		]);
 		expect(
-			viewMenuCells('files', 'tree').map((definition) => definition.id),
+			viewMenuCells('files', 'tree', undefined, true).map(
+				(definition) => definition.id,
+			),
 		).toEqual([
 			'checkbox',
 			'icon',
@@ -264,7 +266,7 @@ describe('shared registry consumer guards', () => {
 		// BT5-012: the popup now feeds its own selection in so the registry can
 		// hide projections that the active cells exclude.
 		expect(popupSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills, selectionMode)',
 		);
 		expect(popupSource).not.toContain('const PILLS');
 	});
