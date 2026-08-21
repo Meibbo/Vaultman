@@ -19,15 +19,24 @@ export interface ExplorerStatusDot {
 	tone: 'filter' | 'filter-excluded' | 'deletion';
 }
 
+/**
+ * U121-077: the red channel must cover EVERY node the queue will delete, not
+ * only the one the operation happens to name. "Has an own red badge" missed
+ * the values that go with a deleted property and the files inside a deleted
+ * folder, and -- before U121-072 -- wrongly caught the parent property of a
+ * deleted value. The `is-deleted-*` classes are already the resolver's verdict
+ * for each scene, so read those.
+ */
+const DELETION_CLASS_MARKER = 'is-deleted-';
+
 export function collectExplorerDeletionIds(
 	nodes: readonly TreeNode[],
 ): Set<string> {
 	const ids = new Set<string>();
 	const visit = (node: TreeNode): void => {
 		if (
-			node.badges?.some(
-				(badge) => badge.color === 'red' && badge.isInherited !== true,
-			)
+			typeof node.cls === 'string' &&
+			node.cls.includes(DELETION_CLASS_MARKER)
 		) {
 			ids.add(node.id);
 		}

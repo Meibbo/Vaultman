@@ -20,6 +20,12 @@ export interface NodeBadge {
 		| 'green';
 	solid?: boolean;
 	isInherited?: boolean;
+	/**
+	 * U121-071: `text` doubles as the tooltip when this is absent, which is why
+	 * Files used to stuff a whole sentence into the pill. Set both to show a
+	 * short label and keep the operation's own wording on hover.
+	 */
+	tooltip?: string;
 	/** Queue index for undo on double-click. Undefined = inherited/unremovable badge. */
 	queueIndex?: number;
 }

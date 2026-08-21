@@ -521,7 +521,8 @@ export class FilesGridView {
 				const iconEl = badgeEl.createSpan({ cls: 'vaultman-badge-icon' });
 				setIcon(iconEl, badge.icon);
 			}
-			if (badge.text) badgeEl.setAttribute('title', badge.text);
+			const badgeHint = badge.tooltip ?? badge.text;
+			if (badgeHint) badgeEl.setAttribute('title', badgeHint);
 		}
 	}
 

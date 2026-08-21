@@ -1390,10 +1390,9 @@ export class UnifiedTreeView {
 						const iEl = bEl.createSpan({ cls: 'vaultman-badge-icon' });
 						setIcon(iEl, badge.icon);
 					}
-					if (badge.text) {
-						setTooltip(bEl, badge.text);
-						if (!badge.icon) bEl.setText(badge.text);
-					}
+					const badgeHint = badge.tooltip ?? badge.text;
+					if (badgeHint) setTooltip(bEl, badgeHint);
+					if (badge.text && !badge.icon) bEl.setText(badge.text);
 					// Double-click to undo this specific queue operation
 					if (badge.queueIndex !== undefined && opts.onBadgeDoubleClick) {
 						const cancelMode = normalizeBadgeCancelClickMode(

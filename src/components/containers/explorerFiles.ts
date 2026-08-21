@@ -25,6 +25,13 @@ import {
 	collectDescendantBadges,
 	type BubbleIndex,
 } from '../../logic/logicBadgeBubbling';
+import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
+import {
+	type DeletionSubject,
+	deletionBadge,
+	findDeletionMatch,
+	queueDeletesSubject,
+} from '../../logic/logicDeletionDecoration';
 import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import type { MenuCtx } from '../../types/typeCMenu';
@@ -227,6 +234,13 @@ export class FilesExplorerPanel extends Component {
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
+	/**
+	 * U121-077: ids del highlight rojo de borrado, que es opt-in. Es SIEMPRE la
+	 * misma instancia de Set porque `_treeRenderOpts` se propaga con spread: una
+	 * instancia nueva por render dejaria a las rutas incrementales pintando un
+	 * conjunto viejo.
+	 */
+	private readonly _deletionHighlightIds = new Set<string>();
 	private _lastRenderTree: TreeNode<FileMeta>[] = [];
 	private _bubbleTree: TreeNode<FileMeta>[] = [];
 	/**
@@ -392,7 +406,7 @@ export class FilesExplorerPanel extends Component {
 			nodeTypes: ['file'],
 			surfaces: ['panel', 'file-menu'],
 			label: 'Delete',
-			icon: 'lucide-trash',
+			icon: 'lucide-trash-2',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
@@ -640,7 +654,7 @@ export class FilesExplorerPanel extends Component {
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
 			label: translate('folder.ctx.delete'),
-			icon: 'lucide-trash',
+			icon: 'lucide-trash-2',
 			run: async (ctx: MenuCtx) => {
 				const folder = this._folderFromCtx(ctx);
 				if (!folder) return;
@@ -2018,6 +2032,9 @@ export class FilesExplorerPanel extends Component {
 				stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 				stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+				// U121-077: fileScene nunca cableo este canal, asi que el highlight
+				// de borrado sencillamente no existia aqui.
+				highlightIds: { deletion: this._deletionHighlightIds },
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
 					this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2830,17 +2847,34 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithQueue(nodes: TreeNode<FileMeta>[]): void {
+		const queue = this.plugin.queueService.queue;
 		const decorateNode = (node: TreeNode<FileMeta>): void => {
 			for (const child of node.children ?? []) decorateNode(child);
-			if (!node.meta.file) return;
+			// U121-073: this used to `return` on any node without a TFile, which
+			// is every folder -- so a queued folder delete decorated nothing but
+			// its children's bubble. The folder's identity was in the operation
+			// all along (`targetFolder`); nobody read it.
+			const subject = this._deletionSubject(node);
+			if (!subject) return;
 
-			const badges = this._badgesForFile(node.meta.file);
-			node.badges = badges;
-			if (badges.some((badge) => badge.color === 'red')) {
-				node.cls = `${node.cls ?? ''} is-deleted-file`.trim();
+			node.badges = this._badgesForNode(node, subject);
+			if (queueDeletesSubject(subject, queue)) {
+				const cls =
+					subject.kind === 'folder' ? 'is-deleted-folder' : 'is-deleted-file';
+				if (!(node.cls ?? '').includes(cls)) {
+					node.cls = `${node.cls ?? ''} ${cls}`.trim();
+				}
 			}
 		};
 		for (const node of nodes) decorateNode(node);
+		// U121-077: el tachado gris es la senal base y va siempre; el tinte rojo
+		// es opcional y apagado por defecto. El bubble no depende de ninguno.
+		this._deletionHighlightIds.clear();
+		if (this.plugin.settings.deletionHighlight === true) {
+			for (const id of collectExplorerDeletionIds(nodes)) {
+				this._deletionHighlightIds.add(id);
+			}
+		}
 		// BT5-017: parents no longer copy their descendants' badges. Activity
 		// hidden by a collapse is projected as one dot instead, so expanding
 		// the parent removes it (the real badge is visible again).
@@ -2885,6 +2919,26 @@ export class FilesExplorerPanel extends Component {
 		return translate('files.bubble_dot', { count: String(dot.sourceCount) });
 	}
 
+	/** U121-071: what this node is, in the queue's vocabulary. */
+	private _deletionSubject(node: TreeNode<FileMeta>): DeletionSubject | null {
+		if (node.meta.file) return { kind: 'file', path: node.meta.file.path };
+		if (node.meta.isFolder && node.meta.folderPath) {
+			return { kind: 'folder', path: node.meta.folderPath };
+		}
+		return null;
+	}
+
+	private _badgesForNode(
+		node: TreeNode<FileMeta>,
+		subject: DeletionSubject,
+	): NodeBadge[] {
+		if (subject.kind === 'folder') {
+			const match = findDeletionMatch(subject, this.plugin.queueService.queue);
+			return match ? [deletionBadge(match, { solid: true })] : [];
+		}
+		return node.meta.file ? this._badgesForFile(node.meta.file) : [];
+	}
+
 	private _badgesForFile(file: TFile): NodeBadge[] {
 		const badges: NodeBadge[] = [];
 		this.plugin.queueService.queue.forEach((change, queueIndex) => {
@@ -2894,13 +2948,14 @@ export class FilesExplorerPanel extends Component {
 			)
 				return;
 			if (change.type === 'file_delete') {
-				badges.push({
-					text: change.details,
-					icon: 'lucide-trash',
-					color: 'red',
-					solid: true,
-					queueIndex,
-				});
+				// U121-073: one icon and one word, like every other scene. The
+				// operation's own sentence goes to the tooltip.
+				badges.push(
+					deletionBadge(
+						{ queueIndex, details: change.details },
+						{ solid: true },
+					),
+				);
 			} else if (change.type === 'file_move') {
 				badges.push({
 					text: change.details,

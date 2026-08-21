@@ -34,6 +34,11 @@ import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
 import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
 import {
+	deletionBadge,
+	findDeletionMatch,
+	queueDeletesSubject,
+} from '../../logic/logicDeletionDecoration';
+import {
 	normalizeInteractionMode,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
@@ -187,11 +192,29 @@ export class SnippetsExplorerPanel
 	}
 
 	private renameBadges(name: string) {
-		const badge = queuedRenameBadgeForPath(
+		const badges = [];
+		const rename = queuedRenameBadgeForPath(
 			this.plugin.queueService.queue,
 			cssSnippetPath(this.plugin.app, name),
 		);
-		return badge ? [badge] : undefined;
+		if (rename) badges.push(rename);
+		// U121-075: a staged snippet delete is now a real queued operation, so
+		// it decorates its node like every other scene does.
+		const match = findDeletionMatch(
+			{ kind: 'snippet', name },
+			this.plugin.queueService.queue,
+		);
+		if (match) badges.push(deletionBadge(match, { solid: true }));
+		return badges.length > 0 ? badges : undefined;
+	}
+
+	private deletionCls(name: string): string | undefined {
+		return queueDeletesSubject(
+			{ kind: 'snippet', name },
+			this.plugin.queueService.queue,
+		)
+			? 'is-deleted-snippet'
+			: undefined;
 	}
 
 	private rebuildNodes(): void {
@@ -222,6 +245,7 @@ export class SnippetsExplorerPanel
 			ctimeText: formatAddonTimestamp(entry.installedTime),
 			mtimeText: formatAddonTimestamp(entry.updatedTime),
 			badges: this.renameBadges(entry.name),
+			cls: this.deletionCls(entry.name),
 			depth: 0,
 			cells: [
 				{

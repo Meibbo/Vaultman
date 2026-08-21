@@ -7,6 +7,11 @@ import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
+	deletionBadge,
+	findDeletionMatch,
+	queueDeletesSubject,
+} from '../../logic/logicDeletionDecoration';
+import {
 	communityPluginStateSignature,
 	listCommunityPluginEntries,
 	pluginRibbonItem,
@@ -83,6 +88,33 @@ export class PluginsExplorerPanel
 		if (iconic) {
 			this.register(iconic.onChanged(this._scheduleIconRebuild));
 		}
+		// U121-076: uninstalls are queued now, so this scene has to repaint when
+		// the queue moves. Snippets already did; Plugins never listened.
+		this.plugin.queueService.on('changed', this._handleQueueChange);
+		this.register(() =>
+			this.plugin.queueService.off('changed', this._handleQueueChange),
+		);
+	}
+
+	private readonly _handleQueueChange = (): void => {
+		if (!this.destroyed) this.rebuildNodes();
+	};
+
+	private deletionBadges(pluginId: string) {
+		const match = findDeletionMatch(
+			{ kind: 'plugin', pluginId },
+			this.plugin.queueService.queue,
+		);
+		return match ? [deletionBadge(match, { solid: true })] : undefined;
+	}
+
+	private deletionCls(pluginId: string): string | undefined {
+		return queueDeletesSubject(
+			{ kind: 'plugin', pluginId },
+			this.plugin.queueService.queue,
+		)
+			? 'is-deleted-plugin'
+			: undefined;
 	}
 
 	private _iconRebuildScheduled = false;
@@ -240,6 +272,8 @@ export class PluginsExplorerPanel
 				typeText: entry.version,
 				ctimeText: formatAddonTimestamp(entry.installedTime),
 				mtimeText: formatAddonTimestamp(entry.updatedTime),
+				badges: this.deletionBadges(entry.pluginId),
+				cls: this.deletionCls(entry.pluginId),
 				depth: 0,
 				cells,
 				meta,

@@ -1201,6 +1201,22 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		// U121-077: the loud one, off by default.
+		items.push({
+			name: translate('settings.deletion_highlight'),
+			desc: translate('settings.deletion_highlight.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.deletionHighlight === true)
+						.onChange(async (value) => {
+							this.plugin.settings.deletionHighlight = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		items.push({
 			name: translate('settings.auto_reveal_active_file'),
 			desc: translate('settings.auto_reveal_active_file.desc'),

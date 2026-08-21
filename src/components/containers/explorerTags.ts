@@ -55,6 +55,8 @@ export interface PanelPluginCtx {
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
+		/** U121-077: opt-in red tint for everything the queue will delete. */
+		deletionHighlight?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -91,6 +93,7 @@ import {
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
+import { queueDeletesSubject } from '../../logic/logicDeletionDecoration';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
@@ -948,7 +951,12 @@ export class TagsExplorerPanel extends Component {
 			this._renderEmptyState();
 			return;
 		}
-		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
+		// U121-077: el tachado gris va siempre; el tinte rojo es opcional y
+		// esta apagado por defecto. El bubble no depende de ninguno de los dos.
+		const deletionIds =
+			this.plugin.settings?.deletionHighlight === true
+				? collectExplorerDeletionIds(nodesWithIcons)
+				: new Set<string>();
 		this._setIndexRoots(nodesWithIcons);
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(nodesWithIcons);
@@ -1468,7 +1476,6 @@ export class TagsExplorerPanel extends Component {
 		nodes: TreeNode<TagMeta>[],
 		highlightIds: Set<string>,
 		searchFunc: ((text: string) => unknown) | null,
-		parentDeleted = false,
 	): TreeNode<TagMeta>[] {
 		const queue = this.plugin.queueService.queue;
 
@@ -1486,20 +1493,21 @@ export class TagsExplorerPanel extends Component {
 					op.type === 'tag' && op.tag === meta.tagPath,
 			);
 
-			const isDeletedInQueue = relevantOps.some((op) => op.action === 'delete');
-			const isEffectivelyDeleted = parentDeleted || isDeletedInQueue;
+			// U121-074: `_deleteTag` filters tags by equality, so `#a/b` survives
+			// the deletion of `#a`. The old cascade greyed the whole nested
+			// subtree and promised a removal that never happens. Each tag now
+			// answers for itself.
+			const isDeleted = queueDeletesSubject(
+				{ kind: 'tag', tagPath: meta.tagPath },
+				queue,
+			);
 
-			const cls = isEffectivelyDeleted
+			const cls = isDeleted
 				? (currentCls + ' is-deleted-tag').trim()
 				: currentCls;
 
 			const resolvedChildren = node.children
-				? this._resolveIcons(
-						node.children,
-						highlightIds,
-						searchFunc,
-						isEffectivelyDeleted,
-					)
+				? this._resolveIcons(node.children, highlightIds, searchFunc)
 				: [];
 
 			const badges: import('../../types/typeTree').NodeBadge[] = [];
@@ -1510,6 +1518,7 @@ export class TagsExplorerPanel extends Component {
 						text: 'Delete',
 						icon: 'lucide-trash-2',
 						color: 'red',
+						tooltip: op.details,
 						queueIndex: opIdx,
 					});
 				} else if (op.action === 'rename') {

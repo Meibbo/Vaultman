@@ -14,6 +14,9 @@ interface InternalApp extends App {
 	customCss?: {
 		requestLoadSnippets?(): Promise<void> | void;
 	};
+	plugins?: {
+		uninstallPlugin?(id: string): Promise<void>;
+	};
 }
 
 interface OperationQueueOptions {
@@ -123,6 +126,12 @@ function operationPayload(change: PendingChange): string {
 	}
 	if (change.type === 'snippet_rename') {
 		return stableValue(change.targetPath);
+	}
+	if (change.type === 'snippet_delete') {
+		return stableValue(change.path);
+	}
+	if (change.type === 'plugin_uninstall') {
+		return stableValue(change.pluginId);
 	}
 	if (change.type === 'file_move') {
 		return stableValue(change.targetFolder ?? change.details);
@@ -314,13 +323,15 @@ export class OperationQueueService extends Component {
 
 	async runNow(change: PendingChange): Promise<OperationResult> {
 		const result: OperationResult = { success: 0, errors: 0, messages: [] };
-		if (this.isFolderDeleteChange(change)) {
+		if (this.isFilelessChange(change)) {
 			try {
-				await this.applyFolderDeleteChange(change);
+				await this.applyFilelessChange(change);
 				result.success++;
 			} catch (err) {
 				result.errors++;
-				result.messages.push(`${change.targetFolder}: ${String(err)}`);
+				result.messages.push(
+					`${this.changeTargetLabel(change)}: ${String(err)}`,
+				);
 			}
 			new Notice(
 				result.errors > 0
@@ -510,7 +521,7 @@ export class OperationQueueService extends Component {
 		// Flatten all (file, change) pairs for progress tracking
 		const ops: Array<{ file: TFile | null; change: PendingChange }> = [];
 		for (const change of this.queue) {
-			if (this.isFolderDeleteChange(change)) {
+			if (this.isFilelessChange(change)) {
 				ops.push({ file: null, change });
 			} else {
 				for (const file of change.files) {
@@ -532,8 +543,8 @@ export class OperationQueueService extends Component {
 			try {
 				if (file) {
 					await this.applyChange(file, change);
-				} else if (this.isFolderDeleteChange(change)) {
-					await this.applyFolderDeleteChange(change);
+				} else if (this.isFilelessChange(change)) {
+					await this.applyFilelessChange(change);
 				}
 				result.success++;
 			} catch (err) {
@@ -637,6 +648,35 @@ export class OperationQueueService extends Component {
 			typeof targetFolder === 'string' &&
 			targetFolder.length > 0
 		);
+	}
+
+	/**
+	 * Operations with no TFile to iterate. A folder delete trashes the folder
+	 * itself; a snippet or plugin lives outside the vault index entirely. All
+	 * three are dispatched once, with `file: null`, instead of once per file.
+	 */
+	private isFilelessChange(change: PendingChange): boolean {
+		return (
+			this.isFolderDeleteChange(change) ||
+			change.type === 'snippet_delete' ||
+			change.type === 'plugin_uninstall'
+		);
+	}
+
+	private async applyFilelessChange(change: PendingChange): Promise<void> {
+		if (this.isFolderDeleteChange(change)) {
+			await this.applyFolderDeleteChange(change);
+			return;
+		}
+		if (change.type === 'snippet_delete') {
+			await this.app.vault.adapter.remove(change.path);
+			await this.internalApp.customCss?.requestLoadSnippets?.();
+			return;
+		}
+		if (change.type === 'plugin_uninstall') {
+			await this.internalApp.plugins?.uninstallPlugin?.(change.pluginId);
+			return;
+		}
 	}
 
 	private changeTargetLabel(change: PendingChange): string {

@@ -220,6 +220,12 @@ export interface VaultmanSettings {
 	/** BT5-042: collapsed folder shows one bubble dot or the descendants' badges */
 	collapsedFolderBadges: 'dot' | 'badges';
 	/**
+	 * U121-077: tint every row the queue is going to delete. Off by default --
+	 * it is deliberately loud, and the grey strike-through already says it in a
+	 * way that does not shout. The red bubble dot is independent of this.
+	 */
+	deletionHighlight: boolean;
+	/**
 	 * Match Obsidian core's rounded touch rows on is-mobile/is-phone Tree rows
 	 * (Files/Props/Tags/Snippets/Plugins). Off keeps the old fixed corner radius
 	 * that PC also uses. Off by default: some themes (seen on Oxygen/Velocity)
@@ -414,6 +420,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
+	deletionHighlight: false,
 	mobileRoundedRows: false,
 	autoRevealActiveFile: false,
 	folderAggregateCells: false,

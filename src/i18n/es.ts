@@ -259,6 +259,9 @@ export const es: Record<string, string> = {
 		'Un dot indicativo',
 	'settings.collapsed_folder_badges.badges':
 		'Badges de descendientes',
+	'settings.deletion_highlight': 'Resaltar las filas en cola para borrar',
+	'settings.deletion_highlight.desc':
+		'Tiñe todas las filas que la cola va a borrar, no solo la que nombra la operación. Desactivado, el borrado se sigue viendo como fila gris tachada, badge y dot rojo en los parents colapsados.',
 	'settings.auto_reveal_active_file': 'Mostrar siempre el archivo actual',
 	'settings.auto_reveal_active_file.desc':
 		'Mantiene el explorer Files sobre la nota que tenga el foco: cada vez que abres una, sus carpetas se despliegan y la fila se desplaza hasta quedar a la vista. Desactivado, la acción de la barra hace lo mismo una sola vez, cuando la pulsas.',

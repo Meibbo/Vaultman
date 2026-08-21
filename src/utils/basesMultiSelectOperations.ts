@@ -86,7 +86,7 @@ function injectIntoOpenNativeMenu(
 	appendDomMenuItem(menu, 'Vaultman: move files', 'lucide-folder-input', () =>
 		openMoveOperation(plugin, files),
 	);
-	appendDomMenuItem(menu, 'Vaultman: delete files', 'lucide-trash', () =>
+	appendDomMenuItem(menu, 'Vaultman: delete files', 'lucide-trash-2', () =>
 		queueDeleteOperation(plugin, files),
 	);
 	return true;
@@ -135,7 +135,7 @@ function openFallbackBasesOperationsMenu(
 	menu.addItem((item) =>
 		item
 			.setTitle('Vaultman: delete files')
-			.setIcon('lucide-trash')
+			.setIcon('lucide-trash-2')
 			.onClick(() => queueDeleteOperation(plugin, files)),
 	);
 	menu.showAtMouseEvent(event);

@@ -124,16 +124,31 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 			if (!meta || !canUninstallCommunityPlugin(meta)) return;
 			const app = plugin.app as InternalApp;
 
-			new ConfirmModal(plugin.app, {
-				title: 'Confirm uninstall',
-				message: `Are you sure you want to uninstall ${meta.name}?`,
-				ctaLabel: 'Uninstall',
-				onConfirm: async () => {
-					if (app.plugins?.uninstallPlugin) {
-						await app.plugins.uninstallPlugin(meta.pluginId);
-					}
-				},
-			}).open();
+			// U121-076: this action never touched the queue at all, so a plugin
+			// could not be reviewed alongside the rest of a staged batch.
+			if (plugin.queueService.operationMode === 'bypass') {
+				new ConfirmModal(plugin.app, {
+					title: 'Confirm uninstall',
+					message: `Are you sure you want to uninstall ${meta.name}?`,
+					ctaLabel: 'Uninstall',
+					onConfirm: async () => {
+						if (app.plugins?.uninstallPlugin) {
+							await app.plugins.uninstallPlugin(meta.pluginId);
+						}
+					},
+				}).open();
+				return;
+			}
+			plugin.queueService.addOrRun({
+				type: 'plugin_uninstall',
+				action: 'uninstall',
+				pluginId: meta.pluginId,
+				name: meta.name,
+				details: `Uninstall plugin "${meta.name}"`,
+				files: [],
+				customLogic: true,
+				logicFunc: () => null,
+			});
 		},
 	});
 }

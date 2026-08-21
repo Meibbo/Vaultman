@@ -212,6 +212,10 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 				app.customCss?.requestLoadSnippets?.();
 			};
 
+			// U121-075: this was the wrong way round. `stage` -- the safe mode,
+			// bypass OFF -- deleted the file on the spot with no confirmation and
+			// no queue, while `bypass` was the one that asked. A snippet lives in
+			// the config directory, so `adapter.remove` never reaches the trash.
 			if (plugin.queueService.operationMode === 'bypass') {
 				new ConfirmModal(plugin.app, {
 					title: 'Delete snippet',
@@ -219,9 +223,18 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 					ctaLabel: 'Delete',
 					onConfirm: performDelete,
 				}).open();
-			} else {
-				await performDelete();
+				return;
 			}
+			plugin.queueService.addOrRun({
+				type: 'snippet_delete',
+				action: 'delete',
+				name: meta.name,
+				path,
+				details: `Delete snippet "${meta.name}"`,
+				files: [],
+				customLogic: true,
+				logicFunc: () => null,
+			});
 		},
 	});
 }

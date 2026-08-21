@@ -44,6 +44,8 @@ export interface PanelPluginCtx {
 		propConflictWarnings?: PropConflictWarnings;
 		/** U121-003: what `Move to prop...` does with an unwilling destination. */
 		propMoveTypeConflict?: 'coerce' | 'block' | 'ask';
+		/** U121-077: opt-in red tint for everything the queue will delete. */
+		deletionHighlight?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -90,6 +92,10 @@ import {
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
+import {
+	type DeletionSubject,
+	queueDeletesSubject,
+} from '../../logic/logicDeletionDecoration';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
@@ -1397,14 +1403,11 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
-		const isPropDeleted = this.plugin.queueService.queue.some(
-			(op) =>
-				op.type === 'property' &&
-				op.property === meta.propName &&
-				op.action === 'delete' &&
-				!('value' in op),
-		);
-		if (isPropDeleted) return;
+		// U121-072: only a node that is itself doomed stops responding. The old
+		// predicate read any value delete as a property-wide one, so a single
+		// queued value delete killed filtering for the whole property.
+		if (queueDeletesSubject(this._deletionSubject(meta), this.plugin.queueService.queue))
+			return;
 
 		const filterState = this.plugin.filterService.getFilterState(
 			meta.isValueNode ? 'value' : 'prop',
@@ -1656,7 +1659,12 @@ export class PropsExplorerPanel extends Component {
 			this._renderEmptyState();
 			return;
 		}
-		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
+		// U121-077: el tachado gris va siempre; el tinte rojo es opcional y
+		// esta apagado por defecto. El bubble no depende de ninguno de los dos.
+		const deletionIds =
+			this.plugin.settings?.deletionHighlight === true
+				? collectExplorerDeletionIds(nodesWithIcons)
+				: new Set<string>();
 		if (this.viewMode === 'table') {
 			if (!this.tableView) {
 				this.tableView = new NodeTableView<PropMeta>(this.containerEl);
@@ -2500,6 +2508,13 @@ export class PropsExplorerPanel extends Component {
 		return this.plugin.settings?.propConflictWarnings ?? 'off';
 	}
 
+	/** U121-071: one description of what this node is, for the queue to answer. */
+	private _deletionSubject(meta: PropMeta): DeletionSubject {
+		return meta.isValueNode
+			? { kind: 'value', property: meta.propName, rawValue: meta.rawValue }
+			: { kind: 'prop', property: meta.propName };
+	}
+
 	private _resolveIcons(
 		nodes: TreeNode<PropMeta>[],
 		warningIds: Set<string>,
@@ -2520,32 +2535,20 @@ export class PropsExplorerPanel extends Component {
 			}
 			if (searchFunc && searchFunc(node.label)) highlightIds.add(node.id);
 
-			const isPropDeleted =
-				parentDeleted ||
-				queue.some(
-					(op) =>
-						op.type === 'property' &&
-						op.property === meta.propName &&
-						op.action === 'delete' &&
-						!('value' in op),
-				);
+			// U121-071/072: the subject decides. Deleting a property still takes
+			// its values with it -- the resolver says so -- but a value delete no
+			// longer masquerades as one, so it stops greying its parent and its
+			// siblings. `is-deleted-value` was unreachable before this.
+			const isDeleted =
+				parentDeleted || queueDeletesSubject(this._deletionSubject(meta), queue);
+			const isPropDeleted = isDeleted && !meta.isValueNode;
 
-			if (isPropDeleted) {
-				if (!currentCls.includes('is-deleted-prop')) {
-					currentCls = (currentCls + ' is-deleted-prop').trim();
-				}
-			} else if (meta.isValueNode) {
-				const isValueDeleted = queue.some(
-					(op): op is PropertyChange =>
-						op.type === 'property' &&
-						op.property === meta.propName &&
-						op.action === 'delete' &&
-						op.oldValue === meta.rawValue,
-				);
-				if (isValueDeleted) {
-					if (!currentCls.includes('is-deleted-value')) {
-						currentCls = (currentCls + ' is-deleted-value').trim();
-					}
+			if (isDeleted) {
+				const deletedCls = meta.isValueNode
+					? 'is-deleted-value'
+					: 'is-deleted-prop';
+				if (!currentCls.includes(deletedCls)) {
+					currentCls = (currentCls + ' ' + deletedCls).trim();
 				}
 			}
 
@@ -2578,8 +2581,11 @@ export class PropsExplorerPanel extends Component {
 						? op.value === meta.rawValue ||
 							op.oldValue === meta.rawValue ||
 							op.action === 'change_type'
-						: true),
-			) as import('../../types/typeOps').PropertyChange[];
+						: // U121-072: a property node takes only property-scoped ops.
+							// The old `: true` made it absorb every op aimed at one of
+							// its values, badge and deletion highlight included.
+							op.value === undefined && op.oldValue === undefined),
+			) as PropertyChange[];
 
 			for (const op of relevantOps) {
 				const action = op.action;
@@ -2589,6 +2595,7 @@ export class PropsExplorerPanel extends Component {
 						text: 'Delete',
 						icon: 'lucide-trash-2',
 						color: 'red',
+						tooltip: op.details,
 						queueIndex: opIdx,
 					});
 				else if (action === 'rename' || action === 'set') {
@@ -2760,6 +2767,12 @@ export class PropsExplorerPanel extends Component {
 			type: 'property',
 			property: propName,
 			action: 'delete',
+			// U121-072: the target used to live only inside `details`, so every
+			// consumer read this as a property-wide delete. Both fields are set
+			// because the two established readings differ (`'value' in op` and
+			// `oldValue === rawValue`).
+			value: oldValue,
+			oldValue,
 			details: `Delete value "${oldValue}" from "${propName}"`,
 			files,
 			customLogic: true,

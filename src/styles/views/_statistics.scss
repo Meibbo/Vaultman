@@ -497,22 +497,48 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   opacity: 1;
 }
 
-.vaultman-tree-row.is-deleted-prop,
-.vaultman-tree-row.is-deleted-value,
-.vaultman-tree-row.is-deleted-tag {
+/* U121-071: one grey for every node the queue will delete, whatever scene it
+   lives in. `is-deleted-file` had been set by the Files scene all along and
+   never had a rule at all, so a file staged for deletion looked untouched --
+   and folders, snippets and plugins were not even marked. This is the base
+   signal and is always on; the red tint of `is-deletion-highlight` is the
+   opt-in on top of it. */
+:is(.vaultman-tree-row, .vaultman-node-table-row):is(
+    .is-deleted-prop,
+    .is-deleted-value,
+    .is-deleted-tag,
+    .is-deleted-file,
+    .is-deleted-folder,
+    .is-deleted-snippet,
+    .is-deleted-plugin
+  ) {
   color: var(--text-faint);
   opacity: 0.5;
 }
 
-.vaultman-tree-row.is-deleted-prop .vaultman-tree-label,
-.vaultman-tree-row.is-deleted-value .vaultman-tree-label,
-.vaultman-tree-row.is-deleted-tag .vaultman-tree-label {
+:is(.vaultman-tree-row, .vaultman-node-table-row):is(
+    .is-deleted-prop,
+    .is-deleted-value,
+    .is-deleted-tag,
+    .is-deleted-file,
+    .is-deleted-folder,
+    .is-deleted-snippet,
+    .is-deleted-plugin
+  )
+  :is(.vaultman-tree-label, .vaultman-node-table-label) {
   text-decoration: line-through;
 }
 
-.vaultman-tree-row.is-deleted-prop .vaultman-tree-count,
-.vaultman-tree-row.is-deleted-value .vaultman-tree-count,
-.vaultman-tree-row.is-deleted-tag .vaultman-tree-count {
+:is(.vaultman-tree-row, .vaultman-node-table-row):is(
+    .is-deleted-prop,
+    .is-deleted-value,
+    .is-deleted-tag,
+    .is-deleted-file,
+    .is-deleted-folder,
+    .is-deleted-snippet,
+    .is-deleted-plugin
+  )
+  .vaultman-tree-count {
   color: var(--text-faint);
 }
 

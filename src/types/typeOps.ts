@@ -73,6 +73,28 @@ export interface SnippetRenameChange extends BaseChange {
 	targetPath: string;
 }
 
+/**
+ * U121-075: deletion of a CSS snippet. Snippets live in the config directory,
+ * outside the vault index, so this carries its own path instead of a TFile and
+ * runs without one -- the same shape `snippet_rename` already established.
+ */
+export interface SnippetDeleteChange extends BaseChange {
+	type: 'snippet_delete';
+	action: 'delete';
+	/** Snippet name as Obsidian lists it, without the .css extension. */
+	name: string;
+	/** Adapter path, resolved when the operation is staged. */
+	path: string;
+}
+
+/** U121-076: uninstall of a community plugin. Also fileless. */
+export interface PluginUninstallChange extends BaseChange {
+	type: 'plugin_uninstall';
+	action: 'uninstall';
+	pluginId: string;
+	name: string;
+}
+
 /** Template application operation */
 export interface TemplateChange extends BaseChange {
 	type: 'template';
@@ -86,7 +108,7 @@ export interface TagChange extends BaseChange {
 	action: 'rename' | 'delete' | 'add';
 }
 
-export type PendingChange = PropertyChange | ContentChange | FileChange | SnippetRenameChange | TemplateChange | TagChange;
+export type PendingChange = PropertyChange | ContentChange | FileChange | SnippetRenameChange | SnippetDeleteChange | PluginUninstallChange | TemplateChange | TagChange;
 
 export type QueueTemplateChange =
 	| {

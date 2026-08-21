@@ -258,6 +258,9 @@ export const en: Record<string, string> = {
 		'One indicator dot',
 	'settings.collapsed_folder_badges.badges':
 		'Descendant badges',
+	'settings.deletion_highlight': 'Highlight rows queued for deletion',
+	'settings.deletion_highlight.desc':
+		'Tint every row the queue is going to delete, not just the one the operation names. Off, deletion still shows as a struck-through grey row, a badge, and the red bubble dot on collapsed parents.',
 	'settings.auto_reveal_active_file': 'Always reveal the current file',
 	'settings.auto_reveal_active_file.desc':
 		'Keep the Files explorer on whatever note has the focus: every time you open one, its folders expand and the row scrolls into view. Off, the toolbar reveal action does the same thing once, on demand.',

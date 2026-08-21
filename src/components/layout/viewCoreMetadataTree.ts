@@ -325,10 +325,9 @@ export class CoreMetadataTreeView {
 				const icon = badgeEl.createSpan({ cls: 'vaultman-badge-icon' });
 				setIcon(icon, badge.icon);
 			}
-			if (badge.text) {
-				setTooltip(badgeEl, badge.text);
-				if (!badge.icon) badgeEl.setText(badge.text);
-			}
+			const badgeHint = badge.tooltip ?? badge.text;
+			if (badgeHint) setTooltip(badgeEl, badgeHint);
+			if (badge.text && !badge.icon) badgeEl.setText(badge.text);
 			if (badge.queueIndex === undefined || !opts.onBadgeDoubleClick) continue;
 			const cancelMode = normalizeBadgeCancelClickMode(
 				opts.badgeCancelClickMode,
