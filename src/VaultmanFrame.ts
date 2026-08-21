@@ -5,9 +5,9 @@ import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
-	adoptOrMintInstance,
 	EMPTY_REGISTRY,
 	ensureInstance,
+	mintInstanceId,
 } from './logic/logicInstanceRegistry';
 import {
 	measureSceneAsync,
@@ -91,19 +91,15 @@ export class VaultmanFrame extends ItemView {
 		// compilador que confie en vez de demostrarselo.
 		let instanceId = this.workspaceInstanceId;
 		if (!instanceId) {
-			// Sin ancla: puede ser una hoja nueva de verdad, o una recarga que descarto el
-			// layout. Adoptar un registro huerfano con configuracion distingue los dos casos
-			// sin preguntarle nada a Obsidian.
+			// Sin ancla: se acuña una identidad nueva. ESTO ES INCOMPLETO A PROPOSITO.
+			// Recuperar la instancia correcta tras un `reload without saving` exige saber QUE
+			// superficie ocupaba -sidebar izquierdo, derecho, main, y en que ranura-, que es
+			// `SurfaceAddress` y vive en el shard 02 del diseño. Aqui hubo una heuristica que
+			// adoptaba "el huerfano mas antiguo con configuracion": se retiro el 2026-08-20
+			// porque ADIVINABA la identidad y le asignaba a un panel la configuracion de otro.
+			// Un fallo silencioso que da la configuracion equivocada es peor que perderla.
 			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
-			const claimed = this.app.workspace
-				.getLeavesOfType(VAULTMAN_FRAME_TYPE)
-				.map(
-					(leaf) =>
-						(leaf.getViewState().state as { workspaceInstanceId?: string } | undefined)
-							?.workspaceInstanceId,
-				)
-				.filter((id): id is string => Boolean(id));
-			instanceId = adoptOrMintInstance(registry, claimed).id;
+			instanceId = mintInstanceId(registry);
 			this.workspaceInstanceId = instanceId;
 			this.app.workspace.requestSaveLayout();
 		}

@@ -125,41 +125,6 @@ export function reconcileRegistry(
 	return { schema: 1, instances };
 }
 
-/** Un registro sin nada configurado no aporta al adoptarlo: es residuo de una identidad perdida. */
-function hasConfiguration(record: WorkspaceInstanceRecord): boolean {
-	return Object.keys(record.scenes).length > 0 || Object.keys(record.self).length > 0;
-}
-
-/**
- * Cuando una hoja abre SIN ancla, adoptar antes que acuñar.
- *
- * POR QUE EXISTE. El ancla vive en el estado de vista, o sea en el layout del workspace, y
- * `reload app without saving` -o alternar `is-mobile`- descarta ese layout POR DEFINICION.
- * Sin esto, cada recarga acuña una identidad nueva, nace un registro vacio, y la configuracion
- * del usuario se queda huerfana en el registro mientras el ve los defaults. Medido en el smoke
- * del dev el 2026-08-20: **cinco instancias en el registro para dos paneles**, con la
- * configuracion real intacta pero sin nadie que la reclamara.
- *
- * Se adopta el candidato MAS ANTIGUO: si dos paneles reabren en el mismo orden en que se
- * crearon -que es lo normal-, cada uno recupera el suyo. Los tombstoned tambien son adoptables:
- * tras una recarga sin guardar, el tombstone solo significa «ninguna hoja viva lo reclamo», que
- * es exactamente el caso que esto arregla. `ensureInstance` ya los revive.
- */
-export function adoptOrMintInstance(
-	registry: InstanceRegistryData,
-	claimedIds: readonly WorkspaceInstanceId[],
-	random?: () => string,
-): { id: WorkspaceInstanceId; adopted: boolean } {
-	const claimed = new Set(claimedIds);
-	const candidates = Object.values(registry.instances)
-		.filter((record) => !claimed.has(record.id) && hasConfiguration(record))
-		.sort((a, b) => a.createdAt - b.createdAt);
-	if (candidates.length > 0) {
-		return { id: candidates[0].id, adopted: true };
-	}
-	return { id: mintInstanceId(registry, random), adopted: false };
-}
-
 /** Recuerda en que scene estaba la instancia. Sin efecto si el id no existe. */
 export function setActiveScene(
 	registry: InstanceRegistryData,

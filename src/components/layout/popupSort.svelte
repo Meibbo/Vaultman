@@ -313,7 +313,7 @@
 					class="vaultman-squircle vaultman-sort-option"
 					class:is-accent={activeSort.sortBy === opt.id}
 					aria-label={translate(opt.labelKey) +
-						(activeSort.sortBy === opt.id
+						(activeSort.sortBy === opt.id && opt.id !== 'custom'
 							? ` ${sortDirectionGlyph(activeSort.direction)}`
 							: '')}
 					onclick={() => selectSort(opt.id)}
@@ -324,7 +324,9 @@
 					tabindex="0"
 				>
 					<span class="vaultman-squircle-icon" use:icon={opt.icon}></span>
-					{#if activeSort.sortBy === opt.id}
+					<!-- `custom` no tiene direccion: ordena por el orden propio de la nota
+					     anclada, asi que un indicador arriba/abajo seria mentira. -->
+					{#if activeSort.sortBy === opt.id && opt.id !== 'custom'}
 						<span
 							class="vaultman-sort-dir"
 							use:icon={sortDirectionIcon(activeSort.direction)}
