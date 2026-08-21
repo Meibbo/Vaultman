@@ -18,6 +18,8 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 		propose: async (scene, next) => {
 			calls.push([scene, next]);
 		},
+		readActiveScene: () => null,
+		proposeActiveScene: async () => {},
 	};
 }
 

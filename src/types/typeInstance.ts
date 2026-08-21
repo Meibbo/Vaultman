@@ -28,6 +28,13 @@ export interface WorkspaceInstanceRecord {
 	tombstoned: boolean;
 	/** overrides de toda la instancia, por encima de global y por debajo de la scene. */
 	self: SceneConfig;
+	/**
+	 * En que scene estaba la instancia. NO va dentro de `self` porque `self` es un `SceneConfig`
+	 * -ajustes que una scene puede tener- y esto es una propiedad de la instancia: cual de ellas
+	 * estaba delante. Se guarda como `string` y se valida al leer, porque el conjunto de tabs de
+	 * la UI incluye alguno (`content`) que no es un `SceneDefinitionId`.
+	 */
+	activeScene?: string;
 	/** una scene como mucho por definición estable. */
 	scenes: Partial<Record<SceneDefinitionId, SceneConfig>>;
 }

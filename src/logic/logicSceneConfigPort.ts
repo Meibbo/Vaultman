@@ -1,4 +1,4 @@
-import { setSceneConfig } from './logicInstanceRegistry';
+import { setActiveScene, setSceneConfig } from './logicInstanceRegistry';
 import { diffSceneConfig, resolveSceneConfig } from './logicSettingsCascade';
 import type {
 	InstanceRegistryData,
@@ -27,6 +27,9 @@ export interface SceneConfigPortDeps {
 export interface SceneConfigPort {
 	read: (scene: SceneDefinitionId) => Required<SceneConfig>;
 	propose: (scene: SceneDefinitionId, next: Required<SceneConfig>) => Promise<void>;
+	/** La scene en la que estaba la instancia, o `null` si nunca se guardo. */
+	readActiveScene: () => string | null;
+	proposeActiveScene: (scene: string) => Promise<void>;
 }
 
 export interface SavedLayoutConfig {
@@ -85,5 +88,16 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 		await deps.persist();
 	};
 
-	return { read, propose };
+	const readActiveScene = (): string | null =>
+		deps.readRegistry().instances[deps.instanceId]?.activeScene ?? null;
+
+	const proposeActiveScene = async (scene: string): Promise<void> => {
+		const registry = deps.readRegistry();
+		const next = setActiveScene(registry, deps.instanceId, scene);
+		if (next === registry) return; // sin cambio: no se escribe ni se persiste
+		deps.writeRegistry(next);
+		await deps.persist();
+	};
+
+	return { read, propose, readActiveScene, proposeActiveScene };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
-import { adoptOrMintInstance, createInstanceRecord, EMPTY_REGISTRY } from '../../src/logic/logicInstanceRegistry';
+import { adoptOrMintInstance, createInstanceRecord, EMPTY_REGISTRY, setActiveScene } from '../../src/logic/logicInstanceRegistry';
 import { reconcileRegistry } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
@@ -182,5 +182,24 @@ describe('adoptOrMintInstance', () => {
 		const result = adoptOrMintInstance(EMPTY_REGISTRY, [], () => 'q');
 		expect(result.adopted).toBe(false);
 		expect(result.id.startsWith('vm-instance-')).toBe(true);
+	});
+});
+
+describe('setActiveScene', () => {
+	it('remembers the scene and bumps the revision', () => {
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		const next = setActiveScene(registry, 'vm-1', 'props');
+		expect(next.instances['vm-1'].activeScene).toBe('props');
+		expect(next.instances['vm-1'].revision).toBe(2);
+	});
+
+	it('returns the same registry when nothing changed, so nothing is persisted', () => {
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		registry = setActiveScene(registry, 'vm-1', 'props');
+		expect(setActiveScene(registry, 'vm-1', 'props')).toBe(registry);
+	});
+
+	it('ignores an unknown instance instead of throwing', () => {
+		expect(setActiveScene(EMPTY_REGISTRY, 'nope', 'props')).toBe(EMPTY_REGISTRY);
 	});
 });

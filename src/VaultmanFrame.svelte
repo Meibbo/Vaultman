@@ -304,6 +304,17 @@
 	type FiltersTab =
 		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins';
 	type SearchTab = Exclude<FiltersTab, 'content'>;
+	// Se siembra desde el puerto: si esta instancia ya estuvo en una scene, vuelve a ella en vez
+	// de empezar siempre en Files. Lo pidio el dev el 2026-08-20 tras ver que dos instancias
+	// recuperaban su configuracion pero las dos aterrizaban en fileScene.
+	const REMEMBERED_TABS: readonly string[] = [
+		'files',
+		'props',
+		'tags',
+		'content',
+		'snippets',
+		'plugins',
+	];
 	let filtersActiveTab = $state<FiltersTab>('files');
 
 	const sceneInstanceId = untrack(
@@ -323,6 +334,13 @@
 			sortState: normalizeExplorerSortState(scene, null),
 		}),
 	});
+
+	// Sembrado DESPUES de construir el puerto, que es cuando se puede preguntar. Si esta
+	// instancia ya estuvo en una scene, vuelve a ella en vez de aterrizar siempre en Files.
+	const rememberedTab = sceneConfigPort.readActiveScene();
+	if (rememberedTab && REMEMBERED_TABS.includes(rememberedTab)) {
+		filtersActiveTab = rememberedTab as FiltersTab;
+	}
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
 
@@ -384,6 +402,7 @@
 		closeQueueIsland();
 		closeFiltersIsland();
 		filtersActiveTab = tab;
+		void sceneConfigPort.proposeActiveScene(tab);
 		activeGeneration = sceneController.begin(tab);
 		activePage = 'filters';
 		applyPageTransform(!minimalStyle);

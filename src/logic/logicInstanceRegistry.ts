@@ -159,3 +159,19 @@ export function adoptOrMintInstance(
 	}
 	return { id: mintInstanceId(registry, random), adopted: false };
 }
+
+/** Recuerda en que scene estaba la instancia. Sin efecto si el id no existe. */
+export function setActiveScene(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	activeScene: string,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record || record.activeScene === activeScene) return registry;
+	const nextRecord: WorkspaceInstanceRecord = {
+		...record,
+		revision: record.revision + 1,
+		activeScene,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
+}
