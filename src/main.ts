@@ -70,6 +70,7 @@ import {
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
+import { reconcileRegistry } from './logic/logicInstanceRegistry';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -513,6 +514,15 @@ export class VaultmanPlugin extends Plugin {
 			...saved,
 		};
 
+		// La reconciliación espera a que el workspace restaure las hojas, o la
+		// lista de anclas vivas saldría vacía y marcaría tombstone en todo.
+		this.app.workspace.onLayoutReady(() => {
+			this.settings.instanceRegistry = reconcileRegistry(
+				this.settings.instanceRegistry,
+				this.collectLiveInstanceAnchors(),
+			);
+		});
+
 		if (needsTabLabelMigration) {
 			if (hasSavedTabLabelPref && saved.filtersShowTabLabels === false) {
 				this.settings.filtersShowTabLabels = true;
@@ -615,6 +625,16 @@ export class VaultmanPlugin extends Plugin {
 
 	updateGlassBlur(): void {
 		applyGlassBlurSetting(activeDocument.body.style, this.settings);
+	}
+
+	/** Los IDs anclados en las hojas que Obsidian acaba de restaurar. */
+	collectLiveInstanceAnchors(): string[] {
+		const anchors: string[] = [];
+		for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+			const state = leaf.getViewState().state as { workspaceInstanceId?: string } | undefined;
+			if (state?.workspaceInstanceId) anchors.push(state.workspaceInstanceId);
+		}
+		return anchors;
 	}
 
 	/** Open a frame and reveal it. Never closes one. */

@@ -43,16 +43,23 @@
 	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
 	import { refreshExplorerViewport } from './logic/logicExplorerViewportActivation';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
+	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
+	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
+	import { normalizeExplorerSortState } from './logic/logicScopedSort';
+	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
+	import { defaultVisibleCells } from './logic/logicCellRegistry';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
 	interface Props {
 		plugin: VaultmanPlugin;
+		workspaceInstanceId: string;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
 	}
 	let {
 		plugin,
+		workspaceInstanceId,
 		initialShowToolbar = null,
 		onShowToolbarChange,
 	}: Props = $props();
@@ -297,11 +304,43 @@
 	type FiltersTab =
 		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins';
 	type SearchTab = Exclude<FiltersTab, 'content'>;
+	// Se siembra desde el puerto: si esta instancia ya estuvo en una scene, vuelve a ella en vez
+	// de empezar siempre en Files. Lo pidio el dev el 2026-08-20 tras ver que dos instancias
+	// recuperaban su configuracion pero las dos aterrizaban en fileScene.
+	const REMEMBERED_TABS: readonly string[] = [
+		'files',
+		'props',
+		'tags',
+		'content',
+		'snippets',
+		'plugins',
+	];
 	let filtersActiveTab = $state<FiltersTab>('files');
 
 	const sceneInstanceId = untrack(
 		() => plugin.manifest.id + '-' + Math.random().toString(36).slice(2, 9),
 	);
+	const sceneConfigPort = createSceneConfigPort({
+		instanceId: untrack(() => workspaceInstanceId),
+		readRegistry: () => plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
+		writeRegistry: (next) => {
+			plugin.settings.instanceRegistry = next;
+		},
+		persist: () => plugin.saveSettings(),
+		defaultsFor: (scene) => ({
+			viewMode: 'tree',
+			interactionMode: DEFAULT_INTERACTION_MODE[scene],
+			visibleCells: defaultVisibleCells(scene, 'tree'),
+			sortState: normalizeExplorerSortState(scene, null),
+		}),
+	});
+
+	// Sembrado DESPUES de construir el puerto, que es cuando se puede preguntar. Si esta
+	// instancia ya estuvo en una scene, vuelve a ella en vez de aterrizar siempre en Files.
+	const rememberedTab = sceneConfigPort.readActiveScene();
+	if (rememberedTab && REMEMBERED_TABS.includes(rememberedTab)) {
+		filtersActiveTab = rememberedTab as FiltersTab;
+	}
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
 
@@ -363,6 +402,7 @@
 		closeQueueIsland();
 		closeFiltersIsland();
 		filtersActiveTab = tab;
+		void sceneConfigPort.proposeActiveScene(tab);
 		activeGeneration = sceneController.begin(tab);
 		activePage = 'filters';
 		applyPageTransform(!minimalStyle);
@@ -1347,6 +1387,7 @@
 >
 	<NavbarPanelWidgetHost
 		providerState={activePanelWidgetState}
+		{sceneConfigPort}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
 		onPointerLeave={() => (panelWidgetPeek = false)}
@@ -1390,6 +1431,7 @@
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}
+							{sceneConfigPort}
 							{frameWidth}
 							sceneInstanceId={sceneController.sceneInstanceId}
 							generation={activeGeneration}

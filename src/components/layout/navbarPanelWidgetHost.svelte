@@ -1,15 +1,18 @@
 <script lang="ts">
 	import NavbarFilters from './navbarFilters.svelte';
 	import { PANEL_WIDGET_HOST_ID } from '../../logic/logicPanelWidgetProjection';
+	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
 	import type { NavbarPanelWidgetState } from '../../types/typePanelWidget';
 
 	let {
 		providerState,
+		sceneConfigPort,
 		visible = true,
 		peeking = false,
 		onPointerLeave,
 	}: {
 		providerState: NavbarPanelWidgetState | null;
+		sceneConfigPort: SceneConfigPort;
 		visible?: boolean;
 		peeking?: boolean;
 		onPointerLeave?: () => void;
@@ -27,6 +30,6 @@
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}
-		<NavbarFilters {...mountedState} />
+		<NavbarFilters {...mountedState} {sceneConfigPort} />
 	{/if}
 </div>

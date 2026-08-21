@@ -5,6 +5,11 @@ import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
+	EMPTY_REGISTRY,
+	ensureInstance,
+	mintInstanceId,
+} from './logic/logicInstanceRegistry';
+import {
 	measureSceneAsync,
 	measureSceneSync,
 } from './logic/logicScenePerformance';
@@ -30,6 +35,7 @@ export class VaultmanFrame extends ItemView {
 	private viewportRefreshFrame: number | null = null;
 	private viewportRefreshWindow: Window | null = null;
 	private _showToolbar: boolean | null = null;
+	workspaceInstanceId: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
@@ -54,10 +60,18 @@ export class VaultmanFrame extends ItemView {
 	}
 
 	getState(): Record<string, unknown> {
-		return { showToolbar: this._showToolbar };
+		return {
+			...super.getState(),
+			showToolbar: this._showToolbar,
+			workspaceInstanceId: this.workspaceInstanceId,
+		};
 	}
 
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
+		const anchored = (state as { workspaceInstanceId?: unknown })?.workspaceInstanceId;
+		if (typeof anchored === 'string' && anchored.length > 0) {
+			this.workspaceInstanceId = anchored;
+		}
 		if (
 			typeof state === 'object' &&
 			state !== null &&
@@ -72,10 +86,35 @@ export class VaultmanFrame extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
+		// A partir de aqui el id es NO nulo. Se guarda en una constante local para que el
+		// compilador lo sepa tambien: la prop lo exige `string`, y un `!` seria decirle al
+		// compilador que confie en vez de demostrarselo.
+		let instanceId = this.workspaceInstanceId;
+		if (!instanceId) {
+			// Sin ancla: se acuña una identidad nueva. ESTO ES INCOMPLETO A PROPOSITO.
+			// Recuperar la instancia correcta tras un `reload without saving` exige saber QUE
+			// superficie ocupaba -sidebar izquierdo, derecho, main, y en que ranura-, que es
+			// `SurfaceAddress` y vive en el shard 02 del diseño. Aqui hubo una heuristica que
+			// adoptaba "el huerfano mas antiguo con configuracion": se retiro el 2026-08-20
+			// porque ADIVINABA la identidad y le asignaba a un panel la configuracion de otro.
+			// Un fallo silencioso que da la configuracion equivocada es peor que perderla.
+			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
+			instanceId = mintInstanceId(registry);
+			this.workspaceInstanceId = instanceId;
+			this.app.workspace.requestSaveLayout();
+		}
+		const ensured = ensureInstance(
+			this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
+			instanceId,
+		);
+		this.plugin.settings.instanceRegistry = ensured.registry;
+		if (ensured.created) await this.plugin.saveSettings();
 		measureSceneSync('scene.lifecycle.open.shell', undefined, () => {
 			contentEl.empty();
 			contentEl.addClass('vaultman-frame');
 		});
+
+		const workspaceInstanceId = instanceId;
 
 		this.svelteApp = measureSceneSync(
 			'scene.lifecycle.open.mount',
@@ -85,6 +124,7 @@ export class VaultmanFrame extends ItemView {
 					target: contentEl,
 					props: {
 						plugin: this.plugin,
+						workspaceInstanceId,
 						initialShowToolbar: this._showToolbar,
 						onShowToolbarChange: (val: boolean) => {
 							this._showToolbar = val;

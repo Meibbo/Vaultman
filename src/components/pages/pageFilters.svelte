@@ -67,6 +67,7 @@
 		type TextSearchRun,
 	} from '../../logic/logicTextSearchState';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
 	import type {
 		NavbarPanelWidgetState,
 		ScenePanelWidgetActionPort,
@@ -187,6 +188,7 @@
 		initialShowToolbar = null,
 		onShowToolbarChange,
 		onPanelWidgetStateChange,
+		sceneConfigPort,
 		sceneInstanceId = '',
 		generation = 0,
 		onPublishPanelWidget,
@@ -234,6 +236,7 @@
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
+		sceneConfigPort: SceneConfigPort;
 		sceneInstanceId?: string;
 		generation?: number;
 		onPublishPanelWidget?: (
@@ -1698,8 +1701,9 @@
 	};
 
 	$effect(() => {
-		const state: NavbarPanelWidgetState = {
+		const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } = {
 			providerId: filtersActiveTab,
+			sceneConfigPort,
 			actionPort: panelWidgetActionPort,
 			activeTab: explorerActiveTab,
 			filtersSearch,

@@ -4,6 +4,7 @@ import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 import type { ExplorerSortState } from './typeUI';
+import type { InstanceRegistryData } from './typeInstance';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import {
 	DEFAULT_FILES_HOVER_INFO,
@@ -313,6 +314,8 @@ export interface VaultmanSettings {
 	contextMenuShowInMoreOptions: boolean;
 	/** Rules for hiding native/third-party items from workspace context menus */
 	contextMenuHideRules: MenuHideRule[];
+	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
+	instanceRegistry?: InstanceRegistryData;
 }
 
 /** Minimal interface used by VaultmanSettingsTab — breaks the main.ts circular import. */
@@ -448,4 +451,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuShowInEditorMenu: true,
 	contextMenuShowInMoreOptions: true,
 	contextMenuHideRules: [],
+	instanceRegistry: { schema: 1, instances: {} },
 };
