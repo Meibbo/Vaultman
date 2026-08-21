@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
-import { createInstanceRecord, EMPTY_REGISTRY } from '../../src/logic/logicInstanceRegistry';
+import { adoptOrMintInstance, createInstanceRecord, EMPTY_REGISTRY } from '../../src/logic/logicInstanceRegistry';
 import { reconcileRegistry } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
@@ -120,5 +120,67 @@ describe('reconcileRegistry', () => {
 		registry = setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
 		const reconciled = reconcileRegistry(registry, []);
 		expect(reconciled.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
+	});
+});
+
+describe('adoptOrMintInstance', () => {
+	function withConfig(id: string, createdAt: number) {
+		const record = createInstanceRecord(id);
+		record.createdAt = createdAt;
+		record.scenes = { files: { viewMode: 'table' } };
+		return record;
+	}
+
+	it('adopts an orphaned record instead of minting a second identity', () => {
+		const registry: InstanceRegistryData = {
+			schema: 1,
+			instances: { 'vm-a': withConfig('vm-a', 1) },
+		};
+		expect(adoptOrMintInstance(registry, [])).toEqual({ id: 'vm-a', adopted: true });
+	});
+
+	it('never adopts a record a live leaf is already claiming', () => {
+		const registry: InstanceRegistryData = {
+			schema: 1,
+			instances: { 'vm-a': withConfig('vm-a', 1) },
+		};
+		const result = adoptOrMintInstance(registry, ['vm-a'], () => 'z');
+		expect(result.adopted).toBe(false);
+		expect(result.id).not.toBe('vm-a');
+	});
+
+	it('skips empty records: adopting one would recover nothing', () => {
+		const registry: InstanceRegistryData = {
+			schema: 1,
+			instances: {
+				'vm-empty': createInstanceRecord('vm-empty'),
+				'vm-real': withConfig('vm-real', 2),
+			},
+		};
+		expect(adoptOrMintInstance(registry, []).id).toBe('vm-real');
+	});
+
+	it('adopts a tombstoned record: after an unsaved reload that is exactly the orphan', () => {
+		const orphan = withConfig('vm-a', 1);
+		orphan.tombstoned = true;
+		const registry: InstanceRegistryData = { schema: 1, instances: { 'vm-a': orphan } };
+		expect(adoptOrMintInstance(registry, [])).toEqual({ id: 'vm-a', adopted: true });
+	});
+
+	it('gives two reopening panels their own record, oldest first', () => {
+		const registry: InstanceRegistryData = {
+			schema: 1,
+			instances: { 'vm-new': withConfig('vm-new', 20), 'vm-old': withConfig('vm-old', 10) },
+		};
+		const first = adoptOrMintInstance(registry, []);
+		const second = adoptOrMintInstance(registry, [first.id]);
+		expect(first.id).toBe('vm-old');
+		expect(second.id).toBe('vm-new');
+	});
+
+	it('mints when there is nothing worth adopting', () => {
+		const result = adoptOrMintInstance(EMPTY_REGISTRY, [], () => 'q');
+		expect(result.adopted).toBe(false);
+		expect(result.id.startsWith('vm-instance-')).toBe(true);
 	});
 });

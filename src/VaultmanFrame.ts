@@ -5,9 +5,9 @@ import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
+	adoptOrMintInstance,
 	EMPTY_REGISTRY,
 	ensureInstance,
-	mintInstanceId,
 } from './logic/logicInstanceRegistry';
 import {
 	measureSceneAsync,
@@ -89,14 +89,27 @@ export class VaultmanFrame extends ItemView {
 		// A partir de aqui el id es NO nulo. Se guarda en una constante local para que el
 		// compilador lo sepa tambien: la prop lo exige `string`, y un `!` seria decirle al
 		// compilador que confie en vez de demostrarselo.
-		if (!this.workspaceInstanceId) {
+		let instanceId = this.workspaceInstanceId;
+		if (!instanceId) {
+			// Sin ancla: puede ser una hoja nueva de verdad, o una recarga que descarto el
+			// layout. Adoptar un registro huerfano con configuracion distingue los dos casos
+			// sin preguntarle nada a Obsidian.
 			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
-			this.workspaceInstanceId = mintInstanceId(registry);
+			const claimed = this.app.workspace
+				.getLeavesOfType(VAULTMAN_FRAME_TYPE)
+				.map(
+					(leaf) =>
+						(leaf.getViewState().state as { workspaceInstanceId?: string } | undefined)
+							?.workspaceInstanceId,
+				)
+				.filter((id): id is string => Boolean(id));
+			instanceId = adoptOrMintInstance(registry, claimed).id;
+			this.workspaceInstanceId = instanceId;
 			this.app.workspace.requestSaveLayout();
 		}
 		const ensured = ensureInstance(
 			this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
-			this.workspaceInstanceId,
+			instanceId,
 		);
 		this.plugin.settings.instanceRegistry = ensured.registry;
 		if (ensured.created) await this.plugin.saveSettings();
@@ -105,8 +118,7 @@ export class VaultmanFrame extends ItemView {
 			contentEl.addClass('vaultman-frame');
 		});
 
-		const workspaceInstanceId = this.workspaceInstanceId;
-		if (!workspaceInstanceId) throw new Error('vaultman: instance id missing at mount');
+		const workspaceInstanceId = instanceId;
 
 		this.svelteApp = measureSceneSync(
 			'scene.lifecycle.open.mount',
