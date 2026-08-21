@@ -70,6 +70,10 @@ describe('shared explorer cell registry', () => {
 		expect(
 			cellsForExplorer('files', 'tree').map((definition) => definition.id),
 		).toEqual([
+			// U121-081: `files` was the only explorer without the selection
+			// checkbox, which is why fileScene never offered the option. It ranks
+			// first like everywhere else, and ships off by default.
+			'checkbox',
 			'icon',
 			'name',
 			'path',
@@ -86,6 +90,7 @@ describe('shared explorer cell registry', () => {
 		expect(
 			cellsForExplorer('files', 'table').map((definition) => definition.id),
 		).toEqual([
+			'checkbox',
 			'icon',
 			'name',
 			'count',
@@ -100,6 +105,7 @@ describe('shared explorer cell registry', () => {
 		expect(
 			viewMenuCells('files', 'tree').map((definition) => definition.id),
 		).toEqual([
+			'checkbox',
 			'icon',
 			'name',
 			'ext',

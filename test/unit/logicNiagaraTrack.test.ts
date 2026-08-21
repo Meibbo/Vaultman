@@ -15,10 +15,13 @@ import {
 
 describe('Niagara track math', () => {
 	it('clamps the proto sigma curve between 3 and 7', () => {
+		// U121-082: the bell no longer widens with the list. Its whole point is
+		// to be local, and at the old width the tenth neighbour still carried a
+		// third of the peak.
 		expect(niagaraSigma(0)).toBe(3);
-		expect(niagaraSigma(20)).toBeCloseTo(5.6);
-		expect(niagaraSigma(25)).toBe(7);
-		expect(niagaraSigma(100)).toBe(7);
+		expect(niagaraSigma(20)).toBe(3.2);
+		expect(niagaraSigma(25)).toBe(3.2);
+		expect(niagaraSigma(100)).toBe(3.2);
 	});
 
 	it('uses the proto Gaussian bell', () => {
@@ -27,11 +30,32 @@ describe('Niagara track math', () => {
 		expect(niagaraGaussian(-3, 3)).toBeCloseTo(Math.exp(-0.5));
 	});
 
+	// U121-082, stated as the dev stated it.
+	it('doubles the held node and goes flat by the tenth neighbour', () => {
+		const pull = 38;
+		const held = niagaraNodeTransform(0, 25, -1, pull);
+		expect(Math.abs(held.perpendicular)).toBeCloseTo(2 * pull);
+		// The epicentre is not displaced along the rail, so the horizontal
+		// component cannot change how far it sits from the finger.
+		expect(held.spread).toBeCloseTo(0);
+
+		const tenth = niagaraNodeTransform(10, 25, 1, pull);
+		expect(Math.abs(tenth.perpendicular)).toBeLessThan(
+			0.02 * Math.abs(held.perpendicular),
+		);
+		// And the nodes beside it keep a curve worth seeing.
+		const neighbour = niagaraNodeTransform(1, 25, 1, pull);
+		expect(Math.abs(neighbour.perpendicular)).toBeGreaterThan(
+			0.9 * Math.abs(held.perpendicular),
+		);
+	});
+
 	it('derives scale, perpendicular pull, and signed neighbour spread', () => {
 		const center = niagaraNodeTransform(0, 25, -1, 38);
 		expect(center).toEqual({
 			scale: 1.5,
-			perpendicular: -38,
+			// Twice the raw pull: the epicentre is where the gain shows.
+			perpendicular: -76,
 			spread: 0,
 		});
 
@@ -39,12 +63,14 @@ describe('Niagara track math', () => {
 		const gaussian = niagaraGaussian(distance, niagaraSigma(25));
 		const neighbour = niagaraNodeTransform(distance, 25, 1, 38);
 		expect(neighbour.scale).toBeCloseTo(1 + 0.5 * gaussian);
-		expect(neighbour.perpendicular).toBeCloseTo(38 * gaussian);
+		expect(neighbour.perpendicular).toBeCloseTo(76 * gaussian);
 		expect(neighbour.spread).toBeCloseTo(
 			7 * Math.tanh(distance / 1.5) * gaussian,
 		);
 
-		const atSigma = niagaraNodeTransform(7, 25, 1, 38);
+		// One sigma out, whatever sigma currently is: the assertion is about
+		// the shape of the bell, not about the number 7 it used to be.
+		const atSigma = niagaraNodeTransform(niagaraSigma(25), 25, 1, 38);
 		expect(atSigma.scale).toBeCloseTo(1 + 0.5 * Math.exp(-0.5));
 		const far = niagaraNodeTransform(40, 25, 1, 38);
 		expect(far.scale).toBeCloseTo(1, 6);

@@ -419,17 +419,20 @@ export class FilesExplorerPanel extends Component {
 					? this.getSelectedFiles()
 					: [meta.file];
 				if (files.length === 0) return;
-				this.plugin.queueService.addOrRun({
-					type: 'file_delete',
-					action: 'delete',
-					details:
-						files.length > 1
-							? `Delete ${files.length} files`
-							: `Delete file "${files[0].path}"`,
-					files,
-					customLogic: true,
-					logicFunc: () => ({ [DELETE_FILE]: true }),
-				});
+				// One operation PER FILE, not one batch holding all of them. A batch
+				// gives every row the same badge, so cancelling from one row undid
+				// the deletion of every other -- and it read as a grouped delete,
+				// which is a feature nobody has designed yet.
+				for (const target of files) {
+					this.plugin.queueService.addOrRun({
+						type: 'file_delete',
+						action: 'delete',
+						details: `Delete file "${target.path}"`,
+						files: [target],
+						customLogic: true,
+						logicFunc: () => ({ [DELETE_FILE]: true }),
+					});
+				}
 			},
 		});
 
@@ -2047,6 +2050,22 @@ export class FilesExplorerPanel extends Component {
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
 				highlightIds: { deletion: this._deletionHighlightIds },
+				// U121-081: fileScene never passed this, so even with the cell on
+				// there was nothing to render.
+				selectionCheckboxPosition:
+					this.interactionMode === 'select' &&
+					this.visibleCells.has('checkbox')
+						? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
+						: 'hidden',
+				onSelectionToggle: (id: string, selected: boolean) => {
+					const next = new Set(this.selectedFilePaths);
+					if (selected) next.add(id);
+					else next.delete(id);
+					this._applyFileSelection({
+						selectedPaths: next,
+						anchorPath: selected ? id : this.selectionAnchorPath,
+					});
+				},
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
 					this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2141,6 +2160,21 @@ export class FilesExplorerPanel extends Component {
 							);
 							return;
 						}
+						// In `select` the body of the row selects, the way it does for
+						// a file. Opening and closing stays with the caret, which has
+						// its own handler and stops propagation -- so a folder can do
+						// both, which is what the row was missing.
+						if (action === 'select') {
+							const next = new Set(this.selectedFilePaths);
+							const selected = !next.has(id);
+							if (selected) next.add(id);
+							else next.delete(id);
+							this._applyFileSelection({
+								selectedPaths: next,
+								anchorPath: selected ? id : this.selectionAnchorPath,
+							});
+							return;
+						}
 						if (!this._nestedEnabled()) return;
 						this._toggleExpanded(id);
 						this._refreshTreeExpansion(id, [id]);
@@ -2149,6 +2183,13 @@ export class FilesExplorerPanel extends Component {
 					if (!meta.isFolder && meta.file) {
 						this._handleFileClick(meta.file, event);
 					}
+				},
+				onEmptySpaceClick: () => {
+					if (this.selectedFilePaths.size === 0) return;
+					this._applyFileSelection({
+						selectedPaths: new Set<string>(),
+						anchorPath: null,
+					});
 				},
 				rowTooltip: (node) => {
 					const file = (node.meta as Partial<FileMeta> | undefined)?.file;
@@ -2978,13 +3019,21 @@ export class FilesExplorerPanel extends Component {
 			)
 				return;
 			if (change.type === 'file_delete') {
-				// U121-073: one icon and one word, like every other scene. The
+				// U121-073: one icon and one word, like every other scene; the
 				// operation's own sentence goes to the tooltip.
+				//
+				// The match is RESOLVED rather than assembled here: building it by
+				// hand dropped `releasePath`, so a file inside a queued folder
+				// delete could not be released while a subfolder could. Same rule,
+				// one place that decides it.
+				const match = findDeletionMatch(
+					{ kind: 'file', path: file.path },
+					this.plugin.queueService.queue,
+				);
 				badges.push(
-					deletionBadge(
-						{ queueIndex, details: change.details },
-						{ solid: true },
-					),
+					deletionBadge(match ?? { queueIndex, details: change.details }, {
+						solid: true,
+					}),
 				);
 			} else if (change.type === 'file_move') {
 				badges.push({

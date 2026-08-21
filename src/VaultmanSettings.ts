@@ -1201,6 +1201,22 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		// U121-083: the rail's widgets are a navbar, so they behave like one.
+		items.push({
+			name: translate('settings.floating_toc_sticky_actions'),
+			desc: translate('settings.floating_toc_sticky_actions.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.floatingTocStickyActions !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.floatingTocStickyActions = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// U121-062: one gesture deletes one thing, unless you say otherwise.
 		items.push({
 			name: translate('settings.keep_property_when_last_value_deleted'),

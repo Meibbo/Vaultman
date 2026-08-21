@@ -870,7 +870,7 @@ body.vaultman-resizing {
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--vaultman-selection-gutter, 0px) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   height: 27px;
   margin-inline: var(--size-4-1, 4px);
@@ -891,7 +891,7 @@ body.vaultman-resizing {
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--vaultman-selection-gutter, 0px) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
 }
 
@@ -986,7 +986,7 @@ body.vaultman-resizing {
   content: '';
   position: absolute;
   inset-block: 0 -1px;
-  inset-inline-start: var(--vaultman-tree-guide-start);
+  inset-inline-start: calc(var(--vaultman-tree-guide-start) + var(--vaultman-selection-gutter, 0px));
   width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
   opacity: 0.7;
@@ -1038,7 +1038,7 @@ body.vaultman-resizing {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--vaultman-selection-gutter, 0px) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);

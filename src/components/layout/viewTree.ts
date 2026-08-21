@@ -74,6 +74,11 @@ export interface TreeViewOptions {
 	 * just that node and its subtree, leaving the operation standing.
 	 */
 	onBadgeRelease?: (queueIndex: number, path: string) => void;
+	/**
+	 * Clicking the empty run below the last row. There is nothing there to act
+	 * on, which is exactly why it is the natural place to drop a selection.
+	 */
+	onEmptySpaceClick?: () => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
@@ -530,7 +535,17 @@ export class UnifiedTreeView {
 		this.containerEl.addEventListener('scroll', this._onScroll, {
 			passive: true,
 		});
+		// Bound once with the scaffold: a click that reaches the viewport itself
+		// landed on none of the rows, because a row would have handled it.
+		this.containerEl.addEventListener('click', this._onViewportClick);
 	}
+
+	private readonly _onViewportClick = (event: MouseEvent): void => {
+		const target = event.target;
+		if (!(target instanceof HTMLElement)) return;
+		if (target.closest('.vaultman-tree-row')) return;
+		this._opts?.onEmptySpaceClick?.();
+	};
 
 	private _scheduleWindowRender(): void {
 		if (this._pendingRaf !== null || this._pendingScrollTimer !== null) return;

@@ -79,6 +79,9 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.checkbox',
 		icon: 'lucide-check-square',
 		supports: [
+			// U121-081: `files` was the only explorer left out, which is the whole
+			// reason fileScene never offered the option.
+			{ explorer: 'files', fixedRank: 1, defaultOn: false },
 			{ explorer: 'props', fixedRank: 1, defaultOn: true },
 			{ explorer: 'tags', fixedRank: 1, defaultOn: true },
 			{ explorer: 'snippets', fixedRank: 1, defaultOn: true },

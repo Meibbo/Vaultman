@@ -233,6 +233,8 @@ export interface VaultmanSettings {
 	 * because that deletes two things from one gesture.
 	 */
 	keepPropertyWhenLastValueDeleted: boolean;
+	/** U121-083: the floating index keeps its widgets in place while it scrolls. */
+	floatingTocStickyActions: boolean;
 	/**
 	 * Match Obsidian core's rounded touch rows on is-mobile/is-phone Tree rows
 	 * (Files/Props/Tags/Snippets/Plugins). Off keeps the old fixed corner radius
@@ -432,6 +434,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	collapsedFolderBadges: 'dot',
 	deletionHighlight: false,
 	keepPropertyWhenLastValueDeleted: true,
+	floatingTocStickyActions: true,
 	mobileRoundedRows: false,
 	autoRevealActiveFile: false,
 	folderAggregateCells: false,

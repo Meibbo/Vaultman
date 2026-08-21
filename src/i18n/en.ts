@@ -258,6 +258,9 @@ export const en: Record<string, string> = {
 		'One indicator dot',
 	'settings.collapsed_folder_badges.badges':
 		'Descendant badges',
+	'settings.floating_toc_sticky_actions': 'Keep the index widgets in place',
+	'settings.floating_toc_sticky_actions.desc':
+		'The floating index holds its own controls at the top while the nodes scroll underneath, the way explorer rows pass under the toolbar. Off, they scroll away with the list.',
 	'settings.keep_property_when_last_value_deleted':
 		'Keep the property when its last value goes',
 	'settings.keep_property_when_last_value_deleted.desc':

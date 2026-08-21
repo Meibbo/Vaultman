@@ -188,6 +188,7 @@
 		return {
 			nodes: s.floatingTocNiagaraNodes === true,
 			plainStyle: s.floatingTocPlainStyle === true,
+			stickyActions: s.floatingTocStickyActions !== false,
 			position: s.tocPosition ?? 'right',
 			glyphMode: s.tocGlyphMode ?? 'letter',
 			// Deferred until the post-beta Niagara effects are specified and patched.
@@ -882,6 +883,7 @@
 			hideScrollbar: plugin.settings.tocHideExplorerScrollbar === true,
 			reserveLane: plugin.settings.tocReservedLane === true,
 			plainStyle: plugin.settings.floatingTocPlainStyle === true,
+			stickyActions: plugin.settings.floatingTocStickyActions !== false,
 			mobile: Platform.isMobile,
 		});
 	});

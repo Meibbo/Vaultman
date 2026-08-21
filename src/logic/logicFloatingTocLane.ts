@@ -6,6 +6,7 @@ export interface FloatingTocLaneInput {
 	hideScrollbar: boolean;
 	reserveLane: boolean;
 	plainStyle: boolean;
+	stickyActions?: boolean;
 	mobile: boolean;
 }
 

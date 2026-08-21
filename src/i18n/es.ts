@@ -259,6 +259,9 @@ export const es: Record<string, string> = {
 		'Un dot indicativo',
 	'settings.collapsed_folder_badges.badges':
 		'Badges de descendientes',
+	'settings.floating_toc_sticky_actions': 'Mantener fijos los widgets del índice',
+	'settings.floating_toc_sticky_actions.desc':
+		'El índice flotante conserva sus propios controles arriba mientras los nodos pasan por debajo, igual que las filas del explorer pasan bajo el toolbar. Desactivado, se van con la lista al hacer scroll.',
 	'settings.keep_property_when_last_value_deleted':
 		'Conservar la propiedad cuando se va su último valor',
 	'settings.keep_property_when_last_value_deleted.desc':

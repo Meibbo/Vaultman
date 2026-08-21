@@ -24,6 +24,8 @@
 	export interface NiagaraOptions {
 		nodes: boolean;
 		plainStyle: boolean;
+		/** U121-083: the rail keeps its own widgets while the nodes scroll. */
+		stickyActions?: boolean;
 		position: 'right' | 'left' | 'top' | 'bottom';
 		glyphMode: 'letter' | 'name';
 		labelMode: 'off' | 'selected' | 'scrub' | 'always';
@@ -560,6 +562,7 @@
 			class:is-picking={pickMode}
 			class:is-scrubbing={scrubbing}
 			class:is-plain={opts.plainStyle}
+			class:has-sticky-actions={opts.stickyActions !== false}
 			class:has-glow={opts.glow}
 			class:name-pill={opts.namePill}
 			aria-label={translate('floating_toc.aria')}

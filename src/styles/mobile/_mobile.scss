@@ -395,7 +395,10 @@
 }
 .vaultman-floating-toc-wrap {
 	position: absolute;
-	top: 48px;
+	/* U121-083: 48px reserved a band the rail could never use. Dragging it in
+	   scrub already stops at the frame's 8px inset, so a static rail that stops
+	   40px lower is wasting room the gesture itself proves is available. */
+	top: var(--vaultman-toc-rail-top-inset, 8px);
 	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
 	right: var(--vaultman-toc-rail-edge-offset);
 	z-index: 12;
@@ -453,6 +456,24 @@
 	flex-direction: column;
 	gap: 2px;
 	min-height: 0;
+}
+
+/* U121-083: the rail's own widgets behave like the toolbar they are -- they
+   hold their place and the nodes scroll under them. The rail is the scroll
+   container, so `sticky` needs nothing else. Off, they scroll away with the
+   list, which is the old behaviour. */
+.vaultman-floating-toc.has-sticky-actions > .vaultman-floating-toc-actions {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+}
+
+/* Scrubbing lifts the overflow, so a sticky child would detach mid-gesture. */
+.vaultman-floating-toc.is-scrubbing.has-sticky-actions
+	> .vaultman-floating-toc-actions {
+	position: static;
 }
 .vaultman-floating-toc-glyphs {
 	will-change: transform;
@@ -1005,12 +1026,29 @@
   inset-inline-start: var(--size-4-2);
 }
 
-.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
-  position: static;
+/* U121-081: the checkbox is a COLUMN, not a flex item inside the indent.
+   It used to be a child of the padded row, so it started after
+   `--depth * indent-unit` and landed somewhere different on every row; a
+   negative margin then dragged it back over the caret, and the caret was
+   switched to `position: static` to make room. All three fought each other.
+
+   The row is already `position: relative` and the indent guides are already
+   absolute inside it, so anchoring the checkbox the same way puts it in a
+   real column for free. The only coupling is that the row's start padding and
+   the guides' start offset both shift by the gutter, together. */
+.vaultman-tree-row > .vaultman-selection-checkbox--start {
+  position: absolute;
+  inset-inline-start: var(--size-4-2);
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
 }
 
-.vaultman-tree-row > .vaultman-selection-checkbox--start {
-  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+/* Declaring the gutter rather than re-declaring the padding: a custom property
+   resolves where it is USED, so it reaches the higher-specificity padding rule
+   in `_tree.scss` without having to out-specify it. */
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) {
+  --vaultman-selection-gutter: 22px;
 }
 
 .vaultman-selection-checkbox--end {

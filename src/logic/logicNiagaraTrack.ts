@@ -35,9 +35,19 @@ export function niagaraActionOrder({
 	return actions;
 }
 
+/**
+ * U121-082: how far the bell reaches, in nodes.
+ *
+ * It used to widen with the list up to 7, and at that width the TENTH
+ * neighbour still carried 36% of the peak -- `exp(-10²/(2·7²))` -- so a long
+ * index moved almost as one piece. Capped at 3.2 the tenth node keeps 0.8%
+ * (`exp(-10²/(2·3.2²))`), which reads as untouched, while the nodes beside the
+ * epicentre keep their curve. Narrower AND taller is what makes the nudge read
+ * as a nudge; the height lives in `NIAGARA_PULL_GAIN`.
+ */
 export function niagaraSigma(nodeCount: number): number {
 	const safeNodeCount = Number.isFinite(nodeCount) ? Math.max(1, nodeCount) : 1;
-	return Math.min(7, Math.max(3, safeNodeCount * 0.28));
+	return Math.min(3.2, Math.max(3, safeNodeCount * 0.28));
 }
 
 export function niagaraGaussian(distance: number, sigma: number): number {
@@ -45,6 +55,17 @@ export function niagaraGaussian(distance: number, sigma: number): number {
 		return 0;
 	return Math.exp(-(distance * distance) / (2 * sigma * sigma));
 }
+
+/**
+ * U121-082: the held node travels twice the separation it used to.
+ *
+ * The gain belongs here and not inside `niagaraPullSplit`, whose cap decides
+ * how much of the raw gesture becomes bell versus rail-body -- a different
+ * question. `spread` is untouched on purpose: it is zero at the epicentre, so
+ * the horizontal component widens the curve without moving the held node
+ * closer to or further from the finger.
+ */
+const NIAGARA_PULL_GAIN = 2;
 
 export function niagaraNodeTransform(
 	distance: number,
@@ -55,7 +76,8 @@ export function niagaraNodeTransform(
 	const gaussian = niagaraGaussian(distance, niagaraSigma(nodeCount));
 	return {
 		scale: 1 + 0.5 * gaussian,
-		perpendicular: direction * Math.max(0, perpendicularPull) * gaussian,
+		perpendicular:
+			direction * Math.max(0, perpendicularPull) * NIAGARA_PULL_GAIN * gaussian,
 		spread: 7 * Math.tanh(distance / 1.5) * gaussian,
 	};
 }
