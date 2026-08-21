@@ -1787,8 +1787,21 @@ export class TagsExplorerPanel extends Component {
 		return result;
 	}
 
+	/** U121-044: the revealed note, or null when reveal is off. */
+	private _mutationScope(): import('obsidian').TFile[] | null {
+		if (!this.isRevealingActiveFile()) return null;
+		const path = this._revealPath();
+		if (!path) return [];
+		const file = this.plugin.app.vault.getFileByPath(path);
+		return file instanceof TFile ? [file] : [];
+	}
+
 	private _getFilesWithTag(tagPath: string): import('obsidian').TFile[] {
-		return this.plugin.app.vault.getMarkdownFiles().filter((file) => {
+		// U121-044, the tag-side twin: in reveal the user is looking at ONE note,
+		// so a mutating action must resolve against it instead of every note that
+		// happens to carry the same tag.
+		const scope = this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
+		return scope.filter((file) => {
 			const cache = this.plugin.app.metadataCache.getFileCache(file);
 			const fmTags = cache?.frontmatter?.tags as unknown;
 			const frontmatterTags = Array.isArray(fmTags)

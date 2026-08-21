@@ -259,6 +259,14 @@ export const es: Record<string, string> = {
 		'Un dot indicativo',
 	'settings.collapsed_folder_badges.badges':
 		'Badges de descendientes',
+	'settings.keep_property_when_last_value_deleted':
+		'Conservar la propiedad cuando se va su último valor',
+	'settings.keep_property_when_last_value_deleted.desc':
+		'Borrar el último valor de una propiedad deja la propiedad en su sitio, con un valor vacío. Desactivado, la propiedad se borra junto con él — y se te pregunta antes, porque eso borra dos cosas de un solo gesto.',
+	'ops.delete_value.also_property':
+		'¿Borrar las propiedades que queden sin valor?',
+	'ops.delete_value.also_property.message':
+		'Algunas notas tienen este como su único valor de la propiedad. Borrarlo quita también la propiedad en esas notas.',
 	'settings.deletion_highlight': 'Resaltar las filas en cola para borrar',
 	'settings.deletion_highlight.desc':
 		'Tiñe todas las filas que la cola va a borrar, no solo la que nombra la operación. Desactivado, el borrado se sigue viendo como fila gris tachada, badge y dot rojo en los parents colapsados.',

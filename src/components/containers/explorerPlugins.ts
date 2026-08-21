@@ -406,6 +406,12 @@ export class PluginsExplorerPanel
 			{
 				nodeType: 'plugin',
 				node: { id: meta.pluginId, label: meta.name, meta, depth: 0 },
+				// U121-062: same key mismatch as snippets -- ctx by id, selection by
+				// `plugin:<id>`.
+				selectedIds: new Set(
+					[...this.selectedNodeIds].map((id) => id.replace(/^plugin:/, '')),
+				),
+				orderedIds: this.nodes.map((node) => node.meta.pluginId),
 				surface: 'panel',
 			},
 			event,

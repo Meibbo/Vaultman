@@ -258,6 +258,14 @@ export const en: Record<string, string> = {
 		'One indicator dot',
 	'settings.collapsed_folder_badges.badges':
 		'Descendant badges',
+	'settings.keep_property_when_last_value_deleted':
+		'Keep the property when its last value goes',
+	'settings.keep_property_when_last_value_deleted.desc':
+		'Deleting the last value of a property leaves the property in place, holding an empty value. Off, the property is removed along with it — and you are asked first, because that deletes two things from one gesture.',
+	'ops.delete_value.also_property':
+		'Delete the properties left with no value?',
+	'ops.delete_value.also_property.message':
+		'Some notes have this as their only value for the property. Deleting it removes the property from those notes as well.',
 	'settings.deletion_highlight': 'Highlight rows queued for deletion',
 	'settings.deletion_highlight.desc':
 		'Tint every row the queue is going to delete, not just the one the operation names. Off, deletion still shows as a struck-through grey row, a badge, and the red bubble dot on collapsed parents.',

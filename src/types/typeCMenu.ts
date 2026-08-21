@@ -13,6 +13,14 @@ export interface MenuCtx {
 		| 'plugin'
 		| 'content';
 	node: TreeNode<unknown>;
+	/**
+	 * U121-062: the ids selected in the panel that opened this menu. An action
+	 * invoked on a node inside it acts on the whole selection; outside it, on
+	 * that node alone. Absent means the surface has no selection to speak of.
+	 */
+	selectedIds?: ReadonlySet<string>;
+	/** Visible order of the panel's rows, so a batch reads like the tree does. */
+	orderedIds?: readonly string[];
 	surface: 'panel' | 'file-menu' | 'editor-menu' | 'more-options';
 	/** Originating pointer event (panel menus); lets actions position follow-up UI. */
 	event?: MouseEvent;

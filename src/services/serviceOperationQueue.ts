@@ -172,6 +172,19 @@ function propertyActionsConflict(
 ): boolean {
 	if (a.property !== b.property) return false;
 	if (operationIdentity(a) === operationIdentity(b)) return false;
+	// U121-062/072: two deletes aimed at DIFFERENT values of the same property
+	// are independent -- each removes its own value and neither can invalidate
+	// the other. Before U121-072 a value delete was indistinguishable from a
+	// property-wide one, so treating every delete as high impact was the safe
+	// reading; now the operation names its target, and blocking the second one
+	// only stopped the user from staging a batch they had every right to.
+	if (a.action === 'delete' && b.action === 'delete') {
+		const aIsPropertyWide = a.value === undefined && a.oldValue === undefined;
+		const bIsPropertyWide = b.value === undefined && b.oldValue === undefined;
+		// A property-wide delete does subsume any value delete of the same
+		// property: keeping both would run one operation over its own target.
+		return aIsPropertyWide || bIsPropertyWide;
+	}
 	const highImpactActions = new Set(['delete', 'clean_empty', 'rename', 'change_type']);
 	if (highImpactActions.has(a.action) || highImpactActions.has(b.action)) return true;
 	if ((a.action === 'set' || a.action === 'add') && (b.action === 'set' || b.action === 'add')) {

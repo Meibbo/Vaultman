@@ -148,3 +148,48 @@ export function buildVirtualTreeProjection({
 		indexById,
 	};
 }
+
+/**
+ * U121-080: rebuild the ancestor chain from an already-flattened row list.
+ *
+ * `updateExpansion` splices rows in place for speed and never rebuilt these
+ * arrays, so every index in them described the PREVIOUS list. Two failures
+ * followed, and both were reported: a collapsed folder kept the `subtreeEnd`
+ * of its expanded self, so the sticky stack believed its subtree still ran for
+ * hundreds of rows and pinned it no matter how far you scrolled; and expanding
+ * any parent shifted every index below it, so the chain resolved to rows that
+ * were no longer there and nothing became sticky at all until some unrelated
+ * event forced a full render.
+ *
+ * Depth is the only input: the rows are already in visible order, so one pass
+ * with a stack recovers both arrays. O(rows) on a structural change, which is
+ * not the per-frame path -- the per-frame path reads what this produces.
+ */
+export function treeChainFromRows(rows: readonly TreeNode[]): {
+	parentIndex: number[];
+	subtreeEnd: number[];
+} {
+	const parentIndex = new Array<number>(rows.length).fill(-1);
+	const subtreeEnd = new Array<number>(rows.length).fill(0);
+	const open: number[] = [];
+
+	for (let index = 0; index < rows.length; index += 1) {
+		const depth = rows[index]?.depth ?? 0;
+		while (open.length > 0) {
+			const top = open[open.length - 1] ?? -1;
+			if ((rows[top]?.depth ?? 0) < depth) break;
+			// Closing at `index` means "one past my last descendant", which is
+			// exactly index for a node whose subtree ended on the row before.
+			subtreeEnd[top] = index;
+			open.pop();
+		}
+		parentIndex[index] = open.length > 0 ? (open[open.length - 1] ?? -1) : -1;
+		open.push(index);
+	}
+	while (open.length > 0) {
+		const top = open.pop() ?? -1;
+		if (top >= 0) subtreeEnd[top] = rows.length;
+	}
+
+	return { parentIndex, subtreeEnd };
+}

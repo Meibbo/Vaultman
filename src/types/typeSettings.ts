@@ -227,6 +227,13 @@ export interface VaultmanSettings {
 	 */
 	deletionHighlight: boolean;
 	/**
+	 * U121-062: deleting the last value of a property leaves the property with
+	 * nothing in it. On (the default) the property survives holding an empty
+	 * value; off, it is removed with its last value and the user is asked first,
+	 * because that deletes two things from one gesture.
+	 */
+	keepPropertyWhenLastValueDeleted: boolean;
+	/**
 	 * Match Obsidian core's rounded touch rows on is-mobile/is-phone Tree rows
 	 * (Files/Props/Tags/Snippets/Plugins). Off keeps the old fixed corner radius
 	 * that PC also uses. Off by default: some themes (seen on Oxygen/Velocity)
@@ -424,6 +431,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
 	deletionHighlight: false,
+	keepPropertyWhenLastValueDeleted: true,
 	mobileRoundedRows: false,
 	autoRevealActiveFile: false,
 	folderAggregateCells: false,

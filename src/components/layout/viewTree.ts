@@ -25,6 +25,7 @@ import {
 	buildVirtualTreeWindow,
 	flattenVisibleTree,
 	flattenVisibleTreeWithChain,
+	treeChainFromRows,
 } from '../../utils/treeVirtualization';
 import {
 	attachBadgeCancelInteraction,
@@ -363,6 +364,15 @@ export class UnifiedTreeView {
 		const modelStarted = performance.now();
 		const delta = this._replaceVisibleDescendants(rootId);
 		if (!delta) return;
+
+		// U121-080: the splice above rewrote the row list, so the chain that
+		// describes it has to be rewritten too. Leaving it stale pinned a
+		// collapsed folder forever -- it kept the subtreeEnd of its expanded
+		// self -- and made an expansion silently kill every sticky, because the
+		// indices no longer pointed at the rows they named.
+		const chain = treeChainFromRows(this._rows);
+		this._parentIndex = chain.parentIndex;
+		this._subtreeEnd = chain.subtreeEnd;
 
 		const rowHeight = this.rowHeight();
 		if (this._spacerEl) {

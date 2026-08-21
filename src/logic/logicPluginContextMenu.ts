@@ -2,6 +2,7 @@ import type VaultmanPlugin from '../main';
 import type { MenuCtx } from '../types/typeCMenu';
 import { translate } from '../i18n/index';
 import { ConfirmModal } from '../modals/modalConfirm';
+import { resolveSelectionTargets } from './logicSelectionTargets';
 import { openAddonIconPicker } from '../modals/modalAddonIconPicker';
 import {
 	clearAddonIconOverride,
@@ -139,16 +140,25 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 				}).open();
 				return;
 			}
-			plugin.queueService.addOrRun({
-				type: 'plugin_uninstall',
-				action: 'uninstall',
-				pluginId: meta.pluginId,
-				name: meta.name,
-				details: `Uninstall plugin "${meta.name}"`,
-				files: [],
-				customLogic: true,
-				logicFunc: () => null,
-			});
+			// U121-062: acts on the whole selection when the invoked plugin is
+			// part of it. This scene showed its checkboxes and ignored them.
+			const ids = resolveSelectionTargets(
+				meta.pluginId,
+				ctx.selectedIds ?? new Set<string>(),
+				ctx.orderedIds,
+			);
+			for (const pluginId of ids) {
+				plugin.queueService.addOrRun({
+					type: 'plugin_uninstall',
+					action: 'uninstall',
+					pluginId,
+					name: pluginId === meta.pluginId ? meta.name : pluginId,
+					details: `Uninstall plugin "${pluginId === meta.pluginId ? meta.name : pluginId}"`,
+					files: [],
+					customLogic: true,
+					logicFunc: () => null,
+				});
+			}
 		},
 	});
 }

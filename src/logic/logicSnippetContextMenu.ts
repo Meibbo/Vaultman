@@ -15,6 +15,7 @@ import { cssSnippetPath, setCssSnippetEnabled } from '../utils/obsidianAddons';
 import type { SnippetMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
 import { buildSnippetRenameChange } from './logicSnippetOperations';
+import { resolveSelectionTargets } from './logicSelectionTargets';
 import {
 	canRevealInSystemExplorer,
 	REVEAL_IN_SYSTEM_EXPLORER_ICON,
@@ -225,16 +226,25 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 				}).open();
 				return;
 			}
-			plugin.queueService.addOrRun({
-				type: 'snippet_delete',
-				action: 'delete',
-				name: meta.name,
-				path,
-				details: `Delete snippet "${meta.name}"`,
-				files: [],
-				customLogic: true,
-				logicFunc: () => null,
-			});
+			// U121-062: this scene shows the selection checkboxes and then ignored
+			// them -- the action only ever reached the row you right-clicked.
+			const names = resolveSelectionTargets(
+				ctx.node?.id ?? '',
+				ctx.selectedIds ?? new Set<string>(),
+				ctx.orderedIds,
+			);
+			for (const name of names.length > 0 ? names : [meta.name]) {
+				plugin.queueService.addOrRun({
+					type: 'snippet_delete',
+					action: 'delete',
+					name,
+					path: cssSnippetPath(plugin.app, name),
+					details: `Delete snippet "${name}"`,
+					files: [],
+					customLogic: true,
+					logicFunc: () => null,
+				});
+			}
 		},
 	});
 }

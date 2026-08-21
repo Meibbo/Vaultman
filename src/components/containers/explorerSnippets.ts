@@ -387,6 +387,13 @@ export class SnippetsExplorerPanel
 			{
 				nodeType: 'snippet',
 				node: { id: meta.name, label: meta.name, meta, depth: 0 },
+				// U121-062: the ctx node is keyed by NAME while the selection is
+				// keyed by `snippet:<name>`. Normalising here keeps the mismatch out
+				// of the action, which has no business knowing either key.
+				selectedIds: new Set(
+					[...this.selectedNodeIds].map((id) => id.replace(/^snippet:/, '')),
+				),
+				orderedIds: this.nodes.map((node) => node.meta.name),
 				surface: 'panel',
 			},
 			event,

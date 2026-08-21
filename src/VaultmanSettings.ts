@@ -1201,6 +1201,24 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		// U121-062: one gesture deletes one thing, unless you say otherwise.
+		items.push({
+			name: translate('settings.keep_property_when_last_value_deleted'),
+			desc: translate('settings.keep_property_when_last_value_deleted.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(
+							this.plugin.settings.keepPropertyWhenLastValueDeleted !== false,
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.keepPropertyWhenLastValueDeleted = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// U121-077: the loud one, off by default.
 		items.push({
 			name: translate('settings.deletion_highlight'),

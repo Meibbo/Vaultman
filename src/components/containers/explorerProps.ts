@@ -46,6 +46,8 @@ export interface PanelPluginCtx {
 		propMoveTypeConflict?: 'coerce' | 'block' | 'ask';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
+		/** U121-062: does a property survive losing its last value? */
+		keepPropertyWhenLastValueDeleted?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -92,6 +94,7 @@ import {
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
+import { ConfirmModal } from '../../modals/modalConfirm';
 import {
 	type DeletionSubject,
 	queueDeletesSubject,
@@ -641,7 +644,31 @@ export class PropsExplorerPanel extends Component {
 		});
 	};
 
+	/**
+	 * U121-044: in reveal the user is looking at ONE note, so a mutating action
+	 * must resolve against that note. Both resolvers below used to scan the
+	 * whole vault with no reference to reveal at all, which meant editing "this
+	 * note's" value silently rewrote every note that happened to share it -- and
+	 * with bypass on, without a queue to review. The anchor is `_revealPath()`,
+	 * so a pinned anchor is honoured and not just the active file.
+	 */
+	private _mutationScope(): import('obsidian').TFile[] | null {
+		if (!this.isRevealingActiveFile()) return null;
+		const path = this._revealPath();
+		if (!path) return [];
+		const file = this.plugin.app.vault.getFileByPath(path);
+		return file instanceof TFile ? [file] : [];
+	}
+
 	private _getFilesWithProp(propName: string): import('obsidian').TFile[] {
+		const scoped = this._mutationScope();
+		if (scoped) {
+			return scoped.filter(
+				(f) =>
+					propName in
+					(this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {}),
+			);
+		}
 		return this.plugin.app.vault
 			.getMarkdownFiles()
 			.filter(
@@ -655,7 +682,8 @@ export class PropsExplorerPanel extends Component {
 		propName: string,
 		value: string,
 	): import('obsidian').TFile[] {
-		return this.plugin.app.vault.getMarkdownFiles().filter((f) => {
+		const scope = this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
+		return scope.filter((f) => {
 			const fm: Record<string, unknown> =
 				this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {};
 			if (!(propName in fm)) return false;
@@ -2800,6 +2828,11 @@ export class PropsExplorerPanel extends Component {
 		oldValue: string,
 	): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
+		const keepProperty = await this._resolveKeepPropertyOnValueDelete(
+			propName,
+			oldValue,
+			files,
+		);
 		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
@@ -2816,17 +2849,73 @@ export class PropsExplorerPanel extends Component {
 			logicFunc: (_file, fm) => {
 				if (!(propName in fm)) return null;
 				const val = fm[propName];
+				// U121-062: one gesture should delete one thing. When this value is
+				// the property's last, removing the property too is a second
+				// deletion the user never asked for, so by default the property
+				// stays behind holding an empty value. Turning the setting off is
+				// what asks for the old behaviour, and it asks before staging.
 				if (Array.isArray(val)) {
-					fm[propName] = (val as unknown[]).filter(
+					const rest = (val as unknown[]).filter(
 						(v) => String(v) !== oldValue,
 					);
+					if (rest.length === 0 && !keepProperty) {
+						delete fm[propName];
+					} else {
+						fm[propName] = rest;
+					}
 				} else if (String(val) === oldValue) {
-					delete fm[propName];
+					if (keepProperty) fm[propName] = '';
+					else delete fm[propName];
 				} else {
 					return null;
 				}
 				return fm;
 			},
+		});
+	}
+
+	/**
+	 * U121-062: does the property survive losing this value? On by default. With
+	 * the setting off the user is asked once, and only when it can actually
+	 * happen -- some note really does hold this as its only value -- so the
+	 * dialog never appears to say nothing.
+	 */
+	private async _resolveKeepPropertyOnValueDelete(
+		propName: string,
+		oldValue: string,
+		files: readonly import('obsidian').TFile[],
+	): Promise<boolean> {
+		if (this.plugin.settings?.keepPropertyWhenLastValueDeleted !== false) {
+			return true;
+		}
+		const emptiesSomeNote = files.some((file) => {
+			const fm: Record<string, unknown> =
+				this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+			const value: unknown = fm[propName];
+			if (Array.isArray(value)) {
+				return (value as unknown[]).every((v) => String(v) === oldValue);
+			}
+			return String(value) === oldValue;
+		});
+		if (!emptiesSomeNote) return true;
+		// Confirming means "yes, take the property too", so keeping it is the
+		// negation. Dismissing the dialog keeps it, which is the safe answer.
+		return await new Promise<boolean>((resolve) => {
+			let takeProperty = false;
+			const modal = new ConfirmModal(this.plugin.app, {
+				title: translate('ops.delete_value.also_property'),
+				message: translate('ops.delete_value.also_property.message'),
+				ctaLabel: translate('ops.delete'),
+				onConfirm: () => {
+					takeProperty = true;
+				},
+			});
+			const close = modal.onClose.bind(modal);
+			modal.onClose = () => {
+				close();
+				resolve(!takeProperty);
+			};
+			modal.open();
 		});
 	}
 
