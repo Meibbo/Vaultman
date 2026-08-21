@@ -22,6 +22,7 @@
 
 	let {
 		activeTab,
+		selectionMode = false,
 		onClose,
 		onViewModeChange,
 		onPillsChange,
@@ -32,6 +33,12 @@
 		addOpCount = 0,
 	}: {
 		activeTab: FiltersTab;
+		/**
+		 * U121-081: the selection checkbox is only a cell while there is a
+		 * selection to make. Offering it outside `select` puts a control in the
+		 * menu that cannot do anything.
+		 */
+		selectionMode?: boolean;
 		onClose: () => void;
 		onViewModeChange?: (mode: ExplorerViewMode) => void;
 		onPillsChange?: (activePills: string[]) => void;
@@ -64,10 +71,14 @@
 	});
 
 	const currentPillDefs = $derived(
-		viewMenuCells(activeTab, activeView, activePills).map((definition) => ({
-			id: definition.id,
-			labelKey: cellLabelKey(definition, activeTab, activeView),
-		})),
+		viewMenuCells(activeTab, activeView, activePills)
+			.filter(
+				(definition) => definition.id !== 'checkbox' || selectionMode === true,
+			)
+			.map((definition) => ({
+				id: definition.id,
+				labelKey: cellLabelKey(definition, activeTab, activeView),
+			})),
 	);
 	const currentViewModes = $derived(viewModesForDataSurface(activeTab));
 

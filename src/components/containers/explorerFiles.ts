@@ -2132,7 +2132,10 @@ export class FilesExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					this._refreshTreeExpansion(id, [id]);
 					if (wasPinned && !this.expandedIds.has(id)) {
-						this.treeView?.scrollToId(id, 'start', 'auto');
+						// Under the headers that outlive it, not at offset 0: a nested
+						// row sent to the top hides behind its own still-pinned
+						// ancestors, which is why this only ever looked right on a root.
+						this.treeView?.scrollRowUnderStickyStack(id);
 					}
 				},
 				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),

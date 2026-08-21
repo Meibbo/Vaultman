@@ -39,7 +39,7 @@ describe('mobile core row source guards', () => {
 			)?.[0] ?? '';
 
 		expect(mobileRowBlock).toContain(
-			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--vaultman-selection-gutter, 0px) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
+			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
 		expect(mobileRowBlock).not.toContain('calc(24px + var(--depth, 0) * 16px)');
 		expect(stylesSource).not.toContain(

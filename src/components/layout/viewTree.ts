@@ -420,6 +420,35 @@ export class UnifiedTreeView {
 		return this._stickyTwinIds.has(id);
 	}
 
+	/**
+	 * U121-080: park a row directly under whatever stays pinned above it.
+	 *
+	 * Sending a collapsed row to offset 0 is right only for a root: a level-2
+	 * row has ancestors that remain in the stack, so row 0 is underneath them
+	 * and the row the user just collapsed disappears behind its own parents.
+	 * The slot it occupied IS the number of headers that outlive it, so its
+	 * resting place is that many rows down.
+	 */
+	scrollRowUnderStickyStack(id: string): void {
+		const index = this._indexById.get(id);
+		if (index === undefined) return;
+		const rowHeight = this.rowHeight();
+		if (rowHeight <= 0) return;
+		const survivors = stickyTreeRows(this._rows, {
+			rowHeight,
+			scrollTop: index * rowHeight,
+			viewportHeight: this.containerEl.clientHeight,
+			maxFraction: this._opts?.stickyMaxFraction,
+			parentIndex: this._parentIndex ?? undefined,
+			subtreeEnd: this._subtreeEnd ?? undefined,
+		}).filter((sticky) => sticky.index !== index);
+		this.containerEl.scrollTop = Math.max(
+			0,
+			(index - survivors.length) * rowHeight,
+		);
+		this._renderWindow();
+	}
+
 	scrollToId(
 		id: string,
 		block: ScrollLogicalPosition = 'center',

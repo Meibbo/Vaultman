@@ -1026,29 +1026,19 @@
   inset-inline-start: var(--size-4-2);
 }
 
-/* U121-081: the checkbox is a COLUMN, not a flex item inside the indent.
-   It used to be a child of the padded row, so it started after
-   `--depth * indent-unit` and landed somewhere different on every row; a
-   negative margin then dragged it back over the caret, and the caret was
-   switched to `position: static` to make room. All three fought each other.
+/* U121-081: the checkbox is the node's FIRST CELL, in flow, before the caret.
+   It pushes the caret and everything after it to the right, exactly the way
+   the caret pushes the rest when `nested` is on -- and it sits inside the
+   node, so it starts after that node's own indent like every other cell.
 
-   The row is already `position: relative` and the indent guides are already
-   absolute inside it, so anchoring the checkbox the same way puts it in a
-   real column for free. The only coupling is that the row's start padding and
-   the guides' start offset both shift by the gutter, together. */
+   It is deliberately NOT positioned: an absolute checkbox leaves the flow, so
+   it cannot push anything, it stops sharing the row's `align-items: center`,
+   and it paints under the cells instead of beside them. That is also what the
+   2026-08-02 corrective-primitives plan forbids in so many words -- "guards
+   forbidding absolute frame-owned checkboxes". `--end` was never broken
+   precisely because it stayed in flow. */
 .vaultman-tree-row > .vaultman-selection-checkbox--start {
-  position: absolute;
-  inset-inline-start: var(--size-4-2);
-  top: 50%;
-  transform: translateY(-50%);
-  margin: 0;
-}
-
-/* Declaring the gutter rather than re-declaring the padding: a custom property
-   resolves where it is USED, so it reaches the higher-specificity padding rule
-   in `_tree.scss` without having to out-specify it. */
-.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) {
-  --vaultman-selection-gutter: 22px;
+  order: -1;
 }
 
 .vaultman-selection-checkbox--end {

@@ -47,7 +47,7 @@ describe('virtual scroll CSS source guards', () => {
 			'--vaultman-tree-caret-offset: var(--size-4-5)',
 		);
 		expect(treeGuideBlock).toContain(
-			'inset-inline-start: calc(var(--vaultman-tree-guide-start) + var(--vaultman-selection-gutter, 0px))',
+			'inset-inline-start: var(--vaultman-tree-guide-start)',
 		);
 		expect(treeGuideBlock).not.toContain('inset-inline-start: 16px');
 		expect(treeGuideBlock).not.toContain('inset-inline-start: 8px');
@@ -62,7 +62,7 @@ describe('virtual scroll CSS source guards', () => {
 			)?.[0] ?? '';
 
 		expect(desktopCoreRowIndentBlock).toContain(
-			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--vaultman-selection-gutter, 0px) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
+			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
 		expect(desktopCoreRowIndentBlock).toContain('padding-inline-end: 8px');
 		expect(desktopCoreRowIndentBlock).not.toContain('!important');

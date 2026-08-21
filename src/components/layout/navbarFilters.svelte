@@ -2267,6 +2267,7 @@
 			>
 				<ViewModePopup
 					{activeTab}
+					selectionMode={interactionModeByTab[activeTab] === 'select'}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}
