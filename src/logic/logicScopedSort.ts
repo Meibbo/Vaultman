@@ -9,7 +9,11 @@ import type {
 const DEFAULT_SORT: ScopeSort = { sortBy: 'name', direction: 'asc' };
 
 const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
-	props: ['properties', 'values'],
+	// U121-079: `all` faltaba aqui. Sin el, propScene no tenia forma de decir
+	// "ordena el arbol entero": elegir un preset escribia en `properties` y los
+	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
+	// lo dijera. fileScene siempre lo tuvo.
+	props: ['all', 'properties', 'values'],
 	files: ['all', 'drill'],
 	tags: ['all', 'drill'],
 	snippets: ['all'],
@@ -17,7 +21,7 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 };
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
-	props: 'properties',
+	props: 'all',
 	files: 'all',
 	tags: 'all',
 	snippets: 'all',
@@ -170,7 +174,21 @@ export function normalizeExplorerSortState(
 		}
 	}
 
+	// U121-079: before `all` existed, propScene's only reachable scope was
+	// `properties`, so that entry WAS the tree-wide sort. Move it to `all` for
+	// anyone who never opened the scope drawer. The proof is the RAW input, not
+	// the sanitized `sorts`: `values: type` is stripped above, so reading the
+	// sanitized copy would call a deliberate two-scope setup an accident.
+	const declaredValuesScope = value.sorts.values !== undefined;
+	if (tab === 'props' && sorts.properties && !declaredValuesScope) {
+		sorts.all = sorts.properties;
+		delete sorts.properties;
+	}
+
 	let activeScope = value.activeScope as SortScopeKey;
+	if (tab === 'props' && activeScope === 'properties' && !sorts.properties) {
+		activeScope = 'all';
+	}
 	let drillNodeId =
 		typeof value.drillNodeId === 'string' && value.drillNodeId
 			? value.drillNodeId
@@ -201,6 +219,15 @@ export function normalizeExplorerSortState(
 	};
 }
 
+/**
+ * U121-079: a scope the user never set follows the tab's `all`, instead of
+ * silently reverting to name/asc.
+ *
+ * `sorts` is partial and starts empty, so every scope the user has not opened
+ * is absent. Without this the new `all` scope would be write-only: choosing
+ * `custom` there would leave `properties` and `values` on their own defaults
+ * and change nothing on screen.
+ */
 export function activeScopeSort(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
@@ -209,7 +236,13 @@ export function activeScopeSort(
 	const allowedScope = SCOPES_BY_TAB[tab].includes(scope)
 		? scope
 		: DEFAULT_SCOPE_BY_TAB[tab];
-	return state.sorts[allowedScope] ?? DEFAULT_SORT;
+	const own = state.sorts[allowedScope];
+	if (own) return own;
+	const fallbackScope = DEFAULT_SCOPE_BY_TAB[tab];
+	if (fallbackScope !== allowedScope) {
+		return state.sorts[fallbackScope] ?? DEFAULT_SORT;
+	}
+	return DEFAULT_SORT;
 }
 
 export function replaceActiveScopeSort(

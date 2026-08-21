@@ -1895,9 +1895,13 @@ export class PropsExplorerPanel extends Component {
 			attr: { tabIndex: 0 },
 		});
 		const addIcon = addButton.createSpan({ cls: 'text-button-icon' });
-		void import('obsidian').then(({ setIcon }) =>
-			setIcon(addIcon, 'lucide-plus'),
-		);
+		// U121-079: this used to be `await import('obsidian')`. Obsidian injects
+		// its module as an external CommonJS binding, so a dynamic ESM import
+		// of it never resolves -- every render of this button threw
+		// `Failed to resolve module specifier 'obsidian'` and took the rest of
+		// the propScene render down with it. `setIcon` is imported statically
+		// at the top of this file already.
+		setIcon(addIcon, 'lucide-plus');
 		addButton.createSpan({
 			cls: 'text-button-label',
 			text: translate('ops.add_property'),

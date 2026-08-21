@@ -33,15 +33,18 @@ describe('scoped explorer sort state', () => {
 				nodeTypeFilter: 'property',
 			});
 
+			// U121-079: a legacy state carried ONE sort, and it meant the whole
+			// tree. It now lands in `all` -- propScene's new default scope -- so
+			// the values follow it instead of quietly reverting to name/asc.
 			expect(state).toMatchObject({
-				activeScope: 'properties',
-				sorts: { properties: { sortBy: 'count', direction: 'desc' } },
+				activeScope: 'all',
+				sorts: { all: { sortBy: 'count', direction: 'desc' } },
 				nodeTypeFilter: 'property',
 			});
 			expect(state).not.toHaveProperty('childLevel');
 			expect(activeScopeSort('props', state, 'values')).toEqual({
-				sortBy: 'name',
-				direction: 'asc',
+				sortBy: 'count',
+				direction: 'desc',
 			});
 		},
 	);
@@ -132,6 +135,47 @@ describe('scoped explorer sort state', () => {
 				JSON.parse(JSON.stringify(state)) as unknown,
 			),
 		).toEqual(state);
+	});
+
+	// U121-079: the reported symptom. With sort_preset=custom and the scope
+	// drawer untouched, only the node_props reordered while the node_values
+	// stayed alphabetical -- one sort applying to one level of the same tree.
+	it('reaches the values when custom is chosen on the whole tree', () => {
+		const state = normalizeExplorerSortState('props', {
+			sorts: { all: { sortBy: 'custom', direction: 'asc' } },
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+
+		expect(activeScopeSort('props', state, 'properties')).toEqual({
+			sortBy: 'custom',
+			direction: 'asc',
+		});
+		expect(activeScopeSort('props', state, 'values')).toEqual({
+			sortBy: 'custom',
+			direction: 'asc',
+		});
+	});
+
+	// ...but a scope the user set on purpose still wins over the tree-wide one.
+	it('lets an explicit values scope override the tree-wide sort', () => {
+		const state = normalizeExplorerSortState('props', {
+			sorts: {
+				all: { sortBy: 'custom', direction: 'asc' },
+				values: { sortBy: 'count', direction: 'desc' },
+			},
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+
+		expect(activeScopeSort('props', state, 'values')).toEqual({
+			sortBy: 'count',
+			direction: 'desc',
+		});
+		expect(activeScopeSort('props', state, 'properties')).toEqual({
+			sortBy: 'custom',
+			direction: 'asc',
+		});
 	});
 
 	it('round-trips semantic sorts and sanitizes Type from Props values', () => {

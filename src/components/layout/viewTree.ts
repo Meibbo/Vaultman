@@ -396,6 +396,15 @@ export class UnifiedTreeView {
 		}
 	}
 
+	/**
+	 * U121-080: is this row currently pinned above the viewport? The twin set is
+	 * exactly the rows the sticky stack is standing in for, so it answers without
+	 * recomputing anything.
+	 */
+	isStickyRow(id: string): boolean {
+		return this._stickyTwinIds.has(id);
+	}
+
 	scrollToId(
 		id: string,
 		block: ScrollLogicalPosition = 'center',

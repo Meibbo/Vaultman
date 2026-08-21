@@ -90,6 +90,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'filtered',
 			'nested',
 			'scope-separator',
+			'all',
 			'properties',
 			'values',
 		]);
@@ -231,6 +232,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'filtered',
 			'nested',
 			'scope-separator',
+			'all',
 			'properties',
 			'values',
 		]);

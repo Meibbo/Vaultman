@@ -53,6 +53,7 @@ describe('explorer sort UI source', () => {
 			'filtered',
 			'nested',
 			'scope-separator',
+			'all',
 			'properties',
 			'values',
 		]);

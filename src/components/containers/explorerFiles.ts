@@ -2099,8 +2099,22 @@ export class FilesExplorerPanel extends Component {
 					return false;
 				},
 				onToggle: (id: string) => {
+					// U121-080: collapsing a row that is PINNED above the viewport
+					// destroys the content the scroll offset was pointing into, so the
+					// browser clamps it wherever the shortened document ends and the
+					// stack never recovers -- the collapsed folder stays stuck and no
+					// other p-node can take the slot. Anchoring it at the top is what
+					// the floating index already does, and the same place the user
+					// would have landed had the folder been collapsed all along.
+					//
+					// Only when it was pinned: collapsing a row you can SEE must leave
+					// the scroll alone, or the view yanks under your finger.
+					const wasPinned = this.treeView?.isStickyRow(id) === true;
 					this._toggleExpanded(id);
 					this._refreshTreeExpansion(id, [id]);
+					if (wasPinned && !this.expandedIds.has(id)) {
+						this.treeView?.scrollToId(id, 'start', 'auto');
+					}
 				},
 				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),
 				onRowClick: (id: string, event?: MouseEvent) => {

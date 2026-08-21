@@ -215,6 +215,11 @@ interface SortScopeMenuOption {
 
 const PROPS_SCOPE_OPTIONS: readonly SortScopeMenuOption[] = [
 	{
+		scope: 'all',
+		icon: 'lucide-layers',
+		labelKey: 'sort.level.all',
+	},
+	{
 		scope: 'properties',
 		icon: 'lucide-list-tree',
 		labelKey: 'sort.level.properties',
