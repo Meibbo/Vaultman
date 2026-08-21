@@ -410,11 +410,23 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
+				// U121-062: acting on a node that is part of the selection acts on
+				// the whole selection -- the rule `file.move` already followed.
+				// Deleting ignored it and staged only the row you right-clicked.
+				// Invoked OUTSIDE the selection it stays on that one node: union
+				// semantics would delete something never selected nor clicked.
+				const files = this.selectedFilePaths.has(ctx.node.id)
+					? this.getSelectedFiles()
+					: [meta.file];
+				if (files.length === 0) return;
 				this.plugin.queueService.addOrRun({
 					type: 'file_delete',
 					action: 'delete',
-					details: `Delete file "${meta.file.path}"`,
-					files: [meta.file],
+					details:
+						files.length > 1
+							? `Delete ${files.length} files`
+							: `Delete file "${files[0].path}"`,
+					files,
 					customLogic: true,
 					logicFunc: () => ({ [DELETE_FILE]: true }),
 				});

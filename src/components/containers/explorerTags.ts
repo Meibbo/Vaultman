@@ -255,8 +255,9 @@ export class TagsExplorerPanel extends Component {
 			label: 'Delete',
 			icon: 'lucide-trash-2',
 			run: (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as TagMeta;
-				return this._deleteTag(meta.tagPath);
+				for (const tagPath of this._selectionTagPaths(ctx)) {
+					void this._deleteTag(tagPath);
+				}
 			},
 		});
 
@@ -775,6 +776,19 @@ export class TagsExplorerPanel extends Component {
 		if (this.viewMode === 'tree') this.view.refreshViewport();
 		else this.tableView?.refreshViewport();
 		this.deferredRender.activate(() => this._render());
+	}
+
+	/** U121-062: see `_selectionPeers` in the Props panel for the rule. */
+	private _selectionTagPaths(ctx: MenuCtx): string[] {
+		const node = ctx.node as TreeNode<TagMeta>;
+		if (!this.selectedNodeIds.has(node.id)) return [node.meta.tagPath];
+		const tree = this.logic.getTree();
+		const paths: string[] = [];
+		for (const id of this.selectedNodeIds) {
+			const found = this._findNode(id, tree);
+			if (found?.meta) paths.push(found.meta.tagPath);
+		}
+		return paths.length > 0 ? paths : [node.meta.tagPath];
 	}
 
 	private _addToFilesTargets(ctx: MenuCtx): AddToFilesTarget[] {

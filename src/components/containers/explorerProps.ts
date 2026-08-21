@@ -349,7 +349,17 @@ export class PropsExplorerPanel extends Component {
 			label: (ctx) => `Delete "${ctx.node.label}"`,
 			icon: 'lucide-trash-2',
 			when: (ctx) => !(ctx.node.meta as PropMeta).isValueNode,
-			run: (ctx) => this._deleteProp(ctx.node.label),
+			run: (ctx) => {
+				// `propName` rather than `label`: a queued rename rewrites the label
+				// in place for the preview, so the label is not a stable key.
+				const names = new Set(
+					this._selectionPeers(ctx)
+						.map((node) => node.meta)
+						.filter((meta) => !meta.isValueNode)
+						.map((meta) => meta.propName),
+				);
+				for (const propName of names) void this._deleteProp(propName);
+			},
 		});
 
 		// Change type actions
@@ -503,8 +513,10 @@ export class PropsExplorerPanel extends Component {
 			icon: 'lucide-trash-2',
 			when: (ctx) => (ctx.node.meta as PropMeta).isValueNode,
 			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._deleteValue(meta.propName, meta.rawValue ?? '');
+				for (const meta of this._selectionPeers(ctx).map((n) => n.meta)) {
+					if (!meta.isValueNode) continue;
+					void this._deleteValue(meta.propName, meta.rawValue ?? '');
+				}
 			},
 		});
 
@@ -962,6 +974,27 @@ export class PropsExplorerPanel extends Component {
 		if (!this.valueMoveMode) return;
 		if (reconcileValueMoveOwner(this.valueMoveMode, owner)) return;
 		this._exitValueMoveMode();
+	}
+
+	/**
+	 * U121-062: an action invoked on a node that belongs to the selection acts
+	 * on the whole selection; invoked outside it, on that node alone. Same rule
+	 * as `file.move`. Deliberately NOT the union that `buildOperationTargetSet`
+	 * returns: for a delete, union would stage a node the user neither selected
+	 * nor right-clicked.
+	 */
+	private _selectionPeers(ctx: {
+		node: { id: string; meta?: unknown };
+	}): TreeNode<PropMeta>[] {
+		const node = ctx.node as TreeNode<PropMeta>;
+		if (!this.selectedNodeIds.has(node.id)) return [node];
+		const tree = this.logic.getTree();
+		const peers: TreeNode<PropMeta>[] = [];
+		for (const id of this.selectedNodeIds) {
+			const found = this._findNode(id, tree);
+			if (found) peers.push(found);
+		}
+		return peers.length > 0 ? peers : [node];
 	}
 
 	private _valueMoveOrigins(ctx: {

@@ -223,36 +223,34 @@
 	let headerExitDir = $state<'left' | 'right'>('right');
 	const TABS: FiltersTab[] = ['props', 'tags', 'files', 'snippets', 'plugins'];
 	let configByTab = $state<Record<FiltersTab, Required<SceneConfig>>>(
-		Object.fromEntries(TABS.map((tab) => [tab, sceneConfigPort.read(tab)])) as Record<
-			FiltersTab,
-			Required<SceneConfig>
-		>,
+		Object.fromEntries(
+			TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+		) as Record<FiltersTab, Required<SceneConfig>>,
 	);
 	const viewModeByTab = $derived(
-		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].viewMode])) as Record<
-			FiltersTab,
-			ExplorerViewMode
-		>,
+		Object.fromEntries(
+			TABS.map((tab) => [tab, configByTab[tab].viewMode]),
+		) as Record<FiltersTab, ExplorerViewMode>,
 	);
 	const interactionModeByTab = $derived(
-		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].interactionMode])) as Record<
-			FiltersTab,
-			InteractionMode
-		>,
+		Object.fromEntries(
+			TABS.map((tab) => [tab, configByTab[tab].interactionMode]),
+		) as Record<FiltersTab, InteractionMode>,
 	);
 	const visibleCellsByTab = $derived(
-		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].visibleCells])) as Record<
-			FiltersTab,
-			string[]
-		>,
+		Object.fromEntries(
+			TABS.map((tab) => [tab, configByTab[tab].visibleCells]),
+		) as Record<FiltersTab, string[]>,
 	);
 	const sortStateByTab = $derived(
-		Object.fromEntries(TABS.map((tab) => [tab, configByTab[tab].sortState])) as Record<
-			FiltersTab,
-			ExplorerSortState
-		>,
+		Object.fromEntries(
+			TABS.map((tab) => [tab, configByTab[tab].sortState]),
+		) as Record<FiltersTab, ExplorerSortState>,
 	);
-	function commitConfig(tab: FiltersTab, patch: Partial<Required<SceneConfig>>): void {
+	function commitConfig(
+		tab: FiltersTab,
+		patch: Partial<Required<SceneConfig>>,
+	): void {
 		const next = { ...configByTab[tab], ...patch };
 		configByTab = { ...configByTab, [tab]: next };
 		void sceneConfigPort.propose(tab, next);

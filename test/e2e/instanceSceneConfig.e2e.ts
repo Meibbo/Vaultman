@@ -123,6 +123,16 @@ describe('U121-037 — la configuración por scene sobrevive al remontaje', () =
 		await $(SELECTORS.toolbarToggle).click();
 		await $(SELECTORS.toolbarToggle).click();
 
-		await expect($(SELECTORS.viewModeOption('table'))).toHaveAttribute('aria-checked', 'true');
+		// `expect(element).toHaveAttribute` is the one matcher whose overload
+		// does not resolve in the lint program even with the wdio ambient
+		// types referenced. `waitUntil` keeps the same retry semantics the
+		// matcher gave us, and types cleanly.
+		await browser.waitUntil(
+			async () =>
+				(await $(SELECTORS.viewModeOption('table')).getAttribute(
+					'aria-checked',
+				)) === 'true',
+			{ timeoutMsg: 'the table view mode never reported aria-checked=true' },
+		);
 	});
 });
