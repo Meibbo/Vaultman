@@ -25,6 +25,12 @@ export interface DeletionMatch {
 	queueIndex: number;
 	/** The operation's own copy, for the tooltip. Never the badge text. */
 	details: string;
+	/**
+	 * U121-073: set when this node is doomed by an ANCESTOR's deletion rather
+	 * than by an operation that names it. Its badge then releases this node and
+	 * its subtree instead of cancelling the whole folder delete.
+	 */
+	releasePath?: string;
 }
 
 /** One icon and one word for deletion, in every scene (U121-071 rule 4). */
@@ -55,9 +61,54 @@ function namesValue(
 	return change.value === rawValue || change.oldValue === rawValue;
 }
 
-/** A folder delete reaches the folder itself and everything nested under it. */
-function folderDeleteReaches(targetFolder: string, path: string): boolean {
-	return path === targetFolder || path.startsWith(`${targetFolder}/`);
+/** A path reaches itself and everything nested under it. */
+export function pathReaches(ancestor: string, path: string): boolean {
+	return path === ancestor || path.startsWith(`${ancestor}/`);
+}
+
+function excludedPathsOf(change: PendingChange): readonly string[] {
+	const value = (change as { excludedPaths?: string[] }).excludedPaths;
+	return Array.isArray(value) ? value : [];
+}
+
+/** U121-073: a released node, and its subtree, are no longer doomed. */
+function isReleased(change: PendingChange, path: string): boolean {
+	return excludedPathsOf(change).some((excluded) => pathReaches(excluded, path));
+}
+
+function parentPathOf(path: string): string {
+	const cut = path.lastIndexOf('/');
+	return cut < 0 ? '' : path.slice(0, cut);
+}
+
+export interface PromotionMove {
+	from: string;
+	to: string;
+}
+
+/**
+ * U121-073: releasing a node from a folder deletion cannot leave it where it
+ * is -- its ancestors are going away with the folder. It rises to the nearest
+ * level that survives, which is the deleted folder's own parent.
+ *
+ * Only TOP-LEVEL releases move. If both `a/b` and `a/b/c` are released then
+ * `a/b` survives, so `c` belongs inside it and must not be promoted past it.
+ */
+export function promotionPlan(
+	targetFolder: string,
+	excludedPaths: readonly string[],
+): PromotionMove[] {
+	const destination = parentPathOf(targetFolder);
+	const moves: PromotionMove[] = [];
+	for (const path of excludedPaths) {
+		const hasReleasedAncestor = excludedPaths.some(
+			(other) => other !== path && pathReaches(other, path),
+		);
+		if (hasReleasedAncestor) continue;
+		const name = path.slice(path.lastIndexOf('/') + 1);
+		moves.push({ from: path, to: destination ? `${destination}/${name}` : name });
+	}
+	return moves;
 }
 
 function targetFolderOf(change: PendingChange): string | undefined {
@@ -73,14 +124,16 @@ function changeDeletes(
 		case 'file':
 			return (
 				change.type === 'file_delete' &&
-				change.files.some((file) => file.path === subject.path)
+				change.files.some((file) => file.path === subject.path) &&
+				!isReleased(change, subject.path)
 			);
 		case 'folder': {
 			if (change.type !== 'file_delete') return false;
 			const targetFolder = targetFolderOf(change);
 			return (
 				targetFolder !== undefined &&
-				folderDeleteReaches(targetFolder, subject.path)
+				pathReaches(targetFolder, subject.path) &&
+				!isReleased(change, subject.path)
 			);
 		}
 		case 'prop':
@@ -130,7 +183,16 @@ export function findDeletionMatch(
 	for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
 		const change = queue[queueIndex];
 		if (changeDeletes(change, subject)) {
-			return { queueIndex, details: change.details };
+			const targetFolder = targetFolderOf(change);
+			const isDescendant =
+				(subject.kind === 'file' || subject.kind === 'folder') &&
+				targetFolder !== undefined &&
+				targetFolder !== subject.path;
+			return {
+				queueIndex,
+				details: change.details,
+				...(isDescendant ? { releasePath: subject.path } : {}),
+			};
 		}
 	}
 	return null;
@@ -159,6 +221,9 @@ export function deletionBadge(
 		color: 'red',
 		tooltip: match.details,
 		queueIndex: match.queueIndex,
+		...(match.releasePath !== undefined
+			? { releasePath: match.releasePath }
+			: {}),
 		...(options.solid === true ? { solid: true } : {}),
 	};
 }

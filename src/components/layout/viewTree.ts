@@ -68,6 +68,11 @@ export interface TreeViewOptions {
 	onCancelRename?: () => void;
 	onOpenRichRename?: (id: string, currentValue: string) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
+	/**
+	 * U121-073: the badge of a node doomed by an ANCESTOR's deletion releases
+	 * just that node and its subtree, leaving the operation standing.
+	 */
+	onBadgeRelease?: (queueIndex: number, path: string) => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
@@ -1394,7 +1399,12 @@ export class UnifiedTreeView {
 					if (badgeHint) setTooltip(bEl, badgeHint);
 					if (badge.text && !badge.icon) bEl.setText(badge.text);
 					// Double-click to undo this specific queue operation
-					if (badge.queueIndex !== undefined && opts.onBadgeDoubleClick) {
+					const releasesNode =
+						badge.releasePath !== undefined && opts.onBadgeRelease !== undefined;
+					if (
+						badge.queueIndex !== undefined &&
+						(opts.onBadgeDoubleClick || releasesNode)
+					) {
 						const cancelMode = normalizeBadgeCancelClickMode(
 							opts.badgeCancelClickMode,
 						);
@@ -1404,7 +1414,11 @@ export class UnifiedTreeView {
 							`${badge.text ?? ''} — ${badgeCancelInteractionLabel(cancelMode)}`,
 						);
 						attachBadgeCancelInteraction(bEl, cancelMode, () => {
-							opts.onBadgeDoubleClick!(badge.queueIndex!);
+							if (releasesNode) {
+								opts.onBadgeRelease!(badge.queueIndex!, badge.releasePath!);
+								return;
+							}
+							opts.onBadgeDoubleClick?.(badge.queueIndex!);
 						});
 					}
 				}

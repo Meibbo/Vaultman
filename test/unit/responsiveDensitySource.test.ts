@@ -18,8 +18,11 @@ describe('responsive density source guards', () => {
 		expect(frameSource).toContain('{frameWidth}');
 		expect(filtersPageSource).toContain('frameWidth?: number');
 		const projection = filtersPageSource.slice(
-			// Robusto: el ancla es la declaracion del estado, sea cual sea su anotacion de tipo.
-			filtersPageSource.search(/const state: NavbarPanelWidgetState[^=]*= \{/),
+			// Robusto: el ancla es la declaracion del estado, sea cual sea su
+			// anotacion de tipo Y donde prettier decida cortar la linea -- exigir
+			// `= {` junto dejaba el guard en silencio (search -> -1, slice vacio)
+			// en cuanto el formateador movia la llave de linea.
+			filtersPageSource.search(/const state: NavbarPanelWidgetState[^=]*=\s*\{/),
 			filtersPageSource.indexOf('onPanelWidgetStateChange?.(state)'),
 		);
 		expect(projection).not.toBe('');

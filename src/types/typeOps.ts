@@ -63,6 +63,12 @@ export interface FileChange extends BaseChange {
 	type: 'file_rename' | 'file_move' | 'file_delete';
 	newName?: string;
 	targetFolder?: string;
+	/**
+	 * U121-073: nodes released from a queued folder deletion. Releasing does not
+	 * undo the operation -- the rest of the folder still goes -- so the released
+	 * subtree has to be promoted out before the folder is trashed.
+	 */
+	excludedPaths?: string[];
 }
 
 /** Rename of a CSS snippet stored in the config directory, outside the vault. */

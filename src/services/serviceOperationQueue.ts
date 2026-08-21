@@ -1,6 +1,7 @@
 import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obsidian';
 import type { PendingChange, OperationResult } from '../types/typeOps';
 import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
+import { pathReaches, promotionPlan } from '../logic/logicDeletionDecoration';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
 
@@ -39,6 +40,7 @@ type QueuePolicyDecision =
 type FolderDeleteChange = PendingChange & {
 	type: 'file_delete';
 	targetFolder: string;
+	excludedPaths?: string[];
 };
 
 interface QueuePolicyStats {
@@ -688,11 +690,64 @@ export class OperationQueueService extends Component {
 		if (!(target instanceof TFolder)) {
 			throw new Error(`Folder not found: ${change.targetFolder}`);
 		}
+		// U121-073: whatever was released from this deletion cannot stay where it
+		// is -- its ancestors go with the folder. Promote it to the nearest
+		// surviving level FIRST, then trash what is left. Doing it the other way
+		// round would take the released subtree down with the folder.
+		for (const move of promotionPlan(
+			change.targetFolder,
+			change.excludedPaths ?? [],
+		)) {
+			const released = this.app.vault.getAbstractFileByPath(move.from);
+			if (!released) continue;
+			await this.app.fileManager.renameFile(
+				released,
+				this.availablePath(move.to),
+			);
+		}
 		await (
 			this.app.fileManager as unknown as {
 				trashFile(file: TFile | TFolder): Promise<void>;
 			}
 		).trashFile(target);
+	}
+
+	/** A promoted node must not silently overwrite a namesake already up there. */
+	private availablePath(path: string): string {
+		if (!this.app.vault.getAbstractFileByPath(path)) return path;
+		const dot = path.lastIndexOf('.');
+		const slash = path.lastIndexOf('/');
+		const hasExtension = dot > slash;
+		const stem = hasExtension ? path.slice(0, dot) : path;
+		const extension = hasExtension ? path.slice(dot) : '';
+		for (let n = 1; n < 1000; n++) {
+			const candidate = `${stem} ${n}${extension}`;
+			if (!this.app.vault.getAbstractFileByPath(candidate)) return candidate;
+		}
+		return `${stem} ${Date.now()}${extension}`;
+	}
+
+	/**
+	 * U121-073: take one node out of a queued folder deletion WITHOUT undoing
+	 * the operation -- the rest of the folder still goes. Releasing the folder
+	 * the operation names would leave it with nothing to do, so that cancels.
+	 */
+	releaseFromChange(queueIndex: number, path: string): void {
+		const change = this.queue[queueIndex];
+		if (!change || change.type !== 'file_delete') return;
+		const targetFolder = (change as { targetFolder?: string }).targetFolder;
+		if (!targetFolder || path === targetFolder) {
+			this.remove(queueIndex);
+			return;
+		}
+		const holder = change as { excludedPaths?: string[] };
+		const excluded = new Set(holder.excludedPaths ?? []);
+		excluded.add(path);
+		holder.excludedPaths = [...excluded];
+		change.files = change.files.filter(
+			(file) => !pathReaches(path, file.path),
+		);
+		this.events.trigger('changed');
 	}
 
 	private async applySpecialUpdates(

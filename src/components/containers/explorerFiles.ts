@@ -2213,6 +2213,10 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.queueService.remove(queueIndex);
 					this._render();
 				},
+				onBadgeRelease: (queueIndex: number, path: string) => {
+					this.plugin.queueService.releaseFromChange(queueIndex, path);
+					this._render();
+				},
 				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 			};
 			this.treeView.render(this._treeRenderOpts);

@@ -26,6 +26,11 @@ export interface NodeBadge {
 	 * short label and keep the operation's own wording on hover.
 	 */
 	tooltip?: string;
+	/**
+	 * U121-073: present when the badge releases THIS node from an ancestor's
+	 * queued deletion instead of cancelling the operation outright.
+	 */
+	releasePath?: string;
 	/** Queue index for undo on double-click. Undefined = inherited/unremovable badge. */
 	queueIndex?: number;
 }
