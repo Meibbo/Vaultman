@@ -184,7 +184,12 @@ export interface FileMoveOwner {
 export interface FileMoveModeState {
 	origins: (TFile | TFolder)[];
 	destinations: string[]; // Node IDs of selected destination folders
-	restore: { interactionMode: string; searchOpen: boolean };
+	restore: {
+		interactionMode: string;
+		searchOpen: boolean;
+		/** U121-102: los filtros de tipo que habia antes de forzar `folders-only`. */
+		nodeTypeFilters?: string[];
+	};
 	owner: FileMoveOwner;
 }
 
@@ -415,24 +420,16 @@ export class FilesExplorerPanel extends Component {
 				// Deleting ignored it and staged only the row you right-clicked.
 				// Invoked OUTSIDE the selection it stays on that one node: union
 				// semantics would delete something never selected nor clicked.
-				const files = this.selectedFilePaths.has(ctx.node.id)
-					? this.getSelectedFiles()
-					: [meta.file];
-				if (files.length === 0) return;
+				// U121-104: la seleccion puede traer folders, y antes se perdian.
+				const targets = this.selectedFilePaths.has(ctx.node.id)
+					? this._selectedTargets()
+					: { files: [meta.file], folders: [] as TFolder[] };
+				if (targets.files.length === 0 && targets.folders.length === 0) return;
 				// One operation PER FILE, not one batch holding all of them. A batch
 				// gives every row the same badge, so cancelling from one row undid
 				// the deletion of every other -- and it read as a grouped delete,
 				// which is a feature nobody has designed yet.
-				for (const target of files) {
-					this.plugin.queueService.addOrRun({
-						type: 'file_delete',
-						action: 'delete',
-						details: `Delete file "${target.path}"`,
-						files: [target],
-						customLogic: true,
-						logicFunc: () => ({ [DELETE_FILE]: true }),
-					});
-				}
+				this._queueDeleteTargets(targets);
 			},
 		});
 
@@ -673,6 +670,14 @@ export class FilesExplorerPanel extends Component {
 			run: async (ctx: MenuCtx) => {
 				const folder = this._folderFromCtx(ctx);
 				if (!folder) return;
+				// U121-104: misma regla que `file.delete` (U121-062): pulsar DENTRO
+				// de la seleccion actua sobre la seleccion entera; fuera de ella,
+				// solo sobre este nodo. Antes encolaba siempre el del cmenu, asi
+				// que seleccionar tres folders borraba uno.
+				if (this.selectedFilePaths.has(ctx.node.id)) {
+					this._queueDeleteTargets(this._selectedTargets());
+					return;
+				}
 				this._queueFolderDelete(folder);
 			},
 		});
@@ -1522,26 +1527,33 @@ export class FilesExplorerPanel extends Component {
 			return;
 		}
 
-		const meta = ctx.node.meta as FileMeta;
-		if (!meta.file) return;
+		// U121-104: un nodo de folder trae `meta.folder`, no `meta.file`, asi que
+		// este `return` dejaba `folder.move` en modo inline SIN HACER NADA. El
+		// origen de un move puede ser cualquiera de los dos.
+		const meta = ctx.node.meta as Partial<FileMeta>;
+		const clicked: TFile | TFolder | null =
+			meta.file ?? (meta.folder as TFolder | undefined) ?? null;
+		if (!clicked) return;
 
 		// The origins are whatever was selected, or the clicked node if no selection.
 		const origins: (TFile | TFolder)[] = [];
 		const selectedPaths = new Set<string>();
 
-		if (this.selectedFilePaths.has(meta.file.path)) {
-			// Clicked node is in selection, use full selection
-			for (const id of this.selectedFilePaths) {
-				const node = this._findNode(id, this._lastRenderTree);
-				const nmeta = node?.meta;
-				if (nmeta?.file && !selectedPaths.has(nmeta.file.path)) {
-					origins.push(nmeta.file);
-					selectedPaths.add(nmeta.file.path);
-				}
+		const clickedNodeId = (ctx.node as { id?: string }).id ?? clicked.path;
+		if (
+			this.selectedFilePaths.has(clicked.path) ||
+			this.selectedFilePaths.has(clickedNodeId)
+		) {
+			// Clicked node is in selection, use full selection -- folders included.
+			const targets = this._selectedTargets();
+			for (const origin of [...targets.files, ...targets.folders]) {
+				if (selectedPaths.has(origin.path)) continue;
+				origins.push(origin);
+				selectedPaths.add(origin.path);
 			}
 		} else {
 			// Clicked node not in selection, use just clicked node
-			origins.push(meta.file);
+			origins.push(clicked);
 		}
 
 		if (origins.length === 0) return;
@@ -1554,11 +1566,23 @@ export class FilesExplorerPanel extends Component {
 			restore: {
 				interactionMode: this.interactionMode,
 				searchOpen: false, // We don't force search open for file move
+				nodeTypeFilters: [...this.nodeTypeFilters],
 			},
 		});
 
 		this.selectedFilePaths = new Set<string>();
 		this.setInteractionMode('select');
+		// U121-102: elegir destino es elegir CARPETA, asi que el move enciende el
+		// sort por folders en vez de dejar al usuario buscarlas entre los ficheros.
+		// En tagScene no se hace: cualquier tag puede convertirse en p-node, asi
+		// que ahi la distincion por tipo no significa lo mismo -- por eso la regla
+		// vive en fileScene y no en un sitio comun.
+		if (!this.nodeTypeFilters.includes('folders-only')) {
+			this.setSortState({
+				...this._sortState(),
+				...nodeTypeFilterPatch([...this.nodeTypeFilters, 'folders-only']),
+			});
+		}
 		this._render();
 	}
 
@@ -1604,6 +1628,14 @@ export class FilesExplorerPanel extends Component {
 		this._setFileMoveMode(null);
 		if (restore) {
 			this.setInteractionMode(restore.interactionMode as InteractionMode);
+			// U121-102: el sort que forzo el move se deshace al salir. Sin esto, el
+			// usuario se queda viendo solo carpetas sin haberlo pedido.
+			if (restore.nodeTypeFilters) {
+				this.setSortState({
+					...this._sortState(),
+					...nodeTypeFilterPatch(restore.nodeTypeFilters),
+				});
+			}
 		}
 		this._render();
 	}
@@ -1839,10 +1871,26 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			cellRenderOrder: this._activationCellOrder(),
+			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
 		this.treeView.render(this._treeRenderOpts);
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
+	}
+
+	/**
+	 * U121-109: la posicion del cell_checkbox se resolvia SOLO en el render
+	 * completo. `_applyCachedTreeProjection` refresca `visibleCells` y
+	 * `cellRenderOrder` por el camino rapido, asi que encender la cell dejaba
+	 * la proyeccion del checkbox congelada en el valor anterior -- normalmente
+	 * `hidden`, que es el defecto que se veia: la opcion marcada y ningun
+	 * checkbox en pantalla. Con un solo punto de resolucion no puede volver a
+	 * desincronizarse. Tambien es lo que da el repintado en vivo de U121-108.
+	 */
+	private _selectionCheckboxPosition(): 'start' | 'end' | 'hidden' {
+		if (this.interactionMode !== 'select') return 'hidden';
+		if (!this.visibleCells.has('checkbox')) return 'hidden';
+		return this.plugin.settings.selectionCheckboxPosition ?? 'start';
 	}
 
 	private _refreshCachedTreeCells(): void {
@@ -1933,7 +1981,13 @@ export class FilesExplorerPanel extends Component {
 			return;
 		}
 		const foldersOnly = this._foldersOnlyMode();
-		const displayFiles = foldersOnly ? [] : this._filesForDisplay();
+		// U121-103: `by type/folders` es una modificacion de la VISTA, no un
+		// filtro: no debe cambiar QUE se cuenta, solo QUE filas se pintan. Vaciar
+		// la lista hacia que los agregados de carpeta se calculasen sobre cero
+		// ficheros, que es por lo que los counters "se rompian" y volvian enteros
+		// al desactivar la opcion. El conjunto real se conserva aparte.
+		const modelFiles = this._filesForDisplay();
+		const displayFiles = foldersOnly ? [] : modelFiles;
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
@@ -1974,8 +2028,9 @@ export class FilesExplorerPanel extends Component {
 			this._rememberStatisticsSortOrder(nested ? [] : sortedFiles);
 			// BT5-090: folder mtimes are only read by the Last opened tie-break.
 			// Avoid scanning the vault for every other sort.
-			this._refreshFolderMaxMtime(displayFiles);
-			this._refreshFolderFileCount(displayFiles);
+			// U121-103: los agregados van SIEMPRE sobre el conjunto real.
+			this._refreshFolderMaxMtime(modelFiles);
+			this._refreshFolderFileCount(modelFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
@@ -2052,11 +2107,34 @@ export class FilesExplorerPanel extends Component {
 				highlightIds: { deletion: this._deletionHighlightIds },
 				// U121-081: fileScene never passed this, so even with the cell on
 				// there was nothing to render.
-				selectionCheckboxPosition:
-					this.interactionMode === 'select' &&
-					this.visibleCells.has('checkbox')
-						? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
-						: 'hidden',
+				selectionCheckboxPosition: this._selectionCheckboxPosition(),
+				// U121-106: mantener pulsado el checkbox de un p-node actua sobre
+				// toda su descendencia. La regla de apagado que pidio el dev es
+				// "si ya hay ALGUNO o todos", no "si estan todos": un p-node con
+				// seleccion parcial se vacia, no se completa.
+				onRecursiveSelect: (id: string) => {
+					const node = this._findNode(id, this._lastRenderTree);
+					if (!node) return;
+					const ids: string[] = [];
+					const collect = (children?: TreeNode<FileMeta>[]): void => {
+						for (const child of children ?? []) {
+							ids.push(child.id);
+							collect(child.children);
+						}
+					};
+					collect(node.children);
+					if (ids.length === 0) return;
+					const next = new Set(this.selectedFilePaths);
+					const anySelected = ids.some((childId) => next.has(childId));
+					for (const childId of ids) {
+						if (anySelected) next.delete(childId);
+						else next.add(childId);
+					}
+					this._applyFileSelection({
+						selectedPaths: next,
+						anchorPath: anySelected ? this.selectionAnchorPath : id,
+					});
+				},
 				onSelectionToggle: (id: string, selected: boolean) => {
 					const next = new Set(this.selectedFilePaths);
 					if (selected) next.add(id);
@@ -3861,6 +3939,54 @@ export class FilesExplorerPanel extends Component {
 			.filter((path) => this.selectedFilePaths.has(path))
 			.map((path) => this.plugin.app.vault.getAbstractFileByPath(path))
 			.filter((file): file is TFile => file instanceof TFile);
+	}
+
+	/**
+	 * U121-104: la seleccion guarda los files por su path pelado y los folders
+	 * por el id de su nodo, que va prefijado (`folder:<path>`). `getSelectedFiles`
+	 * ademas filtra a `TFile` por diseno -- correcto para el scope de busqueda,
+	 * que solo puede mirar dentro de ficheros-. El efecto colateral era que un
+	 * folder seleccionado no llegaba a NINGUNA operacion: ni al delete ni al
+	 * move. Esto devuelve las dos listas, en el orden en que se ven.
+	 */
+	private _selectedTargets(): { files: TFile[]; folders: TFolder[] } {
+		if (this.viewMode !== 'tree') {
+			// Fuera del arbol no hay folders que seleccionar.
+			return { files: this.getSelectedFiles(), folders: [] };
+		}
+		const files: TFile[] = [];
+		const folders: TFolder[] = [];
+		const visible = flattenVisibleTree(
+			this._lastRenderTree,
+			this.expandedIds,
+		) as TreeNode<FileMeta>[];
+		for (const node of visible) {
+			if (!this.selectedFilePaths.has(node.id)) continue;
+			const meta = node.meta as Partial<FileMeta> | undefined;
+			if (meta?.file instanceof TFile) files.push(meta.file);
+			else if (meta?.folder instanceof TFolder) folders.push(meta.folder);
+		}
+		return { files, folders };
+	}
+
+	/** U121-104: encola una seleccion entera, respetando el orden visible. */
+	private _queueDeleteTargets(targets: {
+		files: TFile[];
+		folders: TFolder[];
+	}): void {
+		// Una operacion POR NODO, no un lote: cancelar desde una fila no debe
+		// deshacer el borrado de las demas (misma regla que ya seguia el file).
+		for (const target of targets.files) {
+			this.plugin.queueService.addOrRun({
+				type: 'file_delete',
+				action: 'delete',
+				details: `Delete file "${target.path}"`,
+				files: [target],
+				customLogic: true,
+				logicFunc: () => ({ [DELETE_FILE]: true }),
+			});
+		}
+		for (const folder of targets.folders) this._queueFolderDelete(folder);
 	}
 
 	private _orderedVisibleFilePaths(): string[] {
