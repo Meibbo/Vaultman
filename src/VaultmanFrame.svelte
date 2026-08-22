@@ -77,6 +77,11 @@
 		onShowToolbarChange?.(value);
 	}
 
+	/** U121-109: el ancla de la hoja llega despues de montar; se adopta aqui. */
+	export function reanchorInstance(id: string): void {
+		sceneConfigPort.setInstanceId(id);
+	}
+
 	export function setShowToolbar(val: boolean): void {
 		frameShowToolbar = val;
 		if (filtersPageRef) {

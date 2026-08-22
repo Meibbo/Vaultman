@@ -1775,6 +1775,18 @@
 		};
 	});
 
+	// U121-109: `configByTab` se siembra UNA vez, al construir el componente, y
+	// en ese momento el puerto todavia apunta a la identidad recien acunada. Al
+	// llegar el ancla real hay que releer: el `$effect` que aplica la scene
+	// depende de `configByTab`, asi que re-sembrarlo basta para que se re-aplique.
+	$effect(() =>
+		sceneConfigPort.onInstanceChange(() => {
+			configByTab = Object.fromEntries(
+				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+			) as Record<FiltersTab, Required<SceneConfig>>;
+		}),
+	);
+
 	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';

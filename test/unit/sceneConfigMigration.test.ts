@@ -20,6 +20,10 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 		},
 		readActiveScene: () => null,
 		proposeActiveScene: async () => {},
+		// U121-109: el puerto re-ancla la instancia cuando el ancla de la hoja
+		// llega tarde. Este doble no la ejercita, pero debe cumplir el contrato.
+		setInstanceId: () => {},
+		onInstanceChange: () => () => {},
 	};
 }
 

@@ -17,6 +17,8 @@ import {
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
 type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
+	/** U121-109: adoptar el ancla que llega en `setState`, despues del mount. */
+	reanchorInstance?(id: string): void;
 	focusContentSearch?(
 		query?: string,
 		modifiers?: { caseSensitive: boolean; isRegex: boolean },
@@ -70,7 +72,21 @@ export class VaultmanFrame extends ItemView {
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
 		const anchored = (state as { workspaceInstanceId?: unknown })?.workspaceInstanceId;
 		if (typeof anchored === 'string' && anchored.length > 0) {
+			// U121-109: `onOpen()` corre ANTES que esto y no ve el ancla por ningun
+			// lado, asi que acuna una identidad nueva y monta el Svelte con ella.
+			// Cuando el ancla real llega aqui hay que ADOPTARLA, o la configuracion
+			// de esa instancia queda huerfana y cada recarga acuna una mas.
+			const previous = this.workspaceInstanceId;
 			this.workspaceInstanceId = anchored;
+			if (previous !== anchored) {
+				const ensured = ensureInstance(
+					this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
+					anchored,
+				);
+				this.plugin.settings.instanceRegistry = ensured.registry;
+				if (ensured.created) await this.plugin.saveSettings();
+				this.svelteApp?.reanchorInstance?.(anchored);
+			}
 		}
 		if (
 			typeof state === 'object' &&
@@ -90,6 +106,29 @@ export class VaultmanFrame extends ItemView {
 		// compilador lo sepa tambien: la prop lo exige `string`, y un `!` seria decirle al
 		// compilador que confie en vez de demostrarselo.
 		let instanceId = this.workspaceInstanceId;
+		if (!instanceId) {
+			// U121-109: Obsidian llama `onOpen()` ANTES que `setState()`, asi que al
+			// restaurar una hoja el ancla que el workspace SI guardo todavia no ha
+			// llegado a `this.workspaceInstanceId`. Se acunaba una identidad nueva,
+			// se montaba el Svelte con ella -- y el puerto la captura con `untrack`,
+			// para siempre--, y acto seguido `setState` dejaba el ancla buena en la
+			// vista. Resultado: la hoja decia `vm-instance-putchit5` mientras su
+			// puerto leia los defaults, y la configuracion de esa instancia quedaba
+			// huerfana. Cada recarga acunaba ademas una instancia mas.
+			//
+			// Esto NO es la heuristica retirada el 2026-08-20: no adivina nada. Lee
+			// el ancla que el propio workspace persistio para ESTA hoja. Cuando no
+			// hay ancla seguimos acunando, que es el hueco de `SurfaceAddress`.
+			const anchored = (
+				this.leaf.getViewState?.() as
+					| { state?: { workspaceInstanceId?: unknown } }
+					| undefined
+			)?.state?.workspaceInstanceId;
+			if (typeof anchored === 'string' && anchored.length > 0) {
+				instanceId = anchored;
+				this.workspaceInstanceId = anchored;
+			}
+		}
 		if (!instanceId) {
 			// Sin ancla: se acuña una identidad nueva. ESTO ES INCOMPLETO A PROPOSITO.
 			// Recuperar la instancia correcta tras un `reload without saving` exige saber QUE

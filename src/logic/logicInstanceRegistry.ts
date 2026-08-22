@@ -95,11 +95,48 @@ export function setSceneConfig(
 	const record = registry.instances[id];
 	if (!record) return registry;
 	const current: SceneConfig = record.scenes[scene] ?? {};
-	const merged: SceneConfig = cloneSceneConfig({ ...current, ...patch });
+	return writeSceneLayer(registry, id, scene, { ...current, ...patch });
+}
+
+/**
+ * U121-101: la capa de scene SUSTITUIDA, no fusionada.
+ *
+ * `setSceneConfig` fusiona, y para un parche suelto ("cambia solo el viewMode")
+ * eso es lo correcto. Pero el puerto de configuracion no manda parches sueltos:
+ * manda el parche MINIMO COMPLETO que `diffSceneConfig` calcula contra el
+ * baseline, y ahi la fusion es justo lo que rompe. Cuando un valor vuelve a su
+ * baseline, el diff **omite** esa clave -- porque ya no hay nada que anular-, y
+ * la fusion conserva el override anterior para siempre.
+ *
+ * Ese es el defecto que reporto el dev: en propScene, Tree -> table -> tree
+ * dejaba `viewMode: 'table'` guardado, porque el ultimo paso no escribia nada.
+ * Al volver a la escena reaparecia en Table.
+ *
+ * Las dos semanticas siguen existiendo y ahora tienen nombre distinto, para que
+ * elegir la equivocada sea una decision visible y no un descuido.
+ */
+export function replaceSceneConfig(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	scene: SceneDefinitionId,
+	layer: SceneConfig,
+): InstanceRegistryData {
+	if (!registry.instances[id]) return registry;
+	return writeSceneLayer(registry, id, scene, layer);
+}
+
+function writeSceneLayer(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	scene: SceneDefinitionId,
+	layer: SceneConfig,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record) return registry;
 	const nextRecord: WorkspaceInstanceRecord = {
 		...record,
 		revision: record.revision + 1,
-		scenes: { ...record.scenes, [scene]: merged },
+		scenes: { ...record.scenes, [scene]: cloneSceneConfig(layer) },
 	};
 	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
 }
