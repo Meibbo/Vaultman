@@ -170,9 +170,23 @@
 	const dir = $derived(
 		opts.position === 'right' || opts.position === 'bottom' ? -1 : 1,
 	);
-	const trackEntryCount = $derived(
-		groups.length + (opts.nodes ? actionIds.length : 0),
-	);
+	/**
+	 * U121-085: `index fixed widgets` no hacia nada porque en modo joined
+	 * (`opts.nodes`) las acciones viajan DENTRO de `.vaultman-floating-toc-glyphs`
+	 * y no existe ningun `.vaultman-floating-toc-actions` al que aplicar el
+	 * sticky; el selector no casaba con nada. Y aunque casara, esa pista lleva un
+	 * `transform`, que crea bloque contenedor y **rompe `position: sticky`** de
+	 * todas formas.
+	 *
+	 * Con la opcion encendida las acciones SALEN de la pista a su contenedor
+	 * fijo; con ella apagada se quedan donde estaban. La cuenta de la pista sale
+	 * de aqui y de ningun otro sitio, que es lo que evita que los indices del
+	 * scrub se descuadren.
+	 */
+	const stickyActions = $derived(opts.stickyActions !== false);
+	const actionsRideTrack = $derived(Boolean(opts.nodes) && !stickyActions);
+	const trackActionCount = $derived(actionsRideTrack ? actionIds.length : 0);
+	const trackEntryCount = $derived(groups.length + trackActionCount);
 	const NIA_REVEAL = { selected: 1.1, near: 2.2, wide: 3.6, all: 7 } as const;
 
 	// ─── Niagara scrub state ────────────────────────────────────────────────────
@@ -215,14 +229,10 @@
 	}
 
 	function groupTrackIndex(groupIndex: number): number {
-		return (opts.nodes ? actionIds.length : 0) + groupIndex;
+		return trackActionCount + groupIndex;
 	}
 	function targetForTrackIndex(index: number): FloatingTocTrackTarget | null {
-		const target = niagaraTrackTarget(
-			index,
-			opts.nodes ? actionIds.length : 0,
-			groups.length,
-		);
+		const target = niagaraTrackTarget(index, trackActionCount, groups.length);
 		if (target?.kind === 'action') {
 			const actionId = actionIds[target.actionIndex];
 			return actionId ? { kind: 'action', actionId } : null;
@@ -562,7 +572,7 @@
 			class:is-picking={pickMode}
 			class:is-scrubbing={scrubbing}
 			class:is-plain={opts.plainStyle}
-			class:has-sticky-actions={opts.stickyActions !== false}
+			class:has-sticky-actions={stickyActions}
 			class:has-glow={opts.glow}
 			class:name-pill={opts.namePill}
 			aria-label={translate('floating_toc.aria')}
@@ -573,7 +583,7 @@
 					style="left: {glowX}px; top: {glowY}px"
 				></div>
 			{/if}
-			{#if !opts.nodes}
+			{#if !actionsRideTrack}
 				<div class="vaultman-floating-toc-actions">
 					{#each actionIds as actionId (actionId)}
 						{@render actionButton(actionId, -1)}
@@ -584,13 +594,13 @@
 			<div
 				class="vaultman-floating-toc-glyphs"
 				class:is-niagara={niagara}
-				class:has-joined-actions={opts.nodes}
+				class:has-joined-actions={actionsRideTrack}
 				style="transform: {trackShift}; transition: {scrubbing
 					? 'none'
 					: 'transform 0.2s ease'}"
 				onpointerdown={onScrubDown}
 			>
-				{#if opts.nodes}
+				{#if actionsRideTrack}
 					{#each actionIds as actionId, i (actionId)}
 						{@render actionButton(actionId, i)}
 					{/each}

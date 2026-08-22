@@ -178,8 +178,21 @@ describe('Floating TOC source and panel contracts', () => {
 
 	it('joins ordered action controls and indexed groups on one Niagara track', () => {
 		expect(floatingTocSource).toContain('niagaraActionOrder({');
-		expect(floatingTocSource).toContain('{#if !opts.nodes}');
-		expect(floatingTocSource).toContain('{#if opts.nodes}');
+		// U121-085: la rama ya no pregunta por `opts.nodes` a pelo. Con los
+		// widgets fijos encendidos las acciones SALEN de la pista transformada
+		// -- donde `position: sticky` no puede funcionar-- a su contenedor
+		// propio, asi que quien decide es `actionsRideTrack`. Y la cuenta de la
+		// pista sale de UN solo sitio, que es lo que impide que los indices del
+		// scrub se descuadren cuando las acciones cambian de sitio.
+		expect(floatingTocSource).toContain('{#if !actionsRideTrack}');
+		expect(floatingTocSource).toContain('{#if actionsRideTrack}');
+		expect(floatingTocSource).toContain(
+			'const trackActionCount = $derived(actionsRideTrack ? actionIds.length : 0);',
+		);
+		expect(floatingTocSource).toContain(
+			'const trackEntryCount = $derived(groups.length + trackActionCount);',
+		);
+		expect(floatingTocSource).not.toContain('opts.nodes ? actionIds.length : 0');
 		expect(floatingTocSource).toContain('groupTrackIndex(i)');
 		expect(floatingTocSource).toContain('use:registerTrackEntry={trackIndex}');
 		expect(floatingTocSource).toContain('niagaraNodeTransform(');
