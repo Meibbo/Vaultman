@@ -870,7 +870,9 @@ body.vaultman-resizing {
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* U121-081: sin el termino de profundidad. La sangria la aporta
+     `.vaultman-tree-indent`, para que el cell_checkbox tenga columna propia. */
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   height: 27px;
   margin-inline: var(--size-4-1, 4px);
@@ -891,7 +893,8 @@ body.vaultman-resizing {
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
 }
 
@@ -987,7 +990,9 @@ body.vaultman-resizing {
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* U121-081: las guias las pinta ahora `.vaultman-tree-indent`, que ESTA en la
+     sangria y por tanto no necesita cuadrar ningun offset de columna. */
+  width: 0;
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(
@@ -1005,6 +1010,38 @@ body.vaultman-resizing {
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
+}
+
+/* U121-081: el espaciador de sangria.
+   Una cell es la interseccion de un column y un row. Mientras la sangria vivio
+   en el `padding-inline-start` de la fila, TODO lo que habia dentro empezaba
+   desplazado por profundidad, y por eso el cell_checkbox dibujaba una escalera
+   en vez de una columna. Sacando la sangria a este elemento, el checkbox cae en
+   la misma x en todas las filas y el contenido conserva su desplazamiento. */
+.vaultman-tree-indent {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* La fila lleva `gap: 5px` (l. 871). El espaciador es geometria, no una cell,
+     asi que se come su propio hueco: sin esto el contenido se iria 5px a la
+     derecha respecto de donde estaba antes de este cambio. */
+  margin-inline-end: -5px;
+  pointer-events: none;
+}
+
+/* Las guias se pintan DONDE esta la sangria, no ancladas al borde de la fila:
+   asi no hay offset que recalcular cuando el checkbox reserva su columna. */
+.vaultman-tree-nested-guides .vaultman-tree-indent {
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--vaultman-tree-indent-line-color) 0,
+    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-unit)
+  );
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
 }
 
 .vaultman-tree-row:hover {
@@ -1038,7 +1075,8 @@ body.vaultman-resizing {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);

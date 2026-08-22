@@ -61,8 +61,18 @@ describe('virtual scroll CSS source guards', () => {
 				/\.workspace-leaf-content\[data-type="vaultman-frame"\] \.vaultman-tree-virtual-viewport \.vaultman-tree-row\.tree-item-self,[\s\S]*?\.workspace-leaf-content\[data-type="vaultman-view"\] \.vaultman-tree-virtual-viewport \.vaultman-tree-row\.tree-item-self\s*\{[\s\S]*?\n\}/,
 			)?.[0] ?? '';
 
+		// U121-081: la sangria ya no vive en el padding de la FILA. Mientras vivio
+		// ahi, TODO lo de dentro empezaba desplazado por profundidad y el
+		// cell_checkbox no podia tener columna. Lo que hay que seguir garantizando
+		// es lo mismo de antes -- que nuestra sangria gana al padding nativo del
+		// collapsible sin recurrir a `!important`--, solo que ahora la aporta
+		// `.vaultman-tree-indent`.
 		expect(desktopCoreRowIndentBlock).toContain(
-			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
+			'padding-inline-start: var(--vaultman-tree-row-padding-start)',
+		);
+		expect(desktopCoreRowIndentBlock).not.toContain('var(--depth');
+		expect(stylesSource).toContain(
+			'width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
 		expect(desktopCoreRowIndentBlock).toContain('padding-inline-end: 8px');
 		expect(desktopCoreRowIndentBlock).not.toContain('!important');

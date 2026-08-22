@@ -498,6 +498,29 @@
 .vaultman-floating-toc-item.is-scrub-active {
 	color: var(--color-accent);
 }
+/* U121-089: circulo alrededor del glifo del EPICENTRO, para que el color activo
+   tenga contra que contrastar. Va sobre el glifo y no sobre el item entero: el
+   item incluye la celda de nombre que se despliega durante el scrub, asi que un
+   circulo ahi seria un ovalo que crece con el texto. El diametro se ata a la
+   caja del glifo (`1em` de su propia fuente + holgura), de modo que **no puede
+   salir mayor que el glifo** que rodea. */
+.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-glyph {
+	position: relative;
+}
+.vaultman-floating-toc-item.is-scrub-active
+	.vaultman-floating-toc-cell-glyph::before {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 1.55em;
+	height: 1.55em;
+	transform: translate(-50%, -50%);
+	border: 1px solid currentColor;
+	border-radius: 50%;
+	opacity: 0.85;
+	pointer-events: none;
+}
 .vaultman-floating-toc .vaultman-floating-toc-item:hover {
 	color: var(--text-normal);
 }
