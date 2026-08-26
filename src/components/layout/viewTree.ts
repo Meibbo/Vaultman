@@ -79,6 +79,8 @@ export interface TreeViewOptions {
 	 * on, which is exactly why it is the natural place to drop a selection.
 	 */
 	onEmptySpaceClick?: () => void;
+	/** U121-106: mantener pulsado el checkbox de un p-node. */
+	onRecursiveSelect?: (id: string) => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
@@ -171,6 +173,13 @@ export class UnifiedTreeView {
 	private _activeId: string | null = null;
 	private readonly _overscan = 24;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
+	/**
+	 * U121-106: pulsacion larga sobre el CHECKBOX. Gesto propio y no el de la
+	 * fila: comparten elemento padre, y uno solo no puede distinguir "mantener
+	 * sobre la fila" (expandir recursivo) de "mantener sobre el checkbox"
+	 * (seleccionar la descendencia).
+	 */
+	private readonly _recursiveSelectGesture = new LongPressGesture();
 	private readonly _coreMetadataView: CoreMetadataTreeView;
 	private readonly _onScroll = () => {
 		if (this._hasVisibleRenderedRows()) {
@@ -1186,8 +1195,20 @@ export class UnifiedTreeView {
 			checkbox.onclick = (event) => event.stopPropagation();
 			checkbox.onchange = (event) => {
 				event.stopPropagation();
+				// U121-106: soltar tras una pulsacion larga dispara igualmente
+				// click+change. Sin esta guarda la seleccion recursiva se desharia
+				// acto seguido con el toggle normal.
+				if (this._recursiveSelectGesture.isActivationSuppressed()) {
+					checkbox.checked = isSelected;
+					return;
+				}
 				opts.onSelectionToggle?.(node.id, checkbox.checked);
 			};
+			if (hasChildren && opts.onRecursiveSelect) {
+				bindLongPressGesture(checkbox, this._recursiveSelectGesture, () =>
+					opts.onRecursiveSelect?.(node.id),
+				);
+			}
 		};
 		if ((opts.selectionCheckboxPosition ?? 'start') === 'start') {
 			emitSelectionCheckbox('start');
@@ -1393,6 +1414,9 @@ export class UnifiedTreeView {
 			(showOpened && node.openedText) ||
 			(showWords && node.wordCountText) ||
 			(showFileCount && node.fileCountText) ||
+			// U121-100: `sub` faltaba en la guarda, asi que un nodo cuyo unico
+			// contenido fuese el contador de hijos ni siquiera creaba la zona.
+			(showSub && node.subCountText) ||
 			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
@@ -1408,6 +1432,10 @@ export class UnifiedTreeView {
 				emitDate(badgeZone, showOpened ? node.openedText : '', 'opened');
 				emitWords(badgeZone);
 				emitFileCount(badgeZone);
+				// U121-100: `emitSub` estaba definido y registrado en el mapa del
+				// camino ordenado, pero NADIE lo llamaba en el marcado clasico, que
+				// es el que usan propScene y tagScene en arbol.
+				emitSub(badgeZone);
 				emitTasks(badgeZone);
 			}
 

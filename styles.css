@@ -7383,7 +7383,10 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-floating-toc-wrap {
   position: absolute;
-  top: 48px;
+  /* U121-083: 48px reserved a band the rail could never use. Dragging it in
+     scrub already stops at the frame's 8px inset, so a static rail that stops
+     40px lower is wasting room the gesture itself proves is available. */
+  top: var(--vaultman-toc-rail-top-inset, 8px);
   bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
   right: var(--vaultman-toc-rail-edge-offset);
   z-index: 12;
@@ -7449,6 +7452,23 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   min-height: 0;
 }
 
+/* U121-083: the rail's own widgets behave like the toolbar they are -- they
+   hold their place and the nodes scroll under them. The rail is the scroll
+   container, so `sticky` needs nothing else. Off, they scroll away with the
+   list, which is the old behaviour. */
+.vaultman-floating-toc.has-sticky-actions > .vaultman-floating-toc-actions {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+}
+
+/* Scrubbing lifts the overflow, so a sticky child would detach mid-gesture. */
+.vaultman-floating-toc.is-scrubbing.has-sticky-actions > .vaultman-floating-toc-actions {
+  position: static;
+}
+
 .vaultman-floating-toc-glyphs {
   will-change: transform;
 }
@@ -7472,6 +7492,27 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-floating-toc-item.is-scrub-active {
   color: var(--color-accent);
+}
+
+/* U121-089: circulo alrededor del glifo del EPICENTRO. Va sobre el glifo y no
+   sobre el item entero: el item incluye la celda de nombre que se despliega en
+   scrub, y un circulo ahi seria un ovalo que crece con el texto. */
+.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-glyph {
+  position: relative;
+}
+
+.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-glyph::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.55em;
+  height: 1.55em;
+  transform: translate(-50%, -50%);
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .vaultman-floating-toc .vaultman-floating-toc-item:hover {
@@ -7970,7 +8011,20 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
-  margin: 0 var(--size-2-2);
+  /* U121-081: the gap the dev measured against the caret and, at `end`,
+     against the scrollbar was the SAME gap -- because this margin was
+     symmetric. It is the checkbox's own spacing, not anything external. It
+     now hugs the edge it is anchored to and keeps a small gap only on the
+     side that faces the rest of the cells. */
+  margin: 0;
+}
+
+.vaultman-selection-checkbox--start {
+  margin-inline-end: var(--size-2-2);
+}
+
+.vaultman-selection-checkbox--end {
+  margin-inline-start: var(--size-2-2);
 }
 
 .vaultman-node-table-row > .vaultman-selection-checkbox,
@@ -7984,12 +8038,19 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   inset-inline-start: var(--size-4-2);
 }
 
-.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
-  position: static;
-}
+/* U121-081: the checkbox is the node's FIRST CELL, in flow, before the caret.
+   It pushes the caret and everything after it to the right, exactly the way
+   the caret pushes the rest when `nested` is on -- and it sits inside the
+   node, so it starts after that node's own indent like every other cell.
 
+   It is deliberately NOT positioned: an absolute checkbox leaves the flow, so
+   it cannot push anything, it stops sharing the row's `align-items: center`,
+   and it paints under the cells instead of beside them. That is also what the
+   2026-08-02 corrective-primitives plan forbids in so many words -- "guards
+   forbidding absolute frame-owned checkboxes". `--end` was never broken
+   precisely because it stayed in flow. */
 .vaultman-tree-row > .vaultman-selection-checkbox--start {
-  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+  order: -1;
 }
 
 .vaultman-selection-checkbox--end {
