@@ -5304,9 +5304,7 @@ body.vaultman-resizing {
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  /* U121-081: sin el termino de profundidad. La sangria la aporta
-     `.vaultman-tree-indent`, para que el cell_checkbox tenga columna propia. */
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   height: 27px;
   margin-inline: var(--size-4-1, 4px);
@@ -5326,8 +5324,7 @@ body.vaultman-resizing {
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
 }
 
@@ -5415,9 +5412,7 @@ body.vaultman-resizing {
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
-  /* U121-081: las guias las pinta ahora `.vaultman-tree-indent`, que ESTA en la
-     sangria y por tanto no necesita cuadrar ningun offset de columna. */
-  width: 0;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
@@ -5429,32 +5424,6 @@ body.vaultman-resizing {
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
-}
-
-/* U121-081: el espaciador de sangria.
-   Una cell es la interseccion de un column y un row. Mientras la sangria vivio
-   en el `padding-inline-start` de la fila, TODO lo que habia dentro empezaba
-   desplazado por profundidad, y por eso el cell_checkbox dibujaba una escalera
-   en vez de una columna. Sacando la sangria a este elemento, el checkbox cae en
-   la misma x en todas las filas y el contenido conserva su desplazamiento. */
-.vaultman-tree-indent {
-  flex: 0 0 auto;
-  align-self: stretch;
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  /* La fila lleva `gap: 5px` (l. 871). El espaciador es geometria, no una cell,
-     asi que se come su propio hueco: sin esto el contenido se iria 5px a la
-     derecha respecto de donde estaba antes de este cambio. */
-  margin-inline-end: -5px;
-  pointer-events: none;
-}
-
-/* Las guias se pintan DONDE esta la sangria, no ancladas al borde de la fila:
-   asi no hay offset que recalcular cuando el checkbox reserva su columna. */
-.vaultman-tree-nested-guides .vaultman-tree-indent {
-  opacity: 0.7;
-  background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
-  background-size: var(--vaultman-tree-indent-unit) 100%;
-  background-repeat: repeat-x;
 }
 
 .vaultman-tree-row:hover {
@@ -5488,8 +5457,7 @@ body.vaultman-resizing {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);
@@ -6737,15 +6705,13 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   bottom: 0;
   inset-inline-start: var(--vaultman-tree-guide-start);
   background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
-  /* U121-081: las guias las pinta `.vaultman-tree-indent`. */
-  width: 0;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
 }
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
 }
 
@@ -6879,8 +6845,7 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  /* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);
@@ -7418,10 +7383,7 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-floating-toc-wrap {
   position: absolute;
-  /* U121-083: 48px reserved a band the rail could never use. Dragging it in
-     scrub already stops at the frame's 8px inset, so a static rail that stops
-     40px lower is wasting room the gesture itself proves is available. */
-  top: var(--vaultman-toc-rail-top-inset, 8px);
+  top: 48px;
   bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
   right: var(--vaultman-toc-rail-edge-offset);
   z-index: 12;
@@ -7487,23 +7449,6 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   min-height: 0;
 }
 
-/* U121-083: the rail's own widgets behave like the toolbar they are -- they
-   hold their place and the nodes scroll under them. The rail is the scroll
-   container, so `sticky` needs nothing else. Off, they scroll away with the
-   list, which is the old behaviour. */
-.vaultman-floating-toc.has-sticky-actions > .vaultman-floating-toc-actions {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--background-secondary);
-  border-radius: var(--radius-s);
-}
-
-/* Scrubbing lifts the overflow, so a sticky child would detach mid-gesture. */
-.vaultman-floating-toc.is-scrubbing.has-sticky-actions > .vaultman-floating-toc-actions {
-  position: static;
-}
-
 .vaultman-floating-toc-glyphs {
   will-change: transform;
 }
@@ -7527,30 +7472,6 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-floating-toc-item.is-scrub-active {
   color: var(--color-accent);
-}
-
-/* U121-089: circulo alrededor del glifo del EPICENTRO, para que el color activo
-   tenga contra que contrastar. Va sobre el glifo y no sobre el item entero: el
-   item incluye la celda de nombre que se despliega durante el scrub, asi que un
-   circulo ahi seria un ovalo que crece con el texto. El diametro se ata a la
-   caja del glifo (`1em` de su propia fuente + holgura), de modo que **no puede
-   salir mayor que el glifo** que rodea. */
-.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-glyph {
-  position: relative;
-}
-
-.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-glyph::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 1.55em;
-  height: 1.55em;
-  transform: translate(-50%, -50%);
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.85;
-  pointer-events: none;
 }
 
 .vaultman-floating-toc .vaultman-floating-toc-item:hover {
@@ -8049,20 +7970,7 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
-  /* U121-081: the gap the dev measured against the caret and, at `end`,
-     against the scrollbar was the SAME gap -- because this margin was
-     symmetric. It is the checkbox's own spacing, not anything external. It
-     now hugs the edge it is anchored to and keeps a small gap only on the
-     side that faces the rest of the cells. */
-  margin: 0;
-}
-
-.vaultman-selection-checkbox--start {
-  margin-inline-end: var(--size-2-2);
-}
-
-.vaultman-selection-checkbox--end {
-  margin-inline-start: var(--size-2-2);
+  margin: 0 var(--size-2-2);
 }
 
 .vaultman-node-table-row > .vaultman-selection-checkbox,
@@ -8076,19 +7984,12 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   inset-inline-start: var(--size-4-2);
 }
 
-/* U121-081: the checkbox is the node's FIRST CELL, in flow, before the caret.
-   It pushes the caret and everything after it to the right, exactly the way
-   the caret pushes the rest when `nested` is on -- and it sits inside the
-   node, so it starts after that node's own indent like every other cell.
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
+  position: static;
+}
 
-   It is deliberately NOT positioned: an absolute checkbox leaves the flow, so
-   it cannot push anything, it stops sharing the row's `align-items: center`,
-   and it paints under the cells instead of beside them. That is also what the
-   2026-08-02 corrective-primitives plan forbids in so many words -- "guards
-   forbidding absolute frame-owned checkboxes". `--end` was never broken
-   precisely because it stayed in flow. */
 .vaultman-tree-row > .vaultman-selection-checkbox--start {
-  order: -1;
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
 }
 
 .vaultman-selection-checkbox--end {

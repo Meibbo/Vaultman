@@ -38,14 +38,9 @@ describe('mobile core row source guards', () => {
 				/\.is-phone \.workspace-drawer \.workspace-leaf-content\[data-type="vaultman-frame"\] \.vaultman-tree-row\.tree-item-self\s*\{[\s\S]*?\n\}/,
 			)?.[0] ?? '';
 
-		// U121-081: la sangria pasa a `.vaultman-tree-indent` para que el
-		// cell_checkbox tenga columna. La fila conserva su padding base, y lo que
-		// este guard sigue vigilando es que el movil use las variables del arbol
-		// de escritorio y no un `calc` propio con numeros a mano.
 		expect(mobileRowBlock).toContain(
-			'padding-inline-start: var(--vaultman-tree-row-padding-start)',
+			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
-		expect(mobileRowBlock).not.toContain('var(--depth');
 		expect(mobileRowBlock).not.toContain('calc(24px + var(--depth, 0) * 16px)');
 		expect(stylesSource).not.toContain(
 			'.tree-item-icon.collapse-icon svg {\n  width: 12px;',

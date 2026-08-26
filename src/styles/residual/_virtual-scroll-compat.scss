@@ -30,15 +30,13 @@
 		transparent var(--vaultman-tree-indent-line-width),
 		transparent var(--vaultman-tree-indent-unit)
 	);
-	/* U121-081: las guias las pinta `.vaultman-tree-indent`. */
-	width: 0;
+	width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
 	pointer-events: none;
 }
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-	/* U121-081: sin profundidad; la aporta `.vaultman-tree-indent`. */
-	padding-inline-start: var(--vaultman-tree-row-padding-start);
+	padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
 	padding-inline-end: 8px;
 }
 

@@ -79,11 +79,6 @@ export interface TreeViewOptions {
 	 * on, which is exactly why it is the natural place to drop a selection.
 	 */
 	onEmptySpaceClick?: () => void;
-	/**
-	 * U121-106: mantener pulsado el checkbox de un p-node. Simetrico de
-	 * `onRecursiveExpand`, que es el mismo gesto sobre la fila.
-	 */
-	onRecursiveSelect?: (id: string) => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
@@ -176,13 +171,6 @@ export class UnifiedTreeView {
 	private _activeId: string | null = null;
 	private readonly _overscan = 24;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
-	/**
-	 * U121-106: pulsacion larga sobre el CHECKBOX. Va en su propio gesto y no en
-	 * el de la fila: comparten elemento padre, y un solo gesto no puede
-	 * distinguir "mantener sobre la fila" (expandir recursivo) de "mantener
-	 * sobre el checkbox" (seleccionar la descendencia).
-	 */
-	private readonly _recursiveSelectGesture = new LongPressGesture();
 	private readonly _coreMetadataView: CoreMetadataTreeView;
 	private readonly _onScroll = () => {
 		if (this._hasVisibleRenderedRows()) {
@@ -1198,38 +1186,11 @@ export class UnifiedTreeView {
 			checkbox.onclick = (event) => event.stopPropagation();
 			checkbox.onchange = (event) => {
 				event.stopPropagation();
-				// U121-106: soltar tras una pulsacion larga dispara igualmente
-				// click+change. Sin esta guarda, la seleccion recursiva se
-				// desharia acto seguido con el toggle normal.
-				if (this._recursiveSelectGesture.isActivationSuppressed()) {
-					checkbox.checked = isSelected;
-					return;
-				}
 				opts.onSelectionToggle?.(node.id, checkbox.checked);
 			};
-			if (hasChildren && opts.onRecursiveSelect) {
-				bindLongPressGesture(checkbox, this._recursiveSelectGesture, () =>
-					opts.onRecursiveSelect?.(node.id),
-				);
-			}
 		};
 		if ((opts.selectionCheckboxPosition ?? 'start') === 'start') {
 			emitSelectionCheckbox('start');
-		}
-		// U121-081: la sangria deja de vivir en el `padding-inline-start` de la
-		// FILA y pasa a un espaciador propio. Esa es la diferencia entre lo que
-		// habia y lo que el dev describe: si el indent es de la fila, TODO lo que
-		// hay dentro -- el cell_checkbox incluido-- empieza desplazado un nivel
-		// por profundidad, y una cell no puede tener columna. Con el espaciador,
-		// el checkbox cae en la MISMA x en todas las filas y el contenido sigue
-		// desplazandose igual que antes.
-		//
-		// El espaciador pinta ademas sus propias guias de indentacion. Antes las
-		// pintaba `.vaultman-tree-row::before`, anclado al borde de la fila, que
-		// habria quedado desalineado en cuanto el checkbox reserva su columna.
-		// Pintandolas donde de verdad esta la sangria no hay offset que cuadrar.
-		if (node.depth > 0) {
-			row.createDiv({ cls: 'vaultman-tree-indent' });
 		}
 
 		if (showCaret) {
@@ -1432,9 +1393,6 @@ export class UnifiedTreeView {
 			(showOpened && node.openedText) ||
 			(showWords && node.wordCountText) ||
 			(showFileCount && node.fileCountText) ||
-			// U121-100: `sub` faltaba en la guarda, asi que un nodo cuyo unico
-			// contenido fuese el contador de hijos ni siquiera creaba la zona.
-			(showSub && node.subCountText) ||
 			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
@@ -1450,11 +1408,6 @@ export class UnifiedTreeView {
 				emitDate(badgeZone, showOpened ? node.openedText : '', 'opened');
 				emitWords(badgeZone);
 				emitFileCount(badgeZone);
-				// U121-100: `emitSub` estaba definido y registrado en el mapa del
-				// camino ordenado, pero NADIE lo llamaba en el marcado clasico, que
-				// es el que usan propScene y tagScene en arbol. De ahi el sintoma:
-				// el cell_sub aparece en el view_menu, se activa, y no pasa nada.
-				emitSub(badgeZone);
 				emitTasks(badgeZone);
 			}
 
