@@ -5284,9 +5284,25 @@ body.vaultman-resizing {
 }
 
 /* === Tree Virtualization & Node Rows (Restored from Monolith) === */
+/* U121-039: el aire de arriba NO puede vivir en el padding del scrollport.
+   `.vaultman-tree-sticky-layer` es `position: sticky`, y un sticky esta clavado
+   a su BLOQUE CONTENEDOR, que es la content box del scrollport. Con
+   `padding-top: 8px` la capa no podia subir mas alla de 8px por debajo del
+   borde, y quedaba una rendija de esa altura entre el toolbar y el primer
+   sticky por la que se asomaban las filas que pasaban por debajo. Solo en
+   movil, porque en escritorio este padding es 0.
+   Medido en el web-lab el 2026-08-28: toolbar.bottom 44, port.top 44,
+   layer.top 52, rendija 8. Con el aire movido al flujo del spacer: layer.top
+   44, rendija 0, y el aire de arriba se conserva.
+   El spacer scrollea y no acota al sticky, asi que es su sitio. */
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport,
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
-  padding: 8px 0 96px;
+  padding: 0 0 96px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer {
+  margin-top: 8px;
 }
 
 .vaultman-tree-virtual-spacer {
@@ -6176,9 +6192,25 @@ body.vaultman-bases-column-separators table th {
   display: none;
 }
 
+/* U121-039: el aire de arriba NO puede vivir en el padding del scrollport.
+   `.vaultman-tree-sticky-layer` es `position: sticky`, y un sticky esta clavado
+   a su BLOQUE CONTENEDOR, que es la content box del scrollport. Con
+   `padding-top: 8px` la capa no podia subir mas alla de 8px por debajo del
+   borde, y quedaba una rendija de esa altura entre el toolbar y el primer
+   sticky por la que se asomaban las filas que pasaban por debajo. Solo en
+   movil, porque en escritorio este padding es 0.
+   Medido en el web-lab el 2026-08-28: toolbar.bottom 44, port.top 44,
+   layer.top 52, rendija 8. Con el aire movido al flujo del spacer: layer.top
+   44, rendija 0, y el aire de arriba se conserva.
+   El spacer scrollea y no acota al sticky, asi que es su sitio. */
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport,
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
-  padding: 8px 0 96px;
+  padding: 0 0 96px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer {
+  margin-top: 8px;
 }
 
 .vaultman-tree-virtual-spacer {
@@ -6840,8 +6872,16 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   width: 28px;
   height: 28px;
 }
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] {
+  /* U121-039: mismo valor que la regla canonica de `views/_tree.scss`. El aire
+     de arriba sale del padding del scrollport porque acotaba a la capa sticky;
+     vive en el flujo del spacer. Las tres copias de esta regla deben coincidir. */
+}
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
-  padding: 8px 0 96px;
+  padding: 0 0 96px;
+}
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer {
+  margin-top: 8px;
 }
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
   gap: normal;

@@ -100,8 +100,15 @@
 		}
 	}
 
+	/* U121-039: mismo valor que la regla canonica de `views/_tree.scss`. El aire
+	   de arriba sale del padding del scrollport porque acotaba a la capa sticky;
+	   vive en el flujo del spacer. Las tres copias de esta regla deben coincidir. */
 	:is(.vaultman-files-tab-content, .vaultman-props-tab-content, .vaultman-tags-tab-content).vaultman-tree-virtual-viewport {
-		padding: 8px 0 96px;
+		padding: 0 0 96px;
+
+		> .vaultman-tree-virtual-spacer {
+			margin-top: 8px;
+		}
 	}
 
 	.vaultman-tree-row.tree-item-self {

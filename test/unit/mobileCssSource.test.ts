@@ -119,7 +119,28 @@ describe('mobile CSS source guards', () => {
 	});
 
 	it('aligns phone explorer viewport padding with core panes instead of custom side padding', () => {
-		expect(stylesSource).toContain('padding: 8px 0 96px');
+		// El contrato de esta prueba son los LADOS: cero padding horizontal, como
+		// los panes de Core. El `8px` de arriba venia arrastrado en la cadena y
+		// U121-039 lo saco de aqui: el scrollport es el bloque contenedor de
+		// `.vaultman-tree-sticky-layer`, y un `position: sticky` no puede subir
+		// por encima de el, asi que ese padding dejaba una rendija por la que se
+		// asomaban las filas al pasar bajo los sticky. El aire vive ahora en el
+		// margen del spacer, que scrollea y no acota al sticky.
+		expect(stylesSource).toContain('padding: 0 0 96px');
+		expect(stylesSource).not.toContain('padding: 8px 0 96px');
+	});
+
+	it('keeps the mobile scrollport from clamping the sticky layer', () => {
+		// La rendija de U121-039 vuelve en cuanto alguien devuelva el aire al
+		// padding del scrollport, asi que se guarda la pareja, no solo el valor.
+		expect(stylesSource).toContain(
+			'.vaultman-tree-virtual-viewport > .vaultman-tree-virtual-spacer',
+		);
+		const spacerRule =
+			stylesSource.match(
+				/\.vaultman-tree-virtual-viewport > \.vaultman-tree-virtual-spacer\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+		expect(spacerRule).toContain('margin-top: 8px');
 	});
 
 	it('keeps mobile tree row CSS height aligned with the fixed virtual row model', () => {
