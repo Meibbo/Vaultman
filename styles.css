@@ -1169,7 +1169,10 @@
 }
 
 .vaultman-filters-header-search-pill--inline {
-  flex: 0 1 18rem;
+  /* U121-069: Slice 5 sustituyo el basis por un clamp de preferido constante
+     (siempre 18rem = 288px) que contradice el `max-width: min(220px, 48%)` de
+     la regla base, que sigue en pie. Restaurado el valor de `c9db1258`. */
+  flex: 0 1 220px;
 }
 
 .vaultman-filters-header-search-pill--row {
@@ -6903,11 +6906,6 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   display: flex;
 }
 
-.vaultman-filters-header-search-pill {
-  width: 28px;
-  height: 28px;
-}
-
 .vaultman-navbar-filters {
   container-type: inline-size;
 }
@@ -6941,17 +6939,6 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   background: transparent;
 }
 
-.vaultman-content-clear-button {
-  padding-inline-end: 34px;
-  inset-inline-end: 2px;
-  width: 28px;
-  height: 28px;
-}
-.vaultman-content-clear-button svg {
-  width: 16px;
-  height: 16px;
-}
-
 .vaultman-stat-card {
   display: flex;
   background: transparent;
@@ -6959,11 +6946,6 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
 
 .vaultman-content-search-container.search-input-container::before {
   display: none;
-}
-
-.vaultman-content-input-icon {
-  border-top: 1px solid var(--background-modifier-border);
-  background: var(--color-accent);
 }
 
 .vaultman-island-backdrop:not(.is-open) {

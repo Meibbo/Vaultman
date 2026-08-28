@@ -174,11 +174,6 @@
 	display: flex;
 }
 
-.vaultman-filters-header-search-pill {
-	width: 28px;
-	height: 28px;
-}
-
 .vaultman-navbar-filters {
 	container-type: inline-size;
 }
@@ -212,18 +207,6 @@
 	background: transparent;
 }
 
-.vaultman-content-clear-button {
-	padding-inline-end: 34px;
-	inset-inline-end: 2px;
-	width: 28px;
-	height: 28px;
-
-	svg {
-		width: 16px;
-		height: 16px;
-	}
-}
-
 .vaultman-stat-card {
 	display: flex;
 	background: transparent;
@@ -231,11 +214,6 @@
 
 .vaultman-content-search-container.search-input-container::before {
 	display: none;
-}
-
-.vaultman-content-input-icon {
-	border-top: 1px solid var(--background-modifier-border);
-	background: var(--color-accent);
 }
 
 .vaultman-island-backdrop:not(.is-open) {

@@ -476,7 +476,10 @@
 }
 
 .vaultman-filters-header-search-pill--inline {
-  flex: 0 1 clamp(10rem, 18rem, 25rem);
+  /* U121-069: Slice 5 sustituyo el basis por un clamp de preferido constante
+     (siempre 18rem = 288px) que contradice el `max-width: min(220px, 48%)` de
+     la regla base, que sigue en pie. Restaurado el valor de `c9db1258`. */
+  flex: 0 1 220px;
 }
 
 .vaultman-filters-header-search-pill--row {
