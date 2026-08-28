@@ -26,16 +26,13 @@ One inviting sentence that explains who benefits and why.
 
 <!-- reviewed: true -->
 
-Vaultman 1.3.0-beta.3 is about trust: panels come back the way you left them, the
-selection column lines up, and three switches that looked on but did nothing now work.
+Vaultman 1.3.0-beta.3 is about trust: panels come back the way you left them, three
+switches that looked on but did nothing now work, and the search fields behave.
 
 - **Your panel remembers itself:** After a reload a panel returns with its own
   configuration instead of starting blank. Obsidian hands a panel its identity a moment
   after it opens, and Vaultman was not waiting for it, so every reload lost the settings
   and left another orphan behind.
-- **A real selection column:** Selection checkboxes line up in one column whatever the
-  depth of the node, instead of stepping right with the indent, and the tree keeps its
-  own indentation exactly as it was.
 - **Folders come along:** Selected folders now reach queued operations. Deleting a mixed
   selection queued only the files, three selected folders queued only the one you
   right-clicked, and moving a folder inline did nothing at all.
@@ -44,8 +41,14 @@ selection column lines up, and three switches that looked on but did nothing now
   Table all behaved as if they were off. They are honest now.
 - **Select a whole branch:** Long-press the checkbox of a parent node to select
   everything under it, and press again to clear it.
+- **Nothing peeking through on mobile:** The band above the first pinned folder header
+  is gone, so the rows scrolling underneath no longer show through it.
+- **Search fields that behave:** In Text, the glyphs in the search and replace fields are
+  part of the placeholder again — they give way to what you type and come back when you
+  clear the field — and the clear button is visible once more. The toolbar's inline
+  search field keeps its own size instead of being squashed out of shape.
 
-[Full changelog](../CHANGELOG.md#130-beta3---2026-08-22)
+[Full changelog](../CHANGELOG.md#130-beta3---2026-08-28)
 
 <a id="v1-3-0-beta-2"></a>
 

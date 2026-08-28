@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0-beta.3] - 2026-08-22
+## [1.3.0-beta.3] - 2026-08-28
 
 ### Added
 
@@ -44,15 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The floating index option for fixed widgets now holds the widgets in place while the nodes scroll under them. It could be switched on and had no effect.
 - A panel now comes back with its own configuration after a reload. Obsidian delivers the leaf anchor after the view opens, so the panel used to mint a fresh identity, strand its settings and leave an extra instance behind on every reload.
 - Fixed side-leaf search field placement and restored drawer gradient rendering on mobile devices.
+- Fixed a gap above the first pinned folder header on mobile that let the rows scrolling underneath show through it.
 - Fixed property value rendering to preserve empty and unknown property values accurately in formatted views.
 - A view option that goes back to its default value is no longer remembered as an override. Switching a scene's engine tree to table and back to tree, then leaving and returning, showed Table.
-- Selection checkboxes now line up in one column whatever the depth of the node, instead of stepping right with the indent. The tree keeps its own indentation unchanged.
 - Fixed deep-level headers that used to disappear behind upper-level ones, leaving a blank gap where they should have been.
 - Fixed a folder row that was visually rendered underneath its own pinned header while it was still on screen.
 - Removed the thin line that appeared between two pinned headers on desktop and let the scrolling content show through it.
 - Fixed the small jump headers made when becoming pinned, so they now appear already in place and a folder hands its spot to the next one at the same level seamlessly.
 - Fixed pinned folder headers so they no longer stutter or jerk while scrolling through long lists, or when jumping directly to the end of a list.
+- Fixed the search and replace fields in Text: their glyphs are part of the placeholder again, giving way to what you type and returning when the field is emptied, and the clear button is visible once more.
 - Fixed pause and resume lifecycle loops in Content search, eliminated full-vault scans on typing, and preserved search expansion state across polling cycles.
+- Fixed the inline toolbar search field, which was being squashed out of shape instead of keeping its own size.
 
 ## [1.3.0-beta.2] - 2026-08-19
 
