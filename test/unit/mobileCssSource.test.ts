@@ -178,21 +178,57 @@ describe('mobile CSS source guards', () => {
 	});
 
 	it('separates Content inputs and aligns explicit Content input icons', () => {
+		// U121-069: esta prueba afirmaba `border-top: …` y `background:
+		// var(--color-accent)` con un `toContain` sobre la hoja ENTERA, asi que
+		// seguia verde despues de borrar las reglas que decia guardar -- esas
+		// cadenas salen en otros sitios. Peor: las declaraciones que afirmaba
+		// eran precisamente las que el refactor habia dejado sobre el selector
+		// equivocado, pintando un cuadrado de acento sobre la lupa.
+		// Ahora se extrae LA regla y se afirma dentro de ella.
 		expect(stylesSource).toContain(
 			'.vaultman-content-search-container.search-input-container::before',
 		);
-		expect(stylesSource).toContain('display: none');
-		expect(stylesSource).toContain('.vaultman-content-input-icon');
+
+		const iconRule =
+			stylesSource.match(
+				/^\.vaultman-content-input-icon\s*\{[\s\S]*?\n\}/m,
+			)?.[0] ?? '';
+		expect(iconRule).not.toBe('');
+		// Es un glifo dentro del input, no una superficie pintada.
+		expect(iconRule).toContain('position: absolute');
+		expect(iconRule).toContain('color: var(--text-faint)');
+		expect(iconRule).not.toContain('background:');
+		expect(iconRule).not.toContain('border-top:');
+	});
+
+	it('hides the Content input glyph with its placeholder', () => {
+		// El glifo se comporta como parte del placeholder: visible con el input
+		// vacio, y fuera en cuanto hay texto para que lo escrito ocupe la linea
+		// desde el borde. El hueco lo decide UNA variable que leen el padding
+		// del input y el arranque del subrayado, para que no se desincronicen.
 		expect(stylesSource).toContain(
-			'border-top: 1px solid var(--background-modifier-border)',
+			'.vaultman-content-search-container:has(.vaultman-content-input:not(:placeholder-shown))',
 		);
-		expect(stylesSource).toContain('background: var(--color-accent)');
+		expect(stylesSource).toContain(
+			'padding-inline-start: var(--vaultman-content-input-gutter)',
+		);
+		expect(stylesSource).toContain(
+			'inset-inline-start: var(--vaultman-content-input-gutter)',
+		);
 	});
 
 	it('keeps Content clear buttons large enough for the compact input scale', () => {
-		expect(stylesSource).toContain('padding-inline-end: 34px');
-		expect(stylesSource).toContain('inset-inline-end: 2px');
-		expect(stylesSource).toContain('width: 28px');
+		// Mismo motivo que arriba: acotado a su regla. `padding-inline-end: 34px`
+		// es del INPUT, no del boton, y afirmarlo suelto hacia pasar la prueba
+		// con la copia mutilada del boton puesta.
+		const clearRule =
+			stylesSource.match(
+				/^\.vaultman-content-clear-button\s*\{[\s\S]*?\n\}/m,
+			)?.[0] ?? '';
+		expect(clearRule).not.toBe('');
+		expect(clearRule).toContain('inset-inline-end: 2px');
+		expect(clearRule).toContain('width: 28px');
+		expect(clearRule).not.toContain('padding-inline-end: 34px');
 		expect(stylesSource).toContain('height: 28px');
 		expect(stylesSource).toContain('.vaultman-content-clear-button svg');
 		expect(stylesSource).toContain('width: 16px');
