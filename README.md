@@ -32,25 +32,9 @@ You can navigate, apply filters to your files, tags, properties or content and s
 
 ## Installation
 
-There are 3 different version streams to select from (_stable, beta and alpha_). Which you can install following these instructions:
-
-### Obsidian Community Plugins
-
 Search: "**Vaultman**" in Community Plugins, press `Install` and `Enable` to start using it!
 
 Or you can go and take a look into the community webpage _to see its overall score_ and stats at the [Obsidian Community Page](https://community.obsidian.md/plugins/vaultman).
-
-### Via BRAT
-
-I'm also releasing experimental versions for those who want to check the project progress and for PC/Mobile testing.
-
-1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from the community plugins store
-2. In BRAT settings → **Add Beta Plugin**
-3. Enter `meibbo/vaultman`
-4. Select an specific version (_recommended_)
-5. Enable **Vaultman** in Settings → Community Plugins.
-
-> Beta versions are more prone to bugs and performance issues, and can break your vault. Use them at your own risk, and always make backups before updating or using them.
 
 ### Statistics
 
@@ -214,6 +198,17 @@ git clone https://github.com/Meibbo/VaultMan
 cd VaultMan
 pnpm build:plugin
 ```
+### Beta-testing via BRAT
+
+I'm releasing beta & alpha experimental versions for those who want to check the project progress and for PC/Mobile testing.
+
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from the community plugins store
+2. In BRAT settings → **Add Beta Plugin**
+3. Enter `meibbo/vaultman`
+4. Select an specific version (_recommended_)
+5. Enable **Vaultman** in Settings → Community Plugins.
+
+> Beta versions are more prone to bugs and performance issues, and can break your vault. Use them at your own risk, and always make backups before updating or using them.
 
 ## Contribution
 
