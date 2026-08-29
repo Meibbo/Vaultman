@@ -67,4 +67,12 @@ describe('release CLI safety contract', () => {
 	it('keeps checked-out Svelte files compatible with the Prettier gate', () => {
 		expect(attributesSource).toContain('* text=auto eol=lf');
 	});
+
+	it('invalidates already-prepared when RELEASE_NOTES.md is stale (beta.3)', () => {
+		expect(releaseSource).toContain('isAlreadyPrepared(target,');
+		expect(releaseSource).toContain('isAlreadyPrepared(target, releaseNotes)');
+		expect(releaseSource).toContain('RELEASE_NOTES.md');
+		expect(releaseSource).toContain('normalizeReleaseNotes');
+		expect(releaseSource).toContain('\\r\\n');
+	});
 });

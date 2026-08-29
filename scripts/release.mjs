@@ -306,15 +306,24 @@ function prepareMetadata(target, fragments, tags) {
 	}
 }
 
-function isAlreadyPrepared(target) {
+export function normalizeReleaseNotes(value) {
+	return value.replace(/\r\n/gu, '\n').replace(/\r/gu, '\n').replace(/\n$/u, '');
+}
+
+export function isAlreadyPrepared(target, expectedReleaseNotes) {
 	if (!existsSync('RELEASE_NOTES.md')) return false;
 	const packageJson = readJson('package.json');
 	const manifest = readJson('manifest.json');
 	const changelog = readFileSync('CHANGELOG.md', 'utf8');
-	return (
+	const isPrepared =
 		packageJson.version === target.version &&
 		manifest.version === target.version &&
-		changelog.includes(`## [${target.version}]`)
+		changelog.includes(`## [${target.version}]`);
+	if (!isPrepared) return false;
+	if (expectedReleaseNotes === undefined) return true;
+	const actualNotes = readFileSync('RELEASE_NOTES.md', 'utf8');
+	return (
+		normalizeReleaseNotes(actualNotes) === normalizeReleaseNotes(expectedReleaseNotes)
 	);
 }
 
@@ -447,7 +456,7 @@ async function main() {
 
 	const fragments = selectChangeFragments(loadFragments(), target.line);
 	const releaseNotes = renderReleaseNotes(fragments, target.version);
-	const alreadyPrepared = isAlreadyPrepared(target);
+	const alreadyPrepared = isAlreadyPrepared(target, releaseNotes);
 	const candidateChangelog = alreadyPrepared
 		? readFileSync('CHANGELOG.md', 'utf8')
 		: changelogForRelease(target, releaseNotes, tags);
@@ -495,7 +504,12 @@ async function main() {
 	verifyPublishedRelease(target);
 }
 
-main().catch((error) => {
-	console.error(`\nRelease failed: ${error instanceof Error ? error.message : String(error)}`);
-	process.exitCode = 1;
-});
+const isMainModule =
+	process.argv[1] !== undefined &&
+	resolve(process.argv[1]) === new URL(import.meta.url).pathname;
+if (isMainModule) {
+	main().catch((error) => {
+		console.error(`\nRelease failed: ${error instanceof Error ? error.message : String(error)}`);
+		process.exitCode = 1;
+	});
+}

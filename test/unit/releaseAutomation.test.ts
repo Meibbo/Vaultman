@@ -1,5 +1,10 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
+import { isAlreadyPrepared } from '../../scripts/release.mjs';
 import {
 	branchForChannel,
 	applyVersionMetadata,
@@ -343,5 +348,84 @@ describe('tag-pinned release bulletin', () => {
 				version,
 			}),
 		).toThrow('mutable branch');
+	});
+});
+
+describe('isAlreadyPrepared compara tambien las notas (beta.3)', () => {
+	function setupPreparedDir(version: string, notesContent: string) {
+		const dir = mkdtempSync(join(tmpdir(), 'vaultman-prepared-'));
+		writeFileSync(join(dir, 'package.json'), JSON.stringify({ version }));
+		writeFileSync(
+			join(dir, 'manifest.json'),
+			JSON.stringify({ version, minAppVersion: '1.12.0' }),
+		);
+		writeFileSync(join(dir, 'CHANGELOG.md'), `# Changelog\n\n## [${version}] - 2026-08-28\n\nBody\n`);
+		writeFileSync(join(dir, 'RELEASE_NOTES.md'), notesContent);
+		return dir;
+	}
+
+	it('preparada + notas iguales da true', () => {
+		const version = '1.3.0-beta.3';
+		const notes = '## Added\n\n- Fix A\n';
+		const dir = setupPreparedDir(version, notes);
+		const previousCwd = process.cwd();
+		try {
+			process.chdir(dir);
+			expect(isAlreadyPrepared({ version } as any, notes)).toBe(true);
+		} finally {
+			process.chdir(previousCwd);
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('preparada + notas distintas da false (caso beta.3: funcion revertida)', () => {
+		const version = '1.3.0-beta.3';
+		const staleNotes = '## Added\n\n- Added floating column view\n';
+		const freshNotes = '## Fixed\n\n- Fixed tree indent regression\n';
+		const dir = setupPreparedDir(version, staleNotes);
+		const previousCwd = process.cwd();
+		try {
+			process.chdir(dir);
+			expect(isAlreadyPrepared({ version } as any, freshNotes)).toBe(false);
+		} finally {
+			process.chdir(previousCwd);
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('normaliza salto final y \\r\\n para no marcar desfasada una release bien preparada', () => {
+		const version = '1.3.0-beta.3';
+		const fileNotes = '## Added\n\n- Fix A\r\n';
+		const expectedNotes = '## Added\n\n- Fix A\n';
+		const dir = setupPreparedDir(version, fileNotes);
+		const previousCwd = process.cwd();
+		try {
+			process.chdir(dir);
+			expect(isAlreadyPrepared({ version } as any, expectedNotes)).toBe(true);
+			expect(isAlreadyPrepared({ version } as any, expectedNotes.replace('\n', '\r\n'))).toBe(true);
+			expect(isAlreadyPrepared({ version } as any, `${expectedNotes.trimEnd()}`)).toBe(true);
+		} finally {
+			process.chdir(previousCwd);
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('no esta preparada si falta RELEASE_NOTES.md o la version no coincide', () => {
+		const version = '1.3.0-beta.3';
+		const notes = '## Added\n\n- Fix A\n';
+		const dir = mkdtempSync(join(tmpdir(), 'vaultman-prepared-'));
+		writeFileSync(join(dir, 'package.json'), JSON.stringify({ version }));
+		writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ version, minAppVersion: '1.12.0' }));
+		writeFileSync(join(dir, 'CHANGELOG.md'), `# Changelog\n\n## [${version}] - 2026-08-28\n\nBody\n`);
+		const previousCwd = process.cwd();
+		try {
+			process.chdir(dir);
+			expect(isAlreadyPrepared({ version } as any, notes)).toBe(false);
+			writeFileSync(join(dir, 'RELEASE_NOTES.md'), notes);
+			expect(isAlreadyPrepared({ version: '1.3.0-beta.4' } as any, notes)).toBe(false);
+		} finally {
+			process.chdir(previousCwd);
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
