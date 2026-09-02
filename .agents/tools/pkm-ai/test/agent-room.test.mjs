@@ -450,7 +450,7 @@ test("run honors --state-root and routes every write to the shared root (outside
   // nothing leaked to the per-worktree default location
   assert.equal(fs.existsSync(path.join(cwd, ".agents", "state")), false);
 
-  const join = run(cwd, ["agent", "join", "--run", runId, "--agent", "B", "--now", "2026-06-04T03:01:00", ...sr, "--json"]);
+  const join = run(cwd, ["agent", "join", "--run", runId, "--agent", "B", "--role", "worker", "--now", "2026-06-04T03:01:00", ...sr, "--json"]);
   assert.equal(join.status, 0, join.stderr);
   assert.equal(fs.existsSync(path.join(shared, "runs", runId, "agents", "B", "status.json")), true);
 
@@ -521,13 +521,13 @@ test("agent join --run current creates a run, then a second join --run current r
   const shared = path.join(makeTempRoot(), "ensure-room");
   const sr = ["--state-root", shared];
 
-  const j1 = run(cwd, ["agent", "join", "--run", "current", "--agent", "A", ...sr, "--now", "2026-06-04T03:00:00", "--json"]);
+  const j1 = run(cwd, ["agent", "join", "--run", "current", "--agent", "A", "--role", "worker", ...sr, "--now", "2026-06-04T03:00:00", "--json"]);
   assert.equal(j1.status, 0, j1.stderr);
   const list1 = JSON.parse(run(cwd, ["run", "list", ...sr, "--json"]).stdout).runs;
   assert.equal(list1.length, 1);
   const runId = list1[0].runId;
 
-  const j2 = run(cwd, ["agent", "join", "--run", "current", "--agent", "B", ...sr, "--now", "2026-06-04T03:01:00", "--json"]);
+  const j2 = run(cwd, ["agent", "join", "--run", "current", "--agent", "B", "--role", "worker", ...sr, "--now", "2026-06-04T03:01:00", "--json"]);
   assert.equal(j2.status, 0, j2.stderr);
   const list2 = JSON.parse(run(cwd, ["run", "list", ...sr, "--json"]).stdout).runs;
   assert.equal(list2.length, 1, "second join --run current must NOT create a second room");
@@ -557,7 +557,7 @@ test("concurrent agent join --run current never double-rooms (workspace lock)", 
   const agents = ["A", "B", "C", "D", "E"];
 
   const results = await Promise.all(
-    agents.map((agent) => runAsync(cwd, ["agent", "join", "--run", "current", "--agent", agent, ...sr, "--json"])),
+    agents.map((agent) => runAsync(cwd, ["agent", "join", "--run", "current", "--agent", agent, "--role", "worker", ...sr, "--json"])),
   );
   for (const result of results) assert.equal(result.status, 0, result.stderr);
 
@@ -599,7 +599,7 @@ test("agent join records stream + worktree tags and surfaces them in status/dash
   const root = makeTempRoot();
   const runId = createRun(root);
 
-  const joined = run(root, ["agent", "join", "--run", runId, "--agent", "smoke-opus", "--stream", "goal", "--worktree", "sandbox", "--now", "2026-05-11T02:01:00", "--json"]);
+  const joined = run(root, ["agent", "join", "--run", runId, "--agent", "smoke-opus", "--role", "worker", "--stream", "goal", "--worktree", "sandbox", "--now", "2026-05-11T02:01:00", "--json"]);
   assert.equal(joined.status, 0, joined.stderr);
   const agent = JSON.parse(joined.stdout).agent;
   assert.equal(agent.stream, "goal");
@@ -611,10 +611,10 @@ test("agent join records stream + worktree tags and surfaces them in status/dash
   assert.equal(found.worktree, "sandbox");
 
   const dash = run(root, ["dashboard", "--run", runId, "--now", "2026-05-11T02:02:30"]);
-  assert.match(dash.stdout, /smoke-opus \[goal @ sandbox\]/);
+  assert.match(dash.stdout, /smoke-opus \[worker \u00b7 goal @ sandbox\]/);
 
   // worktree auto-defaults (from git toplevel basename, else cwd basename) when not supplied
-  const auto = JSON.parse(run(root, ["agent", "join", "--run", runId, "--agent", "auto-wt", "--now", "2026-05-11T02:03:00", "--json"]).stdout).agent;
+  const auto = JSON.parse(run(root, ["agent", "join", "--run", runId, "--agent", "auto-wt", "--role", "worker", "--now", "2026-05-11T02:03:00", "--json"]).stdout).agent;
   assert.equal(typeof auto.worktree, "string");
   assert.ok(auto.worktree.length > 0);
 });
