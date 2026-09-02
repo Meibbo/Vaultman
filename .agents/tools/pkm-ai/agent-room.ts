@@ -199,6 +199,7 @@ Resources:
   status
   dashboard
   handoff
+  brief
 
 Global options:
   --run <runId|latest|current>
@@ -208,11 +209,100 @@ Global options:
   --lease-ms <ms>
   --force
   --state-root <dir>   shared room state root (default: <git-common-dir>/vaultman-room, else cwd/.agents/state)
+  --room-url <url>   remote room server URL (default: $VAULTMAN_ROOM_URL)
+  --room-passphrase <clave>   passphrase for x-room-ui-passphrase (default: $VAULTMAN_ROOM_PASSPHRASE)
+  --local   force local disk (overrides --room-url and $VAULTMAN_ROOM_URL)
 `;
 
+function getRemoteUrl(args: CliArgs): string | undefined {
+  if (args.local) return undefined;
+  const raw = args.roomUrl;
+  if (raw !== undefined && raw !== true && String(raw) !== "") return String(raw);
+  const env = process.env.VAULTMAN_ROOM_URL;
+  if (env && env.trim() !== "") return String(env).trim();
+  return undefined;
+}
+
+function getRoomPassphrase(args: CliArgs): string | undefined {
+  const raw = (args as Record<string, unknown>).roomPassphrase;
+  if (raw !== undefined && raw !== true && String(raw) !== "") return String(raw);
+  const env = process.env.VAULTMAN_ROOM_PASSPHRASE;
+  if (env && env.trim() !== "") return String(env).trim();
+  return undefined;
+}
+
+function stripRemoteFlags(argv: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--room-url") {
+      i++;
+      continue;
+    }
+    if (arg === "--room-passphrase") {
+      i++;
+      continue;
+    }
+    if (arg === "--local") continue;
+    if (arg === "--state-root") {
+      i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+  const rawArgv = process.argv.slice(2);
+  const args = parseArgs(rawArgv);
   if (args.help || args._.length === 0) return print(HELP);
+
+  const remoteUrl = getRemoteUrl(args);
+  if (remoteUrl) {
+    const passphrase = getRoomPassphrase(args);
+    const stripped = stripRemoteFlags(rawArgv);
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (passphrase) headers["x-room-ui-passphrase"] = passphrase;
+      const resp = await fetch(`${remoteUrl.replace(/\/+$/, "")}/api/action`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ args: stripped })
+      });
+      const text = await resp.text();
+      let json: any;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = { ok: false, error: text };
+      }
+      if (!resp.ok || !json.ok) {
+        if (resp.status === 401 && !passphrase) {
+          const base = json.error ?? json.result?.stderr ?? text ?? `HTTP ${resp.status}`;
+          console.error(`Error: falta la clave --room-passphrase / VAULTMAN_ROOM_PASSPHRASE (${base})`);
+          process.exit(2);
+        }
+        const errMsg = json.error ?? json.result?.stderr ?? text ?? `HTTP ${resp.status}`;
+        console.error(`Error: ${errMsg}`);
+        const code = typeof json.result?.status === "number" ? json.result.status : resp.status >= 400 && resp.status < 500 ? 2 : 1;
+        process.exit(code);
+      }
+      const result = json.result;
+      if (result) {
+        if (result.stdout) process.stdout.write(result.stdout.endsWith("\n") ? result.stdout : result.stdout + "\n");
+        if (result.stderr) process.stderr.write(result.stderr);
+        process.exit(result.status ?? 0);
+      }
+      if (typeof json === "string") print(json);
+      else print(JSON.stringify(json, null, 2));
+      process.exit(0);
+    } catch (e) {
+      console.error(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      process.exit(1);
+    }
+    return;
+  }
 
   try {
     const context = createContext(process.cwd(), args);
@@ -221,6 +311,7 @@ async function main(): Promise<void> {
     if (resource === "status") return handleStatus(context);
     if (resource === "dashboard") return handleStatus(context);
     if (resource === "handoff") return handleHandoff(context);
+    if (resource === "brief") return handleBrief(context);
     if (resource === "start") return handleRun(context, "start");
     if (resource === "list") return handleRun(context, "list");
     if (resource === "run") return handleRun(context, action);
@@ -437,6 +528,22 @@ function sleepSync(ms: number): void {
 
 function handleAgent(context: Context, action: string | undefined): void {
   requireOption(context.args, "agent");
+  const VALID_ROLES = new Set(["gerente", "supervisor", "worker", "scout", "researcher", "adversary", "integrator", "observer", "coordinator"]);
+  if (action === "join") {
+    const provided = context.args.role;
+    if (provided === undefined || provided === true || provided === "") {
+      throw new CliError("--role is required for agent join (valid: gerente, supervisor, worker, scout, researcher, adversary, integrator, observer, coordinator)", 2);
+    }
+    const roleStr = String(provided);
+    if (!VALID_ROLES.has(roleStr)) {
+      throw new CliError(`invalid --role: ${roleStr} (valid: ${[...VALID_ROLES].join(", ")})`, 2);
+    }
+  } else if (action === "heartbeat" && context.args.role !== undefined && context.args.role !== true && String(context.args.role) !== "") {
+    const roleStr = String(context.args.role);
+    if (!VALID_ROLES.has(roleStr)) {
+      throw new CliError(`invalid --role: ${roleStr} (valid: ${[...VALID_ROLES].join(", ")})`, 2);
+    }
+  }
   // join-or-create: `--run current` resolves to the workspace's active run, creating one atomically
   // if none exists. Pin the resolved id so the join below targets exactly that run (ADR 0003).
   if (action === "join" && context.args.run === "current") {
@@ -450,10 +557,16 @@ function handleAgent(context: Context, action: string | undefined): void {
     const activeAgents = new Set(manifest.activeAgents ?? []);
     activeAgents.add(context.args.agent);
     const nextManifest = { ...manifest, activeAgents: [...activeAgents], updatedAt: context.now };
+    const resolvedRole =
+      action === "join"
+        ? String(context.args.role)
+        : context.args.role !== undefined && context.args.role !== true && String(context.args.role) !== ""
+          ? String(context.args.role)
+          : existing?.role ?? "worker";
     const status = {
       agentId: context.args.agent,
       displayName: context.args.agent,
-      role: context.args.role ?? existing?.role ?? "worker",
+      role: resolvedRole,
       status: "active",
       currentTaskId: context.args.task ?? existing?.currentTaskId,
       lastHeartbeatAt: context.now,
@@ -599,7 +712,14 @@ function handleTask(context: Context, action: string | undefined): void {
     const tasks = loadTasks(context, manifest.runId);
     const index = findTaskIndex(tasks, taskId);
     let task = tasks[index];
-    assertTaskClaim(task, context.args.agent, requiredValue(context.args, "token"), context.now);
+    const hasActiveClaim = task.claim && !isClaimExpired(task.claim, context.now);
+    if (hasActiveClaim) {
+      assertTaskClaim(task, context.args.agent, requiredValue(context.args, "token"), context.now);
+    } else if (context.args.token !== undefined) {
+      const provided = context.args.token === true ? "" : String(context.args.token);
+      if (!task.claim) throw new CliError(`task ${task.taskId} has no active claim`, 1);
+      assertTaskClaim(task, context.args.agent, provided, context.now);
+    }
     if (TERMINAL_TASK_STATUSES.has(task.status) && !context.args.reopen) {
       throw new CliError(`task ${taskId} is terminal; pass --reopen to change it`, 1);
     }
@@ -917,6 +1037,60 @@ function handleHandoff(context: Context): void {
   ];
   const markdown = lines.join("\n");
   if (context.args.json) writeOutput(context.args, { ok: true, markdown, snapshot });
+  else print(markdown);
+}
+
+function handleBrief(context: Context): void {
+  requireOption(context.args, "agent");
+  const snapshot = buildStatusSnapshot(context);
+  // Vivo = not left and not stale (reuse isAgentStale helper per A4)
+  const aliveAgents = snapshot.agents.filter((a) => a.status !== "left" && !isAgentStale(a, context.now));
+  const agentById = new Map(snapshot.agents.map((a) => [a.agentId, a]));
+  const inProgress = snapshot.tasks.filter((t) => t.status === "in-progress");
+  const isOwnerStaleOrLeft = (ownerId: string): boolean => {
+    const ag = agentById.get(ownerId);
+    if (!ag) return true;
+    if (ag.status === "left") return true;
+    return isAgentStale(ag, context.now);
+  };
+  const getOwner = (task: Task): string | undefined => (task.claim?.owner as string | undefined) ?? (task as unknown as { claimedBy?: string }).claimedBy;
+  const orphanTasks = inProgress.filter((t) => {
+    const owner = getOwner(t);
+    if (!owner) return true;
+    return isOwnerStaleOrLeft(owner);
+  });
+  const aliveTasks = inProgress.filter((t) => {
+    const owner = getOwner(t);
+    if (!owner) return false;
+    return !isOwnerStaleOrLeft(owner);
+  });
+  const unreadForMe = snapshot.unreadMessages.filter((m) => m.to === String(context.args.agent));
+  const lines = [
+    `## Brief para ${context.args.agent}`,
+    `### Agentes vivos`,
+    ...(aliveAgents.length ? aliveAgents.map((a) => `- ${a.agentId}${agentTag(a)} ultimo heartbeat ${a.lastHeartbeatAt ?? "?"}`) : ["- none"]),
+    `### Tareas en curso con dueño vivo`,
+    ...(aliveTasks.length
+      ? aliveTasks.map((t) => `- ${t.taskId} ${t.title} owner=${getOwner(t) ?? "?"}`)
+      : ["- none"]),
+    `### Tareas huerfanas (in-progress con dueño muerto)`,
+    ...(orphanTasks.length
+      ? orphanTasks.map((t) => `- ${t.taskId} ${t.title} owner=${getOwner(t) ?? "sin dueño"} (stale)`)
+      : ["- none"]),
+    `### Claims de ambito activos`,
+    ...(snapshot.activeClaims.length
+      ? snapshot.activeClaims.map((c) => {
+          const scopeStr = c.scopes.length ? c.scopes.map((s) => s.path ?? s.name ?? s.kind).join(",") : "sin scope";
+          return `- ${scopeStr} por ${c.owner} task=${c.taskId}`;
+        })
+      : ["- none"]),
+    `### Mensajes sin leer para ti`,
+    ...(unreadForMe.length
+      ? unreadForMe.map((m) => `- ${m.from} : ${m.body.split("\n")[0]}`)
+      : ["- none"]),
+  ];
+  const markdown = lines.join("\n");
+  if (context.args.json) writeOutput(context.args, { ok: true, markdown, snapshot, aliveAgents, orphanTasks, aliveTasks });
   else print(markdown);
 }
 
@@ -1296,10 +1470,13 @@ function isAgentStale(agent: AgentStatus, now: string): boolean {
   return Date.parse(now) - Date.parse(agent.lastHeartbeatAt) > (agent.staleAfterMs ?? 300000);
 }
 
-// Presence tag "[stream @ worktree]" for human-readable status/dashboard/handoff output (ADR 0003).
+// Presence tag "[role · stream @ worktree]" for human-readable status/dashboard/handoff/brief output (ADR 0007).
 function agentTag(agent: AgentStatus): string {
-  if (!agent.stream && !agent.worktree) return "";
-  return ` [${agent.stream ?? "?"} @ ${agent.worktree ?? "?"}]`;
+  const role = agent.role ?? "?";
+  const stream = agent.stream ?? "?";
+  const worktree = agent.worktree ?? "?";
+  // Always render role; aids A2 (status must paint role) and brief vivo list.
+  return ` [${role} · ${stream} @ ${worktree}]`;
 }
 
 function mapObjectiveStatusToTask(status: string): string {
@@ -1327,7 +1504,7 @@ function writeJsonAtomic(filePath: string, value: Json, stateRoot: string): void
   assertPathInsideStateRoot(stateRoot, filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  fs.writeFileSync(tempPath, `${JSON.stringify(value)}\n`, "utf8");
   fs.renameSync(tempPath, filePath);
 }
 

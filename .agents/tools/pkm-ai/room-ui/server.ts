@@ -3,6 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createAgentRoomClient, type AgentRoomClient } from "./src/lib/agentRoomClient.ts";
 
@@ -13,6 +14,8 @@ export interface RoomUiServerOptions {
   mode: "local" | "lan";
   passphrase: string;
   client?: AgentRoomClient;
+  stateRoot?: string;
+  tmuxStatePath?: string;
 }
 
 export interface RoomUiServer {
@@ -29,23 +32,53 @@ interface ActionDescriptor {
   allowedFlags: string[];
 }
 
+const BOOLEAN_FLAGS = new Set(["json", "reopen"]);
+
 const ACTIONS: ActionDescriptor[] = [
-  { resource: "task", action: "add", requiredFlags: ["run", "agent", "title"], allowedFlags: ["run", "agent", "title", "scope"] },
-  { resource: "task", action: "status", requiredFlags: ["run", "agent", "task", "status", "token"], allowedFlags: ["run", "agent", "task", "status", "token"] },
-  { resource: "mailbox", action: "send", requiredFlags: ["run", "agent", "to", "body"], allowedFlags: ["run", "agent", "to", "body"] },
-  { resource: "mailbox", action: "ack", requiredFlags: ["run", "agent", "message"], allowedFlags: ["run", "agent", "message"] },
-  { resource: "scope", action: "conflicts", requiredFlags: ["run", "scope"], allowedFlags: ["run", "scope"] },
-  { resource: "scope", action: "claim", requiredFlags: ["run", "agent", "task", "scope"], allowedFlags: ["run", "agent", "task", "scope"] }
+  { resource: "task", action: "add", requiredFlags: ["run", "agent", "title"], allowedFlags: ["run", "agent", "title", "scope", "json", "now", "status", "notes", "objective-id", "objective-path", "depends-on"] },
+  { resource: "task", action: "status", requiredFlags: ["run", "agent", "task", "status", "token"], allowedFlags: ["run", "agent", "task", "status", "token", "json", "now", "reopen"] },
+  { resource: "task", action: "claim", requiredFlags: ["run", "agent", "task"], allowedFlags: ["run", "agent", "task", "lease-ms", "force", "reopen", "json", "now"] },
+  { resource: "task", action: "release", requiredFlags: ["run", "agent", "task", "token"], allowedFlags: ["run", "agent", "task", "token", "json", "now"] },
+  { resource: "mailbox", action: "send", requiredFlags: ["run", "agent", "to", "body"], allowedFlags: ["run", "agent", "to", "body", "task", "kind", "priority", "delivery-mode", "json", "now"] },
+  { resource: "mailbox", action: "ack", requiredFlags: ["run", "agent", "message"], allowedFlags: ["run", "agent", "message", "json", "now"] },
+  { resource: "scope", action: "conflicts", requiredFlags: ["run", "scope"], allowedFlags: ["run", "scope", "json", "now"] },
+  { resource: "scope", action: "claim", requiredFlags: ["run", "agent", "task", "scope"], allowedFlags: ["run", "agent", "task", "scope", "force", "json", "now"] },
+  { resource: "agent", action: "join", requiredFlags: ["run", "agent", "role"], allowedFlags: ["run", "agent", "role", "stream", "worktree", "task", "message", "now", "stale-after-ms", "json"] },
+  { resource: "agent", action: "heartbeat", requiredFlags: ["run", "agent"], allowedFlags: ["run", "agent", "role", "stream", "worktree", "task", "message", "now", "stale-after-ms", "json"] },
+  { resource: "agent", action: "leave", requiredFlags: ["run", "agent"], allowedFlags: ["run", "agent", "json", "now"] },
+  { resource: "brief", action: "", requiredFlags: ["run", "agent"], allowedFlags: ["run", "agent", "json", "now"] },
+  { resource: "status", action: "", requiredFlags: ["run"], allowedFlags: ["run", "json", "now"] },
+  { resource: "dashboard", action: "", requiredFlags: ["run"], allowedFlags: ["run", "json", "now"] },
+  { resource: "handoff", action: "", requiredFlags: ["run"], allowedFlags: ["run", "json", "now"] }
 ];
 
 export function createRoomUiServer(options: RoomUiServerOptions): RoomUiServer {
-  const client = options.client ?? createAgentRoomClient({ cwd: options.cwd });
+  const client = options.client ?? (options.stateRoot
+    ? createAgentRoomClient({
+        cwd: options.cwd,
+        runAgentRoom: (args) => runAgentRoomWithStateRoot(options.cwd, options.stateRoot!, args)
+      })
+    : createAgentRoomClient({ cwd: options.cwd }));
   const server = http.createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
       if (requestUrl.pathname === "/api/status" && request.method === "GET") {
         if (!isAuthorized(options, request)) return sendJson(response, 401, { ok: false, error: "authentication required" });
         return sendJson(response, 200, { ok: true, snapshot: await client.status("current") });
+      }
+      if (requestUrl.pathname === "/api/tmux" && request.method === "GET") {
+        if (!isAuthorized(options, request)) return sendJson(response, 401, { ok: false, error: "authentication required" });
+        const tmuxPath = options.tmuxStatePath ?? path.join(os.homedir(), ".cache", "tmux-herdr-state.json");
+        if (!fs.existsSync(tmuxPath)) {
+          return sendJson(response, 200, { ok: true, running_count: 0, blocked_count: 0, done_count: 0, idle_count: 0, windows: [], hasData: false });
+        }
+        try {
+          const raw = fs.readFileSync(tmuxPath, "utf8");
+          const data = JSON.parse(raw);
+          return sendJson(response, 200, data);
+        } catch (e) {
+          return sendJson(response, 200, { ok: true, running_count: 0, blocked_count: 0, done_count: 0, idle_count: 0, windows: [], hasData: false, error: String(e) });
+        }
       }
       if (requestUrl.pathname === "/api/action" && request.method === "POST") {
         if (!isAuthorized(options, request)) return sendJson(response, 401, { ok: false, error: "authentication required" });
@@ -95,19 +128,53 @@ function validateActionArgs(args: unknown): { ok: true; args: string[] } | { ok:
   if (!Array.isArray(args) || !args.every((value) => typeof value === "string")) {
     return { ok: false, error: "args must be a string array" };
   }
-  if (args.includes("--force")) return { ok: false, error: "--force is outside the MVP boundary" };
-  const [resource, action, ...rest] = args;
-  const descriptor = ACTIONS.find((candidate) => candidate.resource === resource && candidate.action === action);
+  if (args.length === 0) return { ok: false, error: "action is outside the MVP boundary" };
+  const resource = args[0];
+  // Single-word resources: brief, status, dashboard, handoff
+  const SINGLE_WORD_RESOURCES = new Set(["brief", "status", "dashboard", "handoff"]);
+  if (SINGLE_WORD_RESOURCES.has(resource)) {
+    const descriptor = ACTIONS.find((candidate) => candidate.resource === resource && candidate.action === "");
+    if (!descriptor) return { ok: false, error: "action is outside the MVP boundary" };
+    const rest = args.slice(1);
+    const seen = new Set<string>();
+    for (let index = 0; index < rest.length; ) {
+      const flag = rest[index];
+      if (!flag?.startsWith("--")) return { ok: false, error: "unexpected positional argument" };
+      const key = flag.slice(2);
+      if (!descriptor.allowedFlags.includes(key)) return { ok: false, error: `${flag} is not allowed for this action` };
+      if (BOOLEAN_FLAGS.has(key)) {
+        seen.add(key);
+        index += 1;
+      } else {
+        const value = rest[index + 1];
+        if (value === undefined || value.startsWith("--")) return { ok: false, error: `${flag} requires a value` };
+        seen.add(key);
+        index += 2;
+      }
+    }
+    for (const flag of descriptor.requiredFlags) {
+      if (!seen.has(flag)) return { ok: false, error: `missing required --${flag}` };
+    }
+    return { ok: true, args };
+  }
+  const [res, action, ...rest] = args;
+  const descriptor = ACTIONS.find((candidate) => candidate.resource === res && candidate.action === action);
   if (!descriptor) return { ok: false, error: "action is outside the MVP boundary" };
   const seen = new Set<string>();
-  for (let index = 0; index < rest.length; index += 2) {
+  for (let index = 0; index < rest.length; ) {
     const flag = rest[index];
-    const value = rest[index + 1];
     if (!flag?.startsWith("--")) return { ok: false, error: "unexpected positional argument" };
-    if (value === undefined || value.startsWith("--")) return { ok: false, error: `${flag} requires a value` };
     const key = flag.slice(2);
     if (!descriptor.allowedFlags.includes(key)) return { ok: false, error: `${flag} is not allowed for this action` };
-    seen.add(key);
+    if (BOOLEAN_FLAGS.has(key)) {
+      seen.add(key);
+      index += 1;
+    } else {
+      const value = rest[index + 1];
+      if (value === undefined || value.startsWith("--")) return { ok: false, error: `${flag} requires a value` };
+      seen.add(key);
+      index += 2;
+    }
   }
   for (const flag of descriptor.requiredFlags) {
     if (!seen.has(flag)) return { ok: false, error: `missing required --${flag}` };
@@ -177,18 +244,41 @@ function parseCliOptions(argv: string[]): RoomUiServerOptions {
   const port = Number(optionValue(argv, "--port") ?? "8787");
   if (!Number.isFinite(port)) throw new Error("--port must be a number");
   const passphrase = lan ? (optionValue(argv, "--passphrase") ?? crypto.randomBytes(4).toString("hex")) : "";
+  const stateRoot = optionValue(argv, "--state-root");
+  const tmuxState = optionValue(argv, "--tmux-state");
   return {
     cwd: defaultRepoRoot(),
     host,
     port,
     mode: lan ? "lan" : "local",
-    passphrase
+    passphrase,
+    stateRoot: stateRoot ? path.resolve(stateRoot) : undefined,
+    tmuxStatePath: tmuxState ? path.resolve(tmuxState) : undefined
   };
 }
 
 function optionValue(argv: string[], name: string): string | undefined {
   const index = argv.indexOf(name);
   return index === -1 ? undefined : argv[index + 1];
+}
+
+function runAgentRoomWithStateRoot(cwd: string, stateRoot: string, args: string[]): Promise<{ status: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const script = path.join(cwd, ".agents", "tools", "pkm-ai", "agent-room.ts");
+    const augmented = [...args];
+    if (!augmented.includes("--state-root")) {
+      augmented.push("--state-root", stateRoot);
+    }
+    const child = spawn("node", [script, ...augmented], { cwd, shell: false });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.on("error", (error) => resolve({ status: 1, stdout, stderr: error.message }));
+    child.on("close", (code) => resolve({ status: code ?? 1, stdout, stderr }));
+  });
 }
 
 if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
