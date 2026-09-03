@@ -125,7 +125,7 @@ describe("resolveNativeBindingTarget", () => {
 });
 
 describe("handleNativeBindingClick with WIR routing", () => {
-	it("executes reveal-in-vaultman on primary click for breadcrumbs", async () => {
+	it("executes reveal-in-vaultman on alt click for breadcrumbs (primary plain never hijacks)", async () => {
 		const b = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Inbox" });
 		void mockElement({ classes: ["view-header-title-parent"], children: [b] });
 
@@ -141,7 +141,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 			target: b,
 			ctrlKey: false,
 			metaKey: false,
-			altKey: false,
+			altKey: true,
 			button: 0,
 			preventDefault: vi.fn(),
 			stopImmediatePropagation: vi.fn(),
@@ -151,7 +151,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 			bindingService: { bindOrCreate: mockBindOrCreate },
 			settings: {
 				nativeSurfaceClickPrimary: "reveal-in-vaultman",
-				nativeSurfaceClickAlt: "open-node-note-same-tab",
+				nativeSurfaceClickAlt: "reveal-in-vaultman",
 				nativeSurfaceClickMod: "open-node-note-new-tab",
 			},
 			revealInVaultman: mockReveal,
@@ -164,7 +164,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 		expect(event.preventDefault).toHaveBeenCalled();
 	});
 
-	it("executes searchInVaultman when action is search-selection", async () => {
+	it("executes searchInVaultman when alt action is search-selection (primary plain never hijacks)", async () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#research" });
 		const mockSearch = vi.fn();
 
@@ -172,7 +172,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 			target: span,
 			ctrlKey: false,
 			metaKey: false,
-			altKey: false,
+			altKey: true,
 			button: 0,
 			preventDefault: vi.fn(),
 			stopImmediatePropagation: vi.fn(),
@@ -182,7 +182,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 			bindingService: { bindOrCreate: vi.fn() },
 			settings: {
 				nativeSurfaceClickPrimary: "search-selection",
-				nativeSurfaceClickAlt: "open-node-note-same-tab",
+				nativeSurfaceClickAlt: "search-selection",
 				nativeSurfaceClickMod: "open-node-note-new-tab",
 			},
 			searchInVaultman: mockSearch,
@@ -191,6 +191,76 @@ describe("handleNativeBindingClick with WIR routing", () => {
 		expect(handled).toBe(true);
 		expect(mockSearch).toHaveBeenCalledWith("research");
 		expect(event.preventDefault).toHaveBeenCalled();
+	});
+});
+
+describe("task_108 surface-guard negativos (primario llano nunca suprime)", () => {
+	function plainPrimary(target: any) {
+		return {
+			target,
+			ctrlKey: false,
+			metaKey: false,
+			altKey: false,
+			button: 0,
+			preventDefault: vi.fn(),
+			stopImmediatePropagation: vi.fn(),
+		} as unknown as MouseEvent;
+	}
+
+	const defaultSettings = {
+		nativeSurfaceClickPrimary: "reveal-in-vaultman" as const,
+		nativeSurfaceClickAlt: "open-node-note-same-tab" as const,
+		nativeSurfaceClickMod: "open-node-note-new-tab" as const,
+	};
+
+	it("P1: fila [data-plugin-id] de settings no resuelve ni suprime", async () => {
+		const row = mockElement({ dataset: { pluginId: "some-plugin" } });
+		expect(resolveNativeBindingTarget(row)).toBeNull();
+
+		const event = plainPrimary(row);
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: vi.fn() },
+			settings: defaultSettings,
+			revealInVaultman: vi.fn().mockResolvedValue(true),
+		});
+
+		expect(handled).toBe(false);
+		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+
+	it("primario llano sobre tag allowlistada no suprime", async () => {
+		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#research" });
+		const event = plainPrimary(span);
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: vi.fn() },
+			settings: defaultSettings,
+			revealInVaultman: vi.fn().mockResolvedValue(true),
+		});
+
+		expect(handled).toBe(false);
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("tag dentro de .modal-container no resuelve (exclusion expresa)", () => {
+		const modal = mockElement({ classes: ["modal-container"] });
+		const inner = mockElement({ classes: ["cm-hashtag"], parent: modal, textContent: "#research" });
+
+		expect(resolveNativeBindingTarget(inner)).toBeNull();
+	});
+
+	it("superficie desconocida conserva nativo", async () => {
+		const unknown = mockElement({ classes: ["random-unknown"], textContent: "x" });
+		expect(resolveNativeBindingTarget(unknown)).toBeNull();
+
+		const event = plainPrimary(unknown);
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: vi.fn() },
+			settings: defaultSettings,
+		});
+
+		expect(handled).toBe(false);
+		expect(event.preventDefault).not.toHaveBeenCalled();
 	});
 });
 

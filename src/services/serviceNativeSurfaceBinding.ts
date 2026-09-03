@@ -99,6 +99,13 @@ export function resolveNativeBindingTarget(
 		return null;
 	}
 
+	// task_108 surface-guard (allowlist cerrada, deny-by-default): exclusion
+	// expresa de superficies efimeras/documentales. Ningun clic dentro de
+	// modales, menus o prompts activa el binding.
+	if (base.closest(".modal-container, .menu, .prompt")) {
+		return null;
+	}
+
 	// 1. Breadcrumbs
 	const breadcrumb = base.closest<HTMLElement>(".view-header-breadcrumb");
 	if (breadcrumb) {
@@ -121,28 +128,11 @@ export function resolveNativeBindingTarget(
 	const folderElement = closestAny(base, [".nav-folder-title", "[data-path][data-type=\"folder\"]"]);
 	if (folderElement) return resolveFolderTarget(folderElement);
 
-	// 4. Snippets
-	const snippetElement = base.closest<HTMLElement>("[data-snippet-name]");
-	if (snippetElement?.dataset?.snippetName) {
-		return {
-			element: snippetElement,
-			node: { kind: "snippet", label: snippetElement.dataset.snippetName },
-			hoverParent: closestHoverParent(snippetElement),
-		};
-	}
-
-	// 5. Plugins
-	const pluginElement = base.closest<HTMLElement>("[data-plugin-id]");
-	if (pluginElement?.dataset?.pluginId) {
-		return {
-			element: pluginElement,
-			node: {
-				kind: "plugin",
-				label: pluginElement.dataset.pluginId,
-				pluginId: pluginElement.dataset.pluginId,
-			},
-			hoverParent: closestHoverParent(pluginElement),
-		};
+	// 4-5. Snippet/plugin rows: EXCLUIDAS de la allowlist (task_108).
+	// Las filas de settings ([data-plugin-id]) son el vector exacto del P1:
+	// lo desconocido conserva nativo hasta contrato documental.
+	if (base.closest<HTMLElement>("[data-snippet-name], [data-plugin-id]")) {
+		return null;
 	}
 
 	return null;
@@ -195,6 +185,13 @@ function resolveActionForEvent(
 	}
 	if (event.altKey) {
 		return settings.nativeSurfaceClickAlt ?? "open-node-note-same-tab";
+	}
+	// task_108 puerta de primario (B1): clic primario llano (boton 0 sin
+	// modificadores) -> "none" por defecto para toda superficie. Ninguna
+	// superficie documentada exige accion primaria ("without hijacking
+	// normal clicks"). Antes de cualquier preventDefault.
+	if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+		return "none";
 	}
 	// Primary click:
 	if (target.isBreadcrumb) {

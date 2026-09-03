@@ -137,7 +137,7 @@ describe('Adversarial Stress: Non-Markdown Files & Wikilinks', () => {
 });
 
 describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
-	it('Routes primary click on breadcrumb to reveal-in-vaultman and stops propagation', async () => {
+	it('Routes alt click on breadcrumb to reveal-in-vaultman and stops propagation (primary plain never hijacks, task_108)', async () => {
 		const mockReveal = vi.fn().mockResolvedValue(true);
 		const mockBindOrCreate = vi.fn();
 		const span = {
@@ -151,7 +151,7 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 			button: 0,
 			ctrlKey: false,
 			metaKey: false,
-			altKey: false,
+			altKey: true,
 			preventDefault: vi.fn(),
 			stopImmediatePropagation: vi.fn(),
 		} as unknown as MouseEvent;
@@ -160,7 +160,7 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 			bindingService: { bindOrCreate: mockBindOrCreate } as any,
 			settings: {
 				nativeSurfaceClickPrimary: 'reveal-in-vaultman',
-				nativeSurfaceClickAlt: 'open-node-note-same-tab',
+				nativeSurfaceClickAlt: 'reveal-in-vaultman',
 				nativeSurfaceClickMod: 'open-node-note-new-tab',
 			},
 			revealInVaultman: mockReveal,
