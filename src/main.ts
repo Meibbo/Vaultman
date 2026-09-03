@@ -36,6 +36,9 @@ import { ContextMenuService } from './services/serviceContextMenu';
 import { registerContentActions } from './logic/logicContentContextMenu';
 import { registerSnippetActions } from './logic/logicSnippetContextMenu';
 import { registerPluginActions } from './logic/logicPluginContextMenu';
+import { NodeBindingService } from './services/serviceNodeBinding';
+import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
+import { registerNodeBindingActions } from './logic/logicNodeBindingContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
@@ -86,9 +89,29 @@ export class VaultmanPlugin extends Plugin {
 	contextMenuService!: ContextMenuService;
 	statisticsCache!: StatisticsCacheService;
 	lastOpenedService!: LastOpenedService;
+	nodeBindingService!: NodeBindingService;
+	nativeSurfaceBindingService!: NativeSurfaceBindingService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
+
+	
+	async revealNodeInVaultman(node: import('./services/serviceNodeBinding').BindingNodeInput): Promise<boolean> {
+		const leaves = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
+		let targetLeaf = leaves[0];
+		if (!targetLeaf) {
+			targetLeaf = this.app.workspace.getLeftLeaf(false) ?? this.app.workspace.getLeaf('tab');
+			await targetLeaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
+		}
+		this.app.workspace.revealLeaf(targetLeaf);
+		this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+
+		const view = targetLeaf.view as VaultmanFrame;
+		if (view && typeof (view as any).revealPath === 'function') {
+			(view as any).revealPath(node.path ?? node.label);
+		}
+		return true;
+	}
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -121,9 +144,40 @@ export class VaultmanPlugin extends Plugin {
 
 		// BT5-036: content nodes are files; register their Rename/Delete panel
 		// actions once so the Content menu kind is populated and configurable.
+		
+				this.nodeBindingService = new NodeBindingService({
+			app: this.app,
+			
+			router: (token) => {
+				void this.filterService.addNode({
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'aliases',
+					values: [token],
+				});
+			},
+		});
+		this.nativeSurfaceBindingService = new NativeSurfaceBindingService({
+			plugin: this,
+			app: this.app,
+			bindingService: this.nodeBindingService,
+			revealInVaultman: (node) => this.revealNodeInVaultman(node),
+			searchInVaultman: async (token: string) => {
+				await this.revealNodeInVaultman({ kind: 'tag', label: token });
+				void this.filterService.addNode({
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'tag',
+					values: [token.replace(/^#/, '')],
+				});
+			},
+		});
+		this.addChild(this.nativeSurfaceBindingService);
+
 		registerContentActions(this);
 		registerSnippetActions(this);
 		registerPluginActions(this);
+		registerNodeBindingActions(this);
 
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),

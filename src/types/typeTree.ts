@@ -100,6 +100,7 @@ export interface TreeNode<TMeta = unknown> {
 
 export interface TagMeta {
 	tagPath: string;
+	hasNodeNote?: boolean;
 	/**
 	 * Where the tag is written — frontmatter, the body, or both. Set by the
 	 * reveal projection, which knows the one note it is showing; the vault-wide
@@ -111,6 +112,7 @@ export interface TagMeta {
 
 export interface PropMeta {
 	propName: string;
+	hasNodeNote?: boolean;
 	propType: string;
 	isValueNode: boolean;
 	rawValue?: string;
@@ -124,10 +126,12 @@ export interface FileMeta {
 	folder?: TFolder | null;
 	isFolder: boolean;
 	folderPath: string;
+	hasNodeNote?: boolean;
 }
 
 export interface SnippetMeta {
 	name: string;
+	hasNodeNote?: boolean;
 	enabled: boolean;
 	installedTime?: number;
 	updatedTime?: number;
@@ -135,6 +139,7 @@ export interface SnippetMeta {
 
 export interface PluginMeta {
 	pluginId: string;
+	hasNodeNote?: boolean;
 	name: string;
 	enabled: boolean;
 	loaded: boolean;

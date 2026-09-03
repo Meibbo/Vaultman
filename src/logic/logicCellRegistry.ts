@@ -243,7 +243,15 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		role: 'value',
 		labelKey: 'viewmode.pill.format',
 		icon: 'lucide-braces',
-		supports: [{ explorer: 'props', fixedRank: 35, defaultOn: false }],
+		supports: [
+			{ explorer: 'props', fixedRank: 35, defaultOn: false },
+			{ explorer: 'tags', fixedRank: 35, defaultOn: false },
+			{ explorer: 'plugins', fixedRank: 35, defaultOn: false },
+			{ explorer: 'snippets', fixedRank: 35, defaultOn: false },
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 35, defaultOn: false },
+			{ explorer: 'files', viewModes: ['table'], fixedRank: 35, defaultOn: false },
+			{ explorer: 'files', viewModes: FILE_CARD_MODES, fixedRank: 35, defaultOn: false },
+		],
 	},
 	{
 		// U121-003: the flat counterpart of `path` in the file explorer. With

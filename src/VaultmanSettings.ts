@@ -93,8 +93,63 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 */
 	private getRootItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+		const wirOptions = {
+			'reveal-in-vaultman': translate('settings.action.reveal_in_vaultman'),
+			'open-node-note-same-tab': translate('settings.action.open_node_note_same_tab'),
+			'open-node-note-new-tab': translate('settings.action.open_node_note_new_tab'),
+			'search-selection': translate('settings.action.search_selection'),
+			'none': translate('settings.action.none'),
+		};
 
 		items.push({
+			name: translate('settings.native_surface_click_primary'),
+			desc: translate('settings.native_surface_click_primary.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickPrimary ?? 'reveal-in-vaultman')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickPrimary = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.native_surface_click_alt'),
+			desc: translate('settings.native_surface_click_alt.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickAlt ?? 'open-node-note-same-tab')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickAlt = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.native_surface_click_mod'),
+			desc: translate('settings.native_surface_click_mod.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickMod ?? 'open-node-note-new-tab')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickMod = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+						
+items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {

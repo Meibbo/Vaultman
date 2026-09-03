@@ -5538,6 +5538,21 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   /* Inset doesn't push */
 }
 
+.vaultman-node-note-link {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  pointer-events: auto;
+  text-decoration: underline dotted var(--text-faint);
+  text-underline-offset: 3px;
+  transition: color 120ms ease, text-decoration-color 120ms ease;
+}
+.vaultman-node-note-link:hover {
+  text-decoration: underline solid var(--color-accent);
+  color: var(--nav-item-color-highlighted, var(--text-accent));
+}
+
 /* === Bases table injections === */
 th.vaultman-bases-th-check,
 td.vaultman-bases-td-check {

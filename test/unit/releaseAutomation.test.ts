@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+// @ts-expect-error release.mjs has no declaration file
 import { isAlreadyPrepared } from '../../scripts/release.mjs';
 import {
 	branchForChannel,

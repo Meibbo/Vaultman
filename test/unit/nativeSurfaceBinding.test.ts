@@ -1,0 +1,224 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+	resolveBreadcrumbFolderPath,
+	resolveNativeBindingTarget,
+	handleNativeBindingClick,
+	handleNativeBindingHover,
+	NATIVE_SURFACE_HOVER_SOURCE,
+} from "../../src/services/serviceNativeSurfaceBinding";
+
+function mockElement(opts: {
+	classes?: string[];
+	attributes?: Record<string, string>;
+	dataset?: Record<string, string>;
+	textContent?: string;
+	parent?: any;
+	children?: any[];
+} = {}) {
+	const classes = new Set(opts.classes ?? []);
+	const attributes = { ...(opts.attributes ?? {}) };
+	const dataset = { ...(opts.dataset ?? {}) };
+	const textContent = opts.textContent ?? "";
+	const children = opts.children ?? [];
+
+	const el: any = {
+		className: Array.from(classes).join(" "),
+		classList: {
+			contains: (cls: string) => classes.has(cls),
+		},
+		dataset,
+		textContent,
+		parent: opts.parent ?? null,
+		getAttribute: (attr: string) => attributes[attr] ?? null,
+		closest: function (selector: string) {
+			const parts = selector.split(",").map((s: string) => s.trim());
+			for (const part of parts) {
+				if (part.startsWith(".")) {
+					const className = part.slice(1).split("[")[0].split(":")[0];
+					if (classes.has(className)) return this;
+				}
+				if (part.includes("[data-path]") && attributes["data-path"] !== undefined) return this;
+				if (part.includes("[data-snippet-name]") && dataset.snippetName !== undefined) return this;
+				if (part.includes("[data-plugin-id]") && dataset.pluginId !== undefined) return this;
+				if (part.includes("a.tag") && classes.has("tag")) return this;
+			}
+			if (this.parent) return this.parent.closest(selector);
+			return null;
+		},
+		querySelectorAll: (selector: string) => {
+			if (selector.includes("view-header-breadcrumb")) return children;
+			return [];
+		},
+		querySelector: () => null,
+	};
+
+	for (const child of children) {
+		child.parent = el;
+	}
+	return el;
+}
+
+describe("resolveBreadcrumbFolderPath", () => {
+	it("resolves slice path based on breadcrumb index in view-header-title-parent", () => {
+		const b1 = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Projects" });
+		const b2 = mockElement({ classes: ["view-header-breadcrumb"], textContent: "2026" });
+		void mockElement({
+			classes: ["view-header-title-parent"],
+			children: [b1, b2],
+		});
+
+		const mockApp: any = {
+			workspace: {
+				getActiveFile: () => ({
+					parent: { path: "Projects/2026" },
+				}),
+			},
+		};
+
+		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Projects");
+		expect(resolveBreadcrumbFolderPath(b2, mockApp)).toBe("Projects/2026");
+	});
+});
+
+describe("resolveNativeBindingTarget", () => {
+	it("resolves breadcrumb element to folder target", () => {
+		const b1 = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Docs" });
+		void mockElement({
+			classes: ["view-header-title-parent"],
+			children: [b1],
+		});
+
+		const mockApp: any = {
+			workspace: {
+				getActiveFile: () => ({
+					parent: { path: "Docs" },
+				}),
+			},
+		};
+
+		const target = resolveNativeBindingTarget(b1, mockApp);
+		expect(target).not.toBeNull();
+		expect(target?.node.kind).toBe("folder");
+		expect(target?.node.path).toBe("Docs");
+		expect(target?.isBreadcrumb).toBe(true);
+	});
+
+	it("resolves tag element from cm-hashtag", () => {
+		const span = mockElement({
+			classes: ["cm-hashtag"],
+			textContent: "#work/urgent",
+		});
+
+		const target = resolveNativeBindingTarget(span);
+		expect(target).not.toBeNull();
+		expect(target?.node.kind).toBe("tag");
+		expect(target?.node.label).toBe("work/urgent");
+	});
+
+	it("ignores clicks originating inside Vaultman internal views", () => {
+		const row = mockElement({ classes: ["vaultman-tree-row"] });
+		const innerSpan = mockElement({ classes: ["cm-hashtag"], parent: row, textContent: "#tag" });
+
+		const target = resolveNativeBindingTarget(innerSpan);
+		expect(target).toBeNull();
+	});
+});
+
+describe("handleNativeBindingClick with WIR routing", () => {
+	it("executes reveal-in-vaultman on primary click for breadcrumbs", async () => {
+		const b = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Inbox" });
+		void mockElement({ classes: ["view-header-title-parent"], children: [b] });
+
+		const mockReveal = vi.fn().mockResolvedValue(true);
+		const mockBindOrCreate = vi.fn();
+		const mockApp: any = {
+			workspace: {
+				getActiveFile: () => ({ parent: { path: "Inbox" } }),
+			},
+		};
+
+		const event = {
+			target: b,
+			ctrlKey: false,
+			metaKey: false,
+			altKey: false,
+			button: 0,
+			preventDefault: vi.fn(),
+			stopImmediatePropagation: vi.fn(),
+		} as unknown as MouseEvent;
+
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: mockBindOrCreate },
+			settings: {
+				nativeSurfaceClickPrimary: "reveal-in-vaultman",
+				nativeSurfaceClickAlt: "open-node-note-same-tab",
+				nativeSurfaceClickMod: "open-node-note-new-tab",
+			},
+			revealInVaultman: mockReveal,
+			app: mockApp,
+		});
+
+		expect(handled).toBe(true);
+		expect(mockReveal).toHaveBeenCalledWith(expect.objectContaining({ kind: "folder", path: "Inbox" }));
+		expect(mockBindOrCreate).not.toHaveBeenCalled();
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+
+	it("executes searchInVaultman when action is search-selection", async () => {
+		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#research" });
+		const mockSearch = vi.fn();
+
+		const event = {
+			target: span,
+			ctrlKey: false,
+			metaKey: false,
+			altKey: false,
+			button: 0,
+			preventDefault: vi.fn(),
+			stopImmediatePropagation: vi.fn(),
+		} as unknown as MouseEvent;
+
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: vi.fn() },
+			settings: {
+				nativeSurfaceClickPrimary: "search-selection",
+				nativeSurfaceClickAlt: "open-node-note-same-tab",
+				nativeSurfaceClickMod: "open-node-note-new-tab",
+			},
+			searchInVaultman: mockSearch,
+		});
+
+		expect(handled).toBe(true);
+		expect(mockSearch).toHaveBeenCalledWith("research");
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+});
+
+describe("handleNativeBindingHover", () => {
+	it("triggers hover-link on native tag when bound note exists", () => {
+		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
+		const mockTrigger = vi.fn();
+		const mockFile = { path: "Notes/Books.md" };
+
+		const mockApp: any = {
+			vault: {
+				getMarkdownFiles: () => [mockFile],
+			},
+			metadataCache: {
+				getFileCache: () => ({ frontmatter: { aliases: ["#books"] } }),
+			},
+			workspace: {
+				trigger: mockTrigger,
+			},
+		};
+
+		const event = { target: span } as MouseEvent;
+		const handled = handleNativeBindingHover(event, { app: mockApp });
+
+		expect(handled).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			source: NATIVE_SURFACE_HOVER_SOURCE,
+			linktext: "Notes/Books.md",
+		}));
+	});
+});

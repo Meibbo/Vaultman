@@ -1219,7 +1219,7 @@ export class UnifiedTreeView {
 				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
 			});
 			setIcon(toggleEl, 'right-triangle');
-			if (hasChildren) {
+			if (hasChildren || showCaret) {
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
 					if (this._recursiveExpandGesture.isActivationSuppressed()) {

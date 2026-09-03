@@ -1864,6 +1864,9 @@ export class FilesExplorerPanel extends Component {
 		this._refreshCachedTreeLabels(nodes);
 		this._decorateTreeWithFileTimes(nodes);
 		if (rebuildQueueIndex) this._decorateTreeWithQueue(nodes);
+		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+			this._decorateTreeWithNodeNotes(nodes);
+		}
 		this._setIndexRoots(nodes, []);
 		this._treeRenderOpts = {
 			...this._treeRenderOpts,
@@ -2075,6 +2078,13 @@ export class FilesExplorerPanel extends Component {
 				() => this._decorateTreeWithQueue(renderTree),
 				{ files: sortedFiles.length },
 			);
+			if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+				vaultmanPerfMonitor.measure(
+					'explorer.files.decorate-node-notes',
+					() => this._decorateTreeWithNodeNotes(renderTree),
+					{ nodes: renderTree.length },
+				);
+			}
 			const applyFolderIcons = (
 				nodes: TreeNode<FileMeta>[],
 				expanded: Set<string>,
@@ -2182,19 +2192,7 @@ export class FilesExplorerPanel extends Component {
 				},
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
-				renderLabel: (row, node) => {
-					const queue = this.plugin.queueService.queue;
-					const target = renameTargetFromQueue(queue, node.id);
-					if (target) {
-						const label = row.createSpan({
-							cls: 'vaultman-tree-label vaultman-rename-preview',
-							text: target,
-						});
-						if (node.labelColor) label.style.color = node.labelColor;
-						return true;
-					}
-					return false;
-				},
+				renderLabel: (row, node) => this._renderFileLabel(row, node),
 				onToggle: (id: string) => {
 					// U121-080: collapsing a row that is PINNED above the viewport
 					// destroys the content the scroll offset was pointing into, so the
@@ -2361,6 +2359,114 @@ export class FilesExplorerPanel extends Component {
 			this._warmStatisticsCache(displayFiles);
 		}
 	}
+
+	
+	private _decorateTreeWithNodeNotes(nodes: TreeNode<FileMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === "string") aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === "string") {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<FileMeta>[]) => {
+			for (const node of list) {
+				const isFolder = node.meta.isFolder === true || (node as any).isFolder === true;
+				const path = isFolder
+					? (node.meta?.folderPath ?? node.id.replace(/^folder:/, ''))
+					: (node.meta?.file?.path ?? node.id);
+				let hasBoundNote = false;
+
+				if (isFolder) {
+					const folderPath = path.replace(/^[\/\\]+|[\/\\]+$/g, "");
+					const folderName = folderPath.split("/").pop() ?? folderPath;
+					const cNodePath = folderPath ? folderPath + "/" + folderName + ".md" : folderName + ".md";
+					if (app.vault.getAbstractFileByPath?.(cNodePath)) {
+						hasBoundNote = true;
+					} else if (aliasSet.has(folderPath) || aliasSet.has(folderName)) {
+						hasBoundNote = true;
+					}
+				} else if (!path.endsWith(".md")) {
+					const fileName = path.split("/").pop() ?? path;
+					const basename = fileName.replace(/\.[^/.]+$/, "");
+					if (aliasSet.has(path) || aliasSet.has(fileName) || aliasSet.has(basename)) {
+						hasBoundNote = true;
+					}
+				}
+
+				if (hasBoundNote) {
+					node.meta.hasNodeNote = true;
+				}
+
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
+	}
+
+	private _renderFileLabel(container: HTMLElement, node: TreeNode<any>): boolean {
+		const queue = this.plugin.queueService.queue;
+		const target = renameTargetFromQueue(queue, node.id);
+		if (target) {
+			const label = container.createSpan({
+				cls: "vaultman-tree-label vaultman-rename-preview",
+				text: target,
+			});
+			if (node.labelColor) label.style.color = node.labelColor;
+			return true;
+		}
+
+		// O(1) pure read: When format cell is visible and node was decorated with a Node-Note
+		if (this.visibleCells.has("format") && node.meta?.hasNodeNote === true) {
+			const linkEl = container.createSpan({
+				cls: "vaultman-tree-label vaultman-node-note-link",
+				text: node.label,
+			});
+			if (node.labelColor) linkEl.style.color = node.labelColor;
+			linkEl.onclick = (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+				const meta = node.meta as FileMeta;
+				if (meta?.isFolder) {
+					void this.plugin.nodeBindingService?.bindOrCreate(
+						{
+							kind: "folder",
+							label: node.label,
+							path: meta.folderPath ?? meta.folder?.path ?? node.id.replace(/^folder:/, ""),
+						},
+						{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+					);
+				} else {
+					void this.plugin.nodeBindingService?.bindOrCreate(
+						{
+							kind: "file",
+							label: node.label,
+							path: meta?.file?.path ?? node.id,
+						},
+						{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+					);
+				}
+			};
+			return true;
+		}
+
+		return false;
+	}
+
 
 	private _handleFileDragOver(
 		targetNode: TreeNode<FileMeta>,
@@ -3191,6 +3297,10 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	private readonly _handleMetadataChange = (file: TFile): void => {
+		if (this.visibleCells.has('format')) {
+			this._scheduleRefresh();
+			return;
+		}
 		if (!this.visibleCells.has('count') && !this._usesPropertyCountSort()) {
 			return;
 		}

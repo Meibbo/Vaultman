@@ -84,6 +84,21 @@ export class SnippetsExplorerPanel
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
 		// BT5-019: Iconic never resolves snippets, but its adapter also fires
 		// when the icon library itself changes; repaint through that existing
 		// event (no new timer) and release the subscription on unload.
@@ -265,13 +280,67 @@ export class SnippetsExplorerPanel
 		this.render();
 	}
 
+	
+	private _decorateNodeNotes(nodes: TreeNode<SnippetMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		for (const node of nodes) {
+			const snippetName = node.meta?.name ?? node.label;
+			if (
+				aliasSet.has('$' + snippetName) ||
+				aliasSet.has(snippetName)
+			) {
+				node.meta.hasNodeNote = true;
+			}
+		}
+	}
+
 	private render(): void {
 		if (!this.treeView) return;
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
 			nodes: this.nodes,
 			visibleCells: this.visibleCells,
+			renderLabel: (row, node) => {
+				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as SnippetMeta;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'snippet', label: meta.name ?? node.label, snippetName: meta.name },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
+					return true;
+				}
+				return false;
+			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 			expandedIds: new Set<string>(),
 			...(this.interactionMode === 'select'

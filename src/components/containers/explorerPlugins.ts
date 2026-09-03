@@ -82,6 +82,21 @@ export class PluginsExplorerPanel
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
 		// BT5-019: external icon edits repaint through the existing adapter
 		// event — no new timer — and the subscription is released on unload.
 		const iconic = this.plugin.iconicService;
@@ -283,13 +298,70 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	
+	private _decorateNodeNotes(nodes: TreeNode<PluginMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		for (const node of nodes) {
+			const pluginId = node.meta?.pluginId ?? node.id;
+			const pluginName = node.meta?.name ?? node.label;
+			if (
+				aliasSet.has('%' + pluginId) ||
+				aliasSet.has(pluginId) ||
+				aliasSet.has('%' + pluginName) ||
+				aliasSet.has(pluginName)
+			) {
+				node.meta.hasNodeNote = true;
+			}
+		}
+	}
+
 	private render(): void {
 		if (!this.treeView) return;
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
 			nodes: this.nodes,
 			visibleCells: this.visibleCells,
+			renderLabel: (row, node) => {
+				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as PluginMeta;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'plugin', label: meta.name ?? node.label, pluginId: meta.pluginId },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
+					return true;
+				}
+				return false;
+			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 			expandedIds: new Set<string>(),
 			...(this.interactionMode === 'select'

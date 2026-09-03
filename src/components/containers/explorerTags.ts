@@ -43,6 +43,7 @@ import {
 
 export interface PanelPluginCtx {
 	app: App;
+	nodeBindingService?: import('../../services/serviceNodeBinding').NodeBindingService;
 	filterService: FilterService;
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
@@ -266,6 +267,27 @@ export class TagsExplorerPanel extends Component {
 				this.logic.invalidate();
 				this.tagSourceIndex = null;
 				this._deferRender();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
 			}),
 		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
@@ -595,6 +617,41 @@ export class TagsExplorerPanel extends Component {
 	): ReadonlySet<TagSource> | undefined {
 		if (this.revealActiveFile) return node.meta.tagSources;
 		return node.meta.tagSources ?? this._sourceIndex().get(node.meta.tagPath);
+	}
+
+	
+	private _decorateNodeNotes(nodes: TreeNode<TagMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<TagMeta>[]) => {
+			for (const node of list) {
+				const tagPath = node.meta?.tagPath ?? node.label;
+				if (aliasSet.has('#' + tagPath) || aliasSet.has('#' + tagPath.replace(/^#/, '')) || aliasSet.has(tagPath)) {
+					node.meta.hasNodeNote = true;
+				}
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
 	}
 
 	private _decorateTypeText(nodes: TreeNode<TagMeta>[]): void {
@@ -978,6 +1035,9 @@ export class TagsExplorerPanel extends Component {
 		if (this.visibleCells.has('type')) {
 			this._decorateTypeText(nodesWithIcons);
 		}
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(nodesWithIcons);
+		}
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(
@@ -1084,6 +1144,23 @@ export class TagsExplorerPanel extends Component {
 						text: target,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+				if (this.visibleCells.has('format') && (node.meta as TagMeta)?.hasNodeNote === true) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const tagPath = (node.meta as TagMeta)?.tagPath ?? node.label;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'tag', label: node.label, tagPath },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
 					return true;
 				}
 				return false;

@@ -27,6 +27,7 @@ import {
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
+	nodeBindingService?: import('../../services/serviceNodeBinding').NodeBindingService;
 	filterService: FilterService;
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
@@ -527,6 +528,22 @@ export class PropsExplorerPanel extends Component {
 			this.plugin.app.metadataCache.on('changed', () => {
 				this.logic.invalidate();
 				this._deferRender();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) {
+					this.logic.invalidate();
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) {
+					this.logic.invalidate();
+					this._deferRender();
+				}
 			}),
 		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
@@ -1652,6 +1669,57 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
+		private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<PropMeta>[]) => {
+			for (const node of list) {
+				const meta = node.meta;
+				if (meta) {
+					if (!meta.isValueNode) {
+						const propName = meta.propName ?? node.label;
+						if (
+							aliasSet.has('[' + propName + ']') ||
+							aliasSet.has(propName)
+						) {
+							meta.hasNodeNote = true;
+						}
+					} else {
+						const rawValue = meta.rawValue ?? node.label;
+						if (
+							aliasSet.has(rawValue) ||
+							aliasSet.has(node.label) ||
+							(rawValue.startsWith('[[') && rawValue.endsWith(']]'))
+						) {
+							meta.hasNodeNote = true;
+						}
+					}
+				}
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
+	}
+
 	private _decorateSubCounts(nodes: TreeNode<PropMeta>[]): void {
 		for (const node of nodes) {
 			node.subCountText =
@@ -1715,6 +1783,9 @@ export class PropsExplorerPanel extends Component {
 		this._setIndexRoots(nodesWithIcons);
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(nodesWithIcons);
+		}
+		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+			this._decorateNodeNotes(nodesWithIcons);
 		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
@@ -1791,6 +1862,30 @@ export class PropsExplorerPanel extends Component {
 						if (node.labelColor) label.style.color = node.labelColor;
 						return true;
 					}
+					if (this.visibleCells.has('format') && (node.meta as PropMeta)?.hasNodeNote === true) {
+						const label = container.createSpan({
+							cls: 'vaultman-tree-label vaultman-node-note-link',
+							text: node.label,
+						});
+						if (node.labelColor) label.style.color = node.labelColor;
+						label.onclick = (e) => {
+							e.stopPropagation();
+							e.preventDefault();
+							const meta = node.meta as PropMeta;
+							if (meta?.isValueNode) {
+								void this.plugin.nodeBindingService?.bindOrCreate(
+									{ kind: 'value', label: node.label, propName: meta.propName },
+									{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+								);
+							} else {
+								void this.plugin.nodeBindingService?.bindOrCreate(
+									{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
+									{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+								);
+							}
+						};
+						return true;
+					}
 					return this._renderPropertyValueLabel(container, node);
 				},
 			});
@@ -1815,6 +1910,30 @@ export class PropsExplorerPanel extends Component {
 						text: target,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+				if (this.visibleCells.has('format') && (node.meta as PropMeta)?.hasNodeNote === true) {
+					const label = container.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as PropMeta;
+						if (meta?.isValueNode) {
+							void this.plugin.nodeBindingService?.bindOrCreate(
+								{ kind: 'value', label: node.label, propName: meta.propName },
+								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+							);
+						} else {
+							void this.plugin.nodeBindingService?.bindOrCreate(
+								{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
+								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+							);
+						}
+					};
 					return true;
 				}
 				return this._renderPropertyValueLabel(

@@ -1,3 +1,10 @@
+export type NativeSurfaceClickAction =
+	| 'reveal-in-vaultman'
+	| 'open-node-note-same-tab'
+	| 'open-node-note-new-tab'
+	| 'search-selection'
+	| 'none';
+
 import type { Plugin } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
@@ -325,7 +332,11 @@ export interface VaultmanSettings {
 	contextMenuHideRules: MenuHideRule[];
 	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
 	instanceRegistry?: InstanceRegistryData;
-}
+	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
+	nativeSurfaceClickAlt: NativeSurfaceClickAction;
+	nativeSurfaceClickMod: NativeSurfaceClickAction;
+	/** Folder where new node-notes are created (empty = vault root) */
+	}
 
 /** Minimal interface used by VaultmanSettingsTab — breaks the main.ts circular import. */
 export interface iVaultmanPlugin extends Plugin {
@@ -340,6 +351,7 @@ export interface iVaultmanPlugin extends Plugin {
 		setEnabled(enabled: boolean): void;
 	};
 	/** BT5-018/036: the live action catalog each menu sub-page configures. */
+	nodeBindingService?: import('../services/serviceNodeBinding').NodeBindingService;
 	contextMenuService: {
 		panelActionCatalog(
 			kind?: import('../logic/logicFilesContextMenu').PanelMenuKind,
@@ -354,7 +366,10 @@ export interface iVaultmanPlugin extends Plugin {
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
-	language: 'auto',
+	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
+	nativeSurfaceClickAlt: 'open-node-note-same-tab',
+	nativeSurfaceClickMod: 'open-node-note-new-tab',
+		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
 	queueTemplates: [],

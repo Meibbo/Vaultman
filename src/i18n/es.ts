@@ -1,4 +1,16 @@
 export const es: Record<string, string> = {
+	'settings.native_surface_click_primary': 'Acción de Click Primario Nativo',
+	'settings.native_surface_click_primary.desc': 'Acción al hacer click en elementos nativos de Obsidian (breadcrumbs, tags, carpetas).',
+	'settings.native_surface_click_alt': 'Acción de Alt+Click Nativo',
+	'settings.native_surface_click_alt.desc': 'Acción al hacer Alt+Click en elementos nativos de Obsidian.',
+	'settings.native_surface_click_mod': 'Acción de Mod+Click Nativo',
+	'settings.native_surface_click_mod.desc': 'Acción al hacer Ctrl/Cmd-Click o click central en elementos nativos de Obsidian.',
+	'settings.action.reveal_in_vaultman': 'Revelar en Vaultman Explorer',
+	'settings.action.open_node_note_same_tab': 'Abrir Node-Note (misma pestaña)',
+	'settings.action.open_node_note_new_tab': 'Abrir Node-Note (nueva pestaña)',
+	'settings.action.search_selection': 'Buscar Selección',
+	'settings.action.none': 'Ninguna (por defecto de Obsidian)',
+	'context_menu.node_note': 'Abrir Node-Note',
 	// General
 	'plugin.name': 'Vaultman',
 	'plugin.description':

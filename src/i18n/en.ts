@@ -1,4 +1,16 @@
 export const en: Record<string, string> = {
+	'settings.native_surface_click_primary': 'Native Primary Click Action',
+	'settings.native_surface_click_primary.desc': 'Action when clicking native Obsidian elements (breadcrumbs, tags, folders).',
+	'settings.native_surface_click_alt': 'Native Alt+Click Action',
+	'settings.native_surface_click_alt.desc': 'Action when Alt-clicking native Obsidian elements.',
+	'settings.native_surface_click_mod': 'Native Mod+Click Action',
+	'settings.native_surface_click_mod.desc': 'Action when Ctrl/Cmd-clicking or middle-clicking native Obsidian elements.',
+	'settings.action.reveal_in_vaultman': 'Reveal in Vaultman Explorer',
+	'settings.action.open_node_note_same_tab': 'Open Node-Note (same tab)',
+	'settings.action.open_node_note_new_tab': 'Open Node-Note (new tab)',
+	'settings.action.search_selection': 'Search Selection',
+	'settings.action.none': 'None (Obsidian default)',
+	'context_menu.node_note': 'Open Node-Note',
 	// General
 	'plugin.name': 'Vaultman',
 	'plugin.sidebar_name': 'Vaultman Sidebar',

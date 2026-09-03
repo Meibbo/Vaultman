@@ -1,0 +1,378 @@
+import { Component, type App, type Plugin, type TFile } from "obsidian";
+import type { BindingNodeInput, NodeBindingService } from "./serviceNodeBinding";
+import { computeAliasToken, findNotesByAlias, extractWikilinkTarget } from "./serviceNodeBinding";
+import type { NativeSurfaceClickAction, VaultmanSettings } from "../types/typeSettings";
+
+export const NATIVE_SURFACE_HOVER_SOURCE = "vaultman-native-surface";
+
+export const NATIVE_TAG_SELECTORS = [
+	".tag-pane-tag",
+	"a.tag[href^=\"#\"]",
+	".metadata-property[data-property-key=\"tags\"] .multi-select-pill",
+	"span.cm-hashtag",
+	".cm-hashtag",
+] as const;
+
+export const NATIVE_FOLDER_SELECTORS = [
+	".nav-folder-title",
+	"[data-path][data-type=\"folder\"]",
+	".view-header-breadcrumb",
+] as const;
+
+const HOVER_PARENT_SELECTOR = [
+	".workspace-leaf-content",
+	".markdown-preview-view",
+	".markdown-source-view",
+	".metadata-properties",
+	".nav-files-container",
+	".view-header",
+	".workspace-leaf",
+].join(", ");
+
+export interface NativeBindingTarget {
+	element: HTMLElement;
+	node: BindingNodeInput;
+	hoverParent: HTMLElement;
+	isBreadcrumb?: boolean;
+}
+
+export interface NativeBindingClickDeps {
+	bindingService: Pick<NodeBindingService, "bindOrCreate">;
+	settings: Pick<VaultmanSettings, "nativeSurfaceClickPrimary" | "nativeSurfaceClickAlt" | "nativeSurfaceClickMod">;
+	revealInVaultman?(node: BindingNodeInput): Promise<boolean> | boolean;
+	searchInVaultman?(query: string): void;
+	app?: App;
+}
+
+export interface NativeBindingHoverDeps {
+	app: App;
+}
+
+export interface NativeSurfaceBindingServiceDeps {
+	plugin: Plugin & { settings: VaultmanSettings };
+	app: App;
+	bindingService: NodeBindingService;
+	revealInVaultman?(node: BindingNodeInput): Promise<boolean> | boolean;
+	searchInVaultman?(query: string): Promise<void> | void;
+	doc?: Document;
+}
+
+type ClosableElement = HTMLElement & {
+	closest(selector: string): HTMLElement | null;
+	querySelectorAll?(selector: string): NodeListOf<Element>;
+	querySelector?(selector: string): Element | null;
+	getAttribute?(name: string): string | null;
+	dataset?: DOMStringMap | Record<string, string | undefined>;
+};
+
+export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): string | null {
+	const parentEl = el.closest(".view-header-title-parent");
+	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
+
+	const breadcrumbs = Array.from(parentEl.querySelectorAll(".view-header-breadcrumb"));
+	const idx = breadcrumbs.indexOf(el as Element);
+	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
+
+	const activeFile = app?.workspace?.getActiveFile?.() ?? null;
+	if (!activeFile || !activeFile.parent || activeFile.parent.path === "/") {
+		return el.textContent?.trim() ?? null;
+	}
+
+	const segments = activeFile.parent.path.split("/");
+	if (idx >= segments.length) return activeFile.parent.path;
+	return segments.slice(0, idx + 1).join("/");
+}
+
+export function resolveNativeBindingTarget(
+	target: EventTarget | null,
+	app?: App,
+): NativeBindingTarget | null {
+	const base = asElement(target);
+	if (!base) return null;
+
+	// Invariant: WIR is exclusively for native Obsidian surfaces; NEVER intercept internal Vaultman UI
+	if (
+		base.closest(
+			'.vaultman-frame, .vaultman-view, .vaultman-pages-viewport, .vaultman-tree-row, .vaultman-node-table-row, .vaultman-file-row, .vaultman-files-grid-card, .workspace-leaf-content[data-type="vaultman-frame"], .workspace-leaf-content[data-type="vaultman-view"]',
+		)
+	) {
+		return null;
+	}
+
+	// 1. Breadcrumbs
+	const breadcrumb = base.closest<HTMLElement>(".view-header-breadcrumb");
+	if (breadcrumb) {
+		const folderPath = resolveBreadcrumbFolderPath(breadcrumb, app ?? (typeof window !== "undefined" ? (window as any).app : undefined));
+		if (folderPath) {
+			return {
+				element: breadcrumb,
+				node: { kind: "folder", label: folderPath, path: folderPath },
+				hoverParent: closestHoverParent(breadcrumb),
+				isBreadcrumb: true,
+			};
+		}
+	}
+
+	// 2. Tags
+	const tagElement = closestAny(base, NATIVE_TAG_SELECTORS);
+	if (tagElement) return resolveTagTarget(tagElement);
+
+	// 3. Other folder surfaces
+	const folderElement = closestAny(base, [".nav-folder-title", "[data-path][data-type=\"folder\"]"]);
+	if (folderElement) return resolveFolderTarget(folderElement);
+
+	// 4. Snippets
+	const snippetElement = base.closest<HTMLElement>("[data-snippet-name]");
+	if (snippetElement?.dataset?.snippetName) {
+		return {
+			element: snippetElement,
+			node: { kind: "snippet", label: snippetElement.dataset.snippetName },
+			hoverParent: closestHoverParent(snippetElement),
+		};
+	}
+
+	// 5. Plugins
+	const pluginElement = base.closest<HTMLElement>("[data-plugin-id]");
+	if (pluginElement?.dataset?.pluginId) {
+		return {
+			element: pluginElement,
+			node: {
+				kind: "plugin",
+				label: pluginElement.dataset.pluginId,
+				pluginId: pluginElement.dataset.pluginId,
+			},
+			hoverParent: closestHoverParent(pluginElement),
+		};
+	}
+
+	return null;
+}
+
+export async function handleNativeBindingClick(
+	event: MouseEvent,
+	deps: NativeBindingClickDeps,
+): Promise<boolean> {
+	const target = resolveNativeBindingTarget(event.target, deps.app);
+	if (!target) return false;
+
+	const action = resolveActionForEvent(event, deps.settings, target);
+	if (!action || action === "none") return false;
+
+	event.preventDefault();
+	event.stopImmediatePropagation();
+
+	switch (action) {
+		case "reveal-in-vaultman":
+			if (deps.revealInVaultman) {
+				await deps.revealInVaultman(target.node);
+				return true;
+			}
+			return false;
+
+		case "open-node-note-same-tab":
+			await deps.bindingService.bindOrCreate(target.node, { newLeaf: false });
+			return true;
+
+		case "open-node-note-new-tab":
+			await deps.bindingService.bindOrCreate(target.node, { newLeaf: true });
+			return true;
+
+		case "search-selection":
+			deps.searchInVaultman?.(target.node.label);
+			return true;
+	}
+
+	return false;
+}
+
+function resolveActionForEvent(
+	event: MouseEvent,
+	settings: Pick<VaultmanSettings, "nativeSurfaceClickPrimary" | "nativeSurfaceClickAlt" | "nativeSurfaceClickMod">,
+	target: NativeBindingTarget,
+): NativeSurfaceClickAction {
+	if (event.ctrlKey || event.metaKey || event.button === 1) {
+		return settings.nativeSurfaceClickMod ?? "open-node-note-new-tab";
+	}
+	if (event.altKey) {
+		return settings.nativeSurfaceClickAlt ?? "open-node-note-same-tab";
+	}
+	// Primary click:
+	if (target.isBreadcrumb) {
+		return settings.nativeSurfaceClickPrimary ?? "reveal-in-vaultman";
+	}
+	return settings.nativeSurfaceClickPrimary ?? "open-node-note-same-tab";
+}
+
+export function handleNativeBindingHover(
+	event: MouseEvent,
+	deps: NativeBindingHoverDeps,
+): boolean {
+	const target = resolveNativeBindingTarget(event.target, deps.app);
+	if (!target) return false;
+
+	const app = deps.app;
+
+	// Check for Folder C-Node or wikilink or alias note
+	let targetFile: TFile | null = null;
+
+	if (target.node.kind === "folder") {
+		const folderPath = (target.node.path ?? target.node.label).replace(/^[/\\]+|[/\\]+$/g, "");
+		const folderName = folderPath.split("/").pop() ?? folderPath;
+		const cNodePath = folderPath ? folderPath + "/" + folderName + ".md" : folderName + ".md";
+		const cNode = app.vault?.getAbstractFileByPath?.(cNodePath);
+		if (cNode instanceof (app.vault?.getMarkdownFiles?.()[0]?.constructor ?? Object)) {
+			targetFile = cNode as TFile;
+		}
+	} else if (target.node.kind === "value" || target.node.kind === "prop") {
+		const wikilink = extractWikilinkTarget(target.node.label);
+		if (wikilink) {
+			const dest = app.metadataCache?.getFirstLinkpathDest?.(wikilink, "");
+			if (dest) targetFile = dest;
+		}
+	}
+
+	if (!targetFile) {
+		const token = computeAliasToken(target.node);
+		const matches = findNotesByAlias(app, token);
+		if (matches.length === 1) targetFile = matches[0];
+	}
+
+	if (!targetFile) return false;
+
+	app.workspace?.trigger?.("hover-link", {
+		event,
+		source: NATIVE_SURFACE_HOVER_SOURCE,
+		targetEl: target.element,
+		linktext: targetFile.path,
+		hoverParent: target.hoverParent,
+	});
+	return true;
+}
+
+export class NativeSurfaceBindingService extends Component {
+	constructor(private readonly deps: NativeSurfaceBindingServiceDeps) {
+		super();
+	}
+
+	onload(): void {
+		const hoverPlugin = this.deps.plugin as typeof this.deps.plugin & {
+			registerHoverLinkSource?: (
+				source: string,
+				info: { display: string; defaultMod: boolean },
+			) => void;
+		};
+		hoverPlugin?.registerHoverLinkSource?.(NATIVE_SURFACE_HOVER_SOURCE, {
+			display: "Vaultman native surfaces",
+			defaultMod: true,
+		});
+
+		const doc = this.deps.doc ?? (typeof activeDocument !== "undefined" ? activeDocument : undefined);
+		if (!doc) return;
+
+		this.registerDomEvent(
+			doc,
+			"click",
+			(event) => {
+				void handleNativeBindingClick(event, {
+					bindingService: this.deps.bindingService,
+					settings: this.deps.plugin.settings,
+					revealInVaultman: this.deps.revealInVaultman,
+					searchInVaultman: this.deps.searchInVaultman,
+					app: this.deps.app,
+				});
+			},
+			{ capture: true },
+		);
+		this.registerDomEvent(
+			doc,
+			"auxclick",
+			(event) => {
+				void handleNativeBindingClick(event, {
+					bindingService: this.deps.bindingService,
+					settings: this.deps.plugin.settings,
+					revealInVaultman: this.deps.revealInVaultman,
+					app: this.deps.app,
+				});
+			},
+			{ capture: true },
+		);
+		this.registerDomEvent(
+			doc,
+			"mouseover",
+			(event) => {
+				handleNativeBindingHover(event, { app: this.deps.app });
+			},
+			{ capture: false },
+		);
+	}
+
+	onunload(): void {
+		const ws = this.deps.app?.workspace as typeof this.deps.app.workspace & {
+			unregisterHoverLinkSource?: (source: string) => void;
+		};
+		ws?.unregisterHoverLinkSource?.(NATIVE_SURFACE_HOVER_SOURCE);
+	}
+}
+
+export function resolveTagTarget(element: HTMLElement): NativeBindingTarget | null {
+	const raw = tagText(element);
+	const tagPath = raw.replace(/^#/, "").trim();
+	if (!tagPath) return null;
+	return {
+		element,
+		node: { kind: "tag", label: tagPath, tagPath },
+		hoverParent: closestHoverParent(element),
+	};
+}
+
+export function resolveFolderTarget(element: HTMLElement): NativeBindingTarget | null {
+	const folderPath = folderPathFor(element);
+	if (!folderPath) return null;
+	return {
+		element,
+		node: { kind: "folder", label: folderPath, path: folderPath },
+		hoverParent: closestHoverParent(element),
+	};
+}
+
+export function tagText(element: HTMLElement): string {
+	const attrHref = element.getAttribute?.("href");
+	if (attrHref?.startsWith("#")) return decodeURIComponent(attrHref.slice(1));
+	const inner = element.querySelector?.(
+		".tag-pane-tag-text, .tree-item-inner-text, .multi-select-pill-content",
+	);
+	return (inner?.textContent ?? element.textContent ?? "").trim();
+}
+
+export function folderPathFor(element: HTMLElement): string {
+	const datasetPath = element.dataset?.path;
+	if (datasetPath) return datasetPath.trim();
+	const attrPath = element.getAttribute?.("data-path");
+	if (attrPath) return attrPath.trim();
+	return (element.textContent ?? "").trim();
+}
+
+function closestHoverParent(element: HTMLElement): HTMLElement {
+	return asHtmlElement(element.closest?.(HOVER_PARENT_SELECTOR)) ?? element;
+}
+
+function closestAny(
+	element: ClosableElement,
+	selectors: readonly string[],
+): HTMLElement | null {
+	for (const selector of selectors) {
+		const match = asHtmlElement(element.closest(selector));
+		if (match) return match;
+	}
+	return null;
+}
+
+function asElement(target: EventTarget | null): ClosableElement | null {
+	if (!target || typeof (target as ClosableElement).closest !== "function") return null;
+	return target as ClosableElement;
+}
+
+function asHtmlElement(value: unknown): HTMLElement | null {
+	if (!value || typeof (value as { closest?: unknown }).closest !== "function") return null;
+	return value as HTMLElement;
+}
