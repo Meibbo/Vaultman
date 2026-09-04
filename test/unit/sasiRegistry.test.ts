@@ -4,6 +4,9 @@ import {
 	createSasiRegistry,
 	type SasiDef,
 } from '../../src/logic/logicSasiRegistry';
+import { registerMoveActions } from '../../src/logic/logicSasiMoveActions';
+import { en } from '../../src/i18n/en';
+import { es } from '../../src/i18n/es';
 
 const PROCEED: SasiDef = {
 	id: 'vaultman.move.proceed',
@@ -71,3 +74,38 @@ describe('U130-01 SASI registry', () => {
 		expect(() => reg.register(PROCEED)).toThrow(/vaultman.move.proceed/);
 	});
 });
+
+describe('U130-01 move actions en SASI', () => {
+	it('registra las cuatro con su categoria correcta', () => {
+		const reg = createSasiRegistry();
+		registerMoveActions(reg);
+		expect(reg.listOperations().map((d) => d.id)).toEqual([
+			'vaultman.move.proceed',
+		]);
+		expect(reg.listActions().map((d) => d.id)).toEqual([
+			'vaultman.move.cancel',
+			'vaultman.move.toggleWrite',
+			'vaultman.move.toggleOriginDisposition',
+		]);
+	});
+
+	it('solo `proceed` muta el vault', () => {
+		const reg = createSasiRegistry();
+		registerMoveActions(reg);
+		const mutating = reg
+			.list('function')
+			.filter((d) => d.mutatesVault)
+			.map((d) => d.id);
+		expect(mutating).toEqual(['vaultman.move.proceed']);
+	});
+
+	it('cada una tiene su etiqueta en en y es', () => {
+		const reg = createSasiRegistry();
+		registerMoveActions(reg);
+		for (const def of reg.list('function')) {
+			expect(en[def.labelKey]).toBeTruthy();
+			expect(es[def.labelKey]).toBeTruthy();
+		}
+	});
+});
+
