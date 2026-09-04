@@ -1,0 +1,63 @@
+/* U130-05: la celda de accion.
+ *
+ * Todo va por variables `--vm-action-cell-*` bajo el selector namespaced
+ * `.vaultman-action-cell`. El namespace no es cosmetico: sin el, temas como
+ * Minimal o AnuPpuccin pisan estos estilos y el usuario ve las variantes de
+ * Style Settings sin efecto, sin ninguna pista de por que.
+ *
+ * Y las variantes se implementan cambiando VARIABLES, no clases por variante:
+ * asi una variante nueva no toca el Svelte. */
+
+.vaultman-action-cell {
+	--vm-action-cell-size: 24px;
+	/* El objetivo de toque no puede depender del glifo. */
+	--vm-action-cell-hit: 36px;
+	--vm-action-cell-radius: 4px;
+	--vm-action-cell-border: none;
+	--vm-action-cell-bg: transparent;
+
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* Fijas: un icono que cambia de tamano al alternar mueve el resto del
+	 * searchbox y el usuario pierde el sitio donde iba a pulsar. */
+	inline-size: var(--vm-action-cell-size);
+	block-size: var(--vm-action-cell-size);
+	flex: 0 0 auto;
+	border: var(--vm-action-cell-border);
+	border-radius: var(--vm-action-cell-radius);
+	background: var(--vm-action-cell-bg);
+}
+
+/* El area tactil se agranda SIN mover el layout: pseudo-elemento, no padding. */
+.vaultman-action-cell::after {
+	content: '';
+	position: absolute;
+	inset: calc((var(--vm-action-cell-size) - var(--vm-action-cell-hit)) / 2);
+	min-inline-size: 36px;
+	min-block-size: 36px;
+}
+
+.vaultman-action-cell.is-unavailable {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+/* --- variantes de Style Settings --- */
+.vaultman-action-cell--icon-box {
+	--vm-action-cell-border: 1px solid var(--background-modifier-border);
+	--vm-action-cell-bg: var(--background-secondary);
+}
+
+.vaultman-action-cell--border-circle {
+	--vm-action-cell-border: 1px solid var(--background-modifier-border);
+	--vm-action-cell-radius: 50%;
+}
+
+/* `icon-only` es el defecto: sin caja, solo el glifo. Es el estilo de los
+ * badges del explorer, que es el que el dev prefiere. */
+.vaultman-action-cell--icon-only {
+	--vm-action-cell-border: none;
+	--vm-action-cell-bg: transparent;
+}
