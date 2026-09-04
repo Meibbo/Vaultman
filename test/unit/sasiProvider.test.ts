@@ -10,7 +10,7 @@ describe('U130-01 SASI como provider', () => {
 		registerMoveActions(reg);
 		const provider = createSasiProvider(reg);
 		const nodes = provider.nodesFor('function');
-		expect(nodes).toHaveLength(4);
+		expect(nodes).toHaveLength(5);
 		expect(nodes[0]).toMatchObject({
 			id: 'vaultman.move.proceed',
 			labelKey: 'sasi.move.proceed',

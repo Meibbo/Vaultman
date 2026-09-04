@@ -76,7 +76,7 @@ describe('U130-01 SASI registry', () => {
 });
 
 describe('U130-01 move actions en SASI', () => {
-	it('registra las cuatro con su categoria correcta', () => {
+	it('registra las cinco con su categoria correcta', () => {
 		const reg = createSasiRegistry();
 		registerMoveActions(reg);
 		expect(reg.listOperations().map((d) => d.id)).toEqual([
@@ -86,6 +86,7 @@ describe('U130-01 move actions en SASI', () => {
 			'vaultman.move.cancel',
 			'vaultman.move.toggleWrite',
 			'vaultman.move.toggleOriginDisposition',
+			'vaultman.move.toggleMoveKind',
 		]);
 	});
 
@@ -106,6 +107,25 @@ describe('U130-01 move actions en SASI', () => {
 			expect(en[def.labelKey]).toBeTruthy();
 			expect(es[def.labelKey]).toBeTruthy();
 		}
+	});
+});
+
+describe('U130-04 toggle de tipo de movimiento', () => {
+	it('esta registrado como action, no como operation', () => {
+		const reg = createSasiRegistry();
+		registerMoveActions(reg);
+		const ids = reg.listActions().map((d) => d.id);
+		expect(ids).toContain('vaultman.move.toggleMoveKind');
+		expect(reg.listOperations().map((d) => d.id)).not.toContain(
+			'vaultman.move.toggleMoveKind',
+		);
+	});
+
+	it('declara la statusBar como superficie', () => {
+		const reg = createSasiRegistry();
+		registerMoveActions(reg);
+		const def = reg.resolve('vaultman.move.toggleMoveKind').def;
+		expect(def?.supports.map((s) => s.surface)).toContain('statusBar');
 	});
 });
 

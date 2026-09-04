@@ -44,4 +44,15 @@ export function registerMoveActions(registry: SasiRegistry): void {
 		icon: 'lucide-copy',
 		supports: [{ surface: 'searchbox' }],
 	});
+	registry.register({
+		id: 'vaultman.move.toggleMoveKind',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.move.toggle_kind',
+		icon: 'lucide-arrow-left-right',
+		// Es el UNICO control propio de la barra. Proceed y Cancel siguen en el
+		// panelWidget: duplicar Proceed aqui daria dos caminos a una escritura
+		// de vault y dos sitios que mantener sincronizados.
+		supports: [{ surface: 'statusBar' }],
+	});
 }
