@@ -126,6 +126,7 @@
 		onFiltersSearchChange,
 		onFiltersSearchCategoryChange,
 		onViewFiltersChanged,
+		onPersistInteractionMode,
 		onContentSearch,
 		showExplorerControls = true,
 		expansionRevision = 0,
@@ -925,7 +926,10 @@
 
 	function selectInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
+		// La config de ESTA instancia sigue yendo por el port.
 		commitConfig(tab, { interactionMode: normalized });
+		// El defecto del usuario es global: se publica, no se escribe aqui.
+		onPersistInteractionMode?.(tab, normalized);
 		applyInteractionMode(tab, normalized);
 		onViewFiltersChanged?.();
 	}
@@ -1095,7 +1099,7 @@
 		if (onSaveLayout) menu.addSeparator();
 		menu.addItem((item) => {
 			item
-				.setTitle(translate('viewmenu.in_mode'))
+				.setTitle(translate('viewmenu.interaction'))
 				.setIcon('lucide-mouse-pointer-click');
 			const sub = (
 				item as typeof item & { setSubmenu: () => Menu }
@@ -1103,7 +1107,7 @@
 			for (const mode of interactionModesForTab(activeTab)) {
 				sub.addItem((subItem) =>
 					subItem
-						.setTitle(translate(`viewmenu.in_mode.${mode}`))
+						.setTitle(translate(`viewmenu.interaction.${mode}`))
 						.setIcon(
 							mode === 'open'
 								? 'lucide-folder-open'

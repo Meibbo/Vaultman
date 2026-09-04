@@ -58,6 +58,7 @@ import {
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
+import { fileMoveStrategy } from '../../logic/logicMoveRouting';
 import { translate } from '../../i18n/index';
 import {
 	formatTimestampCell,
@@ -187,8 +188,6 @@ export interface FileMoveModeState {
 	restore: {
 		interactionMode: string;
 		searchOpen: boolean;
-		/** U121-102: los filtros de tipo que habia antes de forzar `folders-only`. */
-		nodeTypeFilters?: string[];
 	};
 	owner: FileMoveOwner;
 }
@@ -1566,23 +1565,11 @@ export class FilesExplorerPanel extends Component {
 			restore: {
 				interactionMode: this.interactionMode,
 				searchOpen: false, // We don't force search open for file move
-				nodeTypeFilters: [...this.nodeTypeFilters],
 			},
 		});
 
 		this.selectedFilePaths = new Set<string>();
 		this.setInteractionMode('select');
-		// U121-102: elegir destino es elegir CARPETA, asi que el move enciende el
-		// sort por folders en vez de dejar al usuario buscarlas entre los ficheros.
-		// En tagScene no se hace: cualquier tag puede convertirse en p-node, asi
-		// que ahi la distincion por tipo no significa lo mismo -- por eso la regla
-		// vive en fileScene y no en un sitio comun.
-		if (!this.nodeTypeFilters.includes('folders-only')) {
-			this.setSortState({
-				...this._sortState(),
-				...nodeTypeFilterPatch([...this.nodeTypeFilters, 'folders-only']),
-			});
-		}
 		this._render();
 	}
 
@@ -1592,19 +1579,21 @@ export class FilesExplorerPanel extends Component {
 		const targetFolder = file instanceof TFolder ? file : file.parent;
 		if (!targetFolder) return;
 
-		// Check if it's a valid move (e.g. not moving a folder into itself)
-		const isInvalid = this.fileMoveMode.origins.some((origin) => {
-			if (
-				origin instanceof TFolder &&
-				(targetFolder.path === origin.path ||
-					targetFolder.path.startsWith(origin.path + '/'))
-			) {
-				return true;
-			}
-			return false;
+		// U130-02: la aciclicidad vive en la strategy de fileScene, no duplicada
+		// aqui. Se valida contra el targetFolder YA RESUELTO.
+		const rejected = this.fileMoveMode.origins.find((origin) => {
+			const verdict = fileMoveStrategy.validate(
+				{
+					id: origin.path,
+					kind: origin instanceof TFolder ? 'folder' : 'file',
+					canonicalId: origin.path,
+				},
+				{ id: targetFolder.path, kind: 'folder', canonicalId: targetFolder.path },
+			);
+			return !verdict.ok;
 		});
 
-		if (isInvalid) {
+		if (rejected) {
 			new Notice(translate('explorer.move_to_folder.rejected'));
 			return;
 		}
@@ -1628,14 +1617,6 @@ export class FilesExplorerPanel extends Component {
 		this._setFileMoveMode(null);
 		if (restore) {
 			this.setInteractionMode(restore.interactionMode as InteractionMode);
-			// U121-102: el sort que forzo el move se deshace al salir. Sin esto, el
-			// usuario se queda viendo solo carpetas sin haberlo pedido.
-			if (restore.nodeTypeFilters) {
-				this.setSortState({
-					...this._sortState(),
-					...nodeTypeFilterPatch(restore.nodeTypeFilters),
-				});
-			}
 		}
 		this._render();
 	}

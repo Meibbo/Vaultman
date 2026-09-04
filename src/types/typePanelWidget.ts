@@ -169,6 +169,22 @@ export interface NavbarPanelWidgetState {
 	 */
 	searchTrailingActions?: readonly PanelWidgetNode[];
 	onSearchTrailingAction?: (node: PanelWidgetNode) => void;
+	/**
+	 * U130-04: el Bar secundario, hermano del Toolbar, que el host proyecta
+	 * mientras hay una transaccion de movimiento. Telemetria mas UN control: el
+	 * toggle de tipo de movimiento. `Proceed` y `Cancel` NO viven aqui.
+	 */
+	transactionBar?: {
+		visibility: 'visible' | 'hidden' | 'unmounted';
+		placement: 'above-search' | 'below-search';
+		originCount: number;
+		originLabels: readonly string[];
+		destinationCount: number;
+		destinationLabels: readonly string[];
+		rejection: { destination: string; reason: string } | null;
+		moveKind: 'node' | 'group';
+		onToggleMoveKind?: (next: 'node' | 'group') => void;
+	};
 	tagsExplorer?: PanelWidgetTreeExplorerPort | null;
 	propExplorer?: PanelWidgetTreeExplorerPort;
 	fileList?: PanelWidgetFilesExplorerPort;
@@ -188,6 +204,12 @@ export interface NavbarPanelWidgetState {
 		value: PanelWidgetSearchCategoryState,
 	) => void;
 	onViewFiltersChanged?: () => void;
+	/**
+	 * U130-06: el usuario eligio un modo de interaccion y quiere que sea su
+	 * defecto. El componente NO escribe settings: las publica, y quien posee el
+	 * plugin decide. Es el mismo contrato que onSaveLayout.
+	 */
+	onPersistInteractionMode?: (tab: ExplorerTabId, mode: InteractionMode) => void;
 	onContentSearch?: (query: string) => void;
 	showExplorerControls?: boolean;
 	expansionRevision?: number;

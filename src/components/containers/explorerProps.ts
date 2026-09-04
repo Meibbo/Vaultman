@@ -1154,6 +1154,26 @@ export class PropsExplorerPanel extends Component {
 		this._exitValueMoveMode();
 	}
 
+	/**
+	 * U130-01: los mismos metodos, alcanzables por id estable de SASI. No se
+	 * mueve comportamiento: esto solo los hace invocables desde el panelWidget
+	 * y desde un macro. Ninguno recibe contexto ambiente -- el payload lo
+	 * resuelve quien invoca.
+	 */
+	sasiMoveHandlers(): Record<string, () => Promise<void>> {
+		return {
+			'vaultman.move.cancel': async () => {
+				this.cancelValueMoveMode();
+			},
+			'vaultman.move.toggleWrite': async () => {
+				this.toggleValueMoveWrite();
+			},
+			'vaultman.move.toggleOriginDisposition': async () => {
+				this.toggleValueMoveOriginDisposition();
+			},
+		};
+	}
+
 	private _valueMoveProceedAvailable(): boolean {
 		return this.valueMoveMode !== null && proceedEnabled(this.valueMoveMode);
 	}

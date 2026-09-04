@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import {
 	DEFAULT_INTERACTION_MODE,
 	interactionModesForTab,
 	normalizeInteractionMode,
+	resolveDefaultInteractionMode,
 	resolveInteractionAction,
 } from '../../src/logic/logicInteractionMode';
 
@@ -32,10 +34,17 @@ describe('explorer interaction modes', () => {
 		]);
 		expect(interactionModesForTab('snippets')).toEqual(['open', 'select']);
 		expect(interactionModesForTab('plugins')).toEqual(['open', 'select']);
+	});
+
+	it('U130-06: every tab ships in `open` by default', () => {
+		// Decision de producto del dev (2026-09-03). `filter` SI es una forma de
+		// seleccion —un clic elige el nodo por el que filtrar—, y el arranque
+		// uniforme en `open` es el default acordado. La preferencia por pestana se
+		// recupera con defaultInteractionModeByTab.
 		expect(DEFAULT_INTERACTION_MODE).toEqual({
 			files: 'open',
-			props: 'filter',
-			tags: 'filter',
+			props: 'open',
+			tags: 'open',
 			snippets: 'open',
 			plugins: 'open',
 		});
@@ -78,6 +87,46 @@ describe('explorer interaction modes', () => {
 		expect(normalizeInteractionMode('files', 'retired-mode')).toBe('open');
 		expect(normalizeInteractionMode('files', 'filter')).toBe('filter');
 		expect(normalizeInteractionMode('props', 'select')).toBe('select');
-		expect(normalizeInteractionMode('tags', undefined)).toBe('filter');
+		expect(normalizeInteractionMode('tags', undefined)).toBe('open');
 	});
 });
+
+describe('U130-06 interaction mode persistence settings', () => {
+	it('ships persistence on by default and no stored defaults', () => {
+		expect(DEFAULT_SETTINGS.persistInteractionMode).toBe(true);
+		expect(DEFAULT_SETTINGS.defaultInteractionModeByTab).toEqual({});
+	});
+});
+
+describe('U130-06 default interaction mode resolution', () => {
+	it('returns the persisted default when persistence is on', () => {
+		expect(
+			resolveDefaultInteractionMode('files', { files: 'select' }, true),
+		).toBe('select');
+	});
+
+	it('ignores the persisted default when persistence is off', () => {
+		expect(
+			resolveDefaultInteractionMode('files', { files: 'select' }, false),
+		).toBe(DEFAULT_INTERACTION_MODE.files);
+	});
+
+	it('falls back to the factory default when nothing is stored', () => {
+		expect(resolveDefaultInteractionMode('props', {}, true)).toBe(
+			DEFAULT_INTERACTION_MODE.props,
+		);
+		expect(resolveDefaultInteractionMode('props', undefined, true)).toBe(
+			DEFAULT_INTERACTION_MODE.props,
+		);
+	});
+
+	it('discards a stored mode the tab does not admit', () => {
+		// `plugins` solo admite open/select. Un `add` guardado por una version
+		// futura, o corrupto, no puede dejar la pestana en un modo imposible.
+		expect(
+			resolveDefaultInteractionMode('plugins', { plugins: 'add' }, true),
+		).toBe(DEFAULT_INTERACTION_MODE.plugins);
+	});
+});
+
+

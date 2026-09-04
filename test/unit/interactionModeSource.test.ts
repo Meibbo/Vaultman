@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
@@ -37,7 +38,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	it('orders View as Layouts, In mode, Cells, then engines', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const layouts = menu.indexOf("translate('viewmenu.layouts')");
-		const inMode = menu.indexOf("translate('viewmenu.in_mode')");
+		const inMode = menu.indexOf("translate('viewmenu.interaction')");
 		const cells = menu.indexOf('cellMenuOrder(');
 		const engines = menu.indexOf(
 			'for (const option of minimalNativeViewModes)',
@@ -84,13 +85,83 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	it('adds synchronized labels for the native submenu', () => {
 		expect(en['viewmenu.layouts']).toBe('Layout');
 		expect(es['viewmenu.layouts']).toBe('Composiciones de vista');
-		// U121-053 / D4: la etiqueta de interfaz pasa a Behavior; la CLAVE sigue
-		// siendo in_mode, asi que no se mueve nada mas del codigo.
-		expect(en['viewmenu.in_mode']).toBe('Behavior');
-		expect(es['viewmenu.in_mode']).toBe('Comportamiento');
+		// U130-06: la etiqueta de interfaz pasa a Interaction y la clave a viewmenu.interaction.
+		expect(en['viewmenu.interaction']).toBe('Interaction');
+		expect(es['viewmenu.interaction']).toBe('Interacción');
 		for (const key of ['open', 'add', 'select', 'filter']) {
-			expect(en[`viewmenu.in_mode.${key}`]).toBeTruthy();
-			expect(es[`viewmenu.in_mode.${key}`]).toBeTruthy();
+			expect(en[`viewmenu.interaction.${key}`]).toBeTruthy();
+			expect(es[`viewmenu.interaction.${key}`]).toBeTruthy();
 		}
 	});
+
+	it('U130-06: the view menu key is `interaction`, not the legacy `in_mode`', () => {
+		const en = readFileSync(
+			new URL('../../src/i18n/en.ts', import.meta.url),
+			'utf8',
+		);
+		const es = readFileSync(
+			new URL('../../src/i18n/es.ts', import.meta.url),
+			'utf8',
+		);
+		const navbar = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		expect(en).toContain("'viewmenu.interaction': 'Interaction'");
+		expect(es).toContain("'viewmenu.interaction': 'Interacción'");
+		// La clave vieja no puede sobrevivir en ningun sitio: una clave huerfana
+		// se traduce a si misma y el usuario ve `viewmenu.in_mode` en el menu.
+		expect(en).not.toContain('viewmenu.in_mode');
+		expect(es).not.toContain('viewmenu.in_mode');
+		expect(navbar).not.toContain('viewmenu.in_mode');
+	});
+
+	it('U130-06: settings expose the persistence toggle', () => {
+		const src = readFileSync(
+			new URL('../../src/VaultmanSettings.ts', import.meta.url),
+			'utf8',
+		);
+		expect(src).toContain('persistInteractionMode');
+		expect(src).toContain('settings.persist_interaction_mode');
+	});
+
+	it('U130-06: el defecto se publica por callback, no tocando el plugin', () => {
+		const types = readFileSync(
+			new URL('../../src/types/typePanelWidget.ts', import.meta.url),
+			'utf8',
+		);
+		expect(types).toContain('onPersistInteractionMode?:');
+
+		const src = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		const fn = src.slice(
+			src.indexOf('function selectInteractionMode'),
+			src.indexOf('function handleSortChange'),
+		);
+		expect(fn).toContain('commitConfig(tab, { interactionMode: normalized })');
+		expect(fn).toContain('onPersistInteractionMode?.(tab, normalized)');
+
+		// Las tres puertas contra la improvisacion que ya ocurrio una vez:
+		// el componente NO alcanza el plugin, NO castea a any, y NO monta un
+		// stub cuyo saveSettings no hace nada. Un hueco tapado en silencio se
+		// descubre cuando el usuario pierde su preferencia, no antes.
+		expect(fn).not.toContain('as any');
+		expect(fn).not.toContain('saveSettings');
+		expect(fn).not.toContain('plugins');
+	});
+
+	it('U130-06: the move-mode restore never writes the user default', () => {
+		const src = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		// El restore devuelve el modo previo con applyInteractionMode, que no toca
+		// settings. Si algun dia el restore empieza a llamar a
+		// selectInteractionMode, este test cae y avisa antes que el usuario.
+		const restoreCalls = src.match(/restore[\s\S]{0,400}?selectInteractionMode/g);
+		expect(restoreCalls).toBeNull();
+	});
 });
+

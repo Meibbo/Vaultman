@@ -10,7 +10,7 @@ import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
-import type { ExplorerSortState } from './typeUI';
+import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 import type { InstanceRegistryData } from './typeInstance';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import {
@@ -47,6 +47,15 @@ export interface SavedLayout {
 	summary: string;
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
+	/**
+	 * U130-03: groupId -> URNs de sus miembros. SOLO los grupos custom: los
+	 * presets se computan por predicado en memoria y no tocan settings, asi que
+	 * anadir un preset nuevo no es una migracion de datos.
+	 *
+	 * Las URNs no se borran nunca en silencio: una entidad que desaparece pasa a
+	 * Ghost Slot o Tombstone (logicMembershipUrn), no se limpia del mapa.
+	 */
+	groupMemberships?: Record<string, readonly string[]>;
 }
 
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
@@ -294,6 +303,18 @@ export interface VaultmanSettings {
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
 	savedLayouts?: SavedLayout[];
+	/**
+	 * U130-06: el ultimo InteractionMode que el usuario eligio en cada pestana.
+	 * Es el nivel intermedio de la cascada: pierde contra un layout aplicado y
+	 * gana contra DEFAULT_INTERACTION_MODE.
+	 */
+	defaultInteractionModeByTab?: Partial<Record<ExplorerTabId, InteractionMode>>;
+	/**
+	 * U130-06: cuando es false, cada pestana abre siempre en
+	 * DEFAULT_INTERACTION_MODE. Apagarlo NO borra lo ya guardado, para que
+	 * volver a encenderlo recupere la preferencia.
+	 */
+	persistInteractionMode?: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
@@ -485,6 +506,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,
+	defaultInteractionModeByTab: {},
+	persistInteractionMode: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 200,

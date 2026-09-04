@@ -248,6 +248,9 @@ export const es: Record<string, string> = {
 	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
+	'settings.persist_interaction_mode': 'Recordar el modo de interacción',
+	'settings.persist_interaction_mode.desc':
+		'Cada pestaña vuelve a abrirse en el último modo de interacción que elegiste allí. Al apagarlo, todas abren en Abrir; lo que ya elegiste se conserva.',
 	'settings.context_menu.page_desc':
 		'Dónde aparecen los items de Vaultman en los menús contextuales.',
 	'settings.style_preset': 'Preset de estilo',
@@ -532,11 +535,11 @@ export const es: Record<string, string> = {
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',
-	'viewmenu.in_mode': 'Comportamiento',
-	'viewmenu.in_mode.open': 'Abrir',
-	'viewmenu.in_mode.add': 'Agregar',
-	'viewmenu.in_mode.select': 'Seleccionar',
-	'viewmenu.in_mode.filter': 'Filtrar',
+	'viewmenu.interaction': 'Interacción',
+	'viewmenu.interaction.open': 'Abrir',
+	'viewmenu.interaction.add': 'Agregar',
+	'viewmenu.interaction.select': 'Seleccionar',
+	'viewmenu.interaction.filter': 'Filtrar',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':
@@ -669,6 +672,11 @@ export const es: Record<string, string> = {
 	'explorer.ctx.move_to_prop': 'Mover a propiedad...',
 	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
 	'explorer.ctx.move_to_prop.cancel': 'Cancelar',
+	'sasi.move.proceed': 'Proceder',
+	'sasi.move.cancel': 'Cancelar',
+	'sasi.move.toggle_write': 'Añadir o reemplazar',
+	'sasi.move.toggle_origin': 'Mover o copiar',
+	'sasi.move.toggle_kind': 'Mover nodos o grupos',
 	'explorer.move_to_prop.write.append': 'Agregar al destino',
 	'explorer.move_to_prop.write.replace': 'Reemplazar en el destino',
 	'explorer.move_to_prop.origin.move': 'Mover',
