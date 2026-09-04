@@ -83,6 +83,21 @@ export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): stri
 	return segments.slice(0, idx + 1).join("/");
 }
 
+/**
+ * ISSUE 2: verifica si un folder tiene nota bindeada (C-node
+ * `folder/folder.md` o nota por alias del path), sin crear nada.
+ */
+export function hasBoundFolderNote(folderPath: string, app?: App): boolean {
+	if (!app) return false;
+	const clean = folderPath.replace(/^[/\\]+|[/\\]+$/g, "");
+	if (!clean) return false;
+	const folderName = clean.split("/").pop() ?? clean;
+	const cNodePath = clean + "/" + folderName + ".md";
+	const files = app.vault?.getMarkdownFiles?.() ?? [];
+	if (files.some((f) => f?.path === cNodePath)) return true;
+	return findNotesByAlias(app, clean).length > 0;
+}
+
 export function resolveNativeBindingTarget(
 	target: EventTarget | null,
 	app?: App,
@@ -109,8 +124,14 @@ export function resolveNativeBindingTarget(
 	// 1. Breadcrumbs
 	const breadcrumb = base.closest<HTMLElement>(".view-header-breadcrumb");
 	if (breadcrumb) {
-		const folderPath = resolveBreadcrumbFolderPath(breadcrumb, app ?? (typeof window !== "undefined" ? (window as any).app : undefined));
+		const resolvedApp = app ?? (typeof window !== "undefined" ? (window as any).app : undefined);
+		const folderPath = resolveBreadcrumbFolderPath(breadcrumb, resolvedApp);
 		if (folderPath) {
+			// ISSUE 2: si el folder tiene nota bindeada, el breadcrumb lleva
+			// la clase de node-note-link; sin binding no se decora.
+			if (hasBoundFolderNote(folderPath, resolvedApp)) {
+				breadcrumb.classList.add("vaultman-node-note-link");
+			}
 			return {
 				element: breadcrumb,
 				node: { kind: "folder", label: folderPath, path: folderPath },

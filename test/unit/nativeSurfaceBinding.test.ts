@@ -264,6 +264,61 @@ describe("task_108 surface-guard negativos (primario llano nunca suprime)", () =
 	});
 });
 
+describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", () => {
+	function breadcrumbEl() {
+		const added: string[] = [];
+		const el: any = {
+			dataset: {},
+			textContent: "Projects",
+			getAttribute: (attr: string) => (attr === "data-path" ? "Projects" : null),
+			classList: {
+				contains: () => false,
+				add: (cls: string) => { added.push(cls); },
+			},
+			closest: (selector: string) => {
+				if (selector.includes("view-header-breadcrumb")) return el;
+				return null;
+			},
+			querySelectorAll: () => [],
+			querySelector: () => null,
+			added,
+		};
+		return el;
+	}
+
+	function folderApp(files: any[], aliases: unknown = {}) {
+		return {
+			vault: { getMarkdownFiles: () => files },
+			metadataCache: { getFileCache: () => ({ frontmatter: { aliases } }) },
+		} as any;
+	}
+
+	it("anade la clase cuando existe el C-node del folder", () => {
+		const el = breadcrumbEl();
+		const target = resolveNativeBindingTarget(el, folderApp([{ path: "Projects/Projects.md" }]));
+		expect(target?.node.kind).toBe("folder");
+		expect(el.added).toContain("vaultman-node-note-link");
+	});
+
+	it("anade la clase cuando hay nota por alias del folder", () => {
+		const el = breadcrumbEl();
+		const target = resolveNativeBindingTarget(el, folderApp([{ path: "Notes/X.md" }], ["Projects"]));
+		expect(target).not.toBeNull();
+		expect(el.added).toContain("vaultman-node-note-link");
+	});
+
+	it("no decora sin nota bindeada ni sin app", () => {
+		const el = breadcrumbEl();
+		const target = resolveNativeBindingTarget(el, folderApp([]));
+		expect(target?.node.kind).toBe("folder");
+		expect(el.added).not.toContain("vaultman-node-note-link");
+
+		const el2 = breadcrumbEl();
+		resolveNativeBindingTarget(el2);
+		expect(el2.added).not.toContain("vaultman-node-note-link");
+	});
+});
+
 describe("handleNativeBindingHover", () => {
 	it("triggers hover-link on native tag when bound note exists", () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
