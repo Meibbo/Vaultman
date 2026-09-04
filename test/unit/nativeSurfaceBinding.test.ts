@@ -472,4 +472,48 @@ describe("handleNativeBindingHover", () => {
 		expect(handleNativeBindingHover(plainEvent, { app: mockApp })).toBe(false);
 		expect(mockTrigger).not.toHaveBeenCalled();
 	});
+
+	it("ISSUE 3: file hover usa lookup directo sin indice de markdown", () => {
+		const row = mockElement({
+			classes: ["nav-file-title"],
+			attributes: { "data-path": "Notes/A.md" },
+			textContent: "A",
+		});
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: {
+				getMarkdownFiles: () => [],
+				getAbstractFileByPath: (p: string) => (p === "Notes/A.md" ? { path: p } : null),
+			},
+			metadataCache: { getFileCache: () => ({}) },
+			workspace: { trigger: mockTrigger },
+		};
+
+		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/A.md",
+		}));
+	});
+
+	it("ISSUE 3: file hover ignora carpetas en lookup directo", () => {
+		const row = mockElement({
+			classes: ["nav-file-title"],
+			attributes: { "data-path": "Notes" },
+			textContent: "Notes",
+		});
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: {
+				getMarkdownFiles: () => [],
+				getAbstractFileByPath: (p: string) => (p === "Notes" ? { path: p, children: [] } : null),
+			},
+			metadataCache: { getFileCache: () => ({}) },
+			workspace: { trigger: mockTrigger },
+		};
+
+		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
+		expect(mockTrigger).not.toHaveBeenCalled();
+	});
 });

@@ -319,8 +319,17 @@ export function resolveNativeFileHoverTarget(
 	if (!fileEl || !rawPath) return null;
 	const files = app?.vault?.getMarkdownFiles?.() ?? [];
 	const match = files.find((f) => f?.path === rawPath);
-	if (!match?.path) return null;
-	return { element: fileEl, path: match.path };
+	if (match?.path) return { element: fileEl, path: match.path };
+	// Fallback sin índice de markdown (izenas con getMarkdownFiles vacío):
+	// lookup directo, excluyendo carpetas por `children`.
+	const direct = app?.vault?.getAbstractFileByPath?.(rawPath) as
+		| { path?: string; children?: unknown }
+		| null
+		| undefined;
+	if (direct && direct.path === rawPath && direct.children === undefined) {
+		return { element: fileEl, path: direct.path };
+	}
+	return null;
 }
 
 export class NativeSurfaceBindingService extends Component {
