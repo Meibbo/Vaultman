@@ -74,6 +74,12 @@ export interface PropertyValueRenderContext {
 	onRemoveValue?: () => void;
 	/** Reports a committed inline edit. Absent means the value is not editable. */
 	onRenameValue?: (next: string) => void;
+	/**
+	 * Preview de rename: pinta el widget sin callbacks y con navegación
+	 * neutralizada (los anchors tragan el click en vez de navegar; el
+	 * preview no va a ninguna parte hasta el apply).
+	 */
+	preview?: boolean;
 }
 
 type PropertyValueRenderer = (context: PropertyValueRenderContext) => void;
@@ -87,7 +93,7 @@ export function renderEditableText(
 	parent: HTMLElement,
 	context: PropertyValueRenderContext,
 ): HTMLElement {
-	const { raw, app, onRenameValue } = context;
+	const { raw, app, onRenameValue, preview } = context;
 
 	const wikilink = raw.trim().match(WIKILINK);
 	if (wikilink) {
@@ -97,7 +103,9 @@ export function renderEditableText(
 			text: wikilink[2] || target,
 			href: target,
 		});
-	 // Como el frontmatter de core: marca no resuelto cuando el destino no existe.
+		// Como el frontmatter de core: marca no resuelto cuando el destino
+		// no existe. Solo cuando hay cache que consultar; sin cache no se
+		// afirma nada (puerta de regresión de los tests con stub mínimo).
 		const cache = app.metadataCache;
 		if (cache && !cache.getFirstLinkpathDest?.(target, '')) {
 			link.addClass('is-unresolved');
@@ -105,7 +113,7 @@ export function renderEditableText(
 		link.addEventListener('click', (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			void app.workspace.openLinkText(target, '', false);
+			if (!preview) void app.workspace.openLinkText(target, '', false);
 		});
 		return link;
 	}
@@ -128,7 +136,7 @@ export function renderEditableText(
 			link.addEventListener('click', (event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				void app.workspace.openLinkText(target, '', false);
+				if (!preview) void app.workspace.openLinkText(target, '', false);
 			});
 			return link;
 		}
@@ -139,6 +147,7 @@ export function renderEditableText(
 		});
 		link.addEventListener('click', (event) => {
 			event.stopPropagation();
+			if (preview) event.preventDefault();
 		});
 		return link;
 	}
@@ -153,6 +162,7 @@ export function renderEditableText(
 		});
 		link.addEventListener('click', (event) => {
 			event.stopPropagation();
+			if (preview) event.preventDefault();
 		});
 		return link;
 	}

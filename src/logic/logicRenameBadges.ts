@@ -20,7 +20,7 @@ export function renameTargetForPath(
 			return change.value;
 		} else {
 			if (change.property !== path) return undefined;
-			const match = change.details.match(/→ "(.*?)"/);
+			const match = change.details?.match(/→ "(.*?)"/);
 			return match ? match[1] : undefined;
 		}
 	}
@@ -38,6 +38,20 @@ export function renameTargetFromQueue(
 		if (target) return target;
 	}
 	return undefined;
+}
+
+/**
+ * Índice de la staged op que un preview de fecha puede sustituir al
+ * editarse (-1 si no hay). Misma coincidencia que el preview.
+ */
+export function findStagedRenameIndex(
+	queue: readonly PendingChange[],
+	path: string,
+): number {
+	for (let queueIndex = 0; queueIndex < queue.length; queueIndex += 1) {
+		if (renameTargetForPath(queue[queueIndex], path)) return queueIndex;
+	}
+	return -1;
 }
 
 export function queuedRenameBadgeForPath(

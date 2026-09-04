@@ -2,7 +2,10 @@ import type { TFile } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
 import { buildFileRenameChange } from '../../src/modals/modalFileRename';
-import { queuedRenameBadgeForPath } from '../../src/logic/logicRenameBadges';
+import {
+	findStagedRenameIndex,
+	queuedRenameBadgeForPath,
+} from '../../src/logic/logicRenameBadges';
 import { buildSnippetRenameChange } from '../../src/logic/logicSnippetOperations';
 
 function file(path: string): TFile {
@@ -58,5 +61,37 @@ describe('queued rename badge projection', () => {
 				'Notes/c.md',
 			),
 		).toBeUndefined();
+	});
+});
+
+describe('findStagedRenameIndex (preview de fecha sustituye staged op)', () => {
+	function propRename(property: string, value: string, oldValue?: string): any {
+		return {
+			type: 'property',
+			action: 'rename',
+			property,
+			value,
+			oldValue,
+			details: `Rename value "${oldValue ?? ''}" → "${value}"`,
+		};
+	}
+
+	it('localiza la op por node id prop::valor', () => {
+		const queue = [
+			propRename('tags', 'x'),
+			propRename('fecha', '2026-09-10', '2026-09-01'),
+		];
+		expect(findStagedRenameIndex(queue, 'fecha::2026-09-01')).toBe(1);
+	});
+
+	it('localiza la op por nombre de prop', () => {
+		const queue = [propRename('status', 'done')];
+		expect(findStagedRenameIndex(queue, 'status')).toBe(0);
+	});
+
+	it('devuelve -1 sin match', () => {
+		const queue = [propRename('status', 'done')];
+		expect(findStagedRenameIndex(queue, 'otra')).toBe(-1);
+		expect(findStagedRenameIndex([], 'status')).toBe(-1);
 	});
 });

@@ -546,6 +546,79 @@ describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)
 		expect(root.find('external-link')).not.toBeNull();
 		expect(root.find('vaultman-property-value-remove')).not.toBeNull();
 	});
+});
+
+describe('preview de rename: navegacion neutralizada (spec rename-preview)', () => {
+	function renderPreview(raw: string, type: string): { root: StubEl; opened: string[] } {
+		const opened: string[] = [];
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw,
+			type,
+			app: {
+				workspace: { openLinkText: (target: string) => { opened.push(target); } },
+			} as unknown as App,
+			preview: true,
+		});
+		return { root: container, opened };
+	}
+
+	function click(el: StubEl | null): { prevented: boolean; stopped: boolean } {
+		const outcome = { prevented: false, stopped: false };
+		const handlers = el?.listeners.get('click') ?? [];
+		for (const handler of handlers) {
+			handler({
+				preventDefault: () => { outcome.prevented = true; },
+				stopPropagation: () => { outcome.stopped = true; },
+			});
+		}
+		return outcome;
+	}
+
+	it('wikilink en preview traga el click sin openLinkText', () => {
+		const { root, opened } = renderPreview('[[Nota]]', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		const outcome = click(anchor);
+		expect(outcome.prevented).toBe(true);
+		expect(outcome.stopped).toBe(true);
+		expect(opened).toEqual([]);
+	});
+
+	it('url_link en preview traga el click sin openLinkText', () => {
+		const { root, opened } = renderPreview('[ver]([[Nota]])', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		click(anchor);
+		expect(opened).toEqual([]);
+	});
+
+	it('hyperlink en preview traga el click (preventDefault)', () => {
+		const { root, opened } = renderPreview('https://example.com/x', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		const outcome = click(anchor);
+		expect(outcome.prevented).toBe(true);
+		expect(opened).toEqual([]);
+	});
+
+	it('sin preview el wikilink si navega (puerta de regresion)', () => {
+		const opened: string[] = [];
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Nota]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: (target: string) => { opened.push(target); } },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		click(anchor);
+		expect(opened).toEqual(['Nota']);
+	});
 
 	it('wikilink sin destino marca is-unresolved como el frontmatter', () => {
 		const container = new StubEl('span');

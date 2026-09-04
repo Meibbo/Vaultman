@@ -153,7 +153,7 @@ import {
 	replaceMatchingPropertyValue,
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
-import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import { findStagedRenameIndex, renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
 	detectLinkType,
 	parseWikilink,
@@ -1858,15 +1858,25 @@ export class PropsExplorerPanel extends Component {
 						const label = container.createSpan({
 							cls: 'vaultman-tree-label vaultman-rename-preview',
 						});
+						label.setAttribute('data-preview', 'rename');
 						const previewMeta = node.meta as PropMeta;
-						if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
-							// El preview conserva el cell_format del valor.
-							renderEditableText(label, {
+						if (target === '') {
+							label.createSpan({
+								cls: 'vaultman-tree-label vaultman-property-value-empty',
+								attr: { 'data-placeholder': translate('prop.value.empty') },
+							});
+						} else if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+							// El preview habla el idioma del widget (spec rename-preview).
+							renderPropertyValue({
 								container: label,
+								propertyAttributeContainer: label,
+								propertyKey: previewMeta.propName,
 								raw: target,
 								type: previewMeta.propType ?? 'text',
 								app: this.plugin.app,
+								preview: true,
 							});
+							this._wirePreviewDateReplace(label, previewMeta, node.id);
 						} else {
 							label.setText(target);
 						}
@@ -1930,15 +1940,25 @@ export class PropsExplorerPanel extends Component {
 					const label = container.createSpan({
 						cls: 'vaultman-tree-label vaultman-rename-preview',
 					});
+					label.setAttribute('data-preview', 'rename');
 					const previewMeta = node.meta as PropMeta;
-					if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
-						// El preview conserva el cell_format del valor.
-						renderEditableText(label, {
+					if (target === '') {
+						label.createSpan({
+							cls: 'vaultman-tree-label vaultman-property-value-empty',
+							attr: { 'data-placeholder': translate('prop.value.empty') },
+						});
+					} else if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+						// El preview habla el idioma del widget (spec rename-preview).
+						renderPropertyValue({
 							container: label,
+							propertyAttributeContainer: label,
+							propertyKey: previewMeta.propName,
 							raw: target,
 							type: previewMeta.propType ?? 'text',
 							app: this.plugin.app,
+							preview: true,
 						});
+						this._wirePreviewDateReplace(label, previewMeta, node.id);
 					} else {
 						label.setText(target);
 					}
@@ -2149,6 +2169,28 @@ export class PropsExplorerPanel extends Component {
 		})();
 	}
 
+	/**
+	 * Date picker habilitado dentro de un preview: editarlo sustituye la
+	 * staged operation (remove + stage nuevo valor), sin escribir directo
+	 * al vault. Spec rename-preview-decorated-cell-format §3/§6.
+	 */
+	private _wirePreviewDateReplace(label: HTMLElement, meta: PropMeta, nodeId: string): void {
+		const input = label.querySelector('input.mod-date, input.mod-datetime') as HTMLInputElement | null;
+		if (!input) return;
+		input.removeAttribute('disabled');
+		input.addEventListener('change', () => {
+			const next = input.value;
+			if (!next) return;
+			const queue = this.plugin.queueService.queue;
+			const stagedIndex = findStagedRenameIndex(queue, nodeId);
+			if (stagedIndex < 0) return;
+			const propName = meta.propName ?? '';
+			const rawValue = meta.rawValue ?? '';
+			this.plugin.queueService.remove(stagedIndex);
+			void this._replaceValueInVault(propName, rawValue, next);
+		});
+	}
+
 	private _renderPropertyValueLabel(		container: HTMLElement,
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
@@ -2161,14 +2203,25 @@ export class PropsExplorerPanel extends Component {
 			const label = container.createSpan({
 				cls: 'vaultman-tree-label vaultman-rename-preview',
 			});
-			if (this.visibleCells.has('format')) {
-				// El preview conserva el cell_format del valor.
-				renderEditableText(label, {
+			label.setAttribute('data-preview', 'rename');
+			if (target === '') {
+				// Transición a vacío: estado empty decorado, no crudo.
+				label.createSpan({
+					cls: 'vaultman-tree-label vaultman-property-value-empty',
+					attr: { 'data-placeholder': translate('prop.value.empty') },
+				});
+			} else if (this.visibleCells.has('format')) {
+				// El preview habla el idioma del widget (spec rename-preview).
+				renderPropertyValue({
 					container: label,
+					propertyAttributeContainer: label,
+					propertyKey: node.meta.propName,
 					raw: target,
 					type: node.meta.propType ?? 'text',
 					app: this.plugin.app,
+					preview: true,
 				});
+				this._wirePreviewDateReplace(label, node.meta, node.id);
 			} else {
 				label.setText(target);
 			}
