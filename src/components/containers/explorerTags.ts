@@ -67,6 +67,7 @@ export interface PanelPluginCtx {
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, TagMeta } from '../../types/typeTree';
+import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
@@ -110,7 +111,7 @@ import {
 
 type DateSortId = 'mtime' | 'ctime';
 
-function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+function sameStringSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 	if (a.size !== b.size) return false;
 	for (const value of a) {
 		if (!b.has(value)) return false;
@@ -432,6 +433,58 @@ export class TagsExplorerPanel extends Component {
 		this.hasConnectedSortStateHandler = true;
 		this.onSortStateChange = handler;
 		if (reconnecting) handler(this._sortState());
+	}
+
+	configurePanelWidgetProjection(
+		config: PanelWidgetExplorerProjectionConfig,
+	): void {
+		const viewChanged = this.viewMode !== config.viewMode;
+		const cellsChanged = !sameStringSet(this.visibleCells, config.visibleCells);
+		const normalizedSort = normalizeExplorerSortState('tags', config.sortState);
+		const nextFilters = normalizeNodeTypeFilters(
+			normalizedSort.nodeTypeFilters ?? normalizedSort.nodeTypeFilter,
+		);
+		const sortChanged =
+			!sameExplorerSortState(this.sortState, normalizedSort) ||
+			!sameNodeTypeFilters(this.nodeTypeFilters, nextFilters);
+		const normalizedInteractionMode = config.interactionMode
+			? normalizeInteractionMode('tags', config.interactionMode)
+			: undefined;
+		const interactionChanged =
+			normalizedInteractionMode !== undefined &&
+			this.interactionMode !== normalizedInteractionMode;
+
+		if (!viewChanged && !cellsChanged && !sortChanged && !interactionChanged) {
+			return;
+		}
+
+		if (viewChanged) {
+			this.viewMode = config.viewMode;
+			if (config.viewMode === 'tree') {
+				this.tableView?.destroy();
+				this.view.destroy();
+				this.containerEl.empty();
+				this.view = new UnifiedTreeView(this.containerEl);
+			} else {
+				this.view.destroy();
+				if (config.viewMode === 'grid') {
+					this.tableView?.destroy();
+					this.containerEl.empty();
+				}
+			}
+		}
+		if (cellsChanged) {
+			this.visibleCells = new Set(config.visibleCells);
+		}
+		if (sortChanged) {
+			this.sortState = normalizedSort;
+			this.nodeTypeFilters = nextFilters;
+		}
+		if (interactionChanged && normalizedInteractionMode) {
+			this.interactionMode = normalizedInteractionMode;
+		}
+
+		this._render();
 	}
 
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
