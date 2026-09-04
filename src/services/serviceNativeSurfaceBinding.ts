@@ -75,19 +75,33 @@ type ClosableElement = HTMLElement & {
 
 export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): string | null {
 	const parentEl = el.closest(".view-header-title-parent");
-	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
+	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? null;
 
 	const breadcrumbs = Array.from(parentEl.querySelectorAll(".view-header-breadcrumb"));
 	const idx = breadcrumbs.indexOf(el as Element);
-	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
+	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? null;
 
-	const activeFile = app?.workspace?.getActiveFile?.() ?? null;
-	if (!activeFile || !activeFile.parent || activeFile.parent.path === "/") {
-		return el.textContent?.trim() ?? null;
+	let file: { parent?: { path?: string } | null } | null = null;
+	const leafEl = el.closest?.(".workspace-leaf");
+	if (leafEl && app?.workspace?.getLeavesOfType) {
+		const leaves = app.workspace.getLeavesOfType("markdown");
+		for (const leaf of leaves) {
+			if ((leaf as any).containerEl === leafEl) {
+				file = (leaf.view as any)?.file ?? null;
+				break;
+			}
+		}
+	}
+	if (!file) {
+		file = app?.workspace?.getActiveFile?.() ?? null;
 	}
 
-	const segments = activeFile.parent.path.split("/");
-	if (idx >= segments.length) return activeFile.parent.path;
+	if (!file || !file.parent || file.parent.path === "/") {
+		return null;
+	}
+
+	const segments = (file.parent.path ?? "").split("/");
+	if (idx >= segments.length) return null;
 	return segments.slice(0, idx + 1).join("/");
 }
 
@@ -96,11 +110,13 @@ export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): stri
  * `folder/folder.md` o nota por alias del path), sin crear nada.
  */
 export function hasBoundFolderNote(folderPath: string, app?: App): boolean {
-	if (!app) return false;
+	if (!app || !folderPath) return false;
 	const clean = folderPath.replace(/^[/\\]+|[/\\]+$/g, "");
 	if (!clean) return false;
 	const folderName = clean.split("/").pop() ?? clean;
 	const cNodePath = clean + "/" + folderName + ".md";
+	const directFile = app.vault?.getAbstractFileByPath?.(cNodePath);
+	if (directFile) return true;
 	const files = app.vault?.getMarkdownFiles?.() ?? [];
 	if (files.some((f) => f?.path === cNodePath)) return true;
 	return findNotesByAlias(app, clean).length > 0;
@@ -109,8 +125,8 @@ export function hasBoundFolderNote(folderPath: string, app?: App): boolean {
 /**
  * ISSUE 2 (rediseño): decora proactivamente todos los breadcrumbs con nota
  * bindeada al render, sin esperar click/hover. El nn-link es referencia
- * visual permanente mientras node-notes está activo (sin toggle de apagado
- * general, siempre decora con el plugin cargado).
+ * visual permanente mientras node-notes está activo. Si un folder deja de
+ * tener nota bindeada o el elemento DOM se recicla, la clase se retira limpiamente.
  */
 export function decorateBoundBreadcrumbs(doc: Document | undefined, app?: App): void {
 	if (!doc || !app) return;
@@ -118,8 +134,11 @@ export function decorateBoundBreadcrumbs(doc: Document | undefined, app?: App): 
 	crumbs.forEach((crumb) => {
 		const el = crumb as HTMLElement;
 		const folderPath = resolveBreadcrumbFolderPath(el as unknown as ClosableElement, app);
-		if (folderPath && hasBoundFolderNote(folderPath, app)) {
+		const isBound = Boolean(folderPath && hasBoundFolderNote(folderPath, app));
+		if (isBound) {
 			el.classList.add("vaultman-node-note-link");
+		} else {
+			el.classList.remove?.("vaultman-node-note-link");
 		}
 	});
 }
@@ -154,9 +173,12 @@ export function resolveNativeBindingTarget(
 		const folderPath = resolveBreadcrumbFolderPath(breadcrumb, resolvedApp);
 		if (folderPath) {
 			// ISSUE 2: si el folder tiene nota bindeada, el breadcrumb lleva
-			// la clase de node-note-link; sin binding no se decora.
-			if (hasBoundFolderNote(folderPath, resolvedApp)) {
+			// la clase de node-note-link; sin binding se retira si existía.
+			const isBound = Boolean(hasBoundFolderNote(folderPath, resolvedApp));
+			if (isBound) {
 				breadcrumb.classList.add("vaultman-node-note-link");
+			} else {
+				breadcrumb.classList.remove?.("vaultman-node-note-link");
 			}
 			return {
 				element: breadcrumb,
@@ -550,6 +572,14 @@ export class NativeSurfaceBindingService extends Component {
 			decorateBoundBreadcrumbs(doc, this.deps.app);
 		};
 		decorate();
+		if (this.deps.app?.workspace?.on) {
+			this.registerEvent(this.deps.app.workspace.on("active-leaf-change", () => {
+				decorate();
+			}));
+			this.registerEvent(this.deps.app.workspace.on("file-open", () => {
+				decorate();
+			}));
+		}
 		const crumbObserver = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				if (mutation.type !== "childList") continue;

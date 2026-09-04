@@ -94,6 +94,37 @@ describe("resolveBreadcrumbFolderPath", () => {
 		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Projects");
 		expect(resolveBreadcrumbFolderPath(b2, mockApp)).toBe("Projects/2026");
 	});
+
+	it("resuelve slice path desde la hoja workspace-leaf en vez de activeFile global", () => {
+		const b1 = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Docs" });
+		const parent = mockElement({
+			classes: ["view-header-title-parent"],
+			children: [b1],
+		});
+		const leafContainer = mockElement({
+			classes: ["workspace-leaf"],
+			children: [parent],
+		});
+		b1.closest = (sel: string) => {
+			if (sel.includes("view-header-title-parent")) return parent;
+			if (sel.includes("workspace-leaf")) return leafContainer;
+			return null;
+		};
+
+		const leafFile = { parent: { path: "Docs" } };
+		const activeFile = { parent: { path: "UnrelatedFolder" } };
+
+		const mockApp: any = {
+			workspace: {
+				getActiveFile: () => activeFile,
+				getLeavesOfType: () => [
+					{ containerEl: leafContainer, view: { file: leafFile } },
+				],
+			},
+		};
+
+		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Docs");
+	});
 });
 
 describe("resolveNativeBindingTarget", () => {
@@ -338,14 +369,15 @@ describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", 
 });
 
 describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
-	function crumbEl(path: string, added: string[]) {
+	function crumbEl(path: string, added: string[], removed: string[] = []) {
 		const el: any = {
 			dataset: {},
 			textContent: path,
 			getAttribute: (attr: string) => (attr === "data-path" ? path : null),
 			classList: {
-				contains: () => false,
+				contains: (c: string) => added.includes(c) && !removed.includes(c),
 				add: (cls: string) => { added.push(cls); },
+				remove: (cls: string) => { removed.push(cls); },
 			},
 			closest: (selector: string) => {
 				if (selector.includes("view-header-breadcrumb")) return el;
@@ -375,6 +407,14 @@ describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
 		decorateBoundBreadcrumbs(doc, folderApp([{ path: "Projects/Projects.md" }]));
 		expect(addedBound).toContain("vaultman-node-note-link");
 		expect(addedPlain).not.toContain("vaultman-node-note-link");
+	});
+
+	it("retira la clase vaultman-node-note-link de un breadcrumb sin nota bindeada", () => {
+		const added: string[] = ["vaultman-node-note-link"];
+		const removed: string[] = [];
+		const doc = fakeDoc([crumbEl("Inbox", added, removed)]);
+		decorateBoundBreadcrumbs(doc, folderApp([]));
+		expect(removed).toContain("vaultman-node-note-link");
 	});
 
 	it("no hace nada sin doc ni sin app", () => {
