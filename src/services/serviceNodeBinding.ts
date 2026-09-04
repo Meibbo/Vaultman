@@ -176,7 +176,18 @@ export class NodeBindingService {
 			}
 		}
 
-		// 2. Folder Node-Notes resolution hierarchy:
+		// 1b. Wikilink sin destino existente: título, token y alias usan el
+	// target sin brackets (Obsidian no reconoce aliases con [[]] y el
+	// filename no debe llevarlos). El fast-path de arriba ya abrió el
+	// destino cuando existía.
+	if (node.kind === "value" || node.kind === "prop") {
+		const wikilinkTarget = extractWikilinkTarget(node.label);
+		if (wikilinkTarget) {
+			node = { ...node, label: wikilinkTarget };
+		}
+	}
+
+	// 2. Folder Node-Notes resolution hierarchy:
 		//    a) C-Node with same name (folder/folder.md)
 		//    b) Aliases matching folder path
 		//    c) Creation of folder/folder.md inside the folder

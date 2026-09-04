@@ -540,4 +540,36 @@ describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)
 		expect(anchor).not.toBeNull();
 		expect(anchor!.textContent).toBe('ver');
 	});
+
+	it('wikilink sin destino marca is-unresolved como el frontmatter', () => {
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Falta]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: () => undefined },
+				metadataCache: { getFirstLinkpathDest: () => null },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.classes()).toContain('is-unresolved');
+	});
+
+	it('wikilink con destino no marca is-unresolved', () => {
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Existe]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: () => undefined },
+				metadataCache: { getFirstLinkpathDest: () => ({ path: 'Existe.md' }) },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.classes()).not.toContain('is-unresolved');
+	});
 });

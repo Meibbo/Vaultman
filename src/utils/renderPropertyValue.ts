@@ -30,10 +30,17 @@ export function detectLinkType(rawValue: string): PropertyValueLinkType {
  * Texto visible de un wikilink (`alias` si hay, si no el destino), igual que
  * el panel nativo de frontmatter. `null` si no es wikilink.
  */
-export function parseWikilinkDisplay(rawValue: string): string | null {
+export function parseWikilink(rawValue: string): { target: string; display: string } | null {
 	const match = (rawValue ?? '').trim().match(WIKILINK);
 	if (!match) return null;
-	return (match[2] || match[1]).trim();
+	const target = match[1].trim();
+	const display = (match[2] || target).trim();
+	if (!target || !display) return null;
+	return { target, display };
+}
+
+export function parseWikilinkDisplay(rawValue: string): string | null {
+	return parseWikilink(rawValue)?.display ?? null;
 }
 
 /**
@@ -90,6 +97,11 @@ export function renderEditableText(
 			text: wikilink[2] || target,
 			href: target,
 		});
+	 // Como el frontmatter de core: marca no resuelto cuando el destino no existe.
+		const cache = app.metadataCache;
+		if (cache && !cache.getFirstLinkpathDest?.(target, '')) {
+			link.addClass('is-unresolved');
+		}
 		link.addEventListener('click', (event) => {
 			event.preventDefault();
 			event.stopPropagation();

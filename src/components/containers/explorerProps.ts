@@ -154,7 +154,7 @@ import {
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
 	detectLinkType,
-	parseWikilinkDisplay,
+	parseWikilink,
 	renderEditableText,
 	renderPropertyValue,
 } from '../../utils/renderPropertyValue';
@@ -1925,15 +1925,27 @@ export class PropsExplorerPanel extends Component {
 				// formato node-note-link; hyperlink/url_link quedan plain.
 				const nodeLinkType = detectLinkType(nodeLinkText);
 				if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
-					// El wikilink bindeado lleva el aspecto visual de core
-					// (internal-link, como el frontmatter); el binding va en
-					// el onclick. El texto plano con nota conserva nn-link.
-					const wikiDisplay = nodeLinkType === 'wikilink' ? parseWikilinkDisplay(nodeLinkText) : null;
+					// Wikilink bindeado con aspecto y gesto vanilla de core
+					// (internal-link + is-unresolved + openLinkText): la clase
+					// nn-link queda solo para texto con nota, no para links.
+					const wiki = nodeLinkType === 'wikilink' ? parseWikilink(nodeLinkText) : null;
+					if (wiki !== null) {
+						const cache = this.plugin.app.metadataCache;
+						const link = container.createEl('a', {
+							cls: 'internal-link vaultman-property-value-link vaultman-tree-label' + (cache && !cache.getFirstLinkpathDest?.(wiki.target, '') ? ' is-unresolved' : ''),
+							text: wiki.display,
+							href: wiki.target,
+						});
+						link.onclick = (e) => {
+							e.stopPropagation();
+							e.preventDefault();
+							void this.plugin.app.workspace.openLinkText(wiki.target, '', e.ctrlKey || e.metaKey || e.button === 1);
+						};
+						return true;
+					}
 					const label = container.createSpan({
-						cls: wikiDisplay !== null
-							? 'vaultman-tree-label internal-link vaultman-property-value-link'
-							: 'vaultman-tree-label vaultman-node-note-link',
-						text: wikiDisplay ?? node.label,
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
 					label.onclick = (e) => {

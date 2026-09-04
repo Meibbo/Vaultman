@@ -195,4 +195,34 @@ describe("Wikilink & Adoption in NodeBindingService", () => {
 		expect(result.filePath).toBe("custom-snippet.md");
 		expect(mockProcessFrontMatter).toHaveBeenCalled();
 	});
+
+	it("crea nota desde valor wikilink sin brackets en filename ni alias", async () => {
+		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
+		const mockCreate = vi.fn().mockImplementation(async (path: string) => ({ path }));
+		const mockApp = {
+			metadataCache: {
+				getFirstLinkpathDest: vi.fn().mockReturnValue(null),
+				getFileCache: vi.fn().mockReturnValue({}),
+			},
+			vault: {
+				getMarkdownFiles: vi.fn().mockReturnValue([]),
+				getAbstractFileByPath: vi.fn().mockReturnValue(null),
+				create: mockCreate,
+			},
+			fileManager: {
+				getNewFileParent: vi.fn().mockReturnValue({ path: "" }),
+			},
+			workspace: {
+				getLeaf: vi.fn().mockReturnValue({ openFile: mockOpenFile }),
+			},
+		} as unknown as App;
+
+		const service = new NodeBindingService({ app: mockApp });
+		const result = await service.bindOrCreate({ kind: "value", label: "[[Nueva]]" });
+
+		expect(result.outcome).toBe("created");
+		expect(result.filePath).toBe("Nueva.md");
+		expect(result.token).toBe("Nueva");
+		expect(mockCreate).toHaveBeenCalledWith("Nueva.md", expect.not.stringContaining("[[Nueva]]"));
+	});
 });
