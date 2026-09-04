@@ -13,12 +13,18 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	// "ordena el arbol entero": elegir un preset escribia en `properties` y los
 	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
 	// lo dijera. fileScene siempre lo tuvo.
-	props: ['all', 'properties', 'values'],
-	files: ['all', 'drill'],
-	tags: ['all', 'drill'],
-	snippets: ['all'],
-	plugins: ['all'],
+	props: ['all', 'properties', 'values', 'groups'],
+	files: ['all', 'drill', 'groups'],
+	tags: ['all', 'drill', 'groups'],
+	snippets: ['all', 'groups'],
+	plugins: ['all', 'groups'],
 };
+
+/** U130-03: los scopes validos de una tab. El menu los necesita para no ofrecer
+ *  `groups` donde no significa nada, que es la mitad del fallo de U121-079. */
+export function scopesForTab(tab: ExplorerTabId): readonly SortScopeKey[] {
+	return SCOPES_BY_TAB[tab];
+}
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
 	props: 'all',
@@ -238,6 +244,11 @@ export function activeScopeSort(
 		: DEFAULT_SCOPE_BY_TAB[tab];
 	const own = state.sorts[allowedScope];
 	if (own) return own;
+	// U130-03: `groups` NO hereda el sort de otro scope. Heredar el de `all`
+	// haria que activar la agrupacion reordenara los grupos con el criterio de
+	// los nodos, en silencio -- el fallo de U121-079 otra vez. Sin sort propio,
+	// los grupos van en el orden por defecto y el usuario decide si lo cambia.
+	if (allowedScope === 'groups') return state.sorts.groups ?? DEFAULT_SORT;
 	const fallbackScope = DEFAULT_SCOPE_BY_TAB[tab];
 	if (fallbackScope !== allowedScope) {
 		return state.sorts[fallbackScope] ?? DEFAULT_SORT;
