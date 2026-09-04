@@ -1892,11 +1892,17 @@ export class PropsExplorerPanel extends Component {
 								void this._bindAndRefreshLive(
 									{ kind: 'value', label: node.label, propName: meta.propName },
 									e,
+									() => {
+										label.classList.add("vaultman-node-note-link");
+									},
 								);
 							} else {
 								void this._bindAndRefreshLive(
 									{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
 									e,
+									() => {
+										label.classList.add("vaultman-node-note-link");
+									},
 								);
 							}
 						};
@@ -1976,11 +1982,17 @@ export class PropsExplorerPanel extends Component {
 							void this._bindAndRefreshLive(
 								{ kind: 'value', label: node.label, propName: meta.propName },
 								e,
+								() => {
+									label.classList.add("vaultman-node-note-link");
+								},
 							);
 						} else {
 							void this._bindAndRefreshLive(
 								{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
 								e,
+								() => {
+									label.classList.add("vaultman-node-note-link");
+								},
 							);
 						}
 					};
@@ -2121,18 +2133,18 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	/**
-	 * Bind tras click en nn-link + actualización en vivo: si se creó o
-	 * adoptó nota, el nn-link debe pintarse sin esperar a los vault events.
+	 * Bind tras click en nn-link + parche dirigido en vivo: si se creó o
+	 * adoptó nota, decora la celda ya renderizada (patrón words/tasks) sin
+	 * re-render completo ni pipeline de filtros.
 	 */
-	private _bindAndRefreshLive(node: BindingNodeInput, e: MouseEvent): void {
+	private _bindAndRefreshLive(node: BindingNodeInput, e: MouseEvent, onBound?: () => void): void {
 		void (async () => {
 			const res = await this.plugin.nodeBindingService?.bindOrCreate(
 				node,
 				{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
 			);
 			if (res && (res.outcome === "created" || res.outcome === "adopted")) {
-				this.logic.invalidate();
-				this._render();
+				onBound?.();
 			}
 		})();
 	}

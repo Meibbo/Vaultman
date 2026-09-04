@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { TreeNode, FileMeta, TagMeta, PluginMeta, SnippetMeta, PropMeta } from "../../src/types/typeTree";
+import { PropsExplorerPanel } from "../../src/components/containers/explorerProps";
 
 describe("Explorer NodeNote Label O(1) rendering & SASI Inversion rules", () => {
 	it("renders .vaultman-node-note-link for non-markdown files (.pdf) with hasNodeNote and attaches onclick", () => {
@@ -253,5 +254,41 @@ describe("Explorer NodeNote Label O(1) rendering & SASI Inversion rules", () => 
 			cls: "vaultman-tree-label vaultman-node-note-link",
 			text: "custom-theme",
 		});
+	});
+});
+
+describe("_bindAndRefreshLive: parche dirigido en vivo (patrón words/tasks)", () => {
+	function fakeCtx(outcome: string | null) {
+		return {
+			plugin: {
+				nodeBindingService: {
+					bindOrCreate: async () => (outcome === null ? undefined : { outcome }),
+				},
+			},
+		} as any;
+	}
+
+	const req = { kind: "value", label: "x" } as any;
+	const fakeEvent = { ctrlKey: false, metaKey: false, button: 0 } as any;
+
+	it("parchea la celda cuando el binding crea la nota", async () => {
+		const proto = (PropsExplorerPanel as any).prototype;
+		let patched = 0;
+		await (proto as any)._bindAndRefreshLive.call(fakeCtx("created"), req, fakeEvent, () => {
+			patched += 1;
+		});
+		// El método es fire-and-forget interno: espera un tick.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(patched).toBe(1);
+	});
+
+	it("no toca nada cuando el binding solo abre", async () => {
+		const proto = (PropsExplorerPanel as any).prototype;
+		let patched = 0;
+		await (proto as any)._bindAndRefreshLive.call(fakeCtx("opened"), req, fakeEvent, () => {
+			patched += 1;
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(patched).toBe(0);
 	});
 });
