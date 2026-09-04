@@ -163,3 +163,42 @@ export function buildNodeMoveOperations(
 	}
 	return Object.freeze(operations);
 }
+
+/** ¿`ancestor` contiene a `path`? Corte por segmento, no por substring. */
+function reaches(ancestor: string, path: string): boolean {
+	return path === ancestor || path.startsWith(ancestor + '/');
+}
+
+/**
+ * U130-02: seleccionar un p-node incluye a sus c-nodes, y el usuario puede
+ * descartar hijos concretos. Copia la semantica del delete stageado
+ * (`excludedPaths` en logicDeletionDecoration.ts:69-104), incluido el desempate
+ * de `hasReleasedAncestor`: una reinclusion mas especifica gana sobre una
+ * exclusion mas general. Sin ese desempate, el usuario no puede deshacer una
+ * exclusion parcial y tiene que empezar la seleccion de cero.
+ */
+export function resolveOriginSet(
+	roots: readonly string[],
+	excludedPaths: readonly string[],
+	childrenOf: (root: string) => readonly string[],
+	releasedPaths: readonly string[] = [],
+): string[] {
+	const out: string[] = [];
+	for (const root of roots) {
+		for (const child of childrenOf(root)) {
+			const excludedBy = excludedPaths.find((ex) => reaches(ex, child));
+			if (!excludedBy) {
+				out.push(child);
+				continue;
+			}
+			// Reincluido explicitamente por debajo de la exclusion: gana lo mas
+			// especifico.
+			const released = releasedPaths.some(
+				(rel) => reaches(rel, child) && rel.length > excludedBy.length,
+			);
+			if (released) out.push(child);
+		}
+	}
+	return out;
+}
+

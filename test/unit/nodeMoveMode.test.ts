@@ -7,6 +7,7 @@ import {
 	proceedEnabled,
 	buildNodeMoveOperations,
 	reconcileNodeMoveOwner,
+	resolveOriginSet,
 } from '../../src/logic/logicNodeMoveMode';
 
 const OWNER = { instanceId: 'inst-1', scene: 'files' };
@@ -92,3 +93,40 @@ describe('U130-02 nodeMoveMode', () => {
 		).toBeNull();
 	});
 });
+
+describe('U130-02 seleccion jerarquica', () => {
+	const dentro = (p: string) =>
+		['x/a.md', 'x/b.md', 'x/sub/c.md'].filter((f) => f.startsWith(p + '/'));
+
+	it('seleccionar un p-node incluye a sus c-nodes', () => {
+		expect(resolveOriginSet(['x'], [], dentro)).toEqual([
+			'x/a.md',
+			'x/b.md',
+			'x/sub/c.md',
+		]);
+	});
+
+	it('permite descartar un hijo concreto', () => {
+		expect(resolveOriginSet(['x'], ['x/b.md'], dentro)).toEqual([
+			'x/a.md',
+			'x/sub/c.md',
+		]);
+	});
+
+	it('excluir una carpeta se lleva su subarbol', () => {
+		expect(resolveOriginSet(['x'], ['x/sub'], dentro)).toEqual([
+			'x/a.md',
+			'x/b.md',
+		]);
+	});
+
+	it('reincluir algo bajo un ancestro excluido lo devuelve', () => {
+		// `hasReleasedAncestor` de logicDeletionDecoration: el usuario excluyo
+		// `x/sub` y luego reincluyo `x/sub/c.md`. La reinclusion mas especifica
+		// gana. Sin esto, el usuario no puede deshacer una exclusion parcial.
+		expect(resolveOriginSet(['x'], ['x/sub'], dentro, ['x/sub/c.md'])).toEqual(
+			['x/a.md', 'x/b.md', 'x/sub/c.md'],
+		);
+	});
+});
+
