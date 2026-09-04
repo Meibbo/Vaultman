@@ -337,7 +337,7 @@ describe("handleNativeBindingHover", () => {
 			},
 		};
 
-		const event = { target: span } as MouseEvent;
+		const event = { target: span, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
 		const handled = handleNativeBindingHover(event, { app: mockApp });
 
 		expect(handled).toBe(true);
@@ -345,5 +345,44 @@ describe("handleNativeBindingHover", () => {
 			source: NATIVE_SURFACE_HOVER_SOURCE,
 			linktext: "Notes/Books.md",
 		}));
+	});
+
+	it("ISSUE 3: plain mouseover sin ctrl/meta no dispara preview", () => {
+		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: { getMarkdownFiles: () => [{ path: "Notes/Books.md" }] },
+			metadataCache: {
+				getFileCache: () => ({ frontmatter: { aliases: ["#books"] } }),
+			},
+			workspace: { trigger: mockTrigger },
+		};
+
+		const event = {
+			target: span,
+			ctrlKey: false,
+			metaKey: false,
+			altKey: false,
+		} as unknown as MouseEvent;
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
+		expect(mockTrigger).not.toHaveBeenCalled();
+	});
+
+	it("ISSUE 3: ctrl+hover y meta+hover si disparan preview", () => {
+		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: { getMarkdownFiles: () => [{ path: "Notes/Books.md" }] },
+			metadataCache: {
+				getFileCache: () => ({ frontmatter: { aliases: ["#books"] } }),
+			},
+			workspace: { trigger: mockTrigger },
+		};
+
+		const ctrlEvent = { target: span, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(ctrlEvent, { app: mockApp })).toBe(true);
+		const metaEvent = { target: span, ctrlKey: false, metaKey: true } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(metaEvent, { app: mockApp })).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledTimes(2);
 	});
 });

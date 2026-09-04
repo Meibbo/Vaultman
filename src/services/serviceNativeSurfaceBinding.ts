@@ -225,6 +225,10 @@ export function handleNativeBindingHover(
 	event: MouseEvent,
 	deps: NativeBindingHoverDeps,
 ): boolean {
+	// ISSUE 3: el preview solo dispara con ctrl (o meta) presionado para
+	// node_files y node-note-links; mouseover llano no dispara.
+	if (!event.ctrlKey && !event.metaKey) return false;
+
 	const target = resolveNativeBindingTarget(event.target, deps.app);
 	if (!target) return false;
 
