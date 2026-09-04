@@ -557,7 +557,7 @@
 /* This rule used to name a Vaultman clear-button class that the component never
    rendered, so it matched nothing on phones. It targets Core's
    `.search-input-clear-button`, which is what SearchControl actually emits. */
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action, .vaultman-action-cell) {
   width: 28px;
   height: 28px;
 }

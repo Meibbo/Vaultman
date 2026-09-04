@@ -48,6 +48,14 @@ settings:
 	--vm-action-cell-border: none;
 	--vm-action-cell-bg: transparent;
 
+	/* U130-05b: el cromatismo que `.vaultman-filters-search-mode` daba y la
+	 * celda no. Migrar sin esto deja el searchbox descolorido y sin respuesta al
+	 * hover. Los valores son los de hoy (`views/_tabs.scss`), no unos nuevos. */
+	--vm-action-cell-color: var(--text-muted);
+	--vm-action-cell-opacity: 0.7;
+	--vm-action-cell-color-hover: var(--text-normal);
+	--vm-action-cell-glyph: 14px;
+
 	position: relative;
 	display: inline-flex;
 	align-items: center;
@@ -60,6 +68,21 @@ settings:
 	border: var(--vm-action-cell-border);
 	border-radius: var(--vm-action-cell-radius);
 	background: var(--vm-action-cell-bg);
+	color: var(--vm-action-cell-color);
+	opacity: var(--vm-action-cell-opacity);
+	cursor: pointer;
+	padding: 0;
+	transition: opacity 0.15s, color 0.15s;
+}
+
+.vaultman-action-cell:hover:not(.is-unavailable) {
+	opacity: 1;
+	color: var(--vm-action-cell-color-hover);
+}
+
+.vaultman-action-cell svg {
+	width: var(--vm-action-cell-glyph);
+	height: var(--vm-action-cell-glyph);
 }
 
 /* El area tactil se agranda SIN mover el layout: pseudo-elemento, no padding. */
