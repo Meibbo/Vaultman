@@ -47,6 +47,15 @@ export interface SavedLayout {
 	summary: string;
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
+	/**
+	 * U130-03: groupId -> URNs de sus miembros. SOLO los grupos custom: los
+	 * presets se computan por predicado en memoria y no tocan settings, asi que
+	 * anadir un preset nuevo no es una migracion de datos.
+	 *
+	 * Las URNs no se borran nunca en silencio: una entidad que desaparece pasa a
+	 * Ghost Slot o Tombstone (logicMembershipUrn), no se limpia del mapa.
+	 */
+	groupMemberships?: Record<string, readonly string[]>;
 }
 
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
