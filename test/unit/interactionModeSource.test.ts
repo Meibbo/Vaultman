@@ -151,5 +151,17 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		expect(fn).not.toContain('saveSettings');
 		expect(fn).not.toContain('plugins');
 	});
+
+	it('U130-06: the move-mode restore never writes the user default', () => {
+		const src = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		// El restore devuelve el modo previo con applyInteractionMode, que no toca
+		// settings. Si algun dia el restore empieza a llamar a
+		// selectInteractionMode, este test cae y avisa antes que el usuario.
+		const restoreCalls = src.match(/restore[\s\S]{0,400}?selectInteractionMode/g);
+		expect(restoreCalls).toBeNull();
+	});
 });
 
