@@ -508,6 +508,21 @@
 		});
 	}
 
+	// task_113: breadcrumb → fileScene intercept support (duck-typed by the service).
+	export function getActiveScene(): string {
+		return activePage === 'statistics' ? 'statistics' : filtersActiveTab;
+	}
+
+	export function revealFolderInFileScene(folderPath: string): boolean {
+		if (!folderPath) return false;
+		if (filtersActiveTab !== 'files') {
+			filtersActiveTab = 'files';
+			void sceneConfigPort.proposeActiveScene('files');
+		}
+		if (!fileList) return false;
+		return fileList.revealNode(folderPath) === true;
+	}
+
 	function onContainerTransitionEnd(e: TransitionEvent) {
 		// Guard against child element transitions bubbling up
 		if (e.target === e.currentTarget && e.propertyName === 'transform') {

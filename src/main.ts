@@ -38,6 +38,7 @@ import { registerSnippetActions } from './logic/logicSnippetContextMenu';
 import { registerPluginActions } from './logic/logicPluginContextMenu';
 import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
+import { BreadcrumbFileSceneService } from './services/serviceBreadcrumbFileScene';
 import { registerNodeBindingActions } from './logic/logicNodeBindingContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
@@ -91,6 +92,7 @@ export class VaultmanPlugin extends Plugin {
 	lastOpenedService!: LastOpenedService;
 	nodeBindingService!: NodeBindingService;
 	nativeSurfaceBindingService!: NativeSurfaceBindingService;
+	breadcrumbFileSceneService!: BreadcrumbFileSceneService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -173,6 +175,11 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 		this.addChild(this.nativeSurfaceBindingService);
+		this.breadcrumbFileSceneService = new BreadcrumbFileSceneService({
+			plugin: this,
+			app: this.app,
+		});
+		this.addChild(this.breadcrumbFileSceneService);
 
 		registerContentActions(this);
 		registerSnippetActions(this);
