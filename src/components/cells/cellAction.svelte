@@ -19,7 +19,13 @@
 		/** Lo unico que el del searchbox anadia de mas. */
 		toggle?: { on: boolean } | null;
 		resolve: (id: string) => SasiNode | null;
-		icon: (el: HTMLElement, name: string) => unknown;
+		/**
+		 * La accion `icon` de Svelte. `unknown` como retorno hacia que
+		 * `svelte-check` rechazara el `use:icon` de abajo -- una accion tiene que
+		 * devolver `ActionReturn | void`. Es la misma firma que ya usan
+		 * `typePanelWidget.ts:193` y `navbarTabs.svelte:35`.
+		 */
+		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 		onInvoke?: (id: string) => void;
 		translate: (key: string) => string;
 	}
