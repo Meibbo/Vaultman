@@ -27,6 +27,16 @@ export function detectLinkType(rawValue: string): PropertyValueLinkType {
 }
 
 /**
+ * Texto visible de un wikilink (`alias` si hay, si no el destino), igual que
+ * el panel nativo de frontmatter. `null` si no es wikilink.
+ */
+export function parseWikilinkDisplay(rawValue: string): string | null {
+	const match = (rawValue ?? '').trim().match(WIKILINK);
+	if (!match) return null;
+	return (match[2] || match[1]).trim();
+}
+
+/**
  * How long a date field may keep changing before its value is treated as the
  * one the user meant. Long enough to type a full date segment by segment,
  * short enough that a picker selection feels immediate.

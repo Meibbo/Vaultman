@@ -154,6 +154,7 @@ import {
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
 	detectLinkType,
+	parseWikilinkDisplay,
 	renderEditableText,
 	renderPropertyValue,
 } from '../../utils/renderPropertyValue';
@@ -1924,9 +1925,12 @@ export class PropsExplorerPanel extends Component {
 				// formato node-note-link; hyperlink/url_link quedan plain.
 				const nodeLinkType = detectLinkType(nodeLinkText);
 				if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
+					// El wikilink conserva el aspecto visual de core
+					// (internal-link, como el frontmatter); el binding va en el onclick.
+					const wikiDisplay = nodeLinkType === 'wikilink' ? parseWikilinkDisplay(nodeLinkText) : null;
 					const label = container.createSpan({
-						cls: 'vaultman-tree-label vaultman-node-note-link',
-						text: node.label,
+						cls: 'vaultman-tree-label vaultman-node-note-link' + (wikiDisplay !== null ? ' internal-link' : ''),
+						text: wikiDisplay ?? node.label,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
 					label.onclick = (e) => {

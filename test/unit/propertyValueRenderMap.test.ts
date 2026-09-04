@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { App } from 'obsidian';
 
-import { detectLinkType, renderPropertyValue } from '../../src/utils/renderPropertyValue';
+import { detectLinkType, parseWikilinkDisplay, renderPropertyValue } from '../../src/utils/renderPropertyValue';
 
 /**
  * The unit environment is `node`, so there is no DOM and no Obsidian element
@@ -499,5 +499,18 @@ describe('detectLinkType (ISSUE 1: solo el wikilink verdadero es node-note-link)
 		['[[]]', 'plain'],
 	])('clasifica %p como %p', (raw, expected) => {
 		expect(detectLinkType(raw)).toBe(expected);
+	});
+
+	it.each([
+		['[[nota]]', 'nota'],
+		['[[nota|alias]]', 'alias'],
+		['[[ruta/nota#sec|ver]]', 'ver'],
+		['  [[nota]]  ', 'nota'],
+		['texto plano', null],
+		['[t](u)', null],
+		['https://example.com', null],
+		['', null],
+	])('display de %p es %p', (raw, expected) => {
+		expect(parseWikilinkDisplay(raw)).toBe(expected);
 	});
 });
