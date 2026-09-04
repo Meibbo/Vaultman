@@ -345,20 +345,36 @@ export class NativeSurfaceBindingService extends Component {
 			{ capture: false },
 		);
 
-		// ISSUE 2 (rediseño): decoración proactiva al render, al cambiar de
-		// archivo y en cada cambio de leaf activa, sin esperar interacción.
-		// file-open cubre el cambio de nota en la misma pestaña (no dispara
-		// active-leaf-change); active-leaf-change cubre el regreso a otra tab.
+		// ISSUE 2 (rediseño): decoración proactiva permanente. Un
+		// MutationObserver cubre todos los renders (inicial, cambio de tab,
+		// misma tab, popouts) sin depender de qué eventos emita el host:
+		// el nn-link es referencia visual constante mientras node-notes
+		// está activo, no un efecto post-interacción.
 		const decorate = (): void => {
 			decorateBoundBreadcrumbs(doc, this.deps.app);
 		};
 		decorate();
-		this.registerEvent(this.deps.app.workspace.on("active-leaf-change", () => {
-			decorate();
-		}));
-		this.registerEvent(this.deps.app.workspace.on("file-open", () => {
-			decorate();
-		}));
+		const crumbObserver = new MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				if (mutation.type !== "childList") continue;
+				let hit = false;
+				mutation.addedNodes.forEach((node) => {
+					if (!(node instanceof Element)) return;
+					if (
+						node.matches(".view-header-breadcrumb") ||
+						node.querySelector(".view-header-breadcrumb") !== null
+					) {
+						hit = true;
+					}
+				});
+				if (hit) {
+					decorate();
+					break;
+				}
+			}
+		});
+		crumbObserver.observe(doc, { childList: true, subtree: true });
+		this.register(() => crumbObserver.disconnect());
 	}
 
 	onunload(): void {
