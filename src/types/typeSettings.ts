@@ -5,7 +5,7 @@ export type NativeSurfaceClickAction =
 	| 'search-selection'
 	| 'none';
 
-import type { Plugin } from 'obsidian';
+import type { Plugin, TFile } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
@@ -335,6 +335,16 @@ export interface VaultmanSettings {
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
+	/** Prefijo de node-notes para tags (input libre, default '#') */
+	nodeNoteTagPrefix: string;
+	/** Prefijo de node-notes para snippets (input libre, default '$') */
+	nodeNoteSnippetPrefix: string;
+	/** Prefijo de node-notes para plugins (input libre, default '%') */
+	nodeNotePluginPrefix: string;
+	/** Prefijo de node-notes para props (input libre, default '[') */
+	nodeNotePropPrefix: string;
+	/** Sufijo de node-notes para props (input libre, default ']') */
+	nodeNotePropSuffix: string;
 	/** Folder where new node-notes are created (empty = vault root) */
 	}
 
@@ -346,6 +356,17 @@ export interface iVaultmanPlugin extends Plugin {
 	updateGlassBlur(): void;
 	queueService?: {
 		setBypassOperations(enabled: boolean): void;
+		addOrRun?(change: {
+			type: 'property';
+			action: 'rename';
+			property: string;
+			value?: string;
+			oldValue?: string;
+			details: string;
+			files: TFile[];
+			customLogic: boolean;
+			logicFunc: (file: TFile, fm: Record<string, unknown>) => Record<string, unknown> | null;
+		}): void;
 	};
 	iconicService?: {
 		setEnabled(enabled: boolean): void;
@@ -369,6 +390,11 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 	nativeSurfaceClickAlt: 'open-node-note-same-tab',
 	nativeSurfaceClickMod: 'open-node-note-new-tab',
+	nodeNoteTagPrefix: '#',
+	nodeNoteSnippetPrefix: '$',
+	nodeNotePluginPrefix: '%',
+	nodeNotePropPrefix: '[',
+	nodeNotePropSuffix: ']',
 		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],

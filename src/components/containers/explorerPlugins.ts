@@ -1,6 +1,7 @@
 import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
+import { pluginAliasTokens, prefixesFromSettings } from '../../services/serviceNodeBinding';
 import type { PluginMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
@@ -321,12 +322,8 @@ export class PluginsExplorerPanel
 		for (const node of nodes) {
 			const pluginId = node.meta?.pluginId ?? node.id;
 			const pluginName = node.meta?.name ?? node.label;
-			if (
-				aliasSet.has('%' + pluginId) ||
-				aliasSet.has(pluginId) ||
-				aliasSet.has('%' + pluginName) ||
-				aliasSet.has(pluginName)
-			) {
+			const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
+			if (pluginTokens.some((t) => aliasSet.has(t))) {
 				node.meta.hasNodeNote = true;
 			}
 		}

@@ -36,7 +36,7 @@ import { ContextMenuService } from './services/serviceContextMenu';
 import { registerContentActions } from './logic/logicContentContextMenu';
 import { registerSnippetActions } from './logic/logicSnippetContextMenu';
 import { registerPluginActions } from './logic/logicPluginContextMenu';
-import { NodeBindingService } from './services/serviceNodeBinding';
+import { NodeBindingService, prefixesFromSettings } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { BreadcrumbFileSceneService } from './services/serviceBreadcrumbFileScene';
 import { registerNodeBindingActions } from './logic/logicNodeBindingContextMenu';
@@ -149,7 +149,7 @@ export class VaultmanPlugin extends Plugin {
 		
 				this.nodeBindingService = new NodeBindingService({
 			app: this.app,
-			
+			getPrefixes: () => prefixesFromSettings(this.settings),
 			router: (token) => {
 				void this.filterService.addNode({
 					type: 'rule',

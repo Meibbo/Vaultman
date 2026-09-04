@@ -16,7 +16,7 @@ import {
 } from '../../logic/logicFilterPolarity';
 import type { FilterService } from '../../services/serviceFilter';
 import type { BindingNodeInput } from '../../services/serviceNodeBinding';
-import { valueMatchesBoundAlias } from '../../services/serviceNodeBinding';
+import { propAliasTokens, prefixesFromSettings, valueMatchesBoundAlias } from '../../services/serviceNodeBinding';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
@@ -1698,10 +1698,8 @@ export class PropsExplorerPanel extends Component {
 				if (meta) {
 					if (!meta.isValueNode) {
 						const propName = meta.propName ?? node.label;
-						if (
-							aliasSet.has('[' + propName + ']') ||
-							aliasSet.has(propName)
-						) {
+						const propTokens = propAliasTokens(propName, prefixesFromSettings(this.plugin.settings));
+						if (propTokens.some((t) => aliasSet.has(t))) {
 							meta.hasNodeNote = true;
 						}
 				} else {

@@ -7,6 +7,12 @@ import {
 	aliasesContain,
 	quoteYamlValue,
 	valueMatchesBoundAlias,
+	normalizeNodeNotePrefixes,
+	prefixesFromSettings,
+	propAliasTokens,
+	tagAliasTokens,
+	snippetAliasTokens,
+	pluginAliasTokens,
 } from "../../src/services/serviceNodeBinding";
 
 describe("extractWikilinkTarget", () => {
@@ -240,5 +246,65 @@ describe("valueMatchesBoundAlias", () => {
 		["texto", "texto", ["otro"], false],
 	])("raw=%p label=%p aliases=%p -> %p", (raw, label, aliases, expected) => {
 		expect(valueMatchesBoundAlias(raw, label, has(aliases))).toBe(expected);
+	});
+});
+
+describe("NodeNotePrefixes configurables", () => {
+	it("normaliza vacios/antiguos a defaults", () => {
+		expect(normalizeNodeNotePrefixes()).toEqual({
+			tagPrefix: "#",
+			snippetPrefix: "$",
+			pluginPrefix: "%",
+			propPrefix: "[",
+			propSuffix: "]",
+		});
+		expect(normalizeNodeNotePrefixes({ tagPrefix: "  " })).toMatchObject({ tagPrefix: "#" });
+		expect(prefixesFromSettings(undefined)).toMatchObject({ tagPrefix: "#" });
+		expect(prefixesFromSettings({ nodeNoteTagPrefix: " @" })).toMatchObject({ tagPrefix: "@" });
+	});
+
+	it("computeAliasToken usa prefijos configurados", () => {
+		const p = normalizeNodeNotePrefixes({
+			tagPrefix: "@",
+			snippetPrefix: "~",
+			pluginPrefix: "&",
+			propPrefix: "<",
+			propSuffix: ">",
+		});
+		expect(computeAliasToken({ kind: "prop", label: "x", propName: "status" }, p)).toBe("<status>");
+		expect(computeAliasToken({ kind: "tag", label: "t", tagPath: "a/b" }, p)).toBe("@a/b");
+		expect(computeAliasToken({ kind: "tag", label: "t", tagPath: "#a/b" }, p)).toBe("@a/b");
+		expect(computeAliasToken({ kind: "snippet", label: "s" }, p)).toBe("~s");
+		expect(computeAliasToken({ kind: "snippet", label: "~s" }, p)).toBe("~s");
+		expect(computeAliasToken({ kind: "plugin", label: "P", pluginId: "pid" }, p)).toBe("&pid");
+	});
+
+	it("computeAliasToken legacy por defecto (puerta de regresion)", () => {
+		expect(computeAliasToken({ kind: "prop", label: "x", propName: "status" })).toBe("[status]");
+		expect(computeAliasToken({ kind: "tag", label: "t", tagPath: "a/b" })).toBe("#a/b");
+		expect(computeAliasToken({ kind: "tag", label: "t", tagPath: "#a/b" })).toBe("#a/b");
+		expect(computeAliasToken({ kind: "snippet", label: "s" })).toBe("$s");
+		expect(computeAliasToken({ kind: "plugin", label: "P", pluginId: "pid" })).toBe("%pid");
+	});
+
+	it("builders de candidatos espejan la logica actual con defaults", () => {
+		expect(propAliasTokens("status")).toEqual(["[status]", "status"]);
+		expect(tagAliasTokens("a/b")).toEqual(["#a/b", "#a/b", "a/b"]);
+		expect(snippetAliasTokens("s")).toEqual(["$s", "s"]);
+		expect(pluginAliasTokens("pid", "P")).toEqual(["%pid", "pid", "%P", "P"]);
+	});
+
+	it("builders usan prefijos configurados", () => {
+		const p = normalizeNodeNotePrefixes({
+			tagPrefix: "@",
+			snippetPrefix: "~",
+			pluginPrefix: "&",
+			propPrefix: "<",
+			propSuffix: ">",
+		});
+		expect(propAliasTokens("status", p)).toEqual(["<status>", "status"]);
+		expect(tagAliasTokens("a/b", p)).toEqual(["@a/b", "@a/b", "a/b"]);
+		expect(snippetAliasTokens("s", p)).toEqual(["~s", "s"]);
+		expect(pluginAliasTokens("pid", "P", p)).toEqual(["&pid", "pid", "&P", "P"]);
 	});
 });

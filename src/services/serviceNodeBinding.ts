@@ -21,8 +21,119 @@ function isTFile(file: unknown): file is TFile {
 import { Notice, TFile, type App } from "obsidian";
 import { parseWikilink } from "../utils/renderPropertyValue";
 
-export type BindingNodeKind =
-	| "tag"
+/**
+ * Prefijos configurables de node-notes (settings, uno por kind; prop lleva
+ * par prefijo+sufijo). Solo rige el actual: al cambiar un prefijo, las notas
+ * ya bindeadas se migran con staged operations, no se matchea legacy.
+ */
+export interface NodeNotePrefixes {
+	tagPrefix: string;
+	snippetPrefix: string;
+	pluginPrefix: string;
+	propPrefix: string;
+	propSuffix: string;
+}
+
+export const DEFAULT_NODE_NOTE_PREFIXES: Readonly<NodeNotePrefixes> = {
+	tagPrefix: "#",
+	snippetPrefix: "$",
+	pluginPrefix: "%",
+	propPrefix: "[",
+	propSuffix: "]",
+};
+
+function pickAffix(value: string | undefined, fallback: string): string {
+	const trimmed = (value ?? "").trim();
+	return trimmed === "" ? fallback : trimmed;
+}
+
+/** Normaliza settings parciales/antiguos (data.json sin estos campos). */
+export function normalizeNodeNotePrefixes(
+	input?: Partial<NodeNotePrefixes> | null,
+): NodeNotePrefixes {
+	const p = input ?? {};
+	return {
+		tagPrefix: pickAffix(p.tagPrefix, DEFAULT_NODE_NOTE_PREFIXES.tagPrefix),
+		snippetPrefix: pickAffix(p.snippetPrefix, DEFAULT_NODE_NOTE_PREFIXES.snippetPrefix),
+		pluginPrefix: pickAffix(p.pluginPrefix, DEFAULT_NODE_NOTE_PREFIXES.pluginPrefix),
+		propPrefix: pickAffix(p.propPrefix, DEFAULT_NODE_NOTE_PREFIXES.propPrefix),
+		propSuffix: pickAffix(p.propSuffix, DEFAULT_NODE_NOTE_PREFIXES.propSuffix),
+	};
+}
+
+/** Extrae `settings.*` toward NodeNotePrefixes (tolerante a faltantes). */
+export function prefixesFromSettings(settings: unknown): NodeNotePrefixes {
+	const s = (settings ?? {}) as {
+		nodeNoteTagPrefix?: unknown;
+		nodeNoteSnippetPrefix?: unknown;
+		nodeNotePluginPrefix?: unknown;
+		nodeNotePropPrefix?: unknown;
+		nodeNotePropSuffix?: unknown;
+	};
+	const text = (v: unknown): string | undefined =>
+		typeof v === "string" ? v : undefined;
+	return normalizeNodeNotePrefixes({
+		tagPrefix: text(s.nodeNoteTagPrefix),
+		snippetPrefix: text(s.nodeNoteSnippetPrefix),
+		pluginPrefix: text(s.nodeNotePluginPrefix),
+		propPrefix: text(s.nodeNotePropPrefix),
+		propSuffix: text(s.nodeNotePropSuffix),
+	});
+}
+
+function stripLeading(value: string, affix: string): string {
+	if (affix !== "" && value.startsWith(affix)) return value.slice(affix.length);
+	return value;
+}
+
+function stripWrapping(value: string, prefix: string, suffix: string): string {
+	let out = value;
+	if (prefix !== "" && out.startsWith(prefix)) out = out.slice(prefix.length);
+	if (suffix !== "" && suffix !== prefix && out.endsWith(suffix)) {
+		out = out.slice(0, out.length - suffix.length);
+	} else if (suffix !== "" && suffix === prefix && out.endsWith(suffix) && out.length > suffix.length) {
+		out = out.slice(0, out.length - suffix.length);
+	}
+	return out;
+}
+
+/** Candidatos de alias para una prop (con afijo configurado + pelado). */
+export function propAliasTokens(propName: string, prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES): string[] {
+	return [prefixes.propPrefix + propName + prefixes.propSuffix, propName];
+}
+
+/** Candidatos de alias para un tag (con afijo configurado + pelados). */
+export function tagAliasTokens(tagPath: string, prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES): string[] {
+	return [
+		prefixes.tagPrefix + tagPath,
+		prefixes.tagPrefix + tagPath.replace(/^#/, ""),
+		tagPath,
+	];
+}
+
+/** Candidatos de alias para un snippet. */
+export function snippetAliasTokens(name: string, prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES): string[] {
+	const clean = stripLeading(name, prefixes.snippetPrefix);
+	return [prefixes.snippetPrefix + clean, clean];
+}
+
+/** Candidatos de alias para un plugin (por id y por nombre). */
+export function pluginAliasTokens(
+	pluginId: string,
+	pluginName: string,
+	prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES,
+): string[] {
+	const cleanId = stripLeading(pluginId.trim(), prefixes.pluginPrefix);
+	const cleanName = stripLeading(pluginName.trim(), prefixes.pluginPrefix);
+	return [
+		prefixes.pluginPrefix + cleanId,
+		cleanId,
+		prefixes.pluginPrefix + cleanName,
+		cleanName,
+	];
+}
+
+export type BindingNodeKind =	| "tag"
 	| "prop"
 	| "value"
 	| "folder"
@@ -67,6 +178,11 @@ export interface NodeBindingDeps {
 	app: App;
 	router?: NodeBindingFilterRouter;
 	notify?: (message: string) => void;
+	/**
+	 * Prefijos configurados (getter para no congelar cambios de settings
+	 * a mitad de sesión). Sin proveer, rigen los defaults legacy.
+	 */
+	getPrefixes?: () => NodeNotePrefixes;
 }
 
 /**
@@ -87,17 +203,20 @@ export function extractWikilinkTarget(value: string): string | null {
  * - plugin -> %pluginid
  * - file/folder/value/template -> the node path or label verbatim
  */
-export function computeAliasToken(node: BindingNodeInput): string {
+export function computeAliasToken(
+	node: BindingNodeInput,
+	prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES,
+): string {
 	const label = node.label.trim();
 	switch (node.kind) {
 		case "prop":
-			return "[" + (node.propName ?? label) + "]";
+			return prefixes.propPrefix + (node.propName ?? label) + prefixes.propSuffix;
 		case "tag":
-			return "#" + (node.tagPath ?? label).replace(/^#/, "");
+			return prefixes.tagPrefix + stripLeading(node.tagPath ?? label, "#");
 		case "snippet":
-			return "$" + label.replace(/^\$/, "");
+			return prefixes.snippetPrefix + stripLeading(label, prefixes.snippetPrefix);
 		case "plugin":
-			return "%" + (node.pluginId ?? label).trim().replace(/^%/, "");
+			return prefixes.pluginPrefix + stripLeading((node.pluginId ?? label).trim(), prefixes.pluginPrefix);
 		case "file":
 		case "folder":
 			return node.path ?? label;
@@ -234,7 +353,8 @@ export class NodeBindingService {
 		}
 
 		// 3. Standard 0/1/N resolution for non-folder nodes (tags, props, values, snippets, plugins, files)
-		const token = computeAliasToken(node);
+		const prefixes = this.deps.getPrefixes?.() ?? DEFAULT_NODE_NOTE_PREFIXES;
+		const token = computeAliasToken(node, prefixes);
 		const matches = findNotesByAlias(app, token);
 		if (matches.length === 1) {
 			await this.openLeaf(matches[0], options?.newLeaf);
@@ -247,7 +367,7 @@ export class NodeBindingService {
 		// 4. Create new note in Obsidian default new file parent folder
 		const defaultParent = app.fileManager?.getNewFileParent?.("") ?? null;
 		const parentPath = defaultParent && defaultParent.path && defaultParent.path !== "/" ? defaultParent.path + "/" : "";
-		const filename = titleToFilename(titleLabelForNode(node));
+		const filename = titleToFilename(titleLabelForNode(node, this.deps.getPrefixes?.() ?? DEFAULT_NODE_NOTE_PREFIXES));
 		const targetPath = parentPath + filename + ".md";
 		if (parentPath) await ensureFolderExists(app, parentPath);
 		return this.createOrAdoptNote(targetPath, token, filename, options?.newLeaf);
@@ -313,17 +433,20 @@ export class NodeBindingService {
 	}
 }
 
-export function titleLabelForNode(node: BindingNodeInput): string {
+export function titleLabelForNode(
+	node: BindingNodeInput,
+	prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES,
+): string {
 	const label = node.label.trim();
 	switch (node.kind) {
 		case "prop":
-			return (node.propName ?? label).replace(/^\[/, "").replace(/\]$/, "");
+			return stripWrapping(node.propName ?? label, prefixes.propPrefix, prefixes.propSuffix);
 		case "tag":
-			return (node.tagPath ?? label).replace(/^#/, "");
+			return stripLeading(node.tagPath ?? label, "#");
 		case "snippet":
-			return label.replace(/^\$/, "");
+			return stripLeading(label, prefixes.snippetPrefix);
 		case "plugin":
-			return (node.label || node.pluginId || "").replace(/^%/, "");
+			return stripLeading(node.label || node.pluginId || "", prefixes.pluginPrefix);
 		case "file":
 		case "folder":
 			return (node.path ?? label).split("/").pop() ?? label;

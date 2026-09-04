@@ -60,6 +60,11 @@ import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { Notice } from 'obsidian';
+import {
+	prefixesFromSettings,
+	type NodeNotePrefixes,
+} from './services/serviceNodeBinding';
+import { planAliasPrefixMigration } from './logic/logicNodeNotePrefixMigration';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
 	buildFilterTemplatePreview,
@@ -83,6 +88,93 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		items.push(...this.getRootItems());
 
 		return items;
+	}
+
+	/**
+	 * Input libre de prefijo/sufijo node-note por kind. Al cambiar, guarda y
+	 * prepara staged operations de rename de aliases (viejos → nuevos) para
+	 * revisar en la cola; solo rige el actual, sin matcheo legacy.
+	 */
+	private prefixItem(
+		field: 'nodeNoteTagPrefix' | 'nodeNoteSnippetPrefix' | 'nodeNotePluginPrefix' | 'nodeNotePropPrefix' | 'nodeNotePropSuffix',
+		nameKey: string,
+		descKey: string,
+		placeholder: string,
+	): SettingDefinitionItem {
+		return {
+			name: translate(nameKey),
+			desc: translate(descKey),
+			render: (setting: Setting) => {
+				setting.addText((text) =>
+					text
+						.setPlaceholder(placeholder)
+						.setValue(this.plugin.settings[field] ?? '')
+						.onChange(async (value) => {
+							const oldPrefixes = prefixesFromSettings(this.plugin.settings);
+							this.plugin.settings[field] = value.trim();
+							await this.plugin.saveSettings();
+							this.stageAliasPrefixMigration(
+								oldPrefixes,
+								prefixesFromSettings(this.plugin.settings),
+							);
+						}),
+				);
+			},
+		};
+	}
+
+	private stageAliasPrefixMigration(oldP: NodeNotePrefixes, newP: NodeNotePrefixes): void {
+		const app = this.plugin.app;
+		const files = app.vault.getMarkdownFiles?.() ?? [];
+		const inputs = files.map((file) => {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter as
+				| { aliases?: unknown }
+				| undefined;
+			const raw = fm?.aliases;
+			const aliases = Array.isArray(raw)
+				? raw.filter((a): a is string => typeof a === 'string')
+				: typeof raw === 'string'
+					? [raw]
+					: [];
+			return { path: file.path, aliases };
+		});
+		const plans = planAliasPrefixMigration(inputs, oldP, newP);
+		if (plans.length === 0) return;
+		const byPath = new Map(files.map((file) => [file.path, file]));
+		let staged = 0;
+		for (const plan of plans) {
+			const file = byPath.get(plan.filePath);
+			if (!file) continue;
+			const { oldAlias, newAlias } = plan;
+			this.plugin.queueService?.addOrRun?.({
+				type: 'property',
+				action: 'rename',
+				property: 'aliases',
+				value: newAlias,
+				oldValue: oldAlias,
+				details: `Rename alias "${oldAlias}" → "${newAlias}"`,
+				files: [file],
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					const cur = (fm as Record<string, unknown>).aliases;
+					if (Array.isArray(cur)) {
+						const next = cur.map((a) => (a === oldAlias ? newAlias : a));
+						if (next.every((a, i) => a === cur[i])) return null;
+						(fm as Record<string, unknown>).aliases = next;
+						return fm;
+					}
+					if (typeof cur === 'string' && cur === oldAlias) {
+						(fm as Record<string, unknown>).aliases = newAlias;
+						return fm;
+					}
+					return null;
+				},
+			});
+			staged += 1;
+		}
+		if (staged > 0) {
+			new Notice(translate('settings.node_note_prefix_migrated', { count: staged }));
+		}
 	}
 
 	/**
@@ -148,6 +240,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
 		});
+
+		items.push(
+			this.prefixItem('nodeNoteTagPrefix', 'settings.node_note_prefix_tag', 'settings.node_note_prefix_tag.desc', '#'),
+			this.prefixItem('nodeNoteSnippetPrefix', 'settings.node_note_prefix_snippet', 'settings.node_note_prefix_snippet.desc', '$'),
+			this.prefixItem('nodeNotePluginPrefix', 'settings.node_note_prefix_plugin', 'settings.node_note_prefix_plugin.desc', '%'),
+			this.prefixItem('nodeNotePropPrefix', 'settings.node_note_prefix_prop', 'settings.node_note_prefix_prop.desc', '['),
+			this.prefixItem('nodeNotePropSuffix', 'settings.node_note_prefix_prop_suffix', 'settings.node_note_prefix_prop_suffix.desc', ']'),
+		);
 						
 items.push({
 			name: translate('settings.open_mode'),

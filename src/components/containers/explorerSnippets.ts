@@ -33,6 +33,7 @@ import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailabi
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
 import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
+import { prefixesFromSettings, snippetAliasTokens } from '../../services/serviceNodeBinding';
 import {
 	deletionBadge,
 	findDeletionMatch,
@@ -302,10 +303,8 @@ export class SnippetsExplorerPanel
 
 		for (const node of nodes) {
 			const snippetName = node.meta?.name ?? node.label;
-			if (
-				aliasSet.has('$' + snippetName) ||
-				aliasSet.has(snippetName)
-			) {
+			const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
+			if (snippetTokens.some((t) => aliasSet.has(t))) {
 				node.meta.hasNodeNote = true;
 			}
 		}

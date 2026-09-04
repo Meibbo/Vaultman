@@ -23,6 +23,7 @@ import {
 } from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import { prefixesFromSettings, tagAliasTokens } from '../../services/serviceNodeBinding';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
 	DeferredFilterClickCoordinator,
@@ -642,7 +643,8 @@ export class TagsExplorerPanel extends Component {
 		const visit = (list: TreeNode<TagMeta>[]) => {
 			for (const node of list) {
 				const tagPath = node.meta?.tagPath ?? node.label;
-				if (aliasSet.has('#' + tagPath) || aliasSet.has('#' + tagPath.replace(/^#/, '')) || aliasSet.has(tagPath)) {
+				const tagTokens = tagAliasTokens(tagPath, prefixesFromSettings(this.plugin.settings));
+				if (tagTokens.some((t) => aliasSet.has(t))) {
 					node.meta.hasNodeNote = true;
 				}
 				if (node.children?.length) {

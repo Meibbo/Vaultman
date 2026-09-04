@@ -1,6 +1,13 @@
 import { Component, type App, type Plugin, type TFile } from "obsidian";
 import type { BindingNodeInput, NodeBindingService } from "./serviceNodeBinding";
-import { computeAliasToken, findNotesByAlias, extractWikilinkTarget } from "./serviceNodeBinding";
+import {
+	computeAliasToken,
+	findNotesByAlias,
+	extractWikilinkTarget,
+	DEFAULT_NODE_NOTE_PREFIXES,
+	prefixesFromSettings,
+	type NodeNotePrefixes,
+} from "./serviceNodeBinding";
 import type { NativeSurfaceClickAction, VaultmanSettings } from "../types/typeSettings";
 
 export const NATIVE_SURFACE_HOVER_SOURCE = "vaultman-native-surface";
@@ -46,6 +53,7 @@ export interface NativeBindingClickDeps {
 
 export interface NativeBindingHoverDeps {
 	app: App;
+	prefixes?: NodeNotePrefixes;
 }
 
 export interface NativeSurfaceBindingServiceDeps {
@@ -299,7 +307,10 @@ export function handleNativeBindingHover(
 	}
 
 	if (!targetFile) {
-		const token = computeAliasToken(target.node);
+		const token = computeAliasToken(
+			target.node,
+			deps.prefixes ?? DEFAULT_NODE_NOTE_PREFIXES,
+		);
 		const matches = findNotesByAlias(app, token);
 		if (matches.length === 1) targetFile = matches[0];
 	}
@@ -347,6 +358,7 @@ export function resolveNativeFileHoverTarget(
 
 export interface InternalNodeNoteHoverDeps {
 	app?: App;
+	prefixes?: NodeNotePrefixes;
 }
 
 function triggerInternalHover(
@@ -441,10 +453,14 @@ export function handleInternalNodeNoteHover(
 		return false;
 	}
 
-	// 3. Texto del label: alias verbatim o [texto].
+	// 3. Texto del label: alias verbatim o con afijos de prop configurados.
 	const text = (link.textContent ?? "").trim();
 	if (text) {
-		for (const token of [text, "[" + text + "]"]) {
+		const propWrapped = (() => {
+			const p = deps.prefixes ?? DEFAULT_NODE_NOTE_PREFIXES;
+			return p.propPrefix + text + p.propSuffix;
+		})();
+		for (const token of [text, propWrapped]) {
 			const hits = findNotesByAlias(app, token);
 			if (hits.length > 0 && hits[0]?.path) {
 				triggerInternalHover(app, event, link, hits[0].path);
@@ -506,7 +522,10 @@ export class NativeSurfaceBindingService extends Component {
 			doc,
 			"mouseover",
 			(event) => {
-				handleNativeBindingHover(event, { app: this.deps.app });
+				handleNativeBindingHover(event, {
+					app: this.deps.app,
+					prefixes: prefixesFromSettings(this.deps.plugin.settings),
+				});
 			},
 			{ capture: false },
 		);
@@ -514,7 +533,10 @@ export class NativeSurfaceBindingService extends Component {
 			doc,
 			"mouseover",
 			(event) => {
-				handleInternalNodeNoteHover(event, { app: this.deps.app });
+				handleInternalNodeNoteHover(event, {
+					app: this.deps.app,
+					prefixes: prefixesFromSettings(this.deps.plugin.settings),
+				});
 			},
 			{ capture: false },
 		);
