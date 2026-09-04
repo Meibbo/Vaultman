@@ -7,6 +7,24 @@ import {
 } from '../logic/propertyValueCoercion';
 
 const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
+const HYPERLINK = /^https?:\/\/\S+$/i;
+const MARKDOWN_LINK = /^\[([^\]]*)\]\(([^)]+)\)$/;
+
+export type PropertyValueLinkType = 'hyperlink' | 'url_link' | 'wikilink' | 'plain';
+
+/**
+ * ISSUE 1: distingue la identidad de enlace de un valor crudo para que solo
+ * el wikilink verdadero reciba formato/clase de node-note-link. El criterio
+ * de wikilink espeja `_decorateNodeNotes` (`[[...]]`); el markdown `[t](u)`
+ * gana sobre su contenido aunque la URL sea un wikilink.
+ */
+export function detectLinkType(rawValue: string): PropertyValueLinkType {
+	const raw = (rawValue ?? '').trim();
+	if (HYPERLINK.test(raw)) return 'hyperlink';
+	if (MARKDOWN_LINK.test(raw)) return 'url_link';
+	if (raw.startsWith('[[') && raw.endsWith(']]') && raw.length > 4) return 'wikilink';
+	return 'plain';
+}
 
 /**
  * How long a date field may keep changing before its value is treated as the

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { App } from 'obsidian';
 
-import { renderPropertyValue } from '../../src/utils/renderPropertyValue';
+import { detectLinkType, renderPropertyValue } from '../../src/utils/renderPropertyValue';
 
 /**
  * The unit environment is `node`, so there is no DOM and no Obsidian element
@@ -479,5 +479,25 @@ describe('U121-003 shard 07 — checkbox and date edits', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe('detectLinkType (ISSUE 1: solo el wikilink verdadero es node-note-link)', () => {
+	it.each([
+		['https://example.com/nota', 'hyperlink'],
+		['http://example.com', 'hyperlink'],
+		['  https://example.com/x  ', 'hyperlink'],
+		['[texto](https://example.com)', 'url_link'],
+		['[mi nota]([[mi nota]])', 'url_link'],
+		['[[nota]]', 'wikilink'],
+		['[[nota|alias]]', 'wikilink'],
+		['[[nota#seccion]]', 'wikilink'],
+		['texto plano', 'plain'],
+		['', 'plain'],
+		['#tag', 'plain'],
+		['[texto]()', 'plain'],
+		['[[]]', 'plain'],
+	])('clasifica %p como %p', (raw, expected) => {
+		expect(detectLinkType(raw)).toBe(expected);
 	});
 });
