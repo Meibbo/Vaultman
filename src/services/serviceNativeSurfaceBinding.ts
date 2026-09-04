@@ -225,6 +225,19 @@ function resolveActionForEvent(
 	if (event.altKey) {
 		return settings.nativeSurfaceClickAlt ?? "open-node-note-same-tab";
 	}
+	// Pedido del dev: click primario llano sobre tags abre el search de
+	// Vaultman con el tag como input. Excepción documentada a la puerta B1:
+	// solo superficies tag; breadcrumbs/folders/valores conservan
+	// deny-by-default y las filas de settings siguen fuera de la allowlist.
+	if (
+		event.button === 0 &&
+		!event.ctrlKey &&
+		!event.metaKey &&
+		!event.altKey &&
+		target.node.kind === "tag"
+	) {
+		return "search-selection";
+	}
 	// task_108 puerta de primario (B1): clic primario llano (boton 0 sin
 	// modificadores) -> "none" por defecto para toda superficie. Ninguna
 	// superficie documentada exige accion primaria ("without hijacking

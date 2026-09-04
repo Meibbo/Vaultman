@@ -245,17 +245,19 @@ describe("task_108 surface-guard negativos (primario llano nunca suprime)", () =
 		expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
 	});
 
-	it("primario llano sobre tag allowlistada no suprime", async () => {
+	it("primario llano sobre tag abre el search de Vaultman (excepcion B1 solo-tags)", async () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#research" });
+		const mockSearch = vi.fn();
 		const event = plainPrimary(span);
 		const handled = await handleNativeBindingClick(event, {
 			bindingService: { bindOrCreate: vi.fn() },
 			settings: defaultSettings,
-			revealInVaultman: vi.fn().mockResolvedValue(true),
+			searchInVaultman: mockSearch,
 		});
 
-		expect(handled).toBe(false);
-		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect(handled).toBe(true);
+		expect(mockSearch).toHaveBeenCalledWith("research");
+		expect(event.preventDefault).toHaveBeenCalled();
 	});
 
 	it("tag dentro de .modal-container no resuelve (exclusion expresa)", () => {

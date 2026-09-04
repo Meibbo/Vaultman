@@ -162,16 +162,14 @@ export function handleBreadcrumbFileSceneClick(
 	const view = leaf.view as
 		{ revealFolderInFileScene?: unknown } | null | undefined;
 	if (view && typeof view.revealFolderInFileScene === 'function') {
-		let revealed = false;
 		try {
-			revealed =
-				(view.revealFolderInFileScene as (p: string) => unknown)(folderPath) ===
-				true;
+			(view.revealFolderInFileScene as (p: string) => unknown)(folderPath);
 		} catch {
-			revealed = false;
+			// El reveal es best-effort; el flash confirma la acción.
 		}
-		if (!revealed) return true;
 	}
+	// Sin clicks muertos: con leaf fileScene encontrado, siempre hay
+	// feedback visible (flash) aunque el reveal reporte false.
 	const container = (leaf as { containerEl?: unknown }).containerEl as {
 		querySelector?: unknown;
 	} | null;

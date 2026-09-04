@@ -182,3 +182,31 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 		expect(BREADCRUMB_FLASH_MS).toBe(750);
 	});
 });
+
+describe('task_113 adversarial: sin clicks muertos', () => {
+	it('flashea aunque reveal reporte false', () => {
+		const crumb = mockElement({
+			classes: ['view-header-breadcrumb'],
+			attributes: { 'data-path': 'Notas' },
+			textContent: 'Notas',
+		});
+		const row = mockRow('Notas');
+		const leaf = {
+			view: {
+				getActiveScene: () => 'files',
+				revealFolderInFileScene: vi.fn(() => false),
+			},
+			containerEl: { querySelector: vi.fn(() => row) },
+		};
+		const app = mockApp([leaf]);
+		const event = plainClick(crumb);
+		expect(
+			handleBreadcrumbFileSceneClick(event, {
+				app,
+				frameType: 'vaultman-frame',
+			}),
+		).toBe(true);
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(row.classList.add).toHaveBeenCalledWith(BREADCRUMB_FLASH_CLASS);
+	});
+});
