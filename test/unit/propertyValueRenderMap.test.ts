@@ -541,6 +541,12 @@ describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)
 		expect(anchor!.textContent).toBe('ver');
 	});
 
+	it('hyperlink conserva el badge de delete como texto/lista', () => {
+		const root = render('https://example.com/x', 'text', { onRemoveValue: () => {} });
+		expect(root.find('external-link')).not.toBeNull();
+		expect(root.find('vaultman-property-value-remove')).not.toBeNull();
+	});
+
 	it('wikilink sin destino marca is-unresolved como el frontmatter', () => {
 		const container = new StubEl('span');
 		renderPropertyValue({
