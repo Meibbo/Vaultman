@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import {
 	DEFAULT_INTERACTION_MODE,
 	interactionModesForTab,
@@ -81,3 +82,11 @@ describe('explorer interaction modes', () => {
 		expect(normalizeInteractionMode('tags', undefined)).toBe('filter');
 	});
 });
+
+describe('U130-06 interaction mode persistence settings', () => {
+	it('ships persistence on by default and no stored defaults', () => {
+		expect(DEFAULT_SETTINGS.persistInteractionMode).toBe(true);
+		expect(DEFAULT_SETTINGS.defaultInteractionModeByTab).toEqual({});
+	});
+});
+
