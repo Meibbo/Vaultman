@@ -432,4 +432,44 @@ describe("handleNativeBindingHover", () => {
 		expect(handleNativeBindingHover(metaEvent, { app: mockApp })).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledTimes(2);
 	});
+
+	it("ISSUE 3: ctrl+hover sobre fila de archivo dispara preview del propio archivo", () => {
+		const row = mockElement({
+			classes: ["nav-file-title"],
+			attributes: { "data-path": "Notes/A.md" },
+			textContent: "A",
+		});
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: { getMarkdownFiles: () => [{ path: "Notes/A.md" }] },
+			metadataCache: { getFileCache: () => ({}) },
+			workspace: { trigger: mockTrigger },
+		};
+
+		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/A.md",
+		}));
+	});
+
+	it("ISSUE 3: hover sobre archivo desconocido o llano no dispara", () => {
+		const row = mockElement({
+			classes: ["nav-file-title"],
+			attributes: { "data-path": "Notes/A.md" },
+			textContent: "A",
+		});
+		const mockTrigger = vi.fn();
+		const mockApp: any = {
+			vault: { getMarkdownFiles: () => [] },
+			metadataCache: { getFileCache: () => ({}) },
+			workspace: { trigger: mockTrigger },
+		};
+
+		const unknownEvent = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(unknownEvent, { app: mockApp })).toBe(false);
+		const plainEvent = { target: row, ctrlKey: false, metaKey: false } as unknown as MouseEvent;
+		expect(handleNativeBindingHover(plainEvent, { app: mockApp })).toBe(false);
+		expect(mockTrigger).not.toHaveBeenCalled();
+	});
 });

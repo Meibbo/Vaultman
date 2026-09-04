@@ -247,6 +247,20 @@ export function handleNativeBindingHover(
 	// node_files y node-note-links; mouseover llano no dispara.
 	if (!event.ctrlKey && !event.metaKey) return false;
 
+	// node_files del file explorer nativo: fuera de la allowlist de click a
+	// propósito (cero riesgo P1); el hover sí los cubre por path directo.
+	const fileTarget = resolveNativeFileHoverTarget(event.target, deps.app);
+	if (fileTarget) {
+		deps.app.workspace?.trigger?.("hover-link", {
+			event,
+			source: NATIVE_SURFACE_HOVER_SOURCE,
+			targetEl: fileTarget.element,
+			linktext: fileTarget.path,
+			hoverParent: fileTarget.element,
+		});
+		return true;
+	}
+
 	const target = resolveNativeBindingTarget(event.target, deps.app);
 	if (!target) return false;
 
@@ -287,6 +301,26 @@ export function handleNativeBindingHover(
 		hoverParent: target.hoverParent,
 	});
 	return true;
+}
+
+/**
+ * ISSUE 3: resuelve la fila de archivo nativa (`.nav-file-title[data-path]`)
+ * para preview por path directo. Solo se usa en el path de hover, nunca en
+ * click: las superficies de archivo quedan fuera de la allowlist de binding.
+ */
+export function resolveNativeFileHoverTarget(
+	target: EventTarget | null,
+	app?: App,
+): { element: HTMLElement; path: string } | null {
+	const base = asElement(target);
+	if (!base) return null;
+	const fileEl = base.closest<HTMLElement>(".nav-file-title[data-path]");
+	const rawPath = fileEl?.getAttribute?.("data-path") ?? (fileEl?.dataset?.path as string) ?? null;
+	if (!fileEl || !rawPath) return null;
+	const files = app?.vault?.getMarkdownFiles?.() ?? [];
+	const match = files.find((f) => f?.path === rawPath);
+	if (!match?.path) return null;
+	return { element: fileEl, path: match.path };
 }
 
 export class NativeSurfaceBindingService extends Component {

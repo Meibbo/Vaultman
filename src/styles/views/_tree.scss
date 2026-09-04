@@ -1117,9 +1117,12 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 
 /* El clickable del nn-link se ajusta al ancho del nombre: sin esto,
    `.vaultman-tree-label` (flex:1, posterior en cascada) blockifica el span
-   como flex-item y ocupa toda la fila, robando la interacción del explorer. */
+   como flex-item y ocupa toda la fila, robando la interacción del explorer.
+   El margin-right:auto absorbe el espacio libre para que los cells del
+   costado derecho (files, extension, etc.) conserven su posición. */
 .vaultman-tree-label.vaultman-node-note-link {
   flex: 0 0 auto;
   width: fit-content;
   max-width: 100%;
+  margin-right: auto;
 }
