@@ -5,6 +5,7 @@ import {
 	DEFAULT_INTERACTION_MODE,
 	interactionModesForTab,
 	normalizeInteractionMode,
+	resolveDefaultInteractionMode,
 	resolveInteractionAction,
 } from '../../src/logic/logicInteractionMode';
 
@@ -89,4 +90,36 @@ describe('U130-06 interaction mode persistence settings', () => {
 		expect(DEFAULT_SETTINGS.defaultInteractionModeByTab).toEqual({});
 	});
 });
+
+describe('U130-06 default interaction mode resolution', () => {
+	it('returns the persisted default when persistence is on', () => {
+		expect(
+			resolveDefaultInteractionMode('files', { files: 'select' }, true),
+		).toBe('select');
+	});
+
+	it('ignores the persisted default when persistence is off', () => {
+		expect(
+			resolveDefaultInteractionMode('files', { files: 'select' }, false),
+		).toBe(DEFAULT_INTERACTION_MODE.files);
+	});
+
+	it('falls back to the factory default when nothing is stored', () => {
+		expect(resolveDefaultInteractionMode('props', {}, true)).toBe(
+			DEFAULT_INTERACTION_MODE.props,
+		);
+		expect(resolveDefaultInteractionMode('props', undefined, true)).toBe(
+			DEFAULT_INTERACTION_MODE.props,
+		);
+	});
+
+	it('discards a stored mode the tab does not admit', () => {
+		// `plugins` solo admite open/select. Un `add` guardado por una version
+		// futura, o corrupto, no puede dejar la pestana en un modo imposible.
+		expect(
+			resolveDefaultInteractionMode('plugins', { plugins: 'add' }, true),
+		).toBe(DEFAULT_INTERACTION_MODE.plugins);
+	});
+});
+
 

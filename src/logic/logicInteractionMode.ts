@@ -52,3 +52,24 @@ export function resolveInteractionAction(
 	if (normalized === 'open') return modified ? 'content-search' : 'expand';
 	return normalized;
 }
+
+/**
+ * U130-06: nivel intermedio de la cascada del modo de interaccion.
+ *
+ *   layout aplicado  ->  ESTE defecto persistido  ->  DEFAULT_INTERACTION_MODE
+ *
+ * `normalizeInteractionMode` hace de red: un modo guardado que la pestana no
+ * admite —por corrupcion o porque una version futura cambio los modos validos—
+ * cae al defecto de fabrica en vez de dejar la pestana en un estado imposible.
+ */
+export function resolveDefaultInteractionMode(
+	tab: InteractionTab,
+	persisted: Partial<Record<InteractionTab, InteractionMode>> | undefined,
+	persistEnabled: boolean,
+): InteractionMode {
+	if (!persistEnabled) return DEFAULT_INTERACTION_MODE[tab];
+	const stored = persisted?.[tab];
+	if (!stored) return DEFAULT_INTERACTION_MODE[tab];
+	return normalizeInteractionMode(tab, stored);
+}
+
