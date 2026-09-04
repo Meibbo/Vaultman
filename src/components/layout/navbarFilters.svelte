@@ -126,6 +126,7 @@
 		onFiltersSearchChange,
 		onFiltersSearchCategoryChange,
 		onViewFiltersChanged,
+		onPersistInteractionMode,
 		onContentSearch,
 		showExplorerControls = true,
 		expansionRevision = 0,
@@ -925,7 +926,10 @@
 
 	function selectInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
+		// La config de ESTA instancia sigue yendo por el port.
 		commitConfig(tab, { interactionMode: normalized });
+		// El defecto del usuario es global: se publica, no se escribe aqui.
+		onPersistInteractionMode?.(tab, normalized);
 		applyInteractionMode(tab, normalized);
 		onViewFiltersChanged?.();
 	}

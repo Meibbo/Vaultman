@@ -188,6 +188,12 @@ export interface NavbarPanelWidgetState {
 		value: PanelWidgetSearchCategoryState,
 	) => void;
 	onViewFiltersChanged?: () => void;
+	/**
+	 * U130-06: el usuario eligio un modo de interaccion y quiere que sea su
+	 * defecto. El componente NO escribe settings: las publica, y quien posee el
+	 * plugin decide. Es el mismo contrato que onSaveLayout.
+	 */
+	onPersistInteractionMode?: (tab: ExplorerTabId, mode: InteractionMode) => void;
 	onContentSearch?: (query: string) => void;
 	showExplorerControls?: boolean;
 	expansionRevision?: number;

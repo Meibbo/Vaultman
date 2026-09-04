@@ -124,5 +124,32 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		expect(src).toContain('persistInteractionMode');
 		expect(src).toContain('settings.persist_interaction_mode');
 	});
+
+	it('U130-06: el defecto se publica por callback, no tocando el plugin', () => {
+		const types = readFileSync(
+			new URL('../../src/types/typePanelWidget.ts', import.meta.url),
+			'utf8',
+		);
+		expect(types).toContain('onPersistInteractionMode?:');
+
+		const src = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		const fn = src.slice(
+			src.indexOf('function selectInteractionMode'),
+			src.indexOf('function handleSortChange'),
+		);
+		expect(fn).toContain('commitConfig(tab, { interactionMode: normalized })');
+		expect(fn).toContain('onPersistInteractionMode?.(tab, normalized)');
+
+		// Las tres puertas contra la improvisacion que ya ocurrio una vez:
+		// el componente NO alcanza el plugin, NO castea a any, y NO monta un
+		// stub cuyo saveSettings no hace nada. Un hueco tapado en silencio se
+		// descubre cuando el usuario pierde su preferencia, no antes.
+		expect(fn).not.toContain('as any');
+		expect(fn).not.toContain('saveSettings');
+		expect(fn).not.toContain('plugins');
+	});
 });
 
