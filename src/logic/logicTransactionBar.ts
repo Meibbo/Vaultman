@@ -78,3 +78,29 @@ export function resolveBarPlacement(variant: SearchVariant): BarPlacement {
 	return variant === 'phone' ? 'above-search' : 'below-search';
 }
 
+export interface BarOwner {
+	instanceId: string;
+	scene: string;
+}
+export type BarVisibility = 'visible' | 'hidden' | 'unmounted';
+
+/**
+ * U130-04: `hidden` y `unmounted` NO son lo mismo.
+ *
+ *   hidden    -> la transaccion existe y esta suspendida en otra Scene de esta
+ *                instancia. Vuelve con su estado al volver.
+ *   unmounted -> no hay nada que pintar aqui.
+ *
+ * Colapsarlos perderia la distincion que hace util a esta barra: la de que hay
+ * trabajo pendiente en otro sitio de tu misma instancia.
+ */
+export function barVisibility(
+	transaction: BarOwner | null,
+	current: BarOwner,
+): BarVisibility {
+	if (!transaction) return 'unmounted';
+	if (transaction.instanceId !== current.instanceId) return 'unmounted';
+	return transaction.scene === current.scene ? 'visible' : 'hidden';
+}
+
+

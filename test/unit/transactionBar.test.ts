@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	barVisibility,
 	buildTransactionTelemetry,
 	resolveBarPlacement,
 } from '../../src/logic/logicTransactionBar';
@@ -85,4 +86,36 @@ describe('U130-04 colocacion', () => {
 		expect(resolveBarPlacement('inline')).toBe('below-search');
 	});
 });
+
+describe('U130-04 visibilidad', () => {
+	const live = { instanceId: 'i1', scene: 'files' };
+
+	it('visible con transaccion viva en la Scene actual', () => {
+		expect(barVisibility(live, { instanceId: 'i1', scene: 'files' })).toBe(
+			'visible',
+		);
+	});
+
+	it('oculta al navegar a otra Scene de la misma instancia', () => {
+		// La transaccion no muere: se suspende. La barra se oculta y vuelve.
+		expect(barVisibility(live, { instanceId: 'i1', scene: 'tags' })).toBe(
+			'hidden',
+		);
+	});
+
+	it('no se monta sin transaccion', () => {
+		expect(barVisibility(null, { instanceId: 'i1', scene: 'files' })).toBe(
+			'unmounted',
+		);
+	});
+
+	it('no se monta en otra instancia', () => {
+		// Dos instancias con la misma Scene no comparten modo, asi que tampoco
+		// barra: veria el estado de una transaccion que no es suya.
+		expect(barVisibility(live, { instanceId: 'i2', scene: 'files' })).toBe(
+			'unmounted',
+		);
+	});
+});
+
 
