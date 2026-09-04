@@ -115,4 +115,14 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		expect(es).not.toContain('viewmenu.in_mode');
 		expect(navbar).not.toContain('viewmenu.in_mode');
 	});
+
+	it('U130-06: settings expose the persistence toggle', () => {
+		const src = readFileSync(
+			new URL('../../src/VaultmanSettings.ts', import.meta.url),
+			'utf8',
+		);
+		expect(src).toContain('persistInteractionMode');
+		expect(src).toContain('settings.persist_interaction_mode');
+	});
 });
+

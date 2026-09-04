@@ -238,6 +238,9 @@ export const en: Record<string, string> = {
 	'settings.cells_section': 'Cells',
 	'settings.explorer_page.desc':
 		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
+	'settings.persist_interaction_mode': 'Remember interaction mode',
+	'settings.persist_interaction_mode.desc':
+		'Each tab reopens in the last interaction mode you chose there. Turning this off makes every tab open in Open; your saved choices are kept.',
 	'settings.context_menu.page_desc':
 		'Where Vaultman items appear in workspace context menus.',
 	'settings.style_preset': 'Style preset',

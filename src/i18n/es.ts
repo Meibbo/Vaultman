@@ -239,6 +239,9 @@ export const es: Record<string, string> = {
 	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
+	'settings.persist_interaction_mode': 'Recordar el modo de interacción',
+	'settings.persist_interaction_mode.desc':
+		'Cada pestaña vuelve a abrirse en el último modo de interacción que elegiste allí. Al apagarlo, todas abren en Abrir; lo que ya elegiste se conserva.',
 	'settings.context_menu.page_desc':
 		'Dónde aparecen los items de Vaultman en los menús contextuales.',
 	'settings.style_preset': 'Preset de estilo',

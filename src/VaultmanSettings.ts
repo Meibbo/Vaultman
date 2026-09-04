@@ -999,6 +999,25 @@ items.push({
 			},
 		});
 
+		items.push({
+			name: translate('settings.persist_interaction_mode'),
+			desc: translate('settings.persist_interaction_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.persistInteractionMode !== false)
+						.onChange(async (value) => {
+							// Apagarlo NO borra defaultInteractionModeByTab: volver a
+							// encenderlo recupera la preferencia, por la regla de
+							// referencias rotas del 2026-08-21.
+							this.plugin.settings.persistInteractionMode = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+
 		// U121-027: the cell-shaping settings gather under one heading. This is not
 		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
 		// fields and the grid column options still live on their own pages; moving
