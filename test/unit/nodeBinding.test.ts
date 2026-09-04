@@ -250,18 +250,21 @@ describe("valueMatchesBoundAlias", () => {
 });
 
 describe("NodeNotePrefixes configurables", () => {
-	it("normaliza vacios/antiguos a defaults", () => {
-		expect(normalizeNodeNotePrefixes()).toEqual({
-			tagPrefix: "#",
-			snippetPrefix: "$",
-			pluginPrefix: "%",
-			propPrefix: "[",
-			propSuffix: "]",
+it("normaliza vacios/antiguos a defaults", () => {
+			expect(normalizeNodeNotePrefixes()).toEqual({
+				tagPrefix: "#",
+				tagSuffix: "",
+				snippetPrefix: "$",
+				snippetSuffix: "",
+				pluginPrefix: "%",
+				pluginSuffix: "",
+				propPrefix: "[",
+				propSuffix: "]",
+			});
+			expect(normalizeNodeNotePrefixes({ tagPrefix: "  " })).toMatchObject({ tagPrefix: "#" });
+			expect(prefixesFromSettings(undefined)).toMatchObject({ tagPrefix: "#" });
+			expect(prefixesFromSettings({ nodeNoteTagPattern: " @name" })).toMatchObject({ tagPrefix: "@" });
 		});
-		expect(normalizeNodeNotePrefixes({ tagPrefix: "  " })).toMatchObject({ tagPrefix: "#" });
-		expect(prefixesFromSettings(undefined)).toMatchObject({ tagPrefix: "#" });
-		expect(prefixesFromSettings({ nodeNoteTagPrefix: " @" })).toMatchObject({ tagPrefix: "@" });
-	});
 
 	it("computeAliasToken usa prefijos configurados", () => {
 		const p = normalizeNodeNotePrefixes({

@@ -28,16 +28,22 @@ import { parseWikilink } from "../utils/renderPropertyValue";
  */
 export interface NodeNotePrefixes {
 	tagPrefix: string;
+	tagSuffix: string;
 	snippetPrefix: string;
+	snippetSuffix: string;
 	pluginPrefix: string;
+	pluginSuffix: string;
 	propPrefix: string;
 	propSuffix: string;
 }
 
 export const DEFAULT_NODE_NOTE_PREFIXES: Readonly<NodeNotePrefixes> = {
 	tagPrefix: "#",
+	tagSuffix: "",
 	snippetPrefix: "$",
+	snippetSuffix: "",
 	pluginPrefix: "%",
+	pluginSuffix: "",
 	propPrefix: "[",
 	propSuffix: "]",
 };
@@ -54,8 +60,11 @@ export function normalizeNodeNotePrefixes(
 	const p = input ?? {};
 	return {
 		tagPrefix: pickAffix(p.tagPrefix, DEFAULT_NODE_NOTE_PREFIXES.tagPrefix),
+		tagSuffix: pickAffix(p.tagSuffix, DEFAULT_NODE_NOTE_PREFIXES.tagSuffix),
 		snippetPrefix: pickAffix(p.snippetPrefix, DEFAULT_NODE_NOTE_PREFIXES.snippetPrefix),
+		snippetSuffix: pickAffix(p.snippetSuffix, DEFAULT_NODE_NOTE_PREFIXES.snippetSuffix),
 		pluginPrefix: pickAffix(p.pluginPrefix, DEFAULT_NODE_NOTE_PREFIXES.pluginPrefix),
+		pluginSuffix: pickAffix(p.pluginSuffix, DEFAULT_NODE_NOTE_PREFIXES.pluginSuffix),
 		propPrefix: pickAffix(p.propPrefix, DEFAULT_NODE_NOTE_PREFIXES.propPrefix),
 		propSuffix: pickAffix(p.propSuffix, DEFAULT_NODE_NOTE_PREFIXES.propSuffix),
 	};
@@ -64,20 +73,30 @@ export function normalizeNodeNotePrefixes(
 /** Extrae `settings.*` toward NodeNotePrefixes (tolerante a faltantes). */
 export function prefixesFromSettings(settings: unknown): NodeNotePrefixes {
 	const s = (settings ?? {}) as {
-		nodeNoteTagPrefix?: unknown;
-		nodeNoteSnippetPrefix?: unknown;
-		nodeNotePluginPrefix?: unknown;
-		nodeNotePropPrefix?: unknown;
-		nodeNotePropSuffix?: unknown;
+		nodeNoteTagPattern?: unknown;
+		nodeNoteSnippetPattern?: unknown;
+		nodeNotePluginPattern?: unknown;
+		nodeNotePropPattern?: unknown;
 	};
-	const text = (v: unknown): string | undefined =>
-		typeof v === "string" ? v : undefined;
+	const pattern = (v: unknown, fallback: string): { prefix: string; suffix: string } => {
+		const raw = typeof v === "string" && v.trim() !== "" ? v.trim() : fallback;
+		const at = raw.indexOf("name");
+		if (at < 0) return { prefix: raw, suffix: "" };
+		return { prefix: raw.slice(0, at), suffix: raw.slice(at + 4) };
+	};
+	const tag = pattern(s.nodeNoteTagPattern, "#name");
+	const snippet = pattern(s.nodeNoteSnippetPattern, "$name");
+	const plugin = pattern(s.nodeNotePluginPattern, "%name");
+	const prop = pattern(s.nodeNotePropPattern, "[name]");
 	return normalizeNodeNotePrefixes({
-		tagPrefix: text(s.nodeNoteTagPrefix),
-		snippetPrefix: text(s.nodeNoteSnippetPrefix),
-		pluginPrefix: text(s.nodeNotePluginPrefix),
-		propPrefix: text(s.nodeNotePropPrefix),
-		propSuffix: text(s.nodeNotePropSuffix),
+		tagPrefix: tag.prefix,
+		tagSuffix: tag.suffix,
+		snippetPrefix: snippet.prefix,
+		snippetSuffix: snippet.suffix,
+		pluginPrefix: plugin.prefix,
+		pluginSuffix: plugin.suffix,
+		propPrefix: prop.prefix,
+		propSuffix: prop.suffix,
 	});
 }
 
@@ -102,11 +121,16 @@ export function propAliasTokens(propName: string, prefixes: NodeNotePrefixes = D
 	return [prefixes.propPrefix + propName + prefixes.propSuffix, propName];
 }
 
-/** Candidatos de alias para un tag (con afijo configurado + pelados). */
+/** Candidatos de alias para un tag (con afijos configurados + pelados). */
 export function tagAliasTokens(tagPath: string, prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES): string[] {
+	const clean = stripLeading(tagPath.replace(/^#/, ""), prefixes.tagPrefix);
+	const bare =
+		prefixes.tagSuffix !== "" && clean.endsWith(prefixes.tagSuffix)
+			? clean.slice(0, clean.length - prefixes.tagSuffix.length)
+			: clean;
 	return [
-		prefixes.tagPrefix + tagPath,
-		prefixes.tagPrefix + tagPath.replace(/^#/, ""),
+		prefixes.tagPrefix + clean + prefixes.tagSuffix,
+		prefixes.tagPrefix + bare + prefixes.tagSuffix,
 		tagPath,
 	];
 }
@@ -114,7 +138,11 @@ export function tagAliasTokens(tagPath: string, prefixes: NodeNotePrefixes = DEF
 /** Candidatos de alias para un snippet. */
 export function snippetAliasTokens(name: string, prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES): string[] {
 	const clean = stripLeading(name, prefixes.snippetPrefix);
-	return [prefixes.snippetPrefix + clean, clean];
+	const bare =
+		prefixes.snippetSuffix !== "" && clean.endsWith(prefixes.snippetSuffix)
+			? clean.slice(0, clean.length - prefixes.snippetSuffix.length)
+			: clean;
+	return [prefixes.snippetPrefix + clean + prefixes.snippetSuffix, bare];
 }
 
 /** Candidatos de alias para un plugin (por id y por nombre). */
@@ -123,13 +151,17 @@ export function pluginAliasTokens(
 	pluginName: string,
 	prefixes: NodeNotePrefixes = DEFAULT_NODE_NOTE_PREFIXES,
 ): string[] {
+	const stripSuffix = (value: string): string =>
+		prefixes.pluginSuffix !== "" && value.endsWith(prefixes.pluginSuffix)
+			? value.slice(0, value.length - prefixes.pluginSuffix.length)
+			: value;
 	const cleanId = stripLeading(pluginId.trim(), prefixes.pluginPrefix);
 	const cleanName = stripLeading(pluginName.trim(), prefixes.pluginPrefix);
 	return [
-		prefixes.pluginPrefix + cleanId,
-		cleanId,
-		prefixes.pluginPrefix + cleanName,
-		cleanName,
+		prefixes.pluginPrefix + cleanId + prefixes.pluginSuffix,
+		stripSuffix(cleanId),
+		prefixes.pluginPrefix + cleanName + prefixes.pluginSuffix,
+		stripSuffix(cleanName),
 	];
 }
 
@@ -212,11 +244,11 @@ export function computeAliasToken(
 		case "prop":
 			return prefixes.propPrefix + (node.propName ?? label) + prefixes.propSuffix;
 		case "tag":
-			return prefixes.tagPrefix + stripLeading(node.tagPath ?? label, "#");
+			return prefixes.tagPrefix + stripLeading(node.tagPath ?? label, "#") + prefixes.tagSuffix;
 		case "snippet":
-			return prefixes.snippetPrefix + stripLeading(label, prefixes.snippetPrefix);
+			return prefixes.snippetPrefix + stripLeading(label, prefixes.snippetPrefix) + prefixes.snippetSuffix;
 		case "plugin":
-			return prefixes.pluginPrefix + stripLeading((node.pluginId ?? label).trim(), prefixes.pluginPrefix);
+			return prefixes.pluginPrefix + stripLeading((node.pluginId ?? label).trim(), prefixes.pluginPrefix) + prefixes.pluginSuffix;
 		case "file":
 		case "folder":
 			return node.path ?? label;
@@ -442,11 +474,15 @@ export function titleLabelForNode(
 		case "prop":
 			return stripWrapping(node.propName ?? label, prefixes.propPrefix, prefixes.propSuffix);
 		case "tag":
-			return stripLeading(node.tagPath ?? label, "#");
+			return stripWrapping(
+				stripLeading(node.tagPath ?? label, "#"),
+				prefixes.tagPrefix,
+				prefixes.tagSuffix,
+			);
 		case "snippet":
-			return stripLeading(label, prefixes.snippetPrefix);
+			return stripWrapping(label, prefixes.snippetPrefix, prefixes.snippetSuffix);
 		case "plugin":
-			return stripLeading(node.label || node.pluginId || "", prefixes.pluginPrefix);
+			return stripWrapping(node.label || node.pluginId || "", prefixes.pluginPrefix, prefixes.pluginSuffix);
 		case "file":
 		case "folder":
 			return (node.path ?? label).split("/").pop() ?? label;

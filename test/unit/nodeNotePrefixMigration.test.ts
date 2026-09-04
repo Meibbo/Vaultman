@@ -5,16 +5,22 @@ import { planAliasPrefixMigration } from '../../src/logic/logicNodeNotePrefixMig
 
 const OLD: NodeNotePrefixes = {
 	tagPrefix: '#',
+	tagSuffix: '',
 	snippetPrefix: '$',
+	snippetSuffix: '',
 	pluginPrefix: '%',
+	pluginSuffix: '',
 	propPrefix: '[',
 	propSuffix: ']',
 };
 
 const NEW: NodeNotePrefixes = {
 	tagPrefix: '@',
+	tagSuffix: '',
 	snippetPrefix: '~',
+	snippetSuffix: '',
 	pluginPrefix: '&',
+	pluginSuffix: '',
 	propPrefix: '<',
 	propSuffix: '>',
 };
