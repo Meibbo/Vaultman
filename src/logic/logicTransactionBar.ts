@@ -61,3 +61,20 @@ export function buildTransactionTelemetry({
 		rejection,
 	};
 }
+
+/** Las tres variantes reales del searchbox (`searchControl.svelte:11`). */
+export type SearchVariant = 'inline' | 'phone' | 'row';
+export type BarPlacement = 'above-search' | 'below-search';
+
+/**
+ * U130-04: la barra se coloca respecto al SEARCHBOX, no respecto al toolbar
+ * generico, porque el searchbox es un nodo especial con sus propios modos y
+ * reglas de overflow.
+ *
+ * En movil va ENCIMA: alli el searchbox es el elemento que el pulgar alcanza, y
+ * empujarlo hacia abajo con una barra de telemetria lo aleja.
+ */
+export function resolveBarPlacement(variant: SearchVariant): BarPlacement {
+	return variant === 'phone' ? 'above-search' : 'below-search';
+}
+

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTransactionTelemetry } from '../../src/logic/logicTransactionBar';
+import {
+	buildTransactionTelemetry,
+	resolveBarPlacement,
+} from '../../src/logic/logicTransactionBar';
 
 const NODES = [
 	{ id: 'p1', label: 'lugar', childIds: ['v1', 'v2'] },
@@ -66,3 +69,20 @@ describe('U130-04 telemetria', () => {
 		expect(t.originCount).toBe(0);
 	});
 });
+
+describe('U130-04 colocacion', () => {
+	it('debajo del searchbox cuando es una row de desktop', () => {
+		expect(resolveBarPlacement('row')).toBe('below-search');
+	});
+
+	it('encima cuando el searchbox es el del movil', () => {
+		expect(resolveBarPlacement('phone')).toBe('above-search');
+	});
+
+	it('debajo cuando el searchbox esta plegado en pill', () => {
+		// `inline` es la pastilla plegada: no hay row bajo la que colocarse, asi
+		// que la barra cae al mismo sitio que en desktop.
+		expect(resolveBarPlacement('inline')).toBe('below-search');
+	});
+});
+
