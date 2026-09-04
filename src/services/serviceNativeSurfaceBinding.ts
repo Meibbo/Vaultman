@@ -286,9 +286,10 @@ export function handleNativeBindingHover(
 	event: MouseEvent,
 	deps: NativeBindingHoverDeps,
 ): boolean {
-	// ISSUE 3: el preview solo dispara con ctrl (o meta) presionado para
-	// node_files y node-note-links; mouseover llano no dispara.
-	if (!event.ctrlKey && !event.metaKey) return false;
+	// Delegamos la exigencia de modificador (Ctrl/Cmd) a Obsidian page-preview
+	// mediante registerHoverLinkSource(..., { defaultMod: true }).
+	// Disparar hover-link incondicionalmente en mouseover permite que Obsidian
+	// registre el listener de keydown diferido cuando el cursor ya está sobre el nodo.
 
 	// node_files del file explorer nativo: fuera de la allowlist de click a
 	// propósito (cero riesgo P1); el hover sí los cubre por path directo.
@@ -407,7 +408,6 @@ export function handleInternalNodeNoteHover(
 	event: MouseEvent,
 	deps: InternalNodeNoteHoverDeps,
 ): boolean {
-	if (!event.ctrlKey && !event.metaKey) return false;
 	const base = asElement(event.target);
 	if (!base) return false;
 

@@ -451,7 +451,7 @@ describe("handleNativeBindingHover", () => {
 		}));
 	});
 
-	it("ISSUE 3: plain mouseover sin ctrl/meta no dispara preview", () => {
+	it("hover sobre superficie valida dispara hover-link incondicionalmente (Obsidian page-preview maneja defaultMod y deferred keydown)", () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
 		const mockTrigger = vi.fn();
 		const mockApp: any = {
@@ -468,8 +468,11 @@ describe("handleNativeBindingHover", () => {
 			metaKey: false,
 			altKey: false,
 		} as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
-		expect(mockTrigger).not.toHaveBeenCalled();
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			source: NATIVE_SURFACE_HOVER_SOURCE,
+			linktext: "Notes/Books.md",
+		}));
 	});
 
 	it("ISSUE 3: ctrl+hover y meta+hover si disparan preview", () => {
@@ -627,17 +630,18 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		}));
 	});
 
-	it("texto con alias dispara preview; sin alias, sin ctrl o sin nn no dispara", () => {
+	it("texto con alias dispara preview; sin alias o sin nn no dispara", () => {
 		const el = nnEl({ textContent: "Projects" });
 		const app = hoverApp([{ path: "Notes/P.md" }], { aliases: ["Projects"] });
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
 		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
 
+		const plainMouseover = { target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(plainMouseover, { app })).toBe(true);
+
 		const lonely = nnEl({ textContent: "Nadie" });
 		expect(handleInternalNodeNoteHover({ target: lonely, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
-
-		expect(handleInternalNodeNoteHover({ target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
 
 		const plain = mockElement({ classes: ["random"], textContent: "Projects" });
 		expect(handleInternalNodeNoteHover({ target: plain, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
