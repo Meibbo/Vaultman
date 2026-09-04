@@ -345,13 +345,18 @@ export class NativeSurfaceBindingService extends Component {
 			{ capture: false },
 		);
 
-		// ISSUE 2 (rediseño): decoración proactiva al render y en cada
-		// cambio de leaf activa, sin esperar interacción.
+		// ISSUE 2 (rediseño): decoración proactiva al render, al cambiar de
+		// archivo y en cada cambio de leaf activa, sin esperar interacción.
+		// file-open cubre el cambio de nota en la misma pestaña (no dispara
+		// active-leaf-change); active-leaf-change cubre el regreso a otra tab.
 		const decorate = (): void => {
 			decorateBoundBreadcrumbs(doc, this.deps.app);
 		};
 		decorate();
 		this.registerEvent(this.deps.app.workspace.on("active-leaf-change", () => {
+			decorate();
+		}));
+		this.registerEvent(this.deps.app.workspace.on("file-open", () => {
 			decorate();
 		}));
 	}
