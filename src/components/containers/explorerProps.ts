@@ -15,6 +15,7 @@ import {
 	type FilterPolarity,
 } from '../../logic/logicFilterPolarity';
 import type { FilterService } from '../../services/serviceFilter';
+import type { BindingNodeInput } from '../../services/serviceNodeBinding';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
@@ -1880,14 +1881,14 @@ export class PropsExplorerPanel extends Component {
 							e.preventDefault();
 							const meta = node.meta as PropMeta;
 							if (meta?.isValueNode) {
-								void this.plugin.nodeBindingService?.bindOrCreate(
+								void this._bindAndRefreshLive(
 									{ kind: 'value', label: node.label, propName: meta.propName },
-									{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									e,
 								);
 							} else {
-								void this.plugin.nodeBindingService?.bindOrCreate(
+								void this._bindAndRefreshLive(
 									{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
-									{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									e,
 								);
 							}
 						};
@@ -1953,14 +1954,14 @@ export class PropsExplorerPanel extends Component {
 						e.preventDefault();
 						const meta = node.meta as PropMeta;
 						if (meta?.isValueNode) {
-							void this.plugin.nodeBindingService?.bindOrCreate(
+							void this._bindAndRefreshLive(
 								{ kind: 'value', label: node.label, propName: meta.propName },
-								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+								e,
 							);
 						} else {
-							void this.plugin.nodeBindingService?.bindOrCreate(
+							void this._bindAndRefreshLive(
 								{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
-								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+								e,
 							);
 						}
 					};
@@ -2100,8 +2101,24 @@ export class PropsExplorerPanel extends Component {
 		};
 	}
 
-	private _renderPropertyValueLabel(
-		container: HTMLElement,
+	/**
+	 * Bind tras click en nn-link + actualización en vivo: si se creó o
+	 * adoptó nota, el nn-link debe pintarse sin esperar a los vault events.
+	 */
+	private _bindAndRefreshLive(node: BindingNodeInput, e: MouseEvent): void {
+		void (async () => {
+			const res = await this.plugin.nodeBindingService?.bindOrCreate(
+				node,
+				{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+			);
+			if (res && (res.outcome === "created" || res.outcome === "adopted")) {
+				this.logic.invalidate();
+				this._render();
+			}
+		})();
+	}
+
+	private _renderPropertyValueLabel(		container: HTMLElement,
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {

@@ -332,6 +332,90 @@ export function resolveNativeFileHoverTarget(
 	return null;
 }
 
+export interface InternalNodeNoteHoverDeps {
+	app?: App;
+}
+
+function triggerInternalHover(
+	app: App | undefined,
+	event: MouseEvent,
+	targetEl: HTMLElement,
+	linktext: string,
+): void {
+	app?.workspace?.trigger?.("hover-link", {
+		event,
+		source: NATIVE_SURFACE_HOVER_SOURCE,
+		targetEl,
+		linktext,
+		hoverParent: targetEl,
+	});
+}
+
+/**
+ * Preview con ctrl/meta sobre nn-links INTERNOS de Vaultman (filas del
+ * explorer). Solo dispara `hover-link`, jamás suprime ni intercepta: si el
+ * target también resuelve como superficie nativa, el handler nativo manda.
+ */
+export function handleInternalNodeNoteHover(
+	event: MouseEvent,
+	deps: InternalNodeNoteHoverDeps,
+): boolean {
+	if (!event.ctrlKey && !event.metaKey) return false;
+	const base = asElement(event.target);
+	if (!base) return false;
+	const link = base.closest?.(".vaultman-node-note-link") as HTMLElement | null;
+	if (!link) return false;
+	const app = deps.app;
+
+	// Las superficies nativas las cubre el handler nativo (sin doble preview).
+	if (resolveNativeBindingTarget(event.target, app)) return false;
+
+	// 1. Anchor con href (valores wikilink/url renderizados).
+	const href = link.getAttribute?.("href") ?? null;
+	if (href) {
+		const dest = app?.metadataCache?.getFirstLinkpathDest?.(href, "") as
+			| { path?: string }
+			| null
+			| undefined;
+		if (dest?.path) {
+			triggerInternalHover(app, event, link, dest.path);
+			return true;
+		}
+		return false;
+	}
+
+	if (!app) return false;
+
+	// 2. Fila de archivo [data-path]: alias de path/filename/basename.
+	const row = link.closest?.("[data-path]") as HTMLElement | null;
+	const rowPath = row?.getAttribute?.("data-path") ?? (row?.dataset?.path as string) ?? null;
+	if (rowPath) {
+		const fileName = rowPath.split("/").pop() ?? rowPath;
+		const basename = fileName.replace(/\.[^/.]+$/, "");
+		for (const token of [rowPath, fileName, basename]) {
+			const hits = findNotesByAlias(app, token);
+			if (hits.length > 0 && hits[0]?.path) {
+				triggerInternalHover(app, event, link, hits[0].path);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 3. Texto del label: alias verbatim o [texto].
+	const text = (link.textContent ?? "").trim();
+	if (text) {
+		for (const token of [text, "[" + text + "]"]) {
+			const hits = findNotesByAlias(app, token);
+			if (hits.length > 0 && hits[0]?.path) {
+				triggerInternalHover(app, event, link, hits[0].path);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 export class NativeSurfaceBindingService extends Component {
 	constructor(private readonly deps: NativeSurfaceBindingServiceDeps) {
 		super();
@@ -384,6 +468,14 @@ export class NativeSurfaceBindingService extends Component {
 			"mouseover",
 			(event) => {
 				handleNativeBindingHover(event, { app: this.deps.app });
+			},
+			{ capture: false },
+		);
+		this.registerDomEvent(
+			doc,
+			"mouseover",
+			(event) => {
+				handleInternalNodeNoteHover(event, { app: this.deps.app });
 			},
 			{ capture: false },
 		);

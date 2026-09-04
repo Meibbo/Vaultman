@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
 	decorateBoundBreadcrumbs,
+	handleInternalNodeNoteHover,
 	resolveBreadcrumbFolderPath,
 	resolveNativeBindingTarget,
 	handleNativeBindingClick,
@@ -515,5 +516,100 @@ describe("handleNativeBindingHover", () => {
 		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
 		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
 		expect(mockTrigger).not.toHaveBeenCalled();
+	});
+});
+
+describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
+	function nnEl(opts: { classes?: string[]; attributes?: Record<string, string>; textContent?: string; parent?: any } = {}) {
+		return mockElement({
+			classes: ["vaultman-node-note-link", ...(opts.classes ?? [])],
+			attributes: opts.attributes,
+			textContent: opts.textContent ?? "",
+			parent: opts.parent,
+		});
+	}
+
+	function hoverApp(files: any[] = [], fileCache: any = {}) {
+		return {
+			vault: { getMarkdownFiles: () => files },
+			metadataCache: { getFileCache: () => ({ frontmatter: fileCache }) },
+			workspace: { trigger: vi.fn() },
+		} as any;
+	}
+
+	it("anchor con href resuelto dispara preview del destino", () => {
+		const el = nnEl({ classes: ["internal-link"], attributes: { href: "Ideas" }, textContent: "Ideas" });
+		const app = hoverApp();
+		app.metadataCache = { getFirstLinkpathDest: () => ({ path: "Notes/Ideas.md" }) };
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Ideas.md",
+		}));
+	});
+
+	it("anchor externo o sin destino no dispara", () => {
+		const el = nnEl({ classes: ["external-link"], attributes: { href: "https://example.com" }, textContent: "x" });
+		const app = hoverApp();
+		app.metadataCache = { getFirstLinkpathDest: () => null };
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(false);
+		expect(app.workspace.trigger).not.toHaveBeenCalled();
+	});
+
+	it("fila de archivo con nota por alias dispara preview", () => {
+		const rowParent = mockElement({ classes: ["vaultman-file-row"], attributes: { "data-path": "docs/manual.pdf" } });
+		const el = nnEl({ textContent: "manual.pdf", parent: rowParent });
+		const app = hoverApp([{ path: "Notes/Manual.md" }], { aliases: ["docs/manual.pdf"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Manual.md",
+		}));
+	});
+
+	it("texto con alias dispara preview; sin alias, sin ctrl o sin nn no dispara", () => {
+		const el = nnEl({ textContent: "Projects" });
+		const app = hoverApp([{ path: "Notes/P.md" }], { aliases: ["Projects"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+
+		const lonely = nnEl({ textContent: "Nadie" });
+		expect(handleInternalNodeNoteHover({ target: lonely, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
+
+		expect(handleInternalNodeNoteHover({ target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
+
+		const plain = mockElement({ classes: ["random"], textContent: "Projects" });
+		expect(handleInternalNodeNoteHover({ target: plain, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
+	});
+
+	it("superficie nativa la cubre el handler nativo (sin doble preview)", () => {
+		const added: string[] = [];
+		const el: any = {
+			dataset: {},
+			textContent: "Projects",
+			getAttribute: (attr: string) => (attr === "data-path" ? "Projects" : null),
+			classList: { contains: () => false, add: (cls: string) => { added.push(cls); } },
+			closest: (selector: string) => {
+				if (selector.includes("view-header-breadcrumb")) return el;
+				if (selector.includes("vaultman-node-note-link")) return el;
+				return null;
+			},
+			querySelectorAll: () => [],
+			querySelector: () => null,
+		};
+		const app = {
+			vault: { getMarkdownFiles: () => [{ path: "Projects/Projects.md" }] },
+			metadataCache: { getFileCache: () => ({}) },
+			workspace: { trigger: vi.fn() },
+		} as any;
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(false);
+		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});
 });
