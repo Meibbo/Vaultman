@@ -664,6 +664,8 @@ export const en: Record<string, string> = {
 	'sasi.move.toggle_write': 'Append or replace',
 	'sasi.move.toggle_origin': 'Move or copy',
 	'sasi.move.toggle_kind': 'Move nodes or groups',
+	'sasi.search.cycle_category': 'Search category',
+	'sasi.search.create_target': 'Create',
 	'explorer.move_to_prop.write.append': 'Append to the destination',
 	'explorer.move_to_prop.write.replace': 'Replace the destination',
 	'explorer.move_to_prop.origin.move': 'Remove the original value',

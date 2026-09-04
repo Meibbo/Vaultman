@@ -75,6 +75,9 @@ import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 import { reconcileRegistry } from './logic/logicInstanceRegistry';
+import { createVaultmanSasi } from './logic/logicSasiBootstrap';
+import type { SasiRegistry } from './logic/logicSasiRegistry';
+import type { SasiProvider } from './services/serviceSasiProvider';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -93,6 +96,14 @@ export class VaultmanPlugin extends Plugin {
 	nodeBindingService!: NodeBindingService;
 	nativeSurfaceBindingService!: NativeSurfaceBindingService;
 	breadcrumbFileSceneService!: BreadcrumbFileSceneService;
+
+	/**
+	 * U130-01: SASI = Services Actions Scripts Indexing. Vive bajo MyConfig,
+	 * hermano de PSS y LUPAPI; WAR le CONSULTA, no lo contiene. Es un
+	 * registro, no un Component de Obsidian, asi que no va por addChild.
+	 */
+	sasiRegistry!: SasiRegistry;
+	sasiProvider!: SasiProvider;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -134,6 +145,10 @@ export class VaultmanPlugin extends Plugin {
 		this.contextMenuService = new ContextMenuService(this);
 		this.statisticsCache = new StatisticsCacheService(this.app);
 		this.lastOpenedService = new LastOpenedService(this.app, this.manifest.id);
+
+		const sasi = createVaultmanSasi();
+		this.sasiRegistry = sasi.registry;
+		this.sasiProvider = sasi.provider;
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
