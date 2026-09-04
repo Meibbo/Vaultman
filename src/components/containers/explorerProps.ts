@@ -16,6 +16,7 @@ import {
 } from '../../logic/logicFilterPolarity';
 import type { FilterService } from '../../services/serviceFilter';
 import type { BindingNodeInput } from '../../services/serviceNodeBinding';
+import { valueMatchesBoundAlias } from '../../services/serviceNodeBinding';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
@@ -1703,16 +1704,12 @@ export class PropsExplorerPanel extends Component {
 						) {
 							meta.hasNodeNote = true;
 						}
-					} else {
-						const rawValue = meta.rawValue ?? node.label;
-						if (
-							aliasSet.has(rawValue) ||
-							aliasSet.has(node.label) ||
-							(rawValue.startsWith('[[') && rawValue.endsWith(']]'))
-						) {
-							meta.hasNodeNote = true;
-						}
+				} else {
+					const rawValue = meta.rawValue ?? node.label;
+					if (valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t))) {
+						meta.hasNodeNote = true;
 					}
+				}
 				}
 				if (node.children?.length) {
 					visit(node.children);
@@ -1860,17 +1857,28 @@ export class PropsExplorerPanel extends Component {
 					if (target) {
 						const label = container.createSpan({
 							cls: 'vaultman-tree-label vaultman-rename-preview',
-							text: target,
 						});
+						const previewMeta = node.meta as PropMeta;
+						if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+							// El preview conserva el cell_format del valor.
+							renderEditableText(label, {
+								container: label,
+								raw: target,
+								type: previewMeta.propType ?? 'text',
+								app: this.plugin.app,
+							});
+						} else {
+							label.setText(target);
+						}
 						if (node.labelColor) label.style.color = node.labelColor;
 						return true;
 					}
 					const nodeMeta = node.meta as PropMeta;
-				const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
-				// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
-				// formato node-note-link; hyperlink/url_link quedan plain.
-				const nodeLinkType = detectLinkType(nodeLinkText);
-				if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
+					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
+					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
+					// formato node-note-link; hyperlink/url_link quedan plain.
+					const nodeLinkType = detectLinkType(nodeLinkText);
+					if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
 						const label = container.createSpan({
 							cls: 'vaultman-tree-label vaultman-node-note-link',
 							text: node.label,
@@ -1915,17 +1923,28 @@ export class PropsExplorerPanel extends Component {
 				if (target) {
 					const label = container.createSpan({
 						cls: 'vaultman-tree-label vaultman-rename-preview',
-						text: target,
 					});
+					const previewMeta = node.meta as PropMeta;
+					if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+						// El preview conserva el cell_format del valor.
+						renderEditableText(label, {
+							container: label,
+							raw: target,
+							type: previewMeta.propType ?? 'text',
+							app: this.plugin.app,
+						});
+					} else {
+						label.setText(target);
+					}
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
 				}
-				const nodeMeta = node.meta as PropMeta;
-				const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
-				// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
-				// formato node-note-link; hyperlink/url_link quedan plain.
-				const nodeLinkType = detectLinkType(nodeLinkText);
-				if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
+					const nodeMeta = node.meta as PropMeta;
+					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
+					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
+					// formato node-note-link; hyperlink/url_link quedan plain.
+					const nodeLinkType = detectLinkType(nodeLinkText);
+					if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
 					// Wikilink bindeado con aspecto y gesto vanilla de core
 					// (internal-link + is-unresolved + openLinkText): la clase
 					// nn-link queda solo para texto con nota, no para links.
@@ -2129,8 +2148,18 @@ export class PropsExplorerPanel extends Component {
 		if (target) {
 			const label = container.createSpan({
 				cls: 'vaultman-tree-label vaultman-rename-preview',
-				text: target,
 			});
+			if (this.visibleCells.has('format')) {
+				// El preview conserva el cell_format del valor.
+				renderEditableText(label, {
+					container: label,
+					raw: target,
+					type: node.meta.propType ?? 'text',
+					app: this.plugin.app,
+				});
+			} else {
+				label.setText(target);
+			}
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
 		}

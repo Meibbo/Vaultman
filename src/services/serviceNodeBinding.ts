@@ -19,6 +19,7 @@ function isTFile(file: unknown): file is TFile {
  */
 
 import { Notice, TFile, type App } from "obsidian";
+import { parseWikilink } from "../utils/renderPropertyValue";
 
 export type BindingNodeKind =
 	| "tag"
@@ -125,6 +126,21 @@ export function aliasesContain(raw: unknown, token: string): boolean {
 	if (raw == null) return false;
 	if (Array.isArray(raw)) return raw.some((v) => aliasMatches(v, token));
 	return aliasMatches(raw, token);
+}
+
+/**
+ * ¿Un valor de prop tiene nota bindeada? Además del match verbatim, un valor
+ * wikilink `[[X]]` matchea por su target `X` (el alias canónico nunca lleva
+ * brackets, y la creación normaliza a esa forma).
+ */
+export function valueMatchesBoundAlias(
+	rawValue: string,
+	label: string,
+	hasAlias: (token: string) => boolean,
+): boolean {
+	if (hasAlias(rawValue) || hasAlias(label)) return true;
+	const target = parseWikilink(rawValue)?.target;
+	return target !== undefined && hasAlias(target);
 }
 
 function aliasMatches(value: unknown, token: string): boolean {

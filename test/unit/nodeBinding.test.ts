@@ -6,6 +6,7 @@ import {
 	extractWikilinkTarget,
 	aliasesContain,
 	quoteYamlValue,
+	valueMatchesBoundAlias,
 } from "../../src/services/serviceNodeBinding";
 
 describe("extractWikilinkTarget", () => {
@@ -224,5 +225,20 @@ describe("Wikilink & Adoption in NodeBindingService", () => {
 		expect(result.filePath).toBe("Nueva.md");
 		expect(result.token).toBe("Nueva");
 		expect(mockCreate).toHaveBeenCalledWith("Nueva.md", expect.not.stringContaining("[[Nueva]]"));
+	});
+});
+
+describe("valueMatchesBoundAlias", () => {
+	const has = (aliases: string[]) => (token: string) => aliases.includes(token);
+
+	it.each([
+		["Projects", "Projects", ["Projects"], true],
+		["[[Nueva]]", "[[Nueva]]", ["Nueva"], true],
+		["[[Nueva|Alias]]", "[[Nueva|Alias]]", ["Nueva"], true],
+		["[[Nueva]]", "[[Nueva]]", ["Otra"], false],
+		["https://example.com", "https://example.com", ["https://example.com"], true],
+		["texto", "texto", ["otro"], false],
+	])("raw=%p label=%p aliases=%p -> %p", (raw, label, aliases, expected) => {
+		expect(valueMatchesBoundAlias(raw, label, has(aliases))).toBe(expected);
 	});
 });
