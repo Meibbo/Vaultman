@@ -115,13 +115,19 @@ export function scopeAfterExpansionChange(
 	return currentRootId;
 }
 
+/** Un predicado devuelve la clave de grupo de un nodo, o `null` para saltarlo. */
+export type IndexGroupPredicate = (node: IndexNodeRef) => string | null;
+
 export function buildIndexGroups(
 	nodes: readonly IndexNodeRef[] | null | undefined,
+	// U130-03: el predicado deja de estar cableado. `indexKeyFor` sigue siendo
+	// el defecto para que el indice flotante NO cambie de comportamiento.
+	predicate: IndexGroupPredicate = (node) => indexKeyFor(node.label),
 ): IndexGroup[] {
 	const order: string[] = [];
 	const groups = new Map<string, IndexGroup>();
 	for (const node of nodes ?? []) {
-		const key = indexKeyFor(node.label);
+		const key = predicate(node);
 		if (key === null) continue;
 		const existing = groups.get(key);
 		if (existing) {
