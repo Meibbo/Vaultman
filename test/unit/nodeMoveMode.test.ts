@@ -8,6 +8,7 @@ import {
 	buildNodeMoveOperations,
 	reconcileNodeMoveOwner,
 	resolveOriginSet,
+	pruneDeadOrigins,
 } from '../../src/logic/logicNodeMoveMode';
 
 const OWNER = { instanceId: 'inst-1', scene: 'files' };
@@ -127,6 +128,22 @@ describe('U130-02 seleccion jerarquica', () => {
 		expect(resolveOriginSet(['x'], ['x/sub'], dentro, ['x/sub/c.md'])).toEqual(
 			['x/a.md', 'x/b.md', 'x/sub/c.md'],
 		);
+	});
+});
+
+describe('U130-02 liveness al reanudar', () => {
+	it('poda los origenes que ya no existen y dice cuales', () => {
+		const s = enter();
+		const result = pruneDeadOrigins(s, (ref) => ref.canonicalId !== 'x/a.md');
+		expect(result.state.origin).toEqual([]);
+		expect(result.pruned).toEqual(['x/a.md']);
+	});
+
+	it('sin bajas devuelve el mismo estado y nada podado', () => {
+		const s = enter();
+		const result = pruneDeadOrigins(s, () => true);
+		expect(result.state).toBe(s);
+		expect(result.pruned).toEqual([]);
 	});
 });
 

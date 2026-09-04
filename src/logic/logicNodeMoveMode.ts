@@ -142,6 +142,35 @@ export function reconcileNodeMoveOwner(
 	return state;
 }
 
+export interface NodeMovePrune {
+	state: NodeMoveModeState;
+	/** `canonicalId` de los origenes que ya no existen. Se REPORTAN, no se callan. */
+	pruned: readonly string[];
+}
+
+/**
+ * U130-02: el modo sobrevive a la navegacion, asi que puede sobrevivir a sus
+ * origenes. Se revalida al restaurar la pestana y antes de emitir operaciones.
+ * Lo podado se dice: emitir una operacion contra un fichero que Sync borro es
+ * peor, pero podarlo en silencio deja al usuario creyendo que movio algo que no.
+ */
+export function pruneDeadOrigins(
+	state: NodeMoveModeState,
+	isAlive: (ref: MoveNodeRef) => boolean,
+): NodeMovePrune {
+	const alive = state.origin.filter((t) => isAlive(t.node));
+	if (alive.length === state.origin.length) {
+		return { state, pruned: Object.freeze([]) };
+	}
+	const pruned = state.origin
+		.filter((t) => !isAlive(t.node))
+		.map((t) => t.node.canonicalId);
+	return {
+		state: { ...state, origin: Object.freeze(alive) },
+		pruned: Object.freeze(pruned),
+	};
+}
+
 /** El par (origen, destino) es la unidad: un fallo parcial es atribuible. */
 export function buildNodeMoveOperations(
 	state: NodeMoveModeState,
