@@ -514,3 +514,30 @@ describe('detectLinkType (ISSUE 1: solo el wikilink verdadero es node-note-link)
 		expect(parseWikilinkDisplay(raw)).toBe(expected);
 	});
 });
+
+describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)', () => {
+	it('hyperlink pelado renderiza anchor external-link con href', () => {
+		const root = render('https://example.com/x', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.tagName).toBe('a');
+		expect(anchor!.href).toBe('https://example.com/x');
+		expect(anchor!.textContent).toBe('https://example.com/x');
+		expect(anchor!.classes()).toContain('vaultman-property-value-link');
+	});
+
+	it('url_link [t](u) externa renderiza anchor con texto y href', () => {
+		const root = render('[texto](https://example.com/y)', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.textContent).toBe('texto');
+		expect(anchor!.href).toBe('https://example.com/y');
+	});
+
+	it('url_link [t]([[nota]]) renderiza internal-link con texto', () => {
+		const root = render('[ver]([[nota]])', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.textContent).toBe('ver');
+	});
+});

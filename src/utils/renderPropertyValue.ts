@@ -98,6 +98,53 @@ export function renderEditableText(
 		return link;
 	}
 
+	// ISSUE 1: los url_link [texto](url) tienen su propia decoración en vez
+	// de texto plano. Con destino externo abren fuera (sin preventDefault);
+	// con destino wikilink navegan como un internal-link de core.
+	const mdLink = raw.trim().match(MARKDOWN_LINK);
+	if (mdLink) {
+		const text = mdLink[1].trim();
+		const url = mdLink[2].trim();
+		const inner = url.match(WIKILINK);
+		if (inner) {
+			const target = inner[1];
+			const link = parent.createEl('a', {
+				cls: 'internal-link vaultman-property-value-link',
+				text: text || inner[2] || target,
+				href: target,
+			});
+			link.addEventListener('click', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void app.workspace.openLinkText(target, '', false);
+			});
+			return link;
+		}
+		const link = parent.createEl('a', {
+			cls: 'external-link vaultman-property-value-link',
+			text: text || url,
+			href: url,
+		});
+		link.addEventListener('click', (event) => {
+			event.stopPropagation();
+		});
+		return link;
+	}
+
+	// ISSUE 1: el hyperlink pelado es un anchor externo, no texto plano.
+	if (HYPERLINK.test(raw.trim())) {
+		const trimmed = raw.trim();
+		const link = parent.createEl('a', {
+			cls: 'external-link vaultman-property-value-link',
+			text: trimmed,
+			href: trimmed,
+		});
+		link.addEventListener('click', (event) => {
+			event.stopPropagation();
+		});
+		return link;
+	}
+
 	const text = parent.createSpan({
 		cls: 'vaultman-property-value-text',
 		text: raw,

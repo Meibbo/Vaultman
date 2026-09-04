@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+	decorateBoundBreadcrumbs,
 	resolveBreadcrumbFolderPath,
 	resolveNativeBindingTarget,
 	handleNativeBindingClick,
@@ -316,6 +317,52 @@ describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", 
 		const el2 = breadcrumbEl();
 		resolveNativeBindingTarget(el2);
 		expect(el2.added).not.toContain("vaultman-node-note-link");
+	});
+});
+
+describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
+	function crumbEl(path: string, added: string[]) {
+		const el: any = {
+			dataset: {},
+			textContent: path,
+			getAttribute: (attr: string) => (attr === "data-path" ? path : null),
+			classList: {
+				contains: () => false,
+				add: (cls: string) => { added.push(cls); },
+			},
+			closest: (selector: string) => {
+				if (selector.includes("view-header-breadcrumb")) return el;
+				return null;
+			},
+			querySelectorAll: () => [],
+			querySelector: () => null,
+		};
+		return el;
+	}
+
+	function fakeDoc(crumbs: any[]) {
+		return { querySelectorAll: (sel: string) => (sel === ".view-header-breadcrumb" ? crumbs : []) } as any;
+	}
+
+	function folderApp(files: any[], aliases: unknown = {}) {
+		return {
+			vault: { getMarkdownFiles: () => files },
+			metadataCache: { getFileCache: () => ({ frontmatter: { aliases } }) },
+		} as any;
+	}
+
+	it("decora todos los breadcrumbs bindeados sin esperar click", () => {
+		const addedBound: string[] = [];
+		const addedPlain: string[] = [];
+		const doc = fakeDoc([crumbEl("Projects", addedBound), crumbEl("Inbox", addedPlain)]);
+		decorateBoundBreadcrumbs(doc, folderApp([{ path: "Projects/Projects.md" }]));
+		expect(addedBound).toContain("vaultman-node-note-link");
+		expect(addedPlain).not.toContain("vaultman-node-note-link");
+	});
+
+	it("no hace nada sin doc ni sin app", () => {
+		expect(() => decorateBoundBreadcrumbs(undefined, folderApp([]))).not.toThrow();
+		expect(() => decorateBoundBreadcrumbs(fakeDoc([]))).not.toThrow();
 	});
 });
 

@@ -98,6 +98,24 @@ export function hasBoundFolderNote(folderPath: string, app?: App): boolean {
 	return findNotesByAlias(app, clean).length > 0;
 }
 
+/**
+ * ISSUE 2 (rediseño): decora proactivamente todos los breadcrumbs con nota
+ * bindeada al render, sin esperar click/hover. El nn-link es referencia
+ * visual permanente mientras node-notes está activo (sin toggle de apagado
+ * general, siempre decora con el plugin cargado).
+ */
+export function decorateBoundBreadcrumbs(doc: Document | undefined, app?: App): void {
+	if (!doc || !app) return;
+	const crumbs = doc.querySelectorAll(".view-header-breadcrumb");
+	crumbs.forEach((crumb) => {
+		const el = crumb as HTMLElement;
+		const folderPath = resolveBreadcrumbFolderPath(el as unknown as ClosableElement, app);
+		if (folderPath && hasBoundFolderNote(folderPath, app)) {
+			el.classList.add("vaultman-node-note-link");
+		}
+	});
+}
+
 export function resolveNativeBindingTarget(
 	target: EventTarget | null,
 	app?: App,
@@ -326,6 +344,16 @@ export class NativeSurfaceBindingService extends Component {
 			},
 			{ capture: false },
 		);
+
+		// ISSUE 2 (rediseño): decoración proactiva al render y en cada
+		// cambio de leaf activa, sin esperar interacción.
+		const decorate = (): void => {
+			decorateBoundBreadcrumbs(doc, this.deps.app);
+		};
+		decorate();
+		this.registerEvent(this.deps.app.workspace.on("active-leaf-change", () => {
+			decorate();
+		}));
 	}
 
 	onunload(): void {
