@@ -363,6 +363,32 @@ export function handleInternalNodeNoteHover(
 	if (!event.ctrlKey && !event.metaKey) return false;
 	const base = asElement(event.target);
 	if (!base) return false;
+
+	// 0. Anchors internal-link dentro de vistas Vaultman (valores con
+	// formato): preview del destino. Scopeado para no interferir con el
+	// hover nativo de core fuera de nuestras vistas.
+	const scopeEl = base.closest?.(
+		'.workspace-leaf-content[data-type="vaultman-frame"], .workspace-leaf-content[data-type="vaultman-view"]',
+	) as unknown;
+	const anchor =
+		scopeEl !== null && scopeEl !== undefined
+			? (base.closest?.("a.internal-link[href]") as HTMLElement | null)
+			: null;
+	if (anchor) {
+		const href = anchor.getAttribute?.("href") ?? null;
+		if (href) {
+			const dest = deps.app?.metadataCache?.getFirstLinkpathDest?.(href, "") as
+				| { path?: string }
+				| null
+				| undefined;
+			if (dest?.path && deps.app) {
+				triggerInternalHover(deps.app, event, anchor, dest.path);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	const link = base.closest?.(".vaultman-node-note-link") as HTMLElement | null;
 	if (!link) return false;
 	const app = deps.app;

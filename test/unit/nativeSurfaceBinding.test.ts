@@ -35,11 +35,25 @@ function mockElement(opts: {
 		closest: function (selector: string) {
 			const parts = selector.split(",").map((s: string) => s.trim());
 			for (const part of parts) {
+				if (
+					part.includes('[data-type="vaultman-frame"]') ||
+					part.includes('[data-type="vaultman-view"]')
+				) {
+					if (
+						classes.has("workspace-leaf-content") &&
+						(attributes["data-type"] === "vaultman-frame" ||
+							attributes["data-type"] === "vaultman-view")
+					) {
+						return this;
+					}
+					continue;
+				}
 				if (part.startsWith(".")) {
 					const className = part.slice(1).split("[")[0].split(":")[0];
 					if (classes.has(className)) return this;
 				}
 				if (part.includes("[data-path]") && attributes["data-path"] !== undefined) return this;
+				if (part.includes("[href]") && attributes["href"] !== undefined) return this;
 				if (part.includes("[data-snippet-name]") && dataset.snippetName !== undefined) return this;
 				if (part.includes("[data-plugin-id]") && dataset.pluginId !== undefined) return this;
 				if (part.includes("a.tag") && classes.has("tag")) return this;
@@ -610,6 +624,68 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
 		expect(handleInternalNodeNoteHover(event, { app })).toBe(false);
+		expect(app.workspace.trigger).not.toHaveBeenCalled();
+	});
+
+	it("anchor internal-link en vista vaultman dispara preview del destino", () => {
+		const view = mockElement({
+			classes: ["workspace-leaf-content"],
+			attributes: { "data-type": "vaultman-view" },
+		});
+		const anchor = mockElement({
+			classes: ["internal-link"],
+			attributes: { href: "Ideas" },
+			textContent: "Ideas",
+			parent: view,
+		});
+		const app = {
+			vault: { getMarkdownFiles: () => [] },
+			metadataCache: {
+				getFileCache: () => ({}),
+				getFirstLinkpathDest: () => ({ path: "Notes/Ideas.md" }),
+			},
+			workspace: { trigger: vi.fn() },
+		} as any;
+
+		const event = { target: anchor, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Ideas.md",
+		}));
+	});
+
+	it("anchor sin destino o fuera de vistas vaultman no dispara", () => {
+		const view = mockElement({
+			classes: ["workspace-leaf-content"],
+			attributes: { "data-type": "vaultman-view" },
+		});
+		const dangling = mockElement({
+			classes: ["internal-link"],
+			attributes: { href: "Falta" },
+			textContent: "Falta",
+			parent: view,
+		});
+		const outside = mockElement({
+			classes: ["internal-link"],
+			attributes: { href: "Ideas" },
+			textContent: "Ideas",
+		});
+		const app = {
+			vault: { getMarkdownFiles: () => [] },
+			metadataCache: {
+				getFileCache: () => ({}),
+				getFirstLinkpathDest: (target: string) =>
+					target === "Ideas" ? { path: "Notes/Ideas.md" } : null,
+			},
+			workspace: { trigger: vi.fn() },
+		} as any;
+
+		expect(handleInternalNodeNoteHover(
+			{ target: dangling, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app },
+		)).toBe(false);
+		expect(handleInternalNodeNoteHover(
+			{ target: outside, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app },
+		)).toBe(false);
 		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});
 });
