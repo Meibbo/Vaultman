@@ -8,11 +8,17 @@ export type InteractionAction =
 	| 'select'
 	| 'content-search';
 
+/**
+ * U130-06: las cinco pestanas arrancan en `open` (decision de producto del dev,
+ * 2026-09-03). Es el SUELO de la cascada: solo se ve cuando el usuario no tiene
+ * defecto persistido ni layout aplicado. La preferencia por pestana vive en
+ * `defaultInteractionModeByTab` y gana a esta constante.
+ */
 export const DEFAULT_INTERACTION_MODE: Record<InteractionTab, InteractionMode> =
 	{
 		files: 'open',
-		props: 'filter',
-		tags: 'filter',
+		props: 'open',
+		tags: 'open',
 		snippets: 'open',
 		plugins: 'open',
 	};

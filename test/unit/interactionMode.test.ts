@@ -34,10 +34,17 @@ describe('explorer interaction modes', () => {
 		]);
 		expect(interactionModesForTab('snippets')).toEqual(['open', 'select']);
 		expect(interactionModesForTab('plugins')).toEqual(['open', 'select']);
+	});
+
+	it('U130-06: every tab ships in `open` by default', () => {
+		// Decision de producto del dev (2026-09-03). `filter` SI es una forma de
+		// seleccion —un clic elige el nodo por el que filtrar—, y el arranque
+		// uniforme en `open` es el default acordado. La preferencia por pestana se
+		// recupera con defaultInteractionModeByTab.
 		expect(DEFAULT_INTERACTION_MODE).toEqual({
 			files: 'open',
-			props: 'filter',
-			tags: 'filter',
+			props: 'open',
+			tags: 'open',
 			snippets: 'open',
 			plugins: 'open',
 		});
@@ -80,7 +87,7 @@ describe('explorer interaction modes', () => {
 		expect(normalizeInteractionMode('files', 'retired-mode')).toBe('open');
 		expect(normalizeInteractionMode('files', 'filter')).toBe('filter');
 		expect(normalizeInteractionMode('props', 'select')).toBe('select');
-		expect(normalizeInteractionMode('tags', undefined)).toBe('filter');
+		expect(normalizeInteractionMode('tags', undefined)).toBe('open');
 	});
 });
 

@@ -234,7 +234,7 @@ describe('BT5-020 normalized payload previews', () => {
 			note: 'unknown-field',
 		});
 		expect(row(preview, 'layout:tags', 'interactionMode')).toMatchObject({
-			value: 'teleport → filter',
+			value: 'teleport → open',
 			status: 'warning',
 			note: 'unknown-value',
 		});
