@@ -1,3 +1,35 @@
+/* @settings
+
+name: Vaultman
+id: vaultman-action-cells
+settings:
+    -
+        id: vaultman-action-cell-variant
+        title: Action cell style
+        description: How action cells and badges are drawn across Vaultman.
+        type: class-select
+        allowEmpty: false
+        default: vaultman-action-cell--icon-only
+        options:
+            -
+                label: Icon only
+                value: vaultman-action-cell--icon-only
+            -
+                label: Icon in a box
+                value: vaultman-action-cell--icon-box
+            -
+                label: Circled
+                value: vaultman-action-cell--border-circle
+    -
+        id: vaultman-action-cell-size
+        title: Action cell size
+        description: Glyph box in pixels. The touch target stays at 36px regardless.
+        type: variable-number
+        default: 24
+        format: px
+
+*/
+
 /* U130-05: la celda de accion.
  *
  * Todo va por variables `--vm-action-cell-*` bajo el selector namespaced
