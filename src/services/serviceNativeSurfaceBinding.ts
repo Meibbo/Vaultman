@@ -75,11 +75,11 @@ type ClosableElement = HTMLElement & {
 
 export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): string | null {
 	const parentEl = el.closest(".view-header-title-parent");
-	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? null;
+	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
 
 	const breadcrumbs = Array.from(parentEl.querySelectorAll(".view-header-breadcrumb"));
 	const idx = breadcrumbs.indexOf(el as Element);
-	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? null;
+	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
 
 	let file: { parent?: { path?: string } | null } | null = null;
 	const leafEl = el.closest?.(".workspace-leaf");

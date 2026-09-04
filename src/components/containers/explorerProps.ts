@@ -2494,7 +2494,13 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return dir * a.label.localeCompare(b.label);
+		return (
+			dir *
+			a.label.localeCompare(b.label, undefined, {
+				numeric: true,
+				sensitivity: 'base',
+			})
+		);
 	}
 
 	/**
@@ -2545,13 +2551,7 @@ export class PropsExplorerPanel extends Component {
 					propertiesTimeIndex,
 					propertiesTypeIndex,
 				),
-			(a, b, parent) => {
-				if (this._effectivePropType(parent.meta) !== 'list') {
-					// "el sort_option de 'values' debería ordenar los valores solamente de las propiedades tipo lista"
-					return 0;
-				}
-				return this._compareNodes(a, b, valuesSort, valuesTimeIndex);
-			},
+			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
 		);
 	}
 
