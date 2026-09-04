@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	formatMembershipUrn,
 	parseMembershipUrn,
+	resolveMembership,
 	rewriteCanonicalId,
 } from '../../src/logic/logicMembershipUrn';
 
@@ -57,3 +58,33 @@ describe('U130-03 URN de pertenencia', () => {
 		);
 	});
 });
+
+describe('U130-03 estados degradados', () => {
+	const urn = 'files:file:proyectos/alfa.md|alfa.md';
+
+	it('vivo cuando la entidad existe', () => {
+		expect(resolveMembership(urn, { exists: true, deleted: false })).toEqual({
+			state: 'live',
+			ref: parseMembershipUrn(urn),
+		});
+	});
+
+	it('ghost cuando no se encuentra: conserva el label', () => {
+		const got = resolveMembership(urn, { exists: false, deleted: false });
+		expect(got.state).toBe('ghost');
+		expect(got.ref?.displayLabel).toBe('alfa.md');
+	});
+
+	it('tombstone cuando fue borrada', () => {
+		const got = resolveMembership(urn, { exists: false, deleted: true });
+		expect(got.state).toBe('tombstone');
+		expect(got.ref?.displayLabel).toBe('alfa.md');
+	});
+
+	it('una URN corrupta es ghost, no desaparece', () => {
+		// Ni siquiera una URN ilegible se borra: se muestra el hueco.
+		expect(resolveMembership('basura', { exists: false, deleted: false }).state)
+			.toBe('ghost');
+	});
+});
+

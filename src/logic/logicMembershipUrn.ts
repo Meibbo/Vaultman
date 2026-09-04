@@ -48,3 +48,32 @@ export function rewriteCanonicalId(
 	if (!ref) return null;
 	return formatMembershipUrn({ ...ref, canonicalId: nextCanonicalId });
 }
+
+export type MembershipState = 'live' | 'ghost' | 'tombstone';
+
+export interface ResolvedMembership {
+	state: MembershipState;
+	ref: MembershipRef | null;
+}
+
+/**
+ * U130-03: una pertenencia NUNCA se borra en silencio (regla dev-locked del
+ * 2026-08-21: "la referencia rota se CONSERVA, no se limpia").
+ *
+ *   ghost     -> no se encuentra. Puede volver: renombrar de vuelta la repara.
+ *   tombstone -> la entidad fue borrada. Se puede deshacer o purgar a mano.
+ *
+ * Los dos son el mismo objeto degradado; lo que los separa es si la entidad
+ * puede volver. Y los dos conservan el displayLabel, que es lo que hace el
+ * hueco legible en vez de una ruta muerta.
+ */
+export function resolveMembership(
+	urn: string,
+	status: { exists: boolean; deleted: boolean },
+): ResolvedMembership {
+	const ref = parseMembershipUrn(urn);
+	if (status.exists && ref) return { state: 'live', ref };
+	if (status.deleted) return { state: 'tombstone', ref };
+	return { state: 'ghost', ref };
+}
+
