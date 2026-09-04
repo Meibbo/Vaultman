@@ -38,7 +38,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	it('orders View as Layouts, In mode, Cells, then engines', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const layouts = menu.indexOf("translate('viewmenu.layouts')");
-		const inMode = menu.indexOf("translate('viewmenu.in_mode')");
+		const inMode = menu.indexOf("translate('viewmenu.interaction')");
 		const cells = menu.indexOf('cellMenuOrder(');
 		const engines = menu.indexOf(
 			'for (const option of minimalNativeViewModes)',
@@ -85,13 +85,12 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	it('adds synchronized labels for the native submenu', () => {
 		expect(en['viewmenu.layouts']).toBe('Layout');
 		expect(es['viewmenu.layouts']).toBe('Composiciones de vista');
-		// U121-053 / D4: la etiqueta de interfaz pasa a Behavior; la CLAVE sigue
-		// siendo in_mode, asi que no se mueve nada mas del codigo.
-		expect(en['viewmenu.in_mode']).toBe('Behavior');
-		expect(es['viewmenu.in_mode']).toBe('Comportamiento');
+		// U130-06: la etiqueta de interfaz pasa a Interaction y la clave a viewmenu.interaction.
+		expect(en['viewmenu.interaction']).toBe('Interaction');
+		expect(es['viewmenu.interaction']).toBe('Interacción');
 		for (const key of ['open', 'add', 'select', 'filter']) {
-			expect(en[`viewmenu.in_mode.${key}`]).toBeTruthy();
-			expect(es[`viewmenu.in_mode.${key}`]).toBeTruthy();
+			expect(en[`viewmenu.interaction.${key}`]).toBeTruthy();
+			expect(es[`viewmenu.interaction.${key}`]).toBeTruthy();
 		}
 	});
 
