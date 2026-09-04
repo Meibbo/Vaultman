@@ -523,11 +523,11 @@ export const es: Record<string, string> = {
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',
-	'viewmenu.in_mode': 'Comportamiento',
-	'viewmenu.in_mode.open': 'Abrir',
-	'viewmenu.in_mode.add': 'Agregar',
-	'viewmenu.in_mode.select': 'Seleccionar',
-	'viewmenu.in_mode.filter': 'Filtrar',
+	'viewmenu.interaction': 'Interacción',
+	'viewmenu.interaction.open': 'Abrir',
+	'viewmenu.interaction.add': 'Agregar',
+	'viewmenu.interaction.select': 'Seleccionar',
+	'viewmenu.interaction.filter': 'Filtrar',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

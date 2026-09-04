@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
@@ -92,5 +93,27 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 			expect(en[`viewmenu.in_mode.${key}`]).toBeTruthy();
 			expect(es[`viewmenu.in_mode.${key}`]).toBeTruthy();
 		}
+	});
+
+	it('U130-06: the view menu key is `interaction`, not the legacy `in_mode`', () => {
+		const en = readFileSync(
+			new URL('../../src/i18n/en.ts', import.meta.url),
+			'utf8',
+		);
+		const es = readFileSync(
+			new URL('../../src/i18n/es.ts', import.meta.url),
+			'utf8',
+		);
+		const navbar = readFileSync(
+			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
+			'utf8',
+		);
+		expect(en).toContain("'viewmenu.interaction': 'Interaction'");
+		expect(es).toContain("'viewmenu.interaction': 'Interacción'");
+		// La clave vieja no puede sobrevivir en ningun sitio: una clave huerfana
+		// se traduce a si misma y el usuario ve `viewmenu.in_mode` en el menu.
+		expect(en).not.toContain('viewmenu.in_mode');
+		expect(es).not.toContain('viewmenu.in_mode');
+		expect(navbar).not.toContain('viewmenu.in_mode');
 	});
 });

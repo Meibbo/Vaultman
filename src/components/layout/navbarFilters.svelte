@@ -1095,7 +1095,7 @@
 		if (onSaveLayout) menu.addSeparator();
 		menu.addItem((item) => {
 			item
-				.setTitle(translate('viewmenu.in_mode'))
+				.setTitle(translate('viewmenu.interaction'))
 				.setIcon('lucide-mouse-pointer-click');
 			const sub = (
 				item as typeof item & { setSubmenu: () => Menu }
@@ -1103,7 +1103,7 @@
 			for (const mode of interactionModesForTab(activeTab)) {
 				sub.addItem((subItem) =>
 					subItem
-						.setTitle(translate(`viewmenu.in_mode.${mode}`))
+						.setTitle(translate(`viewmenu.interaction.${mode}`))
 						.setIcon(
 							mode === 'open'
 								? 'lucide-folder-open'
