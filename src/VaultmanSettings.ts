@@ -96,7 +96,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 * revisar en la cola; solo rige el actual, sin matcheo legacy.
 	 */
 	private prefixItem(
-		field: 'nodeNoteTagPrefix' | 'nodeNoteSnippetPrefix' | 'nodeNotePluginPrefix' | 'nodeNotePropPrefix' | 'nodeNotePropSuffix',
+		field: 'nodeNoteTagPattern' | 'nodeNoteSnippetPattern' | 'nodeNotePluginPattern' | 'nodeNotePropPattern',
 		nameKey: string,
 		descKey: string,
 		placeholder: string,
@@ -242,11 +242,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push(
-			this.prefixItem('nodeNoteTagPrefix', 'settings.node_note_prefix_tag', 'settings.node_note_prefix_tag.desc', '#'),
-			this.prefixItem('nodeNoteSnippetPrefix', 'settings.node_note_prefix_snippet', 'settings.node_note_prefix_snippet.desc', '$'),
-			this.prefixItem('nodeNotePluginPrefix', 'settings.node_note_prefix_plugin', 'settings.node_note_prefix_plugin.desc', '%'),
-			this.prefixItem('nodeNotePropPrefix', 'settings.node_note_prefix_prop', 'settings.node_note_prefix_prop.desc', '['),
-			this.prefixItem('nodeNotePropSuffix', 'settings.node_note_prefix_prop_suffix', 'settings.node_note_prefix_prop_suffix.desc', ']'),
+			this.prefixItem('nodeNoteTagPattern', 'settings.node_note_tag_pattern', 'settings.node_note_tag_pattern.desc', '#name'),
+			this.prefixItem('nodeNoteSnippetPattern', 'settings.node_note_snippet_pattern', 'settings.node_note_snippet_pattern.desc', '$name'),
+			this.prefixItem('nodeNotePluginPattern', 'settings.node_note_plugin_pattern', 'settings.node_note_plugin_pattern.desc', '%name'),
+			this.prefixItem('nodeNotePropPattern', 'settings.node_note_prop_pattern', 'settings.node_note_prop_pattern.desc', '[name]'),
 		);
 						
 items.push({

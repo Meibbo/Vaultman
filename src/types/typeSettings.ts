@@ -335,16 +335,11 @@ export interface VaultmanSettings {
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
-	/** Prefijo de node-notes para tags (input libre, default '#') */
-	nodeNoteTagPrefix: string;
-	/** Prefijo de node-notes para snippets (input libre, default '$') */
-	nodeNoteSnippetPrefix: string;
-	/** Prefijo de node-notes para plugins (input libre, default '%') */
-	nodeNotePluginPrefix: string;
-	/** Prefijo de node-notes para props (input libre, default '[') */
-	nodeNotePropPrefix: string;
-	/** Sufijo de node-notes para props (input libre, default ']') */
-	nodeNotePropSuffix: string;
+	/** Patrones de node-notes por kind (input libre, default '#name/$name/%name/[name]') */
+	nodeNoteTagPattern: string;
+	nodeNoteSnippetPattern: string;
+	nodeNotePluginPattern: string;
+	nodeNotePropPattern: string;
 	/** Folder where new node-notes are created (empty = vault root) */
 	}
 
@@ -390,11 +385,10 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 	nativeSurfaceClickAlt: 'open-node-note-same-tab',
 	nativeSurfaceClickMod: 'open-node-note-new-tab',
-	nodeNoteTagPrefix: '#',
-	nodeNoteSnippetPrefix: '$',
-	nodeNotePluginPrefix: '%',
-	nodeNotePropPrefix: '[',
-	nodeNotePropSuffix: ']',
+	nodeNoteTagPattern: '#name',
+	nodeNoteSnippetPattern: '$name',
+	nodeNotePluginPattern: '%name',
+	nodeNotePropPattern: '[name]',
 		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
