@@ -75,6 +75,7 @@ import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 import { reconcileRegistry } from './logic/logicInstanceRegistry';
+import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -96,6 +97,9 @@ export class VaultmanPlugin extends Plugin {
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
+	/** ADR 0004: registro de zonas frágiles. El revert de cada adapter es el
+	 * contrato serviceUnload (ADR 0011) que da el apagado por función. */
+	platformAdapterRegistry!: PlatformAdapterRegistry;
 
 	
 	async revealNodeInVaultman(node: import('./services/serviceNodeBinding').BindingNodeInput): Promise<boolean> {
@@ -180,6 +184,14 @@ export class VaultmanPlugin extends Plugin {
 			app: this.app,
 		});
 		this.addChild(this.breadcrumbFileSceneService);
+
+		this.platformAdapterRegistry = new PlatformAdapterRegistry();
+		this.addChild(this.platformAdapterRegistry);
+		await this.platformAdapterRegistry.activate({
+			app: this.app,
+			plugin: this,
+			doc: activeDocument,
+		});
 
 		registerContentActions(this);
 		registerSnippetActions(this);
