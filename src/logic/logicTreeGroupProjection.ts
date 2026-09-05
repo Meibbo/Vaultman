@@ -1,5 +1,5 @@
 import { buildIndexGroups, type IndexNodeRef } from './logicIndexGroups';
-import { parseMembershipUrn } from './logicMembershipUrn';
+import { parseMembershipUrn, type MembershipRef } from './logicMembershipUrn';
 import type { NodeGroupDef } from './logicNodeGroup';
 import type { TreeNode } from '../types/typeTree';
 
@@ -62,10 +62,36 @@ function reparent<TMeta>(
 		...node,
 		id: suffixed.has(node.id) ? `${node.id}@${groupId}` : node.id,
 		depth: node.depth + shift,
+		children: shiftDepth(node.children, shift),
 	}));
 }
 
 const NO_SUFFIX: ReadonlySet<string> = new Set<string>();
+
+/**
+ * Identidad de pertenencia: la tripleta `providerId:kind:canonicalId`.
+ *
+ * El `displayLabel` es etiqueta, no identidad: cambia al renombrar y no
+ * puede emparejar. Y el `canonicalId` solo tampoco basta: spec-03 exige el
+ * prefijo `providerId:kind:` justo para que una ruta que coincide entre
+ * kinds no empareje por accidente.
+ */
+function identityKey(ref: MembershipRef): string {
+	return `${ref.providerId}:${ref.kind}:${ref.canonicalId}`;
+}
+
+/** Desplaza la profundidad del subarbol entero, recursivamente. */
+function shiftDepth<TMeta>(
+	nodes: readonly TreeNode<TMeta>[] | undefined,
+	shift: number,
+): TreeNode<TMeta>[] | undefined {
+	if (!nodes) return undefined;
+	return nodes.map((child) => ({
+		...child,
+		depth: child.depth + shift,
+		children: shiftDepth(child.children, shift),
+	}));
+}
 
 export function projectGroupedTree<TMeta>(
 	input: GroupProjectionInput<TMeta>,
@@ -92,14 +118,17 @@ export function projectGroupedTree<TMeta>(
 		}
 		const membersPerGroup = groups.map((group) => {
 			const urns = new Set(memberships[group.id] ?? []);
-			const canonical = new Set(
+			const identities = new Set(
 				[...urns]
-					.map((urn) => parseMembershipUrn(urn)?.canonicalId)
+					.map((urn) => {
+						const ref = parseMembershipUrn(urn);
+						return ref ? identityKey(ref) : null;
+					})
 					.filter((id): id is string => Boolean(id)),
 			);
 			return nodes.filter((node) => {
 				const ref = parseMembershipUrn(urnOf(node));
-				return ref ? canonical.has(ref.canonicalId) : false;
+				return ref ? identities.has(identityKey(ref)) : false;
 			});
 		});
 		// Caso S-26: un nodo en dos grupos es UNA identidad y DOS ocurrencias.

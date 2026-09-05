@@ -201,4 +201,77 @@ describe('U130-03: cabeceras de grupo en el arbol', () => {
 		);
 		expect(new Set(ids).size).toBe(ids.length);
 	});
+
+	it('la pertenencia empareja por la TRIPLETA, no solo por la ruta', () => {
+		// spec-03: el prefijo `providerId:kind:` existe para que una ruta que
+		// coincide entre kinds NO empareje por accidente. Aqui la pertenencia es
+		// de un value y el nodo es un prop, con el mismo canonicalId.
+		const out = projectGroupedTree({
+			nodes: [node('p1', 'lugar')],
+			groups: [
+				{ id: 'g1', flavor: 'custom', label: 'Uno', parentId: null, scope: 'all' },
+			],
+			memberships: { g1: ['props:value:lugar|lugar'] },
+			providerId: 'props',
+			urnOf: (n) => `props:prop:${n.label}|${n.label}`,
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		const uno = out.find((group) => group.label === 'Uno');
+		expect(uno?.children ?? []).toHaveLength(0);
+		// Y el nodo no se pierde: cae en `no group`.
+		expect(out[out.length - 1].children?.map((child) => child.id)).toEqual(['p1']);
+	});
+
+	it('el displayLabel NO forma parte de la identidad', () => {
+		// Va dentro de la URN para que una referencia rota siga diciendo como se
+		// llamaba, pero es etiqueta: si emparejara, renombrar romperia la
+		// pertenencia, que es justo lo que la reconciliacion evita.
+		const out = projectGroupedTree({
+			nodes: [node('p1', 'lugar')],
+			groups: [
+				{ id: 'g1', flavor: 'custom', label: 'Uno', parentId: null, scope: 'all' },
+			],
+			memberships: { g1: ['props:prop:lugar|etiqueta vieja'] },
+			providerId: 'props',
+			urnOf: (n) => `props:prop:${n.label}|${n.label}`,
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		expect(
+			out.find((group) => group.label === 'Uno')?.children?.map((c) => c.id),
+		).toEqual(['p1']);
+	});
+
+	it('el desplazamiento de profundidad alcanza al SUBARBOL, no solo a la raiz', () => {
+		// viewTree indenta por `--depth`. Si el hijo conserva su profundidad
+		// mientras el padre baja un nivel, el arbol sale torcido en cuanto se
+		// agrupan files o tags, que si son jerarquicos.
+		const nieto: TreeNode<null> = { id: 'n1', label: 'nieto', depth: 2, meta: null };
+		const hijo: TreeNode<null> = {
+			id: 'c1',
+			label: 'hijo',
+			depth: 1,
+			meta: null,
+			children: [nieto],
+		};
+		const padre: TreeNode<null> = {
+			id: 'p1',
+			label: 'padre',
+			depth: 0,
+			meta: null,
+			children: [hijo],
+		};
+		const [header] = projectGroupedTree({
+			nodes: [padre],
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		expect(header.children?.[0].depth).toBe(1);
+		expect(header.children?.[0].children?.[0].depth).toBe(2);
+		expect(header.children?.[0].children?.[0].children?.[0].depth).toBe(3);
+	});
 });
