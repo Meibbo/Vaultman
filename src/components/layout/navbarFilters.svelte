@@ -253,9 +253,16 @@
 	);
 
 	function runSearchCell(id: string): void {
+		if (!invokeSearchCell) {
+			// Un host que monta el searchbox sin pasar el registro deja celdas
+			// que se pintan y no hacen nada. Callarlo es peor que el fallo: un
+			// boton muerto sin explicacion se descubre tarde y no se atribuye.
+			new Notice(`SASI: sin registro en esta superficie: ${id}`);
+			return;
+		}
 		// El rechazo del invoker --id no registrado, falta handler, operation sin
 		// confirmar-- es deliberado y explicito: se muestra, no se traga.
-		void invokeSearchCell?.(id, {}).catch((error: unknown) => {
+		void invokeSearchCell(id, {}).catch((error: unknown) => {
 			new Notice(String(error instanceof Error ? error.message : error));
 		});
 	}

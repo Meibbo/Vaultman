@@ -407,6 +407,9 @@
 		const state: NavbarPanelWidgetState = {
 			providerId: 'statistics',
 			actionPort: panelWidgetActionPort,
+			// U130-05b: esta pagina TAMBIEN monta el searchbox, y sus celdas se
+			// invocan por el registro. Sin esto se pintan y no hacen nada.
+			sasiRegistry: plugin.sasiRegistry,
 			activeTab: 'files',
 			filtersSearch: headerSearch,
 			filtersSearchCategory: headerSearchCategory,
