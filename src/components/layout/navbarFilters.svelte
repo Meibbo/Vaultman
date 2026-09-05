@@ -6,6 +6,19 @@
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
 	import SearchControl from './searchControl.svelte';
+	import {
+		SEARCH_CATEGORY_ICONS,
+		searchCellFace,
+		searchCellIds,
+		searchCellToggleState,
+		type SearchCellContext,
+	} from '../../logic/logicSearchCellProjection';
+	import {
+		SEARCH_CREATE_TARGET_ID,
+		SEARCH_CYCLE_CATEGORY_ID,
+	} from '../../logic/logicSasiSearchActions';
+	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
+	import type { SasiNode } from '../../services/serviceSasiProvider';
 	import type {
 		ExplorerTabId,
 		ExplorerSortState,
@@ -106,8 +119,9 @@
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		searchExpanded = false,
 		onSearchExpandedChange,
-		searchTrailingActions = [],
-		onSearchTrailingAction,
+		searchMoveToggles = null,
+		sasiRegistry = undefined,
+		sasiMoveHandlers = undefined,
 		tagsExplorer,
 		propExplorer,
 		fileList,
@@ -168,34 +182,6 @@
 		if (name) saveLayout(name);
 	}
 
-	const CATEGORY_ICONS: Record<FiltersTab, string[]> = {
-		props: ['lucide-search', 'lucide-tag'],
-		tags: ['lucide-hash', 'lucide-git-branch'],
-		files: ['lucide-file', 'lucide-folder'],
-		snippets: ['lucide-file-code'],
-		plugins: ['lucide-plug'],
-	};
-	const CATEGORY_LABELS: Record<FiltersTab, string[]> = {
-		props: [
-			translate('filter.category.all_props'),
-			translate('filter.category.prop_names'),
-		],
-		tags: [
-			translate('filter.category.all_tags'),
-			translate('filter.category.leaf_tags'),
-		],
-		files: [
-			translate('filter.category.files'),
-			translate('filter.category.folders'),
-		],
-		snippets: [translate('filter.tab.snippets')],
-		plugins: [translate('filter.tab.plugins')],
-	};
-
-	const currentCategoryIcon = $derived(
-		CATEGORY_ICONS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ??
-			'lucide-search',
-	);
 	const currentCreateIcon = $derived(
 		activeTab === 'files'
 			? filtersSearchCategory.files === 1
@@ -212,6 +198,68 @@
 			activeTab === 'props' ||
 			activeTab === 'tags',
 	);
+
+	const searchCellContext = $derived<SearchCellContext>({
+		tab: activeTab,
+		categoryIndex: filtersSearchCategory[activeTab] ?? 0,
+		canCreate: canCreateSearchTarget,
+		createIcon: currentCreateIcon,
+		moveToggles: searchMoveToggles ?? null,
+	});
+	const trailingActionIds = $derived(searchCellIds(searchCellContext));
+	const trailingToggleState = $derived(searchCellToggleState(searchCellContext));
+
+	/**
+	 * U130-05b: la identidad viene de SASI; la CARA, de la proyeccion. El icono
+	 * de categoria cicla, asi que una def estatica no puede representarlo --
+	 * `resolve(id)` es lo que el host proyecta de esa accion ahora mismo.
+	 *
+	 * La caida al registro cubre a los ids que no son del searchbox (el toggle
+	 * de la barra transaccional), que se resuelven por identidad pura.
+	 */
+	function resolveSearchCell(id: string): SasiNode | null {
+		const face = searchCellFace(id, searchCellContext);
+		if (face) return face;
+		const resolved = sasiRegistry?.resolve(id);
+		if (!resolved?.available || !resolved.def) return null;
+		const { id: defId, labelKey, icon: defIcon, kind } = resolved.def;
+		return {
+			id: defId,
+			labelKey,
+			...(defIcon ? { icon: defIcon } : {}),
+			...(kind ? { kind } : {}),
+		};
+	}
+
+	/**
+	 * U130-01: el invoker es POR SUPERFICIE. Congela su mapa de handlers al
+	 * crearse, y los dos del searchbox viven AQUI (tocan `filtersSearchCategory`
+	 * y `filtersSearch`, que son estado de este componente), mientras que los
+	 * del move mode los inyecta el host desde el explorer activo. Como
+	 * `$derived`, se rehace al cambiar de pestana.
+	 */
+	const invokeSearchCell = $derived(
+		sasiRegistry
+			? createSasiInvoker(sasiRegistry, {
+					...(sasiMoveHandlers ?? {}),
+					[SEARCH_CYCLE_CATEGORY_ID]: async () => {
+						cycleSearchCategory();
+					},
+					[SEARCH_CREATE_TARGET_ID]: async () => {
+						createSearchTarget();
+					},
+				})
+			: null,
+	);
+
+	function runSearchCell(id: string): void {
+		// El rechazo del invoker --id no registrado, falta handler, operation sin
+		// confirmar-- es deliberado y explicito: se muestra, no se traga.
+		void invokeSearchCell?.(id, {}).catch((error: unknown) => {
+			new Notice(String(error instanceof Error ? error.message : error));
+		});
+	}
+
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
 		props: normalizeExplorerSortState('props', null),
@@ -793,7 +841,7 @@
 
 	function cycleSearchCategory() {
 		const tab = activeTab;
-		const count = CATEGORY_ICONS[tab].length;
+		const count = SEARCH_CATEGORY_ICONS[tab].length;
 		const next = {
 			...filtersSearchCategory,
 			[tab]: ((filtersSearchCategory[tab] ?? 0) + 1) % Math.max(1, count),
@@ -1863,32 +1911,19 @@
 
 {#snippet searchControl(variant: SearchControlVariant)}
 	<SearchControl
+		{variant}
 		value={filtersSearch}
 		placeholder={translate('filter.search_placeholder')}
-		{variant}
 		styleOrder={variant === 'inline'
 			? panelWidgetNodeOrder('search')
 			: undefined}
 		clearLabel={translate('filter.search_clear')}
-		categoryIcon={searchTrailingActions.length > 0
-			? undefined
-			: CATEGORY_ICONS[activeTab].length > 1
-				? currentCategoryIcon
-				: undefined}
-		categoryLabel={CATEGORY_LABELS[activeTab]?.[
-			filtersSearchCategory[activeTab] ?? 0
-		] ?? translate('filter.search_mode')}
-		onCycleCategory={cycleSearchCategory}
-		createIcon={searchTrailingActions.length > 0
-			? undefined
-			: canCreateSearchTarget
-				? currentCreateIcon
-				: undefined}
-		createLabel={translate('filter.create')}
-		onCreateTarget={createSearchTarget}
+		{trailingActionIds}
+		toggleState={trailingToggleState}
+		resolve={resolveSearchCell}
+		{translate}
+		onInvoke={runSearchCell}
 		onValueChange={setFiltersSearch}
-		trailingActions={searchTrailingActions}
-		onAction={onSearchTrailingAction}
 		{icon}
 	/>
 {/snippet}

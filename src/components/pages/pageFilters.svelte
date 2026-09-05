@@ -6,9 +6,7 @@
 	import {
 		PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 		resolveExclusiveSlotNodes,
-		resolveValueMoveToggleNodes,
 	} from '../../logic/logicPanelWidgetProjection';
-	import type { PanelWidgetNode } from '../../types/typePanelWidget';
 	import {
 		executeObsidianCommand,
 		listObsidianCommands,
@@ -673,30 +671,25 @@
 		return false;
 	});
 
-	const searchTrailingActions = $derived(
+	const searchMoveToggles = $derived(
 		valueMoveMode
-			? resolveValueMoveToggleNodes({
+			? {
 					write: valueMoveMode.write,
 					originDisposition: valueMoveMode.originDisposition,
-					labels: {
-						append: translate('explorer.move_to_prop.write.append'),
-						replace: translate('explorer.move_to_prop.write.replace'),
-						move: translate('explorer.move_to_prop.origin.move'),
-						copy: translate('explorer.move_to_prop.origin.copy'),
-					},
-				})
-			: [],
+				}
+			: null,
 	);
 
-	function runSearchTrailingAction(node: PanelWidgetNode): void {
-		if (node.id === 'props.move-to-prop.write') {
-			propExplorer?.toggleValueMoveWrite();
-			return;
-		}
-		if (node.id === 'props.move-to-prop.origin') {
-			propExplorer?.toggleValueMoveOriginDisposition();
-		}
-	}
+	/**
+	 * U130-01: los handlers del move mode del explorer activo. Viajan al host
+	 * del searchbox, que arma con ellos SU invoker: el invoker es por
+	 * superficie, el registro es uno solo.
+	 */
+	const sasiMoveHandlers = $derived(
+		filtersActiveTab === 'props'
+			? (propExplorer?.sasiMoveHandlers() ?? {})
+			: {},
+	);
 
 	const valueMoveSlotNodes = $derived(
 		resolveExclusiveSlotNodes({
@@ -1726,8 +1719,9 @@
 				tabMenuActions,
 				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
 				revealActive: revealingActiveFile,
-				searchTrailingActions,
-				onSearchTrailingAction: runSearchTrailingAction,
+				searchMoveToggles,
+				sasiRegistry: plugin.sasiRegistry,
+				sasiMoveHandlers,
 				activeSectionTab: filtersActiveTab,
 				onSectionTabChange: switchFiltersTab,
 				onContentSearch: activateNodeContentSearch,

@@ -94,7 +94,7 @@
 			padding-inline-start: 0;
 		}
 
-		:is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action, .vaultman-action-cell) {
+		:is(.search-input-clear-button, .vaultman-action-cell) {
 			width: 28px;
 			height: 28px;
 		}

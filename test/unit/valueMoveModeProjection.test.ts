@@ -4,7 +4,6 @@ import {
 	PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 	resolveExclusiveSlotNodes,
 	resolvePanelWidgetProjection,
-	resolveValueMoveToggleNodes,
 } from '../../src/logic/logicPanelWidgetProjection';
 import type { PanelWidgetNode } from '../../src/types/typePanelWidget';
 import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
@@ -42,54 +41,37 @@ const cancel = node(
 	PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER + 1,
 );
 
-describe('the move mode toggles in the SearchControl', () => {
-	const labels = {
-		append: 'Append to the destination',
-		replace: 'Replace the destination',
-		move: 'Remove the original value',
-		copy: 'Keep the original value',
-	};
-
-	it('publishes exactly two toggles, one per axis', () => {
-		const nodes = resolveValueMoveToggleNodes({
-			write: 'append',
-			originDisposition: 'move',
-			labels,
-		});
-		expect(nodes).toHaveLength(2);
-		expect(nodes.map((toggle) => toggle.id)).toEqual([
-			'props.move-to-prop.write',
-			'props.move-to-prop.origin',
-		]);
-		expect(nodes.every((toggle) => toggle.presentation === 'toggle')).toBe(true);
+describe('U130-05b: el searchbox sigue teniendo UN decorador, no un bar', () => {
+	it('el decorador es uno y es el slot de Core', () => {
+		// Se cuenta el ATRIBUTO, no la mencion: el comentario de arriba explica
+		// por que se usa el slot de Core y tambien contiene el nombre.
+		const decorators = searchControlSource.match(
+			/class="input-right-decorator/g,
+		);
+		expect(decorators).toHaveLength(1);
 	});
 
-	it('labels each toggle with the state it is in, not the state it would go to', () => {
-		const appended = resolveValueMoveToggleNodes({
-			write: 'append',
-			originDisposition: 'move',
-			labels,
-		});
-		expect(appended[0].label).toBe(labels.append);
-		expect(appended[1].label).toBe(labels.move);
-
-		const replaced = resolveValueMoveToggleNodes({
-			write: 'replace',
-			originDisposition: 'copy',
-			labels,
-		});
-		expect(replaced[0].label).toBe(labels.replace);
-		expect(replaced[1].label).toBe(labels.copy);
+	it('los ids viejos del reparto no sobreviven en ningun punto del arbol', () => {
+		// `resolveValueMoveToggleNodes` emitia `props.move-to-prop.write|origin`
+		// mientras el plan 01 registraba los mismos dos controles en SASI como
+		// `vaultman.move.toggleWrite|toggleOriginDisposition`. Eran dos catalogos
+		// para los mismos dos botones, con iconos que ni coincidian.
+		for (const source of [
+			searchControlSource,
+			navbarSource,
+			filtersPageSource,
+			panelWidgetTypeSource,
+		]) {
+			expect(source).not.toContain('props.move-to-prop.write');
+			expect(source).not.toContain('props.move-to-prop.origin');
+			expect(source).not.toContain('resolveValueMoveToggleNodes');
+		}
 	});
 
-	it('rides the existing trailing-action contract instead of a new bar', () => {
-		// searchControl already renders `trailingActions`; the mode feeds that
-		// prop rather than introducing a second row of controls.
-		expect(searchControlSource).toContain('trailingActions');
-		expect(navbarSource).toContain('trailingActions={searchTrailingActions}');
-		expect(panelWidgetTypeSource).toContain('searchTrailingActions?:');
-		expect(filtersPageSource).toContain('searchTrailingActions');
-		expect(filtersPageSource).toContain('resolveValueMoveToggleNodes');
+	it('el searchbox recibe ids, no nodos ya pintados', () => {
+		expect(navbarSource).toContain('{trailingActionIds}');
+		expect(panelWidgetTypeSource).toContain('searchMoveToggles?:');
+		expect(filtersPageSource).toContain('searchMoveToggles');
 	});
 });
 

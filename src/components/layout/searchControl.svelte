@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { PanelWidgetNode } from '../../types/typePanelWidget';
+	import CellAction from '../cells/cellAction.svelte';
+	import type { SasiNode } from '../../services/serviceSasiProvider';
 
 	/**
 	 * Where this search field is mounted. The three values are not cosmetic:
@@ -15,33 +16,33 @@
 		placeholder,
 		variant = 'inline',
 		styleOrder = undefined,
-		trailingActions = [],
 		clearLabel = 'Clear search',
-		categoryIcon,
-		categoryLabel,
-		onCycleCategory,
-		createIcon,
-		createLabel,
-		onCreateTarget,
+		trailingActionIds = [],
+		toggleState = {},
+		resolve,
+		translate,
+		onInvoke,
 		onValueChange,
-		onAction,
 		icon,
 	}: {
 		value: string;
 		placeholder: string;
 		variant?: SearchControlVariant;
 		styleOrder?: number;
-		trailingActions?: readonly PanelWidgetNode[];
 		clearLabel?: string;
-		categoryIcon?: string;
-		categoryLabel?: string;
-		onCycleCategory?: () => void;
-		createIcon?: string;
-		createLabel?: string;
-		onCreateTarget?: () => void;
+		/**
+		 * U130-05b: el reparto, en orden. Son ids de SASI, no nodos: la identidad
+		 * la guarda el registro y la CARA la proyecta el host con `resolve`,
+		 * porque el icono de categoria cicla y una def estatica no lo representa.
+		 */
+		trailingActionIds?: readonly string[];
+		/** Solo los toggles publican pulsado; el resto no son toggles. */
+		toggleState?: Readonly<Record<string, boolean>>;
+		resolve: (id: string) => SasiNode | null;
+		translate: (key: string) => string;
+		onInvoke?: (id: string) => void;
 		onValueChange: (value: string) => void;
-		onAction?: (action: PanelWidgetNode) => void;
-		icon: (el: HTMLElement, name: string) => any;
+		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 	} = $props();
 </script>
 
@@ -87,43 +88,21 @@
 	     ships for exactly this, and Core shifts it aside when the clear button
 	     appears, so the controls compose with the clear button instead of
 	     fighting it for the same corner. -->
-	{#if categoryIcon || createIcon || trailingActions.length > 0}
+	{#if trailingActionIds.length > 0}
 		<div class="input-right-decorator vaultman-filters-search-decorator">
-			{#if trailingActions.length > 0}
-				{#each trailingActions as action, i (action.id)}
-					<button
-						type="button"
-						class={i === 0
-							? 'vaultman-filters-search-mode'
-							: 'vaultman-filters-search-create'}
-						aria-label={action.label}
-						title={action.label}
-						class:is-active={action.checked}
-						use:icon={action.icon}
-						onclick={() => onAction?.(action)}
-					></button>
-				{/each}
-			{:else}
-				{#if categoryIcon}
-					<button
-						type="button"
-						class="vaultman-filters-search-mode"
-						aria-label={categoryLabel}
-						use:icon={categoryIcon}
-						onclick={() => onCycleCategory?.()}
-					></button>
-				{/if}
-				{#if createIcon}
-					<button
-						type="button"
-						class="vaultman-filters-search-create"
-						aria-label={createLabel}
-						title={createLabel}
-						use:icon={createIcon}
-						onclick={() => onCreateTarget?.()}
-					></button>
-				{/if}
-			{/if}
+			{#each trailingActionIds as actionId (actionId)}
+				<CellAction
+					{actionId}
+					placement="inline"
+					toggle={actionId in toggleState
+						? { on: toggleState[actionId] }
+						: null}
+					{resolve}
+					{icon}
+					{translate}
+					{onInvoke}
+				/>
+			{/each}
 		</div>
 	{/if}
 </div>

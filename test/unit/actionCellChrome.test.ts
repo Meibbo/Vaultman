@@ -46,7 +46,7 @@ describe('U130-05b: la celda trae el cromatismo de la superficie', () => {
 			.split('\n')
 			.filter(
 				(line) =>
-					line.includes('.vaultman-filters-search-trailing-action') &&
+					line.includes('.search-input-clear-button') &&
 					line.includes(':is('),
 			);
 		expect(rules).toHaveLength(2);
