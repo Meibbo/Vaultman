@@ -13,7 +13,7 @@
 	interface Props {
 		state: TransactionBarState;
 		resolve: (id: string) => SasiNode | null;
-		translate: (key: string, vars?: Record<string, unknown>) => string;
+		translate: (key: string, vars?: Record<string, string | number>) => string;
 		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 		onToggleMoveKind: (next: 'node' | 'group') => void;
 	}

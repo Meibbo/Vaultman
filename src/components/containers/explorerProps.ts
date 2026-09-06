@@ -130,6 +130,7 @@ import {
 	type ValueMoveOrigin,
 	type ValueMoveOwner,
 } from '../../logic/logicValueMoveMode';
+import type { BarNode } from '../../logic/logicTransactionBar';
 import {
 	decidePropMoveConflict,
 	normalizePropMoveTypeConflict,
@@ -1224,6 +1225,27 @@ export class PropsExplorerPanel extends Component {
 				this.toggleValueMoveOriginDisposition();
 			},
 		};
+	}
+
+	/**
+	 * U130-04: la barra cuenta JERARQUICAMENTE -- una propiedad con 10 valores
+	 * son 11 nodos, no 1. El conteo lo hace `buildTransactionTelemetry`, pero
+	 * necesita la relacion padre/hijo, y la unica que la tiene es el arbol
+	 * proyectado.
+	 */
+	moveTransactionNodes(): readonly BarNode[] {
+		const flatten = (
+			nodes: readonly TreeNode<PropMeta>[],
+		): BarNode[] =>
+			nodes.flatMap((node) => [
+				{
+					id: node.id,
+					label: node.label,
+					childIds: (node.children ?? []).map((child) => child.id),
+				},
+				...flatten(node.children ?? []),
+			]);
+		return flatten(this.logic.getTree());
 	}
 
 	private _valueMoveProceedAvailable(): boolean {
