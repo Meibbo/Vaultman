@@ -136,10 +136,14 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
 			'utf8',
 		);
-		const fn = src.slice(
-			src.indexOf('function selectInteractionMode'),
-			src.indexOf('function handleSortChange'),
-		);
+		// El corte termina en la SIGUIENTE funcion, no en una concreta: anclarlo a
+		// `handleSortChange` hacia que cualquier funcion nueva insertada en medio
+		// entrara en el trozo medido, y los guards de abajo saltaban por codigo
+		// que no es este. Paso al integrar feat/node-notes, que metio
+		// `applyTabProjection` justo detras y estiro el corte de 10 a 108 lineas.
+		const fnStart = src.indexOf('function selectInteractionMode');
+		const fnEnd = src.indexOf('\n\tfunction ', fnStart + 1);
+		const fn = src.slice(fnStart, fnEnd === -1 ? src.length : fnEnd);
 		expect(fn).toContain('commitConfig(tab, { interactionMode: normalized })');
 		expect(fn).toContain('onPersistInteractionMode?.(tab, normalized)');
 
