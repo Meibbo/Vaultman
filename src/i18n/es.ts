@@ -1155,4 +1155,10 @@ export const es: Record<string, string> = {
 		'Muestra las entradas de tiempo del tooltip como texto relativo. Independiente de las opciones de los cells.',
 	'settings.tooltip_timestamp_window.desc':
 		'Hasta cuándo las entradas del tooltip se muestran relativas. Independiente de las opciones de los cells.',
+	'transaction_bar.mode.node': 'Moviendo nodos',
+	'transaction_bar.mode.group': 'Moviendo grupos',
+	'transaction_bar.origins': 'orígenes: {count}',
+	'transaction_bar.destinations': 'destinos: {count}',
+	'transaction_bar.rejected': '{destination} rechazado ({reason})',
+	'transaction_bar.group_mode_unavailable': 'El modo grupo necesita una agrupación activa',
 };

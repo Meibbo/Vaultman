@@ -1249,4 +1249,10 @@ export const en: Record<string, string> = {
 		'Show the tooltip time entries as relative copy. Independent from the cell options.',
 	'settings.tooltip_timestamp_window.desc':
 		'How far back the tooltip entries stay relative. Independent from the cell options.',
+	'transaction_bar.mode.node': 'Moving nodes',
+	'transaction_bar.mode.group': 'Moving groups',
+	'transaction_bar.origins': 'origins: {count}',
+	'transaction_bar.destinations': 'destinations: {count}',
+	'transaction_bar.rejected': '{destination} rejected ({reason})',
+	'transaction_bar.group_mode_unavailable': 'Group mode needs an active grouping',
 };
