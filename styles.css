@@ -253,6 +253,47 @@ settings:
   --vm-action-cell-bg: transparent;
 }
 
+/* U130-04: la barra transaccional. Hermana del toolbar, bajo el searchbox en
+ * desktop y encima en movil, donde el searchbox es lo que alcanza el pulgar. */
+.vaultman-transaction-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-transaction-bar--above {
+  border-block-end: none;
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-transaction-bar-mode {
+  font-weight: var(--font-medium);
+  color: var(--text-normal);
+}
+
+.vaultman-transaction-bar-metric {
+  white-space: nowrap;
+  cursor: help;
+}
+
+.vaultman-transaction-bar-rejection {
+  color: var(--text-error);
+}
+
+.vaultman-transaction-bar-spacer {
+  flex: 1 1 auto;
+}
+
+.vaultman-transaction-bar-hint {
+  font-style: italic;
+  opacity: 0.8;
+}
+
 /* === Buttons === */
 .vaultman-btn {
   font-size: 0.8em;

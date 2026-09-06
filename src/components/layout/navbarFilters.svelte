@@ -6,6 +6,7 @@
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
 	import SearchControl from './searchControl.svelte';
+	import BarTransaction from './barTransaction.svelte';
 	import {
 		SEARCH_CATEGORY_ICONS,
 		searchCellFace,
@@ -122,6 +123,7 @@
 		searchMoveToggles = null,
 		sasiRegistry = undefined,
 		sasiMoveHandlers = undefined,
+		transactionBar = undefined,
 		tagsExplorer,
 		propExplorer,
 		fileList,
@@ -2001,10 +2003,25 @@
 	/>
 {/snippet}
 
+{#snippet transactionBarSlot()}
+	{#if transactionBar}
+		<BarTransaction
+			state={transactionBar}
+			resolve={resolveSearchCell}
+			{translate}
+			{icon}
+			onToggleMoveKind={transactionBar.onToggleMoveKind ?? (() => {})}
+		/>
+	{/if}
+{/snippet}
+
 <div
 	class="vaultman-navbar-filters vaultman-glass vaultman-glass--top"
 	bind:this={navbarEl}
 >
+	{#if transactionBar?.placement === 'above-search'}
+		{@render transactionBarSlot()}
+	{/if}
 	{#if minimalStyle && showSearchInput}
 		<div class="vaultman-filters-phone-search-row">
 			{@render searchControl('phone')}
@@ -2363,6 +2380,9 @@
 					<div class="vaultman-filters-search-row">
 						{@render searchControl('row')}
 					</div>
+				{/if}
+				{#if transactionBar?.placement === 'below-search'}
+					{@render transactionBarSlot()}
 				{/if}
 			</div>
 		{:else if headerMode === 'sort'}

@@ -7,6 +7,7 @@
 		PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 		resolveExclusiveSlotNodes,
 	} from '../../logic/logicPanelWidgetProjection';
+	import { buildTransactionBarState } from '../../logic/logicTransactionBarState';
 	import {
 		executeObsidianCommand,
 		listObsidianCommands,
@@ -644,11 +645,40 @@
 		return () => explorer?.setValueMoveChangeHandler(undefined);
 	});
 
+	// U130-04: el tipo de movimiento es de la transaccion, no de la barra. La
+	// barra lo pinta y lo conmuta; quien lo posee es la Scene.
+	let moveKind = $state<'node' | 'group'>('node');
+
 	const valueMoveMode = $derived.by(() => {
 		void valueMoveRevision;
 		return filtersActiveTab === 'props'
 			? (propExplorer?.getValueMoveMode() ?? null)
 			: null;
+	});
+
+	const transactionBarState = $derived.by(() => {
+		void valueMoveRevision;
+		return buildTransactionBarState({
+			transaction: valueMoveMode
+				? {
+						owner: { instanceId: sceneInstanceId, scene: 'props' },
+						originIds: valueMoveMode.origin.map((origin) => origin.id),
+						destinationIds: [...valueMoveMode.destinations],
+						rejection: valueMoveMode.rejection
+							? {
+									destination: valueMoveMode.rejection.destination,
+									reason: valueMoveMode.rejection.reason,
+								}
+							: null,
+						moveKind,
+					}
+				: null,
+			current: { instanceId: sceneInstanceId, scene: filtersActiveTab },
+			nodes: propExplorer?.moveTransactionNodes() ?? [],
+			variant: minimalStyle ? 'phone' : 'row',
+			// Slice 3 lo pone a true cuando el arbol proyecte grupos.
+			groupsAvailable: false,
+		});
 	});
 
 	$effect(() => {
@@ -1720,6 +1750,12 @@
 				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
 				revealActive: revealingActiveFile,
 				searchMoveToggles,
+				transactionBar: {
+					...transactionBarState,
+					onToggleMoveKind: (next: 'node' | 'group') => {
+						moveKind = next;
+					},
+				},
 				sasiRegistry: plugin.sasiRegistry,
 				sasiMoveHandlers,
 				activeSectionTab: filtersActiveTab,
