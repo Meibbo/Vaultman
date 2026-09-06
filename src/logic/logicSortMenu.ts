@@ -3,7 +3,7 @@ import type {
 	ExplorerTabId,
 	SortScopeKey,
 } from '../types/typeUI';
-import { isSortOptionVisible } from './logicScopedSort';
+import { isSortOptionVisible, scopesForTab } from './logicScopedSort';
 import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
 import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
 import { TAG_SOURCE_ORDER } from './logicTagSource';
@@ -213,49 +213,36 @@ interface SortScopeMenuOption {
 	labelKey: string;
 }
 
-const PROPS_SCOPE_OPTIONS: readonly SortScopeMenuOption[] = [
-	{
-		scope: 'all',
-		icon: 'lucide-layers',
-		labelKey: 'sort.level.all',
-	},
-	{
-		scope: 'properties',
-		icon: 'lucide-list-tree',
-		labelKey: 'sort.level.properties',
-	},
-	{
-		scope: 'values',
-		icon: 'lucide-list-collapse',
-		labelKey: 'sort.level.values',
-	},
-];
-
-const HIERARCHICAL_SCOPE_OPTIONS: readonly SortScopeMenuOption[] = [
-	{
-		scope: 'drill',
+/**
+ * U130-03: los metadatos de cada scope. La LISTA por tab ya no se escribe a
+ * mano: se deriva de `SCOPES_BY_TAB`, que es lo que impide que el menu y el
+ * resolutor vuelvan a desincronizarse (U121-079: un nivel de scope a medias
+ * ordena mal y sin que nada en la interfaz lo diga).
+ */
+const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
+	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
+	drill: {
 		icon: 'lucide-mouse-pointer-click',
 		labelKey: 'sort.level.drill',
 	},
-	{
-		scope: 'all',
-		icon: 'lucide-layers',
-		labelKey: 'sort.level.all',
-	},
-];
+	properties: { icon: 'lucide-list-tree', labelKey: 'sort.level.properties' },
+	values: { icon: 'lucide-list-collapse', labelKey: 'sort.level.values' },
+	groups: { icon: 'lucide-group', labelKey: 'sort.level.groups' },
+};
 
+/**
+ * U130-03: una tab soporta el selector de scope cuando DECLARA mas de un
+ * scope. Escribir aqui la lista a mano era la tercera copia de la misma
+ * verdad y la que dejaba fuera a Snippets y Plugins (U130-003).
+ */
 export function supportsByLevel(tab: ExplorerTabId): boolean {
-	return tab === 'files' || tab === 'props' || tab === 'tags';
+	return scopesForTab(tab).length > 1;
 }
 
 export function sortScopeOptions(
 	tab: ExplorerTabId,
 ): readonly SortScopeMenuOption[] {
-	if (tab === 'props') return PROPS_SCOPE_OPTIONS;
-	if (tab === 'files' || tab === 'tags') {
-		return HIERARCHICAL_SCOPE_OPTIONS;
-	}
-	return [];
+	return scopesForTab(tab).map((scope) => ({ scope, ...SCOPE_META[scope] }));
 }
 
 export function byLevelModel(

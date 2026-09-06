@@ -24,6 +24,7 @@
 	import {
 		byLevelModel,
 		NODE_TYPE_MENU_OPTIONS,
+		supportsByLevel,
 		visibleSortOptions,
 		type ByLevelMenuItem,
 	} from '../../logic/logicSortMenu';
@@ -230,7 +231,9 @@
 
 <div class="vaultman-sort-popup">
 	<!-- Vert-col: absolute, floats left over tab content -->
-	{#if activeTab === 'props' || activeTab === 'files' || activeTab === 'tags'}
+	<!-- U121-079 / U130-003: la lista a mano aqui era el quinto sitio de U121-079;
+	     ahora deriva de supportsByLevel para incluir snippets y plugins. -->
+	{#if supportsByLevel(activeTab)}
 		<div class="vaultman-sort-vertcol">
 			<div
 				class="vaultman-sort-vertcol-btn"

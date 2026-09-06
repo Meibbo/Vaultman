@@ -14,8 +14,8 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
 	// lo dijera. fileScene siempre lo tuvo.
 	props: ['all', 'properties', 'values', 'groups'],
-	files: ['all', 'drill', 'groups'],
-	tags: ['all', 'drill', 'groups'],
+	files: ['drill', 'all', 'groups'],
+	tags: ['drill', 'all', 'groups'],
 	snippets: ['all', 'groups'],
 	plugins: ['all', 'groups'],
 };
