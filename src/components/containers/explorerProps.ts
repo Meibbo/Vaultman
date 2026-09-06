@@ -51,6 +51,7 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
+		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -79,6 +80,12 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -582,7 +589,58 @@ export class PropsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+	private groupingEnabled = false;
 	private onContentSearch?: (query: string) => void;
+
+	setGroupingEnabled(enabled: boolean): void {
+		if (this.groupingEnabled === enabled) return;
+		this.groupingEnabled = enabled;
+		void this._render();
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		void this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		const layout = this.plugin.settings?.savedLayouts?.find(
+			(candidate) => candidate.name === this.activeLayoutName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<PropMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'props',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) => {
+				const meta = node.meta as PropMeta;
+				const isValue = meta.isValueNode;
+				const canonicalId =
+					isValue && meta.rawValue !== undefined
+						? `${meta.propName}:${meta.rawValue}`
+						: meta.propName;
+				return formatMembershipUrn({
+					providerId: 'props',
+					kind: isValue ? 'value' : 'prop',
+					canonicalId,
+					displayLabel: node.label,
+				});
+			},
+			enabled: this.groupingEnabled,
+		}) as TreeNode<PropMeta>[];
+	}
 
 	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
 	setInteractionModeChangeHandler(
@@ -1451,8 +1509,9 @@ export class PropsExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -1892,11 +1951,13 @@ export class PropsExplorerPanel extends Component {
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._openNodeMenu(node, event);
@@ -1996,7 +2057,7 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		this.view.render({
-			nodes: nodesWithIcons,
+			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
@@ -2145,11 +2206,13 @@ export class PropsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, nodesWithIcons),
 			onRowClick: (id: string, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._openNodeMenu(node, e);

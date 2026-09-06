@@ -59,6 +59,7 @@ export interface PanelPluginCtx {
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
+		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -71,6 +72,12 @@ import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelW
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -328,7 +335,51 @@ export class TagsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+	private groupingEnabled = false;
 	private onContentSearch?: (query: string) => void;
+
+	setGroupingEnabled(enabled: boolean): void {
+		if (this.groupingEnabled === enabled) return;
+		this.groupingEnabled = enabled;
+		void this._render();
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		void this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<TagMeta>[],
+	): TreeNode<TagMeta>[] {
+		const layout = this.plugin.settings?.savedLayouts?.find(
+			(candidate) => candidate.name === this.activeLayoutName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<TagMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'tags',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'tags',
+					kind: 'tag',
+					canonicalId: (node.meta as TagMeta).tagPath,
+					displayLabel: node.label,
+				}),
+			enabled: this.groupingEnabled,
+		}) as TreeNode<TagMeta>[];
+	}
 
 	setInteractionMode(
 		mode: InteractionMode,
@@ -1128,11 +1179,13 @@ export class TagsExplorerPanel extends Component {
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this.plugin.contextMenuService.openPanelMenu(
@@ -1183,7 +1236,7 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		this.view.render({
-			nodes: nodesWithIcons,
+			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
@@ -1260,11 +1313,13 @@ export class TagsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, nodesWithIcons),
 			onRowClick: (id: string, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
@@ -1888,8 +1943,9 @@ export class TagsExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<TagMeta>[],
 	): TreeNode<TagMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;

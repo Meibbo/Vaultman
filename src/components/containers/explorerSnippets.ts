@@ -43,6 +43,12 @@ import {
 	normalizeInteractionMode,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -63,6 +69,11 @@ export class SnippetsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private _expandedGroupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+	private groupingEnabled = false;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -310,6 +321,44 @@ export class SnippetsExplorerPanel
 		}
 	}
 
+	setGroupingEnabled(enabled: boolean): void {
+		if (this.groupingEnabled === enabled) return;
+		this.groupingEnabled = enabled;
+		this.render();
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		this.render();
+	}
+
+	private projectedNodes(): TreeNode<SnippetMeta>[] {
+		const layout = this.plugin.settings.savedLayouts?.find(
+			(candidate) => candidate.name === this.activeLayoutName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<SnippetMeta>({
+			nodes: this.nodes,
+			groups,
+			memberships,
+			providerId: 'snippets',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'snippets',
+					kind: 'snippet',
+					canonicalId: node.meta.name,
+					displayLabel: node.label,
+				}),
+			enabled: this.groupingEnabled,
+		}) as TreeNode<SnippetMeta>[];
+	}
+
 	private render(): void {
 		if (!this.treeView) return;
 		if (this.visibleCells.has('format')) {
@@ -318,7 +367,7 @@ export class SnippetsExplorerPanel
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
-			nodes: this.nodes,
+			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
@@ -341,7 +390,7 @@ export class SnippetsExplorerPanel
 				return false;
 			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
-			expandedIds: new Set<string>(),
+			expandedIds: this._expandedGroupIds,
 			...(this.interactionMode === 'select'
 				? {
 						selectedIds: this.selectedNodeIds,
@@ -356,14 +405,21 @@ export class SnippetsExplorerPanel
 						},
 					}
 				: {}),
-			onToggle: () => {},
+			onToggle: (id: string) => {
+				// Solo las cabeceras se pliegan aqui: los snippets son hojas.
+				if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
+				else this._expandedGroupIds.add(id);
+				this.render();
+			},
 			onRowClick: (id) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				if (this.interactionMode !== 'select') return;
 				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
 				else this.selectedNodeIds.add(id);
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				if (cellId !== 'state') return;
 				const node = this.findNode(id);
 				if (node) void this.toggle(node.meta);
@@ -374,6 +430,7 @@ export class SnippetsExplorerPanel
 				if (node) setTooltip(row, this.tooltip(node.meta));
 			},
 			onContextMenu: (id, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},
@@ -392,7 +449,8 @@ export class SnippetsExplorerPanel
 	}
 
 	private findNode(id: string): TreeNode<SnippetMeta> | undefined {
-		return this.nodes.find((node) => node.id === id);
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
+		return this.nodes.find((node) => node.id === baseId || node.id === id);
 	}
 
 	private tooltip(meta: SnippetMeta): string {

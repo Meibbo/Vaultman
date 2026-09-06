@@ -4,7 +4,43 @@ import type { NodeGroupDef } from './logicNodeGroup';
 import type { TreeNode } from '../types/typeTree';
 
 export const NO_GROUP_ID = 'vaultman.group.none';
+export const PRESET_GROUP_PREFIX = 'vaultman.group.preset:';
+export const GROUP_PRESET_PREFIX = PRESET_GROUP_PREFIX;
 const GROUP_HEADER_CLS = 'vaultman-tree-row--group-header';
+
+/**
+ * U130-03: determina si un identificador corresponde a una cabecera de grupo
+ * (sin entidad asociada, sin menu contextual ni accion de click normal).
+ */
+export function isGroupHeader(
+	id: string,
+	customGroupIds?: ReadonlySet<string>,
+): boolean {
+	return (
+		id === NO_GROUP_ID ||
+		id.startsWith(PRESET_GROUP_PREFIX) ||
+		Boolean(customGroupIds?.has(id))
+	);
+}
+
+export const _isGroupHeader = isGroupHeader;
+
+/**
+ * U130-03: deriva los NodeGroupDef custom de las claves de groupMemberships.
+ * Si SavedLayout no guarda label ni orden de grupo, el label del grupo es su id.
+ */
+export function resolveCustomGroups(
+	memberships?: Readonly<Record<string, readonly string[]>>,
+): readonly NodeGroupDef[] {
+	if (!memberships) return [];
+	return Object.keys(memberships).map((id) => ({
+		id,
+		flavor: 'custom',
+		label: id,
+		parentId: null,
+		scope: 'all',
+	}));
+}
 
 export interface GroupProjectionInput<TMeta> {
 	nodes: readonly TreeNode<TMeta>[];
@@ -201,7 +237,7 @@ export function projectGroupedTree<TMeta>(
 	// dos ocurrencias del mismo id: las filas conservan su identidad.
 	return indexGroups.map((group) =>
 		headerNode(
-			`vaultman.group.preset:${group.key}`,
+			`${PRESET_GROUP_PREFIX}${group.key}`,
 			group.label,
 			reparent(buckets.get(group.key) ?? [], group.key, 1, NO_SUFFIX),
 			nodes[0]?.meta as TMeta,

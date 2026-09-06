@@ -640,6 +640,8 @@ export const es: Record<string, string> = {
 	'explorer.tags.empty_search_desc':
 		'Prueba otro término o cambia la categoría de etiquetas.',
 	'explorer.toggle': 'Explorador',
+	// Task 3.3: consume esta clave para etiquetar el grupo vacio.
+	'explorer.group.no_group': 'Sin grupo',
 
 	// Explorer nav buttons
 	'explorer.btn.search': 'Buscar',

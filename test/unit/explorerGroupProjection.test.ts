@@ -1,0 +1,339 @@
+import { describe, expect, it } from 'vitest';
+import { FilesExplorerPanel } from '../../src/components/containers/explorerFiles';
+import { PluginsExplorerPanel } from '../../src/components/containers/explorerPlugins';
+import { PropsExplorerPanel } from '../../src/components/containers/explorerProps';
+import { SnippetsExplorerPanel } from '../../src/components/containers/explorerSnippets';
+import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
+import { isGroupHeader, NO_GROUP_ID, PRESET_GROUP_PREFIX } from '../../src/logic/logicTreeGroupProjection';
+import type { FileMeta, PluginMeta, PropMeta, SnippetMeta, TagMeta, TreeNode } from '../../src/types/typeTree';
+
+describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', () => {
+	it('SnippetsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
+		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel._expandedGroupIds = new Set<string>();
+		panel.groupingEnabled = false;
+		panel.activeLayoutName = 'layout-snippets';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-snippets',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
+						},
+					},
+				],
+			},
+		};
+		panel.nodes = [
+			{
+				id: 's1',
+				label: 'Alpha Snippet',
+				depth: 0,
+				meta: { name: 'alpha-snippet', enabled: true },
+			} as TreeNode<SnippetMeta>,
+			{
+				id: 's2',
+				label: 'Beta Snippet',
+				depth: 0,
+				meta: { name: 'beta-snippet', enabled: false },
+			} as TreeNode<SnippetMeta>,
+		];
+
+		// Con groupingEnabled = false, devuelve la lista original sin cabeceras
+		const raw = panel.projectedNodes();
+		expect(raw).toBe(panel.nodes);
+		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
+
+		// Con groupingEnabled = true, proyecta grupos custom y puebla _groupIds
+		panel.groupingEnabled = true;
+		const projected = panel.projectedNodes();
+		expect(panel._groupIds.has('custom-snips')).toBe(true);
+		expect(projected.length).toBeGreaterThan(0);
+
+		const customGroup = projected.find((g: any) => g.id === 'custom-snips');
+		expect(customGroup).toBeDefined();
+		expect(isGroupHeader(customGroup.id, panel._groupIds)).toBe(true);
+		expect(customGroup.cls).toContain('vaultman-tree-row--group-header');
+		expect(customGroup.children).toHaveLength(1);
+		expect(customGroup.children[0].label).toBe('Alpha Snippet');
+
+		// El segundo snippet cae en NO_GROUP_ID
+		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		expect(noGroup).toBeDefined();
+		expect(noGroup.children).toHaveLength(1);
+		expect(noGroup.children[0].label).toBe('Beta Snippet');
+	});
+
+	it('PluginsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
+		const panel = Object.create(PluginsExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel._expandedGroupIds = new Set<string>();
+		panel.groupingEnabled = false;
+		panel.activeLayoutName = 'layout-plugins';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-plugins',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'custom-plugs': ['plugins:plugin:obsidian-git|Obsidian Git'],
+						},
+					},
+				],
+			},
+		};
+		panel.nodes = [
+			{
+				id: 'p1',
+				label: 'Obsidian Git',
+				depth: 0,
+				meta: {
+					pluginId: 'obsidian-git',
+					name: 'Obsidian Git',
+					enabled: true,
+					loaded: true,
+					isVaultman: false,
+				},
+			} as TreeNode<PluginMeta>,
+			{
+				id: 'p2',
+				label: 'Dataview',
+				depth: 0,
+				meta: {
+					pluginId: 'dataview',
+					name: 'Dataview',
+					enabled: true,
+					loaded: true,
+					isVaultman: false,
+				},
+			} as TreeNode<PluginMeta>,
+		];
+
+		// Disabled -> lista directa sin cabeceras
+		const raw = panel.projectedNodes();
+		expect(raw).toBe(panel.nodes);
+		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
+
+		// Enabled -> proyectado
+		panel.groupingEnabled = true;
+		const projected = panel.projectedNodes();
+		expect(panel._groupIds.has('custom-plugs')).toBe(true);
+
+		const customGroup = projected.find((g: any) => g.id === 'custom-plugs');
+		expect(customGroup).toBeDefined();
+		expect(isGroupHeader(customGroup.id, panel._groupIds)).toBe(true);
+		expect(customGroup.children[0].label).toBe('Obsidian Git');
+
+		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		expect(noGroup).toBeDefined();
+		expect(noGroup.children[0].label).toBe('Dataview');
+	});
+
+	it('TagsExplorerPanel: proyecta grupos custom con kind tag y tagPath', () => {
+		const panel = Object.create(TagsExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel.groupingEnabled = false;
+		panel.activeLayoutName = 'layout-tags';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-tags',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'grp-tags': ['tags:tag:proyectos/activo|activo'],
+						},
+					},
+				],
+			},
+		};
+		const nodes: TreeNode<TagMeta>[] = [
+			{
+				id: 'tag1',
+				label: 'activo',
+				depth: 0,
+				meta: { tagPath: 'proyectos/activo' },
+			},
+			{
+				id: 'tag2',
+				label: 'archivo',
+				depth: 0,
+				meta: { tagPath: 'archivo' },
+			},
+		];
+
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+
+		panel.groupingEnabled = true;
+		const projected = panel.projectedNodes(nodes);
+		expect(panel._groupIds.has('grp-tags')).toBe(true);
+
+		const grp = projected.find((g: any) => g.id === 'grp-tags');
+		expect(grp).toBeDefined();
+		expect(grp.children[0].label).toBe('activo');
+
+		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		expect(noGroup).toBeDefined();
+		expect(noGroup.children[0].label).toBe('archivo');
+	});
+
+	it('PropsExplorerPanel: proyecta tanto props como values', () => {
+		const panel = Object.create(PropsExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel.groupingEnabled = false;
+		panel.activeLayoutName = 'layout-props';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-props',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'grp-prop': ['props:prop:status|status'],
+							'grp-val': ['props:value:status:done|done'],
+						},
+					},
+				],
+			},
+		};
+		const nodes: TreeNode<PropMeta>[] = [
+			{
+				id: 'prop-status',
+				label: 'status',
+				depth: 0,
+				meta: { propName: 'status', propType: 'text', isValueNode: false },
+			},
+			{
+				id: 'val-done',
+				label: 'done',
+				depth: 1,
+				meta: { propName: 'status', propType: 'text', isValueNode: true, rawValue: 'done' },
+			},
+			{
+				id: 'prop-author',
+				label: 'author',
+				depth: 0,
+				meta: { propName: 'author', propType: 'text', isValueNode: false },
+			},
+		];
+
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+
+		panel.groupingEnabled = true;
+		const projected = panel.projectedNodes(nodes);
+		expect(panel._groupIds.has('grp-prop')).toBe(true);
+		expect(panel._groupIds.has('grp-val')).toBe(true);
+
+		const propGrp = projected.find((g: any) => g.id === 'grp-prop');
+		expect(propGrp).toBeDefined();
+		expect(propGrp.children[0].label).toBe('status');
+
+		const valGrp = projected.find((g: any) => g.id === 'grp-val');
+		expect(valGrp).toBeDefined();
+		expect(valGrp.children[0].label).toBe('done');
+
+		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		expect(noGroup).toBeDefined();
+		expect(noGroup.children.map((c: any) => c.label)).toContain('author');
+	});
+
+	it('FilesExplorerPanel: proyecta files y folders con su URN respectiva', () => {
+		const panel = Object.create(FilesExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel.groupingEnabled = false;
+		panel.activeLayoutName = 'layout-files';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-files',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'grp-files': [
+								'files:file:notes/todo.md|todo.md',
+								'files:folder:projects|projects',
+							],
+						},
+					},
+				],
+			},
+		};
+		const nodes: TreeNode<FileMeta>[] = [
+			{
+				id: 'notes/todo.md',
+				label: 'todo.md',
+				depth: 0,
+				meta: {
+					file: { path: 'notes/todo.md' } as any,
+					isFolder: false,
+					folderPath: 'notes',
+				},
+			},
+			{
+				id: 'projects',
+				label: 'projects',
+				depth: 0,
+				meta: {
+					file: null,
+					isFolder: true,
+					folderPath: 'projects',
+				},
+			},
+			{
+				id: 'notes/other.md',
+				label: 'other.md',
+				depth: 0,
+				meta: {
+					file: { path: 'notes/other.md' } as any,
+					isFolder: false,
+					folderPath: 'notes',
+				},
+			},
+		];
+
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+
+		panel.groupingEnabled = true;
+		const projected = panel.projectedNodes(nodes);
+		expect(panel._groupIds.has('grp-files')).toBe(true);
+
+		const grp = projected.find((g: any) => g.id === 'grp-files');
+		expect(grp).toBeDefined();
+		expect(grp.children).toHaveLength(2);
+		expect(grp.children.map((c: any) => c.label)).toEqual(['todo.md', 'projects']);
+
+		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		expect(noGroup).toBeDefined();
+		expect(noGroup.children.map((c: any) => c.label)).toEqual(['other.md']);
+	});
+
+	it('Preset grouping fallback: si groupingEnabled=true sin layout, agrupa por primera letra', () => {
+		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
+		panel._groupIds = new Set<string>();
+		panel._expandedGroupIds = new Set<string>();
+		panel.groupingEnabled = true;
+		panel.activeLayoutName = null;
+		panel.plugin = { settings: {} };
+		panel.nodes = [
+			{ id: '1', label: 'alpha', depth: 0, meta: { name: 'alpha', enabled: true } },
+			{ id: '2', label: 'beta', depth: 0, meta: { name: 'beta', enabled: true } },
+			{ id: '3', label: 'ancla', depth: 0, meta: { name: 'ancla', enabled: true } },
+		];
+
+		const projected = panel.projectedNodes();
+		expect(projected.map((g: any) => g.label)).toEqual(['A', 'B']);
+		expect(projected[0].id).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(isGroupHeader(projected[0].id)).toBe(true);
+		expect(projected[0].children?.map((c: any) => c.id)).toEqual(['1', '3']);
+		expect(projected[1].children?.map((c: any) => c.id)).toEqual(['2']);
+	});
+});

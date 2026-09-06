@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { projectGroupedTree } from '../../src/logic/logicTreeGroupProjection';
+import {
+	isGroupHeader,
+	NO_GROUP_ID,
+	PRESET_GROUP_PREFIX,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../src/logic/logicTreeGroupProjection';
 import type { TreeNode } from '../../src/types/typeTree';
 
 const node = (id: string, label: string): TreeNode<null> => ({
@@ -273,5 +279,59 @@ describe('U130-03: cabeceras de grupo en el arbol', () => {
 		expect(header.children?.[0].depth).toBe(1);
 		expect(header.children?.[0].children?.[0].depth).toBe(2);
 		expect(header.children?.[0].children?.[0].children?.[0].depth).toBe(3);
+	});
+});
+
+describe('isGroupHeader', () => {
+	it('reconoce NO_GROUP_ID como cabecera', () => {
+		expect(isGroupHeader(NO_GROUP_ID)).toBe(true);
+	});
+
+	it('reconoce IDs con prefijo de preset como cabecera', () => {
+		expect(isGroupHeader(`${PRESET_GROUP_PREFIX}A`)).toBe(true);
+		expect(isGroupHeader('vaultman.group.preset:X')).toBe(true);
+	});
+
+	it('reconoce IDs de grupos custom activos', () => {
+		const customGroups = new Set(['custom-group-1', 'g2']);
+		expect(isGroupHeader('custom-group-1', customGroups)).toBe(true);
+		expect(isGroupHeader('g2', customGroups)).toBe(true);
+		expect(isGroupHeader('other', customGroups)).toBe(false);
+	});
+
+	it('devuelve false para nodos normales', () => {
+		expect(isGroupHeader('note.md')).toBe(false);
+		expect(isGroupHeader('prop:tag')).toBe(false);
+		expect(isGroupHeader('')).toBe(false);
+	});
+});
+
+describe('resolveCustomGroups', () => {
+	it('devuelve array vacio si no hay memberships', () => {
+		expect(resolveCustomGroups(undefined)).toEqual([]);
+		expect(resolveCustomGroups({})).toEqual([]);
+	});
+
+	it('deriva NodeGroupDef custom de las claves de memberships usando el id como label', () => {
+		const memberships = {
+			'grupo-1': ['files:file:a.md|a.md'],
+			'grupo-2': ['snippets:snippet:s1|s1'],
+		};
+		const groups = resolveCustomGroups(memberships);
+		expect(groups).toHaveLength(2);
+		expect(groups[0]).toEqual({
+			id: 'grupo-1',
+			flavor: 'custom',
+			label: 'grupo-1',
+			parentId: null,
+			scope: 'all',
+		});
+		expect(groups[1]).toEqual({
+			id: 'grupo-2',
+			flavor: 'custom',
+			label: 'grupo-2',
+			parentId: null,
+			scope: 'all',
+		});
 	});
 });
