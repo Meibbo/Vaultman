@@ -27,6 +27,7 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('files', { parentsFirst: true, fixedFolders: false }),
 			true,
 		);
+		// U121-079: groups llega al final de los scopes de By-level.
 		expect(enabled?.items.map((item) => item.id)).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
@@ -36,6 +37,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'scope-separator',
 			'drill',
 			'all',
+			'groups',
 		]);
 		expect(enabled?.items.find((item) => item.id === 'nested')).toMatchObject({
 			checked: true,
@@ -49,6 +51,7 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('files', { parentsFirst: false, fixedFolders: true }),
 			true,
 		);
+		// U121-079: groups llega al final de los scopes de By-level.
 		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
@@ -57,6 +60,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'scope-separator',
 			'drill',
 			'all',
+			'groups',
 		]);
 	});
 
@@ -86,6 +90,7 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('props', { activeScope: 'values' }),
 			true,
 		);
+		// U121-079: groups llega al final de los scopes de By-level.
 		expect(props?.items.map((item) => item.id)).toEqual([
 			'filtered',
 			'nested',
@@ -93,6 +98,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'all',
 			'properties',
 			'values',
+			'groups',
 		]);
 		expect(props?.items.find((item) => item.id === 'values')).toMatchObject({
 			checked: true,
@@ -103,15 +109,27 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('tags', { activeScope: 'all' }),
 			true,
 		);
+		// U121-079: groups llega al final de los scopes de By-level.
 		expect(tags?.items.map((item) => item.id)).toEqual([
 			'filtered',
 			'nested',
 			'scope-separator',
 			'drill',
 			'all',
+			'groups',
 		]);
-		expect(byLevelModel('snippets', stateFor('snippets'), true)).toBeNull();
-		expect(byLevelModel('plugins', stateFor('plugins'), true)).toBeNull();
+		// U121-079: groups llega a snippets y habilita By-level con all y groups.
+		expect(
+			byLevelModel('snippets', stateFor('snippets'), true)?.items.map(
+				(item) => item.id,
+			),
+		).toEqual(['nested', 'scope-separator', 'all', 'groups']);
+		// U121-079: groups llega a plugins y habilita By-level con all y groups.
+		expect(
+			byLevelModel('plugins', stateFor('plugins'), true)?.items.map(
+				(item) => item.id,
+			),
+		).toEqual(['nested', 'scope-separator', 'all', 'groups']);
 	});
 
 	it('shares contextual sort visibility and option registries', () => {
@@ -225,6 +243,7 @@ describe('BT5-007 shared sort menu model', () => {
 			true,
 			true,
 		);
+		// U121-079: groups llega al final de los scopes de By-level.
 		expect(withReveal?.items.map((item) => item.id)).toEqual([
 			'reveal-current-file',
 			'reveal-drill',
@@ -235,6 +254,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'all',
 			'properties',
 			'values',
+			'groups',
 		]);
 		// Current File is the resting mode; pinning is what the user opts into.
 		expect(

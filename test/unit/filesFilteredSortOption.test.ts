@@ -27,6 +27,8 @@ describe('U121-052 files Filtered sort option', () => {
 			'scope-separator',
 			'drill',
 			'all',
+			// U121-079: `groups` entra como scope valido
+			'groups',
 		]);
 		expect(model?.items.find((item) => item.id === 'filtered')).toMatchObject({
 			kind: 'toggle',

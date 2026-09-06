@@ -997,6 +997,7 @@ export const es: Record<string, string> = {
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',
 	'sort.level.drill': 'Scope: drill',
+	'sort.level.groups': 'Grupos',
 	'sort.level.pick_hint': 'Mantén pulsada una fila para elegir el scope drill',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',
 	'sort.vertcol.direct_toggle': 'Alternar dirección',
