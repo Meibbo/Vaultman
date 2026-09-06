@@ -76,7 +76,6 @@ export class PluginsExplorerPanel
 	private readonly _groupIds = new Set<string>();
 	private _expandedGroupIds = new Set<string>();
 	private activeLayoutName: string | null = null;
-	private groupingEnabled = false;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -340,12 +339,6 @@ export class PluginsExplorerPanel
 		}
 	}
 
-	setGroupingEnabled(enabled: boolean): void {
-		if (this.groupingEnabled === enabled) return;
-		this.groupingEnabled = enabled;
-		this.render();
-	}
-
 	setActiveLayoutName(name: string | null): void {
 		if (this.activeLayoutName === name) return;
 		this.activeLayoutName = name;
@@ -374,7 +367,7 @@ export class PluginsExplorerPanel
 					canonicalId: node.meta.pluginId,
 					displayLabel: node.label,
 				}),
-			enabled: this.groupingEnabled,
+			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<PluginMeta>[];
 	}
 
