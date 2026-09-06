@@ -32,6 +32,7 @@
 		"smoke:scroll": "node scripts/run-explorer-scroll-smoke.mjs",
 		"smoke:scroll:stress": "node scripts/run-explorer-scroll-smoke.mjs --mode=stress",
 		"smoke:scene": "node scripts/run-scene-interaction-smoke.mjs",
+		"smoke:u130": "node scripts/run-u130-ui-smoke.mjs",
 		"security:audit": "pnpm audit --prod --audit-level=high"
 	},
 	"keywords": [],
