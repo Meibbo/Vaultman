@@ -4,7 +4,11 @@ import {
 	normalizeNodeTypeFilters,
 	nodeTypeFilterPatch,
 } from './logicNodeTypeFilters';
-import { activeScopeSort, normalizeExplorerSortState } from './logicScopedSort';
+import {
+	activeScopeSort,
+	normalizeExplorerSortState,
+	scopesForTab,
+} from './logicScopedSort';
 import { normalizeExplorerSortBy } from './logicSort';
 import { SORT_MENU_OPTIONS } from './logicSortMenu';
 import type { ExplorerTabId, SortScopeKey } from '../types/typeUI';
@@ -98,14 +102,6 @@ const KNOWN_VISIBLE_CELLS: Record<ExplorerTabId, ReadonlySet<string>> = {
 	tags: new Set(['icon', 'text', 'count', 'nested']),
 	snippets: new Set(['icon', 'text', 'state', 'installed', 'updated']),
 	plugins: new Set(['icon', 'text', 'state', 'config', 'installed', 'updated']),
-};
-
-const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
-	files: ['all', 'drill'],
-	props: ['properties', 'values'],
-	tags: ['all', 'drill'],
-	snippets: ['all'],
-	plugins: ['all'],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -536,7 +532,9 @@ function layoutSortRows(
 		rows.push(row('sortState.drillNodeId', normalized.drillNodeId));
 	}
 
-	for (const scope of SCOPES_BY_TAB[tab]) {
+	// Derivado de scopesForTab para mantener la fuente unica de verdad:
+	// una lista de scopes escrita a mano en un cuarto sitio fue U130-007, y antes U121-079 y U130-003.
+	for (const scope of scopesForTab(tab)) {
 		const savedSort = normalized.sorts[scope];
 		const effective = activeScopeSort(tab, normalized, scope);
 		const rawScopeSort =
@@ -637,7 +635,7 @@ function layoutSortRows(
 		for (const scope of Object.keys(raw.sorts).sort((a, b) =>
 			a.localeCompare(b),
 		)) {
-			if (!SCOPES_BY_TAB[tab].includes(scope as SortScopeKey)) {
+			if (!scopesForTab(tab).includes(scope as SortScopeKey)) {
 				rows.push(
 					row(`sortState.sorts.${scope}`, raw.sorts[scope], {
 						status: 'warning',
