@@ -66,6 +66,7 @@
 		type TextSearchRun,
 	} from '../../logic/logicTextSearchState';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
 	import type {
 		NavbarPanelWidgetState,
@@ -721,6 +722,17 @@
 			: {},
 	);
 
+	/**
+	 * U130-04: el invoker del Proceed del slot exclusivo. Reusa el registro
+	 * del plugin y los handlers del explorer activo, igual que el searchbox
+	 * hace en navbarFilters: el invoker es por superficie, el registro uno solo.
+	 */
+	const sasiInvoke = $derived(
+		plugin.sasiRegistry
+			? createSasiInvoker(plugin.sasiRegistry, { ...sasiMoveHandlers })
+			: null,
+	);
+
 	const valueMoveSlotNodes = $derived(
 		resolveExclusiveSlotNodes({
 			// `reveal this file` holds the slot at rest. The move mode replaces
@@ -806,7 +818,22 @@
 					propExplorer?.cancelValueMoveMode();
 					return;
 				}
-				propExplorer?.proceedValueMove();
+				// U130-04: el mismo comportamiento, por el id estable. `confirmed`
+				// va a true porque este camino ES la UI contextual: la confirmacion
+				// del usuario la pide `OperationSummaryModal` mas abajo, cuando el
+				// modo de la queue es bypass. El flag protege a las llamadas
+				// desatendidas, no a esta.
+				if (!sasiInvoke) {
+					new Notice(
+						'SASI: sin registro en esta superficie: vaultman.move.proceed',
+					);
+					return;
+				}
+				void sasiInvoke('vaultman.move.proceed', { confirmed: true }).catch(
+					(error: unknown) => {
+						new Notice(String(error instanceof Error ? error.message : error));
+					},
+				);
 			},
 		})),
 	);
