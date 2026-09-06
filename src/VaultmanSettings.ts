@@ -57,6 +57,7 @@ import {
 import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
+import { SasiInspectorModal } from './modals/modalSasiInspector';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { Notice } from 'obsidian';
@@ -561,6 +562,23 @@ items.push({
 
 	private getDeveloperPageItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.sasi_inspector'),
+			desc: translate('settings.sasi_inspector.desc'),
+			render: (setting: Setting) => {
+				setting.addButton((button) =>
+					button
+						.setButtonText(translate('settings.sasi_inspector.open'))
+						.onClick(() => {
+							new SasiInspectorModal(
+								this.app,
+								this.plugin.sasiRegistry,
+							).open();
+						}),
+				);
+			},
+		});
 
 		items.push({
 			name: translate('settings.data_transfer'),
