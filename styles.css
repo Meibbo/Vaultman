@@ -3449,6 +3449,22 @@ button.vaultman-content-scope-hint:focus-visible {
   flex: 1;
 }
 
+/* U130-03: la cabecera de grupo. Es una fila del arbol con clase propia --no un
+ * componente aparte-- porque `viewTree` ya sabe pintar filas, plegarlas y
+ * virtualizarlas. Un renderizador nuevo habria duplicado las tres cosas. */
+.vaultman-tree-row--group-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--background-secondary-alt);
+}
+
+.vaultman-tree-row--group-header .vaultman-tree-label {
+  color: inherit;
+}
+
 /* === File List Section === */
 .vaultman-files-header {
   margin-bottom: 6px;

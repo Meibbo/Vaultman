@@ -593,14 +593,7 @@ export class PropsExplorerPanel extends Component {
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	private activeLayoutName: string | null = null;
-	private groupingEnabled = false;
 	private onContentSearch?: (query: string) => void;
-
-	setGroupingEnabled(enabled: boolean): void {
-		if (this.groupingEnabled === enabled) return;
-		this.groupingEnabled = enabled;
-		void this._render();
-	}
 
 	setActiveLayoutName(name: string | null): void {
 		if (this.activeLayoutName === name) return;
@@ -639,7 +632,7 @@ export class PropsExplorerPanel extends Component {
 					displayLabel: node.label,
 				});
 			},
-			enabled: this.groupingEnabled,
+			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<PropMeta>[];
 	}
 

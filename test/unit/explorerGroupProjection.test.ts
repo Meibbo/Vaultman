@@ -1,18 +1,32 @@
 import { describe, expect, it } from 'vitest';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { FilesExplorerPanel } from '../../src/components/containers/explorerFiles';
 import { PluginsExplorerPanel } from '../../src/components/containers/explorerPlugins';
 import { PropsExplorerPanel } from '../../src/components/containers/explorerProps';
 import { SnippetsExplorerPanel } from '../../src/components/containers/explorerSnippets';
 import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
 import { isGroupHeader, NO_GROUP_ID, PRESET_GROUP_PREFIX } from '../../src/logic/logicTreeGroupProjection';
+import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
+import type { ExplorerTabId } from '../../src/types/typeUI';
 import type { FileMeta, PluginMeta, PropMeta, SnippetMeta, TagMeta, TreeNode } from '../../src/types/typeTree';
+
+/** L-CABLE: el interruptor es el scope `groups`, no un estado paralelo. */
+function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups') {
+	return normalizeExplorerSortState(tab, {
+		sorts: {},
+		activeScope,
+		nodeTypeFilter: null,
+	});
+}
 
 describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', () => {
 	it('SnippetsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
-		panel.groupingEnabled = false;
+		panel.sortState = sortStateWithScope('snippets', 'all');
 		panel.activeLayoutName = 'layout-snippets';
 		panel.plugin = {
 			settings: {
@@ -43,13 +57,13 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 			} as TreeNode<SnippetMeta>,
 		];
 
-		// Con groupingEnabled = false, devuelve la lista original sin cabeceras
+		// Con un scope distinto de `groups`, devuelve la lista original sin cabeceras
 		const raw = panel.projectedNodes();
 		expect(raw).toBe(panel.nodes);
 		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
 
-		// Con groupingEnabled = true, proyecta grupos custom y puebla _groupIds
-		panel.groupingEnabled = true;
+		// Con el scope `groups` activo, proyecta grupos custom y puebla _groupIds
+		panel.sortState = sortStateWithScope('snippets', 'groups');
 		const projected = panel.projectedNodes();
 		expect(panel._groupIds.has('custom-snips')).toBe(true);
 		expect(projected.length).toBeGreaterThan(0);
@@ -72,7 +86,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = Object.create(PluginsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
-		panel.groupingEnabled = false;
+		panel.sortState = sortStateWithScope('plugins', 'all');
 		panel.activeLayoutName = 'layout-plugins';
 		panel.plugin = {
 			settings: {
@@ -121,7 +135,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
 
 		// Enabled -> proyectado
-		panel.groupingEnabled = true;
+		panel.sortState = sortStateWithScope('plugins', 'groups');
 		const projected = panel.projectedNodes();
 		expect(panel._groupIds.has('custom-plugs')).toBe(true);
 
@@ -138,7 +152,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('TagsExplorerPanel: proyecta grupos custom con kind tag y tagPath', () => {
 		const panel = Object.create(TagsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
-		panel.groupingEnabled = false;
+		panel.sortState = sortStateWithScope('tags', 'all');
 		panel.activeLayoutName = 'layout-tags';
 		panel.plugin = {
 			settings: {
@@ -171,7 +185,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
-		panel.groupingEnabled = true;
+		panel.sortState = sortStateWithScope('tags', 'groups');
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-tags')).toBe(true);
 
@@ -187,7 +201,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('PropsExplorerPanel: proyecta tanto props como values', () => {
 		const panel = Object.create(PropsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
-		panel.groupingEnabled = false;
+		panel.sortState = sortStateWithScope('props', 'all');
 		panel.activeLayoutName = 'layout-props';
 		panel.plugin = {
 			settings: {
@@ -227,7 +241,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
-		panel.groupingEnabled = true;
+		panel.sortState = sortStateWithScope('props', 'groups');
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-prop')).toBe(true);
 		expect(panel._groupIds.has('grp-val')).toBe(true);
@@ -248,7 +262,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('FilesExplorerPanel: proyecta files y folders con su URN respectiva', () => {
 		const panel = Object.create(FilesExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
-		panel.groupingEnabled = false;
+		panel.sortState = sortStateWithScope('files', 'all');
 		panel.activeLayoutName = 'layout-files';
 		panel.plugin = {
 			settings: {
@@ -302,7 +316,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
-		panel.groupingEnabled = true;
+		panel.sortState = sortStateWithScope('files', 'groups');
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-files')).toBe(true);
 
@@ -316,11 +330,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(noGroup.children.map((c: any) => c.label)).toEqual(['other.md']);
 	});
 
-	it('Preset grouping fallback: si groupingEnabled=true sin layout, agrupa por primera letra', () => {
+	it('Preset grouping fallback: si el scope groups esta activo sin layout, agrupa por primera letra', () => {
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
-		panel.groupingEnabled = true;
+		panel.sortState = sortStateWithScope('snippets', 'groups');
 		panel.activeLayoutName = null;
 		panel.plugin = { settings: {} };
 		panel.nodes = [
@@ -335,5 +349,34 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(isGroupHeader(projected[0].id)).toBe(true);
 		expect(projected[0].children?.map((c: any) => c.id)).toEqual(['1', '3']);
 		expect(projected[1].children?.map((c: any) => c.id)).toEqual(['2']);
+	});
+});
+
+function srcFilesRecursive(dir: string): string[] {
+	const out: string[] = [];
+	for (const entry of readdirSync(dir)) {
+		const full = join(dir, entry);
+		if (statSync(full).isDirectory()) out.push(...srcFilesRecursive(full));
+		else if (full.endsWith('.ts') || full.endsWith('.svelte')) out.push(full);
+	}
+	return out;
+}
+
+function srcFilesContaining(symbol: string): string[] {
+	const srcDir = fileURLToPath(new URL('../../src', import.meta.url));
+	return srcFilesRecursive(srcDir).filter((file) =>
+		readFileSync(file, 'utf8').includes(symbol),
+	);
+}
+
+describe('L-CABLE guarda negativa: el estado paralelo no puede reaparecer', () => {
+	it('setGroupingEnabled no existe en ningun fichero de src/', () => {
+		// Un test que solo mira lo que debe aparecer lo satisface un stub:
+		// este mira lo que NO puede volver.
+		expect(srcFilesContaining('setGroupingEnabled')).toEqual([]);
+	});
+
+	it('private groupingEnabled no existe en ningun fichero de src/', () => {
+		expect(srcFilesContaining('private groupingEnabled')).toEqual([]);
 	});
 });
