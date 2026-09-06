@@ -34,6 +34,12 @@ import {
 } from '../../logic/logicDeletionDecoration';
 import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -219,6 +225,51 @@ export class FilesExplorerPanel extends Component {
 	private interactionMode: InteractionMode = 'open';
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
 	private selectedFilePaths = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+	private groupingEnabled = false;
+
+	setGroupingEnabled(enabled: boolean): void {
+		if (this.groupingEnabled === enabled) return;
+		this.groupingEnabled = enabled;
+		this._render();
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<FileMeta>[] = this._lastRenderTree,
+	): TreeNode<FileMeta>[] {
+		const layout = this.plugin.settings.savedLayouts?.find(
+			(candidate) => candidate.name === this.activeLayoutName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<FileMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'files',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'files',
+					kind: node.meta?.isFolder ? 'folder' : 'file',
+					canonicalId: node.meta?.file?.path ?? node.meta?.folderPath ?? node.id,
+					displayLabel: node.label,
+				}),
+			enabled: this.groupingEnabled,
+		}) as TreeNode<FileMeta>[];
+	}
+
 	private selectionAnchorPath: string | null = null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
@@ -1858,7 +1909,10 @@ export class FilesExplorerPanel extends Component {
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(nodes),
+		});
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 	}
 
@@ -2197,6 +2251,7 @@ export class FilesExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),
 				onRowClick: (id: string, event?: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -2260,6 +2315,7 @@ export class FilesExplorerPanel extends Component {
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -2334,7 +2390,10 @@ export class FilesExplorerPanel extends Component {
 				},
 				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 			};
-			this.treeView.render(this._treeRenderOpts);
+			this.treeView.render({
+				...this._treeRenderOpts,
+				nodes: this.projectedNodes(renderTree),
+			});
 		}
 		if (this._needsStatisticsWarmup()) {
 			this._warmStatisticsCache(displayFiles);
@@ -2718,7 +2777,10 @@ export class FilesExplorerPanel extends Component {
 			...this._treeRenderOpts,
 			expandedIds: this.expandedIds,
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(this._treeRenderOpts.nodes as TreeNode<FileMeta>[]),
+		});
 	}
 
 	private _refreshFolderIcon(id: string): void {
@@ -3642,7 +3704,10 @@ export class FilesExplorerPanel extends Component {
 		}
 		this._bubbleTree = result.nodes;
 		this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(result.nodes),
+		});
 		return true;
 	}
 
@@ -3730,12 +3795,18 @@ export class FilesExplorerPanel extends Component {
 				if (moved) this._refreshNodeTimeCells(moved);
 				if (!result.changed) {
 					if (moved && this._timeCellVisible())
-						this.treeView.render(this._treeRenderOpts);
+						this.treeView.render({
+							...this._treeRenderOpts,
+							nodes: this.projectedNodes(this._treeRenderOpts.nodes as TreeNode<FileMeta>[]),
+						});
 					return;
 				}
 				this._bubbleTree = result.nodes;
 				this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
-				this.treeView.render(this._treeRenderOpts);
+				this.treeView.render({
+					...this._treeRenderOpts,
+					nodes: this.projectedNodes(result.nodes),
+				});
 				return;
 			}
 			// Table and Cards have no equivalent projection yet, and neither do
@@ -4015,8 +4086,9 @@ export class FilesExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<FileMeta>[],
 	): TreeNode<FileMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -4320,7 +4392,10 @@ export class FilesExplorerPanel extends Component {
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(this._lastRenderTree),
+		});
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 		vaultmanPerfMonitor.record(
 			'explorer.files.filter-delta',

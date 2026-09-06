@@ -627,6 +627,8 @@ export const en: Record<string, string> = {
 	'explorer.search': 'Search properties...',
 	'explorer.empty': 'No properties found',
 	'explorer.toggle': 'Explorer',
+	// Task 3.3: consume esta clave para etiquetar el grupo vacio.
+	'explorer.group.no_group': 'No group',
 
 	// Explorer nav buttons
 	'explorer.btn.search': 'Search',
