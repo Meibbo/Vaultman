@@ -366,6 +366,7 @@
 		const nextCells = { ...visibleCellsByTab };
 		const nextSort = { ...sortStateByTab };
 		const nextInteraction = { ...interactionModeByTab };
+		const nextConfigByTab = { ...configByTab };
 		for (const tab of LAYOUT_TABS) {
 			const saved = layout.config[tab];
 			if (!saved) continue;
@@ -381,22 +382,28 @@
 				tab,
 				saved.interactionMode,
 			);
+			nextConfigByTab[tab] = {
+				...nextConfigByTab[tab],
+				viewMode: nextView[tab],
+				interactionMode: nextInteraction[tab],
+				visibleCells: nextCells[tab],
+				sortState: nextSort[tab],
+			};
 		}
+		configByTab = nextConfigByTab;
 		void applyLayoutToPort(sceneConfigPort, {
 			viewModeByTab: nextView,
 			interactionModeByTab: nextInteraction,
 			visibleCellsByTab: nextCells,
 			sortStateByTab: nextSort,
-		}).then(() => {
-			configByTab = Object.fromEntries(
-				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
-			) as Record<FiltersTab, Required<SceneConfig>>;
 		});
 		for (const tab of LAYOUT_TABS) {
-			applyViewMode(tab, nextView[tab]);
-			applyVisibleCells(tab, nextCells[tab]);
-			applySortState(tab, nextSort[tab]);
-			applyInteractionMode(tab, nextInteraction[tab]);
+			applyTabProjection(tab, {
+				viewMode: nextView[tab],
+				visibleCells: nextCells[tab],
+				sortState: nextSort[tab],
+				interactionMode: nextInteraction[tab],
+			});
 		}
 		onLayoutLoaded?.(layout);
 	}
@@ -987,6 +994,104 @@
 		onPersistInteractionMode?.(tab, normalized);
 		applyInteractionMode(tab, normalized);
 		onViewFiltersChanged?.();
+	}
+
+	function applyTabProjection(
+		tab: FiltersTab,
+		config: {
+			viewMode: ExplorerViewMode;
+			visibleCells: string[];
+			sortState: ExplorerSortState;
+			interactionMode?: InteractionMode;
+		},
+	) {
+		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
+		const widgetMode: 'tree' | 'grid' | 'table' =
+			effectiveMode === 'table'
+				? 'table'
+				: effectiveMode === 'grid'
+					? 'grid'
+					: 'tree';
+		const cellSet = new Set(config.visibleCells);
+
+		if (tab === 'files' && fileList) {
+			const normalizedState = normalizeSortState(tab, config.sortState, true);
+			if (!sameSortState(config.sortState, normalizedState)) {
+				commitConfig(tab, { sortState: normalizedState });
+			}
+			appliedSortStateByTab[tab] = normalizedState;
+			if (fileList.configurePanelWidgetProjection) {
+				fileList.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: normalizedState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, normalizedState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'props' && propExplorer) {
+			if (propExplorer.configurePanelWidgetProjection) {
+				propExplorer.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: config.sortState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, config.sortState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'tags' && tagsExplorer) {
+			if (tagsExplorer.configurePanelWidgetProjection) {
+				tagsExplorer.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: config.sortState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, config.sortState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'snippets' && snippetsExplorer) {
+			applyViewMode(tab, config.viewMode);
+			applyVisibleCells(tab, config.visibleCells);
+			applySortState(tab, config.sortState);
+			return;
+		}
+
+		if (tab === 'plugins' && pluginsExplorer) {
+			applyViewMode(tab, config.viewMode);
+			applyVisibleCells(tab, config.visibleCells);
+			applySortState(tab, config.sortState);
+			return;
+		}
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
@@ -1854,32 +1959,13 @@
 		const sortState = untrack(
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
+		applyTabProjection(tab, {
+			viewMode,
+			visibleCells: cells,
+			sortState,
+			interactionMode,
+		});
 		if (tab === 'files' && fileList) {
-			const normalizedState = normalizeSortState(tab, sortState, true);
-			if (!sameSortState(sortState, normalizedState)) {
-				commitConfig(tab, { sortState: normalizedState });
-			}
-			appliedSortStateByTab[tab] = normalizedState;
-			const effectiveMode = panelViewModeForDataSurface(tab, viewMode);
-			const filesViewMode =
-				effectiveMode === 'table'
-					? 'table'
-					: effectiveMode === 'grid'
-						? 'grid'
-						: 'tree';
-			if (fileList.configurePanelWidgetProjection) {
-				fileList.configurePanelWidgetProjection({
-					viewMode: filesViewMode,
-					visibleCells: new Set(cells),
-					sortState: normalizedState,
-					...(interactionMode ? { interactionMode } : {}),
-				});
-			} else {
-				applyViewMode(tab, viewMode);
-				applyVisibleCells(tab, cells);
-				applySortState(tab, normalizedState);
-				if (interactionMode) applyInteractionMode(tab, interactionMode);
-			}
 			fileList.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['files'] !== mode) {
 					commitConfig('files', { interactionMode: mode });
@@ -1887,31 +1973,11 @@
 			});
 		}
 		if (tab === 'props' && propExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-			if (interactionMode) applyInteractionMode(tab, interactionMode);
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['props'] !== mode) {
 					commitConfig('props', { interactionMode: mode });
 				}
 			});
-		}
-		if (tab === 'tags' && tagsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-			if (interactionMode) applyInteractionMode(tab, interactionMode);
-		}
-		if (tab === 'snippets' && snippetsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-		}
-		if (tab === 'plugins' && pluginsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
 		}
 	});
 </script>

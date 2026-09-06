@@ -94,6 +94,37 @@ describe("resolveBreadcrumbFolderPath", () => {
 		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Projects");
 		expect(resolveBreadcrumbFolderPath(b2, mockApp)).toBe("Projects/2026");
 	});
+
+	it("resuelve slice path desde la hoja workspace-leaf en vez de activeFile global", () => {
+		const b1 = mockElement({ classes: ["view-header-breadcrumb"], textContent: "Docs" });
+		const parent = mockElement({
+			classes: ["view-header-title-parent"],
+			children: [b1],
+		});
+		const leafContainer = mockElement({
+			classes: ["workspace-leaf"],
+			children: [parent],
+		});
+		b1.closest = (sel: string) => {
+			if (sel.includes("view-header-title-parent")) return parent;
+			if (sel.includes("workspace-leaf")) return leafContainer;
+			return null;
+		};
+
+		const leafFile = { parent: { path: "Docs" } };
+		const activeFile = { parent: { path: "UnrelatedFolder" } };
+
+		const mockApp: any = {
+			workspace: {
+				getActiveFile: () => activeFile,
+				getLeavesOfType: () => [
+					{ containerEl: leafContainer, view: { file: leafFile } },
+				],
+			},
+		};
+
+		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Docs");
+	});
 });
 
 describe("resolveNativeBindingTarget", () => {
@@ -338,14 +369,15 @@ describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", 
 });
 
 describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
-	function crumbEl(path: string, added: string[]) {
+	function crumbEl(path: string, added: string[], removed: string[] = []) {
 		const el: any = {
 			dataset: {},
 			textContent: path,
 			getAttribute: (attr: string) => (attr === "data-path" ? path : null),
 			classList: {
-				contains: () => false,
+				contains: (c: string) => added.includes(c) && !removed.includes(c),
 				add: (cls: string) => { added.push(cls); },
+				remove: (cls: string) => { removed.push(cls); },
 			},
 			closest: (selector: string) => {
 				if (selector.includes("view-header-breadcrumb")) return el;
@@ -375,6 +407,14 @@ describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
 		decorateBoundBreadcrumbs(doc, folderApp([{ path: "Projects/Projects.md" }]));
 		expect(addedBound).toContain("vaultman-node-note-link");
 		expect(addedPlain).not.toContain("vaultman-node-note-link");
+	});
+
+	it("retira la clase vaultman-node-note-link de un breadcrumb sin nota bindeada", () => {
+		const added: string[] = ["vaultman-node-note-link"];
+		const removed: string[] = [];
+		const doc = fakeDoc([crumbEl("Inbox", added, removed)]);
+		decorateBoundBreadcrumbs(doc, folderApp([]));
+		expect(removed).toContain("vaultman-node-note-link");
 	});
 
 	it("no hace nada sin doc ni sin app", () => {
@@ -411,7 +451,7 @@ describe("handleNativeBindingHover", () => {
 		}));
 	});
 
-	it("ISSUE 3: plain mouseover sin ctrl/meta no dispara preview", () => {
+	it("hover sobre superficie valida dispara hover-link incondicionalmente (Obsidian page-preview maneja defaultMod y deferred keydown)", () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
 		const mockTrigger = vi.fn();
 		const mockApp: any = {
@@ -428,8 +468,11 @@ describe("handleNativeBindingHover", () => {
 			metaKey: false,
 			altKey: false,
 		} as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
-		expect(mockTrigger).not.toHaveBeenCalled();
+		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			source: NATIVE_SURFACE_HOVER_SOURCE,
+			linktext: "Notes/Books.md",
+		}));
 	});
 
 	it("ISSUE 3: ctrl+hover y meta+hover si disparan preview", () => {
@@ -587,17 +630,18 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		}));
 	});
 
-	it("texto con alias dispara preview; sin alias, sin ctrl o sin nn no dispara", () => {
+	it("texto con alias dispara preview; sin alias o sin nn no dispara", () => {
 		const el = nnEl({ textContent: "Projects" });
 		const app = hoverApp([{ path: "Notes/P.md" }], { aliases: ["Projects"] });
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
 		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
 
+		const plainMouseover = { target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(plainMouseover, { app })).toBe(true);
+
 		const lonely = nnEl({ textContent: "Nadie" });
 		expect(handleInternalNodeNoteHover({ target: lonely, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
-
-		expect(handleInternalNodeNoteHover({ target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
 
 		const plain = mockElement({ classes: ["random"], textContent: "Projects" });
 		expect(handleInternalNodeNoteHover({ target: plain, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);

@@ -43,6 +43,10 @@ export interface SceneConfigPort {
 	setInstanceId: (id: WorkspaceInstanceId) => void;
 	/** Avisa a quien haya cacheado config de que hay que releerla. Devuelve la baja. */
 	onInstanceChange: (listener: () => void) => () => void;
+	/** Propone cambios en múltiples escenas en un solo batch, persistiendo una sola vez. */
+	proposeScenes?: (
+		updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>>,
+	) => Promise<void>;
 }
 
 export interface SavedLayoutConfig {
@@ -62,14 +66,26 @@ export async function applyLayoutToPort(
 		...(Object.keys(layout.visibleCellsByTab) as ExplorerTabId[]),
 		...(Object.keys(layout.sortStateByTab) as ExplorerTabId[]),
 	]);
+	const updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>> = {};
 	for (const tab of tabs) {
 		const current = port.read(tab);
-		await port.propose(tab, {
+		updates[tab] = {
 			viewMode: layout.viewModeByTab[tab] ?? current.viewMode,
-			interactionMode: layout.interactionModeByTab[tab] ?? current.interactionMode,
+			interactionMode:
+				layout.interactionModeByTab[tab] ?? current.interactionMode,
 			visibleCells: layout.visibleCellsByTab[tab] ?? current.visibleCells,
 			sortState: layout.sortStateByTab[tab] ?? current.sortState,
-		});
+		};
+	}
+	if (port.proposeScenes) {
+		await port.proposeScenes(updates);
+	} else {
+		for (const [tab, next] of Object.entries(updates) as [
+			SceneDefinitionId,
+			Required<SceneConfig>,
+		][]) {
+			await port.propose(tab, next);
+		}
 	}
 }
 
@@ -117,6 +133,35 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 		await deps.persist();
 	};
 
+	const proposeScenes = async (
+		updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>>,
+	): Promise<void> => {
+		let registry = deps.readRegistry();
+		const record = registry.instances[currentId];
+		if (!record) return;
+		let changed = false;
+		for (const [scene, next] of Object.entries(updates) as [
+			SceneDefinitionId,
+			Required<SceneConfig>,
+		][]) {
+			const baseline = resolveSceneConfig({
+				defaults: deps.defaultsFor(scene),
+				global: deps.globalFor?.(scene),
+				instanceSelf: record.self,
+			});
+			const patch = diffSceneConfig(baseline, next);
+			const stored = record.scenes[scene] ?? {};
+			if (JSON.stringify(patch) !== JSON.stringify(stored)) {
+				registry = replaceSceneConfig(registry, currentId, scene, patch);
+				changed = true;
+			}
+		}
+		if (changed) {
+			deps.writeRegistry(registry);
+			await deps.persist();
+		}
+	};
+
 	const readActiveScene = (): string | null =>
 		deps.readRegistry().instances[currentId]?.activeScene ?? null;
 
@@ -131,6 +176,7 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 	return {
 		read,
 		propose,
+		proposeScenes,
 		readActiveScene,
 		proposeActiveScene,
 		setInstanceId,

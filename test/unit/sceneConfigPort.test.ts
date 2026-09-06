@@ -151,4 +151,24 @@ describe('createSceneConfigPort', () => {
 		expect(orphan.read('files')).toEqual(defaults);
 		await expect(orphan.propose('files', { ...defaults, viewMode: 'table' })).resolves.toBeUndefined();
 	});
+
+	it('batches multiple scene updates into a single persist call with proposeScenes', async () => {
+		const h = harness();
+		await h.port.proposeScenes!({
+			files: { ...defaults, viewMode: 'table' },
+			props: { ...defaults, viewMode: 'grid' },
+		});
+		expect(h.registry.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
+		expect(h.registry.instances['vm-1'].scenes.props).toEqual({ viewMode: 'grid' });
+		expect(h.persist).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not persist in proposeScenes if none of the scenes changed', async () => {
+		const h = harness();
+		await h.port.proposeScenes!({
+			files: { ...defaults },
+			props: { ...defaults },
+		});
+		expect(h.persist).not.toHaveBeenCalled();
+	});
 });

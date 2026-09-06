@@ -60,6 +60,7 @@ export interface PanelPluginCtx {
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, PropMeta } from '../../types/typeTree';
+import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import type { PropertyChange } from '../../types/typeOps';
 import type { PropConflictWarnings } from '../../types/typeSettings';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
@@ -181,7 +182,7 @@ type KeyedPropFilterTarget = {
 	target: PropFilterTarget;
 };
 
-function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+function sameStringSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 	if (a.size !== b.size) return false;
 	for (const value of a) {
 		if (!b.has(value)) return false;
@@ -740,6 +741,57 @@ export class PropsExplorerPanel extends Component {
 				this.containerEl.empty();
 			}
 		}
+		this._render();
+	}
+
+	configurePanelWidgetProjection(
+		config: PanelWidgetExplorerProjectionConfig,
+	): void {
+		const viewChanged = this.viewMode !== config.viewMode;
+		const cellsChanged = !sameStringSet(this.visibleCells, config.visibleCells);
+		const normalizedSort = normalizeExplorerSortState('props', config.sortState);
+		const nextFilters = normalizeNodeTypeFilters(
+			normalizedSort.nodeTypeFilters ?? normalizedSort.nodeTypeFilter,
+		);
+		const sortChanged =
+			!sameExplorerSortState(this.sortState, normalizedSort) ||
+			!sameNodeTypeFilters(this.nodeTypeFilters, nextFilters);
+		const normalizedInteractionMode = config.interactionMode
+			? normalizeInteractionMode('props', config.interactionMode)
+			: undefined;
+		const interactionChanged =
+			normalizedInteractionMode !== undefined &&
+			this.interactionMode !== normalizedInteractionMode;
+
+		if (!viewChanged && !cellsChanged && !sortChanged && !interactionChanged) {
+			return;
+		}
+
+		if (viewChanged) {
+			this.viewMode = config.viewMode;
+			if (config.viewMode === 'tree') {
+				this.tableView?.destroy();
+				this.view.destroy();
+				this.view = new UnifiedTreeView(this.containerEl);
+			} else {
+				this.view.destroy();
+				if (config.viewMode === 'grid') {
+					this.tableView?.destroy();
+					this.containerEl.empty();
+				}
+			}
+		}
+		if (cellsChanged) {
+			this.visibleCells = new Set(config.visibleCells);
+		}
+		if (sortChanged) {
+			this.sortState = normalizedSort;
+			this.nodeTypeFilters = nextFilters;
+		}
+		if (interactionChanged && normalizedInteractionMode) {
+			this.interactionMode = normalizedInteractionMode;
+		}
+
 		this._render();
 	}
 
@@ -2494,7 +2546,13 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return dir * a.label.localeCompare(b.label);
+		return (
+			dir *
+			a.label.localeCompare(b.label, undefined, {
+				numeric: true,
+				sensitivity: 'base',
+			})
+		);
 	}
 
 	/**
@@ -2545,13 +2603,7 @@ export class PropsExplorerPanel extends Component {
 					propertiesTimeIndex,
 					propertiesTypeIndex,
 				),
-			(a, b, parent) => {
-				if (this._effectivePropType(parent.meta) !== 'list') {
-					// "el sort_option de 'values' debería ordenar los valores solamente de las propiedades tipo lista"
-					return 0;
-				}
-				return this._compareNodes(a, b, valuesSort, valuesTimeIndex);
-			},
+			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
 		);
 	}
 

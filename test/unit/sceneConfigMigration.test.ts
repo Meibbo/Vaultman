@@ -61,4 +61,23 @@ describe('applyLayoutToPort', () => {
 		});
 		expect(port.calls).toEqual([]);
 	});
+
+	it('uses proposeScenes when available to batch tab updates', async () => {
+		const port = fakePort() as any;
+		const batchCalls: any[] = [];
+		port.proposeScenes = async (updates: any) => {
+			batchCalls.push(updates);
+		};
+		await applyLayoutToPort(port, {
+			viewModeByTab: { files: 'table', tags: 'grid' },
+			visibleCellsByTab: { files: ['name', 'count'] },
+			interactionModeByTab: {},
+			sortStateByTab: {},
+		});
+		expect(port.calls).toEqual([]);
+		expect(batchCalls.length).toBe(1);
+		expect(Object.keys(batchCalls[0]).sort()).toEqual(['files', 'tags']);
+		expect(batchCalls[0].files.viewMode).toBe('table');
+		expect(batchCalls[0].tags.viewMode).toBe('grid');
+	});
 });
