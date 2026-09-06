@@ -13,11 +13,47 @@ if (!options.noInstall) {
 	installToVault(options.pluginDir);
 }
 
+const probes = {};
+const failures = [];
+
 if (!options.noReload) {
-	// El reload va dirigido por vault al servidor mediante obsidian-cli
+	// Amarre build->DOM: el DOM mirado viene del build recien compilado.
+	// 1. ANTES del reload, guarda la referencia viva en window.__u130Prev.
+	//    El reload va dirigido por vault al servidor mediante obsidian-cli:
+	//    el disable+enable dentro del mismo eval creaba una instancia nueva
+	//    del CODIGO VIEJO (modulo en cache: el DOM seguia con
+	//    .vaultman-filters-search-mode y 0 .vaultman-action-cell aunque el
+	//    main.js en disco ya fuera el nuevo). Verificado L-16 en vivo.
+	// 2. Recarga por el servidor (relee main.js del disco).
+	// 3. DESPUES, comprueba en la misma pestana que la instancia es OTRA.
+	//    Si es la misma, el plugin no se recargo y la sonda FALLA, no sigue.
+	const prevAlive = await execInVault(`(async () => {
+		window.__u130Prev = app.plugins?.plugins?.vaultman;
+		return Boolean(window.__u130Prev);
+	})()`);
+	if (!prevAlive) {
+		probes['gate.reload-efectivo'] = { ok: false, detail: 'prev-absent' };
+		failures.push('reload-no-efectivo');
+		printReport({ failures, probes });
+		process.exit(1);
+	}
 	runChecked('obsidian-cli', [`--vault=${options.vault}`, 'plugin:reload', 'id=vaultman'], {
 		env: { ...process.env, OBSIDIAN_HOST: options.host },
 	});
+	const reloaded = await execInVault(`(async () => {
+		const after = app.plugins?.plugins?.vaultman;
+		if (!after) return 'after-absent';
+		return after !== window.__u130Prev ? true : 'same-instance';
+	})()`);
+
+	if (reloaded !== true) {
+		const detail = typeof reloaded === 'string' ? reloaded : 'reload-no-efectivo';
+		probes['gate.reload-efectivo'] = { ok: false, detail };
+		failures.push('reload-no-efectivo');
+		printReport({ failures, probes });
+		process.exit(1);
+	}
+	probes['gate.reload-efectivo'] = { ok: true, detail: null };
 }
 
 if (!(await frameIsOpen())) {
@@ -28,12 +64,26 @@ if (!(await frameIsOpen())) {
 		await new Promise((r) => setTimeout(r, 100));
 	}
 }
-await ensureSearchOpen();
+
+const toggleResult = await ensureSearchOpen();
+probes['s1.toggle-transicion'] = {
+	ok: Boolean(toggleResult?.ok),
+	detail: toggleResult?.error ?? null,
+};
+if (!toggleResult?.ok) {
+	failures.push('s1.toggle-transicion');
+}
 
 const rawResult = await execInVault(buildProbeCode());
-const result = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
-printReport(result);
-process.exit(result.failures.length > 0 ? 1 : 0);
+const domResult = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
+
+Object.assign(probes, domResult.probes);
+if (Array.isArray(domResult.failures)) {
+	failures.push(...domResult.failures);
+}
+
+printReport({ failures, probes });
+process.exit(failures.length > 0 ? 1 : 0);
 
 function buildProbeCode() {
 	// Promise.race obligatorio: un await colgado dentro de evalCode MATA el
@@ -89,15 +139,31 @@ function buildProbeCode() {
 				'.vaultman-filters-search-mode, .vaultman-filters-search-create',
 			).length === 0);
 		// El area tactil se cumple aunque el glifo sea menor (spec-05 test 8).
+		// Con 0 celdas el every() seria vacuamente true: se exige al menos una.
 		check('s1.touch-target',
-			cells.every((cell) => {
+			cells.length > 0 && cells.every((cell) => {
 				const after = getComputedStyle(cell, '::after');
 				return parseFloat(after.minWidth) >= 36
 					&& parseFloat(after.minHeight) >= 36;
 			}));
-		// Cada celda tiene nombre accesible: un icono sin etiqueta no es un
-		// control, es un adorno.
-		check('s1.labelled', cells.every((c) => Boolean(c.getAttribute('aria-label'))));
+		// Cada celda tiene nombre accesible y resuelto por SASI: si SASI no
+		// resuelve, CellAction hace fallback al actionId crudo (cellAction.svelte:44,57).
+		// La sonda debe fallar si falta la etiqueta o si coincide con el actionId crudo.
+		const rawActionIds = new Set([
+			'vaultman.search.cycleCategory',
+			'vaultman.search.createTarget',
+			'vaultman.move.toggleWrite',
+			'vaultman.move.toggleOriginDisposition',
+			...((typeof app !== 'undefined' && app.plugins?.plugins?.vaultman?.sasiRegistry?.listActions?.().map((a) => a.id)) || []),
+		]);
+		const invalidLabels = cells
+			.map((c) => c.getAttribute('aria-label'))
+			.filter((label) => !label || rawActionIds.has(label) || label.startsWith('vaultman.'));
+		check(
+			's1.labelled',
+			cells.length > 0 && invalidLabels.length === 0,
+			invalidLabels.length > 0 ? invalidLabels : null,
+		);
 
 		return JSON.stringify({ failures, probes });
 	})()`;
@@ -163,36 +229,62 @@ async function frameIsOpen() {
  */
 
 async function ensureSearchOpen() {
-	await execInVault(`(async () => {
+	return await execInVault(`(async () => {
 		const leaves = app.workspace.getLeavesOfType('vaultman-frame');
 		for (let i = leaves.length - 1; i > 0; i--) {
 			leaves[i].detach();
 		}
 		const frame = document.querySelector('.workspace-leaf-content[data-type="vaultman-frame"]');
-		if (!frame) return;
-		const dec = frame.querySelector('.vaultman-filters-search-decorator');
-		if (dec) return;
+		if (!frame) return { ok: false, error: 'frame-absent' };
 		const toggle = frame.querySelector('[data-vaultman-search-toggle="true"]');
-		if (toggle) {
+		if (!toggle) return { ok: false, error: 'search-toggle-absent' };
+
+		let dec = frame.querySelector('.vaultman-filters-search-decorator');
+		if (!dec) {
 			toggle.click();
-			// Sondear con requestAnimationFrame colgaba la llamada entera en
-			// una pestana de fondo: el navegador lo congela y el await no
-			// vuelve nunca, asi que ni el plazo de 2000 ms se llegaba a
-			// evaluar. Con setTimeout el reloj sigue corriendo oculto.
-			const start = Date.now();
-			while (Date.now() - start < 2000) {
+			const startOpen = Date.now();
+			while (Date.now() - startOpen < 2000) {
 				await new Promise((r) => setTimeout(r, 50));
-				if (frame.querySelector('.vaultman-filters-search-decorator')) return;
+				if (frame.querySelector('.vaultman-filters-search-decorator')) break;
+			}
+			dec = frame.querySelector('.vaultman-filters-search-decorator');
+			if (!dec) return { ok: false, error: 'abrir-no-aparece' };
+		}
+
+		// Cuando el decorador YA exista, cierra y vuelve a abrir la busqueda
+		// para ejercitar la transicion de verdad, y verifica que desaparece y reaparece.
+		toggle.click();
+		const startClose = Date.now();
+		let closed = false;
+		while (Date.now() - startClose < 2000) {
+			await new Promise((r) => setTimeout(r, 50));
+			if (!frame.querySelector('.vaultman-filters-search-decorator')) {
+				closed = true;
+				break;
 			}
 		}
+		if (!closed) return { ok: false, error: 'cerrar-no-desaparece' };
+
+		toggle.click();
+		const startReopen = Date.now();
+		let reopened = false;
+		while (Date.now() - startReopen < 2000) {
+			await new Promise((r) => setTimeout(r, 50));
+			if (frame.querySelector('.vaultman-filters-search-decorator')) {
+				reopened = true;
+				break;
+			}
+		}
+		if (!reopened) return { ok: false, error: 'abrir-no-reaparece' };
+
+		return { ok: true };
 	})()`);
 }
 
 function parseOptions(args) {
 	const parsed = {
-		vault: 'plugin-dev',
+		vault: '',
 		host: 'http://127.0.0.1:3000',
-		maxStallMs: 100,
 		noBuild: false,
 		noInstall: false,
 		noReload: false,
@@ -216,19 +308,15 @@ function parseOptions(args) {
 			parsed.pluginDir = args[++i].trim();
 		} else if (arg.startsWith('--plugin-dir=')) {
 			parsed.pluginDir = arg.slice(arg.indexOf('=') + 1).trim();
-		} else if (arg === '--max-stall-ms' && i + 1 < args.length) {
-			parsed.maxStallMs = Number(args[++i]);
-		} else if (arg.startsWith('--max-stall-ms=')) {
-			parsed.maxStallMs = Number(arg.slice(arg.indexOf('=') + 1));
 		} else {
 			throw new Error(`Unknown argument: ${arg}`);
 		}
 	}
-	if (!parsed.vault) throw new Error('--vault must not be empty');
-	if (!parsed.host) throw new Error('--host must not be empty');
-	if (!Number.isFinite(parsed.maxStallMs) || parsed.maxStallMs <= 0) {
-		throw new Error('--max-stall-ms must be a positive number');
+	if (!parsed.vault) {
+		console.error('usa: V=$(weblab-claim-vault <carril>) && pnpm run smoke:u130 -- --vault="$V"');
+		process.exit(1);
 	}
+	if (!parsed.host) throw new Error('--host must not be empty');
 	const rawPluginDir =
 		parsed.pluginDir ||
 		process.env.VAULTMAN_PLUGIN_DIR ||
