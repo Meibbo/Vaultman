@@ -2115,6 +2115,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
@@ -2259,7 +2260,7 @@ export class PropsExplorerPanel extends Component {
 				void this._render();
 			},
 			onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, nodesWithIcons),
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
@@ -2595,6 +2596,28 @@ export class PropsExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
 	}
 
 	private _metadataTypeManager(): MetadataTypeManagerLike | null {
