@@ -13,11 +13,11 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	// "ordena el arbol entero": elegir un preset escribia en `properties` y los
 	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
 	// lo dijera. fileScene siempre lo tuvo.
-	props: ['all', 'properties', 'values', 'groups'],
-	files: ['drill', 'all', 'groups'],
-	tags: ['drill', 'all', 'groups'],
-	snippets: ['all', 'groups'],
-	plugins: ['all', 'groups'],
+	props: ['all', 'properties', 'values', 'groups', 'variable'],
+	files: ['drill', 'all', 'groups', 'variable'],
+	tags: ['drill', 'all', 'groups', 'variable'],
+	snippets: ['all', 'groups', 'variable'],
+	plugins: ['all', 'groups', 'variable'],
 };
 
 /** U130-03: los scopes validos de una tab. El menu los necesita para no ofrecer
