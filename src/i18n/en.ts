@@ -668,6 +668,8 @@ export const en: Record<string, string> = {
 	'sasi.move.toggle_kind': 'Move nodes or groups',
 	'sasi.search.cycle_category': 'Search category',
 	'sasi.search.create_target': 'Create',
+	'sasi.addons.toggle_group_plugins': 'Toggle plugin group',
+	'sasi.addons.toggle_group_snippets': 'Toggle snippet group',
 	'sasi.inspector.title': 'SASI registry',
 	'sasi.inspector.axis.provider': 'Providers',
 	'sasi.inspector.axis.kind': 'Kinds',
@@ -852,6 +854,7 @@ export const en: Record<string, string> = {
 	'addons.disabled': 'Disabled',
 	'addons.enable': 'Enable',
 	'addons.disable': 'Disable',
+	'addons.mixed': 'Mixed',
 	'addons.snippets.empty': 'No CSS snippets found',
 	'addons.snippets.unavailable':
 		'CSS snippet controls are unavailable in this Obsidian version',

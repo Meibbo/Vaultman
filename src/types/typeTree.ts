@@ -37,12 +37,18 @@ export interface NodeBadge {
 
 export type TreeNodeCell =
 	| {
-			id: string;
-			kind: 'toggle';
-			enabled: boolean;
-			style: AddonCellStyle;
-			label: string;
-			disabled?: boolean;
+		id: string;
+		kind: 'toggle';
+		enabled: boolean;
+		style: AddonCellStyle;
+		label: string;
+		disabled?: boolean;
+		/**
+		 * Spec 07 §2: la cabecera de un `node_group` pinta el agregado de sus
+		 * miembros. Mixto (algunos si, algunos no) se PINTA como mixto, pero
+		 * la accion no es ambigua: 1ª pulsacion apaga todo, 2ª enciende todo.
+		 */
+		mixed?: boolean;
 	  }
 	| {
 			id: string;

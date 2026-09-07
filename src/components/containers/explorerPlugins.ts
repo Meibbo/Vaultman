@@ -16,6 +16,7 @@ import {
 	communityPluginStateSignature,
 	listCommunityPluginEntries,
 	pluginRibbonItem,
+	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
 	getAddonIconOverride,
@@ -42,6 +43,10 @@ import {
 	pluginSettingTabIds,
 	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
+import {
+	resolveGroupToggleTarget,
+	summarizeGroupToggleState,
+} from '../../logic/logicAddonGroupToggle';
 import {
 	normalizeInteractionMode,
 	type InteractionMode,
@@ -353,7 +358,7 @@ export class PluginsExplorerPanel
 		const groups = resolveCustomGroups(memberships);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		return projectGroupedTree<PluginMeta>({
+		const projected = projectGroupedTree<PluginMeta>({
 			nodes: this.nodes,
 			groups,
 			memberships,
@@ -369,6 +374,49 @@ export class PluginsExplorerPanel
 				}),
 			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<PluginMeta>[];
+		return this.withGroupToggleCells(projected);
+	}
+
+	/**
+	 * Spec 07 §2: la cabecera del grupo aloja su propio `cell_toggle` con el
+	 * agregado de sus miembros. Sin cabeceras se devuelve la lista TAL CUAL,
+	 * por identidad.
+	 */
+	private withGroupToggleCells(
+		rows: readonly TreeNode<PluginMeta>[],
+	): TreeNode<PluginMeta>[] {
+		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
+			return rows as TreeNode<PluginMeta>[];
+		}
+		return rows.map((row) => {
+			if (!isGroupHeader(row.id, this._groupIds)) return row;
+			if (!row.children?.length) return row;
+			const states = row.children.map(
+				(child) => child.meta?.enabled ?? false,
+			);
+			const { enabled, mixed } = summarizeGroupToggleState(states);
+			const pending = row.children.some((child) =>
+				this.pendingToggleIds.has(child.meta?.pluginId ?? ''),
+			);
+			const cells: TreeNodeCell[] = [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled,
+					mixed,
+					style: this.cellStyle,
+					label: translate(
+						mixed
+							? 'addons.mixed'
+							: enabled
+								? 'addons.enabled'
+								: 'addons.disabled',
+					),
+					disabled: pending,
+				},
+			];
+			return { ...row, cells };
+		});
 	}
 
 	private render(): void {
@@ -430,7 +478,12 @@ export class PluginsExplorerPanel
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
+					// miembros, no a uno.
+					if (cellId === 'state') void this.toggleGroup(id);
+					return;
+				}
 				const node = this.findNode(id);
 				if (!node) return;
 				if (cellId === 'state') void this.toggle(node.meta);
@@ -537,8 +590,66 @@ export class PluginsExplorerPanel
 		);
 	}
 
-	private async toggle(meta: PluginMeta): Promise<void> {
-		if (this.pendingToggleIds.has(meta.pluginId)) return;
+	/**
+	 * Spec 07 §2: cascada descendente. ACTION, no operation: cambio directo
+	 * de estado del workspace sin pasar por la queue ni por
+	 * `OperationSummaryModal`. Tri-estado como el toggle de
+	 * expansion/colapso: si hay algo encendido, la primera pulsacion APAGA
+	 * todo; solo con todo apagado la siguiente ENCIENDE todo.
+	 */
+	private async toggleGroup(groupId: string): Promise<void> {
+		const header = this.projectedNodes().find(
+			(node) => node.id === groupId,
+		);
+		const members = new Map<string, PluginMeta>();
+		for (const child of header?.children ?? []) {
+			const meta = child.meta;
+			if (meta?.pluginId && !members.has(meta.pluginId)) {
+				members.set(meta.pluginId, meta);
+			}
+		}
+		if (members.size === 0) return;
+		const listed = [...members.values()];
+		const target = resolveGroupToggleTarget(
+			listed.map((meta) => meta.enabled),
+		);
+		const todo = listed.filter(
+			(meta) =>
+				meta.enabled !== target &&
+				!this.pendingToggleIds.has(meta.pluginId),
+		);
+		if (todo.length === 0) return;
+		for (const meta of todo) this.pendingToggleIds.add(meta.pluginId);
+		this.rebuildNodes();
+		try {
+			let failed = 0;
+			for (const meta of todo) {
+				const changed = await setCommunityPluginEnabled(
+					this.plugin.app,
+					meta.pluginId,
+					target,
+				);
+				if (!changed) failed += 1;
+			}
+			if (failed > 0) {
+				new Notice(translate('addons.plugins.failed'));
+			}
+			// Igual que el toggle individual: si nos apagamos a nosotros
+			// mismos, el caller se descarga y no hay refresh que valga.
+			const selfOff = todo.some(
+				(meta) => meta.isVaultman && meta.enabled && !target,
+			);
+			if (!selfOff && !this.destroyed) await this.refresh();
+		} catch (error) {
+			new Notice(translate('addons.plugins.failed'));
+			console.error('Vaultman community plugin group toggle failed', error);
+		} finally {
+			for (const meta of todo) this.pendingToggleIds.delete(meta.pluginId);
+			if (!this.destroyed) this.rebuildNodes();
+		}
+	}
+
+	private async toggle(meta: PluginMeta): Promise<void> {		if (this.pendingToggleIds.has(meta.pluginId)) return;
 		this.pendingToggleIds.add(meta.pluginId);
 		this.rebuildNodes();
 		let callerWillUnload = false;

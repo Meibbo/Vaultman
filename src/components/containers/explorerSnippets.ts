@@ -1,7 +1,7 @@
 import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
-import type { SnippetMeta, TreeNode } from '../../types/typeTree';
+import type { SnippetMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
@@ -32,6 +32,10 @@ import {
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
+import {
+	resolveGroupToggleTarget,
+	summarizeGroupToggleState,
+} from '../../logic/logicAddonGroupToggle';
 import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
 import { prefixesFromSettings, snippetAliasTokens } from '../../services/serviceNodeBinding';
 import {
@@ -334,7 +338,7 @@ export class SnippetsExplorerPanel
 		const groups = resolveCustomGroups(memberships);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		return projectGroupedTree<SnippetMeta>({
+		const projected = projectGroupedTree<SnippetMeta>({
 			nodes: this.nodes,
 			groups,
 			memberships,
@@ -350,6 +354,49 @@ export class SnippetsExplorerPanel
 				}),
 			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<SnippetMeta>[];
+		return this.withGroupToggleCells(projected);
+	}
+
+	/**
+	 * Spec 07 §2: la cabecera del grupo aloja su propio `cell_toggle` con el
+	 * agregado de sus miembros. Sin cabeceras se devuelve la lista TAL CUAL,
+	 * por identidad.
+	 */
+	private withGroupToggleCells(
+		rows: readonly TreeNode<SnippetMeta>[],
+	): TreeNode<SnippetMeta>[] {
+		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
+			return rows as TreeNode<SnippetMeta>[];
+		}
+		return rows.map((row) => {
+			if (!isGroupHeader(row.id, this._groupIds)) return row;
+			if (!row.children?.length) return row;
+			const states = row.children.map(
+				(child) => child.meta?.enabled ?? false,
+			);
+			const { enabled, mixed } = summarizeGroupToggleState(states);
+			const pending = row.children.some((child) =>
+				this.pendingToggleIds.has(child.meta?.name ?? ''),
+			);
+			const cells: TreeNodeCell[] = [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled,
+					mixed,
+					style: this.cellStyle,
+					label: translate(
+						mixed
+							? 'addons.mixed'
+							: enabled
+								? 'addons.enabled'
+								: 'addons.disabled',
+					),
+					disabled: pending,
+				},
+			];
+			return { ...row, cells };
+		});
 	}
 
 	private render(): void {
@@ -412,7 +459,12 @@ export class SnippetsExplorerPanel
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
+					// miembros, no a uno.
+					if (cellId === 'state') void this.toggleGroup(id);
+					return;
+				}
 				if (cellId !== 'state') return;
 				const node = this.findNode(id);
 				if (node) void this.toggle(node.meta);
@@ -517,6 +569,59 @@ export class SnippetsExplorerPanel
 			},
 			event,
 		);
+	}
+
+	/**
+	 * Spec 07 §2: cascada descendente. ACTION, no operation: cambio directo
+	 * de estado del workspace sin pasar por la queue ni por
+	 * `OperationSummaryModal`. Tri-estado como el toggle de
+	 * expansion/colapso: si hay algo encendido, la primera pulsacion APAGA
+	 * todo; solo con todo apagado la siguiente ENCIENDE todo.
+	 */
+	private async toggleGroup(groupId: string): Promise<void> {
+		const header = this.projectedNodes().find(
+			(node) => node.id === groupId,
+		);
+		const members = new Map<string, SnippetMeta>();
+		for (const child of header?.children ?? []) {
+			const meta = child.meta;
+			if (meta?.name && !members.has(meta.name)) {
+				members.set(meta.name, meta);
+			}
+		}
+		if (members.size === 0) return;
+		const listed = [...members.values()];
+		const target = resolveGroupToggleTarget(
+			listed.map((meta) => meta.enabled),
+		);
+		const todo = listed.filter(
+			(meta) =>
+				meta.enabled !== target && !this.pendingToggleIds.has(meta.name),
+		);
+		if (todo.length === 0) return;
+		for (const meta of todo) this.pendingToggleIds.add(meta.name);
+		this.rebuildNodes();
+		try {
+			let failed = 0;
+			for (const meta of todo) {
+				const changed = await setCssSnippetEnabled(
+					this.plugin.app,
+					meta.name,
+					target,
+				);
+				if (!changed) failed += 1;
+			}
+			if (failed > 0) {
+				new Notice(translate('addons.snippets.failed'));
+			}
+			await this.refresh();
+		} catch (error) {
+			new Notice(translate('addons.snippets.failed'));
+			console.error('Vaultman CSS snippet group toggle failed', error);
+		} finally {
+			for (const meta of todo) this.pendingToggleIds.delete(meta.name);
+			if (!this.destroyed) this.rebuildNodes();
+		}
 	}
 
 	private async toggle(meta: SnippetMeta): Promise<void> {
