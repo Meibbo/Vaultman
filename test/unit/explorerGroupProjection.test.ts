@@ -26,6 +26,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
+		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
 		panel.activeLayoutName = 'layout-snippets';
 		panel.plugin = {
@@ -86,6 +87,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = Object.create(PluginsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
+		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('plugins', 'all');
 		panel.activeLayoutName = 'layout-plugins';
 		panel.plugin = {
@@ -334,6 +336,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
+		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'groups');
 		panel.activeLayoutName = null;
 		panel.plugin = { settings: {} };

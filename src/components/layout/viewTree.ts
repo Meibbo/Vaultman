@@ -818,15 +818,16 @@ export class UnifiedTreeView {
 			.join('|');
 		const cells = (node.cells ?? [])
 			.map((cell) =>
-				cell.kind === 'toggle'
-					? [
-							cell.id,
-							cell.kind,
-							cell.enabled ? '1' : '0',
-							cell.style,
-							cell.label,
-							cell.disabled ? '1' : '0',
-						].join(':')
+			cell.kind === 'toggle'
+				? [
+						cell.id,
+						cell.kind,
+						cell.enabled ? '1' : '0',
+						cell.style,
+						cell.label,
+						cell.disabled ? '1' : '0',
+						cell.mixed ? '1' : '0',
+					].join(':')
 					: [
 							cell.id,
 							cell.kind,
@@ -1584,8 +1585,9 @@ export class UnifiedTreeView {
 			const toggleEl = parent.createDiv({
 				cls: 'checkbox-container vaultman-addon-toggle-cell',
 			});
-			toggleEl.toggleClass('is-enabled', cell.enabled);
-			toggleEl.toggleClass('is-disabled', cell.disabled === true);
+		toggleEl.toggleClass('is-enabled', cell.enabled);
+		toggleEl.toggleClass('is-disabled', cell.disabled === true);
+		toggleEl.toggleClass('is-mixed', cell.mixed === true);
 			toggleEl.setAttribute('aria-label', cell.label);
 			setTooltip(toggleEl, cell.label);
 			const input = toggleEl.createEl('input', {
@@ -1594,8 +1596,9 @@ export class UnifiedTreeView {
 			input.setAttribute('type', 'checkbox');
 			input.setAttribute('tabindex', '0');
 			input.setAttribute('aria-label', cell.label);
-			input.checked = cell.enabled;
-			input.disabled = cell.disabled === true;
+		input.checked = cell.enabled;
+		input.disabled = cell.disabled === true;
+		input.indeterminate = cell.mixed === true;
 			handleClick(toggleEl);
 			return;
 		}
@@ -1604,8 +1607,11 @@ export class UnifiedTreeView {
 			const badgeEl = parent.createSpan({
 				cls: 'vaultman-badge vaultman-addon-cell',
 			});
-			badgeEl.addClass('is-solid');
-			badgeEl.addClass(
+		badgeEl.addClass('is-solid');
+		if (cell.kind === 'toggle' && cell.mixed === true) {
+			badgeEl.addClass('is-mixed');
+		}
+		badgeEl.addClass(
 				cell.kind === 'toggle'
 					? cell.enabled
 						? 'vaultman-badge--success'
