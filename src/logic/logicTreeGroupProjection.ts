@@ -55,6 +55,14 @@ export interface GroupProjectionInput<TMeta> {
 	urnOf?: (node: TreeNode<TMeta>) => string;
 	/** `false` devuelve la lista TAL CUAL, por identidad. */
 	enabled?: boolean;
+	/**
+	 * S07A: nested/deduped member totals (`bubbleMemberCountsToGroups`).
+	 * When present, a custom header shows its total instead of
+	 * `children.length` — the dev's «total de ficheros de todos sus c-nodes».
+	 * Absent ids fall back to `children.length`, so today's flat groups render
+	 * exactly as before until a caller passes totals.
+	 */
+	groupTotals?: ReadonlyMap<string, number>;
 }
 
 function headerNode<TMeta>(
@@ -62,6 +70,7 @@ function headerNode<TMeta>(
 	label: string,
 	children: TreeNode<TMeta>[],
 	meta: TMeta,
+	count?: number,
 ): TreeNode<TMeta> {
 	return {
 		id,
@@ -72,7 +81,7 @@ function headerNode<TMeta>(
 		// renderizador nuevo: necesita ser un TreeNode bien formado.
 		cls: GROUP_HEADER_CLS,
 		showCaret: true,
-		count: children.length,
+		count: count ?? children.length,
 		children,
 		meta,
 	};
@@ -140,6 +149,7 @@ export function projectGroupedTree<TMeta>(
 		filtered,
 		urnOf,
 		enabled = true,
+		groupTotals,
 	} = input;
 	if (!enabled) return nodes;
 
@@ -193,6 +203,7 @@ export function projectGroupedTree<TMeta>(
 					group.label,
 					reparent(members, group.id, 1, suffixed),
 					nodes[0]?.meta as TMeta,
+					groupTotals?.get(group.id),
 				),
 			);
 		});
