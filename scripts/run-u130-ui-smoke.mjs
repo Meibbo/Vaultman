@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { U130_S3_SNIPPET } from './probes/u130-s3.mjs';
 
 const options = parseOptions(process.argv.slice(2));
 
@@ -164,6 +165,8 @@ function buildProbeCode() {
 			cells.length > 0 && invalidLabels.length === 0,
 			invalidLabels.length > 0 ? invalidLabels : null,
 		);
+
+		${U130_S3_SNIPPET}
 
 		return JSON.stringify({ failures, probes });
 	})()`;
