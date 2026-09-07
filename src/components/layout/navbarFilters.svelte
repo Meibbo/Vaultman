@@ -418,13 +418,12 @@
 				interactionMode: nextInteraction[tab],
 			});
 		}
-		// U130-05: per-instance activation. groupMemberships is a layout-level
-		// property; calling setActiveLayoutName on each explorer makes its
-		// projectedNodes look up layout.groupMemberships by name, so custom
-		// group headers become reachable instead of falling back to preset
-		// alphabetical ordering. loadLayout previously applied view/sort/cells
-		// but ignored groupMemberships entirely.
-		void layout.groupMemberships;
+		// U130-05: activacion PER-INSTANCE. `groupMemberships` es una propiedad
+		// del layout, no de la pestana: llamar a setActiveLayoutName en cada
+		// explorer hace que su projectedNodes la busque por nombre, y las
+		// cabeceras de grupo custom pasan a ser alcanzables en vez de caer
+		// siempre a la rama preset alfabetica. Antes loadLayout aplicaba
+		// vista/sort/celdas e ignoraba groupMemberships por completo.
 		for (const tab of LAYOUT_TABS) {
 			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}

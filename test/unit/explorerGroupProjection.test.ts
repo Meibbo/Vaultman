@@ -384,15 +384,14 @@ describe('L-CABLE guarda negativa: setActiveLayoutName tiene llamador en src/', 
 		expect(srcCallers.length).toBeGreaterThan(0);
 	});
 
-	it('loadLayout ya no ignora groupMemberships: el simbolo aparece en su camino', () => {
-		const files = srcFilesContaining('groupMemberships');
-		const loadLayoutFiles = files.filter(
-			(f) => f.includes('navbarFilters'),
-		);
-		expect(loadLayoutFiles.length).toBeGreaterThan(0);
-	});
-
-	it('loadLayout contiene tanto groupMemberships como setActiveLayoutName', () => {
+	it('loadLayout CABLEA la activacion: llama a setActiveLayoutName', () => {
+		// Guarda de cableado. La version anterior exigia ademas que la cadena
+		// "groupMemberships" apareciera en el cuerpo de loadLayout, y eso lo
+		// satisfacia un `void layout.groupMemberships;` --una sentencia muerta
+		// puesta solo para pasar el test--. El mecanismo real es que loadLayout
+		// LLAME a setActiveLayoutName y que sea el explorer quien resuelva las
+		// pertenencias por nombre; las pruebas de comportamiento de este mismo
+		// fichero ya cubren esa resolucion con fixtures de groupMemberships.
 		const navbarPath = join(
 			fileURLToPath(new URL('../../src', import.meta.url)),
 			'components/layout/navbarFilters.svelte',
@@ -404,8 +403,9 @@ describe('L-CABLE guarda negativa: setActiveLayoutName tiene llamador en src/', 
 			nextFuncIdx > 0
 				? content.slice(loadLayoutIdx, nextFuncIdx)
 				: content.slice(loadLayoutIdx);
-		expect(loadLayoutBody).toContain('groupMemberships');
 		expect(loadLayoutBody).toContain('setActiveLayoutName');
+		// Y que no vuelva la sentencia muerta.
+		expect(loadLayoutBody).not.toContain('void layout.groupMemberships');
 	});
 });
 
