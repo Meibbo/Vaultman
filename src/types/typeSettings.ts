@@ -66,6 +66,23 @@ export const PROP_CONFLICT_WARNINGS = ['off', 'badge', 'full'] as const;
 export type PropConflictWarnings = (typeof PROP_CONFLICT_WARNINGS)[number];
 
 export interface VaultmanSettings {
+	/**
+	 * Hover/pin/lock de las cuatro superficies de chrome. DOS NIVELES a proposito
+	 * (orden del dev): `enabled` apaga el modulo entero -- nadie debe verse
+	 * obligado a desactivar el plugin entero por una funcion que no le gusta --
+	 * y dentro, cada superficie lleva su propio conmutador fino.
+	 */
+	hoverSurfaces: {
+		/** Nivel 1: el modulo entero. Apagado => revert() y cero residuo. */
+		enabled: boolean;
+		/** Nivel 2: por superficie. */
+		sidebars: { hover: boolean; pin: boolean };
+		ribbons: { hover: boolean; pin: boolean };
+		tabbar: { hover: boolean; pin: boolean };
+		statusbar: { hover: boolean; pin: boolean };
+		/** Modo global: sin hover en ninguna, pero las cuatro siguen ocultas. */
+		lock: boolean;
+	};
 	language: Language;
 	defaultPropertyType: string;
 	filterTemplates: FilterTemplate[];
@@ -414,6 +431,14 @@ export interface iVaultmanPlugin extends Plugin {
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
+	hoverSurfaces: {
+		enabled: false,
+		sidebars: { hover: true, pin: true },
+		ribbons: { hover: true, pin: false },
+		tabbar: { hover: true, pin: false },
+		statusbar: { hover: true, pin: false },
+		lock: false,
+	},
 	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 	nativeSurfaceClickAlt: 'open-node-note-same-tab',
 	nativeSurfaceClickMod: 'open-node-note-new-tab',

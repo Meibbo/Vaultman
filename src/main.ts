@@ -88,6 +88,7 @@ import {
 	hoverActionId,
 } from './logic/logicSasiHoverActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
+import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
 import { formatPerfTimeline } from './utils/perfTimeline';
 
@@ -129,6 +130,8 @@ export class VaultmanPlugin extends Plugin {
 	/** ADR 0004: registro de zonas frágiles. El revert de cada adapter es el
 	 * contrato serviceUnload (ADR 0011) que da el apagado por función. */
 	platformAdapterRegistry!: PlatformAdapterRegistry;
+	/** Hover/pin/lock de las cuatro superficies. Vive tras el registry. */
+	hoverSurfacesAdapter!: ReturnType<typeof createHoverSurfacesAdapter>;
 
 	
 	async revealNodeInVaultman(node: import('./services/serviceNodeBinding').BindingNodeInput): Promise<boolean> {
@@ -219,7 +222,21 @@ export class VaultmanPlugin extends Plugin {
 		});
 		this.addChild(this.breadcrumbFileSceneService);
 
+		// El adapter de hover solo se registra si el modulo esta encendido: el
+		// nivel 1 de los ajustes. Apagado, ni siquiera se instala, asi que no
+		// hay listeners ni clases que revertir despues.
+		this.hoverSurfacesAdapter = createHoverSurfacesAdapter();
 		this.platformAdapterRegistry = new PlatformAdapterRegistry();
+		if (this.settings.hoverSurfaces.enabled) {
+			this.hoverSurfacesAdapter.updateConfig({
+				sidebars: this.settings.hoverSurfaces.sidebars,
+				ribbons: this.settings.hoverSurfaces.ribbons,
+				tabbar: this.settings.hoverSurfaces.tabbar,
+				statusbar: this.settings.hoverSurfaces.statusbar,
+				lock: this.settings.hoverSurfaces.lock,
+			});
+			this.platformAdapterRegistry.add(this.hoverSurfacesAdapter);
+		}
 		this.addChild(this.platformAdapterRegistry);
 		await this.platformAdapterRegistry.activate({
 			app: this.app,
