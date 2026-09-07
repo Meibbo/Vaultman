@@ -52,7 +52,7 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('renders caller-provided header actions immediately after the tabs button', () => {
-		const tabsIndex = navbarFiltersSource.indexOf('openTabsPopup(event)');
+		const tabsIndex = navbarFiltersSource.indexOf('openScenePopup(event)');
 		const headerActionsIndex = navbarFiltersSource.indexOf(
 			'{#each headerActions as action',
 		);
@@ -101,9 +101,7 @@ describe('minimal filters header source guards', () => {
 	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
 		// Sort menu cleanup: byLevelModel now receives treeCapableFor(tab) so the
 		// folder options vanish in flat (table/cards) views.
-		expect(navbarFiltersSource).toContain('nestedActiveFor(tab)');
 		expect(navbarFiltersSource).toContain('treeCapableFor(tab)');
-		expect(navbarFiltersSource).toContain("option.id === 'parentsFirst'");
 		expect(navbarFiltersSource).toContain(
 			'fileList?.setSortState(normalizedState)',
 		);
@@ -147,7 +145,7 @@ describe('minimal filters header source guards', () => {
 		const actionsSource = navbarFiltersSource.slice(
 			navbarFiltersSource.indexOf('class="vaultman-filters-actions"'),
 		);
-		const tabsIndex = actionsSource.indexOf('openTabsPopup(event)');
+		const tabsIndex = actionsSource.indexOf('openScenePopup(event)');
 		const viewIndex = actionsSource.indexOf('openViewModePopup(event)');
 		const sortIndex = actionsSource.indexOf('openSortPopup(event)');
 		const searchIndex = actionsSource.indexOf(

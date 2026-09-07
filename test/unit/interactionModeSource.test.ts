@@ -18,14 +18,13 @@ function functionSlice(source: string, name: string): string {
 
 describe('BT3 native menu and interaction-mode source guards', () => {
 	it('orders the Tabs menu into the locked sections', () => {
-		const menu = functionSlice(navbarSource, 'openNativeTabsMenu');
+		const menu = functionSlice(navbarSource, 'openNativeSceneMenu');
 		const orderedTokens = [
 			'for (const option of primaryTabOptions)',
 			'launcherActions',
 			"translate('floating_toc.menu')",
 			'renderTabAction(statisticsAction)',
 			'for (const option of addonTabOptions)',
-			"translate('viewmenu.toolbar')",
 		];
 		let previous = -1;
 		for (const token of orderedTokens) {

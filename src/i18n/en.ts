@@ -544,6 +544,7 @@ export const en: Record<string, string> = {
 	'viewmenu.interaction.add': 'Add',
 	'viewmenu.interaction.select': 'Select',
 	'viewmenu.interaction.filter': 'Filter',
+	'viewmenu.engines': 'Engines',
 	'floating_toc.files': 'Index folders',
 	'floating_toc.folders': 'Index files',
 	'floating_toc.pick': 'Pick a node to index its level',

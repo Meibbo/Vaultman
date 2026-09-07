@@ -545,6 +545,7 @@ export const es: Record<string, string> = {
 	'viewmenu.interaction.add': 'Agregar',
 	'viewmenu.interaction.select': 'Seleccionar',
 	'viewmenu.interaction.filter': 'Filtrar',
+	'viewmenu.engines': 'Motores',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

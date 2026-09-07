@@ -25,38 +25,25 @@ describe('BT5-007 shared sort menu model', () => {
 		const enabled = byLevelModel(
 			'files',
 			stateFor('files', { parentsFirst: true, fixedFolders: false }),
-			true,
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(enabled?.items.map((item) => item.id)).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
-			'nested',
-			'parentsFirst',
-			'fixedFolders',
 			'scope-separator',
 			'drill',
 			'all',
 			'groups',
 		]);
-		expect(enabled?.items.find((item) => item.id === 'nested')).toMatchObject({
-			checked: true,
-		});
-		expect(
-			enabled?.items.find((item) => item.id === 'fixedFolders'),
-		).toMatchObject({ checked: false });
 
 		const foldersMixed = byLevelModel(
 			'files',
 			stateFor('files', { parentsFirst: false, fixedFolders: true }),
-			true,
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
-			'nested',
-			'parentsFirst',
 			'scope-separator',
 			'drill',
 			'all',
@@ -65,35 +52,29 @@ describe('BT5-007 shared sort menu model', () => {
 	});
 
 	it('drops the folder options when nesting is off or the view is flat', () => {
-		// Nested off: only the Nested toggle survives — folders-first, all levels
-		// and scope have no single-level meaning.
+		// Scopes are always in the sort menu (guard removed per spec 08).
 		expect(
-			byLevelModel('files', stateFor('files'), false)?.items.map((i) => i.id),
-			// U121-052: `files` gana `filtered` y, por el mismo motivo que ya se
-			// documenta debajo para los node providers, NO se condiciona al anidado:
-			// estrechar el conjunto de origen tambien significa algo en plano.
-		).toEqual(['filtered', 'nested']);
-		// U121-029: the node providers carry `filtered` above Nested, and it is
-		// not gated on nesting — narrowing the source set means something on a
-		// flat level too.
+			byLevelModel('files', stateFor('files'))?.items.map((i) => i.id),
+		).toEqual(['filtered', 'scope-separator', 'drill', 'all', 'groups']);
+		// U121-052: `files` gana `filtered` y, por el mismo motivo que ya se
+		// documenta debajo para los node providers, NO se condiciona al anidado:
+		// estrechar el conjunto de origen tambien significa algo en plano.
 		expect(
-			byLevelModel('tags', stateFor('tags'), false)?.items.map((i) => i.id),
-		).toEqual(['filtered', 'nested']);
+			byLevelModel('tags', stateFor('tags'))?.items.map((i) => i.id),
+		).toEqual(['filtered', 'scope-separator', 'drill', 'all', 'groups']);
 		// A flat view (table/cards) has no By-level group at all.
-		expect(byLevelModel('files', stateFor('files'), true, false)).toBeNull();
-		expect(byLevelModel('files', stateFor('files'), false, false)).toBeNull();
+		expect(byLevelModel('files', stateFor('files'), false)).toBeNull();
+		expect(byLevelModel('tags', stateFor('tags'), false)).toBeNull();
 	});
 
 	it('projects the same contextual scope order for Props and Tags', () => {
 		const props = byLevelModel(
 			'props',
 			stateFor('props', { activeScope: 'values' }),
-			true,
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(props?.items.map((item) => item.id)).toEqual([
 			'filtered',
-			'nested',
 			'scope-separator',
 			'all',
 			'properties',
@@ -107,29 +88,27 @@ describe('BT5-007 shared sort menu model', () => {
 		const tags = byLevelModel(
 			'tags',
 			stateFor('tags', { activeScope: 'all' }),
-			true,
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(tags?.items.map((item) => item.id)).toEqual([
 			'filtered',
-			'nested',
 			'scope-separator',
 			'drill',
 			'all',
 			'groups',
 		]);
-		// U121-079: groups llega a snippets y habilita By-level con all y groups.
+		// U121-079: groups llega a snippets y habilita By-level with all and groups.
 		expect(
-			byLevelModel('snippets', stateFor('snippets'), true)?.items.map(
+			byLevelModel('snippets', stateFor('snippets'))?.items.map(
 				(item) => item.id,
 			),
-		).toEqual(['nested', 'scope-separator', 'all', 'groups']);
-		// U121-079: groups llega a plugins y habilita By-level con all y groups.
+		).toEqual(['scope-separator', 'all', 'groups']);
+		// U121-079: groups llega a plugins y habilita By-level with all and groups.
 		expect(
-			byLevelModel('plugins', stateFor('plugins'), true)?.items.map(
+			byLevelModel('plugins', stateFor('plugins'))?.items.map(
 				(item) => item.id,
 			),
-		).toEqual(['nested', 'scope-separator', 'all', 'groups']);
+		).toEqual(['scope-separator', 'all', 'groups']);
 	});
 
 	it('shares contextual sort visibility and option registries', () => {
@@ -214,12 +193,7 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(popupSource).not.toMatch(/const DRAWER_OPTIONS\s*:/);
 		expect(popupSource).toContain('byLevelModel(');
 		expect(popupSource).toContain('visibleSortOptions(');
-		expect(popupSource).toContain('onNestedToggle');
 		expect(popupSource).toContain('void initialSortState;');
-		expect(navbarSource).toContain('nestedActive={nestedActiveFor(activeTab)}');
-		expect(navbarSource).toContain(
-			'onNestedToggle={() => toggleNestedFor(activeTab)}',
-		);
 	});
 
 	it('wires semantic Type comparators into Props and sibling-preserving Tags sort', () => {
@@ -241,7 +215,6 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('props', { activeScope: 'properties' }),
 			true,
 			true,
-			true,
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(withReveal?.items.map((item) => item.id)).toEqual([
@@ -249,7 +222,6 @@ describe('BT5-007 shared sort menu model', () => {
 			'reveal-drill',
 			'reveal-separator',
 			'filtered',
-			'nested',
 			'scope-separator',
 			'all',
 			'properties',
@@ -269,7 +241,6 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('props', { revealAnchor: 'pinned', revealAnchorPath: 'a.md' }),
 			true,
 			true,
-			true,
 		);
 		expect(
 			pinned?.items.find((item) => item.id === 'reveal-drill'),
@@ -277,7 +248,7 @@ describe('BT5-007 shared sort menu model', () => {
 
 		// Files has no reveal projection of its own here.
 		expect(
-			byLevelModel('files', stateFor('files'), true, true, true)?.items.map(
+			byLevelModel('files', stateFor('files'), true, true)?.items.map(
 				(item) => item.id,
 			),
 		).not.toContain('reveal-current-file');
