@@ -377,6 +377,18 @@ export class PluginsExplorerPanel
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
+			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
+			// mismo camino que files/tags/props — sin esto se colaba el
+			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por
+			// `applyCoreRowClasses`.
+			headerMeta: {
+				pluginId: '',
+				name: '',
+				enabled: false,
+				loaded: false,
+				isVaultman: false,
+			},
+			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<PluginMeta>[];
 		return this.withGroupToggleCells(projected);
 	}
@@ -433,6 +445,10 @@ export class PluginsExplorerPanel
 		this.treeView.render({
 			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
+			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un
+			// grupo activo si crea un nivel (cabecera -> miembros) que
+			// necesita la guia igual que el resto de p-nodes con hijos.
+			indentGuides: this.sortState?.activeScope === 'groups',
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({

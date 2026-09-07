@@ -479,6 +479,11 @@
 			activeTab,
 			visibleCellsByTab[activeTab] ??
 				defaultVisibleCells(activeTab, viewModeByTab[activeTab]),
+			// U130-t33 (L-PNODE): un grupo es un p-node plegable aunque la
+			// anidacion este apagada — sin este flag el toggle queda muerto en
+			// ese caso exacto, el que el dev senalo.
+			(sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab])
+				?.activeScope === 'groups',
 		),
 	);
 	const expansionLabel = $derived(
