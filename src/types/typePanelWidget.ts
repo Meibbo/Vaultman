@@ -75,6 +75,12 @@ export interface PanelWidgetExplorerPort {
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
+	/**
+	 * U130-05: per-instance layout activation. Sets the layout name the
+	 * explorer resolves in projectedNodes to pick up groupMemberships from
+	 * the saved layout, making custom group headers reachable.
+	 */
+	setActiveLayoutName?(name: string | null): void;
 }
 
 export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPort {

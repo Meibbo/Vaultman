@@ -60,6 +60,8 @@ export interface PanelPluginCtx {
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
 		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
+		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
+		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -350,8 +352,10 @@ export class TagsExplorerPanel extends Component {
 	private projectedNodes(
 		nodes: readonly TreeNode<TagMeta>[],
 	): TreeNode<TagMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
 		const layout = this.plugin.settings?.savedLayouts?.find(
-			(candidate) => candidate.name === this.activeLayoutName,
+			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
 		const groups = resolveCustomGroups(memberships);

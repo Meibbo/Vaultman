@@ -832,6 +832,23 @@ items.push({
 						)
 						.addButton((button) =>
 							button
+								.setButtonText(
+									translate('settings.saved_view_config.activate_global'),
+								)
+								.setTooltip(
+									translate(
+										'settings.saved_view_config.activate_global_aria',
+										{ name: layout.name },
+									),
+								)
+								.onClick(async () => {
+									this.plugin.settings.activeLayoutName = layout.name;
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						)
+						.addButton((button) =>
+							button
 								.setButtonText(translate('settings.saved_view_config.clear'))
 								.setWarning()
 								.onClick(async () => {

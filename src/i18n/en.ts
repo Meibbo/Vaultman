@@ -473,6 +473,11 @@ export const en: Record<string, string> = {
 	'settings.saved_view_config.empty':
 		'No saved view composition. Use "Save layout" in the view menu to remember view options and sorts per tab.',
 	'settings.saved_view_config.clear': 'Clear',
+	'settings.saved_view_config.activate_global': 'Activate globally',
+	'settings.saved_view_config.activate_global_aria':
+		'Activate {name} globally (all instances)',
+	'settings.saved_view_config.activate_global_notice':
+		'Activated {name} globally.',
 	'settings.floating_toc': 'Widget: Floating Index',
 	'settings.floating_toc.desc':
 		'Customize the explorer index and Niagara behavior.',

@@ -363,6 +363,17 @@
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}
+	function explorerPortForTab(
+		tab: FiltersTab,
+	): PanelWidgetExplorerPort | null {
+		if (tab === 'files') return fileList ?? null;
+		if (tab === 'props') return propExplorer ?? null;
+		if (tab === 'tags') return tagsExplorer ?? null;
+		if (tab === 'snippets') return snippetsExplorer ?? null;
+		if (tab === 'plugins') return pluginsExplorer ?? null;
+		return null;
+	}
+
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
@@ -406,6 +417,15 @@
 				sortState: nextSort[tab],
 				interactionMode: nextInteraction[tab],
 			});
+		}
+		// U130-05: activacion PER-INSTANCE. `groupMemberships` es una propiedad
+		// del layout, no de la pestana: llamar a setActiveLayoutName en cada
+		// explorer hace que su projectedNodes la busque por nombre, y las
+		// cabeceras de grupo custom pasan a ser alcanzables en vez de caer
+		// siempre a la rama preset alfabetica. Antes loadLayout aplicaba
+		// vista/sort/celdas e ignoraba groupMemberships por completo.
+		for (const tab of LAYOUT_TABS) {
+			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}
 		onLayoutLoaded?.(layout);
 	}

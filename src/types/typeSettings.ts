@@ -304,6 +304,13 @@ export interface VaultmanSettings {
 	/** Named saved explorer layouts (view options + sorts per tab) */
 	savedLayouts?: SavedLayout[];
 	/**
+	 * U130-05: el nombre del layout globalmente activado desde Settings.
+	 * Afecta a todas las instancias presentes y futuras: cada explorer
+	 * lo lee como fallback cuando su activeLayoutName per-instance es null.
+	 * La activacion per-instance (view menu) lo sobreescribe localmente.
+	 */
+	activeLayoutName?: string;
+	/**
 	 * U130-06: el ultimo InteractionMode que el usuario eligio en cada pestana.
 	 * Es el nivel intermedio de la cascada: pierde contra un layout aplicado y
 	 * gana contra DEFAULT_INTERACTION_MODE.
