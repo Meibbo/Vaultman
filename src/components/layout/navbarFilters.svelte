@@ -1335,8 +1335,23 @@
 			});
 		}
 
-		// Rendering engines are the final section.
-		menu.addSeparator();
+		// Toolbar toggle sits in the same section as engines, immediately
+		// before it, with NO divider between the two (spec 08 §2).
+		if (onToggleToolbar) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+		}
+		// Submenu `engines`: the available rendering engines, then a divider,
+		// then the engine-specific view options (nested, folders-first,
+		// fixed-folders). Those options are modes of the SELECTED engine, so
+		// they live INSIDE this submenu, not at the view_menu top level.
+		const sortState = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const nestedAct = nestedActiveFor(activeTab);
 		menu.addItem((submenuItem) => {
 			submenuItem.setTitle(translate('viewmenu.engines')).setIcon('lucide-layout');
 			const submenu =
@@ -1354,22 +1369,23 @@
 					}
 				});
 			}
-		});
-		// View options for the selected engine: nested, folders-first, fixed-folders.
-		const sortState = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
-		const nestedAct = nestedActiveFor(activeTab);
-		menu.addSeparator();
-		menu.addItem((item) => {
-			item
-				.setTitle(translate('sort.level.nested'))
-				.setIcon('lucide-list-tree')
-				.setChecked(nestedAct)
-				.onClick(() => toggleNestedFor(activeTab));
-		});
-		if (nestedAct) {
-			if (activeTab === 'files') {
+			// Projection rule (conserved from sort_menu, spec 08 §2):
+			// `nested` is always present (it's the toggle for the engine);
+			// parentsFirst and fixedFolders vanish when nested is off;
+			// fixedFolders also vanishes when parentsFirst is off. The chain:
+			// nested -> parentsFirst -> fixedFolders. parentsFirst /
+			// fixedFolders only exist in Files (the Files-specific sort knobs).
+			submenu.addSeparator();
+			submenu.addItem((item) => {
+				item
+					.setTitle(translate('sort.level.nested'))
+					.setIcon('lucide-list-tree')
+					.setChecked(nestedAct)
+					.onClick(() => toggleNestedFor(activeTab));
+			});
+			if (nestedAct && activeTab === 'files') {
 				const parentsFirst = sortState.parentsFirst ?? true;
-				menu.addItem((item) => {
+				submenu.addItem((item) => {
 					item
 						.setTitle(translate('sort.parents_first'))
 						.setIcon('lucide-folder-tree')
@@ -1382,7 +1398,7 @@
 						);
 				});
 				if (parentsFirst) {
-					menu.addItem((item) => {
+					submenu.addItem((item) => {
 						item
 							.setTitle(translate('sort.level.fixed_folders'))
 							.setIcon('lucide-folder-lock')
@@ -1396,18 +1412,7 @@
 					});
 				}
 			}
-		}
-		// Toolbar toggle — moved here from the scene menu (spec 08).
-		if (onToggleToolbar) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-		}
+		});
 		menu.showAtMouseEvent(event);
 	}
 
