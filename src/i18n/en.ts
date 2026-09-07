@@ -684,19 +684,76 @@ export const en: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'writes to the vault',
 	'sasi.inspector.toggle.on': 'Published',
 	'sasi.inspector.toggle.off': 'Hidden',
+	'sasi.hover.sidebars.hide': 'Hide sidebars',
 	'sasi.hover.sidebars.hover': 'Hover sidebars',
 	'sasi.hover.sidebars.pin': 'Pin sidebars',
+	'sasi.hover.ribbons.hide': 'Hide ribbons',
 	'sasi.hover.ribbons.hover': 'Hover ribbons',
 	'sasi.hover.ribbons.pin': 'Pin ribbons',
+	'sasi.hover.tabbar.hide': 'Hide tab bar',
 	'sasi.hover.tabbar.hover': 'Hover tabbar',
 	'sasi.hover.tabbar.pin': 'Pin tabbar',
+	'sasi.hover.statusbar.hide': 'Hide status bar',
 	'sasi.hover.statusbar.hover': 'Hover status bar',
 	'sasi.hover.statusbar.pin': 'Pin status bar',
 	'sasi.hover.lock': 'Lock hover surfaces',
+	'sasi.hover.nested-ribbon': 'Nested hover ribbon',
 	'settings.sasi_inspector': 'SASI registry',
 	'settings.sasi_inspector.desc':
 		'Inspect the kinds, providers and functions Vaultman has registered.',
 	'settings.sasi_inspector.open': 'Inspect',
+	'settings.chrome_hover': 'Chrome hover',
+	'settings.chrome_hover.desc':
+		'Hide the four Obsidian chrome surfaces and reveal them on hover. Nothing hides without its hide action; with panels open nothing happens.',
+	'settings.chrome_hover.enable': 'Enable chrome hover module',
+	'settings.chrome_hover.enable.desc':
+		'Master switch. Off means the adapter is not even registered: no listeners, no classes, nothing to revert.',
+	'settings.chrome_hover.sidebars': 'Sidebars',
+	'settings.chrome_hover.sidebars.hide': 'Hide sidebars',
+	'settings.chrome_hover.sidebars.hide.desc':
+		'Collapse both sidebars off-screen. Only then can hover reveal them.',
+	'settings.chrome_hover.sidebars.hover': 'Hover sidebars',
+	'settings.chrome_hover.sidebars.hover.desc':
+		'Reveal a hidden sidebar when the pointer reaches its edge zone.',
+	'settings.chrome_hover.sidebars.pin': 'Pin sidebars',
+	'settings.chrome_hover.sidebars.pin.desc':
+		'Keep a revealed sidebar open while interacting with it.',
+	'settings.chrome_hover.ribbons': 'Ribbons',
+	'settings.chrome_hover.ribbons.hide': 'Hide ribbons',
+	'settings.chrome_hover.ribbons.hide.desc':
+		'Collapse both ribbons to zero width. Only then can hover reveal them.',
+	'settings.chrome_hover.ribbons.hover': 'Hover ribbons',
+	'settings.chrome_hover.ribbons.hover.desc':
+		'Reveal a hidden ribbon when the pointer reaches its strip.',
+	'settings.chrome_hover.ribbons.pin': 'Pin ribbons',
+	'settings.chrome_hover.ribbons.pin.desc':
+		'Keep a revealed ribbon open while interacting with it.',
+	'settings.chrome_hover.tabbar': 'Tab bar',
+	'settings.chrome_hover.tabbar.hide': 'Hide tab bar',
+	'settings.chrome_hover.tabbar.hide.desc':
+		'Collapse the tab bar and view header to zero height. Only then can hover reveal them.',
+	'settings.chrome_hover.tabbar.hover': 'Hover tab bar',
+	'settings.chrome_hover.tabbar.hover.desc':
+		'Reveal the hidden tab bar when the pointer reaches the top edge.',
+	'settings.chrome_hover.tabbar.pin': 'Pin tab bar',
+	'settings.chrome_hover.tabbar.pin.desc':
+		'Keep the revealed tab bar open while interacting with it.',
+	'settings.chrome_hover.statusbar': 'Status bar',
+	'settings.chrome_hover.statusbar.hide': 'Hide status bar',
+	'settings.chrome_hover.statusbar.hide.desc':
+		'Collapse the status bar to a 3px line. Only then can hover reveal it.',
+	'settings.chrome_hover.statusbar.hover': 'Hover status bar',
+	'settings.chrome_hover.statusbar.hover.desc':
+		'Reveal the hidden status bar when the pointer reaches the bottom edge.',
+	'settings.chrome_hover.statusbar.pin': 'Pin status bar',
+	'settings.chrome_hover.statusbar.pin.desc':
+		'Keep the revealed status bar open while interacting with it.',
+	'settings.chrome_hover.lock': 'Lock hover surfaces',
+	'settings.chrome_hover.lock.desc':
+		'Absolute concentration: no hover reveals anywhere, but the four surfaces stay hidden.',
+	'settings.chrome_hover.nested_ribbon': 'Nested hover ribbon',
+	'settings.chrome_hover.nested_ribbon.desc':
+		'When the ribbon is hidden, hovering it reveals it and pushes the floating sidebar inward, like the native ribbon pushes the native sidebar.',
 	'explorer.move_to_prop.write.append': 'Append to the destination',
 	'explorer.move_to_prop.write.replace': 'Replace the destination',
 	'explorer.move_to_prop.origin.move': 'Remove the original value',

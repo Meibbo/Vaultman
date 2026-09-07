@@ -7,6 +7,7 @@ import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 import { createSasiCommandPublisher } from '../../src/logic/logicSasiCommands';
 import {
 	HOVER_LOCK_ID,
+	HOVER_NESTED_RIBBON_ID,
 	HOVER_SURFACE_IDS,
 	hoverActionId,
 	registerHoverActions,
@@ -23,16 +24,19 @@ const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * mantener.
  */
 describe('U130-? SASI hover actions', () => {
-	it('registra 9 actions: 2 por surface + lock', () => {
+	it('registra 14 actions: 3 por surface + lock + nested-ribbon', () => {
 		const registry = createSasiRegistry();
 		registerHoverActions(registry);
 		const expected = [
 			HOVER_LOCK_ID,
+			HOVER_NESTED_RIBBON_ID,
 			...HOVER_SURFACE_IDS.flatMap((surface) => [
+				hoverActionId({ surface, kind: 'hide' }),
 				hoverActionId({ surface, kind: 'hover' }),
 				hoverActionId({ surface, kind: 'pin' }),
 			]),
 		];
+		expect(expected.length).toBe(14);
 		for (const id of expected) {
 			const def = registry.resolve(id).def;
 			expect(def, `id registrado: ${id}`).not.toBeNull();
@@ -45,7 +49,9 @@ describe('U130-? SASI hover actions', () => {
 		registerHoverActions(registry);
 		for (const id of [
 			HOVER_LOCK_ID,
+			HOVER_NESTED_RIBBON_ID,
 			...HOVER_SURFACE_IDS.flatMap((surface) => [
+				hoverActionId({ surface, kind: 'hide' }),
 				hoverActionId({ surface, kind: 'hover' }),
 				hoverActionId({ surface, kind: 'pin' }),
 			]),
@@ -61,7 +67,7 @@ describe('U130-? SASI hover actions', () => {
 		const { registry } = createVaultmanSasi();
 		const ids = registry.list('function').map((def) => def.id);
 		const hoverIds = ids.filter((id) => id.startsWith('vaultman.hover.'));
-		expect(hoverIds.length).toBe(9);
+		expect(hoverIds.length).toBe(14);
 		for (const id of hoverIds) {
 			expect(id.startsWith('vaultman.move.')).toBe(false);
 			expect(id.startsWith('vaultman.search.')).toBe(false);
@@ -74,7 +80,9 @@ describe('U130-? SASI hover actions', () => {
 		registerHoverActions(registry);
 		for (const id of [
 			HOVER_LOCK_ID,
+			HOVER_NESTED_RIBBON_ID,
 			...HOVER_SURFACE_IDS.flatMap((surface) => [
+				hoverActionId({ surface, kind: 'hide' }),
 				hoverActionId({ surface, kind: 'hover' }),
 				hoverActionId({ surface, kind: 'pin' }),
 			]),

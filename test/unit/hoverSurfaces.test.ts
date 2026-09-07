@@ -449,9 +449,28 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		return { leftSidebar, rightSidebar, leftRibbon, tabbar, viewHeader, statusbar };
 	}
 
+	/**
+	 * El adapter solo revela superficies OCULTAS (hide): sin la accion de
+	 * ocultar, hover no pone nada aunque este encendido. Cada test de
+	 * comportamiento habilita hide+hover de su superficie.
+	 */
+	function enableHideHover(
+		overrides: Partial<import('../../src/services/serviceHoverSurfaces').HoverSurfacesConfig> = {},
+	): void {
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+			ribbons: { hide: true, hover: true, pin: false },
+			tabbar: { hide: true, hover: true, pin: false },
+			statusbar: { hide: true, hover: true, pin: false },
+			...overrides,
+		});
+	}
+
 	it('pointermove sobre la sidebar izquierda pone mb-sidebar-hovered', () => {
 		const { leftSidebar } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(leftSidebar, { clientX: 5, clientY: 5 }));
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 	});
@@ -460,7 +479,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		const { leftSidebar, rightSidebar } = setUpSurfaces();
 		leftSidebar.classList.add('mb-sidebar-hovered');
 		rightSidebar.classList.remove('mb-sidebar-hovered');
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(rightSidebar, { clientX: 5, clientY: 5 }));
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(false);
 		expect(rightSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
@@ -468,28 +487,28 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 
 	it('pointermove sobre ribbon pone mb-ribbon-hovered', () => {
 		const { leftRibbon } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(leftRibbon, { clientX: 5, clientY: 5 }));
 		expect(leftRibbon.classList.contains('mb-ribbon-hovered')).toBe(true);
 	});
 
 	it('pointermove sobre tabbar pone mb-tabbar-hovered', () => {
 		const { tabbar } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(tabbar, { clientX: 5, clientY: 5 }));
 		expect(tabbar.classList.contains('mb-tabbar-hovered')).toBe(true);
 	});
 
 	it('pointermove sobre .view-header pone mb-tabbar-hovered', () => {
 		const { viewHeader } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(viewHeader, { clientX: 5, clientY: 5 }));
 		expect(viewHeader.classList.contains('mb-tabbar-hovered')).toBe(true);
 	});
 
 	it('pointermove sobre .status-bar pone mb-statusbar-hovered', () => {
 		const { statusbar } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(statusbar, { clientX: 5, clientY: 5 }));
 		expect(statusbar.classList.contains('mb-statusbar-hovered')).toBe(true);
 	});
@@ -498,20 +517,108 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		const { leftSidebar } = setUpSurfaces();
 		const menu = new MockElement(fixture.doc, 'div', { classes: ['menu'] });
 		fixture.doc.body.appendChild(menu);
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(leftSidebar, { clientX: 5, clientY: 5 }));
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 		dispatch(fixture.doc, 'pointermove', makeEvent(fixture.doc.body, { clientX: 1, clientY: 1 }));
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 	});
 
+	it('SIN hide: hover encendido NO pone mb-sidebar-hovered (superficie abierta intacta)', () => {
+		const { leftSidebar } = setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: true, pin: true },
+		});
+		dispatch(fixture.doc, 'pointermove', makeEvent(leftSidebar, { clientX: 5, clientY: 5 }));
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(false);
+	});
+
+	it('SIN hide en ribbon: hover encendido NO pone mb-ribbon-hovered', () => {
+		const { leftRibbon } = setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			ribbons: { hide: false, hover: true, pin: false },
+		});
+		dispatch(fixture.doc, 'pointermove', makeEvent(leftRibbon, { clientX: 5, clientY: 5 }));
+		expect(leftRibbon.classList.contains('mb-ribbon-hovered')).toBe(false);
+	});
+
+	it('hide pone mb-hide-sidebars en body y updateConfig lo retira al apagar', () => {
+		setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: false, pin: true },
+		});
+		expect(fixture.doc.body.classList.contains('mb-hide-sidebars')).toBe(true);
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: false, pin: true },
+		});
+		expect(fixture.doc.body.classList.contains('mb-hide-sidebars')).toBe(false);
+	});
+
+	it('nested-ribbon pone mb-nested-hover-ribbon en body solo con el switch', () => {
+		setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		expect(fixture.doc.body.classList.contains('mb-nested-hover-ribbon')).toBe(false);
+		fixture.adapter.updateConfig({ ...DEFAULT_HOVER_SURFACES_CONFIG, nestedRibbon: true });
+		expect(fixture.doc.body.classList.contains('mb-nested-hover-ribbon')).toBe(true);
+		fixture.adapter.updateConfig({ ...DEFAULT_HOVER_SURFACES_CONFIG, nestedRibbon: false });
+		expect(fixture.doc.body.classList.contains('mb-nested-hover-ribbon')).toBe(false);
+	});
+
+	it('nested-ribbon: hover sobre ribbon oculto revela ribbon Y sidebar izquierda', () => {
+		const { leftSidebar, leftRibbon } = setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+			ribbons: { hide: true, hover: true, pin: false },
+			nestedRibbon: true,
+		});
+		dispatch(fixture.doc, 'pointermove', makeEvent(leftRibbon, { clientX: 5, clientY: 5 }));
+		expect(leftRibbon.classList.contains('mb-ribbon-hovered')).toBe(true);
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
+	});
+
+	it('SIN nested: hover sobre ribbon oculto revela ribbon pero NO la sidebar', () => {
+		const { leftSidebar, leftRibbon } = setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+			ribbons: { hide: true, hover: true, pin: false },
+			nestedRibbon: false,
+		});
+		dispatch(fixture.doc, 'pointermove', makeEvent(leftRibbon, { clientX: 5, clientY: 5 }));
+		expect(leftRibbon.classList.contains('mb-ribbon-hovered')).toBe(true);
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(false);
+	});
+
 	it('selector persistente (input dentro de sidebar) pinea en focusin', () => {
 		const { leftSidebar } = setUpSurfaces();
 		const input = new MockElement(fixture.doc, 'input');
 		leftSidebar.appendChild(input);
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'focusin', makeEvent(input));
 		expect(leftSidebar.classList.contains('mb-sidebar-pinned')).toBe(true);
+	});
+
+	it('SIN hide: focusin sobre input NO pinea (superficie abierta intacta)', () => {
+		const { leftSidebar } = setUpSurfaces();
+		const input = new MockElement(fixture.doc, 'input');
+		leftSidebar.appendChild(input);
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: false, pin: true },
+		});
+		dispatch(fixture.doc, 'focusin', makeEvent(input));
+		expect(leftSidebar.classList.contains('mb-sidebar-pinned')).toBe(false);
 	});
 
 	it('click sobre quick action dentro de sidebar pineada la despina', () => {
@@ -520,7 +627,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		leftSidebar.appendChild(link);
 		const input = new MockElement(fixture.doc, 'input');
 		leftSidebar.appendChild(input);
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'focusin', makeEvent(input));
 		expect(leftSidebar.classList.contains('mb-sidebar-pinned')).toBe(true);
 		dispatch(fixture.doc, 'click', makeEvent(link));
@@ -540,7 +647,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		const { leftSidebar, rightSidebar } = setUpSurfaces();
 		const input = new MockElement(fixture.doc, 'input');
 		leftSidebar.appendChild(input);
-		fixture.adapter.apply(ctxOf(fixture));
+		enableHideHover();
 		dispatch(fixture.doc, 'focusin', makeEvent(input));
 		expect(leftSidebar.classList.contains('mb-sidebar-pinned')).toBe(true);
 		fixture.adapter.updateConfig({ ...DEFAULT_HOVER_SURFACES_CONFIG, lock: true });
@@ -552,10 +659,24 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 
 	it('desactivar lock retira mb-hover-locked del body y restaura hover', () => {
 		const { leftSidebar } = setUpSurfaces();
-		fixture.adapter.apply(ctxOf(fixture));
-		fixture.adapter.updateConfig({ ...DEFAULT_HOVER_SURFACES_CONFIG, lock: true });
+		enableHideHover();
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+			ribbons: { hide: true, hover: true, pin: false },
+			tabbar: { hide: true, hover: true, pin: false },
+			statusbar: { hide: true, hover: true, pin: false },
+			lock: true,
+		});
 		expect(fixture.doc.body.classList.contains('mb-hover-locked')).toBe(true);
-		fixture.adapter.updateConfig({ ...DEFAULT_HOVER_SURFACES_CONFIG, lock: false });
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+			ribbons: { hide: true, hover: true, pin: false },
+			tabbar: { hide: true, hover: true, pin: false },
+			statusbar: { hide: true, hover: true, pin: false },
+			lock: false,
+		});
 		expect(fixture.doc.body.classList.contains('mb-hover-locked')).toBe(false);
 		dispatch(fixture.doc, 'pointermove', makeEvent(leftSidebar, { clientX: 5, clientY: 5 }));
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
@@ -565,7 +686,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		const { leftSidebar } = setUpSurfaces();
 		const cfg = {
 			...DEFAULT_HOVER_SURFACES_CONFIG,
-			sidebars: { hover: false, pin: false },
+			sidebars: { hide: true, hover: false, pin: false },
 		};
 		fixture.adapter.apply(ctxOf(fixture));
 		fixture.adapter.updateConfig(cfg);
@@ -632,6 +753,10 @@ describe('HoverSurfacesAdapter — reversibilidad (sin residuo)', () => {
 		const input = new MockElement(fixture.doc, 'input');
 		sidebar.appendChild(input);
 		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: true, hover: true, pin: true },
+		});
 		dispatch(fixture.doc, 'focusin', makeEvent(input));
 		expect(sidebar.classList.contains('mb-sidebar-pinned')).toBe(true);
 		fixture.adapter.revert();

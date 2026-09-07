@@ -697,15 +697,72 @@ export const es: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'escribe en el vault',
 	'sasi.inspector.toggle.on': 'Publicado',
 	'sasi.inspector.toggle.off': 'Oculto',
+	'sasi.hover.sidebars.hide': 'Ocultar los sidebars',
 	'sasi.hover.sidebars.hover': 'Pasar el cursor por los sidebars',
 	'sasi.hover.sidebars.pin': 'Fijar los sidebars',
+	'sasi.hover.ribbons.hide': 'Ocultar los ribbons',
 	'sasi.hover.ribbons.hover': 'Pasar el cursor por los ribbons',
 	'sasi.hover.ribbons.pin': 'Fijar los ribbons',
+	'sasi.hover.tabbar.hide': 'Ocultar la barra de pestañas',
 	'sasi.hover.tabbar.hover': 'Pasar el cursor por la barra de pestañas',
 	'sasi.hover.tabbar.pin': 'Fijar la barra de pestañas',
+	'sasi.hover.statusbar.hide': 'Ocultar la barra de estado',
 	'sasi.hover.statusbar.hover': 'Pasar el cursor por la barra de estado',
 	'sasi.hover.statusbar.pin': 'Fijar la barra de estado',
 	'sasi.hover.lock': 'Bloquear las superficies hover',
+	'sasi.hover.nested-ribbon': 'Ribbon anidado en hover',
+	'settings.chrome_hover': 'Hover del chrome',
+	'settings.chrome_hover.desc':
+		'Oculta las cuatro superficies del chrome de Obsidian y las revela al pasar el cursor. Nada se oculta sin su accion de ocultar; con paneles abiertos no pasa nada.',
+	'settings.chrome_hover.enable': 'Activar el modulo de hover del chrome',
+	'settings.chrome_hover.enable.desc':
+		'Interruptor maestro. Apagado ni siquiera se registra el adapter: sin listeners, sin clases, nada que revertir.',
+	'settings.chrome_hover.sidebars': 'Sidebars',
+	'settings.chrome_hover.sidebars.hide': 'Ocultar los sidebars',
+	'settings.chrome_hover.sidebars.hide.desc':
+		'Colapsa ambos sidebars fuera de pantalla. Solo entonces el hover puede revelarlos.',
+	'settings.chrome_hover.sidebars.hover': 'Hover de sidebars',
+	'settings.chrome_hover.sidebars.hover.desc':
+		'Revela un sidebar oculto cuando el puntero alcanza su zona de borde.',
+	'settings.chrome_hover.sidebars.pin': 'Fijar los sidebars',
+	'settings.chrome_hover.sidebars.pin.desc':
+		'Mantiene abierto un sidebar revelado mientras se interactua con el.',
+	'settings.chrome_hover.ribbons': 'Ribbons',
+	'settings.chrome_hover.ribbons.hide': 'Ocultar los ribbons',
+	'settings.chrome_hover.ribbons.hide.desc':
+		'Colapsa ambos ribbons a ancho cero. Solo entonces el hover puede revelarlos.',
+	'settings.chrome_hover.ribbons.hover': 'Hover de ribbons',
+	'settings.chrome_hover.ribbons.hover.desc':
+		'Revela un ribbon oculto cuando el puntero alcanza su franja.',
+	'settings.chrome_hover.ribbons.pin': 'Fijar los ribbons',
+	'settings.chrome_hover.ribbons.pin.desc':
+		'Mantiene abierto un ribbon revelado mientras se interactua con el.',
+	'settings.chrome_hover.tabbar': 'Barra de pestañas',
+	'settings.chrome_hover.tabbar.hide': 'Ocultar la barra de pestañas',
+	'settings.chrome_hover.tabbar.hide.desc':
+		'Colapsa la barra de pestañas y el encabezado a altura cero. Solo entonces el hover puede revelarlos.',
+	'settings.chrome_hover.tabbar.hover': 'Hover de la barra de pestañas',
+	'settings.chrome_hover.tabbar.hover.desc':
+		'Revela la barra oculta cuando el puntero alcanza el borde superior.',
+	'settings.chrome_hover.tabbar.pin': 'Fijar la barra de pestañas',
+	'settings.chrome_hover.tabbar.pin.desc':
+		'Mantiene abierta la barra revelada mientras se interactua con ella.',
+	'settings.chrome_hover.statusbar': 'Barra de estado',
+	'settings.chrome_hover.statusbar.hide': 'Ocultar la barra de estado',
+	'settings.chrome_hover.statusbar.hide.desc':
+		'Colapsa la barra de estado a una linea de 3px. Solo entonces el hover puede revelarla.',
+	'settings.chrome_hover.statusbar.hover': 'Hover de la barra de estado',
+	'settings.chrome_hover.statusbar.hover.desc':
+		'Revela la barra oculta cuando el puntero alcanza el borde inferior.',
+	'settings.chrome_hover.statusbar.pin': 'Fijar la barra de estado',
+	'settings.chrome_hover.statusbar.pin.desc':
+		'Mantiene abierta la barra revelada mientras se interactua con ella.',
+	'settings.chrome_hover.lock': 'Bloquear las superficies hover',
+	'settings.chrome_hover.lock.desc':
+		'Concentracion absoluta: ningun hover revela nada, pero las cuatro superficies siguen ocultas.',
+	'settings.chrome_hover.nested_ribbon': 'Ribbon anidado en hover',
+	'settings.chrome_hover.nested_ribbon.desc':
+		'Con el ribbon oculto, pasar el cursor lo revela y empuja el sidebar flotante hacia dentro, como el ribbon nativo empuja al sidebar nativo.',
 	'settings.sasi_inspector': 'Registro SASI',
 	'settings.sasi_inspector.desc':
 		'Inspecciona los kinds, providers y funciones que Vaultman tiene registrados.',

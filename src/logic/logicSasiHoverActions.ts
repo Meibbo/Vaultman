@@ -1,11 +1,13 @@
 import type { SasiRegistry } from './logicSasiRegistry';
 
 /**
- * U130-? las nueve acciones de `serviceHoverSurfaces.ts`.
+ * U130-? las acciones de `serviceHoverSurfaces.ts`: hide + hover + pin por
+ * superficie, lock global y nested-ribbon.
  *
  * El servicio expone 4 surfaces (`sidebars`, `ribbons`, `tabbar`, `statusbar`),
- * cada una con dos conmutadores (`hover`, `pin`), y un `lock` global: 9
- * entradas SASI, una por conmutador. Ninguna escribe en el vault: son cambios
+ * cada una con tres conmutadores (`hide`, `hover`, `pin`), un `lock` global y
+ * el `nestedRibbon` (ribbon oculto como disparador de la sidebar): 14
+ * entradas SASI. Ninguna escribe en el vault: son cambios
  * de estado del workspace (clases CSS, listeners), asi que se registran como
  * `kind: 'action'` y nunca llevan `mutatesVault`.
  *
@@ -18,8 +20,10 @@ import type { SasiRegistry } from './logicSasiRegistry';
 
 const HOVER = 'hover';
 const PIN = 'pin';
+const HIDE = 'hide';
 
 export const HOVER_LOCK_ID = 'vaultman.hover.lock';
+export const HOVER_NESTED_RIBBON_ID = 'vaultman.hover.nested-ribbon';
 
 export const HOVER_SURFACE_IDS = [
 	'sidebars',
@@ -32,49 +36,56 @@ export type HoverSurface = (typeof HOVER_SURFACE_IDS)[number];
 
 export interface HoverActionKey {
 	surface: HoverSurface;
-	kind: 'hover' | 'pin';
+	kind: 'hide' | 'hover' | 'pin';
 }
 
-const LABEL_KEYS: Record<HoverSurface, { hover: string; pin: string }> = {
+const LABEL_KEYS: Record<HoverSurface, { hide: string; hover: string; pin: string }> = {
 	sidebars: {
+		hide: 'sasi.hover.sidebars.hide',
 		hover: 'sasi.hover.sidebars.hover',
 		pin: 'sasi.hover.sidebars.pin',
 	},
 	ribbons: {
+		hide: 'sasi.hover.ribbons.hide',
 		hover: 'sasi.hover.ribbons.hover',
 		pin: 'sasi.hover.ribbons.pin',
 	},
 	tabbar: {
+		hide: 'sasi.hover.tabbar.hide',
 		hover: 'sasi.hover.tabbar.hover',
 		pin: 'sasi.hover.tabbar.pin',
 	},
 	statusbar: {
+		hide: 'sasi.hover.statusbar.hide',
 		hover: 'sasi.hover.statusbar.hover',
 		pin: 'sasi.hover.statusbar.pin',
 	},
 };
 
-const ICONS: Record<HoverSurface, { hover: string; pin: string }> = {
-	sidebars: { hover: 'lucide-panel-left', pin: 'lucide-pin' },
-	ribbons: { hover: 'lucide-ribbon', pin: 'lucide-pin' },
-	tabbar: { hover: 'lucide-rectangle-horizontal', pin: 'lucide-pin' },
-	statusbar: { hover: 'lucide-bottom-bar', pin: 'lucide-pin' },
+const ICONS: Record<HoverSurface, { hide: string; hover: string; pin: string }> = {
+	sidebars: { hide: 'lucide-panel-left-close', hover: 'lucide-panel-left', pin: 'lucide-pin' },
+	ribbons: { hide: 'lucide-panel-left-close', hover: 'lucide-ribbon', pin: 'lucide-pin' },
+	tabbar: { hide: 'lucide-panel-top', hover: 'lucide-rectangle-horizontal', pin: 'lucide-pin' },
+	statusbar: { hide: 'lucide-panel-top', hover: 'lucide-bottom-bar', pin: 'lucide-pin' },
 };
 
 export function hoverActionId(key: HoverActionKey): string {
+	if (key.kind === HIDE) return `vaultman.hover.${key.surface}.hide`;
 	return `vaultman.hover.${key.surface}.${key.kind === HOVER ? 'toggle' : 'pin'}`;
 }
 
 export function surfaceForHoverId(id: string): HoverSurface | null {
 	for (const surface of HOVER_SURFACE_IDS) {
+		if (id === hoverActionId({ surface, kind: HIDE })) return surface;
 		if (id === hoverActionId({ surface, kind: HOVER })) return surface;
 		if (id === hoverActionId({ surface, kind: PIN })) return surface;
 	}
 	return null;
 }
 
-export function kindForHoverId(id: string): 'hover' | 'pin' | null {
+export function kindForHoverId(id: string): 'hide' | 'hover' | 'pin' | null {
 	for (const surface of HOVER_SURFACE_IDS) {
+		if (id === hoverActionId({ surface, kind: HIDE })) return HIDE;
 		if (id === hoverActionId({ surface, kind: HOVER })) return HOVER;
 		if (id === hoverActionId({ surface, kind: PIN })) return PIN;
 	}
@@ -83,6 +94,14 @@ export function kindForHoverId(id: string): 'hover' | 'pin' | null {
 
 export function registerHoverActions(registry: SasiRegistry): void {
 	for (const surface of HOVER_SURFACE_IDS) {
+		registry.register({
+			id: hoverActionId({ surface, kind: HIDE }),
+			axis: 'function',
+			kind: 'action',
+			labelKey: LABEL_KEYS[surface].hide,
+			icon: ICONS[surface].hide,
+			supports: [{ surface: 'chrome' }],
+		});
 		registry.register({
 			id: hoverActionId({ surface, kind: HOVER }),
 			axis: 'function',
@@ -106,6 +125,14 @@ export function registerHoverActions(registry: SasiRegistry): void {
 		kind: 'action',
 		labelKey: 'sasi.hover.lock',
 		icon: 'lucide-lock',
+		supports: [{ surface: 'chrome' }],
+	});
+	registry.register({
+		id: HOVER_NESTED_RIBBON_ID,
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.hover.nested-ribbon',
+		icon: 'lucide-panel-left',
 		supports: [{ surface: 'chrome' }],
 	});
 }

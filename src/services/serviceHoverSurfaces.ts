@@ -28,20 +28,28 @@ export interface HoverSurfaceConfig {
 	readonly pin: boolean;
 }
 
+export interface HoverSurfaceSwitches {
+	readonly hide: boolean;
+	readonly hover: boolean;
+	readonly pin: boolean;
+}
+
 export interface HoverSurfacesConfig {
-	readonly sidebars: HoverSurfaceConfig;
-	readonly ribbons: HoverSurfaceConfig;
-	readonly tabbar: HoverSurfaceConfig;
-	readonly statusbar: HoverSurfaceConfig;
+	readonly sidebars: HoverSurfaceSwitches;
+	readonly ribbons: HoverSurfaceSwitches;
+	readonly tabbar: HoverSurfaceSwitches;
+	readonly statusbar: HoverSurfaceSwitches;
 	readonly lock: boolean;
+	readonly nestedRibbon: boolean;
 }
 
 export const DEFAULT_HOVER_SURFACES_CONFIG: HoverSurfacesConfig = {
-	sidebars: { hover: true, pin: true },
-	ribbons: { hover: true, pin: false },
-	tabbar: { hover: true, pin: false },
-	statusbar: { hover: true, pin: false },
+	sidebars: { hide: false, hover: false, pin: true },
+	ribbons: { hide: false, hover: false, pin: false },
+	tabbar: { hide: false, hover: false, pin: false },
+	statusbar: { hide: false, hover: false, pin: false },
 	lock: false,
+	nestedRibbon: false,
 };
 
 const SIDEBAR_SELECTOR =
@@ -88,6 +96,11 @@ const LAYOUT_CONTAINER_SELECTOR =
 	'.app-container, .horizontal-main-container, .workspace';
 
 const BODY_CLASS_LOCK = 'mb-hover-locked';
+const BODY_CLASS_NESTED_RIBBON = 'mb-nested-hover-ribbon';
+const BODY_CLASS_HIDE_SIDEBARS = 'mb-hide-sidebars';
+const BODY_CLASS_HIDE_RIBBONS = 'mb-hide-ribbons';
+const BODY_CLASS_HIDE_TABBAR = 'mb-hide-tabbar';
+const BODY_CLASS_HIDE_STATUSBAR = 'mb-hide-statusbar';
 const SIDEBAR_HOVERED_CLASS = 'mb-sidebar-hovered';
 const SIDEBAR_PINNED_CLASS = 'mb-sidebar-pinned';
 const RIBBON_HOVERED_CLASS = 'mb-ribbon-hovered';
@@ -175,12 +188,15 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 	constructor() {
 		this.fragility = {
 			id: this.id,
-			title: 'Hover, pin and lock surfaces',
-			summary:
-				'Puts and removes mb-sidebar-hovered / mb-sidebar-pinned on left+right sidebars, ' +
-				'mb-ribbon-hovered on ribbons, mb-tabbar-hovered on tab headers / view headers, ' +
-				'mb-statusbar-hovered on the status bar; and mb-hover-locked on body when lock is on. ' +
-				'Owns the overlay/persistent guards and the layout drift reset from the legacy Mb-sidebars hover script.',
+		title: 'Hover, pin and lock surfaces',
+		summary:
+			'Puts and removes mb-sidebar-hovered / mb-sidebar-pinned on left+right sidebars, ' +
+			'mb-ribbon-hovered on ribbons, mb-tabbar-hovered on tab headers / view headers, ' +
+			'mb-statusbar-hovered on the status bar; mb-hide-{sidebars,ribbons,tabbar,statusbar} ' +
+			'on body collapse each surface (hide action), mb-nested-hover-ribbon makes a hidden ' +
+			'ribbon the trigger that reveals the sidebar, and mb-hover-locked on body when lock is on. ' +
+			'Hover/pin/nested only act on hidden surfaces: expanded surfaces are never touched. ' +
+			'Owns the overlay/persistent guards and the layout drift reset from the legacy Mb-sidebars hover script.',
 			privateSymbols: ['app.workspace.leftSplit.size', 'app.workspace.rightSplit.size'],
 			selectorSources: [
 				SIDEBAR_SELECTOR,
@@ -259,12 +275,30 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 	updateConfig(config: HoverSurfacesConfig): void {
 		this.state.config = config;
 		if (!this.applied) return;
-		if (config.lock) {
-			this.setBodyClass(BODY_CLASS_LOCK);
-		} else {
-			this.clearBodyClass();
-		}
+		this.syncBodyClasses();
 		this.collapseAllIfLocked();
+	}
+
+	private syncBodyClasses(): void {
+		const config = this.state.config;
+		const body = this.ctx?.doc?.body;
+		if (!body) return;
+		for (const cls of [
+			BODY_CLASS_LOCK,
+			BODY_CLASS_NESTED_RIBBON,
+			BODY_CLASS_HIDE_SIDEBARS,
+			BODY_CLASS_HIDE_RIBBONS,
+			BODY_CLASS_HIDE_TABBAR,
+			BODY_CLASS_HIDE_STATUSBAR,
+		]) {
+			body.classList.remove(cls);
+		}
+		if (config.lock) body.classList.add(BODY_CLASS_LOCK);
+		if (config.nestedRibbon) body.classList.add(BODY_CLASS_NESTED_RIBBON);
+		if (config.sidebars.hide) body.classList.add(BODY_CLASS_HIDE_SIDEBARS);
+		if (config.ribbons.hide) body.classList.add(BODY_CLASS_HIDE_RIBBONS);
+		if (config.tabbar.hide) body.classList.add(BODY_CLASS_HIDE_TABBAR);
+		if (config.statusbar.hide) body.classList.add(BODY_CLASS_HIDE_STATUSBAR);
 	}
 
 	applyConfig(config: HoverSurfacesConfig): void {
@@ -273,11 +307,6 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 
 	getConfig(): HoverSurfacesConfig {
 		return this.state.config;
-	}
-
-	private setBodyClass(cls: string): void {
-		const body = this.ctx?.doc?.body;
-		if (body) body.classList.add(cls);
 	}
 
 	private clearBodyClass(): void {
@@ -545,33 +574,47 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		this.lastPointer = { x: pe.clientX, y: pe.clientY };
 		const overlay = closest(pe.target, OVERLAY_SELECTOR);
 		if (overlay) {
-			if (config.sidebars.hover && this.activeSurface) {
+			if (config.sidebars.hide && config.sidebars.hover && this.activeSurface) {
 				this.activeSurface.classList.add(SIDEBAR_HOVERED_CLASS);
 			}
 			return;
 		}
-		if (config.sidebars.hover) {
+		// Ribbon oculto + nested: el ribbon es el disparador de la sidebar
+		// (Mb-sidebars.css 305-324): hover sobre el ribbon oculto lo revela y
+		// empuja la sidebar hacia dentro. Sin nested, el ribbon oculto no revela.
+		if (config.ribbons.hide && config.nestedRibbon) {
+			const ribbon = closest(pe.target, RIBBON_SELECTOR);
+			if (ribbon) {
+				this.setRibbonHovered(ribbon);
+				const leftSidebar = this.leftFloatingSidebar();
+				if (leftSidebar && config.sidebars.hide && config.sidebars.hover) {
+					this.setSidebarHovered(leftSidebar);
+				}
+				return;
+			}
+		}
+		if (config.sidebars.hide && config.sidebars.hover) {
 			const sidebar = closest(pe.target, SIDEBAR_SELECTOR);
 			if (sidebar) {
 				this.setSidebarHovered(sidebar);
 				return;
 			}
 		}
-		if (config.ribbons.hover) {
+		if (config.ribbons.hide && config.ribbons.hover) {
 			const ribbon = closest(pe.target, RIBBON_SELECTOR);
 			if (ribbon) {
 				this.setRibbonHovered(ribbon);
 				return;
 			}
 		}
-		if (config.tabbar.hover) {
+		if (config.tabbar.hide && config.tabbar.hover) {
 			const tabbar = closest(pe.target, TABBAR_CONTAINER_SELECTOR);
 			if (tabbar) {
 				this.setTabbarHovered(tabbar);
 				return;
 			}
 		}
-		if (config.statusbar.hover) {
+		if (config.statusbar.hide && config.statusbar.hover) {
 			const statusbar = closest(pe.target, STATUSBAR_SELECTOR);
 			if (statusbar) {
 				this.setStatusbarHovered(statusbar);
@@ -579,16 +622,26 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 			}
 		}
 		if (this.hasActiveOverlay()) {
-			if (config.sidebars.hover && this.activeSurface) {
+			if (config.sidebars.hide && config.sidebars.hover && this.activeSurface) {
 				this.activeSurface.classList.add(SIDEBAR_HOVERED_CLASS);
 			}
 			return;
 		}
-		if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
-		if (config.ribbons.hover) this.clearRibbonHover();
-		if (config.tabbar.hover) this.clearTabbarHover();
-		if (config.statusbar.hover) this.clearStatusbarHover();
+		if (config.sidebars.hide && config.sidebars.hover) this.clearSidebarHoverExceptPinned();
+		if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
+		if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
+		if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();
 		this.activeSurface = null;
+	}
+
+	private leftFloatingSidebar(): Element | null {
+		const ctx = this.ctx;
+		if (!ctx) return null;
+		const all = ctx.doc.querySelectorAll(SIDEBAR_SELECTOR);
+		for (const el of Array.from(all)) {
+			if (el.classList.contains('mod-left-split')) return el;
+		}
+		return null;
 	}
 
 	private onPointerDown(event: Event): void {
@@ -598,6 +651,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
 		if (
 			sidebar &&
+			config.sidebars.hide &&
 			config.sidebars.pin &&
 			closest(event.target, PERSISTENT_SELECTOR)
 		) {
@@ -611,7 +665,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (config.lock) return;
 		if (closest(event.target, OVERLAY_SELECTOR)) return;
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
-		if (sidebar && config.sidebars.pin && closest(event.target, QUICK_ACTION_SELECTOR)) {
+		if (sidebar && config.sidebars.hide && config.sidebars.pin && closest(event.target, QUICK_ACTION_SELECTOR)) {
 			this.unpinSidebar(sidebar);
 		}
 		this.releaseOutside(event.target);
@@ -624,6 +678,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
 		if (
 			sidebar &&
+			config.sidebars.hide &&
 			config.sidebars.pin &&
 			closest(event.target, PERSISTENT_SELECTOR)
 		) {
@@ -642,10 +697,10 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (!active) return;
 		if (this.pinnedSidebars.has(active)) return;
 		if (!this.hasActiveOverlay() && !this.isPointerOverElement(active)) {
-			if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
-			if (config.ribbons.hover) this.clearRibbonHover();
-			if (config.tabbar.hover) this.clearTabbarHover();
-			if (config.statusbar.hover) this.clearStatusbarHover();
+			if (config.sidebars.hide && config.sidebars.hover) this.clearSidebarHoverExceptPinned();
+			if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
+			if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
+			if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();
 			this.activeSurface = null;
 		}
 	}

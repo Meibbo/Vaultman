@@ -3280,6 +3280,15 @@ button.vaultman-content-scope-hint:focus-visible {
   transform-origin: center;
 }
 
+.vaultman-addon-toggle-cell.is-mixed {
+  border-color: var(--vaultman-accent);
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
+.vaultman-addon-cell.is-mixed {
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
 .vaultman-addon-toggle-input {
   pointer-events: none;
 }
@@ -3447,6 +3456,411 @@ button.vaultman-content-scope-hint:focus-visible {
   font-size: var(--font-ui-small);
   color: var(--text-normal);
   flex: 1;
+}
+
+/* U130-01: el inspector de SASI. Denso a proposito: es una herramienta de
+ * desarrollo, no una superficie de usuario. */
+.vaultman-sasi-inspector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-sasi-inspector-list li {
+  display: flex;
+  gap: var(--size-4-2);
+  align-items: baseline;
+  padding-block: var(--size-2-1);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-sasi-inspector-id {
+  font-family: var(--font-monospace);
+  color: var(--text-normal);
+}
+
+.vaultman-sasi-inspector-label,
+.vaultman-sasi-inspector-surfaces {
+  color: var(--text-muted);
+}
+
+.vaultman-sasi-inspector-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.vaultman-sasi-inspector-mutates {
+  color: var(--text-error);
+}
+
+.vaultman-sasi-inspector-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  padding-block: var(--size-2-2);
+}
+
+/* U130-03: la cabecera de grupo. Es una fila del arbol con clase propia --no un
+ * componente aparte-- porque `viewTree` ya sabe pintar filas, plegarlas y
+ * virtualizarlas. Un renderizador nuevo habria duplicado las tres cosas. */
+.vaultman-tree-row--group-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--background-secondary-alt);
+}
+
+.vaultman-tree-row--group-header .vaultman-tree-label {
+  color: inherit;
+}
+
+/* ============================================================================
+ * Hover surfaces — port of .ref/Mb-sidebars.css chrome (sidebars, ribbons,
+ * tabbar, statusbar) reduced to the four surfaces managed by
+ * src/services/serviceHoverSurfaces.ts.
+ *
+ * The service puts these classes exactly:
+ *   mb-hide-sidebars      — on body (hide action: sidebars collapse)
+ *   mb-hide-ribbons       — on body (hide action: ribbons collapse)
+ *   mb-hide-tabbar        — on body (hide action: tab bar collapses)
+ *   mb-hide-statusbar     — on body (hide action: status bar collapses)
+ *   mb-nested-hover-ribbon — on body (hidden ribbon becomes the sidebar trigger)
+ *   mb-hover-locked       — on body (lock toggle)
+ *   mb-sidebar-hovered    — on .workspace-split.mod-{left,right}-split
+ *   mb-sidebar-pinned     — on .workspace-split.mod-{left,right}-split
+ *   mb-ribbon-hovered     — on .workspace-ribbon.mod-{left,right}
+ *   mb-tabbar-hovered     — on .workspace-tab-header-container / .view-header
+ *   mb-statusbar-hovered  — on .status-bar
+ *
+ * Design contract (intent del dev, mensajes 2026-09-06/07):
+ *   - NADA se oculta sin la accion explicita de ocultar (hide). Sin hide, la
+ *     superficie queda nativa: el CSS no la toca. Las superficies
+ *     expandidas/abiertas NUNCA se tocan: todas las reglas de hide/reveal
+ *     exigen el estado colapsado de Obsidian (.is-sidedock-collapsed) o la
+ *     clase mb-hide-* que solo pone la accion hide.
+ *   - hover/pin solo revelan superficies ocultas (hide). El servicio ya lo
+ *     garantiza en JS; el CSS lo garantiza exigiendo el body mb-hide-* en
+ *     cada regla de reveal.
+ * Corrections vs the original snippet:
+ *   1. Symmetry: both mod-left-split and mod-right-split get a hide rule AND
+ *      a reveal rule (hover / mb-sidebar-hovered / mb-sidebar-pinned). The
+ *      original only had the hide rule for the right side.
+ *   2. No !important in cascade. Specificity over brute force.
+ * ========================================================================== */
+/* ----------------------------------------------------
+ * SIDEBARS — hide ONLY via the hide action, reveal on hover / pin
+ * Sin body.mb-hide-sidebars la sidebar queda nativa: ni posicion
+ * absoluta, ni transform fuera de pantalla, ni sombra.
+ * ---------------------------------------------------- */
+/* Both sides share the floating container chrome so the JS-driven transitions
+ * do not fight the native Obsidian flex layout. Exige hide + colapsada. */
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: 90vw;
+  z-index: 1000;
+  overflow: visible;
+  transition: transform 0.25s cubic-bezier(0.1, 0, 0.1, 1), box-shadow 0.25s ease;
+}
+
+/* --- LEFT: hide off-screen, mirror the original transform --- */
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed {
+  left: 0;
+  width: var(--sidebar-left-width, 250px);
+  transform: translateX(calc(-100% - 1px));
+}
+
+/* --- RIGHT: hide off-screen — original symmetry fix --- */
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed {
+  right: 0;
+  width: var(--sidebar-right-width, 280px);
+  transform: translateX(calc(100% + 1px));
+}
+
+/* --- Reveal rules for both sides (exigen hide) --- */
+/* Selectors are duplicated per side on purpose: chaining `.mod-left-split.mb-sidebar-hovered`
+ * would not match the right side, so the symmetry fix lives in two parallel rule blocks. */
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed:hover,
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed:hover,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: -10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ----------------------------------------------------
+ * RIBBONS — hide ONLY via the hide action.
+ * Sin body.mb-hide-ribbons el ribbon queda nativo.
+ * mb-ribbon-hovered es affordance suave SOLO sobre ribbon oculto:
+ * sombra sutil cuando el puntero esta sobre la franja colapsada,
+ * sin mover layout, sin !important.
+ * ---------------------------------------------------- */
+body.mb-hide-ribbons .workspace-ribbon.mod-left,
+body.mb-hide-ribbons .workspace-ribbon.mod-right {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border-left: none;
+  border-right: none;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.1, 0, 0.1, 1), min-width 0.2s cubic-bezier(0.1, 0, 0.1, 1), opacity 0.2s ease;
+}
+
+body.mb-hide-ribbons .workspace-ribbon.mod-left.mb-ribbon-hovered,
+body.mb-hide-ribbons .workspace-ribbon.mod-right.mb-ribbon-hovered {
+  width: var(--ribbon-width, 44px);
+  min-width: var(--ribbon-width, 44px);
+  opacity: 1;
+  overflow: visible;
+  box-shadow: 4px 0 14px rgba(0, 0, 0, 0.25);
+}
+
+body.mb-hide-ribbons .workspace-ribbon.mod-right.mb-ribbon-hovered {
+  box-shadow: -4px 0 14px rgba(0, 0, 0, 0.25);
+}
+
+/* ----------------------------------------------------
+ * NESTED HOVER RIBBON — el ribbon oculto es el disparador.
+ * Port de Mb-sidebars.css 305-324 sin !important: con nested, el hover
+ * sobre el ribbon oculto lo revela y empuja la sidebar flotante hacia
+ * dentro (izquierda +44px, derecha -44px). Sin nested, el ribbon oculto
+ * NO empuja: solo se revela sobre si mismo (reglas de arriba).
+ * ---------------------------------------------------- */
+body.mb-hide-ribbons.mb-nested-hover-ribbon .workspace-ribbon.mod-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  z-index: 1200;
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+body.mb-hide-ribbons.mb-nested-hover-ribbon .workspace-ribbon.mod-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  z-index: 1200;
+  border-left: 1px solid var(--background-modifier-border);
+}
+
+body.mb-hide-sidebars.mb-hide-ribbons.mb-nested-hover-ribbon:has(.workspace-ribbon.mod-left.mb-ribbon-hovered) .workspace-split.mod-left-split.is-sidedock-collapsed:is(:hover, .mb-sidebar-hovered, .mb-sidebar-pinned) {
+  transform: translateX(var(--ribbon-width, 44px));
+}
+
+body.mb-hide-sidebars.mb-hide-ribbons.mb-nested-hover-ribbon:has(.workspace-ribbon.mod-right.mb-ribbon-hovered) .workspace-split.mod-right-split.is-sidedock-collapsed:is(:hover, .mb-sidebar-hovered, .mb-sidebar-pinned) {
+  transform: translateX(calc(-1 * var(--ribbon-width, 44px)));
+}
+
+/* ----------------------------------------------------
+ * TABBAR + VIEW HEADER — focus-mode hover reveal, SOLO con hide.
+ * Sin body.mb-hide-tabbar el tabbar y el view-header quedan nativos.
+ * Con hide: altura 0 + reveal en hover via mb-tabbar-hovered.
+ * ---------------------------------------------------- */
+body.mb-hide-tabbar .mod-root .workspace-tab-header-container,
+body.mb-hide-tabbar .mod-root .workspace-leaf .view-header {
+  transition: height 0.15s linear 0.05s, opacity 0.15s linear 0.05s, border-color 0.15s linear;
+}
+
+body.mb-hide-tabbar .mod-root .workspace-tab-header-container {
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  position: relative;
+  border-bottom: none;
+}
+
+body.mb-hide-tabbar .mod-root .workspace-leaf .view-header {
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  border-bottom: none;
+  position: relative;
+}
+
+body.mb-hide-tabbar .workspace-tab-header-container.mb-tabbar-hovered,
+body.mb-hide-tabbar .view-header.mb-tabbar-hovered {
+  height: var(--header-height, 40px);
+  min-height: var(--header-height, 40px);
+  opacity: 1;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* ----------------------------------------------------
+ * HIT-ZONES — bridge collapsed surfaces to serviceHoverSurfaces.ts
+ * The service reveals a surface only when `closest(pe.target, SIDEBAR_SELECTOR)`
+ * resolves. A collapsed sidebar is translated out of viewport by its transform,
+ * so the pointer can never land on its main box. The trick is a transparent
+ * pseudo-element anchored to the collapsed surface itself: the pseudo is a
+ * child of the sidebar, so `closest()` walks it up to `.workspace-split.mod-…-split`
+ * even when the surface is off-screen. Exigen hide: sin hide no hay zona.
+ *
+ * Geometry proof for the LEFT sidebar (collapsed):
+ *   container: left:0; width:W; transform:translateX(-W - 1px)
+ *   ::after:   position:absolute; right:-8px; width:8px; top:0; height:100%
+ *   pseudo local box: [W, W+8]   (parent's right edge is at local x=W)
+ *   pseudo viewport box: [0 + (-W-1) + W, 0 + (-W-1) + (W+8)] = [-1, 7]
+ *   → a pointermove at x=2 lands inside the ::after, which belongs to the
+ *     sidebar subtree, so `closest()` resolves to `.workspace-split.mod-left-split`.
+ *
+ * Mirror proof holds for the RIGHT sidebar (collapsed):
+ *   container: right:0; width:W; transform:translateX(W + 1px)
+ *   ::before:  position:absolute; left:-8px; width:8px; top:0; height:100%
+ *   pseudo local box: [-8, 0]
+ *   pseudo viewport box: [vw - W - 1 - 8, vw - W - 1] = [vw-9, vw-1]
+ *   → symmetric 8px strip on the right edge of the viewport.
+ *
+ * The TABBAR hit-zone is a 16px strip across the top, gated by body.mb-hide-tabbar.
+ * The pseudo is a child of `.workspace-tab-header-container`, so `closest()`
+ * resolves to it even when the tab header is height:0 and visually gone.
+ *
+ * No !important: every hit-zone below uses specificity (compound selectors +
+ * pseudo-element specificity) instead of cascade brute force.
+ * ---------------------------------------------------- */
+/* LEFT: 8px hit-zone at the extreme right edge of the collapsed sidebar. */
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* RIGHT: 8px hit-zone at the extreme left edge of the collapsed sidebar.
+ * Symmetric to the LEFT rule above; the original Mb-sidebars.css favoured
+ * the left side and was incomplete on the right, so this is duplicated. */
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Disable the hit-zone when the surface is expanded or pinned: otherwise the
+ * 8px strip keeps stealing clicks from the content next to the sidebar. */
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered::after,
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned::after,
+body.mb-hide-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed:hover::after,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered::before,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned::before,
+body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed:hover::before {
+  display: none;
+  pointer-events: none;
+}
+
+/* Screen-edge compensation when the ribbon is docked. With the ribbon visible
+ * the collapsed sidebar is pushed further off-screen so the ribbon is not
+ * covered by the reveal; the hit-zone follows because it is a child of the
+ * sidebar, so its viewport box still sits at the extreme left/right edge. */
+body.mb-hide-sidebars:has(.workspace-ribbon.mod-left:not(.is-collapsed)):not(.mb-nested-hover-ribbon) .workspace-split.mod-left-split.is-sidedock-collapsed {
+  left: calc(-1 * var(--ribbon-width, 44px));
+}
+
+body.mb-hide-sidebars:has(.workspace-ribbon.mod-right:not(.is-collapsed)):not(.mb-nested-hover-ribbon) .workspace-split.mod-right-split.is-sidedock-collapsed {
+  right: calc(-1 * var(--ribbon-width, 44px));
+}
+
+/* TABBAR: 16px hit-zone on the top edge of the tab header container, gated by
+ * the mb-hide-tabbar body class. The pseudo is a child of
+ * `.workspace-tab-header-container`, so `closest()` resolves to it even when
+ * the tab header is height:0 and visually gone. */
+body.mb-hide-tabbar .mod-root .workspace-tab-header-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  z-index: 200;
+  pointer-events: auto;
+}
+
+/* ----------------------------------------------------
+ * STATUS BAR — hide SOLO con la accion hide + reveal en hover.
+ * Sin body.mb-hide-statusbar la barra queda nativa.
+ * ---------------------------------------------------- */
+body.mb-hide-statusbar .status-bar {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.1, 0, 0.1, 1), box-shadow 0.2s ease;
+  opacity: 0;
+  transform: translateY(calc(100% - 3px));
+  pointer-events: auto;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--background-modifier-border);
+  border-left: 1px solid var(--background-modifier-border);
+  border-top-left-radius: var(--radius-m, 6px);
+}
+
+body.mb-hide-statusbar .status-bar.mb-statusbar-hovered,
+body.mb-hide-statusbar .status-bar:hover,
+body.mb-hide-statusbar .status-bar:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* ----------------------------------------------------
+ * LOCK — absolute concentration mode
+ * mb-hover-locked overrides every reveal above. Specificity is higher than
+ * the reveal selectors (body.mb-hover-locked + element beats element:hover
+ * and element.<hovered-class>), so no !important is needed.
+ * ---------------------------------------------------- */
+/* Sidebars: force the hidden transform even on :hover and on the JS-driven
+ * classes. Selector list deliberately covers every reveal selector above. */
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed:hover,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(calc(-100% - 1px));
+  box-shadow: none;
+}
+
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed:hover,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(calc(100% + 1px));
+  box-shadow: none;
+}
+
+body.mb-hover-locked .workspace-tab-header-container,
+body.mb-hover-locked .workspace-tab-header-container.mb-tabbar-hovered,
+body.mb-hover-locked .workspace-leaf .view-header,
+body.mb-hover-locked .workspace-leaf .view-header.mb-tabbar-hovered {
+  height: 0;
+  min-height: 0;
+  opacity: 0;
+}
+
+body.mb-hover-locked .status-bar,
+body.mb-hover-locked .status-bar.mb-statusbar-hovered {
+  opacity: 0;
 }
 
 /* === File List Section === */
