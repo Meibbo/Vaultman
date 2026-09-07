@@ -30,15 +30,10 @@ describe('explorer sort UI source', () => {
 		).toBe(false);
 	});
 
-	it('transports Files Parents First through native and popup sort controls', () => {
-		const model = byLevelModel(
-			'files',
-			normalizeExplorerSortState('files', null),
-			true,
-		);
-		expect(model?.items.map((item) => item.id)).toContain('parentsFirst');
-		expect(navbarSource).toContain("option.id === 'parentsFirst'");
-		expect(popupSource).toContain("item.id === 'parentsFirst'");
+	it('transports Files Parents First through native view menu and sort controls', () => {
+		const model = byLevelModel('files', normalizeExplorerSortState('files', null));
+		expect(model?.items.map((item) => item.id)).not.toContain('parentsFirst');
+		expect(navbarSource).toContain("parentsFirst: !parentsFirst");
 	});
 
 	it('offers explicit per-tab sort levels in native and popup controls', () => {
@@ -47,11 +42,9 @@ describe('explorer sort UI source', () => {
 			byLevelModel(
 				'props',
 				normalizeExplorerSortState('props', null),
-				true,
 			)?.items.map((item) => item.id),
 		).toEqual([
 			'filtered',
-			'nested',
 			'scope-separator',
 			'all',
 			'properties',
@@ -63,14 +56,10 @@ describe('explorer sort UI source', () => {
 			byLevelModel(
 				'files',
 				normalizeExplorerSortState('files', null),
-				true,
 			)?.items.map((item) => item.id),
 		).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
-			'nested',
-			'parentsFirst',
-			'fixedFolders',
 			'scope-separator',
 			'drill',
 			'all',
@@ -210,24 +199,18 @@ describe('explorer sort UI source', () => {
 });
 
 describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
-	it('groups Nested, Folders first and Fixed folders ahead of the scope radios', () => {
+	it('groups scope radios after Filtered in the By-level model', () => {
 		const enabled = byLevelModel(
 			'files',
 			normalizeExplorerSortState('files', {
 				sorts: { all: { sortBy: 'name', direction: 'asc' } },
 				activeScope: 'all',
 				nodeTypeFilter: null,
-				parentsFirst: true,
-				fixedFolders: true,
 			}),
-			true,
 		);
 		expect(enabled?.items.map((item) => item.id)).toEqual([
 			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
 			'filtered',
-			'nested',
-			'parentsFirst',
-			'fixedFolders',
 			'scope-separator',
 			'drill',
 			'all',
@@ -240,7 +223,6 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 				...normalizeExplorerSortState('files', null),
 				parentsFirst: false,
 			},
-			true,
 		);
 		expect(disabled?.items.map((item) => item.id)).not.toContain(
 			'fixedFolders',

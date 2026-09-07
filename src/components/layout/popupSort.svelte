@@ -39,7 +39,6 @@
 		onScopeChange,
 		onRequestDrillPick,
 		onRequestRevealPick,
-		onNestedToggle,
 		initialSortState,
 		nestedActive = false,
 		revealActive = false,
@@ -53,7 +52,6 @@
 		onScopeChange?: (state: ExplorerSortState) => void;
 		onRequestDrillPick?: () => void;
 		onRequestRevealPick?: () => void;
-		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
 		revealActive?: boolean;
@@ -75,7 +73,7 @@
 	);
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
 	const levelModel = $derived(
-		byLevelModel(activeTab, sortState, nestedActive, treeCapable, revealActive),
+		byLevelModel(activeTab, sortState, treeCapable, revealActive),
 	);
 	const visibleSortOptionsForActiveTab = $derived(
 		visibleSortOptions(activeTab, sortState, nestedActive, revealActive),
@@ -169,14 +167,6 @@
 		emitSortChange();
 	}
 
-	function toggleFixedFolders() {
-		sortState = {
-			...sortState,
-			fixedFolders: sortState.fixedFolders === false,
-		};
-		emitSortChange();
-	}
-
 	function toggleFiltered() {
 		sortState = {
 			...sortState,
@@ -214,9 +204,6 @@
 			selectRevealAnchor(item.id);
 			return;
 		}
-		if (item.id === 'nested') onNestedToggle?.();
-		if (item.id === 'parentsFirst') toggleParentsFirst();
-		if (item.id === 'fixedFolders') toggleFixedFolders();
 		if (item.id === 'filtered') toggleFiltered();
 	}
 
