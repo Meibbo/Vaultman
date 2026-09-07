@@ -81,6 +81,7 @@ import {
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
 	projectGroupedTree,
@@ -632,6 +633,9 @@ export class PropsExplorerPanel extends Component {
 					displayLabel: node.label,
 				});
 			},
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
 			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
 			// de props: clases nativas y meta propia en vez de la prestada
