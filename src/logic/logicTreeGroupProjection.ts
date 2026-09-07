@@ -63,6 +63,23 @@ export interface GroupProjectionInput<TMeta> {
 	 * exactly as before until a caller passes totals.
 	 */
 	groupTotals?: ReadonlyMap<string, number>;
+	/**
+	 * U130-t33 (L-PNODE): la meta propia de la cabecera. Sin ella la cabecera
+	 * pedia prestada la del primer hijo (`nodes[0]?.meta`) y se colaba por los
+	 * caminos que leen meta: el predicado `isFolder` de `expandAll`, el icono
+	 * y las celdas de `prepareNode`, el `data-path` de la fila y el tooltip.
+	 * Cada escena pasa la meta de sus p-nodes contenedor (carpeta/tag/prop).
+	 * Ausente: se conserva el prestamo historico para no romper a quien no
+	 * haya migrado.
+	 */
+	headerMeta?: TMeta;
+	/**
+	 * U130-t33 (L-PNODE): las clases nativas de fila de los p-nodes de la
+	 * escena (`tree-item-self ... is-clickable`). La cabecera ya es una fila
+	 * (`vaultman-tree-row`) con su clase propia, pero sin estas no entra por
+	 * el camino comun: temas, densidad movil y geometria nativa la ignoran.
+	 */
+	headerCoreCls?: string;
 }
 
 function headerNode<TMeta>(
@@ -71,6 +88,7 @@ function headerNode<TMeta>(
 	children: TreeNode<TMeta>[],
 	meta: TMeta,
 	count?: number,
+	coreCls?: string,
 ): TreeNode<TMeta> {
 	return {
 		id,
@@ -80,6 +98,10 @@ function headerNode<TMeta>(
 		// colapso ya lo gobierna `expandedIds`. Una cabecera no necesita un
 		// renderizador nuevo: necesita ser un TreeNode bien formado.
 		cls: GROUP_HEADER_CLS,
+		// Camino comun de `applyCoreRowClasses`: sin esto la cabecera no es
+		// `tree-item-self` y la densidad movil le da otra geometria que al
+		// resto de p-nodes, lo que tuerce la ventana virtualizada.
+		...(coreCls ? { coreCls } : {}),
 		showCaret: true,
 		count: count ?? children.length,
 		children,
@@ -150,8 +172,14 @@ export function projectGroupedTree<TMeta>(
 		urnOf,
 		enabled = true,
 		groupTotals,
+		headerCoreCls,
+		headerMeta,
 	} = input;
 	if (!enabled) return nodes;
+	// Meta propia de la cabecera (L-PNODE): la escena la aporta; sin ella se
+	// conserva el prestamo historico del primer hijo.
+	const fallbackMeta = nodes[0]?.meta as TMeta;
+	const ownMeta = (headerMeta ?? fallbackMeta) as TMeta;
 
 	// --- Grupos CUSTOM: pertenencia explicita -------------------------------
 	if (groups.length > 0) {
@@ -202,8 +230,9 @@ export function projectGroupedTree<TMeta>(
 					group.id,
 					group.label,
 					reparent(members, group.id, 1, suffixed),
-					nodes[0]?.meta as TMeta,
+					ownMeta,
 					groupTotals?.get(group.id),
+					headerCoreCls,
 				),
 			);
 		});
@@ -216,7 +245,9 @@ export function projectGroupedTree<TMeta>(
 					NO_GROUP_ID,
 					noGroupLabel,
 					reparent(orphans, NO_GROUP_ID, 1, suffixed),
-					nodes[0]?.meta as TMeta,
+					ownMeta,
+					undefined,
+					headerCoreCls,
 				),
 			);
 		}
@@ -251,7 +282,9 @@ export function projectGroupedTree<TMeta>(
 			`${PRESET_GROUP_PREFIX}${group.key}`,
 			group.label,
 			reparent(buckets.get(group.key) ?? [], group.key, 1, NO_SUFFIX),
-			nodes[0]?.meta as TMeta,
+			ownMeta,
+			undefined,
+			headerCoreCls,
 		),
 	);
 }

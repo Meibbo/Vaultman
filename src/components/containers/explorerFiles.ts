@@ -260,6 +260,11 @@ export class FilesExplorerPanel extends Component {
 					displayLabel: node.label,
 				}),
 			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// contenedor (carpeta): clases nativas y meta propia en vez de la
+			// prestada del primer hijo.
+			headerCoreCls: 'tree-item-self nav-folder-title is-clickable',
+			headerMeta: { file: null, folder: null, isFolder: true, folderPath: '' },
 		}) as TreeNode<FileMeta>[];
 	}
 
@@ -909,7 +914,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -1051,18 +1056,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
+		// El MISMO arbol que pinta la vista, con la proyeccion de grupos
+		// incluida: recorrer el modelo sin proyectar dejaba fuera a las
+		// cabeceras. El predicado es tener hijos (`collectExpandableSubtreeIds`,
+		// el camino comun), no `meta.isFolder`: la cabecera es un p-node
+		// contenedor aunque su meta no sea la de una carpeta.
 		const changedFolderIds: string[] = [];
-		const walk = (nodes: TreeNode<FileMeta>[]) => {
-			for (const node of nodes) {
-				if (node.meta.isFolder && !this.expandedIds.has(node.id)) {
-					this.expandedIds.add(node.id);
-					changedFolderIds.push(node.id);
-				}
-				if (node.children?.length) walk(node.children);
+		for (const root of this.projectedNodes(this._lastRenderTree)) {
+			for (const id of collectExpandableSubtreeIds(root)) {
+				if (this.expandedIds.has(id)) continue;
+				this.expandedIds.add(id);
+				changedFolderIds.push(id);
 			}
-		};
-		walk(this._lastRenderTree);
+		}
 		if (changedFolderIds.length === 0) return;
 		this._notifyExpansionChanged();
 		this._refreshCompleteTreeExpansion(changedFolderIds);
@@ -1898,6 +1905,7 @@ export class FilesExplorerPanel extends Component {
 			nodes,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2132,12 +2140,13 @@ export class FilesExplorerPanel extends Component {
 				() => this._decorateTreeWithIcons(renderTree),
 				{ files: sortedFiles.length },
 			);
-			this._setIndexRoots(renderTree, []);
-			this._treeRenderOpts = {
-				nodes: renderTree,
-				expandedIds: this.expandedIds,
-				visibleCells: this.visibleCells,
-				stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+		this._setIndexRoots(renderTree, []);
+		this._treeRenderOpts = {
+			nodes: renderTree,
+			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
+			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 				stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
@@ -2242,7 +2251,8 @@ export class FilesExplorerPanel extends Component {
 						this.treeView?.scrollRowUnderStickyStack(id);
 					}
 				},
-				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),
+				onRecursiveExpand: (id: string) =>
+				this._expandSubtree(id, this.projectedNodes(renderTree)),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
@@ -2966,6 +2976,28 @@ export class FilesExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
 	}
 
 	/**
@@ -4380,6 +4412,7 @@ export class FilesExplorerPanel extends Component {
 			nodes: this._lastRenderTree,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),

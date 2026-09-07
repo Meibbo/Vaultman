@@ -633,6 +633,11 @@ export class PropsExplorerPanel extends Component {
 				});
 			},
 			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// de props: clases nativas y meta propia en vez de la prestada
+			// del primer hijo.
+			headerCoreCls: 'tree-item-self tappable is-clickable',
+			headerMeta: { propName: '', propType: '', isValueNode: false },
 		}) as TreeNode<PropMeta>[];
 	}
 
@@ -880,7 +885,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -888,7 +893,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
 		let tree = this.logic.getTree();
 		if (this.nodeTypeFilters.length > 0) {
 			tree = this._filterByTypes(tree, this.nodeTypeFilters);
@@ -903,7 +908,17 @@ export class PropsExplorerPanel extends Component {
 				this.expandedIds.add(id);
 			}
 		}
-		this._expandAll(tree);
+		// L-PNODE: el MISMO arbol que pinta la vista, aplanado incluido y con
+		// la proyeccion de grupos. Sin esto las cabeceras quedaban fuera del
+		// toggle, y con anidacion apagada el toggle entero moria en la guarda.
+		if (!this._nestedEnabled()) {
+			tree = this._sortFlat(
+				flattenPropertyValues(tree, {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
+		}
+		this._expandAll(this.projectedNodes(tree));
 		this._notifyExpansionChanged();
 		this._render();
 	}
