@@ -636,6 +636,16 @@ export class PropsExplorerPanel extends Component {
 		}) as TreeNode<PropMeta>[];
 	}
 
+	/**
+	 * U130-03 Task 3.6: el toggle node ⇄ group de la barra solo tiene sentido
+	 * si hay ContainerNodes a los que mover. Mira `_groupIds.size`, NO un flag
+	 * de "agrupacion encendida": con el scope `groups` apagado pero grupos
+	 * definidos, el toggle sigue valiendo (spec-04 test 4, lectura (ii)).
+	 */
+	hasProjectedGroups(): boolean {
+		return this._groupIds.size > 0;
+	}
+
 	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
 	setInteractionModeChangeHandler(
 		handler?: (mode: InteractionMode) => void,
