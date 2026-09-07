@@ -1275,6 +1275,17 @@ export class PropsExplorerPanel extends Component {
 			'vaultman.move.toggleOriginDisposition': async () => {
 				this.toggleValueMoveOriginDisposition();
 			},
+			/**
+			 * U130-04: la culminacion. NO construye un camino de escritura
+			 * nuevo: llama a la que ya stagea contra `queueService` y que en
+			 * bypass abre `OperationSummaryModal`. La confirmacion del payload
+			 * la exige el invoker antes de llegar aqui; el modal es la del
+			 * usuario, y son cosas distintas -- una protege a los scripts, la
+			 * otra a la persona.
+			 */
+			'vaultman.move.proceed': async () => {
+				this.proceedValueMove();
+			},
 		};
 	}
 
