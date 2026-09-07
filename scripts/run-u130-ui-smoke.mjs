@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { U130_S3_SNIPPET } from './probes/u130-s3.mjs';
+import { U130_S5_SNIPPET } from './probes/u130-s5.mjs';
 
 const options = parseOptions(process.argv.slice(2));
 
@@ -75,7 +76,7 @@ if (!toggleResult?.ok) {
 	failures.push('s1.toggle-transicion');
 }
 
-const rawResult = await execInVault(buildProbeCode());
+const rawResult = await execInVault(buildProbeCode(), 180000);
 const domResult = typeof rawResult === 'string' ? JSON.parse(rawResult) : rawResult;
 
 Object.assign(probes, domResult.probes);
@@ -168,6 +169,8 @@ function buildProbeCode() {
 
 		${U130_S3_SNIPPET}
 
+		${U130_S5_SNIPPET}
+
 		return JSON.stringify({ failures, probes });
 	})()`;
 }
@@ -193,24 +196,34 @@ function installToVault(targetDir) {
 	console.log(`Installed fresh build artifacts to ${targetDir}`);
 }
 
-async function execInVault(evalCode, timeout = 25000) {
+async function execInVault(evalCode, timeout = 60000) {
 	// El CLI manda el eval SIN vault y se lo queda la pestana que sondee
 	// primero; con dos pestanas abiertas eso puede ser la del dev. El servidor
 	// si sabe dirigir por vault (server/api/cli.js, commandMatchesPoller), asi
 	// que la sonda va por HTTP y acotada, no por el CLI.
-	const response = await fetch(`${options.host}/api/cli/exec`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ evalCode, vault: options.vault, timeout }),
-	});
-	const payload = await response.json();
-	if (!payload.ok) throw new Error(payload.error ?? 'exec failed');
-	return payload.result;
+	const controller = new AbortController();
+	const id = setTimeout(() => controller.abort(), timeout + 5000);
+	try {
+		const response = await fetch(`${options.host}/api/cli/exec`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ evalCode, vault: options.vault, timeout }),
+			signal: controller.signal,
+		});
+		clearTimeout(id);
+		const payload = await response.json();
+		if (!payload.ok) throw new Error(payload.error ?? 'exec failed');
+		return payload.result;
+	} catch (e) {
+		clearTimeout(id);
+		throw e;
+	}
 }
 
 async function frameIsOpen() {
 	const result = await execInVault(
 		'Boolean(document.querySelector(\'.workspace-leaf-content[data-type="vaultman-frame"]\'))',
+		120000
 	);
 	return Boolean(result);
 }
