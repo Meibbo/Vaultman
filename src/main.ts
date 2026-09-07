@@ -78,6 +78,15 @@ import { reconcileRegistry } from './logic/logicInstanceRegistry';
 import { createVaultmanSasi } from './logic/logicSasiBootstrap';
 import type { SasiRegistry } from './logic/logicSasiRegistry';
 import type { SasiProvider } from './services/serviceSasiProvider';
+import {
+	createSasiCommandPublisher,
+	type SasiCommandPublisher,
+} from './logic/logicSasiCommands';
+import {
+	HOVER_LOCK_ID,
+	HOVER_SURFACE_IDS,
+	hoverActionId,
+} from './logic/logicSasiHoverActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
 import { formatPerfTimeline } from './utils/perfTimeline';
@@ -107,6 +116,13 @@ export class VaultmanPlugin extends Plugin {
 	 */
 	sasiRegistry!: SasiRegistry;
 	sasiProvider!: SasiProvider;
+
+	/**
+	 * U130-? unico punto por el que el plugin publica o retira un comando
+	 * de Obsidian. Cualquier `addCommand`/`removeCommand` que aparezca en
+	 * otro sitio rompe la guarda negativa del SASI bridge.
+	 */
+	sasiCommandPublisher!: SasiCommandPublisher;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -155,6 +171,7 @@ export class VaultmanPlugin extends Plugin {
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
 		this.sasiProvider = sasi.provider;
+		this.sasiCommandPublisher = createSasiCommandPublisher(this);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -284,47 +301,77 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.app.workspace.onLayoutReady(() => this.showUpdatesIfNeeded());
 
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'apply-queue',
 			name: translate('command.apply_queue'),
-			checkCallback: (checking) => {
+			handler: (checking) => {
 				if (this.queueService.isEmpty) return false;
 				if (!checking) {
 					void this.queueService.execute();
 				}
 				return true;
 			},
+			checkable: true,
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'open',
 			name: translate('plugin.open'),
-			callback: () => {
+			handler: () => {
 				void this.activateView();
 			},
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'open-updates',
 			name: translate('command.open_updates'),
-			callback: () => this.openUpdates(),
+			handler: () => this.openUpdates(),
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'focus-content-search',
 			name: translate('command.focus_content_search'),
-			callback: () => {
+			handler: () => {
 				void this.focusVaultmanContentSearch();
 			},
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'focus-active-explorer-search',
 			name: translate('command.focus_active_explorer_search'),
-			callback: () => {
+			handler: () => {
 				void this.focusVaultmanExplorerSearch();
 			},
 		});
+
+		for (const surface of HOVER_SURFACE_IDS) {
+			for (const kind of ['hover', 'pin'] as const) {
+				this.sasiCommandPublisher.register({
+					id: hoverActionId({ surface, kind }),
+					name: translate(
+						kind === 'hover'
+							? `sasi.hover.${surface}.hover`
+							: `sasi.hover.${surface}.pin`,
+					),
+					handler: () => {
+						// El cableado con `HoverSurfacesAdapter.updateConfig`
+						// es del lado de la capa de chrome; esta entrada solo
+						// declara la identidad. Publicarla ya la hace
+						// alcanzable desde cualquier sitio de Obsidian.
+					},
+				});
+			}
+		}
+		this.sasiCommandPublisher.register({
+			id: HOVER_LOCK_ID,
+			name: translate('sasi.hover.lock'),
+			handler: () => {
+				// Misma nota que arriba: la identidad es del SASI, el
+				// conmutador global del lock vive en el adapter de chrome.
+			},
+		});
+
+		this.sasiCommandPublisher.setPublished('apply-queue', true);
+		this.sasiCommandPublisher.setPublished('open', true);
+		this.sasiCommandPublisher.setPublished('open-updates', true);
+		this.sasiCommandPublisher.setPublished('focus-content-search', true);
+		this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(

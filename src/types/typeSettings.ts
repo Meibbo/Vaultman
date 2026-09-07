@@ -396,6 +396,8 @@ export interface iVaultmanPlugin extends Plugin {
 	};
 	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
 	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
+	/** U130-?: el publicador de comandos SASI vive en el plugin; el inspector lo usa para toggle por entry. */
+	sasiCommandPublisher: import('../logic/logicSasiCommands').SasiCommandPublisher;
 	/** BT5-018/036: the live action catalog each menu sub-page configures. */
 	nodeBindingService?: import('../services/serviceNodeBinding').NodeBindingService;
 	contextMenuService: {

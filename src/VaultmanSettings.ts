@@ -574,6 +574,7 @@ items.push({
 							new SasiInspectorModal(
 								this.app,
 								this.plugin.sasiRegistry,
+								this.plugin.sasiCommandPublisher,
 							).open();
 						}),
 				);

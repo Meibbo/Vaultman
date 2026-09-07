@@ -5,6 +5,7 @@ import type {
 	SasiFunctionKind,
 	SasiRegistry,
 } from '../logic/logicSasiRegistry';
+import type { SasiCommandPublisher } from '../logic/logicSasiCommands';
 
 export interface SasiInspectorEntry {
 	id: string;
@@ -14,6 +15,7 @@ export interface SasiInspectorEntry {
 	mutatesVault: boolean;
 	surfaces: readonly string[];
 	composes: readonly string[];
+	published: boolean;
 }
 
 export interface SasiInspectorSection {
@@ -36,9 +38,14 @@ const AXES: readonly { axis: SasiAxis; labelKey: string }[] = [
  * Los tres ejes salen SIEMPRE, tambien los vacios: un eje que desaparece no le
  * dice al agente que consulta que existe pero esta sin poblar, que es justo lo
  * que necesita saber para no reinventar un kind que ya existe.
+ *
+ * `published` cruza el publisher con la registry: un toggle ON significa que
+ * el id esta registrado y publicado como comando de Obsidian, OFF que no. Asi
+ * el modal puede pintar y mutar el toggle sin tocar la registry.
  */
 export function buildSasiInspectorModel(
 	registry: SasiRegistry,
+	publisher?: SasiCommandPublisher,
 ): readonly SasiInspectorSection[] {
 	return AXES.map(({ axis, labelKey }) => ({
 		axis,
@@ -51,6 +58,7 @@ export function buildSasiInspectorModel(
 			mutatesVault: def.mutatesVault === true,
 			surfaces: def.supports.map((support) => support.surface),
 			composes: def.composes ?? [],
+			published: publisher?.isPublished(def.id) ?? false,
 		})),
 	}));
 }
@@ -61,10 +69,19 @@ export function buildSasiInspectorModel(
  */
 export class SasiInspectorModal extends Modal {
 	private readonly registry: SasiRegistry;
+	private readonly publisher: SasiCommandPublisher | undefined;
+	private readonly onToggle?: (id: string, published: boolean) => void;
 
-	constructor(app: App, registry: SasiRegistry) {
+	constructor(
+		app: App,
+		registry: SasiRegistry,
+		publisher?: SasiCommandPublisher,
+		onToggle?: (id: string, published: boolean) => void,
+	) {
 		super(app);
 		this.registry = registry;
+		this.publisher = publisher;
+		this.onToggle = onToggle;
 	}
 
 	onOpen(): void {
@@ -73,7 +90,10 @@ export class SasiInspectorModal extends Modal {
 		contentEl.addClass('vaultman-sasi-inspector');
 		contentEl.createEl('h2', { text: translate('sasi.inspector.title') });
 
-		for (const section of buildSasiInspectorModel(this.registry)) {
+		for (const section of buildSasiInspectorModel(
+			this.registry,
+			this.publisher,
+		)) {
 			contentEl.createEl('h3', { text: translate(section.labelKey) });
 			if (section.entries.length === 0) {
 				contentEl.createDiv({
@@ -111,6 +131,35 @@ export class SasiInspectorModal extends Modal {
 					cls: 'vaultman-sasi-inspector-surfaces',
 					text: entry.surfaces.join(', '),
 				});
+				if (this.publisher) {
+					const toggleRow = item.createDiv({
+						cls: 'vaultman-sasi-inspector-toggle-row',
+					});
+					const toggle = toggleRow.createEl('button', {
+						cls: `vaultman-sasi-inspector-toggle ${
+							entry.published ? 'is-on' : 'is-off'
+						}`,
+						attr: {
+							'aria-pressed': entry.published ? 'true' : 'false',
+							'data-sasi-id': entry.id,
+						},
+					});
+					toggle.textContent = entry.published
+						? translate('sasi.inspector.toggle.on')
+						: translate('sasi.inspector.toggle.off');
+					toggle.addEventListener('click', () => {
+						const next = !entry.published;
+						this.publisher?.setPublished(entry.id, next);
+						if (this.onToggle) this.onToggle(entry.id, next);
+						toggle.textContent = next
+							? translate('sasi.inspector.toggle.on')
+							: translate('sasi.inspector.toggle.off');
+						toggle.classList.toggle('is-on', next);
+						toggle.classList.toggle('is-off', !next);
+						toggle.setAttribute('aria-pressed', String(next));
+						entry.published = next;
+					});
+				}
 			}
 		}
 	}
