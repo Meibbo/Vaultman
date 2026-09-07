@@ -52,6 +52,8 @@ export interface PanelPluginCtx {
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
 		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
+		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
+		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -605,8 +607,10 @@ export class PropsExplorerPanel extends Component {
 	private projectedNodes(
 		nodes: readonly TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
 		const layout = this.plugin.settings?.savedLayouts?.find(
-			(candidate) => candidate.name === this.activeLayoutName,
+			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
 		const groups = resolveCustomGroups(memberships);

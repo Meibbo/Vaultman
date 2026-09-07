@@ -332,8 +332,10 @@ export class SnippetsExplorerPanel
 	}
 
 	private projectedNodes(): TreeNode<SnippetMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
 		const layout = this.plugin.settings.savedLayouts?.find(
-			(candidate) => candidate.name === this.activeLayoutName,
+			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
 		const groups = resolveCustomGroups(memberships);

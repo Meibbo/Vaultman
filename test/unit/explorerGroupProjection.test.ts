@@ -372,6 +372,43 @@ function srcFilesContaining(symbol: string): string[] {
 	);
 }
 
+describe('L-CABLE guarda negativa: setActiveLayoutName tiene llamador en src/', () => {
+	it('setActiveLayoutName es llamado desde src/ (loadLayout en navbarFilters.svelte)', () => {
+		const files = srcFilesContaining('setActiveLayoutName');
+		const srcCallers = files.filter(
+			(f) =>
+				!f.includes('explorer') &&
+				!f.includes('typePanelWidget') &&
+				f.includes('src/'),
+		);
+		expect(srcCallers.length).toBeGreaterThan(0);
+	});
+
+	it('loadLayout ya no ignora groupMemberships: el simbolo aparece en su camino', () => {
+		const files = srcFilesContaining('groupMemberships');
+		const loadLayoutFiles = files.filter(
+			(f) => f.includes('navbarFilters'),
+		);
+		expect(loadLayoutFiles.length).toBeGreaterThan(0);
+	});
+
+	it('loadLayout contiene tanto groupMemberships como setActiveLayoutName', () => {
+		const navbarPath = join(
+			fileURLToPath(new URL('../../src', import.meta.url)),
+			'components/layout/navbarFilters.svelte',
+		);
+		const content = readFileSync(navbarPath, 'utf8');
+		const loadLayoutIdx = content.indexOf('function loadLayout');
+		const nextFuncIdx = content.indexOf('function ', loadLayoutIdx + 1);
+		const loadLayoutBody =
+			nextFuncIdx > 0
+				? content.slice(loadLayoutIdx, nextFuncIdx)
+				: content.slice(loadLayoutIdx);
+		expect(loadLayoutBody).toContain('groupMemberships');
+		expect(loadLayoutBody).toContain('setActiveLayoutName');
+	});
+});
+
 describe('L-CABLE guarda negativa: el estado paralelo no puede reaparecer', () => {
 	it('setGroupingEnabled no existe en ningun fichero de src/', () => {
 		// Un test que solo mira lo que debe aparecer lo satisface un stub:

@@ -363,6 +363,17 @@
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}
+	function explorerPortForTab(
+		tab: FiltersTab,
+	): PanelWidgetExplorerPort | null {
+		if (tab === 'files') return fileList ?? null;
+		if (tab === 'props') return propExplorer ?? null;
+		if (tab === 'tags') return tagsExplorer ?? null;
+		if (tab === 'snippets') return snippetsExplorer ?? null;
+		if (tab === 'plugins') return pluginsExplorer ?? null;
+		return null;
+	}
+
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
@@ -406,6 +417,16 @@
 				sortState: nextSort[tab],
 				interactionMode: nextInteraction[tab],
 			});
+		}
+		// U130-05: per-instance activation. groupMemberships is a layout-level
+		// property; calling setActiveLayoutName on each explorer makes its
+		// projectedNodes look up layout.groupMemberships by name, so custom
+		// group headers become reachable instead of falling back to preset
+		// alphabetical ordering. loadLayout previously applied view/sort/cells
+		// but ignored groupMemberships entirely.
+		void layout.groupMemberships;
+		for (const tab of LAYOUT_TABS) {
+			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}
 		onLayoutLoaded?.(layout);
 	}
