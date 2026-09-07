@@ -474,6 +474,11 @@ export const es: Record<string, string> = {
 	'settings.saved_view_config.empty':
 		'Sin composición de vista guardada. Usa "Guardar composición de vista" en el menú de vista para recordar opciones y orden por tab.',
 	'settings.saved_view_config.clear': 'Limpiar',
+	'settings.saved_view_config.activate_global': 'Activar globalmente',
+	'settings.saved_view_config.activate_global_aria':
+		'Activar {name} globalmente (todas las instancias)',
+	'settings.saved_view_config.activate_global_notice':
+		'Activado {name} globalmente.',
 	'settings.floating_toc': 'Índice flotante',
 	'settings.floating_toc.desc':
 		'Configura el índice del explorer y el comportamiento Niagara.',
@@ -540,6 +545,7 @@ export const es: Record<string, string> = {
 	'viewmenu.interaction.add': 'Agregar',
 	'viewmenu.interaction.select': 'Seleccionar',
 	'viewmenu.interaction.filter': 'Filtrar',
+	'viewmenu.engines': 'Motores',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

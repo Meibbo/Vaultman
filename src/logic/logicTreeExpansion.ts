@@ -19,9 +19,17 @@ export function collectExpandableSubtreeIds(root: TreeNode): string[] {
 export function expansionActionAvailable(
 	tab: ExplorerTabId,
 	visibleCells: readonly string[] | undefined,
+	/**
+	 * U130-t33 (L-PNODE): un grupo es un p-node independientemente de si la
+	 * anidacion esta activa. Con el scope `groups` la proyeccion fabrica
+	 * cabeceras con hijos aunque `nested` este apagado, y el toggle tiene que
+	 * seguir vivo para ellas. Sin agrupacion, el toggle apagado con anidacion
+	 * apagada sigue muerto: una lista plana no tiene nada que plegar.
+	 */
+	groupingActive = false,
 ): boolean {
 	return (
 		(tab === 'files' || tab === 'props' || tab === 'tags') &&
-		visibleCells?.includes('nested') === true
+		(visibleCells?.includes('nested') === true || groupingActive)
 	);
 }

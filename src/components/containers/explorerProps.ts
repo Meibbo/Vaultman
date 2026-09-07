@@ -52,6 +52,8 @@ export interface PanelPluginCtx {
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
 		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
+		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
+		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -605,8 +607,10 @@ export class PropsExplorerPanel extends Component {
 	private projectedNodes(
 		nodes: readonly TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
 		const layout = this.plugin.settings?.savedLayouts?.find(
-			(candidate) => candidate.name === this.activeLayoutName,
+			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
 		const groups = resolveCustomGroups(memberships);
@@ -637,6 +641,11 @@ export class PropsExplorerPanel extends Component {
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// de props: clases nativas y meta propia en vez de la prestada
+			// del primer hijo.
+			headerCoreCls: 'tree-item-self tappable is-clickable',
+			headerMeta: { propName: '', propType: '', isValueNode: false },
 		}) as TreeNode<PropMeta>[];
 	}
 
@@ -884,7 +893,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -892,7 +901,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
 		let tree = this.logic.getTree();
 		if (this.nodeTypeFilters.length > 0) {
 			tree = this._filterByTypes(tree, this.nodeTypeFilters);
@@ -907,7 +916,17 @@ export class PropsExplorerPanel extends Component {
 				this.expandedIds.add(id);
 			}
 		}
-		this._expandAll(tree);
+		// L-PNODE: el MISMO arbol que pinta la vista, aplanado incluido y con
+		// la proyeccion de grupos. Sin esto las cabeceras quedaban fuera del
+		// toggle, y con anidacion apagada el toggle entero moria en la guarda.
+		if (!this._nestedEnabled()) {
+			tree = this._sortFlat(
+				flattenPropertyValues(tree, {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
+		}
+		this._expandAll(this.projectedNodes(tree));
 		this._notifyExpansionChanged();
 		this._render();
 	}
@@ -2100,6 +2119,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
@@ -2244,7 +2264,7 @@ export class PropsExplorerPanel extends Component {
 				void this._render();
 			},
 			onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, nodesWithIcons),
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
@@ -2580,6 +2600,28 @@ export class PropsExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
 	}
 
 	private _metadataTypeManager(): MetadataTypeManagerLike | null {

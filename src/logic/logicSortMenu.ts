@@ -248,7 +248,6 @@ export function sortScopeOptions(
 export function byLevelModel(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
-	nestedActive: boolean,
 	// A flat view (table/cards) has no hierarchy, so the By-level group has
 	// nothing to order. Callers pass false for those view modes and the whole
 	// group disappears. Defaults true so existing callers keep the tree shape.
@@ -283,10 +282,6 @@ export function byLevelModel(
 		);
 	}
 
-	// No divider under this one: it belongs with Nested, both shaping what the
-	// level below is drawn from. Off by default — "global" is this being off.
-	// Files shares it (U121-052): the tree shows the whole vault while off, and
-	// `filtered` hides the files the active filter leaves out.
 	if (tab === 'props' || tab === 'tags' || tab === 'files') {
 		items.push({
 			kind: 'toggle',
@@ -295,44 +290,6 @@ export function byLevelModel(
 			labelKey: 'sort.level.filtered',
 			checked: state.filtered === true,
 		});
-	}
-
-	items.push({
-		kind: 'toggle',
-		id: 'nested',
-		icon: 'lucide-list-tree',
-		labelKey: 'sort.level.nested',
-		checked: nestedActive,
-	});
-
-	// With nesting off the view is a single flat level, so folders-first,
-	// fixed-folders and the level scopes have nothing to act on: only the
-	// Nested toggle (to turn hierarchy back on) stays.
-	if (!nestedActive) return { items };
-
-	// Folders-only draws no file rows, so folders-first has nothing to order
-	// against and fixed-folders has nothing to hold still. Both disappear rather
-	// than sitting there inert.
-	const foldersOnly = state.nodeTypeFilters?.includes('folders-only') === true;
-
-	if (tab === 'files' && !foldersOnly) {
-		const parentsFirst = state.parentsFirst ?? true;
-		items.push({
-			kind: 'toggle',
-			id: 'parentsFirst',
-			icon: 'lucide-folder-tree',
-			labelKey: 'sort.parents_first',
-			checked: parentsFirst,
-		});
-		if (parentsFirst) {
-			items.push({
-				kind: 'toggle',
-				id: 'fixedFolders',
-				icon: 'lucide-folder-lock',
-				labelKey: 'sort.level.fixed_folders',
-				checked: state.fixedFolders !== false,
-			});
-		}
 	}
 
 	items.push({ kind: 'separator', id: 'scope-separator' });

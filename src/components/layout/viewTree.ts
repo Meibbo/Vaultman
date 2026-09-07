@@ -127,6 +127,14 @@ export interface TreeViewOptions {
 	iconInCaretSlot?: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
+	/**
+	 * U130-t33 (L-PNODE): fuerza las guias de indentacion aunque la celda
+	 * `nested` este apagada. Un grupo es un p-node con hijos tenga o no
+	 * anidacion la escena: con agrupacion activa el arbol proyectado tiene
+	 * profundidad real y sus guias salen por el mismo `::before` de siempre.
+	 * Ausente: se conserva la lectura historica de `visibleCells`.
+	 */
+	indentGuides?: boolean;
 	/** Height to reserve above the pinned rows when the layout overlays nav
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
@@ -234,7 +242,8 @@ export class UnifiedTreeView {
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
 			'vaultman-tree-nested-guides',
-			!opts.coreMetadata && (opts.visibleCells?.has('nested') ?? true),
+			!opts.coreMetadata &&
+				(opts.indentGuides ?? opts.visibleCells?.has('nested') ?? true),
 		);
 		if (!opts.coreMetadata) this._markStructureAnimationIfNeeded(opts.expandedIds);
 		if (this._pendingRaf !== null) {

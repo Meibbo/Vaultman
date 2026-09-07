@@ -363,6 +363,17 @@
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}
+	function explorerPortForTab(
+		tab: FiltersTab,
+	): PanelWidgetExplorerPort | null {
+		if (tab === 'files') return fileList ?? null;
+		if (tab === 'props') return propExplorer ?? null;
+		if (tab === 'tags') return tagsExplorer ?? null;
+		if (tab === 'snippets') return snippetsExplorer ?? null;
+		if (tab === 'plugins') return pluginsExplorer ?? null;
+		return null;
+	}
+
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
@@ -406,6 +417,15 @@
 				sortState: nextSort[tab],
 				interactionMode: nextInteraction[tab],
 			});
+		}
+		// U130-05: activacion PER-INSTANCE. `groupMemberships` es una propiedad
+		// del layout, no de la pestana: llamar a setActiveLayoutName en cada
+		// explorer hace que su projectedNodes la busque por nombre, y las
+		// cabeceras de grupo custom pasan a ser alcanzables en vez de caer
+		// siempre a la rama preset alfabetica. Antes loadLayout aplicaba
+		// vista/sort/celdas e ignoraba groupMemberships por completo.
+		for (const tab of LAYOUT_TABS) {
+			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}
 		onLayoutLoaded?.(layout);
 	}
@@ -479,6 +499,11 @@
 			activeTab,
 			visibleCellsByTab[activeTab] ??
 				defaultVisibleCells(activeTab, viewModeByTab[activeTab]),
+			// U130-t33 (L-PNODE): un grupo es un p-node plegable aunque la
+			// anidacion este apagada — sin este flag el toggle queda muerto en
+			// ese caso exacto, el que el dev senalo.
+			(sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab])
+				?.activeScope === 'groups',
 		),
 	);
 	const expansionLabel = $derived(
@@ -847,9 +872,9 @@
 		headerExitDir = 'left';
 		headerMode = 'viewmode';
 	}
-	function openTabsPopup(event: MouseEvent) {
+	function openScenePopup(event: MouseEvent) {
 		if (!tabOptions.length) return;
-		openNativeTabsMenu(event);
+		openNativeSceneMenu(event);
 	}
 	function closeHeaderPopup() {
 		headerMode = 'header';
@@ -1286,7 +1311,7 @@
 		});
 
 		menu.addSeparator();
-		// 'Nested' stays in the sort menu's By level group (D29).
+		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
 		// first, then the rest at their canonical rank.
 		for (const entry of cellMenuOrder(
@@ -1313,7 +1338,7 @@
 		// Rendering engines are the final section.
 		menu.addSeparator();
 		menu.addItem((submenuItem) => {
-			submenuItem.setTitle('Engines').setIcon('lucide-layout');
+			submenuItem.setTitle(translate('viewmenu.engines')).setIcon('lucide-layout');
 			const submenu =
 				(submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
 				new Menu();
@@ -1330,10 +1355,63 @@
 				});
 			}
 		});
+		// View options for the selected engine: nested, folders-first, fixed-folders.
+		const sortState = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const nestedAct = nestedActiveFor(activeTab);
+		menu.addSeparator();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('sort.level.nested'))
+				.setIcon('lucide-list-tree')
+				.setChecked(nestedAct)
+				.onClick(() => toggleNestedFor(activeTab));
+		});
+		if (nestedAct) {
+			if (activeTab === 'files') {
+				const parentsFirst = sortState.parentsFirst ?? true;
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('sort.parents_first'))
+						.setIcon('lucide-folder-tree')
+						.setChecked(parentsFirst)
+						.onClick(() =>
+							handleSortChange({
+								...sortState,
+								parentsFirst: !parentsFirst,
+							}),
+						);
+				});
+				if (parentsFirst) {
+					menu.addItem((item) => {
+						item
+							.setTitle(translate('sort.level.fixed_folders'))
+							.setIcon('lucide-folder-lock')
+							.setChecked(sortState.fixedFolders !== false)
+							.onClick(() =>
+								handleSortChange({
+									...sortState,
+									fixedFolders: !(sortState.fixedFolders !== false),
+								}),
+							);
+					});
+				}
+			}
+		}
+		// Toolbar toggle — moved here from the scene menu (spec 08).
+		if (onToggleToolbar) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+		}
 		menu.showAtMouseEvent(event);
 	}
 
-	function openNativeTabsMenu(event: MouseEvent) {
+	function openNativeSceneMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const primaryTabOptions = tabOptions.filter(
 			(option) => option.id !== 'snippets' && option.id !== 'plugins',
@@ -1389,17 +1467,6 @@
 		}
 		if (!showDock && statisticsAction) renderTabAction(statisticsAction);
 		for (const option of addonTabOptions) renderTabOption(option);
-		// Toolbar visibility — its own section at the end of the tabs menu.
-		if (onToggleToolbar) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1662,7 +1729,6 @@
 		const model = byLevelModel(
 			tab,
 			current,
-			nestedActiveFor(tab),
 			treeCapableFor(tab),
 		);
 		if (!model) return;
@@ -1683,19 +1749,6 @@
 					.setChecked(option.checked)
 					.onClick(() => {
 						if (option.kind === 'toggle') {
-							if (option.id === 'nested') toggleNestedFor(tab);
-							if (option.id === 'parentsFirst') {
-								handleSortChange({
-									...current,
-									parentsFirst: !option.checked,
-								});
-							}
-							if (option.id === 'fixedFolders') {
-								handleSortChange({
-									...current,
-									fixedFolders: !option.checked,
-								});
-							}
 							if (option.id === 'filtered') {
 								handleFilterChange({
 									...current,
@@ -2051,11 +2104,11 @@
 							tabindex="0"
 							aria-label={currentTabsLabel}
 							title={minimalStyle ? undefined : currentTabsLabel}
-							onclick={(event: MouseEvent) => openTabsPopup(event)}
+							onclick={(event: MouseEvent) => openScenePopup(event)}
 							onkeydown={(e: KeyboardEvent) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									openTabsPopup(
+									openScenePopup(
 										menuEventFromElement(e.currentTarget as HTMLElement),
 									);
 								}
@@ -2403,7 +2456,6 @@
 					{revealActive}
 					onRequestRevealPick={() => void beginRevealPick(activeTab)}
 					treeCapable={treeCapableFor(activeTab)}
-					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}
 				/>
 			</div>

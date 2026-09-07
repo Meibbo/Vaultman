@@ -332,8 +332,10 @@ export class SnippetsExplorerPanel
 	}
 
 	private projectedNodes(): TreeNode<SnippetMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
 		const layout = this.plugin.settings.savedLayouts?.find(
-			(candidate) => candidate.name === this.activeLayoutName,
+			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
 		const groups = resolveCustomGroups(memberships);
@@ -357,6 +359,12 @@ export class SnippetsExplorerPanel
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
+			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
+			// mismo camino que files/tags/props — sin esto se colaba el
+			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por
+			// `applyCoreRowClasses`.
+			headerMeta: { name: '', enabled: false },
+			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<SnippetMeta>[];
 		return this.withGroupToggleCells(projected);
 	}
@@ -413,6 +421,10 @@ export class SnippetsExplorerPanel
 		this.treeView.render({
 			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
+			// U130-t33 (L-PNODE): snippets no tiene anidacion propia, pero un
+			// grupo activo si crea un nivel (cabecera -> miembros) que
+			// necesita la guia igual que el resto de p-nodes con hijos.
+			indentGuides: this.sortState?.activeScope === 'groups',
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
