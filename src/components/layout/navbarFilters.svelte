@@ -1711,19 +1711,26 @@
 		);
 	}
 
-	function drillScopeTitle(
+	function variableScopeTitle(
 		tab: FiltersTab,
 		current: ExplorerSortState,
 	): string {
-		const base = translate('sort.level.drill');
-		if (current.activeScope !== 'drill' || !current.drillNodeId) return base;
-		const panel =
-			tab === 'files' ? fileList : tab === 'tags' ? tagsExplorer : null;
-		const label = panel?.sortNodeLabel?.(current.drillNodeId) ?? '';
-		if (!label) return base;
-		const chars = [...label];
-		const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
-		return base.replace(/drill\s*$/i, short);
+		// El titulo VARIA con el c-node elegido (spec 08 §3.1). No se hace
+		// `replace` sobre una palabra inglesa del label: eso se rompio al
+		// renombrar 'Scope: drill' -> 'Select a parent', y en espanol nunca
+		// llego a coincidir. Se usa i18n parametrizada, como el resto del repo.
+		const base = translate('sort.level.variable');
+		if (current.activeScope === 'drill' && current.drillNodeId) {
+			const panel =
+				tab === 'files' ? fileList : tab === 'tags' ? tagsExplorer : null;
+			const label = panel?.sortNodeLabel?.(current.drillNodeId) ?? '';
+			if (!label) return base;
+			const chars = [...label];
+			const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
+			return translate('sort.level.variable_node', { name: short });
+		}
+		if (current.activeScope !== 'drill') return base;
+		return base;
 	}
 
 	function addByLevelItems(
@@ -1746,9 +1753,10 @@
 			menu.addItem((item) =>
 				item
 					.setTitle(
-						option.kind === 'scope' && option.scope === 'drill'
-							? drillScopeTitle(tab, current)
-							: translate(option.labelKey),
+						// U130-08 §3.1: la variabilidad se mudo al TITULO DEL SUBMENU
+						// (`variableScopeTitle`). La opcion es estatica: se llama
+						// "Select a parent" y no cambia con el nodo elegido.
+						translate(option.labelKey),
 					)
 					.setIcon(option.icon)
 					.setChecked(option.checked)
@@ -1842,6 +1850,18 @@
 
 		if (supportsByLevel(activeTab)) {
 			menu.addSeparator();
+			const variableTitle = variableScopeTitle(activeTab, current);
+			menu.addItem((item) => {
+				item.setTitle(variableTitle).setIcon('lucide-sort-alphabetical');
+				const sub = (item as typeof item & { setSubmenu: () => Menu }).setSubmenu();
+				sub.addItem((it) => {
+					it.setTitle(translate('sort.level.all')).setIcon('lucide-layers').setChecked(current.activeScope === 'all');
+				});
+				sub.addItem((it) => {
+					it.setTitle('Select a parent').setIcon('lucide-mouse-pointer').setChecked(current.activeScope === 'drill');
+				});
+				sub.addSeparator();
+			});
 			if (sortLevelInline) {
 				addByLevelItems(menu, activeTab, current);
 			} else {
