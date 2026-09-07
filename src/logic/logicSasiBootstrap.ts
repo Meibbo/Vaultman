@@ -2,6 +2,7 @@ import { createSasiRegistry, type SasiRegistry } from './logicSasiRegistry';
 import { registerAddonGroupToggleActions } from './logicAddonGroupToggle';
 import { registerMoveActions } from './logicSasiMoveActions';
 import { registerSearchActions } from './logicSasiSearchActions';
+import { registerHoverActions } from './logicSasiHoverActions';
 import {
 	createSasiProvider,
 	type SasiProvider,
@@ -25,5 +26,6 @@ export function createVaultmanSasi(): VaultmanSasi {
 	registerMoveActions(registry);
 	registerSearchActions(registry);
 	registerAddonGroupToggleActions(registry);
+	registerHoverActions(registry);
 	return { registry, provider: createSasiProvider(registry) };
 }
