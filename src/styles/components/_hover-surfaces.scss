@@ -1,0 +1,155 @@
+/* ============================================================================
+ * Hover surfaces — port of .ref/Mb-sidebars.css chrome (sidebars, ribbons,
+ * tabbar, statusbar) reduced to the four surfaces managed by
+ * src/services/serviceHoverSurfaces.ts.
+ *
+ * The service puts these classes exactly:
+ *   mb-hover-locked       — on body (lock toggle)
+ *   mb-sidebar-hovered    — on .workspace-split.mod-{left,right}-split
+ *   mb-sidebar-pinned     — on .workspace-split.mod-{left,right}-split
+ *   mb-ribbon-hovered     — on .workspace-ribbon.mod-{left,right}
+ *   mb-tabbar-hovered     — on .workspace-tab-header-container / .view-header
+ *   mb-statusbar-hovered  — on .status-bar
+ *
+ * Two corrections vs the original snippet:
+ *   1. Symmetry: both mod-left-split and mod-right-split get a hide rule AND
+ *      a reveal rule (hover / mb-sidebar-hovered / mb-sidebar-pinned). The
+ *      original only had the hide rule for the right side.
+ *   2. No !important in cascade. Specificity over brute force.
+ * ========================================================================== */
+
+/* ----------------------------------------------------
+ * SIDEBARS — collapsed by default, reveal on hover / pin
+ * ---------------------------------------------------- */
+
+/* Both sides share the floating container chrome so the JS-driven transitions
+ * do not fight the native Obsidian flex layout. */
+.workspace-split.mod-left-split.is-sidedock-collapsed,
+.workspace-split.mod-right-split.is-sidedock-collapsed {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: 90vw;
+  z-index: 1000;
+  overflow: visible;
+  transition:
+    transform 0.25s cubic-bezier(0.1, 0, 0.1, 1),
+    box-shadow 0.25s ease;
+}
+
+/* --- LEFT: hide off-screen, mirror the original transform --- */
+.workspace-split.mod-left-split.is-sidedock-collapsed {
+  left: 0;
+  width: var(--sidebar-left-width, 250px);
+  transform: translateX(calc(-100% - 1px));
+}
+
+/* --- RIGHT: hide off-screen — original symmetry fix --- */
+.workspace-split.mod-right-split.is-sidedock-collapsed {
+  right: 0;
+  width: var(--sidebar-right-width, 280px);
+  transform: translateX(calc(100% + 1px));
+}
+
+/* --- Reveal rules for both sides --- */
+/* Selectors are duplicated per side on purpose: chaining `.mod-left-split.mb-sidebar-hovered`
+ * would not match the right side, so the symmetry fix lives in two parallel rule blocks. */
+.workspace-split.mod-left-split.is-sidedock-collapsed:hover,
+.workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered,
+.workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.workspace-split.mod-right-split.is-sidedock-collapsed:hover,
+.workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered,
+.workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: -10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ----------------------------------------------------
+ * RIBBONS — kept by the service, no hide-by-default.
+ * mb-ribbon-hovered is a soft affordance: subtle shadow when the pointer is
+ * over the docked ribbon strip. No layout shift, no !important.
+ * ---------------------------------------------------- */
+.workspace-ribbon.mod-left.mb-ribbon-hovered,
+.workspace-ribbon.mod-right.mb-ribbon-hovered {
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border-hover);
+  background-color: var(--background-secondary-alt, var(--background-secondary));
+}
+
+/* ----------------------------------------------------
+ * TABBAR + VIEW HEADER — focus-mode hover reveal
+ * Collapsed by default in the Vaultman chrome; the service flips
+ * mb-tabbar-hovered when the pointer enters the top edge.
+ * ---------------------------------------------------- */
+.mod-root .workspace-tab-header-container,
+.mod-root .workspace-leaf .view-header {
+  transition:
+    height 0.15s linear 0.05s,
+    opacity 0.15s linear 0.05s,
+    border-color 0.15s linear;
+}
+
+.workspace-tab-header-container.mb-tabbar-hovered,
+.view-header.mb-tabbar-hovered {
+  height: var(--header-height, 40px);
+  min-height: var(--header-height, 40px);
+  opacity: 1;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* ----------------------------------------------------
+ * STATUS BAR — independent hover reveal
+ * ---------------------------------------------------- */
+.status-bar {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.1, 0, 0.1, 1),
+    box-shadow 0.2s ease;
+}
+
+.status-bar.mb-statusbar-hovered {
+  opacity: 1;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* ----------------------------------------------------
+ * LOCK — absolute concentration mode
+ * mb-hover-locked overrides every reveal above. Specificity is higher than
+ * the reveal selectors (body.mb-hover-locked + element beats element:hover
+ * and element.<hovered-class>), so no !important is needed.
+ * ---------------------------------------------------- */
+
+/* Sidebars: force the hidden transform even on :hover and on the JS-driven
+ * classes. Selector list deliberately covers every reveal selector above. */
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed:hover,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-locked .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(calc(-100% - 1px));
+  box-shadow: none;
+}
+
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed:hover,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(calc(100% + 1px));
+  box-shadow: none;
+}
+
+body.mb-hover-locked .workspace-tab-header-container,
+body.mb-hover-locked .workspace-tab-header-container.mb-tabbar-hovered,
+body.mb-hover-locked .workspace-leaf .view-header,
+body.mb-hover-locked .workspace-leaf .view-header.mb-tabbar-hovered {
+  height: 0;
+  min-height: 0;
+  opacity: 0;
+}
+
+body.mb-hover-locked .status-bar,
+body.mb-hover-locked .status-bar.mb-statusbar-hovered {
+  opacity: 0;
+}
