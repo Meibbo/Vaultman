@@ -221,13 +221,14 @@ interface SortScopeMenuOption {
  */
 const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
 	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
-	drill: {
-		icon: 'lucide-mouse-pointer-click',
+drill: {
+		icon: 'lucide-mouse-pointer',
 		labelKey: 'sort.level.drill',
 	},
 	properties: { icon: 'lucide-list-tree', labelKey: 'sort.level.properties' },
 	values: { icon: 'lucide-list-collapse', labelKey: 'sort.level.values' },
 	groups: { icon: 'lucide-group', labelKey: 'sort.level.groups' },
+	variable: { icon: 'lucide-sort-alphabetical', labelKey: 'sort.level.variable' },
 };
 
 /**

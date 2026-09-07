@@ -51,6 +51,8 @@ describe('explorer sort UI source', () => {
 			'values',
 			// U121-079: `groups` entra como scope valido
 			'groups',
+			// U130-03: `variable` nuevo scope
+			'variable',
 		]);
 		expect(
 			byLevelModel(
@@ -65,6 +67,8 @@ describe('explorer sort UI source', () => {
 			'all',
 			// U121-079: `groups` entra como scope valido
 			'groups',
+			// U130-03: `variable` nuevo scope
+			'variable',
 		]);
 		expect(popupSource).toContain('activeScope');
 		expect(popupSource).toContain('selectScope(');
@@ -216,6 +220,8 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 			'all',
 			// U121-079: `groups` entra como scope valido
 			'groups',
+			// U130-03: `variable` nuevo scope
+			'variable',
 		]);
 		const disabled = byLevelModel(
 			'files',
