@@ -23,7 +23,7 @@
  * layout, sin duplicar). No toca la logica de proyeccion ni enciende nada.
  */
 
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -36,25 +36,74 @@ const LAYOUT_DEFAULT = 'u130-seed-groups';
 const GROUP_PADRE = 'u130-seed-padre';
 const GROUP_HIJO = 'u130-seed-hijo';
 
-/** Miembros reales del vault plugin-dev (se verifican en disco antes de sembrar). */
-const MIEMBROS_PADRE = [
-	{ kind: 'file' as const, canonicalId: 'urgent.md', displayLabel: 'urgent.md' },
-	{ kind: 'file' as const, canonicalId: 'true.md', displayLabel: 'true.md' },
-	{
-		kind: 'folder' as const,
-		canonicalId: 'stress-test-data/Projects',
-		displayLabel: 'Projects',
-	},
-];
-/** El hijo es subconjunto del padre: asi se expresa la anidacion en el dato. */
-const MIEMBROS_HIJO = [
-	{ kind: 'file' as const, canonicalId: 'urgent.md', displayLabel: 'urgent.md' },
-	{
-		kind: 'file' as const,
-		canonicalId: 'stress-test-data/Projects/note-99.md',
-		displayLabel: 'note-99.md',
-	},
-];
+/** Miembro semilla: kind + ruta relativa al vault + etiqueta visible. */
+interface SeedMember {
+	kind: 'file' | 'folder';
+	canonicalId: string;
+	displayLabel: string;
+}
+
+/**
+ * Descubre miembros reales en el vault destino, en orden estable para que
+ * dos corridas siembren lo mismo (idempotencia):
+ * - ficheros: todos los `*.md` bajo el vault (recursivo, sin dotfiles),
+ *   ordenados lexicograficamente por ruta relativa con separador `/`.
+ * - carpetas: todos los directorios (recursivos, sin dotfiles), ordenados
+ *   igual.
+ * - padre: [fichero[0], fichero[1], carpeta[0] (o fichero[2] si no hay)].
+ * - hijo: [fichero[0] (SOLAPE con el padre), fichero[2] (o carpeta[0])].
+ * El hijo queda como subconjunto conceptual del padre via el solape.
+ */
+function discoverMembers(vaultRoot: string): { padre: SeedMember[]; hijo: SeedMember[] } {
+	const files: string[] = [];
+	const dirs: string[] = [];
+	const walk = (abs: string, rel: string): void => {
+		const entries = readdirSync(abs, { withFileTypes: true }).sort((a, b) =>
+			a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+		);
+		for (const e of entries) {
+			if (e.name.startsWith('.')) continue;
+			const childAbs = path.join(abs, e.name);
+			const childRel = rel ? `${rel}/${e.name}` : e.name;
+			if (e.isDirectory()) {
+				dirs.push(childRel);
+				walk(childAbs, childRel);
+			} else if (e.isFile() && e.name.endsWith('.md')) {
+				files.push(childRel);
+			}
+		}
+	};
+	walk(vaultRoot, '');
+	files.sort();
+	dirs.sort();
+	if (files.length < 2)
+		throw new Error(
+			`Vault sin suficientes ficheros .md para sembrar (encontrados: ${files.length})`,
+		);
+	const base = (rel: string): string => rel.split('/').pop() ?? rel;
+	const fileMember = (id: string): SeedMember => ({
+		kind: 'file',
+		canonicalId: id,
+		displayLabel: base(id),
+	});
+	const folderMember = (id: string): SeedMember => ({
+		kind: 'folder',
+		canonicalId: id,
+		displayLabel: base(id),
+	});
+	const overlap = fileMember(files[0]);
+	const second = fileMember(files[1]);
+	const third = files[2] !== undefined ? fileMember(files[2]) : null;
+	const firstDir = dirs[0] !== undefined ? folderMember(dirs[0]) : null;
+	// Padre: dos ficheros + una carpeta (o tercer fichero si no hay carpetas).
+	const padre: SeedMember[] = [overlap, second, firstDir ?? third!];
+	// Hijo: solapa con el padre en files[0] + un miembro propio distinto.
+	const propio: SeedMember | null = third ?? firstDir;
+	if (!propio)
+		throw new Error('Vault sin suficientes miembros distintos para el hijo');
+	const hijo: SeedMember[] = [overlap, propio];
+	return { padre, hijo };
+}
 
 function parseArgs(argv: string[]): {
 	vault: string;
@@ -102,6 +151,10 @@ function main(): void {
 	if (!existsSync(dataPath))
 		throw new Error(`No existe ${dataPath}: vault o plugin desconocidos (vault=${vault})`);
 	const vaultRoot = path.resolve(pluginDir, '..', '..', '..');
+
+	// Descubrimiento portable: los miembros se eligen de ESE vault, en orden
+	// estable (idempotente). Nada hardcodeado a otro vault.
+	const { padre: MIEMBROS_PADRE, hijo: MIEMBROS_HIJO } = discoverMembers(vaultRoot);
 
 	// 1. Los miembros tienen que existir DE VERDAD en ESE vault. Si no, se falla
 	// en vez de sembrar fantasmas (que caerian a Ghost Slot).
