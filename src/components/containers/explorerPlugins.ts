@@ -52,6 +52,7 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
 	projectGroupedTree,
@@ -372,6 +373,9 @@ export class PluginsExplorerPanel
 					canonicalId: node.meta.pluginId,
 					displayLabel: node.label,
 				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<PluginMeta>[];
 		return this.withGroupToggleCells(projected);

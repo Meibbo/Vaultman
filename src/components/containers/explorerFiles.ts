@@ -21,6 +21,7 @@ import type {
 import { resolveCellRenderOrder } from '../../logic/logicCellRegistry';
 import {
 	applyBubbleDots,
+	bubbleMemberCountsToGroups,
 	buildBubbleIndex,
 	collectDescendantBadges,
 	type BubbleIndex,
@@ -259,6 +260,9 @@ export class FilesExplorerPanel extends Component {
 					canonicalId: node.meta?.file?.path ?? node.meta?.folderPath ?? node.id,
 					displayLabel: node.label,
 				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
 			enabled: this.sortState?.activeScope === 'groups',
 		}) as TreeNode<FileMeta>[];
 	}
