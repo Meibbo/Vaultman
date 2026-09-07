@@ -677,8 +677,9 @@
 			current: { instanceId: sceneInstanceId, scene: filtersActiveTab },
 			nodes: propExplorer?.moveTransactionNodes() ?? [],
 			variant: minimalStyle ? 'phone' : 'row',
-			// Slice 3 lo pone a true cuando el arbol proyecte grupos.
-			groupsAvailable: false,
+			// U130-03: el toggle solo tiene sentido si hay ContainerNodes a los
+			// que mover. Ahora los hay.
+			groupsAvailable: propExplorer?.hasProjectedGroups() ?? false,
 		});
 	});
 
