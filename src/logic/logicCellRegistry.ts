@@ -314,6 +314,13 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		],
 	},
 	{
+		id: 'cell_hover',
+		role: 'control',
+		labelKey: 'viewmode.pill.cell_hover',
+		icon: 'lucide-more-horizontal',
+		supports: [{ explorer: 'props', fixedRank: 50, defaultOn: true }],
+	},
+	{
 		id: 'sub',
 		role: 'value',
 		labelKey: 'viewmode.pill.sub',
