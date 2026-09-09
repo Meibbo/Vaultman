@@ -270,6 +270,22 @@ describe('FilesExplorerPanel source guards', () => {
 			renderBlock?.indexOf('this.treeView.render({') ?? -1,
 		);
 	});
+
+	it('anchors a collapsed pinned folder from both caret and row body (U121-080)', () => {
+		expect(explorerFilesSource).toContain(
+			'private _toggleFolderWithStickyAnchor(id: string)',
+		);
+		expect(explorerFilesSource).toContain(
+			'this.treeView?.scrollRowUnderStickyStack(id)',
+		);
+		// Caret (onToggle) and body in open mode (onRowClick) must share the
+		// single owner: two inline copies drifted and collapsed differently.
+		const calls =
+			explorerFilesSource.match(
+				/this\._toggleFolderWithStickyAnchor\(id\)/g,
+			) ?? [];
+		expect(calls).toHaveLength(2);
+	});
 });
 
 describe('exclude file (BT5-009, was BT4-015 / D39)', () => {
