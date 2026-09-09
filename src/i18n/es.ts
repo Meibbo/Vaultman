@@ -640,6 +640,8 @@ export const es: Record<string, string> = {
 	'explorer.tags.empty_search_desc':
 		'Prueba otro término o cambia la categoría de etiquetas.',
 	'explorer.toggle': 'Explorador',
+	// Task 3.3: consume esta clave para etiquetar el grupo vacio.
+	'explorer.group.no_group': 'Sin grupo',
 
 	// Explorer nav buttons
 	'explorer.btn.search': 'Buscar',
@@ -717,6 +719,9 @@ export const es: Record<string, string> = {
 		'Los tags no admiten espacios. Usa "-", "_" o "/" en su lugar.',
 	'explorer.ctx.filter_include': 'Incluir como filtro',
 	'explorer.ctx.filter_exclude': 'Excluir como filtro',
+	'explorer.ctx.filter_clean': 'Limpiar este filtro',
+	'explorer.cell.open_daily_note': 'Abrir nota diaria',
+	'explorer.cell.delete_value': 'Encolar eliminación del valor',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
 	'file.ctx.open_window': 'Abrir en nueva ventana',
@@ -1041,6 +1046,7 @@ export const es: Record<string, string> = {
 	'tags.source.inline': 'cuerpo',
 	'tags.source.both': 'ambos',
 	'viewmode.pill.format': 'Formato',
+	'viewmode.pill.cell_hover': 'Acciones al pasar',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',
 	'viewmode.pill.parent': 'Padre',

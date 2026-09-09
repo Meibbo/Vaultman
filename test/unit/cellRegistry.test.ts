@@ -31,6 +31,7 @@ describe('shared explorer cell registry', () => {
 			'text',
 			'parent',
 			'count',
+			'cell_hover',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
