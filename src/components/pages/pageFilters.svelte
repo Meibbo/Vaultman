@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
-	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
+	import { Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
 	import {
@@ -49,6 +49,7 @@
 		type ContentSortDirection,
 	} from '../../logic/logicContentPreview';
 	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
+	import { openFileAtOffset } from '../../utils/openFileAtOffset';
 	import { sortDirectionGlyph } from '../../logic/logicSort';
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 	import { contentMenuNode } from '../../logic/logicContentContextMenu';
@@ -1217,22 +1218,15 @@
 		const match = input?.offsets.find(([start]) => start === offset);
 
 		if (input && match) {
-			await plugin.app.workspace.getLeaf(false).openFile(file, {
-				eState: {
-					match: { content: input.content, matches: [match] },
-				},
+			await openFileAtOffset(plugin.app, file, offset, {
+				match: { content: input.content, range: match },
 			});
 			return;
 		}
 
 		// The match is no longer retained (a new query cleared the floor). Fall
 		// back to placing the cursor, which is what this always did.
-		await plugin.app.workspace.openLinkText(file.path, '', false);
-		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-		const position = view.editor.offsetToPos(offset);
-		view.editor.setCursor(position);
-		view.editor.scrollIntoView({ from: position, to: position }, true);
+		await openFileAtOffset(plugin.app, file, offset);
 	}
 
 	function validateContentSearch(): boolean {
@@ -1303,6 +1297,10 @@
 		const isRegex = contentIsRegex;
 		const isExclusion = contentIsExclusion;
 		const files = contentSearchScopeFiles();
+		const activeFileOnly =
+			activeContentFilePath !== null &&
+			files.length === 1 &&
+			files[0]?.path === activeContentFilePath;
 
 		// U121-016: leaving the Text tab must not touch the run. The pane stays
 		// mounted, so cancelling or resetting here is what used to throw away
@@ -1446,6 +1444,7 @@
 			}
 		}
 		contentPreviewOpen = true;
+		const searchDelay = activeFileOnly ? 0 : 250;
 		const timer = window.setTimeout(() => {
 			// Claimed here, once the scan is really starting.
 			contentSearchLaunchToken = launchToken;
@@ -1524,7 +1523,7 @@
 					},
 				})
 				.catch((error) => console.error(error));
-		}, 250);
+		}, searchDelay);
 
 		// Only the debounce is torn down here. Cancelling the adapter on teardown
 		// is what made a tab switch kill an in-flight scan (U121-016); the run
@@ -1896,7 +1895,11 @@
 				showDock,
 				tabOptions: minimalStyle ? filterTabOptions : [],
 				tabMenuActions,
-				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions, ...fileMoveHeaderActions],
+				headerActions: [
+					...contentHeaderActions,
+					...valueMoveHeaderActions,
+					...fileMoveHeaderActions,
+				],
 				revealActive: revealingActiveFile,
 				activeFilePath: activeContentFilePath,
 				searchMoveToggles,

@@ -345,15 +345,22 @@ describe('BT5-017 wiring guards', () => {
 			'private _expandSubtree(',
 		);
 
-		for (const expansionPath of [
-			onToggle,
-			onRowClick,
-			expandNodeById,
-			expandSubtree,
-		]) {
+		for (const expansionPath of [expandNodeById, expandSubtree]) {
 			expect(expansionPath).not.toMatch(/this\._render\(\)/);
 			expect(expansionPath).toMatch(/_refreshTreeExpansion/);
 		}
+		// Caret and row-body toggles share the sticky-anchor owner, which performs
+		// the cached projection refresh after changing expansion state.
+		for (const expansionPath of [onToggle, onRowClick]) {
+			expect(expansionPath).not.toMatch(/this\._render\(\)/);
+			expect(expansionPath).toMatch(/_toggleFolderWithStickyAnchor/);
+		}
+		const stickyToggle = sourceBetween(
+			explorerFilesSource,
+			'private _toggleFolderWithStickyAnchor(',
+			'private _toggleExpanded(',
+		);
+		expect(stickyToggle).toMatch(/_refreshTreeExpansion/);
 
 		const refreshProjection = sourceBetween(
 			explorerFilesSource,

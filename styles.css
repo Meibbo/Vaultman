@@ -3289,6 +3289,15 @@ button.vaultman-content-scope-hint:focus-visible {
   transform-origin: center;
 }
 
+.vaultman-addon-toggle-cell.is-mixed {
+  border-color: var(--vaultman-accent);
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
+.vaultman-addon-cell.is-mixed {
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
 .vaultman-addon-toggle-input {
   pointer-events: none;
 }
@@ -3456,6 +3465,65 @@ button.vaultman-content-scope-hint:focus-visible {
   font-size: var(--font-ui-small);
   color: var(--text-normal);
   flex: 1;
+}
+
+/* U130-01: el inspector de SASI. Denso a proposito: es una herramienta de
+ * desarrollo, no una superficie de usuario. */
+.vaultman-sasi-inspector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-sasi-inspector-list li {
+  display: flex;
+  gap: var(--size-4-2);
+  align-items: baseline;
+  padding-block: var(--size-2-1);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-sasi-inspector-id {
+  font-family: var(--font-monospace);
+  color: var(--text-normal);
+}
+
+.vaultman-sasi-inspector-label,
+.vaultman-sasi-inspector-surfaces {
+  color: var(--text-muted);
+}
+
+.vaultman-sasi-inspector-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.vaultman-sasi-inspector-mutates {
+  color: var(--text-error);
+}
+
+.vaultman-sasi-inspector-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  padding-block: var(--size-2-2);
+}
+
+/* U130-03: la cabecera de grupo. Es una fila del arbol con clase propia --no un
+ * componente aparte-- porque `viewTree` ya sabe pintar filas, plegarlas y
+ * virtualizarlas. Un renderizador nuevo habria duplicado las tres cosas. */
+.vaultman-tree-row--group-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--background-secondary-alt);
+}
+
+.vaultman-tree-row--group-header .vaultman-tree-label {
+  color: inherit;
 }
 
 /* === File List Section === */

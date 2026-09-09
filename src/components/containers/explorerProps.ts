@@ -2673,11 +2673,11 @@ export class PropsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
-		// 'custom' is the anchored note's own order. The projection already comes
+		// 'note' is the anchored note's own order. The projection already comes
 		// out in that order, so the comparator's job is to leave it alone: the
 		// sort is stable, and returning 0 preserves the frontmatter sequence for
 		// properties and, one level down, for each property's values.
-		if (normalizedSortBy === 'custom') return 0;
+		if (normalizedSortBy === 'note') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex

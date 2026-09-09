@@ -7,6 +7,7 @@ import {
 	selectNodeMoveDestination,
 } from '../../src/logic/logicNodeMoveMode';
 import { projectNodeMoveBar } from '../../src/logic/logicNodeMoveRuntime';
+import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
 	// Mock minimo de ResizeObserver, igual que navbarTransactionBar.test.ts:
@@ -33,14 +34,17 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 	};
 
 	const baseProps = {
-		activeTab: 'files',
-		actionPort: { invoke: () => Promise.resolve() },
+		providerId: 'files',
+		activeTab: 'files' as const,
+		filtersSearch: '',
+		filtersSearchCategory: { files: 0, props: 0, tags: 0 },
+		actionPort: { invoke: () => Promise.resolve(true) },
 		sceneConfigPort: {
 			read: () => ({
-				viewMode: 'tree',
-				interactionMode: 'select',
+				viewMode: 'tree' as const,
+				interactionMode: 'select' as const,
 				visibleCells: [],
-				sortState: { field: 'name', direction: 'asc' },
+				sortState: normalizeExplorerSortState('files', null),
 			}),
 			propose: () => Promise.resolve(),
 			readActiveScene: () => 'files',

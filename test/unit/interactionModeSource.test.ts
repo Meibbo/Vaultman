@@ -84,9 +84,9 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	it('adds synchronized labels for the native submenu', () => {
 		expect(en['viewmenu.layouts']).toBe('Layout');
 		expect(es['viewmenu.layouts']).toBe('Composiciones de vista');
-		// U130-06: la etiqueta de interfaz pasa a Interaction y la clave a viewmenu.interaction.
-		expect(en['viewmenu.interaction']).toBe('Interaction');
-		expect(es['viewmenu.interaction']).toBe('Interacción');
+		// The submenu names the selected input mode, not the implementation type.
+		expect(en['viewmenu.interaction']).toBe('Input:');
+		expect(es['viewmenu.interaction']).toBe('Entrada:');
 		for (const key of ['open', 'add', 'select', 'filter']) {
 			expect(en[`viewmenu.interaction.${key}`]).toBeTruthy();
 			expect(es[`viewmenu.interaction.${key}`]).toBeTruthy();
@@ -106,8 +106,8 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 			new URL('../../src/components/layout/navbarFilters.svelte', import.meta.url),
 			'utf8',
 		);
-		expect(en).toContain("'viewmenu.interaction': 'Interaction'");
-		expect(es).toContain("'viewmenu.interaction': 'Interacción'");
+		expect(en).toContain("'viewmenu.interaction': 'Input:'");
+		expect(es).toContain("'viewmenu.interaction': 'Entrada:'");
 		// La clave vieja no puede sobrevivir en ningun sitio: una clave huerfana
 		// se traduce a si misma y el usuario ve `viewmenu.in_mode` en el menu.
 		expect(en).not.toContain('viewmenu.in_mode');
@@ -167,4 +167,3 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		expect(restoreCalls).toBeNull();
 	});
 });
-

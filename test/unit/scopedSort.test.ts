@@ -137,22 +137,22 @@ describe('scoped explorer sort state', () => {
 		).toEqual(state);
 	});
 
-	// U121-079: the reported symptom. With sort_preset=custom and the scope
+	// U121-079: the reported symptom. With sort_preset=note and the scope
 	// drawer untouched, only the node_props reordered while the node_values
 	// stayed alphabetical -- one sort applying to one level of the same tree.
-	it('reaches the values when custom is chosen on the whole tree', () => {
+	it('reaches the values when note is chosen on the whole tree', () => {
 		const state = normalizeExplorerSortState('props', {
-			sorts: { all: { sortBy: 'custom', direction: 'asc' } },
+			sorts: { all: { sortBy: 'note', direction: 'asc' } },
 			activeScope: 'all',
 			nodeTypeFilter: null,
 		});
 
 		expect(activeScopeSort('props', state, 'properties')).toEqual({
-			sortBy: 'custom',
+			sortBy: 'note',
 			direction: 'asc',
 		});
 		expect(activeScopeSort('props', state, 'values')).toEqual({
-			sortBy: 'custom',
+			sortBy: 'note',
 			direction: 'asc',
 		});
 	});
@@ -161,7 +161,7 @@ describe('scoped explorer sort state', () => {
 	it('lets an explicit values scope override the tree-wide sort', () => {
 		const state = normalizeExplorerSortState('props', {
 			sorts: {
-				all: { sortBy: 'custom', direction: 'asc' },
+				all: { sortBy: 'note', direction: 'asc' },
 				values: { sortBy: 'count', direction: 'desc' },
 			},
 			activeScope: 'all',
@@ -173,7 +173,7 @@ describe('scoped explorer sort state', () => {
 			direction: 'desc',
 		});
 		expect(activeScopeSort('props', state, 'properties')).toEqual({
-			sortBy: 'custom',
+			sortBy: 'note',
 			direction: 'asc',
 		});
 	});

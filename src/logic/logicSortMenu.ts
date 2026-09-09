@@ -48,7 +48,7 @@ export const SORT_MENU_OPTIONS: Record<
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
 		// Last on purpose: it only appears while a note is anchored, and a
 		// leading slot would shift every other option each time reveal toggles.
-		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
+		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
@@ -66,7 +66,7 @@ export const SORT_MENU_OPTIONS: Record<
 			labelKey: 'sort.by.created',
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
-		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
+		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
 	],
 	files: [
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
@@ -144,8 +144,8 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 			labelKey: `sort.type.${id}`,
 			// The divider marks where the question changes: above it is the
 			// shape of the tag, below it is where the tag is written. They are
-			// separate dimensions and the filter intersects them, so running
-			// the two groups together would read as one list of alternatives.
+			// separate dimensions. Shape can combine with one source, while the
+			// two source options are mutually exclusive radios.
 			separatorAfter: index === TAG_STRUCTURE_ORDER.length - 1,
 		})),
 		...TAG_SOURCE_ORDER.map((id) => ({
@@ -311,7 +311,7 @@ export function visibleSortOptions(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
 	nestedActive: boolean,
-	// `custom` sorts by the anchored note's own order, so it has nothing to read
+	// `note` sorts by the anchored note's own order, so it has nothing to read
 	// while no note is anchored. Defaults false so existing callers keep it out.
 	revealActive = false,
 ): readonly SortMenuOption[] {

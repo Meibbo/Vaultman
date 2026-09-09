@@ -3,17 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 
-// U130-06 supersede a U121-053: el submenu pasa de `Behavior` a `Interaction`,
-// para alinear la etiqueta con el tipo InteractionMode, que es como se llama en
-// el codigo. La guarda de paridad en/es se conserva: es lo unico de este fichero
-// que no dependia del nombre concreto.
-describe('U130-06: view option renamed from Behavior to Interaction', () => {
-	it('shows "Interaction" as the UI label in en', () => {
-		expect(en['viewmenu.interaction']).toBe('Interaction');
+// The submenu names the selected input mode and keeps the implementation key
+// stable for saved layouts.
+describe('view option uses the Input label', () => {
+	it('shows "Input:" as the UI label in en', () => {
+		expect(en['viewmenu.interaction']).toBe('Input:');
 	});
 
 	it('translates the label in es', () => {
-		expect(es['viewmenu.interaction']).toBe('Interacción');
+		expect(es['viewmenu.interaction']).toBe('Entrada:');
 	});
 
 	it('keeps the i18n key and its four children unchanged', () => {

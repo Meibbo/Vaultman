@@ -1,14 +1,29 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App, Keymap, Notice, TFile, setIcon } from 'obsidian';
+import {
+	Component,
+	App,
+	Keymap,
+	MarkdownView,
+	Notice,
+	TFile,
+	setIcon,
+} from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
-import { projectActiveFileTags } from '../../logic/logicRevealActiveFileTags';
+import {
+	nestProjectedTagNodes,
+	projectActiveFileTags,
+} from '../../logic/logicRevealActiveFileTags';
 import {
 	matchesTagSource,
+	orderedTagOccurrences,
+	tagOccurrenceKey,
+	tagOccurrenceRange,
 	tagOccurrences,
 	tagSourceLabelKey,
 	tagSourceRank,
 	TAG_SOURCE_ORDER,
+	visibleTagSources,
 	type TagCacheLike,
 	type TagSource,
 } from '../../logic/logicTagSource';
@@ -22,8 +37,12 @@ import {
 	type OperationTarget,
 } from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
+import { openFileAtOffset } from '../../utils/openFileAtOffset';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
-import { prefixesFromSettings, tagAliasTokens } from '../../services/serviceNodeBinding';
+import {
+	prefixesFromSettings,
+	tagAliasTokens,
+} from '../../services/serviceNodeBinding';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
 	DeferredFilterClickCoordinator,
@@ -121,7 +140,19 @@ import {
 
 type DateSortId = 'mtime' | 'ctime';
 
-function sameStringSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+interface MarkdownEditorLike {
+	getValue?: () => unknown;
+}
+
+interface MarkdownViewWithContent {
+	file?: TFile;
+	editor?: MarkdownEditorLike;
+}
+
+function sameStringSet(
+	a: ReadonlySet<string>,
+	b: ReadonlySet<string>,
+): boolean {
 	if (a.size !== b.size) return false;
 	for (const value of a) {
 		if (!b.has(value)) return false;
@@ -157,6 +188,12 @@ export class TagsExplorerPanel extends Component {
 	private revealActiveFile = false;
 	private revealActivePath: string | null = null;
 	private stopRevealWatch?: () => void;
+	private revealCycle: {
+		path: string;
+		tagPath: string;
+		signature: string;
+		index: number;
+	} | null = null;
 	/**
 	 * Where each tag is written, across the vault. Built on demand — the type
 	 * cell, the type sort and the source filters are the only readers — and
@@ -372,7 +409,7 @@ export class TagsExplorerPanel extends Component {
 				formatMembershipUrn({
 					providerId: 'tags',
 					kind: 'tag',
-					canonicalId: (node.meta as TagMeta).tagPath,
+					canonicalId: node.meta.tagPath,
 					displayLabel: node.label,
 				}),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
@@ -615,7 +652,7 @@ export class TagsExplorerPanel extends Component {
 	//
 	// The Props precedent (`logicRevealActiveFileProps`), applied to tags: a
 	// filter over the snapshot the explorer already built, not a second index.
-	// The order is the note's, which is what makes the `custom` sort mean
+	// The order is the note's, which is what makes the `note` sort mean
 	// something here.
 
 	isRevealingActiveFile(): boolean {
@@ -634,6 +671,7 @@ export class TagsExplorerPanel extends Component {
 
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
+		this.revealCycle = null;
 		if (this.revealActiveFile) this._startRevealWatch();
 		else this._stopRevealWatch();
 		this._render();
@@ -676,6 +714,7 @@ export class TagsExplorerPanel extends Component {
 		this.stopRevealWatch?.();
 		this.stopRevealWatch = undefined;
 		this.revealActivePath = null;
+		this.revealCycle = null;
 	}
 
 	/**
@@ -699,14 +738,180 @@ export class TagsExplorerPanel extends Component {
 		return this.plugin.app.metadataCache.getFileCache(file) ?? {};
 	}
 
+	/** Read the active editor when possible so reveal uses unsaved loaded text. */
+	private async _revealContent(file: TFile): Promise<string | null> {
+		const workspace = this.plugin.app.workspace;
+		const active = workspace.getActiveViewOfType(
+			MarkdownView,
+		) as MarkdownViewWithContent | null;
+		if (active?.file?.path === file.path) {
+			try {
+				const content = active.editor?.getValue?.();
+				if (typeof content === 'string') return content;
+			} catch {
+				// A view can be torn down between the active-file check and getValue.
+			}
+		}
+		try {
+			return await this.plugin.app.vault.cachedRead(file);
+		} catch {
+			return null;
+		}
+	}
+
 	/**
-	 * Narrows an already-built snapshot; it never asks for a new one. Reveal is
-	 * the only narrowing the tags tree has, so this is where any other would
-	 * join it rather than being applied at each call site.
+	 * Jump to and highlight a tag occurrence in the revealed note. A structural
+	 * parent owns all descendant occurrences, so repeated clicks cycle the same
+	 * targets instead of alternating with the beginning of the note.
+	 */
+	private async _revealTagAt(tagPath: string): Promise<void> {
+		const path = this._revealPath();
+		if (!path) return;
+		const file = this.plugin.app.vault.getFileByPath(path);
+		if (!(file instanceof TFile)) return;
+		const cache = this._revealCache();
+		const occurrences = tagOccurrences(cache);
+		const selectedSources = this._selectedTagSources();
+		const sort = activeScopeSort('tags', this.sortState);
+		const ordered = orderedTagOccurrences(
+			occurrences,
+			tagPath,
+			sort.direction,
+			selectedSources,
+		);
+		if (ordered.length === 0) {
+			this.revealCycle = null;
+			return;
+		}
+
+		const occurrenceSignature = ordered.map(tagOccurrenceKey).join('|');
+		const cycleSignature = [
+			path,
+			tagPath,
+			sort.sortBy,
+			sort.direction,
+			selectedSources.join(','),
+			occurrenceSignature,
+		].join('|');
+		const previousCycle = this.revealCycle;
+		const continuing =
+			previousCycle?.path === path &&
+			previousCycle.tagPath === tagPath &&
+			previousCycle.signature === cycleSignature;
+		const index =
+			continuing && ordered.length > 1
+				? ((previousCycle?.index ?? -1) + 1) % ordered.length
+				: 0;
+		const occurrence = ordered[index];
+		const content = await this._revealContent(file);
+		if (content === null) return;
+		const sameSourcePath = occurrences.filter(
+			(candidate) =>
+				candidate.source === occurrence.source &&
+				candidate.tagPath === occurrence.tagPath,
+		);
+		const range = tagOccurrenceRange(occurrence, content, {
+			frontmatterStartOffset: cache?.frontmatterPosition?.start?.offset,
+			frontmatterEndOffset: cache?.frontmatterPosition?.end?.offset,
+			occurrenceIndex: sameSourcePath.indexOf(occurrence),
+		});
+		// A missing metadata position is recoverable from the loaded text. If the
+		// text also has no matching token, do not send offset zero to the editor.
+		if (!range) return;
+		const opened = await openFileAtOffset(this.plugin.app, file, range[0], {
+			match: { content, range },
+			source: occurrence.source,
+		});
+		if (!opened) return;
+		this.revealCycle = {
+			path,
+			tagPath,
+			signature: cycleSignature,
+			index,
+		};
+	}
+
+	private _selectedTagSources(): TagSource[] {
+		return TAG_SOURCE_ORDER.filter((source) =>
+			this.nodeTypeFilters.includes(source),
+		);
+	}
+
+	/**
+	 * Narrows an already-built snapshot; it never asks for a new one. Reveal
+	 * and the `filtered` switch are the narrowings the tags tree has, so this
+	 * is where any other would join it rather than being applied at each call
+	 * site. Reveal wins when both are on: it is already a single note.
 	 */
 	private _scopeProjection(snapshot: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
-		if (!this.revealActiveFile) return snapshot;
-		return projectActiveFileTags(snapshot, this._revealCache());
+		if (!this.revealActiveFile) {
+			if (this.sortState?.filtered === true) {
+				return this._filteredProjection(snapshot);
+			}
+			return snapshot;
+		}
+		const projected = projectActiveFileTags(snapshot, this._revealCache());
+		// The projection is flat on purpose (a note holds whole paths), so
+		// with `nested` on it must be regrouped — otherwise on and off render
+		// the same plane.
+		return this._nestedEnabled()
+			? nestProjectedTagNodes(projected, snapshot)
+			: projected;
+	}
+
+	/**
+	 * Narrows the snapshot to the tags the active filter leaves standing,
+	 * like the Props scene does. Reveal wins over it (see `_scopeProjection`):
+	 * it is already a single note. A parent survives when a descendant does.
+	 */
+	private _filteredProjectionCache: {
+		snapshot: readonly TreeNode<TagMeta>[];
+		files: readonly unknown[];
+		projection: TreeNode<TagMeta>[];
+	} | null = null;
+
+	private _filteredProjection(
+		snapshot: TreeNode<TagMeta>[],
+	): TreeNode<TagMeta>[] {
+		if (!this.plugin.filterService.narrowsVault()) return snapshot;
+		const files = this.plugin.filterService.filteredFiles;
+		const cached = this._filteredProjectionCache;
+		if (cached && cached.snapshot === snapshot && cached.files === files) {
+			return cached.projection;
+		}
+		const allowed = new Set<string>();
+		for (const file of files) {
+			const cache = this.plugin.app.metadataCache.getFileCache(file);
+			for (const occurrence of tagOccurrences(cache)) {
+				const parts = occurrence.tagPath.split('/');
+				let path = '';
+				for (const part of parts) {
+					path = path ? `${path}/${part}` : part;
+					allowed.add(path);
+				}
+			}
+		}
+		const projection = this._keepAllowedTags(snapshot, allowed);
+		this._filteredProjectionCache = { snapshot, files, projection };
+		return projection;
+	}
+
+	private _keepAllowedTags(
+		nodes: TreeNode<TagMeta>[],
+		allowed: ReadonlySet<string>,
+	): TreeNode<TagMeta>[] {
+		const kept: TreeNode<TagMeta>[] = [];
+		for (const node of nodes) {
+			const children = this._keepAllowedTags(node.children ?? [], allowed);
+			if (children.length > 0 || allowed.has(node.meta.tagPath)) {
+				kept.push(
+					children.length === (node.children?.length ?? 0)
+						? node
+						: { ...node, children },
+				);
+			}
+		}
+		return kept;
 	}
 
 	/**
@@ -750,7 +955,6 @@ export class TagsExplorerPanel extends Component {
 		return node.meta.tagSources ?? this._sourceIndex().get(node.meta.tagPath);
 	}
 
-	
 	private _decorateNodeNotes(nodes: TreeNode<TagMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
@@ -773,7 +977,10 @@ export class TagsExplorerPanel extends Component {
 		const visit = (list: TreeNode<TagMeta>[]) => {
 			for (const node of list) {
 				const tagPath = node.meta?.tagPath ?? node.label;
-				const tagTokens = tagAliasTokens(tagPath, prefixesFromSettings(this.plugin.settings));
+				const tagTokens = tagAliasTokens(
+					tagPath,
+					prefixesFromSettings(this.plugin.settings),
+				);
 				if (tagTokens.some((t) => aliasSet.has(t))) {
 					node.meta.hasNodeNote = true;
 				}
@@ -787,8 +994,11 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _decorateTypeText(nodes: TreeNode<TagMeta>[]): void {
+		const selectedSources = this._selectedTagSources();
 		for (const node of nodes) {
-			const labelKey = tagSourceLabelKey(this._sourcesFor(node));
+			const labelKey = tagSourceLabelKey(
+				visibleTagSources(this._sourcesFor(node), selectedSources),
+			);
 			node.typeText = labelKey ? translate(labelKey) : undefined;
 			this._decorateTypeText(node.children ?? []);
 		}
@@ -802,9 +1012,9 @@ export class TagsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
-		// 'custom' is the anchored note's own order; the projection already
+		// 'note' is the anchored note's own order; the projection already
 		// carries it, so the comparator leaves the sequence untouched.
-		if (normalizedSortBy === 'custom') return 0;
+		if (normalizedSortBy === 'note') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
@@ -1281,7 +1491,10 @@ export class TagsExplorerPanel extends Component {
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
 				}
-				if (this.visibleCells.has('format') && (node.meta as TagMeta)?.hasNodeNote === true) {
+				if (
+					this.visibleCells.has('format') &&
+					(node.meta as TagMeta)?.hasNodeNote === true
+				) {
 					const label = row.createSpan({
 						cls: 'vaultman-tree-label vaultman-node-note-link',
 						text: node.label,
@@ -1417,6 +1630,13 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		if (action === 'expand') {
+			// In reveal the rows are the note's own tags, so opening one
+			// jumps to where the note writes it — the same open-at-offset
+			// mechanism the content matches use — instead of expanding.
+			if (this.revealActiveFile) {
+				void this._revealTagAt(node.meta.tagPath);
+				return;
+			}
 			if (node.children?.length) {
 				this._toggleExpanded(node.id);
 				void this._render();
@@ -2037,7 +2257,8 @@ export class TagsExplorerPanel extends Component {
 		// U121-044, the tag-side twin: in reveal the user is looking at ONE note,
 		// so a mutating action must resolve against it instead of every note that
 		// happens to carry the same tag.
-		const scope = this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
+		const scope =
+			this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
 		return scope.filter((file) => {
 			const cache = this.plugin.app.metadataCache.getFileCache(file);
 			const fmTags = cache?.frontmatter?.tags as unknown;

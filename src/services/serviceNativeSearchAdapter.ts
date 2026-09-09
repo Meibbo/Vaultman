@@ -357,9 +357,70 @@ export class NativeSearchAdapter {
 	 * scan republishes every 150ms — so without this the next poll rebuilt the
 	 * file without the override and the expansion undid itself.
 	 */
-	private matchRanges: ReadonlyMap<string, readonly [number, number]> = new Map();
+	private matchRanges: ReadonlyMap<string, readonly [number, number]> =
+		new Map();
 	/** The core view we last told to search, so `cancel()` can stop it. */
 	private activeView: NativeSearchView | null = null;
+
+	/**
+	 * Read the foreground Markdown editor before asking Core to scan. Core's
+	 * search is eventually authoritative for the vault, but it cannot be the
+	 * first response when the exact document is already loaded (and may contain
+	 * unsaved edits).
+	 */
+	private loadedActiveInput(
+		options: Pick<
+			NativeSearchOptions,
+			'query' | 'isRegex' | 'caseSensitive' | 'scopeFiles'
+		>,
+	): NativeSearchInput | null {
+		const activeView = this.app.workspace.activeLeaf?.view as
+			| {
+					file?: { path?: string };
+					editor?: { getValue?: () => unknown };
+			  }
+			| undefined;
+		const activePath = activeView?.file?.path;
+		if (!activePath) return null;
+		const file = options.scopeFiles.find(
+			(candidate) => candidate.path === activePath,
+		);
+		if (!file || !isContentSearchableFile(file)) return null;
+		try {
+			const content = activeView.editor?.getValue?.();
+			if (typeof content !== 'string') return null;
+			return {
+				file,
+				content,
+				offsets: findContentOffsets(
+					content,
+					options.query,
+					options.isRegex,
+					options.caseSensitive,
+				),
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	/** Keep a loaded editor's answer authoritative for its path. */
+	private preferLoadedInput(
+		inputs: readonly NativeSearchInput[],
+		loaded: NativeSearchInput | null,
+	): NativeSearchInput[] {
+		if (!loaded) return [...inputs];
+		const replaced = inputs.map((input) =>
+			input.file.path === loaded.file.path ? loaded : input,
+		);
+		if (
+			loaded.offsets.length > 0 &&
+			!inputs.some((input) => input.file.path === loaded.file.path)
+		) {
+			replaced.push(loaded);
+		}
+		return replaced.filter((input) => input.offsets.length > 0);
+	}
 
 	constructor(app: App) {
 		this.app = app;
@@ -467,6 +528,12 @@ export class NativeSearchAdapter {
 
 	async search(options: NativeSearchOptions): Promise<void> {
 		const run = (this.activeRun += 1);
+		const loadedActiveInput = this.loadedActiveInput(options);
+		if (loadedActiveInput) {
+			// The preview key is offset-based; an unsaved edit can change the text
+			// while leaving the same match count and last offset in place.
+			this.previewCache.delete(loadedActiveInput.file.path);
+		}
 		const view = this.findSearchView();
 		// A resume no longer walks the vault locally. That path read every file
 		// through `cachedRead` on the UI thread, which is what froze and crashed
@@ -475,7 +542,7 @@ export class NativeSearchAdapter {
 		// indexed search. Local remains the fallback for a vault where core
 		// search is unavailable, and for an explicit `preferLocal` caller.
 		if (!view || options.preferLocal) {
-			await this.searchLocal(options, run);
+			await this.searchLocal(options, run, loadedActiveInput);
 			return;
 		}
 
@@ -502,7 +569,11 @@ export class NativeSearchAdapter {
 		// incoming results merge into them. That is the whole trick: the resume
 		// is simulated, and it is indistinguishable as long as the count never
 		// goes backwards.
-		options.onUpdate(this.publishPreview(this.mergeRetained([]), true));
+		this.retained = this.preferLoadedInput(
+			this.mergeRetained([]),
+			loadedActiveInput,
+		);
+		options.onUpdate(this.publishPreview(this.retained, true));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
 			// The first look is immediate. Waiting a full poll interval before
@@ -527,16 +598,17 @@ export class NativeSearchAdapter {
 				// to clobber the retained floor one statement before `mergeRetained`
 				// read it, which silently reduced the merge to a no-op and made a
 				// resume look exactly like a restart.
-				this.retained = this.mergeRetained(attemptInputs);
+				this.retained = this.preferLoadedInput(
+					this.mergeRetained(attemptInputs),
+					loadedActiveInput,
+				);
 			}
 			const nativeScore = nativeMatchCount ?? totalOffsets;
 			if (attemptInputs.length > 0 && nativeScore >= bestNativeScore) {
 				bestNativeInputs = attemptInputs;
 				bestNativeScore = nativeScore;
 			}
-			options.onUpdate(
-				this.publishPreview(this.mergeRetained(attemptInputs), true),
-			);
+			options.onUpdate(this.publishPreview(this.retained, true));
 
 			// Core tells us whether it is still working. Ask it instead of
 			// guessing: the old heuristics ended the poll on a momentary plateau,
@@ -589,26 +661,40 @@ export class NativeSearchAdapter {
 				: bestNativeInputs.length > 0
 					? bestNativeInputs
 					: latestNativeInputs;
+		const authoritativeInputs = this.preferLoadedInput(
+			nativeInputs,
+			loadedActiveInput,
+		);
 		const nativeMatchCount = view.dom?.getMatchCount?.();
 		if (
-			nativeInputs.length > 0 &&
-			(nativeInputs.length > LOCAL_RECONCILE_NATIVE_FILE_LIMIT ||
+			authoritativeInputs.length > 0 &&
+			(authoritativeInputs.length > LOCAL_RECONCILE_NATIVE_FILE_LIMIT ||
 				(typeof nativeMatchCount === 'number' &&
 					nativeMatchCount >= LARGE_NATIVE_MATCH_THRESHOLD))
 		) {
 			// Skipping the local reconcile is only sound now that core told us it
 			// finished: this snapshot is its whole answer, not a plateau.
-			this.retained = this.mergeRetained(nativeInputs);
+			this.retained = this.preferLoadedInput(
+				this.mergeRetained(authoritativeInputs),
+				loadedActiveInput,
+			);
 			options.onUpdate(
-				this.publishPreview(this.retained, false, nativeMatchCount),
+				this.publishPreview(
+					this.retained,
+					false,
+					loadedActiveInput
+						? countInputOffsets(this.retained)
+						: nativeMatchCount,
+				),
 			);
 			return;
 		}
 		const mergedInputs = await this.collectLocalResults(
 			options,
 			run,
-			nativeInputs,
+			authoritativeInputs,
 			true,
+			loadedActiveInput,
 		);
 		if (run !== this.activeRun) return;
 		options.onUpdate(this.publishPreview(mergedInputs, false));
@@ -617,6 +703,7 @@ export class NativeSearchAdapter {
 	private async searchLocal(
 		options: NativeSearchOptions,
 		run: number,
+		loadedActiveInput: NativeSearchInput | null = null,
 	): Promise<void> {
 		// A resumed scan must repaint what it already has, not an empty frame.
 		// `seedInputs` is the caller-supplied floor, but the host does not pass
@@ -629,8 +716,16 @@ export class NativeSearchAdapter {
 		const seeds =
 			options.seedInputs ??
 			(options.resume || (options.resumeFrom ?? 0) > 0 ? this.retained : []);
-		options.onUpdate(this.publishPreview(seeds, true));
-		const inputs = await this.collectLocalResults(options, run, seeds, true);
+		const initialInputs = this.preferLoadedInput(seeds, loadedActiveInput);
+		this.retained = initialInputs;
+		options.onUpdate(this.publishPreview(initialInputs, true));
+		const inputs = await this.collectLocalResults(
+			options,
+			run,
+			initialInputs,
+			true,
+			loadedActiveInput,
+		);
 		if (run !== this.activeRun) return;
 		options.onUpdate(this.publishPreview(inputs, false));
 	}
@@ -640,6 +735,7 @@ export class NativeSearchAdapter {
 		run: number,
 		initialInputs: NativeSearchInput[],
 		emitPartial: boolean,
+		authoritativeActiveInput: NativeSearchInput | null = null,
 	): Promise<NativeSearchInput[]> {
 		const inputsByPath = new Map(
 			initialInputs.map((input) => [input.file.path, { ...input }]),
@@ -673,7 +769,11 @@ export class NativeSearchAdapter {
 			if (!isContentSearchableFile(file)) continue;
 			let content: string;
 			try {
-				content = await this.app.vault.cachedRead(file);
+				if (authoritativeActiveInput?.file.path === file.path) {
+					content = authoritativeActiveInput.content;
+				} else {
+					content = await this.app.vault.cachedRead(file);
+				}
 			} catch {
 				continue;
 			}

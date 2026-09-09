@@ -55,6 +55,7 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		updated: 'desc',
 		state: 'desc',
 		type: 'asc',
+		note: 'desc',
 	};
 
 export function nextExplorerSortDirection(

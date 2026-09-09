@@ -15,6 +15,15 @@ export class TFolder {
 	name = '';
 }
 
+export class MarkdownView {
+	file?: TFile;
+	editor!: unknown;
+
+	getMode(): 'source' | 'preview' {
+		return 'source';
+	}
+}
+
 export const Platform = {
 	isMobile: false,
 };

@@ -64,7 +64,12 @@ function normalizeScopeSort(value: unknown): ScopeSort | null {
 	if (!isRecord(value)) return null;
 	if (typeof value.sortBy !== 'string' || !value.sortBy) return null;
 	if (!isDirection(value.direction)) return null;
-	return { sortBy: value.sortBy, direction: value.direction };
+	// `custom` was the original persisted name of the note-order preset.
+	// Normalize old layouts while exposing the new user-facing name.
+	return {
+		sortBy: value.sortBy === 'custom' ? 'note' : value.sortBy,
+		direction: value.direction,
+	};
 }
 
 function defaultState(tab: ExplorerTabId): ExplorerSortState {
@@ -231,7 +236,7 @@ export function normalizeExplorerSortState(
  *
  * `sorts` is partial and starts empty, so every scope the user has not opened
  * is absent. Without this the new `all` scope would be write-only: choosing
- * `custom` there would leave `properties` and `values` on their own defaults
+ * `note` there would leave `properties` and `values` on their own defaults
  * and change nothing on screen.
  */
 export function activeScopeSort(
@@ -351,10 +356,10 @@ export function isSortOptionVisible(
 		revealActive?: boolean;
 	},
 ): boolean {
-	// 'custom' is the anchored note's own order — the order its frontmatter
+	// 'note' is the anchored note's own order — the order its frontmatter
 	// declares. With no note anchored there is no order to read, so the option
 	// does not exist rather than silently falling back to another sort.
-	if (optionId === 'custom' && !context.revealActive) return false;
+	if (optionId === 'note' && !context.revealActive) return false;
 	if ((optionId === 'path' || optionId === 'parent') && context.nestedActive) {
 		return false;
 	}

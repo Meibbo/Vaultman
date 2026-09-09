@@ -51,7 +51,9 @@ describe('pageFilters tab switching source guard', () => {
 		const published = pageFiltersSource.slice(
 			pageFiltersSource.indexOf('headerActions: '),
 		);
-		expect(published).toMatch(/^headerActions: \[\.\.\.contentHeaderActions/);
+		expect(published).toMatch(
+			/^headerActions:\s*\[\s*\.\.\.contentHeaderActions/,
+		);
 		expect(published).toContain('...valueMoveHeaderActions');
 		expect(published).toContain('...fileMoveHeaderActions');
 	});

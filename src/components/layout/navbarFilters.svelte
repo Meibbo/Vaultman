@@ -211,7 +211,9 @@
 		moveToggles: searchMoveToggles ?? null,
 	});
 	const trailingActionIds = $derived(searchCellIds(searchCellContext));
-	const trailingToggleState = $derived(searchCellToggleState(searchCellContext));
+	const trailingToggleState = $derived(
+		searchCellToggleState(searchCellContext),
+	);
 
 	/**
 	 * U130-05b: la identidad viene de SASI; la CARA, de la proyeccion. El icono
@@ -270,7 +272,6 @@
 			new Notice(String(error instanceof Error ? error.message : error));
 		});
 	}
-
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
 		props: normalizeExplorerSortState('props', null),
@@ -365,9 +366,7 @@
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}
-	function explorerPortForTab(
-		tab: FiltersTab,
-	): PanelWidgetExplorerPort | null {
+	function explorerPortForTab(tab: FiltersTab): PanelWidgetExplorerPort | null {
 		if (tab === 'files') return fileList ?? null;
 		if (tab === 'props') return propExplorer ?? null;
 		if (tab === 'tags') return tagsExplorer ?? null;
@@ -534,9 +533,10 @@
 					isListed:
 						activeFilePath == null
 							? true
-							: ((activeTab === 'props' ? propExplorer : tagsExplorer)?.isPathListed?.(
-									activeFilePath,
-								) ?? true),
+							: ((activeTab === 'props'
+									? propExplorer
+									: tagsExplorer
+								)?.isPathListed?.(activeFilePath) ?? true),
 					toggleActive: revealActive ?? false,
 				})
 			: false,
@@ -1325,7 +1325,9 @@
 		if (onSaveLayout) menu.addSeparator();
 		menu.addItem((item) => {
 			item
-				.setTitle(translate('viewmenu.interaction'))
+				.setTitle(
+					`${translate('viewmenu.interaction')} ${translate(`viewmenu.interaction.${normalizeInteractionMode(activeTab, interactionModeByTab[activeTab])}`)}`,
+				)
 				.setIcon('lucide-mouse-pointer-click');
 			const sub = (
 				item as typeof item & { setSubmenu: () => Menu }
@@ -1389,10 +1391,13 @@
 		// then the engine-specific view options (nested, folders-first,
 		// fixed-folders). Those options are modes of the SELECTED engine, so
 		// they live INSIDE this submenu, not at the view_menu top level.
-		const sortState = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const sortState =
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
 		const nestedAct = nestedActiveFor(activeTab);
 		menu.addItem((submenuItem) => {
-			submenuItem.setTitle(translate('viewmenu.engines')).setIcon('lucide-layout');
+			submenuItem
+				.setTitle(translate('viewmenu.engines'))
+				.setIcon('lucide-layout');
 			const submenu =
 				(submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
 				new Menu();
@@ -1770,11 +1775,7 @@
 		tab: FiltersTab,
 		current: ExplorerSortState,
 	) {
-		const model = byLevelModel(
-			tab,
-			current,
-			treeCapableFor(tab),
-		);
+		const model = byLevelModel(tab, current, treeCapableFor(tab));
 		if (!model) return;
 
 		for (const option of model.items) {
@@ -1857,7 +1858,7 @@
 
 		const nestedActive = nestedActiveFor(activeTab);
 		// The native menu shows the same options as the popup, so it needs the
-		// same reveal signal — without it `custom` was filtered out here even
+		// same reveal signal — without it `note` was filtered out here even
 		// while a note was anchored, which is why the option never appeared.
 		for (const option of visibleSortOptions(
 			activeTab,
@@ -2176,9 +2177,8 @@
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
 								class:is-active={action.checked}
-								class:vaultman-reveal-out-of-list={
-									headerRevealFaint && REVEAL_HEADER_ACTION_IDS.has(action.id)
-								}
+								class:vaultman-reveal-out-of-list={headerRevealFaint &&
+									REVEAL_HEADER_ACTION_IDS.has(action.id)}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									`header:${action.id}`,
 								)}
