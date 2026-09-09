@@ -2414,25 +2414,7 @@ export class FilesExplorerPanel extends Component {
 				selectedIds: this.selectedFilePaths,
 				renderLabel: (row, node) => this._renderFileLabel(row, node),
 				onToggle: (id: string) => {
-					// U121-080: collapsing a row that is PINNED above the viewport
-					// destroys the content the scroll offset was pointing into, so the
-					// browser clamps it wherever the shortened document ends and the
-					// stack never recovers -- the collapsed folder stays stuck and no
-					// other p-node can take the slot. Anchoring it at the top is what
-					// the floating index already does, and the same place the user
-					// would have landed had the folder been collapsed all along.
-					//
-					// Only when it was pinned: collapsing a row you can SEE must leave
-					// the scroll alone, or the view yanks under your finger.
-					const wasPinned = this.treeView?.isStickyRow(id) === true;
-					this._toggleExpanded(id);
-					this._refreshTreeExpansion(id, [id]);
-					if (wasPinned && !this.expandedIds.has(id)) {
-						// Under the headers that outlive it, not at offset 0: a nested
-						// row sent to the top hides behind its own still-pinned
-						// ancestors, which is why this only ever looked right on a root.
-						this.treeView?.scrollRowUnderStickyStack(id);
-					}
+					this._toggleFolderWithStickyAnchor(id);
 				},
 				onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, this.projectedNodes(renderTree)),
@@ -2477,8 +2459,7 @@ export class FilesExplorerPanel extends Component {
 							return;
 						}
 						if (!this._nestedEnabled()) return;
-						this._toggleExpanded(id);
-						this._refreshTreeExpansion(id, [id]);
+						this._toggleFolderWithStickyAnchor(id);
 						return;
 					}
 					if (!meta.isFolder && meta.file) {
@@ -2912,6 +2893,35 @@ export class FilesExplorerPanel extends Component {
 	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
 		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
 		return meta?.folder ?? null;
+	}
+
+	/**
+	 * Shared folder collapse/expand path for the caret (onToggle) and the row
+	 * body in open mode (onRowClick). Both must anchor a collapsed pinned row
+	 * under the sticky stack (U121-080 jump): two inline copies drifted and the
+	 * body path toggled without anchoring, so caret and body collapsed
+	 * differently. Keep a single owner for the wasPinned measurement.
+	 */
+	private _toggleFolderWithStickyAnchor(id: string): void {
+		// U121-080: collapsing a row that is PINNED above the viewport
+		// destroys the content the scroll offset was pointing into, so the
+		// browser clamps it wherever the shortened document ends and the
+		// stack never recovers -- the collapsed folder stays stuck and no
+		// other p-node can take the slot. Anchoring it at the top is what
+		// the floating index already does, and the same place the user
+		// would have landed had the folder been collapsed all along.
+		//
+		// Only when it was pinned: collapsing a row you can SEE must leave
+		// the scroll alone, or the view yanks under your finger.
+		const wasPinned = this.treeView?.isStickyRow(id) === true;
+		this._toggleExpanded(id);
+		this._refreshTreeExpansion(id, [id]);
+		if (wasPinned && !this.expandedIds.has(id)) {
+			// Under the headers that outlive it, not at offset 0: a nested
+			// row sent to the top hides behind its own still-pinned
+			// ancestors, which is why this only ever looked right on a root.
+			this.treeView?.scrollRowUnderStickyStack(id);
+		}
 	}
 
 	private _toggleExpanded(id: string): void {
