@@ -1726,6 +1726,7 @@
 				tabMenuActions,
 				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
 				revealActive: revealingActiveFile,
+				activeFilePath: activeContentFilePath,
 				searchTrailingActions,
 				onSearchTrailingAction: runSearchTrailingAction,
 				activeSectionTab: filtersActiveTab,

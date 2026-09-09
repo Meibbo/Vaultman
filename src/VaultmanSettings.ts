@@ -1011,6 +1011,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.sparse_auto_expand_top_level'),
+			desc: translate('settings.sparse_auto_expand_top_level.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(
+							this.plugin.settings.sparseAutoExpandTopLevel !== false,
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.sparseAutoExpandTopLevel = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// U121-027. saveSettings() notifies the settings listeners and the explorer
 		// now subscribes, so toggling this repaints the visible cells immediately.
 		items.push({

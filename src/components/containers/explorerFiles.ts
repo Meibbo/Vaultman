@@ -4278,6 +4278,14 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	/**
+	 * Toolbar reveal-faint oracle: is this path inside the scene's current
+	 * file set (the port contract defaults a missing method to listed)?
+	 */
+	isPathListed(path: string): boolean {
+		return this._filesForCurrentScope().some((file) => file.path === path);
+	}
+
 	private _filesForCurrentScope(): TFile[] {
 		// U121-052: the Filtered switch is the only thing that narrows the files
 		// tree. While off the whole vault is the source, whatever the filter says.
@@ -4397,6 +4405,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _autoExpandSparseTopLevel(tree: TreeNode<FileMeta>[]): void {
+		if (this.plugin.settings.sparseAutoExpandTopLevel === false) {
+			this.sparseAutoExpandSignature = '';
+			return;
+		}
 		if (!this._hasActiveConstraints()) {
 			this.sparseAutoExpandSignature = '';
 			return;

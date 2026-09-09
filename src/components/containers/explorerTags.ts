@@ -479,6 +479,16 @@ export class TagsExplorerPanel extends Component {
 		return this.revealActiveFile;
 	}
 
+	/**
+	 * Toolbar reveal-faint oracle: is this path inside the file set the
+	 * scene projects (the active filter's survivors when `filtered` is on)?
+	 */
+	isPathListed(path: string): boolean {
+		return this.plugin.filterService.filteredFiles.some(
+			(file) => file.path === path,
+		);
+	}
+
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
 		if (this.revealActiveFile) this._startRevealWatch();

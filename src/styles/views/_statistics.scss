@@ -603,6 +603,15 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   color: inherit;
 }
 
+/* An icon id the running Obsidian does not ship (e.g. a retired lucide brand):
+   faint 'not found' instead of the literal id. Emoji values keep their own
+   iconic-emoji path in renderIconValue and never land here. */
+.vaultman-icon-missing {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
 /* The inline editor takes the row's own height instead of imposing a 20px
    box. The fixed height plus the negative vertical margin made it spill out
    of the row and cover the cells beside it, and the vertical padding made

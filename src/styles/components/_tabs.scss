@@ -199,6 +199,15 @@
   pointer-events: none;
 }
 
+/* Toolbar reveal whose current file sits outside a `filtered` scene's list:
+   the icon is the node's whole body, so it wears faint instead of pretending
+   a press would land. Never combined with is-active: a held reveal-this-file
+   toggle already owns the decoration. */
+.vaultman-filters-header .nav-action-button.vaultman-reveal-out-of-list {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
 .vaultman-filters-actions {
   display: flex;
   align-items: center;
