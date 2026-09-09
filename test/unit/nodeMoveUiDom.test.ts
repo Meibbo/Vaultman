@@ -66,6 +66,19 @@ describe('U130-02 ui-dom: el legado File sale y entra el motor NodeMove', () => 
 		expect(filesSrc).toMatch(/setInteractionMode\(restore\.interactionMode/);
 	});
 
+	it('cambiar de dueno termina la clave vieja sin tocar la suspension Scene', () => {
+		const start = filesSrc.indexOf('setNodeMoveOwner(instanceId: string)');
+		expect(start).toBeGreaterThan(-1);
+		const block = filesSrc.slice(start, start + 800);
+		// Misma instancia sale antes: la suspension Scene se preserva.
+		expect(block).toMatch(/if \(this\.nodeMoveInstanceId === instanceId\) return;/);
+		// Otra instancia termina (oldInstanceId, files) ANTES de cambiar.
+		expect(block).toMatch(/\.finish\(this\.nodeMoveInstanceId,\s*'files'\)/);
+		expect(block.indexOf('.finish(')).toBeLessThan(
+			block.indexOf('this.nodeMoveInstanceId = instanceId;'),
+		);
+	});
+
 	it('los ActionNodes tienen callbacks reales, sin stubs ni silencios', () => {
 		expect(filesSrc).toMatch(/sasiNodeMoveHandlers\(\)/);
 		expect(filesSrc).toMatch(/vaultman\.nodemove\.cancel/);

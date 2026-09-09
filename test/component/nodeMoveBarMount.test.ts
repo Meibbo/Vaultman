@@ -9,14 +9,14 @@ import {
 import { projectNodeMoveBar } from '../../src/logic/logicNodeMoveRuntime';
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
-	class ResizeObserverMock {
-		observe() {}
-		unobserve() {}
-		disconnect() {}
+	// Mock minimo de ResizeObserver, igual que navbarTransactionBar.test.ts:
+	// implementa la interfaz para no necesitar aserciones ni supresiones.
+	class ResizeObserverMock implements ResizeObserver {
+		observe(): void {}
+		unobserve(): void {}
+		disconnect(): void {}
 	}
-	// Igual que navbarTransactionBar.test.ts: mock minimo de ResizeObserver.
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	globalThis.ResizeObserver = ResizeObserverMock as any;
+	globalThis.ResizeObserver = ResizeObserverMock;
 }
 
 describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {

@@ -83,6 +83,16 @@ describe('U130-02 runtime-wire: aislamiento por (instancia, Scene)', () => {
 		expect(runtime.get('inst-1', 'files')).toBeNull();
 		expect(runtime.get('inst-1', 'tags')).not.toBeNull();
 	});
+
+	it('cambio de dueno termina la clave vieja y el nuevo queda aislado', () => {
+		const runtime = new NodeMoveSceneRuntime();
+		runtime.start(withDestination('old-inst', 'files'));
+		expect(runtime.get('old-inst', 'files')).not.toBeNull();
+		// setNodeMoveOwner(new): finish(old, files) antes de cambiar.
+		expect(runtime.finish('old-inst', 'files')).toBe(true);
+		expect(runtime.get('old-inst', 'files')).toBeNull();
+		expect(runtime.get('new-inst', 'files')).toBeNull();
+	});
 });
 
 describe('U130-02 runtime-wire: suspension al cambiar Scene', () => {

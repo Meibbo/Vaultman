@@ -1572,6 +1572,11 @@ export class FilesExplorerPanel extends Component {
 
 	setNodeMoveOwner(instanceId: string): void {
 		if (this.nodeMoveInstanceId === instanceId) return;
+		// U130-02 correccion: cambiar de WorkspaceInstance termina la clave
+		// vieja (oldInstanceId, files). Sin esto la transaccion pendiente
+		// quedaba huerfana bajo la instancia anterior y el onunload de la
+		// nueva no podia limpiarla. Misma instancia = Scene suspende, no se toca.
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
 		this.nodeMoveInstanceId = instanceId;
 		this.onNodeMoveChange?.();
 	}
