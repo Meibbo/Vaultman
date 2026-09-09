@@ -286,6 +286,12 @@ describe('FilesExplorerPanel source guards', () => {
 			) ?? [];
 		expect(calls).toHaveLength(2);
 	});
+
+	it('offers an option to keep sparse top-level folders collapsed', () => {
+		expect(explorerFilesSource).toContain(
+			'this.plugin.settings.sparseAutoExpandTopLevel === false',
+		);
+	});
 });
 
 describe('exclude file (BT5-009, was BT4-015 / D39)', () => {

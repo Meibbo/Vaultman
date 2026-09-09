@@ -99,6 +99,13 @@ export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplo
 	sortNodeLabel(id: string): string | null;
 	setInteractionMode(mode: InteractionMode): void;
 	setSortStateChangeHandler(handler?: (state: ExplorerSortState) => void): void;
+	/**
+	 * Toolbar reveal-faint oracle: is this file path inside the scene's
+	 * current list (the filtered set when the scene narrows, the vault
+	 * otherwise)? Absent means listed, so explorers without a narrowing
+	 * scene never faint.
+	 */
+	isPathListed?(path: string): boolean;
 }
 
 export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplorerPort {
@@ -113,6 +120,13 @@ export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplor
 	setSortStateChangeHandler?(
 		handler?: (state: ExplorerSortState) => void,
 	): void;
+	/**
+	 * Toolbar reveal-faint oracle: is this file path inside the scene's
+	 * current list (the filtered set when the scene narrows, the vault
+	 * otherwise)? Absent means listed, so explorers without a narrowing
+	 * scene never faint.
+	 */
+	isPathListed?(path: string): boolean;
 }
 
 export interface PanelWidgetHeaderTabOption {
@@ -173,6 +187,12 @@ export interface NavbarPanelWidgetState {
 	 * only mean something against one note's own order.
 	 */
 	revealActive?: boolean;
+	/**
+	 * Workspace active file path, refreshed on file-open. Toolbar decorations
+	 * that depend on where the focus is (e.g. the reveal-node faint) read it
+	 * instead of subscribing a second watcher.
+	 */
+	activeFilePath?: string | null;
 	/**
 	 * U130-05b: el estado del move mode que el searchbox proyecta como celdas.
 	 * Sigue siendo el decorador del searchbox, no un segundo bar: lo que cambia

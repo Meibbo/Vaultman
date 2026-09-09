@@ -28,6 +28,7 @@ export const en: Record<string, string> = {
 	'plugin.description': 'Bulk property editor and vault management tool',
 	'plugin.open': 'Open Vaultman',
 	'common.cancel': 'Cancel',
+	'icon.not_found': 'not found',
 	'iconic.change_icon': 'Change icon',
 
 	// Sections
@@ -453,6 +454,9 @@ export const en: Record<string, string> = {
 		'Keep expanded parent nodes visible while scrolling through their tree.',
 	'settings.sticky_parent_rows_fraction': 'Sticky headers height limit',
 	'settings.sticky_parent_rows_fraction.desc': 'Share of the tree the pinned parents may cover. A short panel runs out of slots before the seven-row ceiling: a 413px tree fits five at 40%, so a sixth level never pins.',
+	'settings.sparse_auto_expand_top_level': 'Auto-expand few top-level folders',
+	'settings.sparse_auto_expand_top_level.desc':
+		'When filters or search leave fewer than four top-level folders, expand them automatically. Off keeps level-1 parents collapsed whatever the result count is.',
 	'settings.node_icon_scope': 'Node icon scope',
 	'settings.node_icon_scope.desc':
 		'Which explorer nodes may show an icon: files and folders, files only, folders only, or only nodes with a custom icon.',

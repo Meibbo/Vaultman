@@ -1898,6 +1898,7 @@
 				tabMenuActions,
 				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions, ...fileMoveHeaderActions],
 				revealActive: revealingActiveFile,
+				activeFilePath: activeContentFilePath,
 				searchMoveToggles,
 				transactionBar: {
 					...transactionBarState,

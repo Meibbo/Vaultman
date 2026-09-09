@@ -165,6 +165,10 @@ export interface VaultmanSettings {
 	 * A short panel runs out of slots long before the seven-row ceiling: at
 	 * 413px the default 0.4 allows five, so a sixth level never appears. */
 	stickyParentRowsMaxFraction: number;
+	/** When filters/search leave fewer than four top-level folders, expand
+	 * them automatically so their content stays one glance away. Off keeps
+	 * the p1-nodes collapsed whatever the result count is. */
+	sparseAutoExpandTopLevel: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
 	/** Render add-on enabled state as an Obsidian toggle or compact badge. */
@@ -502,6 +506,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	floatingTocStickyActions: true,
 	mobileRoundedRows: false,
 	autoRevealActiveFile: false,
+	sparseAutoExpandTopLevel: true,
 	folderAggregateCells: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',

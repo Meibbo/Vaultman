@@ -62,6 +62,7 @@
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
 	import { expansionActionAvailable } from '../../logic/logicTreeExpansion';
+	import { shouldFaintRevealNode } from '../../logic/logicRevealFaint';
 	import {
 		byLevelModel,
 		NODE_TYPE_MENU_OPTIONS,
@@ -137,6 +138,7 @@
 		tabMenuActions = [],
 		headerActions = [],
 		revealActive = false,
+		activeFilePath = null,
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -506,6 +508,43 @@
 				?.activeScope === 'groups',
 		),
 	);
+	/**
+	 * Toolbar reveal faint: the reveal icon is the node's whole body, so when
+	 * the current file sits outside a `filtered` scene's list the icon wears
+	 * faint instead of pretending a press would land. Computed here because
+	 * the scene sort state is already reactive in this layer; the explorers
+	 * only answer membership through `isPathListed`.
+	 */
+	const filesRevealFaint = $derived(
+		shouldFaintRevealNode({
+			filtered: sortStateByTab.files?.filtered === true,
+			currentPath: activeFilePath,
+			isListed:
+				activeFilePath == null
+					? true
+					: (fileList?.isPathListed?.(activeFilePath) ?? true),
+			toggleActive: false,
+		}),
+	);
+	const headerRevealFaint = $derived(
+		activeTab === 'props' || activeTab === 'tags'
+			? shouldFaintRevealNode({
+					filtered: sortStateByTab[activeTab]?.filtered === true,
+					currentPath: activeFilePath,
+					isListed:
+						activeFilePath == null
+							? true
+							: ((activeTab === 'props' ? propExplorer : tagsExplorer)?.isPathListed?.(
+									activeFilePath,
+								) ?? true),
+					toggleActive: revealActive ?? false,
+				})
+			: false,
+	);
+	const REVEAL_HEADER_ACTION_IDS = new Set([
+		'props.reveal-this-file',
+		'tags.reveal-this-file',
+	]);
 	const expansionLabel = $derived(
 		hasExpandedNodes
 			? translate('filter.collapse_all')
@@ -2137,6 +2176,9 @@
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
 								class:is-active={action.checked}
+								class:vaultman-reveal-out-of-list={
+									headerRevealFaint && REVEAL_HEADER_ACTION_IDS.has(action.id)
+								}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									`header:${action.id}`,
 								)}
@@ -2263,6 +2305,7 @@
 						{#if activeTab === 'files' && toolbarNodeVisible('reveal-active-file')}
 							<div
 								class={headerActionClass}
+								class:vaultman-reveal-out-of-list={filesRevealFaint}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									'reveal-active-file',
 								)}

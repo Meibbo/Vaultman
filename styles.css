@@ -1053,6 +1053,15 @@ settings:
   pointer-events: none;
 }
 
+/* Toolbar reveal whose current file sits outside a `filtered` scene's list:
+   the icon is the node's whole body, so it wears faint instead of pretending
+   a press would land. Never combined with is-active: a held reveal-this-file
+   toggle already owns the decoration. */
+.vaultman-filters-header .nav-action-button.vaultman-reveal-out-of-list {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
 .vaultman-filters-actions {
   display: flex;
   align-items: center;
@@ -6680,6 +6689,15 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   display: flex;
   align-items: center;
   color: inherit;
+}
+
+/* An icon id the running Obsidian does not ship (e.g. a retired lucide brand):
+   faint 'not found' instead of the literal id. Emoji values keep their own
+   iconic-emoji path in renderIconValue and never land here. */
+.vaultman-icon-missing {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
 }
 
 /* The inline editor takes the row's own height instead of imposing a 20px
