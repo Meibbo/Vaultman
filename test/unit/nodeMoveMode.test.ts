@@ -145,5 +145,69 @@ describe('U130-02 liveness al reanudar', () => {
 		expect(result.state).toBe(s);
 		expect(result.pruned).toEqual([]);
 	});
+
+	it('no deja destinos muertos en una transaccion pendiente', () => {
+		const withDst = selectNodeMoveDestination(enter(), {
+			id: 'dst',
+			kind: 'folder',
+			canonicalId: 'archivo',
+		});
+		expect(proceedEnabled(withDst)).toBe(true);
+		const result = pruneDeadOrigins(
+			withDst,
+			(ref) => ref.canonicalId !== 'archivo',
+		);
+		expect(result.state.destinations).toEqual([]);
+		expect(result.state.destinationRefs).toEqual([]);
+		expect(result.pruned).toEqual([]);
+		expect(result.prunedDestinations).toEqual(['archivo']);
+		expect(proceedEnabled(result.state)).toBe(false);
+		expect(buildNodeMoveOperations(result.state)).toEqual([]);
+	});
+
+	it('reconciliar al reanudar no deja destinos muertos', () => {
+		const withDst = selectNodeMoveDestination(enter(), {
+			id: 'dst',
+			kind: 'folder',
+			canonicalId: 'archivo',
+		});
+		const resumed = reconcileNodeMoveOwner(
+			withDst,
+			{ instanceId: 'inst-1', scene: 'tags' },
+			(ref) => ref.canonicalId !== 'archivo',
+		);
+		expect(resumed).not.toBeNull();
+		expect(resumed?.destinations).toEqual([]);
+		expect(resumed?.destinationRefs).toEqual([]);
+	});
+});
+
+describe('U130-02 resolveOriginSet sin duplicados', () => {
+	it('deduplica raices solapadas padre+hijo', () => {
+		const childrenOf = (root: string): readonly string[] => {
+			if (root === 'x') return ['x/a.md', 'x/sub/c.md'];
+			if (root === 'x/sub') return ['x/sub/c.md'];
+			return [];
+		};
+		expect(resolveOriginSet(['x', 'x/sub'], [], childrenOf)).toEqual([
+			'x/a.md',
+			'x/sub/c.md',
+		]);
+	});
+
+	it('deduplica raices repetidas y released solapados', () => {
+		const dentro = (p: string): readonly string[] =>
+			['x/a.md', 'x/b.md', 'x/sub/c.md'].filter((f) =>
+				f.startsWith(p + '/'),
+			);
+		expect(
+			resolveOriginSet(
+				['x', 'x'],
+				['x/sub'],
+				dentro,
+				['x/sub/c.md', 'x/sub/c.md'],
+			),
+		).toEqual(['x/a.md', 'x/b.md', 'x/sub/c.md']);
+	});
 });
 

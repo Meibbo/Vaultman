@@ -132,42 +132,81 @@ export function selectNodeMoveDestination(
 /**
  * Devuelve el estado mientras su instancia siga viva. Cambiar de Scene NO lo
  * invalida: la transaccion se suspende y se restaura al volver.
+ * Si se aporta `isAlive`, la reanudacion poda tambien los destinos muertos
+ * para no dejar una transaccion pendiente contra algo que ya no esta.
  */
 export function reconcileNodeMoveOwner(
 	state: NodeMoveModeState | null,
 	owner: NodeMoveOwner,
+	isAlive?: (ref: MoveNodeRef) => boolean,
 ): NodeMoveModeState | null {
 	if (!state) return null;
 	if (state.owner.instanceId !== owner.instanceId) return null;
-	return state;
+	if (!isAlive) return state;
+	return pruneDeadOrigins(state, isAlive).state;
 }
 
 export interface NodeMovePrune {
 	state: NodeMoveModeState;
 	/** `canonicalId` de los origenes que ya no existen. Se REPORTAN, no se callan. */
 	pruned: readonly string[];
+	/** `canonicalId` de los destinos que ya no existen. Tambien se reportan. */
+	prunedDestinations: readonly string[];
 }
 
 /**
  * U130-02: el modo sobrevive a la navegacion, asi que puede sobrevivir a sus
- * origenes. Se revalida al restaurar la pestana y antes de emitir operaciones.
- * Lo podado se dice: emitir una operacion contra un fichero que Sync borro es
- * peor, pero podarlo en silencio deja al usuario creyendo que movio algo que no.
+ * origenes y a sus destinos. Se revalida al restaurar la pestana y antes de
+ * emitir operaciones. Lo podado se dice: emitir una operacion contra un
+ * fichero que Sync borro es peor, pero podarlo en silencio deja al usuario
+ * creyendo que movio algo que no. Los destinos podados tambien vacian
+ * `destinations`/`destinationRefs` en pareja para que `proceedEnabled` y
+ * `buildNodeMoveOperations` no emitan contra algo muerto.
  */
 export function pruneDeadOrigins(
 	state: NodeMoveModeState,
 	isAlive: (ref: MoveNodeRef) => boolean,
 ): NodeMovePrune {
 	const alive = state.origin.filter((t) => isAlive(t.node));
-	if (alive.length === state.origin.length) {
-		return { state, pruned: Object.freeze([]) };
-	}
+	const aliveRefs = state.destinationRefs.filter((ref) => isAlive(ref));
+	const aliveIds = new Set(aliveRefs.map((ref) => ref.id));
+	const aliveDestinations = state.destinations.filter((id) =>
+		aliveIds.has(id),
+	);
 	const pruned = state.origin
 		.filter((t) => !isAlive(t.node))
 		.map((t) => t.node.canonicalId);
+	const prunedDestinations = state.destinationRefs
+		.filter((ref) => !isAlive(ref))
+		.map((ref) => ref.canonicalId);
+	if (
+		alive.length === state.origin.length &&
+		aliveRefs.length === state.destinationRefs.length &&
+		aliveDestinations.length === state.destinations.length
+	) {
+		return {
+			state,
+			pruned: Object.freeze([]),
+			prunedDestinations: Object.freeze([]),
+		};
+	}
+	const prunedDestinationIds = new Set(
+		state.destinationRefs.filter((ref) => !isAlive(ref)).map((ref) => ref.id),
+	);
+	const rejection =
+		state.rejection && prunedDestinationIds.has(state.rejection.destination)
+			? null
+			: state.rejection;
 	return {
-		state: { ...state, origin: Object.freeze(alive) },
+		state: {
+			...state,
+			origin: Object.freeze(alive),
+			destinations: Object.freeze(aliveDestinations),
+			destinationRefs: Object.freeze(aliveRefs),
+			rejection,
+		},
 		pruned: Object.freeze(pruned),
+		prunedDestinations: Object.freeze(prunedDestinations),
 	};
 }
 
@@ -212,12 +251,19 @@ export function resolveOriginSet(
 	childrenOf: (root: string) => readonly string[],
 	releasedPaths: readonly string[] = [],
 ): string[] {
+	const seen = new Set<string>();
 	const out: string[] = [];
-	for (const root of roots) {
+	const pushUnique = (path: string): void => {
+		if (!seen.has(path)) {
+			seen.add(path);
+			out.push(path);
+		}
+	};
+	for (const root of new Set(roots)) {
 		for (const child of childrenOf(root)) {
 			const excludedBy = excludedPaths.find((ex) => reaches(ex, child));
 			if (!excludedBy) {
-				out.push(child);
+				pushUnique(child);
 				continue;
 			}
 			// Reincluido explicitamente por debajo de la exclusion: gana lo mas
@@ -225,7 +271,7 @@ export function resolveOriginSet(
 			const released = releasedPaths.some(
 				(rel) => reaches(rel, child) && rel.length > excludedBy.length,
 			);
-			if (released) out.push(child);
+			if (released) pushUnique(child);
 		}
 	}
 	return out;
