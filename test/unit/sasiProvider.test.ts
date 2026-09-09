@@ -10,7 +10,8 @@ describe('U130-01 SASI como provider', () => {
 		registerMoveActions(reg);
 		const provider = createSasiProvider(reg);
 		const nodes = provider.nodesFor('function');
-		expect(nodes).toHaveLength(5);
+		// 5 valueMove + 4 nodemove (U130-02 ui-dom, sin toggleMoveKind duplicado).
+		expect(nodes).toHaveLength(9);
 		expect(nodes[0]).toMatchObject({
 			id: 'vaultman.move.proceed',
 			labelKey: 'sasi.move.proceed',
@@ -31,6 +32,9 @@ describe('U130-01 SASI como provider', () => {
 		const dangerous = provider
 			.nodesFor('function')
 			.filter((n) => n.mutatesVault);
-		expect(dangerous.map((n) => n.id)).toEqual(['vaultman.move.proceed']);
+		expect(dangerous.map((n) => n.id)).toEqual([
+			'vaultman.move.proceed',
+			'vaultman.nodemove.proceed',
+		]);
 	});
 });

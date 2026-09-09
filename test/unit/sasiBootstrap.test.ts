@@ -15,8 +15,11 @@ describe('U130 SASI bootstrap', () => {
 		const { registry } = createVaultmanSasi();
 		const operations = registry.listOperations().map((def) => def.id);
 		const actions = registry.listActions().map((def) => def.id);
-		// Solo `proceed` escribe en el vault.
-		expect(operations).toEqual(['vaultman.move.proceed']);
+		// Solo los `proceed` escriben en el vault (valueMove + nodemove U130-02).
+		expect(operations).toEqual([
+			'vaultman.move.proceed',
+			'vaultman.nodemove.proceed',
+		]);
 		expect(actions).toContain('vaultman.move.cancel');
 		expect(actions).toContain('vaultman.move.toggleMoveKind');
 		expect(actions).toContain('vaultman.search.cycleCategory');

@@ -8,6 +8,7 @@
 		resolveExclusiveSlotNodes,
 	} from '../../logic/logicPanelWidgetProjection';
 	import { buildTransactionBarState } from '../../logic/logicTransactionBarState';
+	import { projectNodeMoveBar } from '../../logic/logicNodeMoveRuntime';
 	import {
 		executeObsidianCommand,
 		listObsidianCommands,
@@ -646,6 +647,31 @@
 		return () => explorer?.setValueMoveChangeHandler(undefined);
 	});
 
+	// U130-02 ui-dom: el modo files vive en el motor NodeMove por
+	// (instancia, Scene). El host solo lo proyecta en el slot existente y
+	// respeta ownership: otra Scene oculta, otra instancia desmonta.
+	let fileMoveRevision = $state(0);
+	$effect(() => {
+		const explorer = fileList;
+		explorer?.setNodeMoveChangeHandler(() => {
+			fileMoveRevision += 1;
+		});
+		return () => explorer?.setNodeMoveChangeHandler(undefined);
+	});
+	$effect(() => {
+		if (sceneInstanceId) fileList?.setNodeMoveOwner(sceneInstanceId);
+	});
+	$effect(() => {
+		// Cambiar de Scene suspende (no mata): reconcilia con liveness y
+		// deja que la barra quede hidden hasta volver.
+		if (sceneInstanceId && filtersActiveTab) {
+			fileList?.reconcileNodeMoveOwner({
+				instanceId: sceneInstanceId,
+				scene: filtersActiveTab,
+			});
+		}
+	});
+
 	// U130-04: el tipo de movimiento es de la transaccion, no de la barra. La
 	// barra lo pinta y lo conmuta; quien lo posee es la Scene.
 	let moveKind = $state<'node' | 'group'>('node');
@@ -657,8 +683,28 @@
 			: null;
 	});
 
+	const nodeMoveMode = $derived.by(() => {
+		void fileMoveRevision;
+		if (filtersActiveTab !== 'files') return null;
+		const stored = fileList?.getNodeMoveMode() ?? null;
+		if (!stored) return null;
+		if (stored.owner.instanceId !== sceneInstanceId) return null;
+		if (stored.owner.scene !== 'files') return null;
+		return stored;
+	});
+
 	const transactionBarState = $derived.by(() => {
 		void valueMoveRevision;
+		void fileMoveRevision;
+		if (filtersActiveTab === 'files') {
+			return projectNodeMoveBar({
+				state: fileList?.getNodeMoveMode() ?? null,
+				current: { instanceId: sceneInstanceId, scene: filtersActiveTab },
+				nodes: fileList?.moveTransactionNodes() ?? [],
+				variant: minimalStyle ? 'phone' : 'row',
+				groupsAvailable: false,
+			});
+		}
 		return buildTransactionBarState({
 			transaction: valueMoveMode
 				? {
@@ -687,6 +733,9 @@
 		if (valueMoveMode) {
 			panelWidgetSearchExpanded = true;
 		}
+		if (nodeMoveMode) {
+			panelWidgetSearchExpanded = true;
+		}
 	});
 
 	// The reveal toggle reads its own state from the explorer that owns it, on
@@ -709,7 +758,12 @@
 					write: valueMoveMode.write,
 					originDisposition: valueMoveMode.originDisposition,
 				}
-			: null,
+			: nodeMoveMode
+				? {
+						write: nodeMoveMode.write,
+						originDisposition: nodeMoveMode.originDisposition,
+					}
+				: null,
 	);
 
 	/**
@@ -720,7 +774,9 @@
 	const sasiMoveHandlers = $derived(
 		filtersActiveTab === 'props'
 			? (propExplorer?.sasiMoveHandlers() ?? {})
-			: {},
+			: filtersActiveTab === 'files'
+				? (fileList?.sasiNodeMoveHandlers() ?? {})
+				: {},
 	);
 
 	/**
@@ -831,6 +887,71 @@
 					return;
 				}
 				void sasiInvoke('vaultman.move.proceed', { confirmed: true }).catch(
+					(error: unknown) => {
+						new Notice(String(error instanceof Error ? error.message : error));
+					},
+				);
+			},
+		})),
+	);
+
+	// U130-02 ui-dom: ActionNodes files en el MISMO slot exclusivo, sin
+	// inventar superficie. Proceed cuelga del id nuevo
+	// `vaultman.nodemove.proceed`, nunca de `vaultman.move.proceed`.
+	const fileMoveSlotNodes = $derived(
+		filtersActiveTab === 'files'
+			? resolveExclusiveSlotNodes({
+					idleNode: null,
+					moveMode: nodeMoveMode
+						? {
+								proceed: {
+									id: 'vaultman.nodemove.proceed',
+									nodeKind: 'action',
+									cellKind: 'action',
+									presentation: 'button',
+									label: translate('explorer.ctx.move_to_prop.proceed'),
+									icon: 'lucide-check',
+									order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
+									available: nodeMoveMode.destinations.length > 0,
+									action: { id: 'vaultman.nodemove.proceed' },
+								},
+								cancel: {
+									id: 'vaultman.nodemove.cancel',
+									nodeKind: 'action',
+									cellKind: 'action',
+									presentation: 'button',
+									label: translate('explorer.ctx.move_to_prop.cancel'),
+									icon: 'lucide-x',
+									order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER + 1,
+									available: true,
+									action: { id: 'vaultman.nodemove.cancel' },
+								},
+							}
+						: null,
+				})
+			: [],
+	);
+
+	const fileMoveHeaderActions = $derived<HeaderAction[]>(
+		fileMoveSlotNodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			icon: node.icon,
+			disabled: !node.available,
+			order: node.order,
+			checked: node.checked,
+			onClick: () => {
+				if (node.id === 'vaultman.nodemove.cancel') {
+					fileList?.cancelNodeMoveMode();
+					return;
+				}
+				if (!sasiInvoke) {
+					new Notice(
+						'SASI: sin registro en esta superficie: vaultman.nodemove.proceed',
+					);
+					return;
+				}
+				void sasiInvoke('vaultman.nodemove.proceed', { confirmed: true }).catch(
 					(error: unknown) => {
 						new Notice(String(error instanceof Error ? error.message : error));
 					},
@@ -1775,7 +1896,7 @@
 				showDock,
 				tabOptions: minimalStyle ? filterTabOptions : [],
 				tabMenuActions,
-				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
+				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions, ...fileMoveHeaderActions],
 				revealActive: revealingActiveFile,
 				searchMoveToggles,
 				transactionBar: {
@@ -1841,6 +1962,10 @@
 		if (e.key === 'Escape' && valueMoveMode) {
 			e.preventDefault();
 			propExplorer?.cancelValueMoveMode();
+		}
+		if (e.key === 'Escape' && nodeMoveMode) {
+			e.preventDefault();
+			fileList?.cancelNodeMoveMode();
 		}
 	}
 </script>

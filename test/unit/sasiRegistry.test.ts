@@ -76,28 +76,35 @@ describe('U130-01 SASI registry', () => {
 });
 
 describe('U130-01 move actions en SASI', () => {
-	it('registra las cinco con su categoria correcta', () => {
+	it('registra las cinco de valueMove mas las cuatro nodemove (U130-02 ui-dom)', () => {
 		const reg = createSasiRegistry();
 		registerMoveActions(reg);
 		expect(reg.listOperations().map((d) => d.id)).toEqual([
 			'vaultman.move.proceed',
+			'vaultman.nodemove.proceed',
 		]);
 		expect(reg.listActions().map((d) => d.id)).toEqual([
 			'vaultman.move.cancel',
 			'vaultman.move.toggleWrite',
 			'vaultman.move.toggleOriginDisposition',
 			'vaultman.move.toggleMoveKind',
+			'vaultman.nodemove.cancel',
+			'vaultman.nodemove.toggleWrite',
+			'vaultman.nodemove.toggleOriginDisposition',
 		]);
 	});
 
-	it('solo `proceed` muta el vault', () => {
+	it('solo los `proceed` mutan el vault (valueMove + nodemove)', () => {
 		const reg = createSasiRegistry();
 		registerMoveActions(reg);
 		const mutating = reg
 			.list('function')
 			.filter((d) => d.mutatesVault)
 			.map((d) => d.id);
-		expect(mutating).toEqual(['vaultman.move.proceed']);
+		expect(mutating).toEqual([
+			'vaultman.move.proceed',
+			'vaultman.nodemove.proceed',
+		]);
 	});
 
 	it('cada una tiene su etiqueta en en y es', () => {

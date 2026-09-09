@@ -55,4 +55,40 @@ export function registerMoveActions(registry: SasiRegistry): void {
 		// de vault y dos sitios que mantener sincronizados.
 		supports: [{ surface: 'statusBar' }],
 	});
+	// U130-02 ui-dom: culminacion NodeMove (files). Id nuevo para no crear
+	// doble-semantica silenciosa con `vaultman.move.proceed` (valueMove en
+	// explorerProps.ts:1319). Solo este proceed lleva `mutatesVault`.
+	registry.register({
+		id: 'vaultman.nodemove.proceed',
+		axis: 'function',
+		kind: 'operation',
+		labelKey: 'sasi.move.proceed',
+		icon: 'lucide-check',
+		mutatesVault: true,
+		supports: [{ surface: 'panelWidget' }, { surface: 'contextMenu' }],
+	});
+	registry.register({
+		id: 'vaultman.nodemove.cancel',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.move.cancel',
+		icon: 'lucide-x',
+		supports: [{ surface: 'panelWidget' }, { surface: 'contextMenu' }],
+	});
+	registry.register({
+		id: 'vaultman.nodemove.toggleWrite',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.move.toggle_write',
+		icon: 'lucide-scissors',
+		supports: [{ surface: 'searchbox' }],
+	});
+	registry.register({
+		id: 'vaultman.nodemove.toggleOriginDisposition',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.move.toggle_origin',
+		icon: 'lucide-copy',
+		supports: [{ surface: 'searchbox' }],
+	});
 }

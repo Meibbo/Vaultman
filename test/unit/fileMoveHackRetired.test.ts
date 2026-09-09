@@ -16,8 +16,14 @@ describe('U130-02 retirada del hack de U121-102', () => {
 		expect(src).not.toContain('nodeTypeFilters?: string[];');
 	});
 
-	it('la validacion la hace la strategy, y la LLAMA', () => {
-		expect(src).toMatch(/fileMoveStrategy\.validate\(/);
+	it('la validacion la hace la strategy via el motor, sin guard duplicado', () => {
+		// ui-dom migra el adaptador al motor: la strategy entra en
+		// enterNodeMoveMode y la seleccion pasa por
+		// selectNodeMoveDestination. Llamarla en crudo aqui seria duplicar
+		// el gesto "fichero significa su carpeta" que el adaptador resuelve
+		// antes de validar.
+		expect(src).toMatch(/fileMoveStrategy/);
+		expect(src).toMatch(/selectNodeMoveDestination\(/);
 	});
 
 	it('el guard de ciclo inline se fue, no se quedo duplicado', () => {
@@ -36,8 +42,11 @@ describe('U130-02 retirada del hack de U121-102', () => {
 		expect(src).toContain("file instanceof TFolder ? file : file.parent");
 	});
 
-	it('FileMoveModeState SIGUE existiendo', () => {
-		// Migrar ese subsistema son 34 referencias y va en otra unidad.
-		expect(src).toContain('interface FileMoveModeState');
+	it('FileMoveModeState YA NO existe: migrado al motor NodeMove (U130-02 ui-dom)', () => {
+		// T5 lo dejo vivo a proposito ("va en su propia unidad cuando
+		// nodeMoveMode pueda sustituirlo"). Esta unidad es esa: el adaptador
+		// es NodeMoveSceneRuntime + proceedNodeMoveToQueue.
+		expect(src).not.toContain('interface FileMoveModeState');
+		expect(src).not.toMatch(/private fileMoveMode/);
 	});
 });

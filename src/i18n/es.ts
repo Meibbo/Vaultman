@@ -705,6 +705,13 @@ export const es: Record<string, string> = {
 	'explorer.move_to_prop.origin.copy': 'Copiar',
 	'explorer.move_to_folder.rejected':
 		'No se puede mover una carpeta dentro de sí misma.',
+	'explorer.move_to_folder.rejectedBy': 'Destino rechazado: {reason}.',
+	'explorer.move_to_folder.pruned': 'Ya no existen: {detail}.',
+	'explorer.move_to_folder.unresolved': 'No se pudo stagear: {detail}.',
+	'explorer.move_to_folder.summaryTitle': 'Revisar este movimiento',
+	'explorer.move_to_folder.summaryBody': '{count} cambios encolados:\n{detail}',
+	'explorer.move_to_folder.summaryConfirm': 'Mover ahora',
+	'explorer.move_to_folder.staged': '{count} cambios stageados en la queue.',
 	'explorer.move_to_prop.summary': 'Revisar este movimiento',
 	'explorer.move_to_prop.summary.files': '{count} archivos',
 	'explorer.move_to_prop.summary.confirm': 'Ejecutar ahora',

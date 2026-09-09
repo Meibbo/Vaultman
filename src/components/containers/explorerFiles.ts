@@ -63,9 +63,29 @@ import {
 } from '../../modals/modalFileRename';
 
 import { FileMoveModal } from '../../modals/modalFileMove';
+import { ConfirmModal } from '../../modals/modalConfirm';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
-import { fileMoveStrategy } from '../../logic/logicMoveRouting';
+import {
+	fileMoveStrategy,
+	type MoveNodeRef,
+} from '../../logic/logicMoveRouting';
+import {
+	enterNodeMoveMode,
+	proceedEnabled,
+	pruneDeadOrigins,
+	reconcileNodeMoveOwner,
+	selectNodeMoveDestination,
+	toggleNodeMoveOriginDisposition,
+	toggleNodeMoveWrite,
+	type NodeMoveModeState,
+} from '../../logic/logicNodeMoveMode';
+import {
+	NodeMoveSceneRuntime,
+	isNodeMoveActiveIn,
+} from '../../logic/logicNodeMoveRuntime';
+import { proceedNodeMoveToQueue } from '../../logic/logicNodeMoveProceed';
+import type { BarNode } from '../../logic/logicTransactionBar';
 import { translate } from '../../i18n/index';
 import {
 	formatTimestampCell,
@@ -184,20 +204,8 @@ function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	return true;
 }
 
-export interface FileMoveOwner {
-	providerId: string;
-	generation: number;
-}
-
-export interface FileMoveModeState {
-	origins: (TFile | TFolder)[];
-	destinations: string[]; // Node IDs of selected destination folders
-	restore: {
-		interactionMode: string;
-		searchOpen: boolean;
-	};
-	owner: FileMoveOwner;
-}
+/** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
+export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
 export class FilesExplorerPanel extends Component {
 	private containerEl: HTMLElement;
@@ -218,9 +226,9 @@ export class FilesExplorerPanel extends Component {
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private sortState = normalizeExplorerSortState('files', null);
 
-	private fileMoveMode: FileMoveModeState | null = null;
-	private onFileMoveChange?: () => void;
-	private fileMoveGeneration = 0;
+	private readonly nodeMoveRuntime = new NodeMoveSceneRuntime();
+	private nodeMoveInstanceId = 'default';
+	private onNodeMoveChange?: () => void;
 	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
 	private interactionMode: InteractionMode = 'open';
@@ -498,7 +506,7 @@ export class FilesExplorerPanel extends Component {
 				if (!meta.file) return;
 
 				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
-					this._enterFileMoveMode(ctx);
+					this._enterNodeMoveMode(ctx);
 				} else {
 					const filesToMove = this.selectedFilePaths.has(ctx.node.id)
 						? this.getSelectedFiles()
@@ -606,9 +614,10 @@ export class FilesExplorerPanel extends Component {
 			icon: 'lucide-check',
 			when: (ctx) => {
 				const meta = ctx.node.meta as FileMeta;
+				const stored = this._activeNodeMove();
 				return (
-					this._fileMoveProceedAvailable() &&
-					this.fileMoveMode?.destinations.some(
+					this.nodeMoveProceedAvailable() &&
+					stored?.destinations.some(
 						(d) =>
 							meta.file &&
 							(meta.file.path === d ||
@@ -616,7 +625,7 @@ export class FilesExplorerPanel extends Component {
 					) === true
 				);
 			},
-			run: () => this.proceedFileMove(),
+			run: () => this.proceedNodeMove(),
 		});
 
 		svc.registerAction({
@@ -694,7 +703,7 @@ export class FilesExplorerPanel extends Component {
 				if (!folder) return;
 
 				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
-					this._enterFileMoveMode(ctx);
+					this._enterNodeMoveMode(ctx);
 				} else {
 					const target = await showInputModal(
 						this.plugin.app,
@@ -830,6 +839,9 @@ export class FilesExplorerPanel extends Component {
 
 	onunload(): void {
 		this.statisticsWarmSignature = '';
+		// U130-02 ui-dom: teardown termina la transaccion de esta instancia.
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this.onNodeMoveChange = undefined;
 		if (this.refreshTimer !== null) {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
@@ -1470,9 +1482,9 @@ export class FilesExplorerPanel extends Component {
 			selectionGesture,
 		);
 
-		if (this.fileMoveMode && selectionGesture !== 'open') {
-			this._registerFileMoveDestination(file);
-			// We handle visual selection in _registerFileMoveDestination
+		if (this._activeNodeMove() && selectionGesture !== 'open') {
+			this._registerNodeMoveDestination(file);
+			// We handle visual selection in _registerNodeMoveDestination
 			return;
 		}
 		if (selectionGesture !== 'open') {
@@ -1550,36 +1562,100 @@ export class FilesExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
-	getFileMoveMode(): FileMoveModeState | null {
-		return this.fileMoveMode;
+	getNodeMoveMode(): NodeMoveModeState | null {
+		return this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
 	}
 
-	setFileMoveChangeHandler(handler?: () => void): void {
-		this.onFileMoveChange = handler;
+	setNodeMoveChangeHandler(handler?: () => void): void {
+		this.onNodeMoveChange = handler;
 	}
 
-	private _setFileMoveMode(next: FileMoveModeState | null): void {
-		this.fileMoveMode = next;
-		this.onFileMoveChange?.();
+	setNodeMoveOwner(instanceId: string): void {
+		if (this.nodeMoveInstanceId === instanceId) return;
+		this.nodeMoveInstanceId = instanceId;
+		this.onNodeMoveChange?.();
 	}
 
-	private _fileMoveOwner(): FileMoveOwner {
-		return { providerId: 'files', generation: this.fileMoveGeneration };
+	private _emitNodeMoveChange(): void {
+		this.onNodeMoveChange?.();
 	}
 
-	reconcileFileMoveOwner(owner: FileMoveOwner): void {
-		if (!this.fileMoveMode) return;
-		if (
-			this.fileMoveMode.owner.providerId === owner.providerId &&
-			this.fileMoveMode.owner.generation === owner.generation
-		)
+	private _nodeMoveKey(): { instanceId: string; scene: string } {
+		return { instanceId: this.nodeMoveInstanceId, scene: 'files' };
+	}
+
+	private _isAlive(ref: MoveNodeRef): boolean {
+		return Boolean(this.plugin.app.vault.getAbstractFileByPath(ref.canonicalId));
+	}
+
+	private _activeNodeMove(): NodeMoveModeState | null {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		if (!stored) return null;
+		if (!isNodeMoveActiveIn(stored, this._nodeMoveKey())) return null;
+		return stored;
+	}
+
+	/** U130-04: la barra cuenta jerarquicamente; la unica que tiene padre/hijo es el arbol proyectado. */
+	moveTransactionNodes(): readonly BarNode[] {
+		const flatten = (
+			nodes: readonly TreeNode<FileMeta>[],
+		): BarNode[] =>
+			nodes.flatMap((node) => [
+				{
+					id: node.id,
+					label: node.label,
+					childIds: (node.children ?? []).map((child) => child.id),
+				},
+				...flatten(node.children ?? []),
+			]);
+		return flatten(this._lastRenderTree);
+	}
+
+	/**
+	 * Cambio de Scene suspende (la entrada queda) y al volver se revalida
+	 * con liveness. Otra instancia no ve nada. Nunca publica sobre Scene
+	 * ajena: solo toca su propia clave.
+	 */
+	reconcileNodeMoveOwner(owner: NodeMoveSceneOwner): void {
+		if (owner.scene !== 'files') return;
+		if (owner.instanceId !== this.nodeMoveInstanceId) {
+			this.nodeMoveInstanceId = owner.instanceId;
+		}
+		const resumed = this.nodeMoveRuntime.resume(
+			owner.instanceId,
+			'files',
+			(ref) => this._isAlive(ref),
+		);
+		if (resumed.pruned.length > 0 || resumed.prunedDestinations.length > 0) {
+			const parts: string[] = [];
+			if (resumed.pruned.length > 0)
+				parts.push(`orígenes: ${resumed.pruned.join(', ')}`);
+			if (resumed.prunedDestinations.length > 0)
+				parts.push(`destinos: ${resumed.prunedDestinations.join(', ')}`);
+			new Notice(
+				translate('explorer.move_to_folder.pruned', { detail: parts.join('; ') }),
+			);
+			this._emitNodeMoveChange();
+			this._render();
 			return;
-		this._exitFileMoveMode();
+		}
+		// Sin bajas no se notifica: resume devuelve el mismo estado.
+		if (resumed.state) {
+			const pure = reconcileNodeMoveOwner(resumed.state, {
+				instanceId: owner.instanceId,
+				scene: 'files',
+			});
+			if (!pure) {
+				this.nodeMoveRuntime.finish(owner.instanceId, 'files');
+				this._emitNodeMoveChange();
+				this._render();
+			}
+		}
 	}
 
-	private _enterFileMoveMode(ctx: { node: { meta?: unknown } }): void {
-		if (this.fileMoveMode) {
-			this._exitFileMoveMode();
+	private _enterNodeMoveMode(ctx: { node: { meta?: unknown } }): void {
+		if (this._activeNodeMove()) {
+			this._exitNodeMoveMode();
 			return;
 		}
 
@@ -1592,8 +1668,18 @@ export class FilesExplorerPanel extends Component {
 		if (!clicked) return;
 
 		// The origins are whatever was selected, or the clicked node if no selection.
-		const origins: (TFile | TFolder)[] = [];
-		const selectedPaths = new Set<string>();
+		const seen = new Set<string>();
+		const origins: { id: string; kind: string; node: MoveNodeRef }[] = [];
+		const pushOrigin = (fileOrFolder: TFile | TFolder): void => {
+			if (seen.has(fileOrFolder.path)) return;
+			seen.add(fileOrFolder.path);
+			const kind = fileOrFolder instanceof TFolder ? 'folder' : 'file';
+			origins.push({
+				id: fileOrFolder.path,
+				kind,
+				node: { id: fileOrFolder.path, kind, canonicalId: fileOrFolder.path },
+			});
+		};
 
 		const clickedNodeId = (ctx.node as { id?: string }).id ?? clicked.path;
 		if (
@@ -1603,131 +1689,217 @@ export class FilesExplorerPanel extends Component {
 			// Clicked node is in selection, use full selection -- folders included.
 			const targets = this._selectedTargets();
 			for (const origin of [...targets.files, ...targets.folders]) {
-				if (selectedPaths.has(origin.path)) continue;
-				origins.push(origin);
-				selectedPaths.add(origin.path);
+				pushOrigin(origin);
 			}
 		} else {
 			// Clicked node not in selection, use just clicked node
-			origins.push(clicked);
+			pushOrigin(clicked);
 		}
 
 		if (origins.length === 0) return;
 
-		this.fileMoveGeneration += 1;
-		this._setFileMoveMode({
-			origins,
-			destinations: [],
-			owner: this._fileMoveOwner(),
-			restore: {
-				interactionMode: this.interactionMode,
-				searchOpen: false, // We don't force search open for file move
-			},
-		});
+		this.nodeMoveRuntime.start(
+			enterNodeMoveMode({
+				origin: origins,
+				restore: {
+					interactionMode: this.interactionMode,
+					searchOpen: false, // We don't force search open for file move
+				},
+				owner: this._nodeMoveKey(),
+				strategy: fileMoveStrategy,
+			}),
+		);
 
 		this.selectedFilePaths = new Set<string>();
 		this.setInteractionMode('select');
+		this._emitNodeMoveChange();
 		this._render();
 	}
 
-	private _registerFileMoveDestination(file: TFile | TFolder): void {
-		if (!this.fileMoveMode) return;
+	private _registerNodeMoveDestination(file: TFile | TFolder): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
 
 		const targetFolder = file instanceof TFolder ? file : file.parent;
 		if (!targetFolder) return;
 
 		// U130-02: la aciclicidad vive en la strategy de fileScene, no duplicada
-		// aqui. Se valida contra el targetFolder YA RESUELTO.
-		const rejected = this.fileMoveMode.origins.find((origin) => {
-			const verdict = fileMoveStrategy.validate(
-				{
-					id: origin.path,
-					kind: origin instanceof TFolder ? 'folder' : 'file',
-					canonicalId: origin.path,
-				},
-				{ id: targetFolder.path, kind: 'folder', canonicalId: targetFolder.path },
-			);
-			return !verdict.ok;
-		});
+		// aqui. Se valida contra el targetFolder YA RESUELTO: pinchar un
+		// fichero significa "a su carpeta".
+		const candidate: MoveNodeRef = {
+			id: targetFolder.path,
+			kind: 'folder',
+			canonicalId: targetFolder.path,
+		};
+		const next = selectNodeMoveDestination(stored, candidate);
+		this.nodeMoveRuntime.start(next);
 
-		if (rejected) {
-			new Notice(translate('explorer.move_to_folder.rejected'));
+		if (next.rejection) {
+			new Notice(
+				translate('explorer.move_to_folder.rejectedBy', {
+					reason: next.rejection.reason,
+				}),
+			);
+			this._emitNodeMoveChange();
+			this._render();
 			return;
 		}
-
-		this.fileMoveGeneration += 1;
-		this._setFileMoveMode({
-			...this.fileMoveMode,
-			destinations: [targetFolder.path],
-		});
 
 		// Update visual selection to show the destination
 		const newSelection = new Set<string>();
 		newSelection.add(targetFolder.path);
 		this.selectedFilePaths = newSelection;
 		this.selectionAnchorPath = targetFolder.path;
+		this._emitNodeMoveChange();
 		this._render();
 	}
 
-	private _exitFileMoveMode(): void {
-		const restore = this.fileMoveMode?.restore;
-		this._setFileMoveMode(null);
+	private _exitNodeMoveMode(): void {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		const restore = stored?.restore;
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this._emitNodeMoveChange();
 		if (restore) {
 			this.setInteractionMode(restore.interactionMode as InteractionMode);
 		}
 		this._render();
 	}
 
-	cancelFileMoveMode(): void {
-		this._exitFileMoveMode();
+	cancelNodeMoveMode(): void {
+		this._exitNodeMoveMode();
 	}
 
-	proceedFileMove(): void {
-		if (!this.fileMoveMode || this.fileMoveMode.destinations.length === 0)
-			return;
+	toggleNodeMoveWrite(): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
+		this.nodeMoveRuntime.start(toggleNodeMoveWrite(stored));
+		this._emitNodeMoveChange();
+		this._render();
+	}
 
-		const destId = this.fileMoveMode.destinations[0];
-		const destNode = this._findNode(destId, this._lastRenderTree);
-		const destMeta = destNode?.meta;
+	toggleNodeMoveOriginDisposition(): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
+		this.nodeMoveRuntime.start(toggleNodeMoveOriginDisposition(stored));
+		this._emitNodeMoveChange();
+		this._render();
+	}
 
-		if (destMeta?.file instanceof TFolder) {
-			const targetFolder = destMeta.file;
-			const targetPath = targetFolder.path.replace(/^\/|\/$/g, '');
+	/**
+	 * U130-02 ui-dom: culminacion NodeMove -> queue existente.
+	 * - stage: `addBatch` (una sola notificacion); no ejecuta.
+	 * - bypass sin consentimiento: no toca la queue; abre ConfirmModal
+	 *   existente y solo al confirmar reintenta con `confirmed: true`
+	 *   (el adaptador ya creado `proceedNodeMoveToQueue`).
+	 * Lo podado y lo no resoluble se dice con Notice, nunca en silencio.
+	 */
+	proceedNodeMove(confirmed = false): void {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		if (!stored) return;
+		if (!isNodeMoveActiveIn(stored, this._nodeMoveKey())) return;
 
-			for (const file of this.fileMoveMode.origins) {
-				const newPath = targetPath ? `${targetPath}/${file.name}` : file.name;
-				if (newPath === file.path) continue;
+		const findFile = (canonicalId: string): TFile | null => {
+			const found = this.plugin.app.vault.getAbstractFileByPath(canonicalId);
+			return found instanceof TFile ? found : null;
+		};
+		const listFilesInFolder = (folderPath: string): TFile[] =>
+			filesInsideFolder(this.plugin.app.vault.getFiles(), folderPath);
+		const isAlive = (ref: MoveNodeRef): boolean => this._isAlive(ref);
 
-				if (file instanceof TFile) {
-					this.plugin.queueService.addOrRun({
-						type: 'file_move',
-						action: 'move',
-						details: `Move file "${file.path}" to "${newPath}"`,
-						files: [file],
-						targetFolder: targetPath,
-						customLogic: true,
-						logicFunc: () => ({ [MOVE_FILE]: newPath }),
-					});
-				} else if (file instanceof TFolder) {
-					this._queueFolderMove(
-						file,
-						newPath,
-						`Move folder "${file.path}" to "${newPath}"`,
-					);
-				}
-			}
+		const outcome = proceedNodeMoveToQueue(stored, {
+			findFile,
+			listFilesInFolder,
+			isAlive,
+			queueService: this.plugin.queueService,
+			confirmed,
+		});
+
+		if (outcome.pruned.length > 0 || outcome.prunedDestinations.length > 0) {
+			const parts: string[] = [];
+			if (outcome.pruned.length > 0)
+				parts.push(`orígenes: ${outcome.pruned.join(', ')}`);
+			if (outcome.prunedDestinations.length > 0)
+				parts.push(`destinos: ${outcome.prunedDestinations.join(', ')}`);
+			new Notice(
+				translate('explorer.move_to_folder.pruned', { detail: parts.join('; ') }),
+			);
+		}
+		if (outcome.plan.unresolved.length > 0) {
+			const names = outcome.plan.unresolved
+				.map((entry) => `${entry.originCanonicalId}→${entry.destinationCanonicalId} (${entry.reason})`)
+				.join('; ');
+			new Notice(translate('explorer.move_to_folder.unresolved', { detail: names }));
 		}
 
-		this._exitFileMoveMode();
-	}
+		if (outcome.requiresConfirmation) {
+			const count = outcome.plan.changes.length;
+			const summary = outcome.plan.changes
+				.map((change) => change.details)
+				.slice(0, 5)
+				.join('\n');
+			new ConfirmModal(this.plugin.app, {
+				title: translate('explorer.move_to_folder.summaryTitle'),
+				message: translate('explorer.move_to_folder.summaryBody', {
+					count,
+					detail: summary,
+				}),
+				ctaLabel: translate('explorer.move_to_folder.summaryConfirm'),
+				onConfirm: () => this.proceedNodeMove(true),
+			}).open();
+			return;
+		}
 
-	private _fileMoveProceedAvailable(): boolean {
-		return (
-			this.fileMoveMode !== null && this.fileMoveMode.destinations.length > 0
+		if (outcome.staged === 0) {
+			// Nada que stagear (p. ej. prune vacio el modo): persiste la poda
+			// para no emitir contra algo muerto y repinta.
+			const pruned = pruneDeadOrigins(stored, isAlive);
+			if (pruned.state !== stored) {
+				this.nodeMoveRuntime.start(pruned.state);
+				this._emitNodeMoveChange();
+				this._render();
+			}
+			return;
+		}
+
+		const restore = stored.restore;
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this._emitNodeMoveChange();
+		this.setInteractionMode(restore.interactionMode as InteractionMode);
+		new Notice(
+			translate('explorer.move_to_folder.staged', { count: outcome.staged }),
 		);
+		this._render();
 	}
 
-	getFileMoveSlotNodes(params: {
+	/**
+	 * U130-02 ui-dom: handlers estables para el invoker por superficie.
+	 * El registro vive en `logicSasiMoveActions` (ids `vaultman.nodemove.*`);
+	 * aqui solo los callbacks reales. `proceed` NO reutiliza
+	 * `vaultman.move.proceed` (valueMove).
+	 */
+	sasiNodeMoveHandlers(): Record<string, () => Promise<void>> {
+		return {
+			'vaultman.nodemove.proceed': async () => {
+				this.proceedNodeMove();
+			},
+			'vaultman.nodemove.cancel': async () => {
+				this.cancelNodeMoveMode();
+			},
+			'vaultman.nodemove.toggleWrite': async () => {
+				this.toggleNodeMoveWrite();
+			},
+			'vaultman.nodemove.toggleOriginDisposition': async () => {
+				this.toggleNodeMoveOriginDisposition();
+			},
+		};
+	}
+
+	nodeMoveProceedAvailable(): boolean {
+		const stored = this._activeNodeMove();
+		return stored !== null && proceedEnabled(stored);
+	}
+
+	getNodeMoveSlotNodes(params: {
 		moveMode: {
 			proceed: { id: string; available: boolean };
 			cancel: { id: string; available: boolean };
@@ -1737,7 +1909,7 @@ export class FilesExplorerPanel extends Component {
 		if (params.moveMode) {
 			nodes.push({
 				...params.moveMode.proceed,
-				available: this._fileMoveProceedAvailable(),
+				available: this.nodeMoveProceedAvailable(),
 			});
 			nodes.push({ ...params.moveMode.cancel, available: true });
 		}
