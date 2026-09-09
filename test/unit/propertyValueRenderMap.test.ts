@@ -169,12 +169,12 @@ describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () =
 		expect(checkbox?.checked).toBe(true);
 	});
 
-	it('renders a date input plus the daily note shortcut', () => {
+	it('renders a date input without row actions', () => {
 		const root = render('2026-08-01', 'date');
 		const input = root.find('mod-date');
 		expect(input?.tagName).toBe('input');
 		expect(input?.value).toBe('2026-08-01');
-		expect(root.find('vaultman-property-value-action')).not.toBeNull();
+		expect(root.find('vaultman-property-value-action')).toBeNull();
 	});
 
 	it('renders a datetime input', () => {
@@ -266,38 +266,9 @@ describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () =
 });
 
 describe('U121-003 shard 07 — value affordances', () => {
-	it('omits the remove control when no delete callback is supplied', () => {
-		expect(
-			render('cocina', 'tags').find('vaultman-property-value-remove'),
-		).toBeNull();
-	});
-
-	it('invokes the delete callback exactly once per activation', () => {
-		let calls = 0;
-		const root = render('cocina', 'tags', {
-			onRemoveValue: () => {
-				calls += 1;
-			},
-		});
-		const remove = root.find('vaultman-property-value-remove');
-		expect(remove).not.toBeNull();
-		click(remove!);
-		expect(calls).toBe(1);
-	});
-
-	it('keeps the removal gesture off the row', () => {
-		let stopped = 0;
-		const root = render('cocina', 'tags', { onRemoveValue: () => undefined });
-		const remove = root.find('vaultman-property-value-remove')!;
-		for (const handler of remove.listeners.get('click') ?? []) {
-			handler({
-				preventDefault: () => undefined,
-				stopPropagation: () => {
-					stopped += 1;
-				},
-			});
-		}
-		expect(stopped).toBe(1);
+	it('keeps row actions out of the value renderer', () => {
+		expect(render('cocina', 'tags', { onRemoveValue: () => undefined }).find('vaultman-property-value-remove')).toBeNull();
+		expect(render('cocina', 'tags').find('vaultman-property-value-action')).toBeNull();
 	});
 
 	it('is not editable without a rename callback', () => {
@@ -541,10 +512,10 @@ describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)
 		expect(anchor!.textContent).toBe('ver');
 	});
 
-	it('hyperlink conserva el badge de delete como texto/lista', () => {
+	it('hyperlink conserva el valor sin badges de delete', () => {
 		const root = render('https://example.com/x', 'text', { onRemoveValue: () => {} });
 		expect(root.find('external-link')).not.toBeNull();
-		expect(root.find('vaultman-property-value-remove')).not.toBeNull();
+		expect(root.find('vaultman-property-value-remove')).toBeNull();
 	});
 });
 

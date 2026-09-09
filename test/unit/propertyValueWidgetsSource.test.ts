@@ -25,7 +25,8 @@ describe('U121-007 Core property value widgets', () => {
 		expect(rendererSource).toContain("'datetime-local'");
 		expect(rendererSource).toContain('metadata-input metadata-input-text mod-');
 		expect(rendererSource).toContain("cls: 'metadata-input-checkbox'");
-		expect(rendererSource).toContain("setIcon(dailyNote, 'lucide-link')");
+		expect(rendererSource).not.toContain("setIcon(dailyNote, 'lucide-link')");
+		expect(propsExplorerSource).toContain("id: 'open-daily-note'");
 	});
 
 	it('uses the concise Format label in both languages', () => {
@@ -61,7 +62,7 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 	// another angle: reveal as a composition the user configures over the
 	// propScene, extended to the tagScene, with `this file properties` closer to
 	// a form than to a tree. Un-skip when that composition lands.
-	it.skip('wires the Core widget bridge from the Props explorer', () => {
+	it('wires the Core widget bridge from the Props explorer', () => {
 		expect(propsExplorerSource).toContain('resolveCorePropertyWidget');
 		expect(propsExplorerSource).toContain('propertyKey: node.meta.propName');
 	});
@@ -78,6 +79,16 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 		// The `--pill-*` mapping belongs to the file-properties context, which
 		// arrives with the reveal mode in shard 09, not to this cell.
 		expect(stylesSource).not.toMatch(/--pill-[a-z-]+:/);
+	});
+
+	it('keeps hover actions in normal flow and removes their rest-state width', () => {
+		const hoverZone =
+			stylesSource.match(/\.vaultman-tree-hover-badge-zone \{[^}]+\}/)?.[0] ?? '';
+		expect(hoverZone).toContain('display: none');
+		expect(hoverZone).not.toContain('position: absolute');
+		expect(stylesSource).toContain(
+			'.vaultman-tree-row:hover .vaultman-tree-hover-badge-zone',
+		);
 	});
 
 	it('adds no box, type change or padding of its own to the cell', () => {
@@ -99,14 +110,15 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 		expect(rendererSource).not.toContain('readOnly');
 	});
 
-	it('routes value removal through the injected callback, never a vault write', () => {
+	it('routes value removal through the indexed hover cell, never a vault write', () => {
 		// The renderer receives a callback; the Props adapter decides that it is
 		// the existing `value.delete` action. A direct import here would be a
 		// second deletion path outside the queue.
 		expect(rendererSource).not.toMatch(
 			/from 'obsidian'.*\bVault\b|queueService|processFrontMatter|_deleteValue/,
 		);
-		expect(rendererSource).toContain('onRemoveValue');
+		expect(propsExplorerSource).toContain("id: 'delete-value'");
+		expect(propsExplorerSource).toContain('queueDeletesSubject(this._deletionSubject(meta), queue)');
 		expect(propsExplorerSource).toContain("'value.delete'");
 	});
 
