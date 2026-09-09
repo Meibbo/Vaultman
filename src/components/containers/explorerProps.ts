@@ -51,6 +51,7 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
+		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -59,7 +60,7 @@ export interface PanelPluginCtx {
 
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
-import type { TreeNode, PropMeta } from '../../types/typeTree';
+	import type { TreeNode, TreeNodeCell, PropMeta } from '../../types/typeTree';
 import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import type { PropertyChange } from '../../types/typeOps';
 import type { PropConflictWarnings } from '../../types/typeSettings';
@@ -79,6 +80,12 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -152,6 +159,7 @@ import {
 	parsePropertyValue,
 	PROPERTY_VALUE_CONVERSION_OPTIONS,
 	replaceMatchingPropertyValue,
+	resolveCorePropertyWidget,
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
 import { findStagedRenameIndex, renameTargetFromQueue } from '../../logic/logicRenameBadges';
@@ -238,7 +246,12 @@ export class PropsExplorerPanel extends Component {
 			id: 'prop.filter_include',
 			nodeTypes: ['prop', 'value'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_include'),
+			label: (ctx) =>
+				this._propFilterMenuLabel(
+					ctx,
+					'included',
+					'explorer.ctx.filter_include',
+				),
 			icon: 'lucide-filter',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
@@ -247,7 +260,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.filterService.setPropertyNodePolarity(
 					filterTarget.target.propName,
 					filterTarget.target.value,
-					'inclusive',
+					this._propFilterState(meta) === 'included' ? 'none' : 'inclusive',
 				);
 			},
 		});
@@ -256,7 +269,12 @@ export class PropsExplorerPanel extends Component {
 			id: 'prop.filter_exclude',
 			nodeTypes: ['prop', 'value'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_exclude'),
+			label: (ctx) =>
+				this._propFilterMenuLabel(
+					ctx,
+					'excluded',
+					'explorer.ctx.filter_exclude',
+				),
 			icon: 'lucide-filter-x',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
@@ -265,7 +283,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.filterService.setPropertyNodePolarity(
 					filterTarget.target.propName,
 					filterTarget.target.value,
-					'exclusive',
+					this._propFilterState(meta) === 'excluded' ? 'none' : 'exclusive',
 				);
 			},
 		});
@@ -582,7 +600,58 @@ export class PropsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+	private groupingEnabled = false;
 	private onContentSearch?: (query: string) => void;
+
+	setGroupingEnabled(enabled: boolean): void {
+		if (this.groupingEnabled === enabled) return;
+		this.groupingEnabled = enabled;
+		void this._render();
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		void this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		const layout = this.plugin.settings?.savedLayouts?.find(
+			(candidate) => candidate.name === this.activeLayoutName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<PropMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'props',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) => {
+				const meta = node.meta as PropMeta;
+				const isValue = meta.isValueNode;
+				const canonicalId =
+					isValue && meta.rawValue !== undefined
+						? `${meta.propName}:${meta.rawValue}`
+						: meta.propName;
+				return formatMembershipUrn({
+					providerId: 'props',
+					kind: isValue ? 'value' : 'prop',
+					canonicalId,
+					displayLabel: node.label,
+				});
+			},
+			enabled: this.groupingEnabled,
+		}) as TreeNode<PropMeta>[];
+	}
 
 	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
 	setInteractionModeChangeHandler(
@@ -1451,8 +1520,9 @@ export class PropsExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -1585,6 +1655,25 @@ export class PropsExplorerPanel extends Component {
 					: `value:${JSON.stringify([meta.propName, value])}`,
 			target: { propName: meta.propName, value },
 		};
+	}
+
+	private _propFilterState(meta: PropMeta) {
+		const target = this._propFilterTarget(meta).target;
+		return this.plugin.filterService.getFilterState(
+			meta.isValueNode ? 'value' : 'prop',
+			target.propName,
+			target.value,
+		);
+	}
+
+	private _propFilterMenuLabel(
+		ctx: import('../../types/typeCMenu').MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'explorer.ctx.filter_include' | 'explorer.ctx.filter_exclude',
+	): string {
+		return this._propFilterState(ctx.node.meta as PropMeta) === activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
 	}
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
@@ -1892,11 +1981,13 @@ export class PropsExplorerPanel extends Component {
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._openNodeMenu(node, event);
@@ -1996,13 +2087,28 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		this.view.render({
-			nodes: nodesWithIcons,
+			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			onCellClick: (id, cellId) => {
+				const node = this._findNode(id, this.projectedNodes(nodesWithIcons));
+				if (!node?.meta.isValueNode || !cellId.startsWith('cell_hover:')) return;
+				const action = cellId.slice('cell_hover:'.length);
+				if (action === 'open-daily-note') {
+					const day = (node.meta.rawValue ?? '').slice(0, 10);
+					void this.plugin.app.workspace.openLinkText(day, '', false);
+				} else if (action === 'delete-value') {
+					this.plugin.contextMenuService.invokeAction('value.delete', {
+						nodeType: 'value',
+						node,
+						surface: 'panel',
+					});
+				}
+			},
 			renderLabel: (container, node) => {
 				const queue = this.plugin.queueService.queue;
 				const target = renameTargetFromQueue(queue, node.id);
@@ -2145,11 +2251,13 @@ export class PropsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, nodesWithIcons),
 			onRowClick: (id: string, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._openNodeMenu(node, e);
@@ -2360,16 +2468,6 @@ export class PropsExplorerPanel extends Component {
 			raw: rawValue,
 			type: propType,
 			app: this.plugin.app,
-			onRemoveValue: () => {
-				// Removal runs the registered `value.delete` action, so the inline
-				// control and the context menu queue the same operation, honour the
-				// same `when` guard and raise the same pending badge.
-				this.plugin.contextMenuService.invokeAction('value.delete', {
-					nodeType: 'value',
-					node,
-					surface: 'panel',
-				});
-			},
 			onRenameValue: (next) => {
 				if (propType === 'text') {
 					next = next.replace(
@@ -3058,6 +3156,11 @@ export class PropsExplorerPanel extends Component {
 			const defaultIcon = !meta.isValueNode
 				? this._effectivePropIcon(meta)
 				: undefined;
+			const hoverCell =
+				meta.isValueNode && this.visibleCells.has('cell_hover')
+					? this._valueHoverCell(meta, queue)
+					: null;
+			const cells: TreeNodeCell[] = hoverCell ? [hoverCell] : [];
 
 			return {
 				...node,
@@ -3066,9 +3169,39 @@ export class PropsExplorerPanel extends Component {
 				iconColor: iconic?.color || undefined,
 				typeText: !meta.isValueNode ? this._effectivePropType(meta) : undefined,
 				badges: badges,
+				cells,
 				children: resolvedChildren,
 			};
 		});
+	}
+
+	private _valueHoverCell(
+		meta: PropMeta,
+		queue: import('../../types/typeOps').PendingChange[],
+	): TreeNodeCell | null {
+		const widget = resolveCorePropertyWidget(meta.propType);
+		const actions: Extract<TreeNodeCell, { kind: 'cell_hover' }>['actions'] = [];
+		const raw = meta.rawValue ?? '';
+		if (
+			(widget === 'date' || widget === 'datetime') &&
+			!Number.isNaN(Date.parse(raw))
+		) {
+			actions.unshift({
+				id: 'open-daily-note',
+				icon: 'lucide-link',
+				label: translate('explorer.cell.open_daily_note'),
+			});
+		}
+		if (!queueDeletesSubject(this._deletionSubject(meta), queue)) {
+			actions.push({
+				id: 'delete-value',
+				icon: 'lucide-x',
+				label: translate('explorer.cell.delete_value'),
+			});
+		}
+		return actions.length > 0
+			? { id: 'cell_hover', kind: 'cell_hover', actions }
+			: null;
 	}
 
 	private async _changePropType(
