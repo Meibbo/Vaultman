@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FilesExplorerPanel } from '../../src/components/containers/explorerFiles';
 
 interface TestNode {
+	id?: string;
 	icon?: string;
 	iconColor?: string;
 	labelColor?: string;
@@ -23,9 +24,11 @@ interface PrivatePanel {
 		};
 	};
 	expandedIds: Set<string>;
+	_groupIds: Set<string>;
 	bubbleIndex: { nodesById: Map<string, TestNode> } | null;
 	_resolveFileIcon: ReturnType<typeof vi.fn>;
 	_decorateTreeWithIcons(nodes: TestNode[]): void;
+	_prepareTreeNodeIcon(node: TestNode): void;
 	_refreshFolderIcon(id: string): void;
 }
 
@@ -41,6 +44,7 @@ function makePanel(scope: 'folders' | 'files' | 'both'): PrivatePanel {
 		},
 	};
 	panel.expandedIds = new Set<string>();
+	panel._groupIds = new Set<string>();
 	panel.bubbleIndex = null;
 	panel._resolveFileIcon = vi.fn(
 		(_path: string, _isFolder: boolean, defaultIcon: string) => ({
@@ -150,5 +154,19 @@ describe('U121-010 Files Tree glyph projection', () => {
 		expect(folder.labelColor).toBe(
 			'var(--color-rainbow-10, #ec4899)',
 		);
+	});
+
+	it('does not assign a folder fallback to a group header', () => {
+		const panel = makePanel('folders');
+		panel._groupIds.add('group:custom');
+		const group: TestNode = {
+			id: 'group:custom',
+			meta: { isFolder: true, folderPath: '' },
+		};
+
+		panel._prepareTreeNodeIcon(group);
+
+		expect(group.icon).toBeUndefined();
+		expect(panel._resolveFileIcon).not.toHaveBeenCalled();
 	});
 });

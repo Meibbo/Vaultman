@@ -135,7 +135,10 @@ import {
 	buildFileHoverInfo,
 	filesHoverNeedsStatistics,
 } from '../../logic/logicFileHoverInfo';
-import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	collectExpandableSubtreeIds,
+	toggleExpandableSubtreeIds,
+} from '../../logic/logicTreeExpansion';
 import {
 	normalizeFilesIconScope,
 	resolveScopedFileIcon,
@@ -2309,7 +2312,7 @@ export class FilesExplorerPanel extends Component {
 				expanded: Set<string>,
 			): void => {
 				for (const n of nodes) {
-					if (n.meta.isFolder) {
+					if (n.meta.isFolder && !isGroupHeader(n.id, this._groupIds)) {
 						n.icon = expanded.has(n.id)
 							? 'lucide-folder-open'
 							: 'lucide-folder';
@@ -2418,6 +2421,8 @@ export class FilesExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, this.projectedNodes(renderTree)),
+				onRowDoubleClick: (id: string) =>
+					this._expandSubtree(id, this.projectedNodes(renderTree)),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
@@ -2937,14 +2942,14 @@ export class FilesExplorerPanel extends Component {
 	private _expandSubtree(id: string, nodes: TreeNode<FileMeta>[]): void {
 		const root = this._findNode(id, nodes);
 		if (!root) return;
-		const changedIds: string[] = [];
-		for (const expandableId of collectExpandableSubtreeIds(root)) {
-			if (this.expandedIds.has(expandableId)) continue;
-			this.expandedIds.add(expandableId);
-			changedIds.push(expandableId);
-		}
+		const { expanded, changedIds } = toggleExpandableSubtreeIds(
+			root,
+			this.expandedIds,
+		);
 		if (changedIds.length === 0) return;
-		this._notifyExpansionChanged();
+		this._notifyExpansionChanged(
+			expanded ? undefined : { type: 'collapse-node', id },
+		);
 		this._refreshTreeExpansion(id, changedIds);
 	}
 
@@ -3326,6 +3331,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _prepareTreeNodeIcon(node: TreeNode<FileMeta>): void {
+		if (isGroupHeader(node.id, this._groupIds) && !node.icon) {
+			node.iconColor = undefined;
+			return;
+		}
 		const defaultIcon =
 			node.icon ??
 			(node.meta.isFolder
