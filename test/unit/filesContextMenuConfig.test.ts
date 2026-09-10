@@ -61,6 +61,22 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(actionIds(layout).at(-1)).toBe('file.brand_new');
 	});
 
+	it('hides experimental move actions in a fresh default layout', () => {
+		const layout = defaultFilesMenuLayout([
+			...CATALOG,
+			'file.move',
+			'folder.move',
+			'prop.move-to-prop',
+		]);
+		expect(layout).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: 'file.move', visible: false }),
+				expect.objectContaining({ id: 'folder.move', visible: false }),
+				expect.objectContaining({ id: 'prop.move-to-prop', visible: false }),
+			]),
+		);
+	});
+
 	it('merges a future action into its canonical place, by id', () => {
 		const saved: FilesMenuItem[] = [
 			{ kind: 'action', id: 'file.delete', visible: true },
@@ -120,16 +136,17 @@ describe('BT5-018 Files context menu configuration', () => {
 			{ kind: 'action', id: 'file.rename', visible: true },
 		];
 		layout = addFilesMenuDivider(layout);
-		expect(layout.at(-1)?.id).toBe('divider:8');
+		expect(layout.find((item) => item.id === 'divider:8')).toBeTruthy();
+		expect(layout.at(-1)?.id).toBe('file.rename');
 
 		layout = addFilesMenuSubmenu(layout, 'Convert');
 		const submenu = layout.at(-1);
 		expect(submenu).toMatchObject({ kind: 'submenu', label: 'Convert' });
 
-		// An empty submenu is dropped; a populated one survives.
+		// An empty submenu survives in Settings so actions can be assigned later.
 		expect(
 			normalizeFilesMenuLayout(layout).map((item) => item.id),
-		).not.toContain(submenu?.id);
+		).toContain(submenu?.id);
 		const populated = setFilesMenuParent(
 			layout,
 			'file.rename',
@@ -241,6 +258,9 @@ describe('BT5-018 Files context menu configuration', () => {
 		// U121-029: the per-kind menu is a page nested inside Context menus.
 		expect(settingsSource).toContain(
 			'items: this.getFilesContextMenuPageItems(kind),',
+		);
+		expect(settingsSource).toContain(
+			"settings.context_menu.experimental",
 		);
 		expect(settingsSource).toContain('addFilesMenuDivider(');
 		expect(settingsSource).toContain('addFilesMenuSubmenu(');

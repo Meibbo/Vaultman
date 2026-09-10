@@ -98,6 +98,16 @@ export const FILES_MENU_DEFAULT_ORDER: readonly string[] = [
 	'folder.delete',
 ];
 
+const HIDDEN_BY_DEFAULT_PANEL_ACTION_IDS = new Set([
+	'file.move',
+	'folder.move',
+	'prop.move-to-prop',
+]);
+
+function isVisibleByDefault(id: string): boolean {
+	return !HIDDEN_BY_DEFAULT_PANEL_ACTION_IDS.has(id);
+}
+
 /**
  * BT5-018: an intercepted item (Core Files, another plugin) has no stable id,
  * only a title. We key it by a slug of that title — the same title-based
@@ -153,7 +163,7 @@ export function defaultFilesMenuLayout(
 			continue;
 		}
 		if (!known.has(entry)) continue;
-		items.push({ kind: 'action', id: entry, visible: true });
+		items.push({ kind: 'action', id: entry, visible: isVisibleByDefault(entry) });
 	}
 	// Intercepted items render at the top of the real menu, so they lead the
 	// default layout too, in discovery order, ahead of Vaultman's own actions.
@@ -168,7 +178,7 @@ export function defaultFilesMenuLayout(
 		if (FILES_MENU_DEFAULT_ORDER.includes(id) || isNativePanelActionId(id)) {
 			continue;
 		}
-		items.push({ kind: 'action', id, visible: true });
+		items.push({ kind: 'action', id, visible: isVisibleByDefault(id) });
 	}
 	return normalizeFilesMenuLayout(items);
 }
@@ -238,7 +248,11 @@ export function mergeFilesMenuLayout(
 			rank < 0
 				? merged.length
 				: findInsertionIndex(merged, rank, FILES_MENU_DEFAULT_ORDER);
-		merged.splice(insertAt, 0, { kind: 'action', id, visible: true });
+		merged.splice(insertAt, 0, {
+			kind: 'action',
+			id,
+			visible: isVisibleByDefault(id),
+		});
 	}
 	return normalizeFilesMenuLayout(merged);
 }
@@ -259,26 +273,15 @@ function findInsertionIndex(
 }
 
 /**
- * A divider only means something between two visible actions, and a submenu
- * only means something when something sits inside it.
+ * Dividers only mean something between visible actions. Empty submenus are
+ * retained here because Settings needs a stable row to receive actions; the
+ * runtime projection omits them until an action is assigned.
  */
 export function normalizeFilesMenuLayout(
 	items: readonly FilesMenuItem[],
 ): FilesMenuItem[] {
-	const populatedSubmenus = new Set(
-		items
-			.filter(
-				(item): item is Extract<FilesMenuItem, { kind: 'action' }> =>
-					item.kind === 'action' && item.visible && Boolean(item.parent),
-			)
-			.map((item) => item.parent as string),
-	);
-	const kept = items.filter(
-		(item) => item.kind !== 'submenu' || populatedSubmenus.has(item.id),
-	);
-
 	const result: FilesMenuItem[] = [];
-	for (const item of kept) {
+	for (const item of items) {
 		if (item.kind === 'divider') {
 			// No leading divider, and never two in a row.
 			if (result.length === 0) continue;
@@ -297,7 +300,21 @@ export function normalizeFilesMenuLayout(
 export function addFilesMenuDivider(
 	items: readonly FilesMenuItem[],
 ): FilesMenuItem[] {
-	return [...items, { kind: 'divider', id: nextGeneratedId(items, 'divider') }];
+	let lastContentIndex = -1;
+	for (let index = items.length - 1; index >= 0; index -= 1) {
+		const item = items[index];
+		if (item && item.kind !== 'divider') {
+			lastContentIndex = index;
+			break;
+		}
+	}
+	if (lastContentIndex < 0) return [...items];
+	const divider = { kind: 'divider' as const, id: nextGeneratedId(items, 'divider') };
+	return [
+		...items.slice(0, lastContentIndex),
+		divider,
+		...items.slice(lastContentIndex),
+	];
 }
 
 export function addFilesMenuSubmenu(
