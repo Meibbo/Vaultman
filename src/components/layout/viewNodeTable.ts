@@ -52,6 +52,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
 	onRecursiveExpand?: (id: string) => void;
+	onRowDoubleClick?: (id: string, event: MouseEvent) => void;
 	onRowClick: (id: string, event?: MouseEvent | KeyboardEvent) => void;
 	onContextMenu: (id: string, event: MouseEvent) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
@@ -473,6 +474,17 @@ export class NodeTableView<TMeta = unknown> {
 			}
 			opts.onRowClick(node.id, event);
 		};
+		row.ondblclick = opts.onRowDoubleClick
+			? (event) => {
+					if (this.recursiveExpandGesture.isActivationSuppressed()) {
+						event.preventDefault();
+						event.stopPropagation();
+						return;
+					}
+					if (!node.children?.length) return;
+					opts.onRowDoubleClick?.(node.id, event);
+				}
+			: null;
 		row.ondragstart = (event) => {
 			this.recursiveExpandGesture.cancel();
 			row.addClass('is-being-dragged');

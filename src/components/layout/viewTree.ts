@@ -127,6 +127,8 @@ export interface TreeViewOptions {
 	iconInCaretSlot?: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
+	/** Re-apply the configured hover callback when a row is repainted in place. */
+	reapplyHoverOnRender?: boolean;
 	/**
 	 * U130-t33 (L-PNODE): fuerza las guias de indentacion aunque la celda
 	 * `nested` este apagada. Un grupo es un p-node con hijos tenga o no
@@ -875,6 +877,7 @@ export class UnifiedTreeView {
 			node.ctimeText ?? '',
 			node.openedText ?? '',
 			node.wordCountText ?? '',
+			node.tagsText ?? '',
 			node.coreCls ?? '',
 			node.count ?? '',
 			node.children?.length ?? 0,
@@ -1091,6 +1094,7 @@ export class UnifiedTreeView {
 		const showFileCount = visibleCells ? visibleCells.has('file-count') : false;
 		const showSub = visibleCells ? visibleCells.has('sub') : false;
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
+		const showTags = visibleCells ? visibleCells.has('tags') : false;
 		const nodeCells = (node.cells ?? []).filter(
 			(cell) => !visibleCells || visibleCells.has(cell.id),
 		);
@@ -1145,6 +1149,7 @@ export class UnifiedTreeView {
 						event.stopPropagation();
 						return;
 					}
+					if (!hasChildren) return;
 					opts.onRowDoubleClick?.(node.id, event);
 				}
 			: null;
@@ -1189,7 +1194,12 @@ export class UnifiedTreeView {
 		this.applyRowTooltip(row, opts.rowTooltip?.(node) ?? '');
 		// A row repainted under the pointer also re-runs the hover hook, so any
 		// lazily loaded value (word counts, tasks) upgrades the text in place.
-		if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);
+		if (
+			opts.reapplyHoverOnRender !== false &&
+			this._hoveredRowId === node.id
+		) {
+			opts.onRowHover?.(node.id, row);
+		}
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
 			this.applyMutableRowState({
@@ -1274,6 +1284,9 @@ export class UnifiedTreeView {
 		};
 		if ((opts.selectionCheckboxPosition ?? 'start') === 'start') {
 			emitSelectionCheckbox('start');
+		}
+		if (node.depth > 0) {
+			row.createDiv({ cls: 'vaultman-tree-indent' });
 		}
 
 		if (showCaret) {
@@ -1372,6 +1385,13 @@ export class UnifiedTreeView {
 				text: node.tasksText,
 			});
 		};
+		const emitTags = (parent: HTMLElement): void => {
+			if (!showTags || !node.tagsText) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-tags nav-file-tag',
+				text: node.tagsText,
+			});
+		};
 		const emitCount = (parent: HTMLElement): void => {
 			if (!showCount || node.count == null || node.count <= 0) return;
 			parent.createSpan({
@@ -1400,6 +1420,7 @@ export class UnifiedTreeView {
 			'file-count': emitFileCount,
 			sub: emitSub,
 			tasks: emitTasks,
+			tags: emitTags,
 			count: emitCount,
 		};
 		// Activation mode lays every configurable cell out as a row sibling, so
@@ -1480,6 +1501,7 @@ export class UnifiedTreeView {
 			// contenido fuese el contador de hijos ni siquiera creaba la zona.
 			(showSub && node.subCountText) ||
 			(showTasks && node.tasksText) ||
+			(showTags && node.tagsText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
 			nodeCells.length > 0 ||
@@ -1499,6 +1521,7 @@ export class UnifiedTreeView {
 				// es el que usan propScene y tagScene en arbol.
 				emitSub(badgeZone);
 				emitTasks(badgeZone);
+				emitTags(badgeZone);
 			}
 
 			for (const cell of nodeCells) {
