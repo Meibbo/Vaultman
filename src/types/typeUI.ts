@@ -79,7 +79,7 @@ export interface FabDef {
 export type ExplorerTabId = 'props' | 'files' | 'tags' | 'snippets' | 'plugins';
 export type ExplorerViewMode = 'tree' | 'table' | 'dnd' | 'grid' | 'cards';
 export type ExplorerSortDirection = 'asc' | 'desc';
-export type SortScopeKey = 'all' | 'drill' | 'properties' | 'values';
+export type SortScopeKey = 'all' | 'drill' | 'properties' | 'values' | 'groups';
 
 export interface ScopeSort {
 	sortBy: string;

@@ -2,7 +2,7 @@ import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obs
 import type { PendingChange, OperationResult } from '../types/typeOps';
 import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
 import { pathReaches, promotionPlan } from '../logic/logicDeletionDecoration';
-import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
+import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, COPY_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
 
 interface InternalApp extends App {
@@ -138,6 +138,9 @@ function operationPayload(change: PendingChange): string {
 	if (change.type === 'file_move') {
 		return stableValue(change.targetFolder ?? change.details);
 	}
+	if (change.type === 'file_copy') {
+		return stableValue(change.targetFolder ?? change.details);
+	}
 	if (change.type === 'file_delete') {
 		return stableValue(
 			(change as { targetFolder?: string }).targetFolder ?? change.details,
@@ -206,7 +209,7 @@ function tagActionsConflict(
 
 function fileActionsConflict(a: PendingChange, b: PendingChange): boolean {
 	if (a.type === 'file_delete' || b.type === 'file_delete') return true;
-	const fileActions = new Set(['file_rename', 'file_move', 'snippet_rename']);
+	const fileActions = new Set(['file_rename', 'file_move', 'file_copy', 'snippet_rename']);
 	if (!fileActions.has(a.type) || !fileActions.has(b.type)) return false;
 	return operationIdentity(a) !== operationIdentity(b);
 }
@@ -614,7 +617,7 @@ export class OperationQueueService extends Component {
 			if (!updates) return;
 
 			// Check for special signals that require APIs outside frontmatter manipulation
-			if (RENAME_FILE in updates || MOVE_FILE in updates || FIND_REPLACE_CONTENT in updates || NATIVE_RENAME_PROP in updates || NATIVE_SET_PROP_TYPE in updates || APPLY_TEMPLATE in updates || DELETE_FILE in updates) {
+			if (RENAME_FILE in updates || MOVE_FILE in updates || COPY_FILE in updates || FIND_REPLACE_CONTENT in updates || NATIVE_RENAME_PROP in updates || NATIVE_SET_PROP_TYPE in updates || APPLY_TEMPLATE in updates || DELETE_FILE in updates) {
 				specialUpdates = updates;
 			}
 
@@ -632,7 +635,7 @@ export class OperationQueueService extends Component {
 					for (const k of Object.keys(copy)) {
 						if (!(k in fm)) fm[k] = copy[k];
 					}
-				} else if (key !== RENAME_FILE && key !== MOVE_FILE && key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== NATIVE_SET_PROP_TYPE && key !== APPLY_TEMPLATE && key !== DELETE_FILE) {
+					} else if (key !== RENAME_FILE && key !== MOVE_FILE && key !== COPY_FILE && key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== NATIVE_SET_PROP_TYPE && key !== APPLY_TEMPLATE && key !== DELETE_FILE) {
 					fm[key] = value;
 				}
 			}
@@ -648,6 +651,7 @@ export class OperationQueueService extends Component {
 			change.type === 'file_rename' ||
 			change.type === 'snippet_rename' ||
 			change.type === 'file_move' ||
+			change.type === 'file_copy' ||
 			change.type === 'file_delete' ||
 			change.type === 'content_replace' ||
 			change.type === 'template'
@@ -783,6 +787,17 @@ export class OperationQueueService extends Component {
 			return;
 		}
 
+		if (COPY_FILE in specialUpdates) {
+			// U130-02: copy conserva el origen. El payload es la ruta completa
+			// de destino; se uniquifica para no sobrescribir en silencio.
+			const targetPath = specialUpdates[COPY_FILE] as string;
+			const slash = targetPath.lastIndexOf('/');
+			const parent = slash >= 0 ? targetPath.slice(0, slash) : '';
+			await this.ensureFolderExists(parent);
+			await this.app.vault.copy(file, this.availablePath(targetPath));
+			return;
+		}
+
 		if (FIND_REPLACE_CONTENT in specialUpdates) {
 			const { pattern, replacement, isRegex, caseSensitive, occurrenceOffset } =
 				specialUpdates[FIND_REPLACE_CONTENT] as {
@@ -909,6 +924,9 @@ export class OperationQueueService extends Component {
 						const targetFolder = value as string;
 						const fileName = (currentNewPath ?? file.path).split('/').pop()!;
 						currentNewPath = targetFolder ? `${targetFolder}/${fileName}` : fileName;
+					} else if (key === COPY_FILE) {
+						const targetPath = value as string;
+						currentNewPath = targetPath;
 					} else if (key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== NATIVE_SET_PROP_TYPE && key !== APPLY_TEMPLATE && key !== DELETE_FILE) {
 						after[key] = value;
 					}

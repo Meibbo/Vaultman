@@ -127,6 +127,14 @@ export interface TreeViewOptions {
 	iconInCaretSlot?: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
+	/**
+	 * U130-t33 (L-PNODE): fuerza las guias de indentacion aunque la celda
+	 * `nested` este apagada. Un grupo es un p-node con hijos tenga o no
+	 * anidacion la escena: con agrupacion activa el arbol proyectado tiene
+	 * profundidad real y sus guias salen por el mismo `::before` de siempre.
+	 * Ausente: se conserva la lectura historica de `visibleCells`.
+	 */
+	indentGuides?: boolean;
 	/** Height to reserve above the pinned rows when the layout overlays nav
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
@@ -181,7 +189,11 @@ export class UnifiedTreeView {
 	 */
 	private readonly _recursiveSelectGesture = new LongPressGesture();
 	private readonly _coreMetadataView: CoreMetadataTreeView;
+	private _scrollGestureStart: number | null = null;
+	private _scrollGestureFrom = 0;
+	private _scrollGestureTimer: number | null = null;
 	private readonly _onScroll = () => {
+		this._trackScrollGesture();
 		if (this._hasVisibleRenderedRows()) {
 			this._scheduleWindowRender();
 			return;
@@ -230,7 +242,8 @@ export class UnifiedTreeView {
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
 			'vaultman-tree-nested-guides',
-			!opts.coreMetadata && (opts.visibleCells?.has('nested') ?? true),
+			!opts.coreMetadata &&
+				(opts.indentGuides ?? opts.visibleCells?.has('nested') ?? true),
 		);
 		if (!opts.coreMetadata) this._markStructureAnimationIfNeeded(opts.expandedIds);
 		if (this._pendingRaf !== null) {
@@ -341,6 +354,11 @@ export class UnifiedTreeView {
 		if (this._structureAnimationTimer !== null) {
 			this._treeWindow().clearTimeout(this._structureAnimationTimer);
 			this._structureAnimationTimer = null;
+		}
+		if (this._scrollGestureTimer !== null) {
+			window.clearTimeout(this._scrollGestureTimer);
+			this._scrollGestureTimer = null;
+			this._scrollGestureStart = null;
 		}
 		if (this.containerEl.dataset.vaultmanTreeOwner === this._ownerId) {
 			delete this.containerEl.dataset.vaultmanTreeOwner;
@@ -584,6 +602,40 @@ export class UnifiedTreeView {
 		if (target.closest('.vaultman-tree-row')) return;
 		this._opts?.onEmptySpaceClick?.();
 	};
+	/**
+	 * One perf action per gesture, not per event: scroll fires at the panel's
+	 * refresh rate, so recording each callback would evict the action ring
+	 * buffer before anyone could read it.
+	 */
+	private _trackScrollGesture(): void {
+		if (this._scrollGestureStart === null) {
+			this._scrollGestureStart = Date.now();
+			this._scrollGestureFrom = this.containerEl.scrollTop;
+		}
+		if (this._scrollGestureTimer !== null) {
+			window.clearTimeout(this._scrollGestureTimer);
+		}
+		this._scrollGestureTimer = window.setTimeout(() => {
+			this._scrollGestureTimer = null;
+			const startedAt = this._scrollGestureStart ?? Date.now();
+			const from = this._scrollGestureFrom;
+			this._scrollGestureStart = null;
+			const to = this.containerEl.scrollTop;
+			const delta = to - from;
+			if (delta === 0) return;
+			vaultmanPerfMonitor.recordAction('tree', 'scroll', {
+				delta,
+				from,
+				to,
+				// The action's own `at` is when it was recorded, which is after the
+				// gesture settled; carry the real start so nobody has to work it out.
+				startedAt,
+				durationMs: Date.now() - startedAt,
+				rows: this._rows.length,
+				sticky: this._opts?.stickyParentRows ?? false,
+			});
+		}, 120);
+	}
 
 	private _scheduleWindowRender(): void {
 		if (this._pendingRaf !== null || this._pendingScrollTimer !== null) return;
@@ -783,8 +835,18 @@ export class UnifiedTreeView {
 							cell.style,
 							cell.label,
 							cell.disabled ? '1' : '0',
+							cell.mixed ? '1' : '0',
 						].join(':')
-					: [
+					: cell.kind === 'cell_hover'
+						? [
+								cell.id,
+								cell.kind,
+								cell.actions
+									.map((action) => `${action.id}:${action.icon}`)
+									.join(','),
+								cell.disabled ? '1' : '0',
+							].join(':')
+						: [
 							cell.id,
 							cell.kind,
 							cell.icon,
@@ -1219,7 +1281,7 @@ export class UnifiedTreeView {
 				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
 			});
 			setIcon(toggleEl, 'right-triangle');
-			if (hasChildren) {
+			if (hasChildren || showCaret) {
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
 					if (this._recursiveExpandGesture.isActivationSuppressed()) {
@@ -1529,6 +1591,31 @@ export class UnifiedTreeView {
 		cell: TreeNodeCell,
 		opts: TreeViewOptions,
 	): void {
+		if (cell.kind === 'cell_hover') {
+			const hoverZone = parent.createDiv({
+				cls: 'vaultman-tree-hover-badge-zone',
+				attr: { 'aria-label': 'Row actions' },
+			});
+			for (const action of cell.actions) {
+				const actionEl = hoverZone.createEl('button', {
+					cls: 'clickable-icon vaultman-cell-hover-action',
+					attr: {
+						type: 'button',
+						'aria-label': action.label,
+						title: action.label,
+					},
+				});
+				setIcon(actionEl, action.icon);
+				actionEl.onclick = (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					if (!cell.disabled) {
+						opts.onCellClick?.(nodeId, `${cell.id}:${action.id}`, event);
+					}
+				};
+			}
+			return;
+		}
 		const handleClick = (element: HTMLElement) => {
 			element.onclick = (event) => {
 				event.preventDefault();
@@ -1541,8 +1628,9 @@ export class UnifiedTreeView {
 			const toggleEl = parent.createDiv({
 				cls: 'checkbox-container vaultman-addon-toggle-cell',
 			});
-			toggleEl.toggleClass('is-enabled', cell.enabled);
-			toggleEl.toggleClass('is-disabled', cell.disabled === true);
+		toggleEl.toggleClass('is-enabled', cell.enabled);
+		toggleEl.toggleClass('is-disabled', cell.disabled === true);
+		toggleEl.toggleClass('is-mixed', cell.mixed === true);
 			toggleEl.setAttribute('aria-label', cell.label);
 			setTooltip(toggleEl, cell.label);
 			const input = toggleEl.createEl('input', {
@@ -1551,8 +1639,9 @@ export class UnifiedTreeView {
 			input.setAttribute('type', 'checkbox');
 			input.setAttribute('tabindex', '0');
 			input.setAttribute('aria-label', cell.label);
-			input.checked = cell.enabled;
-			input.disabled = cell.disabled === true;
+		input.checked = cell.enabled;
+		input.disabled = cell.disabled === true;
+		input.indeterminate = cell.mixed === true;
 			handleClick(toggleEl);
 			return;
 		}
@@ -1561,8 +1650,11 @@ export class UnifiedTreeView {
 			const badgeEl = parent.createSpan({
 				cls: 'vaultman-badge vaultman-addon-cell',
 			});
-			badgeEl.addClass('is-solid');
-			badgeEl.addClass(
+		badgeEl.addClass('is-solid');
+		if (cell.kind === 'toggle' && cell.mixed === true) {
+			badgeEl.addClass('is-mixed');
+		}
+		badgeEl.addClass(
 				cell.kind === 'toggle'
 					? cell.enabled
 						? 'vaultman-badge--success'

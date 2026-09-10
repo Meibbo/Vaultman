@@ -4,6 +4,10 @@ import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { ToolbarOverflowStrategy } from '../logic/logicResponsiveLayout';
 import type { SavedLayout } from './typeSettings';
 import type { ExplorerSortState, ExplorerTabId } from './typeUI';
+import type { SasiRegistry } from '../logic/logicSasiRegistry';
+import type { SasiHandler } from '../logic/logicSasiInvoke';
+import type { TransactionBarState } from '../logic/logicTransactionBarState';
+
 
 export type PanelWidgetNodeKind = 'action' | 'data' | 'container';
 export type PanelWidgetCellKind =
@@ -71,6 +75,12 @@ export interface PanelWidgetExplorerPort {
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
+	/**
+	 * U130-05: per-instance layout activation. Sets the layout name the
+	 * explorer resolves in projectedNodes to pick up groupMemberships from
+	 * the saved layout, making custom group headers reachable.
+	 */
+	setActiveLayoutName?(name: string | null): void;
 }
 
 export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPort {
@@ -184,11 +194,32 @@ export interface NavbarPanelWidgetState {
 	 */
 	activeFilePath?: string | null;
 	/**
-	 * Trailing controls rendered inside the searchbox. An operation mode that
-	 * needs its own switches publishes them here rather than adding a bar.
+	 * U130-05b: el estado del move mode que el searchbox proyecta como celdas.
+	 * Sigue siendo el decorador del searchbox, no un segundo bar: lo que cambia
+	 * es que el host construye la CARA (`logicSearchCellProjection`) y SASI
+	 * guarda la identidad, en vez de viajar nodos ya pintados.
 	 */
-	searchTrailingActions?: readonly PanelWidgetNode[];
-	onSearchTrailingAction?: (node: PanelWidgetNode) => void;
+	searchMoveToggles?: {
+		write: 'append' | 'replace';
+		originDisposition: 'move' | 'copy';
+	} | null;
+	/**
+	 * El registro con el que el host del searchbox arma su invoker. El invoker
+	 * es POR SUPERFICIE --congela su mapa de handlers-- pero el registro es uno
+	 * solo, del plugin.
+	 */
+	sasiRegistry?: SasiRegistry;
+	/** Los handlers del move mode del explorer activo, para ese invoker. */
+	sasiMoveHandlers?: Record<string, SasiHandler>;
+	/**
+	 * U130-04: el Bar secundario, hermano del Toolbar, que el host proyecta
+	 * mientras hay una transaccion de movimiento. Telemetria mas UN control: el
+	 * toggle de tipo de movimiento. `Proceed` y `Cancel` NO viven aqui.
+	 */
+	transactionBar?: TransactionBarState & {
+		// Composed state: visibility, placement, moveKind, originCount
+		onToggleMoveKind?: (next: 'node' | 'group') => void;
+	};
 	tagsExplorer?: PanelWidgetTreeExplorerPort | null;
 	propExplorer?: PanelWidgetTreeExplorerPort;
 	fileList?: PanelWidgetFilesExplorerPort;
@@ -208,6 +239,12 @@ export interface NavbarPanelWidgetState {
 		value: PanelWidgetSearchCategoryState,
 	) => void;
 	onViewFiltersChanged?: () => void;
+	/**
+	 * U130-06: el usuario eligio un modo de interaccion y quiere que sea su
+	 * defecto. El componente NO escribe settings: las publica, y quien posee el
+	 * plugin decide. Es el mismo contrato que onSaveLayout.
+	 */
+	onPersistInteractionMode?: (tab: ExplorerTabId, mode: InteractionMode) => void;
 	onContentSearch?: (query: string) => void;
 	showExplorerControls?: boolean;
 	expansionRevision?: number;

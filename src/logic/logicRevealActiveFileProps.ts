@@ -82,7 +82,7 @@ function valueNode(
  * The iteration is driven by the frontmatter, not by the snapshot, and that is
  * load-bearing. The order in which a file declares its properties — and, inside
  * each one, its values — is the file's own order, and it is the first precedent
- * of the CUSTOM_SORT option the sort menu will offer. That option is meant to
+	 * of the note-order option the sort menu will offer. That option is meant to
  * reach every scene and provider through the explorer/widget/navbar panels, so
  * reveal must not quietly substitute the vault-wide order for the file's.
  *

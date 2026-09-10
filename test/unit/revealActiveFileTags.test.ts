@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	nestProjectedTagNodes,
 	projectActiveFileTags,
 	TAG_REVEAL_FORBIDDEN_REBUILD_SYMBOLS,
 } from '../../src/logic/logicRevealActiveFileTags';
 import {
+	firstTagOccurrence,
 	matchesTagSource,
+	orderedTagOccurrences,
+	tagOccurrenceRange,
 	tagOccurrences,
 	tagSourceLabelKey,
 	tagSourceRank,
 	TAG_SOURCE_ORDER,
+	visibleTagSources,
 	type TagSource,
 } from '../../src/logic/logicTagSource';
 import { NODE_TYPE_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
@@ -48,7 +53,7 @@ const snapshot: TreeNode<TagMeta>[] = [
 describe('the note writes the order reveal shows', () => {
 	// U121-030: the order a note writes its tags in is the note's own answer to
 	// "which of these did I put here first". It is the same fact the Props
-	// reveal projects from the frontmatter, and the reason `custom` is a sort.
+	// reveal projects from the frontmatter, and the reason `note` is a sort.
 	it('reads the frontmatter first and then the body, by position', () => {
 		const nodes = projectActiveFileTags(snapshot, {
 			frontmatter: { tags: ['estado', 'proyecto/casa'] },
@@ -147,12 +152,42 @@ describe('inline and frontmatter are the other half of a tag type', () => {
 	it('reads both places a tag can be written', () => {
 		const occurrences = tagOccurrences({
 			frontmatter: { tags: 'casa, obra' },
-			tags: [{ tag: '#leido', position: { start: { offset: 5 } } }],
+			tags: [{ tag: '#leido', position: { start: { offset: 500 } } }],
+			frontmatterPosition: { start: { offset: 0 }, end: { offset: 120 } },
 		});
 		expect(occurrences).toEqual([
 			{ tagPath: 'casa', source: 'frontmatter', order: 0 },
 			{ tagPath: 'obra', source: 'frontmatter', order: 1 },
-			{ tagPath: 'leido', source: 'inline', order: 2 },
+			{ tagPath: 'leido', source: 'inline', order: 2, offset: 500 },
+		]);
+	});
+
+	it('does not count a frontmatter tag twice through the cache tags array', () => {
+		// Obsidian lists frontmatter tags in `tags` too, positioned inside
+		// the frontmatter block. Without the range guard the note read
+		// `both` (and a count of two) for a tag written in one place.
+		const occurrences = tagOccurrences({
+			frontmatter: { tags: ['estado'] },
+			tags: [{ tag: '#estado', position: { start: { offset: 30 } } }],
+			frontmatterPosition: { start: { offset: 0 }, end: { offset: 120 } },
+		});
+		expect(occurrences).toEqual([
+			{ tagPath: 'estado', source: 'frontmatter', order: 0, offset: 30 },
+		]);
+	});
+
+	it('keeps a tag genuinely written in both places as two occurrences', () => {
+		const occurrences = tagOccurrences({
+			frontmatter: { tags: ['mixto'] },
+			tags: [
+				{ tag: '#mixto', position: { start: { offset: 30 } } },
+				{ tag: '#mixto', position: { start: { offset: 900 } } },
+			],
+			frontmatterPosition: { start: { offset: 0 }, end: { offset: 120 } },
+		});
+		expect(occurrences).toEqual([
+			{ tagPath: 'mixto', source: 'frontmatter', order: 0, offset: 30 },
+			{ tagPath: 'mixto', source: 'inline', order: 1, offset: 900 },
 		]);
 	});
 
@@ -186,6 +221,70 @@ describe('inline and frontmatter are the other half of a tag type', () => {
 			tagSourceLabelKey(new Set<TagSource>(['inline', 'frontmatter'])),
 		).toBe('tags.source.both');
 		expect(tagSourceLabelKey(new Set())).toBeUndefined();
+	});
+
+	it('selects a direct occurrence before a structural descendant', () => {
+		const occurrences = [
+			{ tagPath: 'casa/cocina', source: 'inline' as const, order: 0, offset: 10 },
+			{ tagPath: 'casa', source: 'inline' as const, order: 1, offset: 20 },
+			{ tagPath: 'casa', source: 'frontmatter' as const, order: 2 },
+		];
+		expect(firstTagOccurrence(occurrences, 'casa')?.offset).toBe(20);
+		expect(
+			firstTagOccurrence(occurrences, 'casa', ['frontmatter'])?.source,
+		).toBe('frontmatter');
+	});
+
+	it('cycles every matching occurrence in note order and reverses for asc', () => {
+		const occurrences = [
+			{ tagPath: 'estado', source: 'inline' as const, order: 0, offset: 10 },
+			{ tagPath: 'estado', source: 'inline' as const, order: 1, offset: 40 },
+			{ tagPath: 'otro', source: 'inline' as const, order: 2, offset: 50 },
+		];
+		expect(
+			orderedTagOccurrences(occurrences, 'estado', 'desc').map(
+				(occurrence) => occurrence.offset,
+			),
+		).toEqual([10, 40]);
+		expect(
+			orderedTagOccurrences(occurrences, 'estado', 'asc').map(
+				(occurrence) => occurrence.offset,
+			),
+		).toEqual([40, 10]);
+	});
+
+	it('uses child occurrences for a nested parent without a start fallback', () => {
+		const occurrences = [
+			{ tagPath: 'parent/one', source: 'inline' as const, order: 0, offset: 12 },
+			{ tagPath: 'parent/two', source: 'inline' as const, order: 1, offset: 40 },
+		];
+		expect(
+			orderedTagOccurrences(occurrences, 'parent', 'desc').map(
+				(occurrence) => occurrence.tagPath,
+			),
+		).toEqual(['parent/one', 'parent/two']);
+	});
+
+	it('locates an unpositioned frontmatter occurrence in the document', () => {
+		const content = '---\ntags: [casa, obra]\n---\n#casa';
+		const occurrence = {
+			tagPath: 'obra',
+			source: 'frontmatter' as const,
+			order: 1,
+		};
+		expect(
+			tagOccurrenceRange(occurrence, content, {
+				frontmatterStartOffset: 0,
+				frontmatterEndOffset: content.indexOf('---', 4),
+				occurrenceIndex: 0,
+			}),
+		).toEqual([content.indexOf('obra'), content.indexOf('obra') + 4]);
+	});
+
+	it('labels only the source still visible under a source filter', () => {
+		const both = new Set<TagSource>(['frontmatter', 'inline']);
+		expect(visibleTagSources(both, ['inline'])).toEqual(new Set(['inline']));
+		expect(visibleTagSources(both, [])).toBe(both);
 	});
 
 	it('offers them under By type, below the divider that ends the shapes', () => {
@@ -246,5 +345,111 @@ describe('inline and frontmatter are the other half of a tag type', () => {
 		expect(es['sort.type.frontmatter']).not.toBe(en['sort.type.frontmatter']);
 		expect(es['sort.type.inline']).not.toBe(en['sort.type.inline']);
 		expect(es['viewmode.pill.tag_type']).not.toBe(en['viewmode.pill.tag_type']);
+	});
+});
+
+describe('nestProjectedTagNodes regroups the reveal plane when nested is on', () => {
+	function flatNode(
+		tagPath: string,
+		source: TagSource,
+		count = 1,
+	): TreeNode<TagMeta> {
+		return {
+			id: tagPath,
+			label: tagPath,
+			count,
+			depth: 0,
+			showCaret: false,
+			children: [],
+			coreCls: 'tree-item-self tag-pane-tag is-clickable',
+			meta: { tagPath, tagSources: new Set<TagSource>([source]) },
+		};
+	}
+
+	it('nests full paths under structural parents with leaf labels', () => {
+		const nested = nestProjectedTagNodes(
+			[flatNode('casa/cocina', 'inline'), flatNode('simple', 'frontmatter')],
+			[],
+		);
+		expect(nested.map((node) => node.meta.tagPath)).toEqual([
+			'casa',
+			'simple',
+		]);
+		const casa = nested[0];
+		expect(casa.label).toBe('casa');
+		expect(casa.depth).toBe(0);
+		expect(casa.showCaret).toBe(true);
+		expect(casa.children?.map((child) => child.label)).toEqual(['cocina']);
+		expect(casa.children?.[0].depth).toBe(1);
+		expect(casa.children?.[0].showCaret).toBe(false);
+		// Structural parents claim no occurrence of their own: the count is
+		// the note-occurrences below, the sources their union.
+		expect(casa.count).toBe(1);
+		expect(casa.meta.tagSources).toEqual(new Set(['inline']));
+	});
+
+	it('reuses snapshot parents and folds a written parent with its children', () => {
+		const snapshotParent: TreeNode<TagMeta> = {
+			id: 'casa',
+			label: 'casa',
+			count: 0,
+			depth: 0,
+			icon: 'lucide-home',
+			coreCls: 'tree-item-self tag-pane-tag is-clickable',
+			children: [],
+			meta: { tagPath: 'casa' },
+		};
+		const nested = nestProjectedTagNodes(
+			[
+				{ ...flatNode('casa', 'frontmatter', 2), icon: 'lucide-home' },
+				flatNode('casa/cocina', 'inline'),
+			],
+			[snapshotParent],
+		);
+		expect(nested).toHaveLength(1);
+		const casa = nested[0];
+		expect(casa.icon).toBe('lucide-home');
+		expect(casa.showCaret).toBe(true);
+		expect(casa.children).toHaveLength(1);
+		// Own occurrences (2) survive on top of the descendant's (1).
+		expect(casa.count).toBe(3);
+		expect(casa.meta.tagSources).toEqual(
+			new Set(['frontmatter', 'inline']),
+		);
+	});
+});
+
+describe('the tags scene honors the filtered switch outside reveal', () => {
+	it('routes a filtered non-reveal scene through _filteredProjection', () => {
+		const scope = tagsExplorerSource.slice(
+			tagsExplorerSource.indexOf('private _scopeProjection('),
+			tagsExplorerSource.indexOf('private _filteredProjectionCache'),
+		);
+		expect(scope).toContain('if (!this.revealActiveFile) {');
+		expect(scope).toContain('if (this.sortState?.filtered === true) {');
+		expect(scope).toContain('return this._filteredProjection(snapshot);');
+	});
+});
+
+describe('reveal click navigates like a text node', () => {
+	it('jumps to the tag occurrence instead of expanding in reveal+open', () => {
+		const handler = tagsExplorerSource.slice(
+			tagsExplorerSource.indexOf("if (action === 'expand') {"),
+			tagsExplorerSource.indexOf("if (action === 'select') {"),
+		);
+		expect(handler).toContain('if (this.revealActiveFile) {');
+		expect(handler).toContain('void this._revealTagAt(node.meta.tagPath);');
+		expect(tagsExplorerSource).toContain('private async _revealTagAt(');
+		expect(tagsExplorerSource).toContain(
+			"import { openFileAtOffset } from '../../utils/openFileAtOffset';",
+		);
+		expect(tagsExplorerSource).toContain('match: { content, range }');
+		expect(tagsExplorerSource).not.toContain('occurrence?.offset ?? 0');
+	});
+
+	it('shares the open-at-offset mechanism with the content matches', () => {
+		expect(filtersPageSource).toContain(
+			'await openFileAtOffset(plugin.app, file, offset);',
+		);
 	});
 });

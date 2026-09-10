@@ -1,6 +1,7 @@
 import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
+import { pluginAliasTokens, prefixesFromSettings } from '../../services/serviceNodeBinding';
 import type { PluginMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
@@ -15,6 +16,7 @@ import {
 	communityPluginStateSignature,
 	listCommunityPluginEntries,
 	pluginRibbonItem,
+	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
 	getAddonIconOverride,
@@ -42,9 +44,20 @@ import {
 	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
 import {
+	resolveGroupToggleTarget,
+	summarizeGroupToggleState,
+} from '../../logic/logicAddonGroupToggle';
+import {
 	normalizeInteractionMode,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -65,6 +78,10 @@ export class PluginsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private _expandedGroupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -81,6 +98,21 @@ export class PluginsExplorerPanel
 		// panel is visible and refresh only on a real delta (BT4-006).
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
+		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
 		);
 		// BT5-019: external icon edits repaint through the existing adapter
 		// event — no new timer — and the subscription is released on unload.
@@ -283,15 +315,164 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	
+	private _decorateNodeNotes(nodes: TreeNode<PluginMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		for (const node of nodes) {
+			const pluginId = node.meta?.pluginId ?? node.id;
+			const pluginName = node.meta?.name ?? node.label;
+			const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
+			if (pluginTokens.some((t) => aliasSet.has(t))) {
+				node.meta.hasNodeNote = true;
+			}
+		}
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		this.render();
+	}
+
+	private projectedNodes(): TreeNode<PluginMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
+		const layout = this.plugin.settings.savedLayouts?.find(
+			(candidate) => candidate.name === activeName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		const projected = projectGroupedTree<PluginMeta>({
+			nodes: this.nodes,
+			groups,
+			memberships,
+			providerId: 'plugins',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'plugins',
+					kind: 'plugin',
+					canonicalId: node.meta.pluginId,
+					displayLabel: node.label,
+				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			enabled: this.sortState?.activeScope === 'groups',
+			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
+			// mismo camino que files/tags/props — sin esto se colaba el
+			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por
+			// `applyCoreRowClasses`.
+			headerMeta: {
+				pluginId: '',
+				name: '',
+				enabled: false,
+				loaded: false,
+				isVaultman: false,
+			},
+			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
+		}) as TreeNode<PluginMeta>[];
+		return this.withGroupToggleCells(projected);
+	}
+
+	/**
+	 * Spec 07 §2: la cabecera del grupo aloja su propio `cell_toggle` con el
+	 * agregado de sus miembros. Sin cabeceras se devuelve la lista TAL CUAL,
+	 * por identidad.
+	 */
+	private withGroupToggleCells(
+		rows: readonly TreeNode<PluginMeta>[],
+	): TreeNode<PluginMeta>[] {
+		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
+			return rows as TreeNode<PluginMeta>[];
+		}
+		return rows.map((row) => {
+			if (!isGroupHeader(row.id, this._groupIds)) return row;
+			if (!row.children?.length) return row;
+			const states = row.children.map(
+				(child) => child.meta?.enabled ?? false,
+			);
+			const { enabled, mixed } = summarizeGroupToggleState(states);
+			const pending = row.children.some((child) =>
+				this.pendingToggleIds.has(child.meta?.pluginId ?? ''),
+			);
+			const cells: TreeNodeCell[] = [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled,
+					mixed,
+					style: this.cellStyle,
+					label: translate(
+						mixed
+							? 'addons.mixed'
+							: enabled
+								? 'addons.enabled'
+								: 'addons.disabled',
+					),
+					disabled: pending,
+				},
+			];
+			return { ...row, cells };
+		});
+	}
+
 	private render(): void {
 		if (!this.treeView) return;
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
-			nodes: this.nodes,
+			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
+			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un
+			// grupo activo si crea un nivel (cabecera -> miembros) que
+			// necesita la guia igual que el resto de p-nodes con hijos.
+			indentGuides: this.sortState?.activeScope === 'groups',
+			renderLabel: (row, node) => {
+				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as PluginMeta;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'plugin', label: meta.name ?? node.label, pluginId: meta.pluginId },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
+					return true;
+				}
+				return false;
+			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
-			expandedIds: new Set<string>(),
+			expandedIds: this._expandedGroupIds,
 			...(this.interactionMode === 'select'
 				? {
 						selectedIds: this.selectedNodeIds,
@@ -306,14 +487,25 @@ export class PluginsExplorerPanel
 						},
 					}
 				: {}),
-			onToggle: () => {},
+			onToggle: (id: string) => {
+				if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
+				else this._expandedGroupIds.add(id);
+				this.render();
+			},
 			onRowClick: (id) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				if (this.interactionMode !== 'select') return;
 				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
 				else this.selectedNodeIds.add(id);
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
+					// miembros, no a uno.
+					if (cellId === 'state') void this.toggleGroup(id);
+					return;
+				}
 				const node = this.findNode(id);
 				if (!node) return;
 				if (cellId === 'state') void this.toggle(node.meta);
@@ -327,6 +519,7 @@ export class PluginsExplorerPanel
 				if (node) setTooltip(row, this.tooltip(node.meta));
 			},
 			onContextMenu: (id, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},
@@ -341,7 +534,8 @@ export class PluginsExplorerPanel
 	}
 
 	private findNode(id: string): TreeNode<PluginMeta> | undefined {
-		return this.nodes.find((node) => node.id === id);
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
+		return this.nodes.find((node) => node.id === baseId || node.id === id);
 	}
 
 	private tooltip(meta: PluginMeta): string {
@@ -418,8 +612,66 @@ export class PluginsExplorerPanel
 		);
 	}
 
-	private async toggle(meta: PluginMeta): Promise<void> {
-		if (this.pendingToggleIds.has(meta.pluginId)) return;
+	/**
+	 * Spec 07 §2: cascada descendente. ACTION, no operation: cambio directo
+	 * de estado del workspace sin pasar por la queue ni por
+	 * `OperationSummaryModal`. Tri-estado como el toggle de
+	 * expansion/colapso: si hay algo encendido, la primera pulsacion APAGA
+	 * todo; solo con todo apagado la siguiente ENCIENDE todo.
+	 */
+	private async toggleGroup(groupId: string): Promise<void> {
+		const header = this.projectedNodes().find(
+			(node) => node.id === groupId,
+		);
+		const members = new Map<string, PluginMeta>();
+		for (const child of header?.children ?? []) {
+			const meta = child.meta;
+			if (meta?.pluginId && !members.has(meta.pluginId)) {
+				members.set(meta.pluginId, meta);
+			}
+		}
+		if (members.size === 0) return;
+		const listed = [...members.values()];
+		const target = resolveGroupToggleTarget(
+			listed.map((meta) => meta.enabled),
+		);
+		const todo = listed.filter(
+			(meta) =>
+				meta.enabled !== target &&
+				!this.pendingToggleIds.has(meta.pluginId),
+		);
+		if (todo.length === 0) return;
+		for (const meta of todo) this.pendingToggleIds.add(meta.pluginId);
+		this.rebuildNodes();
+		try {
+			let failed = 0;
+			for (const meta of todo) {
+				const changed = await setCommunityPluginEnabled(
+					this.plugin.app,
+					meta.pluginId,
+					target,
+				);
+				if (!changed) failed += 1;
+			}
+			if (failed > 0) {
+				new Notice(translate('addons.plugins.failed'));
+			}
+			// Igual que el toggle individual: si nos apagamos a nosotros
+			// mismos, el caller se descarga y no hay refresh que valga.
+			const selfOff = todo.some(
+				(meta) => meta.isVaultman && meta.enabled && !target,
+			);
+			if (!selfOff && !this.destroyed) await this.refresh();
+		} catch (error) {
+			new Notice(translate('addons.plugins.failed'));
+			console.error('Vaultman community plugin group toggle failed', error);
+		} finally {
+			for (const meta of todo) this.pendingToggleIds.delete(meta.pluginId);
+			if (!this.destroyed) this.rebuildNodes();
+		}
+	}
+
+	private async toggle(meta: PluginMeta): Promise<void> {		if (this.pendingToggleIds.has(meta.pluginId)) return;
 		this.pendingToggleIds.add(meta.pluginId);
 		this.rebuildNodes();
 		let callerWillUnload = false;

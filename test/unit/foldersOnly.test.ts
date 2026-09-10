@@ -44,22 +44,22 @@ function foldersOnlyTree(): TreeNode<FileMeta>[] {
 
 describe('folders-only projection', () => {
 	it('drops folders-first and fixed-folders while only folders are drawn', () => {
-		const normal = byLevelModel('files', filesState(), true)?.items.map(
+		const normal = byLevelModel('files', filesState())?.items.map(
 			(item) => item.id,
 		);
-		expect(normal).toContain('parentsFirst');
-		expect(normal).toContain('fixedFolders');
+		expect(normal).not.toContain('parentsFirst');
+		expect(normal).not.toContain('fixedFolders');
+		expect(normal).not.toContain('nested');
 
 		// No file rows means folders-first has nothing to order against and
 		// fixed-folders has nothing to hold still.
 		const foldersOnly = byLevelModel(
 			'files',
 			filesState(['folders-only']),
-			true,
 		)?.items.map((item) => item.id);
 		expect(foldersOnly).not.toContain('parentsFirst');
 		expect(foldersOnly).not.toContain('fixedFolders');
-		expect(foldersOnly).toContain('nested');
+		expect(foldersOnly).not.toContain('nested');
 	});
 
 	it('survives nesting being turned off', () => {

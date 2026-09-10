@@ -1502,6 +1502,17 @@ button.vaultman-content-scope-hint:focus-visible {
   transform-origin: center;
 }
 
+// Spec 07 §2: el grupo en estado mixto se PINTA como mixto. Misma convencion
+// que `.vaultman-grid-th-check.is-indeterminate` en views/_tree.scss.
+.vaultman-addon-toggle-cell.is-mixed {
+  border-color: var(--vaultman-accent);
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
+.vaultman-addon-cell.is-mixed {
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
 .vaultman-addon-toggle-input {
   pointer-events: none;
 }

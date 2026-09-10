@@ -6,6 +6,20 @@
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
 	import SearchControl from './searchControl.svelte';
+	import BarTransaction from './barTransaction.svelte';
+	import {
+		SEARCH_CATEGORY_ICONS,
+		searchCellFace,
+		searchCellIds,
+		searchCellToggleState,
+		type SearchCellContext,
+	} from '../../logic/logicSearchCellProjection';
+	import {
+		SEARCH_CREATE_TARGET_ID,
+		SEARCH_CYCLE_CATEGORY_ID,
+	} from '../../logic/logicSasiSearchActions';
+	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
+	import type { SasiNode } from '../../services/serviceSasiProvider';
 	import type {
 		ExplorerTabId,
 		ExplorerSortState,
@@ -107,8 +121,10 @@
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		searchExpanded = false,
 		onSearchExpandedChange,
-		searchTrailingActions = [],
-		onSearchTrailingAction,
+		searchMoveToggles = null,
+		sasiRegistry = undefined,
+		sasiMoveHandlers = undefined,
+		transactionBar = undefined,
 		tagsExplorer,
 		propExplorer,
 		fileList,
@@ -128,6 +144,7 @@
 		onFiltersSearchChange,
 		onFiltersSearchCategoryChange,
 		onViewFiltersChanged,
+		onPersistInteractionMode,
 		onContentSearch,
 		showExplorerControls = true,
 		expansionRevision = 0,
@@ -169,34 +186,6 @@
 		if (name) saveLayout(name);
 	}
 
-	const CATEGORY_ICONS: Record<FiltersTab, string[]> = {
-		props: ['lucide-search', 'lucide-tag'],
-		tags: ['lucide-hash', 'lucide-git-branch'],
-		files: ['lucide-file', 'lucide-folder'],
-		snippets: ['lucide-file-code'],
-		plugins: ['lucide-plug'],
-	};
-	const CATEGORY_LABELS: Record<FiltersTab, string[]> = {
-		props: [
-			translate('filter.category.all_props'),
-			translate('filter.category.prop_names'),
-		],
-		tags: [
-			translate('filter.category.all_tags'),
-			translate('filter.category.leaf_tags'),
-		],
-		files: [
-			translate('filter.category.files'),
-			translate('filter.category.folders'),
-		],
-		snippets: [translate('filter.tab.snippets')],
-		plugins: [translate('filter.tab.plugins')],
-	};
-
-	const currentCategoryIcon = $derived(
-		CATEGORY_ICONS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ??
-			'lucide-search',
-	);
 	const currentCreateIcon = $derived(
 		activeTab === 'files'
 			? filtersSearchCategory.files === 1
@@ -213,6 +202,76 @@
 			activeTab === 'props' ||
 			activeTab === 'tags',
 	);
+
+	const searchCellContext = $derived<SearchCellContext>({
+		tab: activeTab,
+		categoryIndex: filtersSearchCategory[activeTab] ?? 0,
+		canCreate: canCreateSearchTarget,
+		createIcon: currentCreateIcon,
+		moveToggles: searchMoveToggles ?? null,
+	});
+	const trailingActionIds = $derived(searchCellIds(searchCellContext));
+	const trailingToggleState = $derived(
+		searchCellToggleState(searchCellContext),
+	);
+
+	/**
+	 * U130-05b: la identidad viene de SASI; la CARA, de la proyeccion. El icono
+	 * de categoria cicla, asi que una def estatica no puede representarlo --
+	 * `resolve(id)` es lo que el host proyecta de esa accion ahora mismo.
+	 *
+	 * La caida al registro cubre a los ids que no son del searchbox (el toggle
+	 * de la barra transaccional), que se resuelven por identidad pura.
+	 */
+	function resolveSearchCell(id: string): SasiNode | null {
+		const face = searchCellFace(id, searchCellContext);
+		if (face) return face;
+		const resolved = sasiRegistry?.resolve(id);
+		if (!resolved?.available || !resolved.def) return null;
+		const { id: defId, labelKey, icon: defIcon, kind } = resolved.def;
+		return {
+			id: defId,
+			labelKey,
+			...(defIcon ? { icon: defIcon } : {}),
+			...(kind ? { kind } : {}),
+		};
+	}
+
+	/**
+	 * U130-01: el invoker es POR SUPERFICIE. Congela su mapa de handlers al
+	 * crearse, y los dos del searchbox viven AQUI (tocan `filtersSearchCategory`
+	 * y `filtersSearch`, que son estado de este componente), mientras que los
+	 * del move mode los inyecta el host desde el explorer activo. Como
+	 * `$derived`, se rehace al cambiar de pestana.
+	 */
+	const invokeSearchCell = $derived(
+		sasiRegistry
+			? createSasiInvoker(sasiRegistry, {
+					...(sasiMoveHandlers ?? {}),
+					[SEARCH_CYCLE_CATEGORY_ID]: async () => {
+						cycleSearchCategory();
+					},
+					[SEARCH_CREATE_TARGET_ID]: async () => {
+						createSearchTarget();
+					},
+				})
+			: null,
+	);
+
+	function runSearchCell(id: string): void {
+		if (!invokeSearchCell) {
+			// Un host que monta el searchbox sin pasar el registro deja celdas
+			// que se pintan y no hacen nada. Callarlo es peor que el fallo: un
+			// boton muerto sin explicacion se descubre tarde y no se atribuye.
+			new Notice(`SASI: sin registro en esta superficie: ${id}`);
+			return;
+		}
+		// El rechazo del invoker --id no registrado, falta handler, operation sin
+		// confirmar-- es deliberado y explicito: se muestra, no se traga.
+		void invokeSearchCell(id, {}).catch((error: unknown) => {
+			new Notice(String(error instanceof Error ? error.message : error));
+		});
+	}
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
 		props: normalizeExplorerSortState('props', null),
@@ -307,11 +366,21 @@
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}
+	function explorerPortForTab(tab: FiltersTab): PanelWidgetExplorerPort | null {
+		if (tab === 'files') return fileList ?? null;
+		if (tab === 'props') return propExplorer ?? null;
+		if (tab === 'tags') return tagsExplorer ?? null;
+		if (tab === 'snippets') return snippetsExplorer ?? null;
+		if (tab === 'plugins') return pluginsExplorer ?? null;
+		return null;
+	}
+
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
 		const nextSort = { ...sortStateByTab };
 		const nextInteraction = { ...interactionModeByTab };
+		const nextConfigByTab = { ...configByTab };
 		for (const tab of LAYOUT_TABS) {
 			const saved = layout.config[tab];
 			if (!saved) continue;
@@ -327,22 +396,37 @@
 				tab,
 				saved.interactionMode,
 			);
+			nextConfigByTab[tab] = {
+				...nextConfigByTab[tab],
+				viewMode: nextView[tab],
+				interactionMode: nextInteraction[tab],
+				visibleCells: nextCells[tab],
+				sortState: nextSort[tab],
+			};
 		}
+		configByTab = nextConfigByTab;
 		void applyLayoutToPort(sceneConfigPort, {
 			viewModeByTab: nextView,
 			interactionModeByTab: nextInteraction,
 			visibleCellsByTab: nextCells,
 			sortStateByTab: nextSort,
-		}).then(() => {
-			configByTab = Object.fromEntries(
-				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
-			) as Record<FiltersTab, Required<SceneConfig>>;
 		});
 		for (const tab of LAYOUT_TABS) {
-			applyViewMode(tab, nextView[tab]);
-			applyVisibleCells(tab, nextCells[tab]);
-			applySortState(tab, nextSort[tab]);
-			applyInteractionMode(tab, nextInteraction[tab]);
+			applyTabProjection(tab, {
+				viewMode: nextView[tab],
+				visibleCells: nextCells[tab],
+				sortState: nextSort[tab],
+				interactionMode: nextInteraction[tab],
+			});
+		}
+		// U130-05: activacion PER-INSTANCE. `groupMemberships` es una propiedad
+		// del layout, no de la pestana: llamar a setActiveLayoutName en cada
+		// explorer hace que su projectedNodes la busque por nombre, y las
+		// cabeceras de grupo custom pasan a ser alcanzables en vez de caer
+		// siempre a la rama preset alfabetica. Antes loadLayout aplicaba
+		// vista/sort/celdas e ignoraba groupMemberships por completo.
+		for (const tab of LAYOUT_TABS) {
+			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}
 		onLayoutLoaded?.(layout);
 	}
@@ -416,6 +500,11 @@
 			activeTab,
 			visibleCellsByTab[activeTab] ??
 				defaultVisibleCells(activeTab, viewModeByTab[activeTab]),
+			// U130-t33 (L-PNODE): un grupo es un p-node plegable aunque la
+			// anidacion este apagada — sin este flag el toggle queda muerto en
+			// ese caso exacto, el que el dev senalo.
+			(sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab])
+				?.activeScope === 'groups',
 		),
 	);
 	/**
@@ -444,9 +533,10 @@
 					isListed:
 						activeFilePath == null
 							? true
-							: ((activeTab === 'props' ? propExplorer : tagsExplorer)?.isPathListed?.(
-									activeFilePath,
-								) ?? true),
+							: ((activeTab === 'props'
+									? propExplorer
+									: tagsExplorer
+								)?.isPathListed?.(activeFilePath) ?? true),
 					toggleActive: revealActive ?? false,
 				})
 			: false,
@@ -821,9 +911,9 @@
 		headerExitDir = 'left';
 		headerMode = 'viewmode';
 	}
-	function openTabsPopup(event: MouseEvent) {
+	function openScenePopup(event: MouseEvent) {
 		if (!tabOptions.length) return;
-		openNativeTabsMenu(event);
+		openNativeSceneMenu(event);
 	}
 	function closeHeaderPopup() {
 		headerMode = 'header';
@@ -831,7 +921,7 @@
 
 	function cycleSearchCategory() {
 		const tab = activeTab;
-		const count = CATEGORY_ICONS[tab].length;
+		const count = SEARCH_CATEGORY_ICONS[tab].length;
 		const next = {
 			...filtersSearchCategory,
 			[tab]: ((filtersSearchCategory[tab] ?? 0) + 1) % Math.max(1, count),
@@ -964,9 +1054,110 @@
 
 	function selectInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
+		// La config de ESTA instancia sigue yendo por el port.
 		commitConfig(tab, { interactionMode: normalized });
+		// El defecto del usuario es global: se publica, no se escribe aqui.
+		onPersistInteractionMode?.(tab, normalized);
 		applyInteractionMode(tab, normalized);
 		onViewFiltersChanged?.();
+	}
+
+	function applyTabProjection(
+		tab: FiltersTab,
+		config: {
+			viewMode: ExplorerViewMode;
+			visibleCells: string[];
+			sortState: ExplorerSortState;
+			interactionMode?: InteractionMode;
+		},
+	) {
+		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
+		const widgetMode: 'tree' | 'grid' | 'table' =
+			effectiveMode === 'table'
+				? 'table'
+				: effectiveMode === 'grid'
+					? 'grid'
+					: 'tree';
+		const cellSet = new Set(config.visibleCells);
+
+		if (tab === 'files' && fileList) {
+			const normalizedState = normalizeSortState(tab, config.sortState, true);
+			if (!sameSortState(config.sortState, normalizedState)) {
+				commitConfig(tab, { sortState: normalizedState });
+			}
+			appliedSortStateByTab[tab] = normalizedState;
+			if (fileList.configurePanelWidgetProjection) {
+				fileList.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: normalizedState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, normalizedState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'props' && propExplorer) {
+			if (propExplorer.configurePanelWidgetProjection) {
+				propExplorer.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: config.sortState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, config.sortState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'tags' && tagsExplorer) {
+			if (tagsExplorer.configurePanelWidgetProjection) {
+				tagsExplorer.configurePanelWidgetProjection({
+					viewMode: widgetMode,
+					visibleCells: cellSet,
+					sortState: config.sortState,
+					...(config.interactionMode
+						? { interactionMode: config.interactionMode }
+						: {}),
+				});
+			} else {
+				applyViewMode(tab, config.viewMode);
+				applyVisibleCells(tab, config.visibleCells);
+				applySortState(tab, config.sortState);
+				if (config.interactionMode)
+					applyInteractionMode(tab, config.interactionMode);
+			}
+			return;
+		}
+
+		if (tab === 'snippets' && snippetsExplorer) {
+			applyViewMode(tab, config.viewMode);
+			applyVisibleCells(tab, config.visibleCells);
+			applySortState(tab, config.sortState);
+			return;
+		}
+
+		if (tab === 'plugins' && pluginsExplorer) {
+			applyViewMode(tab, config.viewMode);
+			applyVisibleCells(tab, config.visibleCells);
+			applySortState(tab, config.sortState);
+			return;
+		}
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
@@ -1134,7 +1325,9 @@
 		if (onSaveLayout) menu.addSeparator();
 		menu.addItem((item) => {
 			item
-				.setTitle(translate('viewmenu.in_mode'))
+				.setTitle(
+					`${translate('viewmenu.interaction')} ${translate(`viewmenu.interaction.${normalizeInteractionMode(activeTab, interactionModeByTab[activeTab])}`)}`,
+				)
 				.setIcon('lucide-mouse-pointer-click');
 			const sub = (
 				item as typeof item & { setSubmenu: () => Menu }
@@ -1142,7 +1335,7 @@
 			for (const mode of interactionModesForTab(activeTab)) {
 				sub.addItem((subItem) =>
 					subItem
-						.setTitle(translate(`viewmenu.in_mode.${mode}`))
+						.setTitle(translate(`viewmenu.interaction.${mode}`))
 						.setIcon(
 							mode === 'open'
 								? 'lucide-folder-open'
@@ -1159,7 +1352,7 @@
 		});
 
 		menu.addSeparator();
-		// 'Nested' stays in the sort menu's By level group (D29).
+		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
 		// first, then the rest at their canonical rank.
 		for (const entry of cellMenuOrder(
@@ -1183,10 +1376,28 @@
 			});
 		}
 
-		// Rendering engines are the final section.
-		menu.addSeparator();
+		// Toolbar toggle sits in the same section as engines, immediately
+		// before it, with NO divider between the two (spec 08 §2).
+		if (onToggleToolbar) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+		}
+		// Submenu `engines`: the available rendering engines, then a divider,
+		// then the engine-specific view options (nested, folders-first,
+		// fixed-folders). Those options are modes of the SELECTED engine, so
+		// they live INSIDE this submenu, not at the view_menu top level.
+		const sortState =
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const nestedAct = nestedActiveFor(activeTab);
 		menu.addItem((submenuItem) => {
-			submenuItem.setTitle('Engines').setIcon('lucide-layout');
+			submenuItem
+				.setTitle(translate('viewmenu.engines'))
+				.setIcon('lucide-layout');
 			const submenu =
 				(submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
 				new Menu();
@@ -1202,11 +1413,54 @@
 					}
 				});
 			}
+			// Projection rule (conserved from sort_menu, spec 08 §2):
+			// `nested` is always present (it's the toggle for the engine);
+			// parentsFirst and fixedFolders vanish when nested is off;
+			// fixedFolders also vanishes when parentsFirst is off. The chain:
+			// nested -> parentsFirst -> fixedFolders. parentsFirst /
+			// fixedFolders only exist in Files (the Files-specific sort knobs).
+			submenu.addSeparator();
+			submenu.addItem((item) => {
+				item
+					.setTitle(translate('sort.level.nested'))
+					.setIcon('lucide-list-tree')
+					.setChecked(nestedAct)
+					.onClick(() => toggleNestedFor(activeTab));
+			});
+			if (nestedAct && activeTab === 'files') {
+				const parentsFirst = sortState.parentsFirst ?? true;
+				submenu.addItem((item) => {
+					item
+						.setTitle(translate('sort.parents_first'))
+						.setIcon('lucide-folder-tree')
+						.setChecked(parentsFirst)
+						.onClick(() =>
+							handleSortChange({
+								...sortState,
+								parentsFirst: !parentsFirst,
+							}),
+						);
+				});
+				if (parentsFirst) {
+					submenu.addItem((item) => {
+						item
+							.setTitle(translate('sort.level.fixed_folders'))
+							.setIcon('lucide-folder-lock')
+							.setChecked(sortState.fixedFolders !== false)
+							.onClick(() =>
+								handleSortChange({
+									...sortState,
+									fixedFolders: !(sortState.fixedFolders !== false),
+								}),
+							);
+					});
+				}
+			}
 		});
 		menu.showAtMouseEvent(event);
 	}
 
-	function openNativeTabsMenu(event: MouseEvent) {
+	function openNativeSceneMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const primaryTabOptions = tabOptions.filter(
 			(option) => option.id !== 'snippets' && option.id !== 'plugins',
@@ -1262,17 +1516,6 @@
 		}
 		if (!showDock && statisticsAction) renderTabAction(statisticsAction);
 		for (const option of addonTabOptions) renderTabOption(option);
-		// Toolbar visibility — its own section at the end of the tabs menu.
-		if (onToggleToolbar) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1532,12 +1775,7 @@
 		tab: FiltersTab,
 		current: ExplorerSortState,
 	) {
-		const model = byLevelModel(
-			tab,
-			current,
-			nestedActiveFor(tab),
-			treeCapableFor(tab),
-		);
+		const model = byLevelModel(tab, current, treeCapableFor(tab));
 		if (!model) return;
 
 		for (const option of model.items) {
@@ -1556,19 +1794,6 @@
 					.setChecked(option.checked)
 					.onClick(() => {
 						if (option.kind === 'toggle') {
-							if (option.id === 'nested') toggleNestedFor(tab);
-							if (option.id === 'parentsFirst') {
-								handleSortChange({
-									...current,
-									parentsFirst: !option.checked,
-								});
-							}
-							if (option.id === 'fixedFolders') {
-								handleSortChange({
-									...current,
-									fixedFolders: !option.checked,
-								});
-							}
 							if (option.id === 'filtered') {
 								handleFilterChange({
 									...current,
@@ -1633,7 +1858,7 @@
 
 		const nestedActive = nestedActiveFor(activeTab);
 		// The native menu shows the same options as the popup, so it needs the
-		// same reveal signal — without it `custom` was filtered out here even
+		// same reveal signal — without it `note` was filtered out here even
 		// while a note was anchored, which is why the option never appeared.
 		for (const option of visibleSortOptions(
 			activeTab,
@@ -1834,32 +2059,13 @@
 		const sortState = untrack(
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
+		applyTabProjection(tab, {
+			viewMode,
+			visibleCells: cells,
+			sortState,
+			interactionMode,
+		});
 		if (tab === 'files' && fileList) {
-			const normalizedState = normalizeSortState(tab, sortState, true);
-			if (!sameSortState(sortState, normalizedState)) {
-				commitConfig(tab, { sortState: normalizedState });
-			}
-			appliedSortStateByTab[tab] = normalizedState;
-			const effectiveMode = panelViewModeForDataSurface(tab, viewMode);
-			const filesViewMode =
-				effectiveMode === 'table'
-					? 'table'
-					: effectiveMode === 'grid'
-						? 'grid'
-						: 'tree';
-			if (fileList.configurePanelWidgetProjection) {
-				fileList.configurePanelWidgetProjection({
-					viewMode: filesViewMode,
-					visibleCells: new Set(cells),
-					sortState: normalizedState,
-					...(interactionMode ? { interactionMode } : {}),
-				});
-			} else {
-				applyViewMode(tab, viewMode);
-				applyVisibleCells(tab, cells);
-				applySortState(tab, normalizedState);
-				if (interactionMode) applyInteractionMode(tab, interactionMode);
-			}
 			fileList.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['files'] !== mode) {
 					commitConfig('files', { interactionMode: mode });
@@ -1867,71 +2073,53 @@
 			});
 		}
 		if (tab === 'props' && propExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-			if (interactionMode) applyInteractionMode(tab, interactionMode);
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['props'] !== mode) {
 					commitConfig('props', { interactionMode: mode });
 				}
 			});
 		}
-		if (tab === 'tags' && tagsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-			if (interactionMode) applyInteractionMode(tab, interactionMode);
-		}
-		if (tab === 'snippets' && snippetsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-		}
-		if (tab === 'plugins' && pluginsExplorer) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-		}
 	});
 </script>
 
 {#snippet searchControl(variant: SearchControlVariant)}
 	<SearchControl
+		{variant}
 		value={filtersSearch}
 		placeholder={translate('filter.search_placeholder')}
-		{variant}
 		styleOrder={variant === 'inline'
 			? panelWidgetNodeOrder('search')
 			: undefined}
 		clearLabel={translate('filter.search_clear')}
-		categoryIcon={searchTrailingActions.length > 0
-			? undefined
-			: CATEGORY_ICONS[activeTab].length > 1
-				? currentCategoryIcon
-				: undefined}
-		categoryLabel={CATEGORY_LABELS[activeTab]?.[
-			filtersSearchCategory[activeTab] ?? 0
-		] ?? translate('filter.search_mode')}
-		onCycleCategory={cycleSearchCategory}
-		createIcon={searchTrailingActions.length > 0
-			? undefined
-			: canCreateSearchTarget
-				? currentCreateIcon
-				: undefined}
-		createLabel={translate('filter.create')}
-		onCreateTarget={createSearchTarget}
+		{trailingActionIds}
+		toggleState={trailingToggleState}
+		resolve={resolveSearchCell}
+		{translate}
+		onInvoke={runSearchCell}
 		onValueChange={setFiltersSearch}
-		trailingActions={searchTrailingActions}
-		onAction={onSearchTrailingAction}
 		{icon}
 	/>
+{/snippet}
+
+{#snippet transactionBarSlot()}
+	{#if transactionBar}
+		<BarTransaction
+			state={transactionBar}
+			resolve={resolveSearchCell}
+			{translate}
+			{icon}
+			onToggleMoveKind={transactionBar.onToggleMoveKind ?? (() => {})}
+		/>
+	{/if}
 {/snippet}
 
 <div
 	class="vaultman-navbar-filters vaultman-glass vaultman-glass--top"
 	bind:this={navbarEl}
 >
+	{#if transactionBar?.placement === 'above-search'}
+		{@render transactionBarSlot()}
+	{/if}
 	{#if minimalStyle && showSearchInput}
 		<div class="vaultman-filters-phone-search-row">
 			{@render searchControl('phone')}
@@ -1961,11 +2149,11 @@
 							tabindex="0"
 							aria-label={currentTabsLabel}
 							title={minimalStyle ? undefined : currentTabsLabel}
-							onclick={(event: MouseEvent) => openTabsPopup(event)}
+							onclick={(event: MouseEvent) => openScenePopup(event)}
 							onkeydown={(e: KeyboardEvent) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									openTabsPopup(
+									openScenePopup(
 										menuEventFromElement(e.currentTarget as HTMLElement),
 									);
 								}
@@ -1989,9 +2177,8 @@
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
 								class:is-active={action.checked}
-								class:vaultman-reveal-out-of-list={
-									headerRevealFaint && REVEAL_HEADER_ACTION_IDS.has(action.id)
-								}
+								class:vaultman-reveal-out-of-list={headerRevealFaint &&
+									REVEAL_HEADER_ACTION_IDS.has(action.id)}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									`header:${action.id}`,
 								)}
@@ -2295,6 +2482,9 @@
 						{@render searchControl('row')}
 					</div>
 				{/if}
+				{#if transactionBar?.placement === 'below-search'}
+					{@render transactionBarSlot()}
+				{/if}
 			</div>
 		{:else if headerMode === 'sort'}
 			<div
@@ -2314,7 +2504,6 @@
 					{revealActive}
 					onRequestRevealPick={() => void beginRevealPick(activeTab)}
 					treeCapable={treeCapableFor(activeTab)}
-					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}
 				/>
 			</div>

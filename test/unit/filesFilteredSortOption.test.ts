@@ -18,15 +18,13 @@ function stateFor(
 // the whole vault, on hides the files the active filter leaves out.
 describe('U121-052 files Filtered sort option', () => {
 	it('offers the Filtered toggle in the Files By-level menu', () => {
-		const model = byLevelModel('files', stateFor(), true);
+		const model = byLevelModel('files', stateFor());
 		expect(model?.items.map((item) => item.id)).toEqual([
 			'filtered',
-			'nested',
-			'parentsFirst',
-			'fixedFolders',
 			'scope-separator',
 			'drill',
 			'all',
+			'groups',
 		]);
 		expect(model?.items.find((item) => item.id === 'filtered')).toMatchObject({
 			kind: 'toggle',
@@ -42,10 +40,10 @@ describe('U121-052 files Filtered sort option', () => {
 		});
 	});
 
-	it('keeps the toggle above Nested and alive on a flat level', () => {
+	it('keeps the toggle above scope radios on a flat level', () => {
 		expect(
-			byLevelModel('files', stateFor(), false)?.items.map((item) => item.id),
-		).toEqual(['filtered', 'nested']);
+			byLevelModel('files', stateFor())?.items.map((item) => item.id),
+		).toEqual(['filtered', 'scope-separator', 'drill', 'all', 'groups']);
 	});
 
 	it('persists the Files Filtered flag through normalization', () => {

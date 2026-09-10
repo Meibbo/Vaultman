@@ -47,10 +47,15 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('toggleAllContentFiles');
 		// The published header actions are composed now — an operation mode adds
 		// its own — but the Content controls still reach them, and still lead.
+		// U130-02 ui-dom añade fileMoveHeaderActions tras valueMoveHeaderActions.
 		const published = pageFiltersSource.slice(
 			pageFiltersSource.indexOf('headerActions: '),
 		);
-		expect(published).toMatch(/^headerActions: \[\.\.\.contentHeaderActions/);
+		expect(published).toMatch(
+			/^headerActions:\s*\[\s*\.\.\.contentHeaderActions/,
+		);
+		expect(published).toContain('...valueMoveHeaderActions');
+		expect(published).toContain('...fileMoveHeaderActions');
 	});
 
 	it('projects Text Pause, Has/Hasn’t, then Sort in canonical panelWidget order', () => {

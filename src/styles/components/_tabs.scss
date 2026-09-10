@@ -546,41 +546,12 @@
   color: var(--text-faint);
 }
 
-.vaultman-filters-search-mode,
-.vaultman-filters-search-create {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  opacity: 0.7;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.15s, color 0.15s;
-}
-
 /* This rule used to name a Vaultman clear-button class that the component never
    rendered, so it matched nothing on phones. It targets Core's
    `.search-input-clear-button`, which is what SearchControl actually emits. */
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-action-cell) {
   width: 28px;
   height: 28px;
-}
-
-.vaultman-filters-search-mode:hover,
-.vaultman-filters-search-create:hover {
-  opacity: 1;
-  color: var(--text-normal);
-}
-
-.vaultman-filters-search-mode svg,
-.vaultman-filters-search-create svg {
-  width: 14px;
-  height: 14px;
 }
 
 .vaultman-filters-explorer-wrap {

@@ -31,6 +31,7 @@ describe('shared explorer cell registry', () => {
 			'text',
 			'parent',
 			'count',
+			'cell_hover',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
@@ -78,6 +79,7 @@ describe('shared explorer cell registry', () => {
 			'name',
 			'path',
 			'ext',
+			'format',
 			'mtime',
 			'ctime',
 			'opened',
@@ -94,6 +96,7 @@ describe('shared explorer cell registry', () => {
 			'icon',
 			'name',
 			'count',
+			'format',
 			'words',
 			'ext',
 			'mtime',
@@ -111,6 +114,7 @@ describe('shared explorer cell registry', () => {
 			'icon',
 			'name',
 			'ext',
+			'format',
 			'mtime',
 			'ctime',
 			'opened',

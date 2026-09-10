@@ -1,4 +1,4 @@
-import { setIcon, type App } from 'obsidian';
+import { type App } from 'obsidian';
 
 import {
 	LIST_WIDGETS,
@@ -7,6 +7,41 @@ import {
 } from '../logic/propertyValueCoercion';
 
 const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
+const HYPERLINK = /^https?:\/\/\S+$/i;
+const MARKDOWN_LINK = /^\[([^\]]*)\]\(([^)]+)\)$/;
+
+export type PropertyValueLinkType = 'hyperlink' | 'url_link' | 'wikilink' | 'plain';
+
+/**
+ * ISSUE 1: distingue la identidad de enlace de un valor crudo para que solo
+ * el wikilink verdadero reciba formato/clase de node-note-link. El criterio
+ * de wikilink espeja `_decorateNodeNotes` (`[[...]]`); el markdown `[t](u)`
+ * gana sobre su contenido aunque la URL sea un wikilink.
+ */
+export function detectLinkType(rawValue: string): PropertyValueLinkType {
+	const raw = (rawValue ?? '').trim();
+	if (HYPERLINK.test(raw)) return 'hyperlink';
+	if (MARKDOWN_LINK.test(raw)) return 'url_link';
+	if (raw.startsWith('[[') && raw.endsWith(']]') && raw.length > 4) return 'wikilink';
+	return 'plain';
+}
+
+/**
+ * Texto visible de un wikilink (`alias` si hay, si no el destino), igual que
+ * el panel nativo de frontmatter. `null` si no es wikilink.
+ */
+export function parseWikilink(rawValue: string): { target: string; display: string } | null {
+	const match = (rawValue ?? '').trim().match(WIKILINK);
+	if (!match) return null;
+	const target = match[1].trim();
+	const display = (match[2] || target).trim();
+	if (!target || !display) return null;
+	return { target, display };
+}
+
+export function parseWikilinkDisplay(rawValue: string): string | null {
+	return parseWikilink(rawValue)?.display ?? null;
+}
 
 /**
  * How long a date field may keep changing before its value is treated as the
@@ -39,6 +74,12 @@ export interface PropertyValueRenderContext {
 	onRemoveValue?: () => void;
 	/** Reports a committed inline edit. Absent means the value is not editable. */
 	onRenameValue?: (next: string) => void;
+	/**
+	 * Preview de rename: pinta el widget sin callbacks y con navegación
+	 * neutralizada (los anchors tragan el click en vez de navegar; el
+	 * preview no va a ninguna parte hasta el apply).
+	 */
+	preview?: boolean;
 }
 
 type PropertyValueRenderer = (context: PropertyValueRenderContext) => void;
@@ -52,7 +93,7 @@ export function renderEditableText(
 	parent: HTMLElement,
 	context: PropertyValueRenderContext,
 ): HTMLElement {
-	const { raw, app, onRenameValue } = context;
+	const { raw, app, onRenameValue, preview } = context;
 
 	const wikilink = raw.trim().match(WIKILINK);
 	if (wikilink) {
@@ -62,10 +103,66 @@ export function renderEditableText(
 			text: wikilink[2] || target,
 			href: target,
 		});
+		// Como el frontmatter de core: marca no resuelto cuando el destino
+		// no existe. Solo cuando hay cache que consultar; sin cache no se
+		// afirma nada (puerta de regresión de los tests con stub mínimo).
+		const cache = app.metadataCache;
+		if (cache && !cache.getFirstLinkpathDest?.(target, '')) {
+			link.addClass('is-unresolved');
+		}
 		link.addEventListener('click', (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			void app.workspace.openLinkText(target, '', false);
+			if (!preview) void app.workspace.openLinkText(target, '', false);
+		});
+		return link;
+	}
+
+	// ISSUE 1: los url_link [texto](url) tienen su propia decoración en vez
+	// de texto plano. Con destino externo abren fuera (sin preventDefault);
+	// con destino wikilink navegan como un internal-link de core.
+	const mdLink = raw.trim().match(MARKDOWN_LINK);
+	if (mdLink) {
+		const text = mdLink[1].trim();
+		const url = mdLink[2].trim();
+		const inner = url.match(WIKILINK);
+		if (inner) {
+			const target = inner[1];
+			const link = parent.createEl('a', {
+				cls: 'internal-link vaultman-property-value-link',
+				text: text || inner[2] || target,
+				href: target,
+			});
+			link.addEventListener('click', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				if (!preview) void app.workspace.openLinkText(target, '', false);
+			});
+			return link;
+		}
+		const link = parent.createEl('a', {
+			cls: 'external-link vaultman-property-value-link',
+			text: text || url,
+			href: url,
+		});
+		link.addEventListener('click', (event) => {
+			event.stopPropagation();
+			if (preview) event.preventDefault();
+		});
+		return link;
+	}
+
+	// ISSUE 1: el hyperlink pelado es un anchor externo, no texto plano.
+	if (HYPERLINK.test(raw.trim())) {
+		const trimmed = raw.trim();
+		const link = parent.createEl('a', {
+			cls: 'external-link vaultman-property-value-link',
+			text: trimmed,
+			href: trimmed,
+		});
+		link.addEventListener('click', (event) => {
+			event.stopPropagation();
+			if (preview) event.preventDefault();
 		});
 		return link;
 	}
@@ -281,26 +378,13 @@ function renderDateInput(
 }
 
 function renderDate(context: PropertyValueRenderContext): void {
-	const { container, raw, app } = context;
+	const { raw } = context;
 	if (Number.isNaN(Date.parse(raw))) {
 		renderScalar(context);
 		return;
 	}
 	renderDateInput(context, 'date');
 
-	const day = raw.slice(0, 10);
-	// Same treatment as the delete control: it belongs to the row, appears on
-	// hover, and sits beside its value instead of across the cell.
-	const dailyNote = container.createSpan({
-		cls: 'clickable-icon vaultman-property-value-action',
-		attr: { 'aria-label': `Open daily note ${day}` },
-	});
-	setIcon(dailyNote, 'lucide-link');
-	dailyNote.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		void app.workspace.openLinkText(day, '', false);
-	});
 }
 
 function renderDateTime(context: PropertyValueRenderContext): void {
@@ -333,18 +417,6 @@ export function renderPropertyValue(context: PropertyValueRenderContext): void {
 	}
 	RENDER_MAP[widget](context);
 
-	if (!context.onRemoveValue) return;
-	// Reveals on row hover: a delete affordance on every value at rest is the
-	// visual noise this projection is supposed to avoid.
-	const remove = context.container.createSpan({
-		cls: 'vaultman-property-value-remove',
-	});
-	setIcon(remove, 'lucide-x');
-	remove.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		context.onRemoveValue?.();
-	});
 }
 
 export { LIST_WIDGETS };

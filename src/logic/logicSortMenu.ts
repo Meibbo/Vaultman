@@ -3,7 +3,7 @@ import type {
 	ExplorerTabId,
 	SortScopeKey,
 } from '../types/typeUI';
-import { isSortOptionVisible } from './logicScopedSort';
+import { isSortOptionVisible, scopesForTab } from './logicScopedSort';
 import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
 import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
 import { TAG_SOURCE_ORDER } from './logicTagSource';
@@ -48,7 +48,7 @@ export const SORT_MENU_OPTIONS: Record<
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
 		// Last on purpose: it only appears while a note is anchored, and a
 		// leading slot would shift every other option each time reveal toggles.
-		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
+		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
@@ -66,7 +66,7 @@ export const SORT_MENU_OPTIONS: Record<
 			labelKey: 'sort.by.created',
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
-		{ id: 'custom', icon: 'lucide-file-cog', labelKey: 'sort.by.custom' },
+		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
 	],
 	files: [
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
@@ -144,8 +144,8 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 			labelKey: `sort.type.${id}`,
 			// The divider marks where the question changes: above it is the
 			// shape of the tag, below it is where the tag is written. They are
-			// separate dimensions and the filter intersects them, so running
-			// the two groups together would read as one list of alternatives.
+			// separate dimensions. Shape can combine with one source, while the
+			// two source options are mutually exclusive radios.
 			separatorAfter: index === TAG_STRUCTURE_ORDER.length - 1,
 		})),
 		...TAG_SOURCE_ORDER.map((id) => ({
@@ -213,55 +213,41 @@ interface SortScopeMenuOption {
 	labelKey: string;
 }
 
-const PROPS_SCOPE_OPTIONS: readonly SortScopeMenuOption[] = [
-	{
-		scope: 'all',
-		icon: 'lucide-layers',
-		labelKey: 'sort.level.all',
-	},
-	{
-		scope: 'properties',
-		icon: 'lucide-list-tree',
-		labelKey: 'sort.level.properties',
-	},
-	{
-		scope: 'values',
-		icon: 'lucide-list-collapse',
-		labelKey: 'sort.level.values',
-	},
-];
-
-const HIERARCHICAL_SCOPE_OPTIONS: readonly SortScopeMenuOption[] = [
-	{
-		scope: 'drill',
+/**
+ * U130-03: los metadatos de cada scope. La LISTA por tab ya no se escribe a
+ * mano: se deriva de `SCOPES_BY_TAB`, que es lo que impide que el menu y el
+ * resolutor vuelvan a desincronizarse (U121-079: un nivel de scope a medias
+ * ordena mal y sin que nada en la interfaz lo diga).
+ */
+const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
+	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
+	drill: {
 		icon: 'lucide-mouse-pointer-click',
 		labelKey: 'sort.level.drill',
 	},
-	{
-		scope: 'all',
-		icon: 'lucide-layers',
-		labelKey: 'sort.level.all',
-	},
-];
+	properties: { icon: 'lucide-list-tree', labelKey: 'sort.level.properties' },
+	values: { icon: 'lucide-list-collapse', labelKey: 'sort.level.values' },
+	groups: { icon: 'lucide-group', labelKey: 'sort.level.groups' },
+};
 
+/**
+ * U130-03: una tab soporta el selector de scope cuando DECLARA mas de un
+ * scope. Escribir aqui la lista a mano era la tercera copia de la misma
+ * verdad y la que dejaba fuera a Snippets y Plugins (U130-003).
+ */
 export function supportsByLevel(tab: ExplorerTabId): boolean {
-	return tab === 'files' || tab === 'props' || tab === 'tags';
+	return scopesForTab(tab).length > 1;
 }
 
 export function sortScopeOptions(
 	tab: ExplorerTabId,
 ): readonly SortScopeMenuOption[] {
-	if (tab === 'props') return PROPS_SCOPE_OPTIONS;
-	if (tab === 'files' || tab === 'tags') {
-		return HIERARCHICAL_SCOPE_OPTIONS;
-	}
-	return [];
+	return scopesForTab(tab).map((scope) => ({ scope, ...SCOPE_META[scope] }));
 }
 
 export function byLevelModel(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
-	nestedActive: boolean,
 	// A flat view (table/cards) has no hierarchy, so the By-level group has
 	// nothing to order. Callers pass false for those view modes and the whole
 	// group disappears. Defaults true so existing callers keep the tree shape.
@@ -296,10 +282,6 @@ export function byLevelModel(
 		);
 	}
 
-	// No divider under this one: it belongs with Nested, both shaping what the
-	// level below is drawn from. Off by default — "global" is this being off.
-	// Files shares it (U121-052): the tree shows the whole vault while off, and
-	// `filtered` hides the files the active filter leaves out.
 	if (tab === 'props' || tab === 'tags' || tab === 'files') {
 		items.push({
 			kind: 'toggle',
@@ -308,44 +290,6 @@ export function byLevelModel(
 			labelKey: 'sort.level.filtered',
 			checked: state.filtered === true,
 		});
-	}
-
-	items.push({
-		kind: 'toggle',
-		id: 'nested',
-		icon: 'lucide-list-tree',
-		labelKey: 'sort.level.nested',
-		checked: nestedActive,
-	});
-
-	// With nesting off the view is a single flat level, so folders-first,
-	// fixed-folders and the level scopes have nothing to act on: only the
-	// Nested toggle (to turn hierarchy back on) stays.
-	if (!nestedActive) return { items };
-
-	// Folders-only draws no file rows, so folders-first has nothing to order
-	// against and fixed-folders has nothing to hold still. Both disappear rather
-	// than sitting there inert.
-	const foldersOnly = state.nodeTypeFilters?.includes('folders-only') === true;
-
-	if (tab === 'files' && !foldersOnly) {
-		const parentsFirst = state.parentsFirst ?? true;
-		items.push({
-			kind: 'toggle',
-			id: 'parentsFirst',
-			icon: 'lucide-folder-tree',
-			labelKey: 'sort.parents_first',
-			checked: parentsFirst,
-		});
-		if (parentsFirst) {
-			items.push({
-				kind: 'toggle',
-				id: 'fixedFolders',
-				icon: 'lucide-folder-lock',
-				labelKey: 'sort.level.fixed_folders',
-				checked: state.fixedFolders !== false,
-			});
-		}
 	}
 
 	items.push({ kind: 'separator', id: 'scope-separator' });
@@ -367,7 +311,7 @@ export function visibleSortOptions(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
 	nestedActive: boolean,
-	// `custom` sorts by the anchored note's own order, so it has nothing to read
+	// `note` sorts by the anchored note's own order, so it has nothing to read
 	// while no note is anchored. Defaults false so existing callers keep it out.
 	revealActive = false,
 ): readonly SortMenuOption[] {

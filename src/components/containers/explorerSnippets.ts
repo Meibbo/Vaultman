@@ -1,7 +1,7 @@
 import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
-import type { SnippetMeta, TreeNode } from '../../types/typeTree';
+import type { SnippetMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
@@ -32,7 +32,12 @@ import {
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
+import {
+	resolveGroupToggleTarget,
+	summarizeGroupToggleState,
+} from '../../logic/logicAddonGroupToggle';
 import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
+import { prefixesFromSettings, snippetAliasTokens } from '../../services/serviceNodeBinding';
 import {
 	deletionBadge,
 	findDeletionMatch,
@@ -42,6 +47,13 @@ import {
 	normalizeInteractionMode,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -62,6 +74,10 @@ export class SnippetsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private _expandedGroupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -83,6 +99,21 @@ export class SnippetsExplorerPanel
 		);
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
+		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) this.render();
+			}),
 		);
 		// BT5-019: Iconic never resolves snippets, but its adapter also fires
 		// when the icon library itself changes; repaint through that existing
@@ -265,15 +296,157 @@ export class SnippetsExplorerPanel
 		this.render();
 	}
 
+	
+	private _decorateNodeNotes(nodes: TreeNode<SnippetMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		for (const node of nodes) {
+			const snippetName = node.meta?.name ?? node.label;
+			const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
+			if (snippetTokens.some((t) => aliasSet.has(t))) {
+				node.meta.hasNodeNote = true;
+			}
+		}
+	}
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		this.render();
+	}
+
+	private projectedNodes(): TreeNode<SnippetMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
+		const layout = this.plugin.settings.savedLayouts?.find(
+			(candidate) => candidate.name === activeName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		const projected = projectGroupedTree<SnippetMeta>({
+			nodes: this.nodes,
+			groups,
+			memberships,
+			providerId: 'snippets',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'snippets',
+					kind: 'snippet',
+					canonicalId: node.meta.name,
+					displayLabel: node.label,
+				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			enabled: this.sortState?.activeScope === 'groups',
+			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
+			// mismo camino que files/tags/props — sin esto se colaba el
+			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por
+			// `applyCoreRowClasses`.
+			headerMeta: { name: '', enabled: false },
+			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
+		}) as TreeNode<SnippetMeta>[];
+		return this.withGroupToggleCells(projected);
+	}
+
+	/**
+	 * Spec 07 §2: la cabecera del grupo aloja su propio `cell_toggle` con el
+	 * agregado de sus miembros. Sin cabeceras se devuelve la lista TAL CUAL,
+	 * por identidad.
+	 */
+	private withGroupToggleCells(
+		rows: readonly TreeNode<SnippetMeta>[],
+	): TreeNode<SnippetMeta>[] {
+		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
+			return rows as TreeNode<SnippetMeta>[];
+		}
+		return rows.map((row) => {
+			if (!isGroupHeader(row.id, this._groupIds)) return row;
+			if (!row.children?.length) return row;
+			const states = row.children.map(
+				(child) => child.meta?.enabled ?? false,
+			);
+			const { enabled, mixed } = summarizeGroupToggleState(states);
+			const pending = row.children.some((child) =>
+				this.pendingToggleIds.has(child.meta?.name ?? ''),
+			);
+			const cells: TreeNodeCell[] = [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled,
+					mixed,
+					style: this.cellStyle,
+					label: translate(
+						mixed
+							? 'addons.mixed'
+							: enabled
+								? 'addons.enabled'
+								: 'addons.disabled',
+					),
+					disabled: pending,
+				},
+			];
+			return { ...row, cells };
+		});
+	}
+
 	private render(): void {
 		if (!this.treeView) return;
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
-			nodes: this.nodes,
+			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
+			// U130-t33 (L-PNODE): snippets no tiene anidacion propia, pero un
+			// grupo activo si crea un nivel (cabecera -> miembros) que
+			// necesita la guia igual que el resto de p-nodes con hijos.
+			indentGuides: this.sortState?.activeScope === 'groups',
+			renderLabel: (row, node) => {
+				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as SnippetMeta;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'snippet', label: meta.name ?? node.label, snippetName: meta.name },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
+					return true;
+				}
+				return false;
+			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
-			expandedIds: new Set<string>(),
+			expandedIds: this._expandedGroupIds,
 			...(this.interactionMode === 'select'
 				? {
 						selectedIds: this.selectedNodeIds,
@@ -288,14 +461,26 @@ export class SnippetsExplorerPanel
 						},
 					}
 				: {}),
-			onToggle: () => {},
+			onToggle: (id: string) => {
+				// Solo las cabeceras se pliegan aqui: los snippets son hojas.
+				if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
+				else this._expandedGroupIds.add(id);
+				this.render();
+			},
 			onRowClick: (id) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				if (this.interactionMode !== 'select') return;
 				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
 				else this.selectedNodeIds.add(id);
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
+					// miembros, no a uno.
+					if (cellId === 'state') void this.toggleGroup(id);
+					return;
+				}
 				if (cellId !== 'state') return;
 				const node = this.findNode(id);
 				if (node) void this.toggle(node.meta);
@@ -306,6 +491,7 @@ export class SnippetsExplorerPanel
 				if (node) setTooltip(row, this.tooltip(node.meta));
 			},
 			onContextMenu: (id, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},
@@ -324,7 +510,8 @@ export class SnippetsExplorerPanel
 	}
 
 	private findNode(id: string): TreeNode<SnippetMeta> | undefined {
-		return this.nodes.find((node) => node.id === id);
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
+		return this.nodes.find((node) => node.id === baseId || node.id === id);
 	}
 
 	private tooltip(meta: SnippetMeta): string {
@@ -398,6 +585,59 @@ export class SnippetsExplorerPanel
 			},
 			event,
 		);
+	}
+
+	/**
+	 * Spec 07 §2: cascada descendente. ACTION, no operation: cambio directo
+	 * de estado del workspace sin pasar por la queue ni por
+	 * `OperationSummaryModal`. Tri-estado como el toggle de
+	 * expansion/colapso: si hay algo encendido, la primera pulsacion APAGA
+	 * todo; solo con todo apagado la siguiente ENCIENDE todo.
+	 */
+	private async toggleGroup(groupId: string): Promise<void> {
+		const header = this.projectedNodes().find(
+			(node) => node.id === groupId,
+		);
+		const members = new Map<string, SnippetMeta>();
+		for (const child of header?.children ?? []) {
+			const meta = child.meta;
+			if (meta?.name && !members.has(meta.name)) {
+				members.set(meta.name, meta);
+			}
+		}
+		if (members.size === 0) return;
+		const listed = [...members.values()];
+		const target = resolveGroupToggleTarget(
+			listed.map((meta) => meta.enabled),
+		);
+		const todo = listed.filter(
+			(meta) =>
+				meta.enabled !== target && !this.pendingToggleIds.has(meta.name),
+		);
+		if (todo.length === 0) return;
+		for (const meta of todo) this.pendingToggleIds.add(meta.name);
+		this.rebuildNodes();
+		try {
+			let failed = 0;
+			for (const meta of todo) {
+				const changed = await setCssSnippetEnabled(
+					this.plugin.app,
+					meta.name,
+					target,
+				);
+				if (!changed) failed += 1;
+			}
+			if (failed > 0) {
+				new Notice(translate('addons.snippets.failed'));
+			}
+			await this.refresh();
+		} catch (error) {
+			new Notice(translate('addons.snippets.failed'));
+			console.error('Vaultman CSS snippet group toggle failed', error);
+		} finally {
+			for (const meta of todo) this.pendingToggleIds.delete(meta.name);
+			if (!this.destroyed) this.rebuildNodes();
+		}
 	}
 
 	private async toggle(meta: SnippetMeta): Promise<void> {

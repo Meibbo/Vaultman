@@ -5,6 +5,7 @@ export const DELETE_PROP = '_DELETE_PROP';
 export const RENAME_FILE = '_RENAME_FILE';
 export const REORDER_ALL = '_REORDER_ALL';
 export const MOVE_FILE = '_MOVE_FILE';
+export const COPY_FILE = '_COPY_FILE';
 export const FIND_REPLACE_CONTENT = '_FIND_REPLACE_CONTENT';
 export const NATIVE_RENAME_PROP = '_NATIVE_RENAME_PROP';
 export const NATIVE_SET_PROP_TYPE = '_NATIVE_SET_PROP_TYPE';
@@ -58,9 +59,9 @@ export interface ContentChange extends BaseChange {
 	caseSensitive: boolean;
 }
 
-/** File system operation (rename/move) */
+/** File system operation (rename/move/copy) */
 export interface FileChange extends BaseChange {
-	type: 'file_rename' | 'file_move' | 'file_delete';
+	type: 'file_rename' | 'file_move' | 'file_copy' | 'file_delete';
 	newName?: string;
 	targetFolder?: string;
 	/**

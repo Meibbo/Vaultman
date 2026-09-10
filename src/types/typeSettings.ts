@@ -1,9 +1,16 @@
-import type { Plugin } from 'obsidian';
+export type NativeSurfaceClickAction =
+	| 'reveal-in-vaultman'
+	| 'open-node-note-same-tab'
+	| 'open-node-note-new-tab'
+	| 'search-selection'
+	| 'none';
+
+import type { Plugin, TFile } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
-import type { ExplorerSortState } from './typeUI';
+import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 import type { InstanceRegistryData } from './typeInstance';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import {
@@ -40,6 +47,15 @@ export interface SavedLayout {
 	summary: string;
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
+	/**
+	 * U130-03: groupId -> URNs de sus miembros. SOLO los grupos custom: los
+	 * presets se computan por predicado en memoria y no tocan settings, asi que
+	 * anadir un preset nuevo no es una migracion de datos.
+	 *
+	 * Las URNs no se borran nunca en silencio: una entidad que desaparece pasa a
+	 * Ghost Slot o Tombstone (logicMembershipUrn), no se limpia del mapa.
+	 */
+	groupMemberships?: Record<string, readonly string[]>;
 }
 
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
@@ -291,6 +307,25 @@ export interface VaultmanSettings {
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
 	savedLayouts?: SavedLayout[];
+	/**
+	 * U130-05: el nombre del layout globalmente activado desde Settings.
+	 * Afecta a todas las instancias presentes y futuras: cada explorer
+	 * lo lee como fallback cuando su activeLayoutName per-instance es null.
+	 * La activacion per-instance (view menu) lo sobreescribe localmente.
+	 */
+	activeLayoutName?: string;
+	/**
+	 * U130-06: el ultimo InteractionMode que el usuario eligio en cada pestana.
+	 * Es el nivel intermedio de la cascada: pierde contra un layout aplicado y
+	 * gana contra DEFAULT_INTERACTION_MODE.
+	 */
+	defaultInteractionModeByTab?: Partial<Record<ExplorerTabId, InteractionMode>>;
+	/**
+	 * U130-06: cuando es false, cada pestana abre siempre en
+	 * DEFAULT_INTERACTION_MODE. Apagarlo NO borra lo ya guardado, para que
+	 * volver a encenderlo recupere la preferencia.
+	 */
+	persistInteractionMode?: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
@@ -329,7 +364,16 @@ export interface VaultmanSettings {
 	contextMenuHideRules: MenuHideRule[];
 	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
 	instanceRegistry?: InstanceRegistryData;
-}
+	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
+	nativeSurfaceClickAlt: NativeSurfaceClickAction;
+	nativeSurfaceClickMod: NativeSurfaceClickAction;
+	/** Patrones de node-notes por kind (input libre, default '#name/$name/%name/[name]') */
+	nodeNoteTagPattern: string;
+	nodeNoteSnippetPattern: string;
+	nodeNotePluginPattern: string;
+	nodeNotePropPattern: string;
+	/** Folder where new node-notes are created (empty = vault root) */
+	}
 
 /** Minimal interface used by VaultmanSettingsTab — breaks the main.ts circular import. */
 export interface iVaultmanPlugin extends Plugin {
@@ -339,11 +383,25 @@ export interface iVaultmanPlugin extends Plugin {
 	updateGlassBlur(): void;
 	queueService?: {
 		setBypassOperations(enabled: boolean): void;
+		addOrRun?(change: {
+			type: 'property';
+			action: 'rename';
+			property: string;
+			value?: string;
+			oldValue?: string;
+			details: string;
+			files: TFile[];
+			customLogic: boolean;
+			logicFunc: (file: TFile, fm: Record<string, unknown>) => Record<string, unknown> | null;
+		}): void;
 	};
 	iconicService?: {
 		setEnabled(enabled: boolean): void;
 	};
+	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
+	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
 	/** BT5-018/036: the live action catalog each menu sub-page configures. */
+	nodeBindingService?: import('../services/serviceNodeBinding').NodeBindingService;
 	contextMenuService: {
 		panelActionCatalog(
 			kind?: import('../logic/logicFilesContextMenu').PanelMenuKind,
@@ -358,7 +416,14 @@ export interface iVaultmanPlugin extends Plugin {
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
-	language: 'auto',
+	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
+	nativeSurfaceClickAlt: 'open-node-note-same-tab',
+	nativeSurfaceClickMod: 'open-node-note-new-tab',
+	nodeNoteTagPattern: '#name',
+	nodeNoteSnippetPattern: '$name',
+	nodeNotePluginPattern: '%name',
+	nodeNotePropPattern: '[name]',
+		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
 	queueTemplates: [],
@@ -455,6 +520,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,
+	defaultInteractionModeByTab: {},
+	persistInteractionMode: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 200,

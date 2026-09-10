@@ -1,14 +1,29 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App, Keymap, Notice, TFile, setIcon } from 'obsidian';
+import {
+	Component,
+	App,
+	Keymap,
+	MarkdownView,
+	Notice,
+	TFile,
+	setIcon,
+} from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
-import { projectActiveFileTags } from '../../logic/logicRevealActiveFileTags';
+import {
+	nestProjectedTagNodes,
+	projectActiveFileTags,
+} from '../../logic/logicRevealActiveFileTags';
 import {
 	matchesTagSource,
+	orderedTagOccurrences,
+	tagOccurrenceKey,
+	tagOccurrenceRange,
 	tagOccurrences,
 	tagSourceLabelKey,
 	tagSourceRank,
 	TAG_SOURCE_ORDER,
+	visibleTagSources,
 	type TagCacheLike,
 	type TagSource,
 } from '../../logic/logicTagSource';
@@ -22,7 +37,12 @@ import {
 	type OperationTarget,
 } from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
+import { openFileAtOffset } from '../../utils/openFileAtOffset';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import {
+	prefixesFromSettings,
+	tagAliasTokens,
+} from '../../services/serviceNodeBinding';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
 	DeferredFilterClickCoordinator,
@@ -43,6 +63,7 @@ import {
 
 export interface PanelPluginCtx {
 	app: App;
+	nodeBindingService?: import('../../services/serviceNodeBinding').NodeBindingService;
 	filterService: FilterService;
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
@@ -57,6 +78,9 @@ export interface PanelPluginCtx {
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
+		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
+		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
+		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -65,9 +89,17 @@ export interface PanelPluginCtx {
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, TagMeta } from '../../types/typeTree';
+import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -108,7 +140,19 @@ import {
 
 type DateSortId = 'mtime' | 'ctime';
 
-function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+interface MarkdownEditorLike {
+	getValue?: () => unknown;
+}
+
+interface MarkdownViewWithContent {
+	file?: TFile;
+	editor?: MarkdownEditorLike;
+}
+
+function sameStringSet(
+	a: ReadonlySet<string>,
+	b: ReadonlySet<string>,
+): boolean {
 	if (a.size !== b.size) return false;
 	for (const value of a) {
 		if (!b.has(value)) return false;
@@ -144,6 +188,12 @@ export class TagsExplorerPanel extends Component {
 	private revealActiveFile = false;
 	private revealActivePath: string | null = null;
 	private stopRevealWatch?: () => void;
+	private revealCycle: {
+		path: string;
+		tagPath: string;
+		signature: string;
+		index: number;
+	} | null = null;
 	/**
 	 * Where each tag is written, across the vault. Built on demand — the type
 	 * cell, the type sort and the source filters are the only readers — and
@@ -151,6 +201,20 @@ export class TagsExplorerPanel extends Component {
 	 * that has moved on.
 	 */
 	private tagSourceIndex: Map<string, Set<TagSource>> | null = null;
+
+	private _tagFilterState(meta: TagMeta) {
+		return this.plugin.filterService.getFilterState('tag', `#${meta.tagPath}`);
+	}
+
+	private _tagFilterMenuLabel(
+		ctx: MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'explorer.ctx.filter_include' | 'explorer.ctx.filter_exclude',
+	): string {
+		return this._tagFilterState(ctx.node.meta as TagMeta) === activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
+	}
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -171,14 +235,15 @@ export class TagsExplorerPanel extends Component {
 			id: 'tag.filter_include',
 			nodeTypes: ['tag'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_include'),
+			label: (ctx) =>
+				this._tagFilterMenuLabel(ctx, 'included', 'explorer.ctx.filter_include'),
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
 				this.filterClicks.cancel(`#${meta.tagPath}`);
 				this.plugin.filterService.setTagNodePolarity(
 					`#${meta.tagPath}`,
-					'inclusive',
+					this._tagFilterState(meta) === 'included' ? 'none' : 'inclusive',
 				);
 			},
 		});
@@ -187,14 +252,15 @@ export class TagsExplorerPanel extends Component {
 			id: 'tag.filter_exclude',
 			nodeTypes: ['tag'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_exclude'),
+			label: (ctx) =>
+				this._tagFilterMenuLabel(ctx, 'excluded', 'explorer.ctx.filter_exclude'),
 			icon: 'lucide-filter-x',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
 				this.filterClicks.cancel(`#${meta.tagPath}`);
 				this.plugin.filterService.setTagNodePolarity(
 					`#${meta.tagPath}`,
-					'exclusive',
+					this._tagFilterState(meta) === 'excluded' ? 'none' : 'exclusive',
 				);
 			},
 		});
@@ -268,6 +334,27 @@ export class TagsExplorerPanel extends Component {
 				this._deferRender();
 			}),
 		);
+		this.registerEvent(
+			this.plugin.app.metadataCache.on('changed', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) {
+					this._deferRender();
+				}
+			}),
+		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
 		// and coalesced — un-registered onLoaded retained unloaded panels and
 		// per-event renders froze large vaults (BT4-002).
@@ -304,7 +391,54 @@ export class TagsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
 	private onContentSearch?: (query: string) => void;
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		void this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<TagMeta>[],
+	): TreeNode<TagMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
+		const layout = this.plugin.settings?.savedLayouts?.find(
+			(candidate) => candidate.name === activeName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<TagMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'tags',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'tags',
+					kind: 'tag',
+					canonicalId: node.meta.tagPath,
+					displayLabel: node.label,
+				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// de tags: clases nativas y meta propia en vez de la prestada
+			// del primer hijo.
+			headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
+			headerMeta: { tagPath: '' },
+		}) as TreeNode<TagMeta>[];
+	}
 
 	setInteractionMode(
 		mode: InteractionMode,
@@ -411,6 +545,58 @@ export class TagsExplorerPanel extends Component {
 		if (reconnecting) handler(this._sortState());
 	}
 
+	configurePanelWidgetProjection(
+		config: PanelWidgetExplorerProjectionConfig,
+	): void {
+		const viewChanged = this.viewMode !== config.viewMode;
+		const cellsChanged = !sameStringSet(this.visibleCells, config.visibleCells);
+		const normalizedSort = normalizeExplorerSortState('tags', config.sortState);
+		const nextFilters = normalizeNodeTypeFilters(
+			normalizedSort.nodeTypeFilters ?? normalizedSort.nodeTypeFilter,
+		);
+		const sortChanged =
+			!sameExplorerSortState(this.sortState, normalizedSort) ||
+			!sameNodeTypeFilters(this.nodeTypeFilters, nextFilters);
+		const normalizedInteractionMode = config.interactionMode
+			? normalizeInteractionMode('tags', config.interactionMode)
+			: undefined;
+		const interactionChanged =
+			normalizedInteractionMode !== undefined &&
+			this.interactionMode !== normalizedInteractionMode;
+
+		if (!viewChanged && !cellsChanged && !sortChanged && !interactionChanged) {
+			return;
+		}
+
+		if (viewChanged) {
+			this.viewMode = config.viewMode;
+			if (config.viewMode === 'tree') {
+				this.tableView?.destroy();
+				this.view.destroy();
+				this.containerEl.empty();
+				this.view = new UnifiedTreeView(this.containerEl);
+			} else {
+				this.view.destroy();
+				if (config.viewMode === 'grid') {
+					this.tableView?.destroy();
+					this.containerEl.empty();
+				}
+			}
+		}
+		if (cellsChanged) {
+			this.visibleCells = new Set(config.visibleCells);
+		}
+		if (sortChanged) {
+			this.sortState = normalizedSort;
+			this.nodeTypeFilters = nextFilters;
+		}
+		if (interactionChanged && normalizedInteractionMode) {
+			this.interactionMode = normalizedInteractionMode;
+		}
+
+		this._render();
+	}
+
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
@@ -436,7 +622,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -444,7 +630,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
 		// The same tree the render walks, reveal included: expanding rows the
 		// projection does not show would leave the ids behind when it closes.
 		let tree = this._scopeProjection(this.logic.getTree());
@@ -457,7 +643,17 @@ export class TagsExplorerPanel extends Component {
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm);
 		}
-		this._expandAll(tree);
+		// L-PNODE: el MISMO arbol que pinta la vista, aplanado incluido y con
+		// la proyeccion de grupos. Sin esto las cabeceras quedaban fuera del
+		// toggle, y con anidacion apagada el toggle entero moria en la guarda.
+		if (!this._nestedEnabled()) {
+			tree = this._sortFlat(
+				flattenTreeToPathLabels(tree, '/', {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
+		}
+		this._expandAll(this.projectedNodes(tree));
 		this._notifyExpansionChanged();
 		this._render();
 	}
@@ -472,7 +668,7 @@ export class TagsExplorerPanel extends Component {
 	//
 	// The Props precedent (`logicRevealActiveFileProps`), applied to tags: a
 	// filter over the snapshot the explorer already built, not a second index.
-	// The order is the note's, which is what makes the `custom` sort mean
+	// The order is the note's, which is what makes the `note` sort mean
 	// something here.
 
 	isRevealingActiveFile(): boolean {
@@ -491,6 +687,7 @@ export class TagsExplorerPanel extends Component {
 
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
+		this.revealCycle = null;
 		if (this.revealActiveFile) this._startRevealWatch();
 		else this._stopRevealWatch();
 		this._render();
@@ -533,6 +730,7 @@ export class TagsExplorerPanel extends Component {
 		this.stopRevealWatch?.();
 		this.stopRevealWatch = undefined;
 		this.revealActivePath = null;
+		this.revealCycle = null;
 	}
 
 	/**
@@ -556,14 +754,180 @@ export class TagsExplorerPanel extends Component {
 		return this.plugin.app.metadataCache.getFileCache(file) ?? {};
 	}
 
+	/** Read the active editor when possible so reveal uses unsaved loaded text. */
+	private async _revealContent(file: TFile): Promise<string | null> {
+		const workspace = this.plugin.app.workspace;
+		const active = workspace.getActiveViewOfType(
+			MarkdownView,
+		) as MarkdownViewWithContent | null;
+		if (active?.file?.path === file.path) {
+			try {
+				const content = active.editor?.getValue?.();
+				if (typeof content === 'string') return content;
+			} catch {
+				// A view can be torn down between the active-file check and getValue.
+			}
+		}
+		try {
+			return await this.plugin.app.vault.cachedRead(file);
+		} catch {
+			return null;
+		}
+	}
+
 	/**
-	 * Narrows an already-built snapshot; it never asks for a new one. Reveal is
-	 * the only narrowing the tags tree has, so this is where any other would
-	 * join it rather than being applied at each call site.
+	 * Jump to and highlight a tag occurrence in the revealed note. A structural
+	 * parent owns all descendant occurrences, so repeated clicks cycle the same
+	 * targets instead of alternating with the beginning of the note.
+	 */
+	private async _revealTagAt(tagPath: string): Promise<void> {
+		const path = this._revealPath();
+		if (!path) return;
+		const file = this.plugin.app.vault.getFileByPath(path);
+		if (!(file instanceof TFile)) return;
+		const cache = this._revealCache();
+		const occurrences = tagOccurrences(cache);
+		const selectedSources = this._selectedTagSources();
+		const sort = activeScopeSort('tags', this.sortState);
+		const ordered = orderedTagOccurrences(
+			occurrences,
+			tagPath,
+			sort.direction,
+			selectedSources,
+		);
+		if (ordered.length === 0) {
+			this.revealCycle = null;
+			return;
+		}
+
+		const occurrenceSignature = ordered.map(tagOccurrenceKey).join('|');
+		const cycleSignature = [
+			path,
+			tagPath,
+			sort.sortBy,
+			sort.direction,
+			selectedSources.join(','),
+			occurrenceSignature,
+		].join('|');
+		const previousCycle = this.revealCycle;
+		const continuing =
+			previousCycle?.path === path &&
+			previousCycle.tagPath === tagPath &&
+			previousCycle.signature === cycleSignature;
+		const index =
+			continuing && ordered.length > 1
+				? ((previousCycle?.index ?? -1) + 1) % ordered.length
+				: 0;
+		const occurrence = ordered[index];
+		const content = await this._revealContent(file);
+		if (content === null) return;
+		const sameSourcePath = occurrences.filter(
+			(candidate) =>
+				candidate.source === occurrence.source &&
+				candidate.tagPath === occurrence.tagPath,
+		);
+		const range = tagOccurrenceRange(occurrence, content, {
+			frontmatterStartOffset: cache?.frontmatterPosition?.start?.offset,
+			frontmatterEndOffset: cache?.frontmatterPosition?.end?.offset,
+			occurrenceIndex: sameSourcePath.indexOf(occurrence),
+		});
+		// A missing metadata position is recoverable from the loaded text. If the
+		// text also has no matching token, do not send offset zero to the editor.
+		if (!range) return;
+		const opened = await openFileAtOffset(this.plugin.app, file, range[0], {
+			match: { content, range },
+			source: occurrence.source,
+		});
+		if (!opened) return;
+		this.revealCycle = {
+			path,
+			tagPath,
+			signature: cycleSignature,
+			index,
+		};
+	}
+
+	private _selectedTagSources(): TagSource[] {
+		return TAG_SOURCE_ORDER.filter((source) =>
+			this.nodeTypeFilters.includes(source),
+		);
+	}
+
+	/**
+	 * Narrows an already-built snapshot; it never asks for a new one. Reveal
+	 * and the `filtered` switch are the narrowings the tags tree has, so this
+	 * is where any other would join it rather than being applied at each call
+	 * site. Reveal wins when both are on: it is already a single note.
 	 */
 	private _scopeProjection(snapshot: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
-		if (!this.revealActiveFile) return snapshot;
-		return projectActiveFileTags(snapshot, this._revealCache());
+		if (!this.revealActiveFile) {
+			if (this.sortState?.filtered === true) {
+				return this._filteredProjection(snapshot);
+			}
+			return snapshot;
+		}
+		const projected = projectActiveFileTags(snapshot, this._revealCache());
+		// The projection is flat on purpose (a note holds whole paths), so
+		// with `nested` on it must be regrouped — otherwise on and off render
+		// the same plane.
+		return this._nestedEnabled()
+			? nestProjectedTagNodes(projected, snapshot)
+			: projected;
+	}
+
+	/**
+	 * Narrows the snapshot to the tags the active filter leaves standing,
+	 * like the Props scene does. Reveal wins over it (see `_scopeProjection`):
+	 * it is already a single note. A parent survives when a descendant does.
+	 */
+	private _filteredProjectionCache: {
+		snapshot: readonly TreeNode<TagMeta>[];
+		files: readonly unknown[];
+		projection: TreeNode<TagMeta>[];
+	} | null = null;
+
+	private _filteredProjection(
+		snapshot: TreeNode<TagMeta>[],
+	): TreeNode<TagMeta>[] {
+		if (!this.plugin.filterService.narrowsVault()) return snapshot;
+		const files = this.plugin.filterService.filteredFiles;
+		const cached = this._filteredProjectionCache;
+		if (cached && cached.snapshot === snapshot && cached.files === files) {
+			return cached.projection;
+		}
+		const allowed = new Set<string>();
+		for (const file of files) {
+			const cache = this.plugin.app.metadataCache.getFileCache(file);
+			for (const occurrence of tagOccurrences(cache)) {
+				const parts = occurrence.tagPath.split('/');
+				let path = '';
+				for (const part of parts) {
+					path = path ? `${path}/${part}` : part;
+					allowed.add(path);
+				}
+			}
+		}
+		const projection = this._keepAllowedTags(snapshot, allowed);
+		this._filteredProjectionCache = { snapshot, files, projection };
+		return projection;
+	}
+
+	private _keepAllowedTags(
+		nodes: TreeNode<TagMeta>[],
+		allowed: ReadonlySet<string>,
+	): TreeNode<TagMeta>[] {
+		const kept: TreeNode<TagMeta>[] = [];
+		for (const node of nodes) {
+			const children = this._keepAllowedTags(node.children ?? [], allowed);
+			if (children.length > 0 || allowed.has(node.meta.tagPath)) {
+				kept.push(
+					children.length === (node.children?.length ?? 0)
+						? node
+						: { ...node, children },
+				);
+			}
+		}
+		return kept;
 	}
 
 	/**
@@ -607,9 +971,50 @@ export class TagsExplorerPanel extends Component {
 		return node.meta.tagSources ?? this._sourceIndex().get(node.meta.tagPath);
 	}
 
+	private _decorateNodeNotes(nodes: TreeNode<TagMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<TagMeta>[]) => {
+			for (const node of list) {
+				const tagPath = node.meta?.tagPath ?? node.label;
+				const tagTokens = tagAliasTokens(
+					tagPath,
+					prefixesFromSettings(this.plugin.settings),
+				);
+				if (tagTokens.some((t) => aliasSet.has(t))) {
+					node.meta.hasNodeNote = true;
+				}
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
+	}
+
 	private _decorateTypeText(nodes: TreeNode<TagMeta>[]): void {
+		const selectedSources = this._selectedTagSources();
 		for (const node of nodes) {
-			const labelKey = tagSourceLabelKey(this._sourcesFor(node));
+			const labelKey = tagSourceLabelKey(
+				visibleTagSources(this._sourcesFor(node), selectedSources),
+			);
 			node.typeText = labelKey ? translate(labelKey) : undefined;
 			this._decorateTypeText(node.children ?? []);
 		}
@@ -623,9 +1028,9 @@ export class TagsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
-		// 'custom' is the anchored note's own order; the projection already
+		// 'note' is the anchored note's own order; the projection already
 		// carries it, so the comparator leaves the sequence untouched.
-		if (normalizedSortBy === 'custom') return 0;
+		if (normalizedSortBy === 'note') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
@@ -988,6 +1393,9 @@ export class TagsExplorerPanel extends Component {
 		if (this.visibleCells.has('type')) {
 			this._decorateTypeText(nodesWithIcons);
 		}
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(nodesWithIcons);
+		}
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(
@@ -1023,11 +1431,13 @@ export class TagsExplorerPanel extends Component {
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this.plugin.contextMenuService.openPanelMenu(
@@ -1078,9 +1488,10 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		this.view.render({
-			nodes: nodesWithIcons,
+			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
@@ -1094,6 +1505,26 @@ export class TagsExplorerPanel extends Component {
 						text: target,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+				if (
+					this.visibleCells.has('format') &&
+					(node.meta as TagMeta)?.hasNodeNote === true
+				) {
+					const label = row.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
+					});
+					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const tagPath = (node.meta as TagMeta)?.tagPath ?? node.label;
+						void this.plugin.nodeBindingService?.bindOrCreate(
+							{ kind: 'tag', label: node.label, tagPath },
+							{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+						);
+					};
 					return true;
 				}
 				return false;
@@ -1136,13 +1567,15 @@ export class TagsExplorerPanel extends Component {
 				void this._render();
 			},
 			onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, nodesWithIcons),
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
@@ -1213,6 +1646,13 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		if (action === 'expand') {
+			// In reveal the rows are the note's own tags, so opening one
+			// jumps to where the note writes it — the same open-at-offset
+			// mechanism the content matches use — instead of expanding.
+			if (this.revealActiveFile) {
+				void this._revealTagAt(node.meta.tagPath);
+				return;
+			}
 			if (node.children?.length) {
 				this._toggleExpanded(node.id);
 				void this._render();
@@ -1762,12 +2202,35 @@ export class TagsExplorerPanel extends Component {
 		return this.visibleCells.has('nested');
 	}
 
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
 	private _findNode(
 		id: string,
 		nodes: TreeNode<TagMeta>[],
 	): TreeNode<TagMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -1810,7 +2273,8 @@ export class TagsExplorerPanel extends Component {
 		// U121-044, the tag-side twin: in reveal the user is looking at ONE note,
 		// so a mutating action must resolve against it instead of every note that
 		// happens to carry the same tag.
-		const scope = this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
+		const scope =
+			this._mutationScope() ?? this.plugin.app.vault.getMarkdownFiles();
 		return scope.filter((file) => {
 			const cache = this.plugin.app.metadataCache.getFileCache(file);
 			const fmTags = cache?.frontmatter?.tags as unknown;

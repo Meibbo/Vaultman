@@ -11,12 +11,16 @@
 @use './core/base';
 
 // 3. Components
+@use './components/action-cell';
+@use './components/transaction-bar';
 @use './components/buttons';
 @use './components/shell';
 @use './components/bottom-nav';
 @use './components/tabs';
 @use './components/popups-islands';
 @use './components/modals';
+@use './components/sasi-inspector';
+@use './components/group-header';
 
 // 4. Views & Explorers
 @use './views/files';

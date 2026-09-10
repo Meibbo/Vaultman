@@ -15,6 +15,8 @@ import {
 	type FilterPolarity,
 } from '../../logic/logicFilterPolarity';
 import type { FilterService } from '../../services/serviceFilter';
+import type { BindingNodeInput } from '../../services/serviceNodeBinding';
+import { propAliasTokens, prefixesFromSettings, valueMatchesBoundAlias } from '../../services/serviceNodeBinding';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
@@ -27,6 +29,7 @@ import {
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
+	nodeBindingService?: import('../../services/serviceNodeBinding').NodeBindingService;
 	filterService: FilterService;
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
@@ -48,6 +51,9 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
+		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
+		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
+		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -56,7 +62,8 @@ export interface PanelPluginCtx {
 
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
-import type { TreeNode, PropMeta } from '../../types/typeTree';
+import type { TreeNode, TreeNodeCell, PropMeta } from '../../types/typeTree';
+import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import type { PropertyChange } from '../../types/typeOps';
 import type { PropConflictWarnings } from '../../types/typeSettings';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
@@ -75,6 +82,13 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -126,6 +140,7 @@ import {
 	type ValueMoveOrigin,
 	type ValueMoveOwner,
 } from '../../logic/logicValueMoveMode';
+import type { BarNode } from '../../logic/logicTransactionBar';
 import {
 	decidePropMoveConflict,
 	normalizePropMoveTypeConflict,
@@ -148,10 +163,13 @@ import {
 	parsePropertyValue,
 	PROPERTY_VALUE_CONVERSION_OPTIONS,
 	replaceMatchingPropertyValue,
+	resolveCorePropertyWidget,
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
-import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import { findStagedRenameIndex, renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
+	detectLinkType,
+	parseWikilink,
 	renderEditableText,
 	renderPropertyValue,
 } from '../../utils/renderPropertyValue';
@@ -176,7 +194,7 @@ type KeyedPropFilterTarget = {
 	target: PropFilterTarget;
 };
 
-function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+function sameStringSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 	if (a.size !== b.size) return false;
 	for (const value of a) {
 		if (!b.has(value)) return false;
@@ -232,7 +250,12 @@ export class PropsExplorerPanel extends Component {
 			id: 'prop.filter_include',
 			nodeTypes: ['prop', 'value'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_include'),
+			label: (ctx) =>
+				this._propFilterMenuLabel(
+					ctx,
+					'included',
+					'explorer.ctx.filter_include',
+				),
 			icon: 'lucide-filter',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
@@ -241,7 +264,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.filterService.setPropertyNodePolarity(
 					filterTarget.target.propName,
 					filterTarget.target.value,
-					'inclusive',
+					this._propFilterState(meta) === 'included' ? 'none' : 'inclusive',
 				);
 			},
 		});
@@ -250,7 +273,12 @@ export class PropsExplorerPanel extends Component {
 			id: 'prop.filter_exclude',
 			nodeTypes: ['prop', 'value'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_exclude'),
+			label: (ctx) =>
+				this._propFilterMenuLabel(
+					ctx,
+					'excluded',
+					'explorer.ctx.filter_exclude',
+				),
 			icon: 'lucide-filter-x',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
@@ -259,7 +287,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.filterService.setPropertyNodePolarity(
 					filterTarget.target.propName,
 					filterTarget.target.value,
-					'exclusive',
+					this._propFilterState(meta) === 'excluded' ? 'none' : 'exclusive',
 				);
 			},
 		});
@@ -529,6 +557,22 @@ export class PropsExplorerPanel extends Component {
 				this._deferRender();
 			}),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('create', () => {
+				if (this.visibleCells.has('format')) {
+					this.logic.invalidate();
+					this._deferRender();
+				}
+			}),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', () => {
+				if (this.visibleCells.has('format')) {
+					this.logic.invalidate();
+					this._deferRender();
+				}
+			}),
+		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
 		// and coalesced (BT4-002 twin of the tags panel fix).
 		const iconic = this.plugin.iconicService;
@@ -560,7 +604,71 @@ export class PropsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
 	private onContentSearch?: (query: string) => void;
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		void this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
+		const layout = this.plugin.settings?.savedLayouts?.find(
+			(candidate) => candidate.name === activeName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<PropMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'props',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) => {
+				const meta = node.meta as PropMeta;
+				const isValue = meta.isValueNode;
+				const canonicalId =
+					isValue && meta.rawValue !== undefined
+						? `${meta.propName}:${meta.rawValue}`
+						: meta.propName;
+				return formatMembershipUrn({
+					providerId: 'props',
+					kind: isValue ? 'value' : 'prop',
+					canonicalId,
+					displayLabel: node.label,
+				});
+			},
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// de props: clases nativas y meta propia en vez de la prestada
+			// del primer hijo.
+			headerCoreCls: 'tree-item-self tappable is-clickable',
+			headerMeta: { propName: '', propType: '', isValueNode: false },
+		}) as TreeNode<PropMeta>[];
+	}
+
+	/**
+	 * U130-03 Task 3.6: el toggle node ⇄ group de la barra solo tiene sentido
+	 * si hay ContainerNodes a los que mover. Mira `_groupIds.size`, NO un flag
+	 * de "agrupacion encendida": con el scope `groups` apagado pero grupos
+	 * definidos, el toggle sigue valiendo (spec-04 test 4, lectura (ii)).
+	 */
+	hasProjectedGroups(): boolean {
+		return this._groupIds.size > 0;
+	}
 
 	private interactionModeChangeHandler?: (mode: InteractionMode) => void;
 	setInteractionModeChangeHandler(
@@ -722,6 +830,57 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	configurePanelWidgetProjection(
+		config: PanelWidgetExplorerProjectionConfig,
+	): void {
+		const viewChanged = this.viewMode !== config.viewMode;
+		const cellsChanged = !sameStringSet(this.visibleCells, config.visibleCells);
+		const normalizedSort = normalizeExplorerSortState('props', config.sortState);
+		const nextFilters = normalizeNodeTypeFilters(
+			normalizedSort.nodeTypeFilters ?? normalizedSort.nodeTypeFilter,
+		);
+		const sortChanged =
+			!sameExplorerSortState(this.sortState, normalizedSort) ||
+			!sameNodeTypeFilters(this.nodeTypeFilters, nextFilters);
+		const normalizedInteractionMode = config.interactionMode
+			? normalizeInteractionMode('props', config.interactionMode)
+			: undefined;
+		const interactionChanged =
+			normalizedInteractionMode !== undefined &&
+			this.interactionMode !== normalizedInteractionMode;
+
+		if (!viewChanged && !cellsChanged && !sortChanged && !interactionChanged) {
+			return;
+		}
+
+		if (viewChanged) {
+			this.viewMode = config.viewMode;
+			if (config.viewMode === 'tree') {
+				this.tableView?.destroy();
+				this.view.destroy();
+				this.view = new UnifiedTreeView(this.containerEl);
+			} else {
+				this.view.destroy();
+				if (config.viewMode === 'grid') {
+					this.tableView?.destroy();
+					this.containerEl.empty();
+				}
+			}
+		}
+		if (cellsChanged) {
+			this.visibleCells = new Set(config.visibleCells);
+		}
+		if (sortChanged) {
+			this.sortState = normalizedSort;
+			this.nodeTypeFilters = nextFilters;
+		}
+		if (interactionChanged && normalizedInteractionMode) {
+			this.interactionMode = normalizedInteractionMode;
+		}
+
+		this._render();
+	}
+
 	setSortState(state: ExplorerSortState): void {
 		const normalizedState = normalizeExplorerSortState('props', state);
 		const nextNodeTypeFilters = normalizeNodeTypeFilters(
@@ -745,7 +904,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -753,7 +912,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
 		let tree = this.logic.getTree();
 		if (this.nodeTypeFilters.length > 0) {
 			tree = this._filterByTypes(tree, this.nodeTypeFilters);
@@ -768,7 +927,17 @@ export class PropsExplorerPanel extends Component {
 				this.expandedIds.add(id);
 			}
 		}
-		this._expandAll(tree);
+		// L-PNODE: el MISMO arbol que pinta la vista, aplanado incluido y con
+		// la proyeccion de grupos. Sin esto las cabeceras quedaban fuera del
+		// toggle, y con anidacion apagada el toggle entero moria en la guarda.
+		if (!this._nestedEnabled()) {
+			tree = this._sortFlat(
+				flattenPropertyValues(tree, {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
+		}
+		this._expandAll(this.projectedNodes(tree));
 		this._notifyExpansionChanged();
 		this._render();
 	}
@@ -1143,6 +1312,58 @@ export class PropsExplorerPanel extends Component {
 		this._exitValueMoveMode();
 	}
 
+	/**
+	 * U130-01: los mismos metodos, alcanzables por id estable de SASI. No se
+	 * mueve comportamiento: esto solo los hace invocables desde el panelWidget
+	 * y desde un macro. Ninguno recibe contexto ambiente -- el payload lo
+	 * resuelve quien invoca.
+	 */
+	sasiMoveHandlers(): Record<string, () => Promise<void>> {
+		return {
+			'vaultman.move.cancel': async () => {
+				this.cancelValueMoveMode();
+			},
+			'vaultman.move.toggleWrite': async () => {
+				this.toggleValueMoveWrite();
+			},
+			'vaultman.move.toggleOriginDisposition': async () => {
+				this.toggleValueMoveOriginDisposition();
+			},
+			/**
+			 * U130-04: la culminacion. NO construye un camino de escritura
+			 * nuevo: llama a la que ya stagea contra `queueService` y que en
+			 * bypass abre `OperationSummaryModal`. La confirmacion del payload
+			 * la exige el invoker antes de llegar aqui; el modal es la del
+			 * usuario, y son cosas distintas -- una protege a los scripts, la
+			 * otra a la persona.
+			 */
+			'vaultman.move.proceed': async () => {
+				this.proceedValueMove();
+			},
+		};
+	}
+
+	/**
+	 * U130-04: la barra cuenta JERARQUICAMENTE -- una propiedad con 10 valores
+	 * son 11 nodos, no 1. El conteo lo hace `buildTransactionTelemetry`, pero
+	 * necesita la relacion padre/hijo, y la unica que la tiene es el arbol
+	 * proyectado.
+	 */
+	moveTransactionNodes(): readonly BarNode[] {
+		const flatten = (
+			nodes: readonly TreeNode<PropMeta>[],
+		): BarNode[] =>
+			nodes.flatMap((node) => [
+				{
+					id: node.id,
+					label: node.label,
+					childIds: (node.children ?? []).map((child) => child.id),
+				},
+				...flatten(node.children ?? []),
+			]);
+		return flatten(this.logic.getTree());
+	}
+
 	private _valueMoveProceedAvailable(): boolean {
 		return this.valueMoveMode !== null && proceedEnabled(this.valueMoveMode);
 	}
@@ -1368,8 +1589,9 @@ export class PropsExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -1502,6 +1724,25 @@ export class PropsExplorerPanel extends Component {
 					: `value:${JSON.stringify([meta.propName, value])}`,
 			target: { propName: meta.propName, value },
 		};
+	}
+
+	private _propFilterState(meta: PropMeta) {
+		const target = this._propFilterTarget(meta).target;
+		return this.plugin.filterService.getFilterState(
+			meta.isValueNode ? 'value' : 'prop',
+			target.propName,
+			target.value,
+		);
+	}
+
+	private _propFilterMenuLabel(
+		ctx: import('../../types/typeCMenu').MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'explorer.ctx.filter_include' | 'explorer.ctx.filter_exclude',
+	): string {
+		return this._propFilterState(ctx.node.meta as PropMeta) === activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
 	}
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
@@ -1662,6 +1903,51 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
+		private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<PropMeta>[]) => {
+			for (const node of list) {
+				const meta = node.meta;
+				if (meta) {
+					if (!meta.isValueNode) {
+						const propName = meta.propName ?? node.label;
+						const propTokens = propAliasTokens(propName, prefixesFromSettings(this.plugin.settings));
+						if (propTokens.some((t) => aliasSet.has(t))) {
+							meta.hasNodeNote = true;
+						}
+				} else {
+					const rawValue = meta.rawValue ?? node.label;
+					if (valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t))) {
+						meta.hasNodeNote = true;
+					}
+				}
+				}
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
+	}
+
 	private _decorateSubCounts(nodes: TreeNode<PropMeta>[]): void {
 		for (const node of nodes) {
 			node.subCountText =
@@ -1726,6 +2012,9 @@ export class PropsExplorerPanel extends Component {
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(nodesWithIcons);
 		}
+		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+			this._decorateNodeNotes(nodesWithIcons);
+		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
@@ -1761,11 +2050,13 @@ export class PropsExplorerPanel extends Component {
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._openNodeMenu(node, event);
@@ -1796,9 +2087,65 @@ export class PropsExplorerPanel extends Component {
 					if (target) {
 						const label = container.createSpan({
 							cls: 'vaultman-tree-label vaultman-rename-preview',
-							text: target,
+						});
+						label.setAttribute('data-preview', 'rename');
+						const previewMeta = node.meta as PropMeta;
+						if (target === '') {
+							label.createSpan({
+								cls: 'vaultman-tree-label vaultman-property-value-empty',
+								attr: { 'data-placeholder': translate('prop.value.empty') },
+							});
+						} else if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+							// El preview habla el idioma del widget (spec rename-preview).
+							renderPropertyValue({
+								container: label,
+								propertyAttributeContainer: label,
+								propertyKey: previewMeta.propName,
+								raw: target,
+								type: previewMeta.propType ?? 'text',
+								app: this.plugin.app,
+								preview: true,
+							});
+							this._wirePreviewDateReplace(label, previewMeta, node.id);
+						} else {
+							label.setText(target);
+						}
+						if (node.labelColor) label.style.color = node.labelColor;
+						return true;
+					}
+					const nodeMeta = node.meta as PropMeta;
+					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
+					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
+					// formato node-note-link; hyperlink/url_link quedan plain.
+					const nodeLinkType = detectLinkType(nodeLinkText);
+					if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
+						const label = container.createSpan({
+							cls: 'vaultman-tree-label vaultman-node-note-link',
+							text: node.label,
 						});
 						if (node.labelColor) label.style.color = node.labelColor;
+						label.onclick = (e) => {
+							e.stopPropagation();
+							e.preventDefault();
+							const meta = node.meta as PropMeta;
+							if (meta?.isValueNode) {
+								void this._bindAndRefreshLive(
+									{ kind: 'value', label: node.label, propName: meta.propName },
+									e,
+									() => {
+										label.classList.add("vaultman-node-note-link");
+									},
+								);
+							} else {
+								void this._bindAndRefreshLive(
+									{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
+									e,
+									() => {
+										label.classList.add("vaultman-node-note-link");
+									},
+								);
+							}
+						};
 						return true;
 					}
 					return this._renderPropertyValueLabel(container, node);
@@ -1809,22 +2156,112 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		this.view.render({
-			nodes: nodesWithIcons,
+			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			onCellClick: (id, cellId) => {
+				const node = this._findNode(id, this.projectedNodes(nodesWithIcons));
+				if (!node?.meta.isValueNode || !cellId.startsWith('cell_hover:')) return;
+				const action = cellId.slice('cell_hover:'.length);
+				if (action === 'open-daily-note') {
+					const day = (node.meta.rawValue ?? '').slice(0, 10);
+					void this.plugin.app.workspace.openLinkText(day, '', false);
+				} else if (action === 'delete-value') {
+					this.plugin.contextMenuService.invokeAction('value.delete', {
+						nodeType: 'value',
+						node,
+						surface: 'panel',
+					});
+				}
+			},
 			renderLabel: (container, node) => {
 				const queue = this.plugin.queueService.queue;
 				const target = renameTargetFromQueue(queue, node.id);
 				if (target) {
 					const label = container.createSpan({
 						cls: 'vaultman-tree-label vaultman-rename-preview',
-						text: target,
+					});
+					label.setAttribute('data-preview', 'rename');
+					const previewMeta = node.meta as PropMeta;
+					if (target === '') {
+						label.createSpan({
+							cls: 'vaultman-tree-label vaultman-property-value-empty',
+							attr: { 'data-placeholder': translate('prop.value.empty') },
+						});
+					} else if (this.visibleCells.has('format') && previewMeta?.isValueNode) {
+						// El preview habla el idioma del widget (spec rename-preview).
+						renderPropertyValue({
+							container: label,
+							propertyAttributeContainer: label,
+							propertyKey: previewMeta.propName,
+							raw: target,
+							type: previewMeta.propType ?? 'text',
+							app: this.plugin.app,
+							preview: true,
+						});
+						this._wirePreviewDateReplace(label, previewMeta, node.id);
+					} else {
+						label.setText(target);
+					}
+					if (node.labelColor) label.style.color = node.labelColor;
+					return true;
+				}
+					const nodeMeta = node.meta as PropMeta;
+					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
+					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
+					// formato node-note-link; hyperlink/url_link quedan plain.
+					const nodeLinkType = detectLinkType(nodeLinkText);
+					if (this.visibleCells.has('format') && nodeMeta?.hasNodeNote === true && nodeLinkType !== 'hyperlink' && nodeLinkType !== 'url_link') {
+					// Wikilink bindeado con aspecto y gesto vanilla de core
+					// (internal-link + is-unresolved + openLinkText): la clase
+					// nn-link queda solo para texto con nota, no para links.
+					const wiki = nodeLinkType === 'wikilink' ? parseWikilink(nodeLinkText) : null;
+					if (wiki !== null) {
+						const cache = this.plugin.app.metadataCache;
+						const link = container.createEl('a', {
+							cls: 'internal-link vaultman-property-value-link vaultman-tree-label' + (cache && !cache.getFirstLinkpathDest?.(wiki.target, '') ? ' is-unresolved' : ''),
+							text: wiki.display,
+							href: wiki.target,
+						});
+						link.onclick = (e) => {
+							e.stopPropagation();
+							e.preventDefault();
+							void this.plugin.app.workspace.openLinkText(wiki.target, '', e.ctrlKey || e.metaKey || e.button === 1);
+						};
+						return true;
+					}
+					const label = container.createSpan({
+						cls: 'vaultman-tree-label vaultman-node-note-link',
+						text: node.label,
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
+					label.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						const meta = node.meta as PropMeta;
+						if (meta?.isValueNode) {
+							void this._bindAndRefreshLive(
+								{ kind: 'value', label: node.label, propName: meta.propName },
+								e,
+								() => {
+									label.classList.add("vaultman-node-note-link");
+								},
+							);
+						} else {
+							void this._bindAndRefreshLive(
+								{ kind: 'prop', label: node.label, propName: meta?.propName ?? node.label },
+								e,
+								() => {
+									label.classList.add("vaultman-node-note-link");
+								},
+							);
+						}
+					};
 					return true;
 				}
 				return this._renderPropertyValueLabel(
@@ -1882,13 +2319,15 @@ export class PropsExplorerPanel extends Component {
 				void this._render();
 			},
 			onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, nodesWithIcons),
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._openNodeMenu(node, e);
@@ -1961,8 +2400,46 @@ export class PropsExplorerPanel extends Component {
 		};
 	}
 
-	private _renderPropertyValueLabel(
-		container: HTMLElement,
+	/**
+	 * Bind tras click en nn-link + parche dirigido en vivo: si se creó o
+	 * adoptó nota, decora la celda ya renderizada (patrón words/tasks) sin
+	 * re-render completo ni pipeline de filtros.
+	 */
+	private _bindAndRefreshLive(node: BindingNodeInput, e: MouseEvent, onBound?: () => void): void {
+		void (async () => {
+			const res = await this.plugin.nodeBindingService?.bindOrCreate(
+				node,
+				{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+			);
+			if (res && (res.outcome === "created" || res.outcome === "adopted")) {
+				onBound?.();
+			}
+		})();
+	}
+
+	/**
+	 * Date picker habilitado dentro de un preview: editarlo sustituye la
+	 * staged operation (remove + stage nuevo valor), sin escribir directo
+	 * al vault. Spec rename-preview-decorated-cell-format §3/§6.
+	 */
+	private _wirePreviewDateReplace(label: HTMLElement, meta: PropMeta, nodeId: string): void {
+		const input = label.querySelector('input.mod-date, input.mod-datetime') as HTMLInputElement | null;
+		if (!input) return;
+		input.removeAttribute('disabled');
+		input.addEventListener('change', () => {
+			const next = input.value;
+			if (!next) return;
+			const queue = this.plugin.queueService.queue;
+			const stagedIndex = findStagedRenameIndex(queue, nodeId);
+			if (stagedIndex < 0) return;
+			const propName = meta.propName ?? '';
+			const rawValue = meta.rawValue ?? '';
+			this.plugin.queueService.remove(stagedIndex);
+			void this._replaceValueInVault(propName, rawValue, next);
+		});
+	}
+
+	private _renderPropertyValueLabel(		container: HTMLElement,
 		node: TreeNode<PropMeta>,
 		propertyAttributeContainer?: HTMLElement,
 	): boolean {
@@ -1973,8 +2450,29 @@ export class PropsExplorerPanel extends Component {
 		if (target) {
 			const label = container.createSpan({
 				cls: 'vaultman-tree-label vaultman-rename-preview',
-				text: target,
 			});
+			label.setAttribute('data-preview', 'rename');
+			if (target === '') {
+				// Transición a vacío: estado empty decorado, no crudo.
+				label.createSpan({
+					cls: 'vaultman-tree-label vaultman-property-value-empty',
+					attr: { 'data-placeholder': translate('prop.value.empty') },
+				});
+			} else if (this.visibleCells.has('format')) {
+				// El preview habla el idioma del widget (spec rename-preview).
+				renderPropertyValue({
+					container: label,
+					propertyAttributeContainer: label,
+					propertyKey: node.meta.propName,
+					raw: target,
+					type: node.meta.propType ?? 'text',
+					app: this.plugin.app,
+					preview: true,
+				});
+				this._wirePreviewDateReplace(label, node.meta, node.id);
+			} else {
+				label.setText(target);
+			}
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
 		}
@@ -2040,16 +2538,6 @@ export class PropsExplorerPanel extends Component {
 			raw: rawValue,
 			type: propType,
 			app: this.plugin.app,
-			onRemoveValue: () => {
-				// Removal runs the registered `value.delete` action, so the inline
-				// control and the context menu queue the same operation, honour the
-				// same `when` guard and raise the same pending badge.
-				this.plugin.contextMenuService.invokeAction('value.delete', {
-					nodeType: 'value',
-					node,
-					surface: 'panel',
-				});
-			},
 			onRenameValue: (next) => {
 				if (propType === 'text') {
 					next = next.replace(
@@ -2159,6 +2647,28 @@ export class PropsExplorerPanel extends Component {
 		return this.visibleCells.has('nested');
 	}
 
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
 	private _metadataTypeManager(): MetadataTypeManagerLike | null {
 		return (
 			(
@@ -2198,11 +2708,11 @@ export class PropsExplorerPanel extends Component {
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
-		// 'custom' is the anchored note's own order. The projection already comes
+		// 'note' is the anchored note's own order. The projection already comes
 		// out in that order, so the comparator's job is to leave it alone: the
 		// sort is stable, and returning 0 preserves the frontmatter sequence for
 		// properties and, one level down, for each property's values.
-		if (normalizedSortBy === 'custom') return 0;
+		if (normalizedSortBy === 'note') return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
@@ -2226,7 +2736,13 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return dir * a.label.localeCompare(b.label);
+		return (
+			dir *
+			a.label.localeCompare(b.label, undefined, {
+				numeric: true,
+				sensitivity: 'base',
+			})
+		);
 	}
 
 	/**
@@ -2277,13 +2793,7 @@ export class PropsExplorerPanel extends Component {
 					propertiesTimeIndex,
 					propertiesTypeIndex,
 				),
-			(a, b, parent) => {
-				if (this._effectivePropType(parent.meta) !== 'list') {
-					// "el sort_option de 'values' debería ordenar los valores solamente de las propiedades tipo lista"
-					return 0;
-				}
-				return this._compareNodes(a, b, valuesSort, valuesTimeIndex);
-			},
+			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
 		);
 	}
 
@@ -2738,6 +3248,11 @@ export class PropsExplorerPanel extends Component {
 			const defaultIcon = !meta.isValueNode
 				? this._effectivePropIcon(meta)
 				: undefined;
+			const hoverCell =
+				meta.isValueNode && this.visibleCells.has('cell_hover')
+					? this._valueHoverCell(meta, queue)
+					: null;
+			const cells: TreeNodeCell[] = hoverCell ? [hoverCell] : [];
 
 			return {
 				...node,
@@ -2746,9 +3261,39 @@ export class PropsExplorerPanel extends Component {
 				iconColor: iconic?.color || undefined,
 				typeText: !meta.isValueNode ? this._effectivePropType(meta) : undefined,
 				badges: badges,
+				cells,
 				children: resolvedChildren,
 			};
 		});
+	}
+
+	private _valueHoverCell(
+		meta: PropMeta,
+		queue: import('../../types/typeOps').PendingChange[],
+	): TreeNodeCell | null {
+		const widget = resolveCorePropertyWidget(meta.propType);
+		const actions: Extract<TreeNodeCell, { kind: 'cell_hover' }>['actions'] = [];
+		const raw = meta.rawValue ?? '';
+		if (
+			(widget === 'date' || widget === 'datetime') &&
+			!Number.isNaN(Date.parse(raw))
+		) {
+			actions.unshift({
+				id: 'open-daily-note',
+				icon: 'lucide-link',
+				label: translate('explorer.cell.open_daily_note'),
+			});
+		}
+		if (!queueDeletesSubject(this._deletionSubject(meta), queue)) {
+			actions.push({
+				id: 'delete-value',
+				icon: 'lucide-x',
+				label: translate('explorer.cell.delete_value'),
+			});
+		}
+		return actions.length > 0
+			? { id: 'cell_hover', kind: 'cell_hover', actions }
+			: null;
 	}
 
 	private async _changePropType(

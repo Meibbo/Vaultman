@@ -36,6 +36,10 @@ import { ContextMenuService } from './services/serviceContextMenu';
 import { registerContentActions } from './logic/logicContentContextMenu';
 import { registerSnippetActions } from './logic/logicSnippetContextMenu';
 import { registerPluginActions } from './logic/logicPluginContextMenu';
+import { NodeBindingService, prefixesFromSettings } from './services/serviceNodeBinding';
+import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
+import { BreadcrumbFileSceneService } from './services/serviceBreadcrumbFileScene';
+import { registerNodeBindingActions } from './logic/logicNodeBindingContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
@@ -71,6 +75,12 @@ import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 import { reconcileRegistry } from './logic/logicInstanceRegistry';
+import { createVaultmanSasi } from './logic/logicSasiBootstrap';
+import type { SasiRegistry } from './logic/logicSasiRegistry';
+import type { SasiProvider } from './services/serviceSasiProvider';
+import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
+import { vaultmanPerfMonitor } from './utils/performanceMonitor';
+import { formatPerfTimeline } from './utils/perfTimeline';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -86,9 +96,41 @@ export class VaultmanPlugin extends Plugin {
 	contextMenuService!: ContextMenuService;
 	statisticsCache!: StatisticsCacheService;
 	lastOpenedService!: LastOpenedService;
+	nodeBindingService!: NodeBindingService;
+	nativeSurfaceBindingService!: NativeSurfaceBindingService;
+	breadcrumbFileSceneService!: BreadcrumbFileSceneService;
+
+	/**
+	 * U130-01: SASI = Services Actions Scripts Indexing. Vive bajo MyConfig,
+	 * hermano de PSS y LUPAPI; WAR le CONSULTA, no lo contiene. Es un
+	 * registro, no un Component de Obsidian, asi que no va por addChild.
+	 */
+	sasiRegistry!: SasiRegistry;
+	sasiProvider!: SasiProvider;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
+	/** ADR 0004: registro de zonas frágiles. El revert de cada adapter es el
+	 * contrato serviceUnload (ADR 0011) que da el apagado por función. */
+	platformAdapterRegistry!: PlatformAdapterRegistry;
+
+	
+	async revealNodeInVaultman(node: import('./services/serviceNodeBinding').BindingNodeInput): Promise<boolean> {
+		const leaves = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
+		let targetLeaf = leaves[0];
+		if (!targetLeaf) {
+			targetLeaf = this.app.workspace.getLeftLeaf(false) ?? this.app.workspace.getLeaf('tab');
+			await targetLeaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
+		}
+		this.app.workspace.revealLeaf(targetLeaf);
+		this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+
+		const view = targetLeaf.view as VaultmanFrame;
+		if (view && typeof (view as any).revealPath === 'function') {
+			(view as any).revealPath(node.path ?? node.label);
+		}
+		return true;
+	}
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -110,6 +152,10 @@ export class VaultmanPlugin extends Plugin {
 		this.statisticsCache = new StatisticsCacheService(this.app);
 		this.lastOpenedService = new LastOpenedService(this.app, this.manifest.id);
 
+		const sasi = createVaultmanSasi();
+		this.sasiRegistry = sasi.registry;
+		this.sasiProvider = sasi.provider;
+
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
 		this.addChild(this.queueService);
@@ -121,9 +167,53 @@ export class VaultmanPlugin extends Plugin {
 
 		// BT5-036: content nodes are files; register their Rename/Delete panel
 		// actions once so the Content menu kind is populated and configurable.
+		
+				this.nodeBindingService = new NodeBindingService({
+			app: this.app,
+			getPrefixes: () => prefixesFromSettings(this.settings),
+			router: (token) => {
+				void this.filterService.addNode({
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'aliases',
+					values: [token],
+				});
+			},
+		});
+		this.nativeSurfaceBindingService = new NativeSurfaceBindingService({
+			plugin: this,
+			app: this.app,
+			bindingService: this.nodeBindingService,
+			revealInVaultman: (node) => this.revealNodeInVaultman(node),
+			searchInVaultman: async (token: string) => {
+				await this.revealNodeInVaultman({ kind: 'tag', label: token });
+				void this.filterService.addNode({
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'tag',
+					values: [token.replace(/^#/, '')],
+				});
+			},
+		});
+		this.addChild(this.nativeSurfaceBindingService);
+		this.breadcrumbFileSceneService = new BreadcrumbFileSceneService({
+			plugin: this,
+			app: this.app,
+		});
+		this.addChild(this.breadcrumbFileSceneService);
+
+		this.platformAdapterRegistry = new PlatformAdapterRegistry();
+		this.addChild(this.platformAdapterRegistry);
+		await this.platformAdapterRegistry.activate({
+			app: this.app,
+			plugin: this,
+			doc: activeDocument,
+		});
+
 		registerContentActions(this);
 		registerSnippetActions(this);
 		registerPluginActions(this);
+		registerNodeBindingActions(this);
 
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),
@@ -134,6 +224,28 @@ export class VaultmanPlugin extends Plugin {
 				activeWindow as unknown as { __vaultmanPerfProbe?: unknown },
 			),
 		);
+
+		// The fps sampler is a module singleton and the timeline formatter had
+		// no caller, so on a device whose only way in is `obsidian eval` a
+		// measurement could not be read back out at all. Same global idiom as
+		// the probe above, and torn down with the plugin.
+		const perfGlobals = activeWindow as unknown as {
+			__vaultmanPerfMonitor?: unknown;
+			__vaultmanPerfTimeline?: unknown;
+		};
+		perfGlobals.__vaultmanPerfMonitor = vaultmanPerfMonitor;
+		perfGlobals.__vaultmanPerfTimeline = (
+			sampleLimit = 180,
+			actionLimit = 120,
+		): string =>
+			formatPerfTimeline({
+				samples: vaultmanPerfMonitor.samples(sampleLimit),
+				actions: vaultmanPerfMonitor.actions(actionLimit),
+			});
+		this.register(() => {
+			delete perfGlobals.__vaultmanPerfMonitor;
+			delete perfGlobals.__vaultmanPerfTimeline;
+		});
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {

@@ -17,6 +17,49 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		expect(expansionActionAvailable(tab, cells)).toBe(expected);
 	});
 
+	/**
+	 * U130-t33 (L-PNODE) guarda negativa: con agrupacion encendida y
+	 * anidacion apagada, un grupo sigue siendo un p-node plegable — el
+	 * toggle NO puede quedar muerto solo porque `nested` este fuera de
+	 * `visibleCells`. Antes de la correccion el navbar llamaba a
+	 * `expansionActionAvailable` sin el tercer argumento (defecto `false`),
+	 * asi que este caso exacto (agrupacion si, anidacion no) devolvia
+	 * `false` aunque hubiera cabeceras con hijos en pantalla.
+	 */
+	it.each([
+		['files', [], true, true],
+		['props', [], true, true],
+		['tags', [], true, true],
+		['files', [], false, false],
+		['props', [], false, false],
+		['tags', [], false, false],
+		// La agrupacion no crea el toggle en surfaces sin maquinaria de
+		// expansion: snippets/plugins siguen fuera aunque groupingActive.
+		['snippets', [], true, false],
+		['plugins', [], true, false],
+	] as const)(
+		'tab=%s cells=%j groupingActive=%s => %s',
+		(tab, cells, groupingActive, expected) => {
+			expect(expansionActionAvailable(tab, cells, groupingActive)).toBe(
+				expected,
+			);
+		},
+	);
+
+	it('el navbar pasa groupingActive (activeScope === groups) a expansionActionAvailable', () => {
+		// Guarda negativa a nivel de fuente: si alguien vuelve a llamar a
+		// expansionActionAvailable con solo (tab, visibleCells), el defecto
+		// `false` del parametro deja muerto el toggle exactamente en el caso
+		// de arriba, y esta aserción lo detecta sin montar el navbar entero.
+		const callStart = navbarSource.indexOf(
+			'expansionActionAvailable(\n\t\t\tactiveTab,',
+		);
+		expect(callStart).toBeGreaterThanOrEqual(0);
+		const callEnd = navbarSource.indexOf(');', callStart);
+		const callSource = navbarSource.slice(callStart, callEnd);
+		expect(callSource).toContain("?.activeScope === 'groups'");
+	});
+
 	it('keeps reveal in the generic Tools projection while gating only expansion', () => {
 		expect(navbarSource).toContain('expansionActionAvailable(');
 		expect(navbarSource).toContain('visibleCellsByTab[activeTab]');

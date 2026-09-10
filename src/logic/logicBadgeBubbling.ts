@@ -1,4 +1,5 @@
 import type { NodeBadge, NodeBubbleDot, TreeNode } from '../types/typeTree';
+import { parseMembershipUrn } from './logicMembershipUrn';
 
 export type BubbleColor = NonNullable<NodeBadge['color']>;
 
@@ -46,6 +47,32 @@ export interface BubbleIndex<TMeta = unknown> {
 export interface BuildBubbleIndexOptions<TMeta = unknown> {
 	/** Test/diagnostic hook: called once per visited node. */
 	onVisit?: (node: TreeNode<TMeta>) => void;
+	/**
+	 * S07A: membership edges admitted as parent edges. A `node_group` is a
+	 * parent by pertenencia, not by containment, so the containment walk
+	 * alone never delivers anything to it. Groups named here receive the
+	 * bubbled activity of their members even when no header TreeNode is in
+	 * the input (the live explorers build the index pre-projection).
+	 */
+	membership?: BubbleMembership<TMeta>;
+}
+
+/**
+ * S07A, spec 07 §1: pertenencia edges for the bubble index.
+ *
+ * - `groupsOf` resolves, per member row, the group header ids it belongs to.
+ *   The caller owns the URN matching (see `projectGroupedTree`); the index
+ *   stays tree-centric and never parses memberships itself.
+ * - `parentOfGroup` climbs the `NodeGroupDef.parentId` nesting chain.
+ * - `identityOf` is the dedup identity (dev 2026-09-06: IDENTITIES, not
+ *   occurrences — `NodeIdentity.canonicalId`, i.e. the URN tripleta
+ *   `providerId:kind:canonicalId`). Defaults to the row id, which keeps the
+ *   index byte-identical to BT5-017 when no membership is passed.
+ */
+export interface BubbleMembership<TMeta = unknown> {
+	groupsOf: (node: TreeNode<TMeta>) => readonly string[];
+	parentOfGroup: (groupId: string) => string | null;
+	identityOf?: (node: TreeNode<TMeta>) => string;
 }
 
 function priorityOf(color: BubbleColor): number {
@@ -90,11 +117,61 @@ export function buildBubbleIndex<TMeta = unknown>(
 	const nodesById = new Map<string, TreeNode<TMeta>>();
 	const descendantActivity = new Map<string, BubbleDot>();
 	const carriers = new Map<string, TreeNode<TMeta>>();
+	const membership = options.membership;
+
+	// S07A: identity tracking exists ONLY while membership edges are
+	// admitted. Without them every row is visited once, so the summed
+	// sourceCount can never double-count — allocating a per-subtree identity
+	// set per node would be pure waste on a 10k vault.
+	const subtreeIds = membership ? new Map<string, Set<string>>() : null;
+	const groupSeeds = membership ? new Map<string, Set<string>>() : null;
+	const identityColor = membership ? new Map<string, BubbleColor>() : null;
+	const identityOf =
+		membership?.identityOf ?? ((node: TreeNode<TMeta>) => node.id);
+
+	const seedGroups = (node: TreeNode<TMeta>, ids: ReadonlySet<string>): void => {
+		if (ids.size === 0 || !membership || !groupSeeds) return;
+		for (const groupId of membership.groupsOf(node)) {
+			let seed = groupSeeds.get(groupId);
+			if (!seed) {
+				seed = new Set<string>();
+				groupSeeds.set(groupId, seed);
+			}
+			for (const id of ids) seed.add(id);
+		}
+	};
 
 	const visit = (node: TreeNode<TMeta>): BubbleDot | null => {
 		options.onVisit?.(node);
 		nodesById.set(node.id, node);
 		let fromDescendants: BubbleDot | null = null;
+		if (subtreeIds) {
+			const ids = new Set<string>();
+			for (const child of node.children ?? []) {
+				fromDescendants = mergeDots(fromDescendants, visit(child));
+				const childIds = subtreeIds.get(child.id);
+				if (childIds) for (const id of childIds) ids.add(id);
+			}
+			const own = ownActivity(node);
+			if (own) {
+				const key = identityOf(node);
+				ids.add(key);
+				const prev = identityColor?.get(key);
+				if (prev === undefined || priorityOf(own.color) < priorityOf(prev)) {
+					identityColor?.set(key, own.color);
+				}
+			}
+			const total = mergeDots(own, fromDescendants);
+			// Same contract as the classic path: descendant activity never
+			// includes the node's own badges.
+			if (fromDescendants) {
+				descendantActivity.set(node.id, fromDescendants);
+				carriers.set(node.id, node);
+			}
+			subtreeIds.set(node.id, ids);
+			seedGroups(node, ids);
+			return total;
+		}
 		for (const child of node.children ?? []) {
 			fromDescendants = mergeDots(fromDescendants, visit(child));
 		}
@@ -106,7 +183,83 @@ export function buildBubbleIndex<TMeta = unknown>(
 	};
 
 	for (const node of nodes) visit(node);
+	if (membership && groupSeeds && subtreeIds && identityColor) {
+		materializeGroupDots(membership, groupSeeds, subtreeIds, identityColor, descendantActivity);
+	}
 	return { nodesById, descendantActivity, carriers };
+}
+
+/**
+ * S07A: pour the membership seeds into `descendantActivity`, climbing the
+ * group nesting chain. Set union is the dedup: a node sitting in the parent
+ * group AND in the child counts ONCE in the parent total (dev 2026-09-06).
+ *
+ * Groups with no active identity stay absent — same contract as quiet
+ * folders (BT5-017: no decorative DOM). A group id with no header TreeNode
+ * in the input has no live carrier to mutate; read it back through
+ * `bubbleDotsForExpansion`, which is expansion-aware by id.
+ */
+function materializeGroupDots<TMeta>(
+	membership: BubbleMembership<TMeta>,
+	groupSeeds: Map<string, Set<string>>,
+	subtreeIds: Map<string, Set<string>>,
+	identityColor: Map<string, BubbleColor>,
+	descendantActivity: Map<string, BubbleDot>,
+): void {
+	// A header present in the input already aggregates its direct members by
+	// containment; the seed adds what containment cannot see (members outside
+	// the subtree, nested groups). Union, never overwrite-then-lose.
+	for (const [groupId, seed] of groupSeeds) {
+		const contained = subtreeIds.get(groupId);
+		if (contained) for (const id of contained) seed.add(id);
+	}
+	// Deepest group first, so a parent pours upward only after every child
+	// has already poured into it. The `seen` chain guard makes a corrupt
+	// parentId cycle a no-op instead of an infinite climb.
+	const depthOf = (groupId: string): number => {
+		let depth = 0;
+		let cur: string | null = groupId;
+		const seen = new Set<string>([groupId]);
+		for (;;) {
+			const parent: string | null = cur ? membership.parentOfGroup(cur) : null;
+			if (!parent || seen.has(parent)) break;
+			seen.add(parent);
+			cur = parent;
+			depth += 1;
+		}
+		return depth;
+	};
+	const ordered = [...groupSeeds.keys()].sort(
+		(a, b) => depthOf(b) - depthOf(a),
+	);
+	for (const groupId of ordered) {
+		const seed = groupSeeds.get(groupId);
+		if (!seed || seed.size === 0) continue;
+		let pour: Set<string> = seed;
+		let cur: string | null = membership.parentOfGroup(groupId);
+		const seen = new Set<string>([groupId]);
+		while (cur && !seen.has(cur)) {
+			seen.add(cur);
+			let into = groupSeeds.get(cur);
+			if (!into) {
+				into = new Set<string>();
+				groupSeeds.set(cur, into);
+			}
+			for (const id of pour) into.add(id);
+			pour = into;
+			cur = membership.parentOfGroup(cur);
+		}
+	}
+	for (const [groupId, seed] of groupSeeds) {
+		if (seed.size === 0) continue;
+		let dot: BubbleDot | null = null;
+		for (const id of seed) {
+			const color = identityColor.get(id);
+			if (!color) continue;
+			dot = mergeDots(dot, { color, sourceCount: 1 });
+		}
+		if (dot) descendantActivity.set(groupId, dot);
+	}
 }
 
 /**
@@ -146,6 +299,83 @@ export function resolveCollapsedBubbleDots<TMeta = unknown>(
 	expandedIds: ReadonlySet<string>,
 ): Map<string, BubbleDot> {
 	return bubbleDotsForExpansion(buildBubbleIndex(nodes), expandedIds);
+}
+
+export interface GroupMemberCountInput {
+	/** Groups to total. Nesting rides `parentId` (`NodeGroupDef` chain). */
+	groups: readonly { id: string; parentId: string | null }[];
+	/** Raw membership URNs per group id (`SavedLayout.groupMemberships`). */
+	memberships: Readonly<Record<string, readonly string[]>>;
+}
+
+/**
+ * S07A, spec 07 §1: the VALUE aggregation, not the dot. «El total de
+ * ficheros de todos sus c-nodes» is a sum over the membership relation —
+ * the `bubbleMaxToFolders` precedent (`logicLastOpened.ts:123`), but climbing
+ * the group nesting chain instead of the folder ancestor chain, and summing
+ * instead of maxing.
+ *
+ * Dedup identity is the URN tripleta `providerId:kind:canonicalId` — the
+ * same rule `projectGroupedTree` matches by (spec-03), whose stable part is
+ * `NodeIdentity.canonicalId`. A node sitting in the parent group AND in the
+ * child counts ONCE in the parent total (dev 2026-09-06: identities, not
+ * occurrences). Corrupt URNs are skipped, never fatal — same contract as
+ * `parseMembershipUrn`. Groups with no live member stay absent, like folders
+ * with no opened descendant in `bubbleMaxToFolders`.
+ */
+export function bubbleMemberCountsToGroups(
+	input: GroupMemberCountInput,
+): ReadonlyMap<string, number> {
+	const direct = new Map<string, Set<string>>();
+	for (const [groupId, urns] of Object.entries(input.memberships)) {
+		let set = direct.get(groupId);
+		if (!set) {
+			set = new Set<string>();
+			direct.set(groupId, set);
+		}
+		for (const urn of urns) {
+			const ref = parseMembershipUrn(urn);
+			if (!ref) continue;
+			set.add(`${ref.providerId}:${ref.kind}:${ref.canonicalId}`);
+		}
+	}
+	const allIds = new Map<string, string | null>();
+	for (const group of input.groups) {
+		if (!allIds.has(group.id)) allIds.set(group.id, group.parentId);
+	}
+	for (const groupId of direct.keys()) {
+		if (!allIds.has(groupId)) allIds.set(groupId, null);
+	}
+	const childrenOf = new Map<string, string[]>();
+	for (const [id, parentId] of allIds) {
+		if (!parentId) continue;
+		const list = childrenOf.get(parentId) ?? [];
+		list.push(id);
+		childrenOf.set(parentId, list);
+	}
+	const totals = new Map<string, Set<string>>();
+	const visiting = new Set<string>();
+	const totalOf = (groupId: string): Set<string> => {
+		const cached = totals.get(groupId);
+		if (cached) return cached;
+		if (visiting.has(groupId)) {
+			return new Set(direct.get(groupId) ?? []);
+		}
+		visiting.add(groupId);
+		const acc = new Set(direct.get(groupId) ?? []);
+		for (const child of childrenOf.get(groupId) ?? []) {
+			for (const id of totalOf(child)) acc.add(id);
+		}
+		visiting.delete(groupId);
+		totals.set(groupId, acc);
+		return acc;
+	};
+	const out = new Map<string, number>();
+	for (const groupId of allIds.keys()) {
+		const size = totalOf(groupId).size;
+		if (size > 0) out.set(groupId, size);
+	}
+	return out;
 }
 
 function badgeKey(badge: NodeBadge): string {

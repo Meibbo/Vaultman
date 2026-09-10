@@ -37,12 +37,18 @@ export interface NodeBadge {
 
 export type TreeNodeCell =
 	| {
-			id: string;
-			kind: 'toggle';
-			enabled: boolean;
-			style: AddonCellStyle;
-			label: string;
-			disabled?: boolean;
+		id: string;
+		kind: 'toggle';
+		enabled: boolean;
+		style: AddonCellStyle;
+		label: string;
+		disabled?: boolean;
+		/**
+		 * Spec 07 §2: la cabecera de un `node_group` pinta el agregado de sus
+		 * miembros. Mixto (algunos si, algunos no) se PINTA como mixto, pero
+		 * la accion no es ambigua: 1ª pulsacion apaga todo, 2ª enciende todo.
+		 */
+		mixed?: boolean;
 	  }
 	| {
 			id: string;
@@ -51,7 +57,17 @@ export type TreeNodeCell =
 			label: string;
 			disabled?: boolean;
 			appearance?: 'button' | 'badge';
-	  };
+		}
+	| {
+			id: string;
+			kind: 'cell_hover';
+			actions: Array<{
+				id: string;
+				icon: string;
+				label: string;
+			}>;
+			disabled?: boolean;
+		};
 
 /** BT5-017: activity projected from descendants hidden by a collapsed node. */
 export interface NodeBubbleDot {
@@ -100,6 +116,7 @@ export interface TreeNode<TMeta = unknown> {
 
 export interface TagMeta {
 	tagPath: string;
+	hasNodeNote?: boolean;
 	/**
 	 * Where the tag is written — frontmatter, the body, or both. Set by the
 	 * reveal projection, which knows the one note it is showing; the vault-wide
@@ -111,6 +128,7 @@ export interface TagMeta {
 
 export interface PropMeta {
 	propName: string;
+	hasNodeNote?: boolean;
 	propType: string;
 	isValueNode: boolean;
 	rawValue?: string;
@@ -124,10 +142,12 @@ export interface FileMeta {
 	folder?: TFolder | null;
 	isFolder: boolean;
 	folderPath: string;
+	hasNodeNote?: boolean;
 }
 
 export interface SnippetMeta {
 	name: string;
+	hasNodeNote?: boolean;
 	enabled: boolean;
 	installedTime?: number;
 	updatedTime?: number;
@@ -135,6 +155,7 @@ export interface SnippetMeta {
 
 export interface PluginMeta {
 	pluginId: string;
+	hasNodeNote?: boolean;
 	name: string;
 	enabled: boolean;
 	loaded: boolean;

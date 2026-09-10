@@ -38,6 +38,17 @@ describe('node type multiselect', () => {
 		expect(toggleNodeTypeFilter(second, 'all')).toEqual([]);
 	});
 
+	it('keeps inline and frontmatter mutually exclusive', () => {
+		expect(toggleNodeTypeFilter([], 'inline')).toEqual(['inline']);
+		expect(toggleNodeTypeFilter(['inline'], 'frontmatter')).toEqual([
+			'frontmatter',
+		]);
+		expect(toggleNodeTypeFilter(['frontmatter'], 'inline')).toEqual(['inline']);
+		expect(
+			normalizeNodeTypeFilters(['nested', 'inline', 'frontmatter']),
+		).toEqual(['nested']);
+	});
+
 	it('keeps the legacy scalar only for a single selected type', () => {
 		expect(nodeTypeFilterPatch(['text'])).toEqual({
 			nodeTypeFilter: 'text',

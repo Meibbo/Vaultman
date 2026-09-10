@@ -57,31 +57,47 @@ describe('SearchControl component source guards', () => {
 		);
 		const closing = root.lastIndexOf('</div>');
 		const inside = root.slice(0, closing);
-		for (const control of [
-			'search-input-clear-button',
-			'vaultman-filters-search-mode',
-			'vaultman-filters-search-create',
-		]) {
-			expect(inside).toContain(control);
-		}
+		expect(inside).toContain('search-input-clear-button');
+		// U130-05b: los dos controles ya no se distinguen por CLASE sino por
+		// actionId, y el reparto lo prueba `searchCellProjection.test.ts`. Lo que
+		// este guard sigue afirmando es que viven DENTRO del root.
+		expect(inside).toContain('<CellAction');
 	});
 
-	it('gives the category and create cells Core’s decorator slot', () => {
+	it('gives the trailing cells Core’s decorator slot', () => {
 		// Core styles `.search-input-container` as `position: relative` only — it
 		// is not a flex row. Its trailing controls are absolutely positioned:
 		// `.search-input-clear-button` and `.input-right-decorator`, which Core
 		// already shifts aside when the clear button appears. A plain child in
 		// that container is a block box and lands under the input, which is the
-		// defect. So the two cells share one Core decorator rather than sitting
-		// loose in the container.
+		// defect. So the cells share one Core decorator rather than sitting loose.
 		expect(searchControlSource).toContain('input-right-decorator');
 		const decorator = searchControlSource.slice(
 			searchControlSource.indexOf('input-right-decorator'),
 		);
-		const modeAt = decorator.indexOf('vaultman-filters-search-mode');
-		const createAt = decorator.indexOf('vaultman-filters-search-create');
-		expect(modeAt).toBeGreaterThan(0);
-		expect(createAt).toBeGreaterThan(0);
+		expect(decorator.indexOf('<CellAction')).toBeGreaterThan(0);
+	});
+
+	// --- guardas de lo que NO puede reaparecer --------------------------------
+	// Un test que solo mira lo que debe aparecer lo satisface un stub. En esta
+	// iniciativa ya paso dos veces.
+	it('no quedan botones crudos ni clase por indice en el decorador', () => {
+		expect(searchControlSource).not.toContain('<button');
+		expect(searchControlSource).not.toContain('i === 0');
+		expect(searchControlSource).not.toContain('vaultman-filters-search-mode');
+		expect(searchControlSource).not.toContain('vaultman-filters-search-create');
+	});
+
+	it('navbarFilters ya no cablea categoria ni crear a mano', () => {
+		expect(navbarFiltersSource).not.toContain('categoryIcon');
+		expect(navbarFiltersSource).not.toContain('onCycleCategory');
+		expect(navbarFiltersSource).not.toContain('createIcon=');
+	});
+
+	it('las clases viejas del searchbox no sobreviven en la hoja', () => {
+		// Un bloque CSS huerfano no rompe nada visible, y por eso se queda anos.
+		expect(stylesSource).not.toContain('.vaultman-filters-search-mode {');
+		expect(stylesSource).not.toContain('.vaultman-filters-search-create {');
 	});
 
 	it('does not reintroduce a hand-rolled flex row on the Core container', () => {

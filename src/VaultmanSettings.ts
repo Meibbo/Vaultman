@@ -57,9 +57,15 @@ import {
 import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
+import { SasiInspectorModal } from './modals/modalSasiInspector';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { Notice } from 'obsidian';
+import {
+	prefixesFromSettings,
+	type NodeNotePrefixes,
+} from './services/serviceNodeBinding';
+import { planAliasPrefixMigration } from './logic/logicNodeNotePrefixMigration';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
 	buildFilterTemplatePreview,
@@ -86,6 +92,93 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	}
 
 	/**
+	 * Input libre de prefijo/sufijo node-note por kind. Al cambiar, guarda y
+	 * prepara staged operations de rename de aliases (viejos → nuevos) para
+	 * revisar en la cola; solo rige el actual, sin matcheo legacy.
+	 */
+	private prefixItem(
+		field: 'nodeNoteTagPattern' | 'nodeNoteSnippetPattern' | 'nodeNotePluginPattern' | 'nodeNotePropPattern',
+		nameKey: string,
+		descKey: string,
+		placeholder: string,
+	): SettingDefinitionItem {
+		return {
+			name: translate(nameKey),
+			desc: translate(descKey),
+			render: (setting: Setting) => {
+				setting.addText((text) =>
+					text
+						.setPlaceholder(placeholder)
+						.setValue(this.plugin.settings[field] ?? '')
+						.onChange(async (value) => {
+							const oldPrefixes = prefixesFromSettings(this.plugin.settings);
+							this.plugin.settings[field] = value.trim();
+							await this.plugin.saveSettings();
+							this.stageAliasPrefixMigration(
+								oldPrefixes,
+								prefixesFromSettings(this.plugin.settings),
+							);
+						}),
+				);
+			},
+		};
+	}
+
+	private stageAliasPrefixMigration(oldP: NodeNotePrefixes, newP: NodeNotePrefixes): void {
+		const app = this.plugin.app;
+		const files = app.vault.getMarkdownFiles?.() ?? [];
+		const inputs = files.map((file) => {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter as
+				| { aliases?: unknown }
+				| undefined;
+			const raw = fm?.aliases;
+			const aliases = Array.isArray(raw)
+				? raw.filter((a): a is string => typeof a === 'string')
+				: typeof raw === 'string'
+					? [raw]
+					: [];
+			return { path: file.path, aliases };
+		});
+		const plans = planAliasPrefixMigration(inputs, oldP, newP);
+		if (plans.length === 0) return;
+		const byPath = new Map(files.map((file) => [file.path, file]));
+		let staged = 0;
+		for (const plan of plans) {
+			const file = byPath.get(plan.filePath);
+			if (!file) continue;
+			const { oldAlias, newAlias } = plan;
+			this.plugin.queueService?.addOrRun?.({
+				type: 'property',
+				action: 'rename',
+				property: 'aliases',
+				value: newAlias,
+				oldValue: oldAlias,
+				details: `Rename alias "${oldAlias}" → "${newAlias}"`,
+				files: [file],
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					const cur = (fm as Record<string, unknown>).aliases;
+					if (Array.isArray(cur)) {
+						const next = cur.map((a) => (a === oldAlias ? newAlias : a));
+						if (next.every((a, i) => a === cur[i])) return null;
+						(fm as Record<string, unknown>).aliases = next;
+						return fm;
+					}
+					if (typeof cur === 'string' && cur === oldAlias) {
+						(fm as Record<string, unknown>).aliases = newAlias;
+						return fm;
+					}
+					return null;
+				},
+			});
+			staged += 1;
+		}
+		if (staged > 0) {
+			new Notice(translate('settings.node_note_prefix_migrated', { count: staged }));
+		}
+	}
+
+	/**
 	 * The root page. Its order is the one the imperative tab had: the operation
 	 * settings first, then Layout Configuration, Operations, the templates and
 	 * the Add-ons/Developer tail. The sub-pages sit where their `Configure`
@@ -93,8 +186,70 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 */
 	private getRootItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+		const wirOptions = {
+			'reveal-in-vaultman': translate('settings.action.reveal_in_vaultman'),
+			'open-node-note-same-tab': translate('settings.action.open_node_note_same_tab'),
+			'open-node-note-new-tab': translate('settings.action.open_node_note_new_tab'),
+			'search-selection': translate('settings.action.search_selection'),
+			'none': translate('settings.action.none'),
+		};
 
 		items.push({
+			name: translate('settings.native_surface_click_primary'),
+			desc: translate('settings.native_surface_click_primary.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickPrimary ?? 'reveal-in-vaultman')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickPrimary = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.native_surface_click_alt'),
+			desc: translate('settings.native_surface_click_alt.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickAlt ?? 'open-node-note-same-tab')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickAlt = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.native_surface_click_mod'),
+			desc: translate('settings.native_surface_click_mod.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions(wirOptions)
+						.setValue(this.plugin.settings.nativeSurfaceClickMod ?? 'open-node-note-new-tab')
+						.onChange(async (value) => {
+							this.plugin.settings.nativeSurfaceClickMod = value as any;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push(
+			this.prefixItem('nodeNoteTagPattern', 'settings.node_note_tag_pattern', 'settings.node_note_tag_pattern.desc', '#name'),
+			this.prefixItem('nodeNoteSnippetPattern', 'settings.node_note_snippet_pattern', 'settings.node_note_snippet_pattern.desc', '$name'),
+			this.prefixItem('nodeNotePluginPattern', 'settings.node_note_plugin_pattern', 'settings.node_note_plugin_pattern.desc', '%name'),
+			this.prefixItem('nodeNotePropPattern', 'settings.node_note_prop_pattern', 'settings.node_note_prop_pattern.desc', '[name]'),
+		);
+						
+items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {
@@ -409,6 +564,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		const items: SettingDefinitionItem[] = [];
 
 		items.push({
+			name: translate('settings.sasi_inspector'),
+			desc: translate('settings.sasi_inspector.desc'),
+			render: (setting: Setting) => {
+				setting.addButton((button) =>
+					button
+						.setButtonText(translate('settings.sasi_inspector.open'))
+						.onClick(() => {
+							new SasiInspectorModal(
+								this.app,
+								this.plugin.sasiRegistry,
+							).open();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.data_transfer'),
 			desc: translate('settings.data_transfer.desc'),
 			render: (setting: Setting) => {
@@ -657,6 +829,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 										buildSavedLayoutPreview(layout),
 									).open(),
 								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(
+									translate('settings.saved_view_config.activate_global'),
+								)
+								.setTooltip(
+									translate(
+										'settings.saved_view_config.activate_global_aria',
+										{ name: layout.name },
+									),
+								)
+								.onClick(async () => {
+									this.plugin.settings.activeLayoutName = layout.name;
+									await this.plugin.saveSettings();
+									this.update();
+								}),
 						)
 						.addButton((button) =>
 							button
@@ -943,6 +1132,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.setHeading();
 			},
 		});
+
+		items.push({
+			name: translate('settings.persist_interaction_mode'),
+			desc: translate('settings.persist_interaction_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.persistInteractionMode !== false)
+						.onChange(async (value) => {
+							// Apagarlo NO borra defaultInteractionModeByTab: volver a
+							// encenderlo recupera la preferencia, por la regla de
+							// referencias rotas del 2026-08-21.
+							this.plugin.settings.persistInteractionMode = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 
 		// U121-027: the cell-shaping settings gather under one heading. This is not
 		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover

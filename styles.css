@@ -138,6 +138,162 @@
   letter-spacing: 0.05em;
 }
 
+/* @settings
+
+name: Vaultman
+id: vaultman-action-cells
+settings:
+    -
+        id: vaultman-action-cell-variant
+        title: Action cell style
+        description: How action cells and badges are drawn across Vaultman.
+        type: class-select
+        allowEmpty: false
+        default: vaultman-action-cell--icon-only
+        options:
+            -
+                label: Icon only
+                value: vaultman-action-cell--icon-only
+            -
+                label: Icon in a box
+                value: vaultman-action-cell--icon-box
+            -
+                label: Circled
+                value: vaultman-action-cell--border-circle
+    -
+        id: vaultman-action-cell-size
+        title: Action cell size
+        description: Glyph box in pixels. The touch target stays at 36px regardless.
+        type: variable-number
+        default: 24
+        format: px
+
+*/
+/* U130-05: la celda de accion.
+ *
+ * Todo va por variables `--vm-action-cell-*` bajo el selector namespaced
+ * `.vaultman-action-cell`. El namespace no es cosmetico: sin el, temas como
+ * Minimal o AnuPpuccin pisan estos estilos y el usuario ve las variantes de
+ * Style Settings sin efecto, sin ninguna pista de por que.
+ *
+ * Y las variantes se implementan cambiando VARIABLES, no clases por variante:
+ * asi una variante nueva no toca el Svelte. */
+.vaultman-action-cell {
+  --vm-action-cell-size: 24px;
+  /* El objetivo de toque no puede depender del glifo. */
+  --vm-action-cell-hit: 36px;
+  --vm-action-cell-radius: 4px;
+  --vm-action-cell-border: none;
+  --vm-action-cell-bg: transparent;
+  /* U130-05b: el cromatismo que `.vaultman-filters-search-mode` daba y la
+   * celda no. Migrar sin esto deja el searchbox descolorido y sin respuesta al
+   * hover. Los valores son los de hoy (`views/_tabs.scss`), no unos nuevos. */
+  --vm-action-cell-color: var(--text-muted);
+  --vm-action-cell-opacity: 0.7;
+  --vm-action-cell-color-hover: var(--text-normal);
+  --vm-action-cell-glyph: 14px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Fijas: un icono que cambia de tamano al alternar mueve el resto del
+   * searchbox y el usuario pierde el sitio donde iba a pulsar. */
+  inline-size: var(--vm-action-cell-size);
+  block-size: var(--vm-action-cell-size);
+  flex: 0 0 auto;
+  border: var(--vm-action-cell-border);
+  border-radius: var(--vm-action-cell-radius);
+  background: var(--vm-action-cell-bg);
+  color: var(--vm-action-cell-color);
+  opacity: var(--vm-action-cell-opacity);
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.vaultman-action-cell:hover:not(.is-unavailable) {
+  opacity: 1;
+  color: var(--vm-action-cell-color-hover);
+}
+
+.vaultman-action-cell svg {
+  width: var(--vm-action-cell-glyph);
+  height: var(--vm-action-cell-glyph);
+}
+
+/* El area tactil se agranda SIN mover el layout: pseudo-elemento, no padding. */
+.vaultman-action-cell::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--vm-action-cell-size) - var(--vm-action-cell-hit)) / 2);
+  min-inline-size: 36px;
+  min-block-size: 36px;
+}
+
+.vaultman-action-cell.is-unavailable {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- variantes de Style Settings --- */
+.vaultman-action-cell--icon-box {
+  --vm-action-cell-border: 1px solid var(--background-modifier-border);
+  --vm-action-cell-bg: var(--background-secondary);
+}
+
+.vaultman-action-cell--border-circle {
+  --vm-action-cell-border: 1px solid var(--background-modifier-border);
+  --vm-action-cell-radius: 50%;
+}
+
+/* `icon-only` es el defecto: sin caja, solo el glifo. Es el estilo de los
+ * badges del explorer, que es el que el dev prefiere. */
+.vaultman-action-cell--icon-only {
+  --vm-action-cell-border: none;
+  --vm-action-cell-bg: transparent;
+}
+
+/* U130-04: la barra transaccional. Hermana del toolbar, bajo el searchbox en
+ * desktop y encima en movil, donde el searchbox es lo que alcanza el pulgar. */
+.vaultman-transaction-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-transaction-bar--above {
+  border-block-end: none;
+  border-block-start: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-transaction-bar-mode {
+  font-weight: var(--font-medium);
+  color: var(--text-normal);
+}
+
+.vaultman-transaction-bar-metric {
+  white-space: nowrap;
+  cursor: help;
+}
+
+.vaultman-transaction-bar-rejection {
+  color: var(--text-error);
+}
+
+.vaultman-transaction-bar-spacer {
+  flex: 1 1 auto;
+}
+
+.vaultman-transaction-bar-hint {
+  font-style: italic;
+  opacity: 0.8;
+}
+
 /* === Buttons === */
 .vaultman-btn {
   font-size: 0.8em;
@@ -1237,41 +1393,12 @@
   color: var(--text-faint);
 }
 
-.vaultman-filters-search-mode,
-.vaultman-filters-search-create {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  opacity: 0.7;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.15s, color 0.15s;
-}
-
 /* This rule used to name a Vaultman clear-button class that the component never
    rendered, so it matched nothing on phones. It targets Core's
    `.search-input-clear-button`, which is what SearchControl actually emits. */
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-action-cell) {
   width: 28px;
   height: 28px;
-}
-
-.vaultman-filters-search-mode:hover,
-.vaultman-filters-search-create:hover {
-  opacity: 1;
-  color: var(--text-normal);
-}
-
-.vaultman-filters-search-mode svg,
-.vaultman-filters-search-create svg {
-  width: 14px;
-  height: 14px;
 }
 
 .vaultman-filters-explorer-wrap {
@@ -3162,6 +3289,15 @@ button.vaultman-content-scope-hint:focus-visible {
   transform-origin: center;
 }
 
+.vaultman-addon-toggle-cell.is-mixed {
+  border-color: var(--vaultman-accent);
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
+.vaultman-addon-cell.is-mixed {
+  box-shadow: 0 0 0 1px var(--vaultman-accent);
+}
+
 .vaultman-addon-toggle-input {
   pointer-events: none;
 }
@@ -3329,6 +3465,65 @@ button.vaultman-content-scope-hint:focus-visible {
   font-size: var(--font-ui-small);
   color: var(--text-normal);
   flex: 1;
+}
+
+/* U130-01: el inspector de SASI. Denso a proposito: es una herramienta de
+ * desarrollo, no una superficie de usuario. */
+.vaultman-sasi-inspector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-sasi-inspector-list li {
+  display: flex;
+  gap: var(--size-4-2);
+  align-items: baseline;
+  padding-block: var(--size-2-1);
+  border-block-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-sasi-inspector-id {
+  font-family: var(--font-monospace);
+  color: var(--text-normal);
+}
+
+.vaultman-sasi-inspector-label,
+.vaultman-sasi-inspector-surfaces {
+  color: var(--text-muted);
+}
+
+.vaultman-sasi-inspector-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.vaultman-sasi-inspector-mutates {
+  color: var(--text-error);
+}
+
+.vaultman-sasi-inspector-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  padding-block: var(--size-2-2);
+}
+
+/* U130-03: la cabecera de grupo. Es una fila del arbol con clase propia --no un
+ * componente aparte-- porque `viewTree` ya sabe pintar filas, plegarlas y
+ * virtualizarlas. Un renderizador nuevo habria duplicado las tres cosas. */
+.vaultman-tree-row--group-header {
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--background-secondary-alt);
+}
+
+.vaultman-tree-row--group-header .vaultman-tree-label {
+  color: inherit;
 }
 
 /* === File List Section === */
@@ -5478,6 +5673,38 @@ body.vaultman-resizing {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
 }
 
+/* Hover actions remain in the badge zone's normal flex flow. The zone is
+   absent from layout at rest, then expands only while its row is hovered or
+   focused, so the value/name cells never lose space permanently and never
+   get covered by an overlay. */
+.vaultman-tree-hover-badge-zone {
+  display: none;
+  align-items: center;
+  gap: var(--size-2-1);
+}
+
+.vaultman-tree-row:hover .vaultman-tree-hover-badge-zone,
+.vaultman-tree-row:focus-within .vaultman-tree-hover-badge-zone {
+  display: inline-flex;
+  pointer-events: auto;
+}
+
+.vaultman-cell-hover-action {
+  width: var(--icon-s);
+  height: var(--icon-s);
+  padding: 0;
+  color: var(--text-faint);
+  background: transparent;
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+}
+
+.vaultman-cell-hover-action:hover,
+.vaultman-cell-hover-action:focus-visible {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
 .vaultman-tree-row.is-being-dragged,
 .vaultman-node-table-row.is-being-dragged,
 .vaultman-file-row.is-being-dragged {
@@ -5545,6 +5772,33 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   color: var(--text-normal);
   box-shadow: inset 2px 0 0 0 var(--color-accent);
   /* Inset doesn't push */
+}
+
+.vaultman-node-note-link {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  pointer-events: auto;
+  text-decoration: underline dotted var(--text-faint);
+  text-underline-offset: 3px;
+  transition: color 120ms ease, text-decoration-color 120ms ease;
+}
+.vaultman-node-note-link:hover {
+  text-decoration: underline solid var(--color-accent);
+  color: var(--nav-item-color-highlighted, var(--text-accent));
+}
+
+/* El clickable del nn-link se ajusta al ancho del nombre: sin esto,
+   `.vaultman-tree-label` (flex:1, posterior en cascada) blockifica el span
+   como flex-item y ocupa toda la fila, robando la interacción del explorer.
+   El margin-right:auto absorbe el espacio libre para que los cells del
+   costado derecho (files, extension, etc.) conserven su posición. */
+.vaultman-tree-label.vaultman-node-note-link {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  margin-right: auto;
 }
 
 /* === Bases table injections === */
@@ -6904,7 +7158,7 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   min-width: 0;
   padding-inline-start: 0;
 }
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-action-cell) {
   width: 28px;
   height: 28px;
 }

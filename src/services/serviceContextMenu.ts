@@ -22,6 +22,19 @@ import {
 
 const FILE_EXPLORER_CONTEXT_SOURCE = 'file-explorer-context-menu';
 
+/**
+ * Target de carpeta para el menú (breadcrumbs + filas de carpetas): los
+ * file-menu nativos pasan TFolder, que el handler de archivos ignora. Solo
+ * carpetas con path (los archivos no tienen `children`).
+ */
+export function resolveFolderMenuTarget(file: unknown): string | null {
+	if (!file || typeof file !== 'object') return null;
+	const folder = file as { path?: unknown; children?: unknown };
+	if (typeof folder.path !== 'string' || !folder.path) return null;
+	if (folder.children === undefined) return null;
+	return folder.path;
+}
+
 export interface ContextMenuPluginCtx extends Component {
 	app: App;
 	settings: {
@@ -37,6 +50,13 @@ export interface ContextMenuPluginCtx extends Component {
 	};
 	/** Opens the Text explorer seeded with a query. */
 	openContentSearchWithQuery?(query: string): Promise<void>;
+	/** Node-note binding service (open/create bound notes from menus). */
+	nodeBindingService?: {
+		bindOrCreate(
+			node: { kind: string; label: string; path?: string },
+			options?: { newLeaf?: boolean },
+		): unknown;
+	};
 	filterService?: {
 		activeFilter: { children: unknown[] };
 		clearFilters(): void;
@@ -91,7 +111,12 @@ export class ContextMenuService extends Component {
 
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-menu', (menu, file, source) => {
-				if (!(file instanceof TFile)) return;
+				if (!(file instanceof TFile)) {
+					// Menú de breadcrumb/carpeta: ofrece open node-note
+					// (C-node o alias) en vez de ignorar los TFolder.
+					this._injectFolderNodeNote(menu, file);
+					return;
+				}
 				if (this.suppressWorkspaceInjection) return;
 				const surface: MenuCtx['surface'] =
 					source === 'more-options' ? 'more-options' : 'file-menu';
@@ -472,8 +497,27 @@ export class ContextMenuService extends Component {
 		return null;
 	}
 
-	private _injectWorkspaceActions(
-		menu: Menu,
+	/**
+	 * Entrada "open node-note" en menús de carpeta (incluye el cmenu de los
+	 * breadcrumbs nativos): resuelve C-node o alias vía bindingService.
+	 */
+	private _injectFolderNodeNote(menu: Menu, file: unknown): void {
+		if (this.suppressWorkspaceInjection) return;
+		const folderPath = resolveFolderMenuTarget(file);
+		if (!folderPath) return;
+		const svc = this.plugin.nodeBindingService;
+		if (!svc) return;
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('context_menu.node_note') || 'Open Node-Note')
+				.setIcon('lucide-link')
+				.onClick(() => {
+					void svc.bindOrCreate({ kind: 'folder', label: folderPath, path: folderPath });
+				}),
+		);
+	}
+
+	private _injectWorkspaceActions(		menu: Menu,
 		file: TFile,
 		surface: 'file-menu' | 'editor-menu' | 'more-options',
 	): void {

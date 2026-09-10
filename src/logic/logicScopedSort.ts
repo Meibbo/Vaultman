@@ -13,12 +13,18 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	// "ordena el arbol entero": elegir un preset escribia en `properties` y los
 	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
 	// lo dijera. fileScene siempre lo tuvo.
-	props: ['all', 'properties', 'values'],
-	files: ['all', 'drill'],
-	tags: ['all', 'drill'],
-	snippets: ['all'],
-	plugins: ['all'],
+	props: ['all', 'properties', 'values', 'groups'],
+	files: ['drill', 'all', 'groups'],
+	tags: ['drill', 'all', 'groups'],
+	snippets: ['all', 'groups'],
+	plugins: ['all', 'groups'],
 };
+
+/** U130-03: los scopes validos de una tab. El menu los necesita para no ofrecer
+ *  `groups` donde no significa nada, que es la mitad del fallo de U121-079. */
+export function scopesForTab(tab: ExplorerTabId): readonly SortScopeKey[] {
+	return SCOPES_BY_TAB[tab];
+}
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
 	props: 'all',
@@ -58,7 +64,12 @@ function normalizeScopeSort(value: unknown): ScopeSort | null {
 	if (!isRecord(value)) return null;
 	if (typeof value.sortBy !== 'string' || !value.sortBy) return null;
 	if (!isDirection(value.direction)) return null;
-	return { sortBy: value.sortBy, direction: value.direction };
+	// `custom` was the original persisted name of the note-order preset.
+	// Normalize old layouts while exposing the new user-facing name.
+	return {
+		sortBy: value.sortBy === 'custom' ? 'note' : value.sortBy,
+		direction: value.direction,
+	};
 }
 
 function defaultState(tab: ExplorerTabId): ExplorerSortState {
@@ -225,7 +236,7 @@ export function normalizeExplorerSortState(
  *
  * `sorts` is partial and starts empty, so every scope the user has not opened
  * is absent. Without this the new `all` scope would be write-only: choosing
- * `custom` there would leave `properties` and `values` on their own defaults
+ * `note` there would leave `properties` and `values` on their own defaults
  * and change nothing on screen.
  */
 export function activeScopeSort(
@@ -238,6 +249,11 @@ export function activeScopeSort(
 		: DEFAULT_SCOPE_BY_TAB[tab];
 	const own = state.sorts[allowedScope];
 	if (own) return own;
+	// U130-03: `groups` NO hereda el sort de otro scope. Heredar el de `all`
+	// haria que activar la agrupacion reordenara los grupos con el criterio de
+	// los nodos, en silencio -- el fallo de U121-079 otra vez. Sin sort propio,
+	// los grupos van en el orden por defecto y el usuario decide si lo cambia.
+	if (allowedScope === 'groups') return state.sorts.groups ?? DEFAULT_SORT;
 	const fallbackScope = DEFAULT_SCOPE_BY_TAB[tab];
 	if (fallbackScope !== allowedScope) {
 		return state.sorts[fallbackScope] ?? DEFAULT_SORT;
@@ -340,10 +356,10 @@ export function isSortOptionVisible(
 		revealActive?: boolean;
 	},
 ): boolean {
-	// 'custom' is the anchored note's own order — the order its frontmatter
+	// 'note' is the anchored note's own order — the order its frontmatter
 	// declares. With no note anchored there is no order to read, so the option
 	// does not exist rather than silently falling back to another sort.
-	if (optionId === 'custom' && !context.revealActive) return false;
+	if (optionId === 'note' && !context.revealActive) return false;
 	if ((optionId === 'path' || optionId === 'parent') && context.nestedActive) {
 		return false;
 	}

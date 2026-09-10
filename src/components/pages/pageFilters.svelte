@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
-	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
+	import { Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
 	import {
 		PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 		resolveExclusiveSlotNodes,
-		resolveValueMoveToggleNodes,
 	} from '../../logic/logicPanelWidgetProjection';
-	import type { PanelWidgetNode } from '../../types/typePanelWidget';
+	import { buildTransactionBarState } from '../../logic/logicTransactionBarState';
+	import { projectNodeMoveBar } from '../../logic/logicNodeMoveRuntime';
 	import {
 		executeObsidianCommand,
 		listObsidianCommands,
@@ -49,6 +49,7 @@
 		type ContentSortDirection,
 	} from '../../logic/logicContentPreview';
 	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
+	import { openFileAtOffset } from '../../utils/openFileAtOffset';
 	import { sortDirectionGlyph } from '../../logic/logicSort';
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 	import { contentMenuNode } from '../../logic/logicContentContextMenu';
@@ -67,6 +68,7 @@
 		type TextSearchRun,
 	} from '../../logic/logicTextSearchState';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
 	import type {
 		NavbarPanelWidgetState,
@@ -646,6 +648,35 @@
 		return () => explorer?.setValueMoveChangeHandler(undefined);
 	});
 
+	// U130-02 ui-dom: el modo files vive en el motor NodeMove por
+	// (instancia, Scene). El host solo lo proyecta en el slot existente y
+	// respeta ownership: otra Scene oculta, otra instancia desmonta.
+	let fileMoveRevision = $state(0);
+	$effect(() => {
+		const explorer = fileList;
+		explorer?.setNodeMoveChangeHandler(() => {
+			fileMoveRevision += 1;
+		});
+		return () => explorer?.setNodeMoveChangeHandler(undefined);
+	});
+	$effect(() => {
+		if (sceneInstanceId) fileList?.setNodeMoveOwner(sceneInstanceId);
+	});
+	$effect(() => {
+		// Cambiar de Scene suspende (no mata): reconcilia con liveness y
+		// deja que la barra quede hidden hasta volver.
+		if (sceneInstanceId && filtersActiveTab) {
+			fileList?.reconcileNodeMoveOwner({
+				instanceId: sceneInstanceId,
+				scene: filtersActiveTab,
+			});
+		}
+	});
+
+	// U130-04: el tipo de movimiento es de la transaccion, no de la barra. La
+	// barra lo pinta y lo conmuta; quien lo posee es la Scene.
+	let moveKind = $state<'node' | 'group'>('node');
+
 	const valueMoveMode = $derived.by(() => {
 		void valueMoveRevision;
 		return filtersActiveTab === 'props'
@@ -653,8 +684,57 @@
 			: null;
 	});
 
+	const nodeMoveMode = $derived.by(() => {
+		void fileMoveRevision;
+		if (filtersActiveTab !== 'files') return null;
+		const stored = fileList?.getNodeMoveMode() ?? null;
+		if (!stored) return null;
+		if (stored.owner.instanceId !== sceneInstanceId) return null;
+		if (stored.owner.scene !== 'files') return null;
+		return stored;
+	});
+
+	const transactionBarState = $derived.by(() => {
+		void valueMoveRevision;
+		void fileMoveRevision;
+		if (filtersActiveTab === 'files') {
+			return projectNodeMoveBar({
+				state: fileList?.getNodeMoveMode() ?? null,
+				current: { instanceId: sceneInstanceId, scene: filtersActiveTab },
+				nodes: fileList?.moveTransactionNodes() ?? [],
+				variant: minimalStyle ? 'phone' : 'row',
+				groupsAvailable: false,
+			});
+		}
+		return buildTransactionBarState({
+			transaction: valueMoveMode
+				? {
+						owner: { instanceId: sceneInstanceId, scene: 'props' },
+						originIds: valueMoveMode.origin.map((origin) => origin.id),
+						destinationIds: [...valueMoveMode.destinations],
+						rejection: valueMoveMode.rejection
+							? {
+									destination: valueMoveMode.rejection.destination,
+									reason: valueMoveMode.rejection.reason,
+								}
+							: null,
+						moveKind,
+					}
+				: null,
+			current: { instanceId: sceneInstanceId, scene: filtersActiveTab },
+			nodes: propExplorer?.moveTransactionNodes() ?? [],
+			variant: minimalStyle ? 'phone' : 'row',
+			// U130-03: el toggle solo tiene sentido si hay ContainerNodes a los
+			// que mover. Ahora los hay.
+			groupsAvailable: propExplorer?.hasProjectedGroups() ?? false,
+		});
+	});
+
 	$effect(() => {
 		if (valueMoveMode) {
+			panelWidgetSearchExpanded = true;
+		}
+		if (nodeMoveMode) {
 			panelWidgetSearchExpanded = true;
 		}
 	});
@@ -673,30 +753,43 @@
 		return false;
 	});
 
-	const searchTrailingActions = $derived(
+	const searchMoveToggles = $derived(
 		valueMoveMode
-			? resolveValueMoveToggleNodes({
+			? {
 					write: valueMoveMode.write,
 					originDisposition: valueMoveMode.originDisposition,
-					labels: {
-						append: translate('explorer.move_to_prop.write.append'),
-						replace: translate('explorer.move_to_prop.write.replace'),
-						move: translate('explorer.move_to_prop.origin.move'),
-						copy: translate('explorer.move_to_prop.origin.copy'),
-					},
-				})
-			: [],
+				}
+			: nodeMoveMode
+				? {
+						write: nodeMoveMode.write,
+						originDisposition: nodeMoveMode.originDisposition,
+					}
+				: null,
 	);
 
-	function runSearchTrailingAction(node: PanelWidgetNode): void {
-		if (node.id === 'props.move-to-prop.write') {
-			propExplorer?.toggleValueMoveWrite();
-			return;
-		}
-		if (node.id === 'props.move-to-prop.origin') {
-			propExplorer?.toggleValueMoveOriginDisposition();
-		}
-	}
+	/**
+	 * U130-01: los handlers del move mode del explorer activo. Viajan al host
+	 * del searchbox, que arma con ellos SU invoker: el invoker es por
+	 * superficie, el registro es uno solo.
+	 */
+	const sasiMoveHandlers = $derived(
+		filtersActiveTab === 'props'
+			? (propExplorer?.sasiMoveHandlers() ?? {})
+			: filtersActiveTab === 'files'
+				? (fileList?.sasiNodeMoveHandlers() ?? {})
+				: {},
+	);
+
+	/**
+	 * U130-04: el invoker del Proceed del slot exclusivo. Reusa el registro
+	 * del plugin y los handlers del explorer activo, igual que el searchbox
+	 * hace en navbarFilters: el invoker es por superficie, el registro uno solo.
+	 */
+	const sasiInvoke = $derived(
+		plugin.sasiRegistry
+			? createSasiInvoker(plugin.sasiRegistry, { ...sasiMoveHandlers })
+			: null,
+	);
 
 	const valueMoveSlotNodes = $derived(
 		resolveExclusiveSlotNodes({
@@ -783,7 +876,87 @@
 					propExplorer?.cancelValueMoveMode();
 					return;
 				}
-				propExplorer?.proceedValueMove();
+				// U130-04: el mismo comportamiento, por el id estable. `confirmed`
+				// va a true porque este camino ES la UI contextual: la confirmacion
+				// del usuario la pide `OperationSummaryModal` mas abajo, cuando el
+				// modo de la queue es bypass. El flag protege a las llamadas
+				// desatendidas, no a esta.
+				if (!sasiInvoke) {
+					new Notice(
+						'SASI: sin registro en esta superficie: vaultman.move.proceed',
+					);
+					return;
+				}
+				void sasiInvoke('vaultman.move.proceed', { confirmed: true }).catch(
+					(error: unknown) => {
+						new Notice(String(error instanceof Error ? error.message : error));
+					},
+				);
+			},
+		})),
+	);
+
+	// U130-02 ui-dom: ActionNodes files en el MISMO slot exclusivo, sin
+	// inventar superficie. Proceed cuelga del id nuevo
+	// `vaultman.nodemove.proceed`, nunca de `vaultman.move.proceed`.
+	const fileMoveSlotNodes = $derived(
+		filtersActiveTab === 'files'
+			? resolveExclusiveSlotNodes({
+					idleNode: null,
+					moveMode: nodeMoveMode
+						? {
+								proceed: {
+									id: 'vaultman.nodemove.proceed',
+									nodeKind: 'action',
+									cellKind: 'action',
+									presentation: 'button',
+									label: translate('explorer.ctx.move_to_prop.proceed'),
+									icon: 'lucide-check',
+									order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
+									available: nodeMoveMode.destinations.length > 0,
+									action: { id: 'vaultman.nodemove.proceed' },
+								},
+								cancel: {
+									id: 'vaultman.nodemove.cancel',
+									nodeKind: 'action',
+									cellKind: 'action',
+									presentation: 'button',
+									label: translate('explorer.ctx.move_to_prop.cancel'),
+									icon: 'lucide-x',
+									order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER + 1,
+									available: true,
+									action: { id: 'vaultman.nodemove.cancel' },
+								},
+							}
+						: null,
+				})
+			: [],
+	);
+
+	const fileMoveHeaderActions = $derived<HeaderAction[]>(
+		fileMoveSlotNodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			icon: node.icon,
+			disabled: !node.available,
+			order: node.order,
+			checked: node.checked,
+			onClick: () => {
+				if (node.id === 'vaultman.nodemove.cancel') {
+					fileList?.cancelNodeMoveMode();
+					return;
+				}
+				if (!sasiInvoke) {
+					new Notice(
+						'SASI: sin registro en esta superficie: vaultman.nodemove.proceed',
+					);
+					return;
+				}
+				void sasiInvoke('vaultman.nodemove.proceed', { confirmed: true }).catch(
+					(error: unknown) => {
+						new Notice(String(error instanceof Error ? error.message : error));
+					},
+				);
 			},
 		})),
 	);
@@ -1045,22 +1218,15 @@
 		const match = input?.offsets.find(([start]) => start === offset);
 
 		if (input && match) {
-			await plugin.app.workspace.getLeaf(false).openFile(file, {
-				eState: {
-					match: { content: input.content, matches: [match] },
-				},
+			await openFileAtOffset(plugin.app, file, offset, {
+				match: { content: input.content, range: match },
 			});
 			return;
 		}
 
 		// The match is no longer retained (a new query cleared the floor). Fall
 		// back to placing the cursor, which is what this always did.
-		await plugin.app.workspace.openLinkText(file.path, '', false);
-		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-		const position = view.editor.offsetToPos(offset);
-		view.editor.setCursor(position);
-		view.editor.scrollIntoView({ from: position, to: position }, true);
+		await openFileAtOffset(plugin.app, file, offset);
 	}
 
 	function validateContentSearch(): boolean {
@@ -1131,6 +1297,10 @@
 		const isRegex = contentIsRegex;
 		const isExclusion = contentIsExclusion;
 		const files = contentSearchScopeFiles();
+		const activeFileOnly =
+			activeContentFilePath !== null &&
+			files.length === 1 &&
+			files[0]?.path === activeContentFilePath;
 
 		// U121-016: leaving the Text tab must not touch the run. The pane stays
 		// mounted, so cancelling or resetting here is what used to throw away
@@ -1274,6 +1444,7 @@
 			}
 		}
 		contentPreviewOpen = true;
+		const searchDelay = activeFileOnly ? 0 : 250;
 		const timer = window.setTimeout(() => {
 			// Claimed here, once the scan is really starting.
 			contentSearchLaunchToken = launchToken;
@@ -1352,7 +1523,7 @@
 					},
 				})
 				.catch((error) => console.error(error));
-		}, 250);
+		}, searchDelay);
 
 		// Only the debounce is torn down here. Cancelling the adapter on teardown
 		// is what made a tab switch kill an in-flight scan (U121-016); the run
@@ -1724,12 +1895,23 @@
 				showDock,
 				tabOptions: minimalStyle ? filterTabOptions : [],
 				tabMenuActions,
-				headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
+					headerActions: [
+						...contentHeaderActions,
+						...valueMoveHeaderActions,
+						...fileMoveHeaderActions,
+					],
 				revealActive: revealingActiveFile,
 				activeFilePath: activeContentFilePath,
-				searchTrailingActions,
-				onSearchTrailingAction: runSearchTrailingAction,
-				activeSectionTab: filtersActiveTab,
+				searchMoveToggles,
+					transactionBar: {
+						...transactionBarState,
+					onToggleMoveKind: (next: 'node' | 'group') => {
+						moveKind = next;
+					},
+					},
+					sasiRegistry: plugin.sasiRegistry,
+					sasiMoveHandlers,
+					activeSectionTab: filtersActiveTab,
 				onSectionTabChange: switchFiltersTab,
 				onContentSearch: activateNodeContentSearch,
 				onFiltersSearchChange: setExplorerSearch,
@@ -1784,6 +1966,10 @@
 		if (e.key === 'Escape' && valueMoveMode) {
 			e.preventDefault();
 			propExplorer?.cancelValueMoveMode();
+		}
+		if (e.key === 'Escape' && nodeMoveMode) {
+			e.preventDefault();
+			fileList?.cancelNodeMoveMode();
 		}
 	}
 </script>

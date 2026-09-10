@@ -466,6 +466,37 @@ describe('Native search adapter helpers', () => {
 		});
 	});
 
+	it('publishes the loaded foreground editor before any vault read', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const file = makeFile('notes/unsaved.md');
+		const editor = { getValue: vi.fn(() => 'unsaved journal entry') };
+		const cachedRead = vi.fn(async () => 'saved content without the query');
+		const adapter = new NativeSearchAdapter({
+			vault: { cachedRead },
+			workspace: {
+				activeLeaf: { view: { file, editor } },
+				getLeavesOfType: () => [],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'journal',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates[0]).toMatchObject({ totalMatches: 1, isLoading: true });
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 1,
+			isLoading: false,
+		});
+		expect(editor.getValue).toHaveBeenCalled();
+		expect(cachedRead).not.toHaveBeenCalled();
+	});
+
 	it('supplements native search with local reads when the native DOM misses hidden matches', async () => {
 		vi.stubGlobal('window', { setTimeout });
 		const file = makeFile('this works.md');

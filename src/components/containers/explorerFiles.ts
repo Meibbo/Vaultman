@@ -21,6 +21,7 @@ import type {
 import { resolveCellRenderOrder } from '../../logic/logicCellRegistry';
 import {
 	applyBubbleDots,
+	bubbleMemberCountsToGroups,
 	buildBubbleIndex,
 	collectDescendantBadges,
 	type BubbleIndex,
@@ -34,6 +35,12 @@ import {
 } from '../../logic/logicDeletionDecoration';
 import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
+import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	isGroupHeader,
+	projectGroupedTree,
+	resolveCustomGroups,
+} from '../../logic/logicTreeGroupProjection';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -56,8 +63,29 @@ import {
 } from '../../modals/modalFileRename';
 
 import { FileMoveModal } from '../../modals/modalFileMove';
+import { ConfirmModal } from '../../modals/modalConfirm';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
+import {
+	fileMoveStrategy,
+	type MoveNodeRef,
+} from '../../logic/logicMoveRouting';
+import {
+	enterNodeMoveMode,
+	proceedEnabled,
+	pruneDeadOrigins,
+	reconcileNodeMoveOwner,
+	selectNodeMoveDestination,
+	toggleNodeMoveOriginDisposition,
+	toggleNodeMoveWrite,
+	type NodeMoveModeState,
+} from '../../logic/logicNodeMoveMode';
+import {
+	NodeMoveSceneRuntime,
+	isNodeMoveActiveIn,
+} from '../../logic/logicNodeMoveRuntime';
+import { proceedNodeMoveToQueue } from '../../logic/logicNodeMoveProceed';
+import type { BarNode } from '../../logic/logicTransactionBar';
 import { translate } from '../../i18n/index';
 import {
 	formatTimestampCell,
@@ -176,22 +204,8 @@ function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	return true;
 }
 
-export interface FileMoveOwner {
-	providerId: string;
-	generation: number;
-}
-
-export interface FileMoveModeState {
-	origins: (TFile | TFolder)[];
-	destinations: string[]; // Node IDs of selected destination folders
-	restore: {
-		interactionMode: string;
-		searchOpen: boolean;
-		/** U121-102: los filtros de tipo que habia antes de forzar `folders-only`. */
-		nodeTypeFilters?: string[];
-	};
-	owner: FileMoveOwner;
-}
+/** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
+export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
 export class FilesExplorerPanel extends Component {
 	private containerEl: HTMLElement;
@@ -212,14 +226,62 @@ export class FilesExplorerPanel extends Component {
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private sortState = normalizeExplorerSortState('files', null);
 
-	private fileMoveMode: FileMoveModeState | null = null;
-	private onFileMoveChange?: () => void;
-	private fileMoveGeneration = 0;
+	private readonly nodeMoveRuntime = new NodeMoveSceneRuntime();
+	private nodeMoveInstanceId = 'default';
+	private onNodeMoveChange?: () => void;
 	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
 	private interactionMode: InteractionMode = 'open';
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
 	private selectedFilePaths = new Set<string>();
+	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
+	private readonly _groupIds = new Set<string>();
+	private activeLayoutName: string | null = null;
+
+	setActiveLayoutName(name: string | null): void {
+		if (this.activeLayoutName === name) return;
+		this.activeLayoutName = name;
+		this._render();
+	}
+
+	private projectedNodes(
+		nodes: readonly TreeNode<FileMeta>[] = this._lastRenderTree,
+	): TreeNode<FileMeta>[] {
+		const activeName =
+			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
+		const layout = this.plugin.settings.savedLayouts?.find(
+			(candidate) => candidate.name === activeName,
+		);
+		const memberships = layout?.groupMemberships ?? {};
+		const groups = resolveCustomGroups(memberships);
+		this._groupIds.clear();
+		for (const group of groups) this._groupIds.add(group.id);
+		return projectGroupedTree<FileMeta>({
+			nodes,
+			groups,
+			memberships,
+			providerId: 'files',
+			noGroupLabel: translate('explorer.group.no_group'),
+			filtered: this.sortState?.filtered === true,
+			urnOf: (node) =>
+				formatMembershipUrn({
+					providerId: 'files',
+					kind: node.meta?.isFolder ? 'folder' : 'file',
+					canonicalId: node.meta?.file?.path ?? node.meta?.folderPath ?? node.id,
+					displayLabel: node.label,
+				}),
+			// S07A: la cabecera muestra el agregado burbujeado (identidades,
+			// no ocurrencias) en vez de `children.length`.
+			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			enabled: this.sortState?.activeScope === 'groups',
+			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
+			// contenedor (carpeta): clases nativas y meta propia en vez de la
+			// prestada del primer hijo.
+			headerCoreCls: 'tree-item-self nav-folder-title is-clickable',
+			headerMeta: { file: null, folder: null, isFolder: true, folderPath: '' },
+		}) as TreeNode<FileMeta>[];
+	}
+
 	private selectionAnchorPath: string | null = null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
@@ -444,7 +506,7 @@ export class FilesExplorerPanel extends Component {
 				if (!meta.file) return;
 
 				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
-					this._enterFileMoveMode(ctx);
+					this._enterNodeMoveMode(ctx);
 				} else {
 					const filesToMove = this.selectedFilePaths.has(ctx.node.id)
 						? this.getSelectedFiles()
@@ -552,9 +614,10 @@ export class FilesExplorerPanel extends Component {
 			icon: 'lucide-check',
 			when: (ctx) => {
 				const meta = ctx.node.meta as FileMeta;
+				const stored = this._activeNodeMove();
 				return (
-					this._fileMoveProceedAvailable() &&
-					this.fileMoveMode?.destinations.some(
+					this.nodeMoveProceedAvailable() &&
+					stored?.destinations.some(
 						(d) =>
 							meta.file &&
 							(meta.file.path === d ||
@@ -562,7 +625,7 @@ export class FilesExplorerPanel extends Component {
 					) === true
 				);
 			},
-			run: () => this.proceedFileMove(),
+			run: () => this.proceedNodeMove(),
 		});
 
 		svc.registerAction({
@@ -640,7 +703,7 @@ export class FilesExplorerPanel extends Component {
 				if (!folder) return;
 
 				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
-					this._enterFileMoveMode(ctx);
+					this._enterNodeMoveMode(ctx);
 				} else {
 					const target = await showInputModal(
 						this.plugin.app,
@@ -776,6 +839,9 @@ export class FilesExplorerPanel extends Component {
 
 	onunload(): void {
 		this.statisticsWarmSignature = '';
+		// U130-02 ui-dom: teardown termina la transaccion de esta instancia.
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this.onNodeMoveChange = undefined;
 		if (this.refreshTimer !== null) {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
@@ -866,7 +932,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this._nestedEnabled() && this.expandedIds.size > 0;
+		return this._expansionEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -1008,18 +1074,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
-		if (!this._nestedEnabled()) return;
+		if (!this._expansionEnabled()) return;
+		// El MISMO arbol que pinta la vista, con la proyeccion de grupos
+		// incluida: recorrer el modelo sin proyectar dejaba fuera a las
+		// cabeceras. El predicado es tener hijos (`collectExpandableSubtreeIds`,
+		// el camino comun), no `meta.isFolder`: la cabecera es un p-node
+		// contenedor aunque su meta no sea la de una carpeta.
 		const changedFolderIds: string[] = [];
-		const walk = (nodes: TreeNode<FileMeta>[]) => {
-			for (const node of nodes) {
-				if (node.meta.isFolder && !this.expandedIds.has(node.id)) {
-					this.expandedIds.add(node.id);
-					changedFolderIds.push(node.id);
-				}
-				if (node.children?.length) walk(node.children);
+		for (const root of this.projectedNodes(this._lastRenderTree)) {
+			for (const id of collectExpandableSubtreeIds(root)) {
+				if (this.expandedIds.has(id)) continue;
+				this.expandedIds.add(id);
+				changedFolderIds.push(id);
 			}
-		};
-		walk(this._lastRenderTree);
+		}
 		if (changedFolderIds.length === 0) return;
 		this._notifyExpansionChanged();
 		this._refreshCompleteTreeExpansion(changedFolderIds);
@@ -1414,9 +1482,9 @@ export class FilesExplorerPanel extends Component {
 			selectionGesture,
 		);
 
-		if (this.fileMoveMode && selectionGesture !== 'open') {
-			this._registerFileMoveDestination(file);
-			// We handle visual selection in _registerFileMoveDestination
+		if (this._activeNodeMove() && selectionGesture !== 'open') {
+			this._registerNodeMoveDestination(file);
+			// We handle visual selection in _registerNodeMoveDestination
 			return;
 		}
 		if (selectionGesture !== 'open') {
@@ -1494,36 +1562,105 @@ export class FilesExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
-	getFileMoveMode(): FileMoveModeState | null {
-		return this.fileMoveMode;
+	getNodeMoveMode(): NodeMoveModeState | null {
+		return this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
 	}
 
-	setFileMoveChangeHandler(handler?: () => void): void {
-		this.onFileMoveChange = handler;
+	setNodeMoveChangeHandler(handler?: () => void): void {
+		this.onNodeMoveChange = handler;
 	}
 
-	private _setFileMoveMode(next: FileMoveModeState | null): void {
-		this.fileMoveMode = next;
-		this.onFileMoveChange?.();
+	setNodeMoveOwner(instanceId: string): void {
+		if (this.nodeMoveInstanceId === instanceId) return;
+		// U130-02 correccion: cambiar de WorkspaceInstance termina la clave
+		// vieja (oldInstanceId, files). Sin esto la transaccion pendiente
+		// quedaba huerfana bajo la instancia anterior y el onunload de la
+		// nueva no podia limpiarla. Misma instancia = Scene suspende, no se toca.
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this.nodeMoveInstanceId = instanceId;
+		this.onNodeMoveChange?.();
 	}
 
-	private _fileMoveOwner(): FileMoveOwner {
-		return { providerId: 'files', generation: this.fileMoveGeneration };
+	private _emitNodeMoveChange(): void {
+		this.onNodeMoveChange?.();
 	}
 
-	reconcileFileMoveOwner(owner: FileMoveOwner): void {
-		if (!this.fileMoveMode) return;
-		if (
-			this.fileMoveMode.owner.providerId === owner.providerId &&
-			this.fileMoveMode.owner.generation === owner.generation
-		)
+	private _nodeMoveKey(): { instanceId: string; scene: string } {
+		return { instanceId: this.nodeMoveInstanceId, scene: 'files' };
+	}
+
+	private _isAlive(ref: MoveNodeRef): boolean {
+		return Boolean(this.plugin.app.vault.getAbstractFileByPath(ref.canonicalId));
+	}
+
+	private _activeNodeMove(): NodeMoveModeState | null {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		if (!stored) return null;
+		if (!isNodeMoveActiveIn(stored, this._nodeMoveKey())) return null;
+		return stored;
+	}
+
+	/** U130-04: la barra cuenta jerarquicamente; la unica que tiene padre/hijo es el arbol proyectado. */
+	moveTransactionNodes(): readonly BarNode[] {
+		const flatten = (
+			nodes: readonly TreeNode<FileMeta>[],
+		): BarNode[] =>
+			nodes.flatMap((node) => [
+				{
+					id: node.id,
+					label: node.label,
+					childIds: (node.children ?? []).map((child) => child.id),
+				},
+				...flatten(node.children ?? []),
+			]);
+		return flatten(this._lastRenderTree);
+	}
+
+	/**
+	 * Cambio de Scene suspende (la entrada queda) y al volver se revalida
+	 * con liveness. Otra instancia no ve nada. Nunca publica sobre Scene
+	 * ajena: solo toca su propia clave.
+	 */
+	reconcileNodeMoveOwner(owner: NodeMoveSceneOwner): void {
+		if (owner.scene !== 'files') return;
+		if (owner.instanceId !== this.nodeMoveInstanceId) {
+			this.nodeMoveInstanceId = owner.instanceId;
+		}
+		const resumed = this.nodeMoveRuntime.resume(
+			owner.instanceId,
+			'files',
+			(ref) => this._isAlive(ref),
+		);
+		if (resumed.pruned.length > 0 || resumed.prunedDestinations.length > 0) {
+			const parts: string[] = [];
+			if (resumed.pruned.length > 0)
+				parts.push(`orígenes: ${resumed.pruned.join(', ')}`);
+			if (resumed.prunedDestinations.length > 0)
+				parts.push(`destinos: ${resumed.prunedDestinations.join(', ')}`);
+			new Notice(
+				translate('explorer.move_to_folder.pruned', { detail: parts.join('; ') }),
+			);
+			this._emitNodeMoveChange();
+			this._render();
 			return;
-		this._exitFileMoveMode();
+		}
+		// Sin bajas no se notifica: resume devuelve el mismo estado.
+		if (resumed.state) {
+			const pure = reconcileNodeMoveOwner(resumed.state, {
+				instanceId: owner.instanceId,
+				scene: 'files',
+			});
+			if (!pure) {
+				this.nodeMoveRuntime.finish(owner.instanceId, 'files');
+				this._emitNodeMoveChange();
+				this._render();
+			}
+		}
 	}
 
-	private _enterFileMoveMode(ctx: { node: { meta?: unknown } }): void {
-		if (this.fileMoveMode) {
-			this._exitFileMoveMode();
+	private _enterNodeMoveMode(ctx: { node: { meta?: unknown } }): void {
+		if (this._activeNodeMove()) {
+			this._exitNodeMoveMode();
 			return;
 		}
 
@@ -1536,8 +1673,18 @@ export class FilesExplorerPanel extends Component {
 		if (!clicked) return;
 
 		// The origins are whatever was selected, or the clicked node if no selection.
-		const origins: (TFile | TFolder)[] = [];
-		const selectedPaths = new Set<string>();
+		const seen = new Set<string>();
+		const origins: { id: string; kind: string; node: MoveNodeRef }[] = [];
+		const pushOrigin = (fileOrFolder: TFile | TFolder): void => {
+			if (seen.has(fileOrFolder.path)) return;
+			seen.add(fileOrFolder.path);
+			const kind = fileOrFolder instanceof TFolder ? 'folder' : 'file';
+			origins.push({
+				id: fileOrFolder.path,
+				kind,
+				node: { id: fileOrFolder.path, kind, canonicalId: fileOrFolder.path },
+			});
+		};
 
 		const clickedNodeId = (ctx.node as { id?: string }).id ?? clicked.path;
 		if (
@@ -1547,149 +1694,217 @@ export class FilesExplorerPanel extends Component {
 			// Clicked node is in selection, use full selection -- folders included.
 			const targets = this._selectedTargets();
 			for (const origin of [...targets.files, ...targets.folders]) {
-				if (selectedPaths.has(origin.path)) continue;
-				origins.push(origin);
-				selectedPaths.add(origin.path);
+				pushOrigin(origin);
 			}
 		} else {
 			// Clicked node not in selection, use just clicked node
-			origins.push(clicked);
+			pushOrigin(clicked);
 		}
 
 		if (origins.length === 0) return;
 
-		this.fileMoveGeneration += 1;
-		this._setFileMoveMode({
-			origins,
-			destinations: [],
-			owner: this._fileMoveOwner(),
-			restore: {
-				interactionMode: this.interactionMode,
-				searchOpen: false, // We don't force search open for file move
-				nodeTypeFilters: [...this.nodeTypeFilters],
-			},
-		});
+		this.nodeMoveRuntime.start(
+			enterNodeMoveMode({
+				origin: origins,
+				restore: {
+					interactionMode: this.interactionMode,
+					searchOpen: false, // We don't force search open for file move
+				},
+				owner: this._nodeMoveKey(),
+				strategy: fileMoveStrategy,
+			}),
+		);
 
 		this.selectedFilePaths = new Set<string>();
 		this.setInteractionMode('select');
-		// U121-102: elegir destino es elegir CARPETA, asi que el move enciende el
-		// sort por folders en vez de dejar al usuario buscarlas entre los ficheros.
-		// En tagScene no se hace: cualquier tag puede convertirse en p-node, asi
-		// que ahi la distincion por tipo no significa lo mismo -- por eso la regla
-		// vive en fileScene y no en un sitio comun.
-		if (!this.nodeTypeFilters.includes('folders-only')) {
-			this.setSortState({
-				...this._sortState(),
-				...nodeTypeFilterPatch([...this.nodeTypeFilters, 'folders-only']),
-			});
-		}
+		this._emitNodeMoveChange();
 		this._render();
 	}
 
-	private _registerFileMoveDestination(file: TFile | TFolder): void {
-		if (!this.fileMoveMode) return;
+	private _registerNodeMoveDestination(file: TFile | TFolder): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
 
 		const targetFolder = file instanceof TFolder ? file : file.parent;
 		if (!targetFolder) return;
 
-		// Check if it's a valid move (e.g. not moving a folder into itself)
-		const isInvalid = this.fileMoveMode.origins.some((origin) => {
-			if (
-				origin instanceof TFolder &&
-				(targetFolder.path === origin.path ||
-					targetFolder.path.startsWith(origin.path + '/'))
-			) {
-				return true;
-			}
-			return false;
-		});
+		// U130-02: la aciclicidad vive en la strategy de fileScene, no duplicada
+		// aqui. Se valida contra el targetFolder YA RESUELTO: pinchar un
+		// fichero significa "a su carpeta".
+		const candidate: MoveNodeRef = {
+			id: targetFolder.path,
+			kind: 'folder',
+			canonicalId: targetFolder.path,
+		};
+		const next = selectNodeMoveDestination(stored, candidate);
+		this.nodeMoveRuntime.start(next);
 
-		if (isInvalid) {
-			new Notice(translate('explorer.move_to_folder.rejected'));
+		if (next.rejection) {
+			new Notice(
+				translate('explorer.move_to_folder.rejectedBy', {
+					reason: next.rejection.reason,
+				}),
+			);
+			this._emitNodeMoveChange();
+			this._render();
 			return;
 		}
-
-		this.fileMoveGeneration += 1;
-		this._setFileMoveMode({
-			...this.fileMoveMode,
-			destinations: [targetFolder.path],
-		});
 
 		// Update visual selection to show the destination
 		const newSelection = new Set<string>();
 		newSelection.add(targetFolder.path);
 		this.selectedFilePaths = newSelection;
 		this.selectionAnchorPath = targetFolder.path;
+		this._emitNodeMoveChange();
 		this._render();
 	}
 
-	private _exitFileMoveMode(): void {
-		const restore = this.fileMoveMode?.restore;
-		this._setFileMoveMode(null);
+	private _exitNodeMoveMode(): void {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		const restore = stored?.restore;
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this._emitNodeMoveChange();
 		if (restore) {
 			this.setInteractionMode(restore.interactionMode as InteractionMode);
-			// U121-102: el sort que forzo el move se deshace al salir. Sin esto, el
-			// usuario se queda viendo solo carpetas sin haberlo pedido.
-			if (restore.nodeTypeFilters) {
-				this.setSortState({
-					...this._sortState(),
-					...nodeTypeFilterPatch(restore.nodeTypeFilters),
-				});
-			}
 		}
 		this._render();
 	}
 
-	cancelFileMoveMode(): void {
-		this._exitFileMoveMode();
+	cancelNodeMoveMode(): void {
+		this._exitNodeMoveMode();
 	}
 
-	proceedFileMove(): void {
-		if (!this.fileMoveMode || this.fileMoveMode.destinations.length === 0)
-			return;
+	toggleNodeMoveWrite(): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
+		this.nodeMoveRuntime.start(toggleNodeMoveWrite(stored));
+		this._emitNodeMoveChange();
+		this._render();
+	}
 
-		const destId = this.fileMoveMode.destinations[0];
-		const destNode = this._findNode(destId, this._lastRenderTree);
-		const destMeta = destNode?.meta;
+	toggleNodeMoveOriginDisposition(): void {
+		const stored = this._activeNodeMove();
+		if (!stored) return;
+		this.nodeMoveRuntime.start(toggleNodeMoveOriginDisposition(stored));
+		this._emitNodeMoveChange();
+		this._render();
+	}
 
-		if (destMeta?.file instanceof TFolder) {
-			const targetFolder = destMeta.file;
-			const targetPath = targetFolder.path.replace(/^\/|\/$/g, '');
+	/**
+	 * U130-02 ui-dom: culminacion NodeMove -> queue existente.
+	 * - stage: `addBatch` (una sola notificacion); no ejecuta.
+	 * - bypass sin consentimiento: no toca la queue; abre ConfirmModal
+	 *   existente y solo al confirmar reintenta con `confirmed: true`
+	 *   (el adaptador ya creado `proceedNodeMoveToQueue`).
+	 * Lo podado y lo no resoluble se dice con Notice, nunca en silencio.
+	 */
+	proceedNodeMove(confirmed = false): void {
+		const stored = this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
+		if (!stored) return;
+		if (!isNodeMoveActiveIn(stored, this._nodeMoveKey())) return;
 
-			for (const file of this.fileMoveMode.origins) {
-				const newPath = targetPath ? `${targetPath}/${file.name}` : file.name;
-				if (newPath === file.path) continue;
+		const findFile = (canonicalId: string): TFile | null => {
+			const found = this.plugin.app.vault.getAbstractFileByPath(canonicalId);
+			return found instanceof TFile ? found : null;
+		};
+		const listFilesInFolder = (folderPath: string): TFile[] =>
+			filesInsideFolder(this.plugin.app.vault.getFiles(), folderPath);
+		const isAlive = (ref: MoveNodeRef): boolean => this._isAlive(ref);
 
-				if (file instanceof TFile) {
-					this.plugin.queueService.addOrRun({
-						type: 'file_move',
-						action: 'move',
-						details: `Move file "${file.path}" to "${newPath}"`,
-						files: [file],
-						targetFolder: targetPath,
-						customLogic: true,
-						logicFunc: () => ({ [MOVE_FILE]: newPath }),
-					});
-				} else if (file instanceof TFolder) {
-					this._queueFolderMove(
-						file,
-						newPath,
-						`Move folder "${file.path}" to "${newPath}"`,
-					);
-				}
-			}
+		const outcome = proceedNodeMoveToQueue(stored, {
+			findFile,
+			listFilesInFolder,
+			isAlive,
+			queueService: this.plugin.queueService,
+			confirmed,
+		});
+
+		if (outcome.pruned.length > 0 || outcome.prunedDestinations.length > 0) {
+			const parts: string[] = [];
+			if (outcome.pruned.length > 0)
+				parts.push(`orígenes: ${outcome.pruned.join(', ')}`);
+			if (outcome.prunedDestinations.length > 0)
+				parts.push(`destinos: ${outcome.prunedDestinations.join(', ')}`);
+			new Notice(
+				translate('explorer.move_to_folder.pruned', { detail: parts.join('; ') }),
+			);
+		}
+		if (outcome.plan.unresolved.length > 0) {
+			const names = outcome.plan.unresolved
+				.map((entry) => `${entry.originCanonicalId}→${entry.destinationCanonicalId} (${entry.reason})`)
+				.join('; ');
+			new Notice(translate('explorer.move_to_folder.unresolved', { detail: names }));
 		}
 
-		this._exitFileMoveMode();
-	}
+		if (outcome.requiresConfirmation) {
+			const count = outcome.plan.changes.length;
+			const summary = outcome.plan.changes
+				.map((change) => change.details)
+				.slice(0, 5)
+				.join('\n');
+			new ConfirmModal(this.plugin.app, {
+				title: translate('explorer.move_to_folder.summaryTitle'),
+				message: translate('explorer.move_to_folder.summaryBody', {
+					count,
+					detail: summary,
+				}),
+				ctaLabel: translate('explorer.move_to_folder.summaryConfirm'),
+				onConfirm: () => this.proceedNodeMove(true),
+			}).open();
+			return;
+		}
 
-	private _fileMoveProceedAvailable(): boolean {
-		return (
-			this.fileMoveMode !== null && this.fileMoveMode.destinations.length > 0
+		if (outcome.staged === 0) {
+			// Nada que stagear (p. ej. prune vacio el modo): persiste la poda
+			// para no emitir contra algo muerto y repinta.
+			const pruned = pruneDeadOrigins(stored, isAlive);
+			if (pruned.state !== stored) {
+				this.nodeMoveRuntime.start(pruned.state);
+				this._emitNodeMoveChange();
+				this._render();
+			}
+			return;
+		}
+
+		const restore = stored.restore;
+		this.nodeMoveRuntime.finish(this.nodeMoveInstanceId, 'files');
+		this._emitNodeMoveChange();
+		this.setInteractionMode(restore.interactionMode as InteractionMode);
+		new Notice(
+			translate('explorer.move_to_folder.staged', { count: outcome.staged }),
 		);
+		this._render();
 	}
 
-	getFileMoveSlotNodes(params: {
+	/**
+	 * U130-02 ui-dom: handlers estables para el invoker por superficie.
+	 * El registro vive en `logicSasiMoveActions` (ids `vaultman.nodemove.*`);
+	 * aqui solo los callbacks reales. `proceed` NO reutiliza
+	 * `vaultman.move.proceed` (valueMove).
+	 */
+	sasiNodeMoveHandlers(): Record<string, () => Promise<void>> {
+		return {
+			'vaultman.nodemove.proceed': async () => {
+				this.proceedNodeMove();
+			},
+			'vaultman.nodemove.cancel': async () => {
+				this.cancelNodeMoveMode();
+			},
+			'vaultman.nodemove.toggleWrite': async () => {
+				this.toggleNodeMoveWrite();
+			},
+			'vaultman.nodemove.toggleOriginDisposition': async () => {
+				this.toggleNodeMoveOriginDisposition();
+			},
+		};
+	}
+
+	nodeMoveProceedAvailable(): boolean {
+		const stored = this._activeNodeMove();
+		return stored !== null && proceedEnabled(stored);
+	}
+
+	getNodeMoveSlotNodes(params: {
 		moveMode: {
 			proceed: { id: string; available: boolean };
 			cancel: { id: string; available: boolean };
@@ -1699,7 +1914,7 @@ export class FilesExplorerPanel extends Component {
 		if (params.moveMode) {
 			nodes.push({
 				...params.moveMode.proceed,
-				available: this._fileMoveProceedAvailable(),
+				available: this.nodeMoveProceedAvailable(),
 			});
 			nodes.push({ ...params.moveMode.cancel, available: true });
 		}
@@ -1864,17 +2079,24 @@ export class FilesExplorerPanel extends Component {
 		this._refreshCachedTreeLabels(nodes);
 		this._decorateTreeWithFileTimes(nodes);
 		if (rebuildQueueIndex) this._decorateTreeWithQueue(nodes);
+		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+			this._decorateTreeWithNodeNotes(nodes);
+		}
 		this._setIndexRoots(nodes, []);
 		this._treeRenderOpts = {
 			...this._treeRenderOpts,
 			nodes,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(nodes),
+		});
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 	}
 
@@ -2075,6 +2297,13 @@ export class FilesExplorerPanel extends Component {
 				() => this._decorateTreeWithQueue(renderTree),
 				{ files: sortedFiles.length },
 			);
+			if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+				vaultmanPerfMonitor.measure(
+					'explorer.files.decorate-node-notes',
+					() => this._decorateTreeWithNodeNotes(renderTree),
+					{ nodes: renderTree.length },
+				);
+			}
 			const applyFolderIcons = (
 				nodes: TreeNode<FileMeta>[],
 				expanded: Set<string>,
@@ -2094,12 +2323,13 @@ export class FilesExplorerPanel extends Component {
 				() => this._decorateTreeWithIcons(renderTree),
 				{ files: sortedFiles.length },
 			);
-			this._setIndexRoots(renderTree, []);
-			this._treeRenderOpts = {
-				nodes: renderTree,
-				expandedIds: this.expandedIds,
-				visibleCells: this.visibleCells,
-				stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+		this._setIndexRoots(renderTree, []);
+		this._treeRenderOpts = {
+			nodes: renderTree,
+			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
+			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 				stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
@@ -2182,24 +2412,14 @@ export class FilesExplorerPanel extends Component {
 				},
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
-				renderLabel: (row, node) => {
-					const queue = this.plugin.queueService.queue;
-					const target = renameTargetFromQueue(queue, node.id);
-					if (target) {
-						const label = row.createSpan({
-							cls: 'vaultman-tree-label vaultman-rename-preview',
-							text: target,
-						});
-						if (node.labelColor) label.style.color = node.labelColor;
-						return true;
-					}
-					return false;
-				},
+				renderLabel: (row, node) => this._renderFileLabel(row, node),
 				onToggle: (id: string) => {
 					this._toggleFolderWithStickyAnchor(id);
 				},
-				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),
+				onRecursiveExpand: (id: string) =>
+				this._expandSubtree(id, this.projectedNodes(renderTree)),
 				onRowClick: (id: string, event?: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -2262,6 +2482,7 @@ export class FilesExplorerPanel extends Component {
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
+					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -2336,12 +2557,123 @@ export class FilesExplorerPanel extends Component {
 				},
 				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 			};
-			this.treeView.render(this._treeRenderOpts);
+			this.treeView.render({
+				...this._treeRenderOpts,
+				nodes: this.projectedNodes(renderTree),
+			});
 		}
 		if (this._needsStatisticsWarmup()) {
 			this._warmStatisticsCache(displayFiles);
 		}
 	}
+
+	
+	private _decorateTreeWithNodeNotes(nodes: TreeNode<FileMeta>[]): void {
+		const app = this.plugin.app;
+		if (!app?.vault) return;
+
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === "string") aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === "string") {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+
+		const visit = (list: TreeNode<FileMeta>[]) => {
+			for (const node of list) {
+				const isFolder = node.meta.isFolder === true || (node as any).isFolder === true;
+				const path = isFolder
+					? (node.meta?.folderPath ?? node.id.replace(/^folder:/, ''))
+					: (node.meta?.file?.path ?? node.id);
+				let hasBoundNote = false;
+
+				if (isFolder) {
+					const folderPath = path.replace(/^[\/\\]+|[\/\\]+$/g, "");
+					const folderName = folderPath.split("/").pop() ?? folderPath;
+					const cNodePath = folderPath ? folderPath + "/" + folderName + ".md" : folderName + ".md";
+					if (app.vault.getAbstractFileByPath?.(cNodePath)) {
+						hasBoundNote = true;
+					} else if (aliasSet.has(folderPath) || aliasSet.has(folderName)) {
+						hasBoundNote = true;
+					}
+				} else if (!path.endsWith(".md")) {
+					const fileName = path.split("/").pop() ?? path;
+					const basename = fileName.replace(/\.[^/.]+$/, "");
+					if (aliasSet.has(path) || aliasSet.has(fileName) || aliasSet.has(basename)) {
+						hasBoundNote = true;
+					}
+				}
+
+				if (hasBoundNote) {
+					node.meta.hasNodeNote = true;
+				}
+
+				if (node.children?.length) {
+					visit(node.children);
+				}
+			}
+		};
+
+		visit(nodes);
+	}
+
+	private _renderFileLabel(container: HTMLElement, node: TreeNode<any>): boolean {
+		const queue = this.plugin.queueService.queue;
+		const target = renameTargetFromQueue(queue, node.id);
+		if (target) {
+			const label = container.createSpan({
+				cls: "vaultman-tree-label vaultman-rename-preview",
+				text: target,
+			});
+			if (node.labelColor) label.style.color = node.labelColor;
+			return true;
+		}
+
+		// O(1) pure read: When format cell is visible and node was decorated with a Node-Note
+		if (this.visibleCells.has("format") && node.meta?.hasNodeNote === true) {
+			const linkEl = container.createSpan({
+				cls: "vaultman-tree-label vaultman-node-note-link",
+				text: node.label,
+			});
+			if (node.labelColor) linkEl.style.color = node.labelColor;
+			linkEl.onclick = (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+				const meta = node.meta as FileMeta;
+				if (meta?.isFolder) {
+					void this.plugin.nodeBindingService?.bindOrCreate(
+						{
+							kind: "folder",
+							label: node.label,
+							path: meta.folderPath ?? meta.folder?.path ?? node.id.replace(/^folder:/, ""),
+						},
+						{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+					);
+				} else {
+					void this.plugin.nodeBindingService?.bindOrCreate(
+						{
+							kind: "file",
+							label: node.label,
+							path: meta?.file?.path ?? node.id,
+						},
+						{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+					);
+				}
+			};
+			return true;
+		}
+
+		return false;
+	}
+
 
 	private _handleFileDragOver(
 		targetNode: TreeNode<FileMeta>,
@@ -2641,7 +2973,10 @@ export class FilesExplorerPanel extends Component {
 			...this._treeRenderOpts,
 			expandedIds: this.expandedIds,
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(this._treeRenderOpts.nodes as TreeNode<FileMeta>[]),
+		});
 	}
 
 	private _refreshFolderIcon(id: string): void {
@@ -2834,6 +3169,28 @@ export class FilesExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): la agrupacion proyecta cabeceras con hijos aunque la
+	 * anidacion este apagada. Es la MISMA bandera que habilita la proyeccion
+	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
+	 */
+	private _groupingActive(): boolean {
+		return this.sortState?.activeScope === 'groups';
+	}
+
+	/**
+	 * U130-t33 (L-PNODE): el toggle de expansion vive mientras haya p-nodes
+	 * plegables, vengan de la anidacion o de la agrupacion. Un grupo es un
+	 * p-node independientemente de si la anidacion esta activa.
+	 */
+	private _expansionEnabled(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
+	}
+
+	private _indentGuidesActive(): boolean {
+		return this._nestedEnabled() || this._groupingActive();
 	}
 
 	/**
@@ -3201,6 +3558,10 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	private readonly _handleMetadataChange = (file: TFile): void => {
+		if (this.visibleCells.has('format')) {
+			this._scheduleRefresh();
+			return;
+		}
 		if (!this.visibleCells.has('count') && !this._usesPropertyCountSort()) {
 			return;
 		}
@@ -3561,7 +3922,10 @@ export class FilesExplorerPanel extends Component {
 		}
 		this._bubbleTree = result.nodes;
 		this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(result.nodes),
+		});
 		return true;
 	}
 
@@ -3649,12 +4013,18 @@ export class FilesExplorerPanel extends Component {
 				if (moved) this._refreshNodeTimeCells(moved);
 				if (!result.changed) {
 					if (moved && this._timeCellVisible())
-						this.treeView.render(this._treeRenderOpts);
+						this.treeView.render({
+							...this._treeRenderOpts,
+							nodes: this.projectedNodes(this._treeRenderOpts.nodes as TreeNode<FileMeta>[]),
+						});
 					return;
 				}
 				this._bubbleTree = result.nodes;
 				this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
-				this.treeView.render(this._treeRenderOpts);
+				this.treeView.render({
+					...this._treeRenderOpts,
+					nodes: this.projectedNodes(result.nodes),
+				});
 				return;
 			}
 			// Table and Cards have no equivalent projection yet, and neither do
@@ -3934,8 +4304,9 @@ export class FilesExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<FileMeta>[],
 	): TreeNode<FileMeta> | null {
+		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id) return n;
+			if (n.id === id || n.id === baseId) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;
@@ -4234,12 +4605,16 @@ export class FilesExplorerPanel extends Component {
 			nodes: this._lastRenderTree,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
-		this.treeView.render(this._treeRenderOpts);
+		this.treeView.render({
+			...this._treeRenderOpts,
+			nodes: this.projectedNodes(this._lastRenderTree),
+		});
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 		vaultmanPerfMonitor.record(
 			'explorer.files.filter-delta',

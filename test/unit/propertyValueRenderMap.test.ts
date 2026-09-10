@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { App } from 'obsidian';
 
-import { renderPropertyValue } from '../../src/utils/renderPropertyValue';
+import { detectLinkType, parseWikilinkDisplay, renderPropertyValue } from '../../src/utils/renderPropertyValue';
 
 /**
  * The unit environment is `node`, so there is no DOM and no Obsidian element
@@ -169,12 +169,12 @@ describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () =
 		expect(checkbox?.checked).toBe(true);
 	});
 
-	it('renders a date input plus the daily note shortcut', () => {
+	it('renders a date input without row actions', () => {
 		const root = render('2026-08-01', 'date');
 		const input = root.find('mod-date');
 		expect(input?.tagName).toBe('input');
 		expect(input?.value).toBe('2026-08-01');
-		expect(root.find('vaultman-property-value-action')).not.toBeNull();
+		expect(root.find('vaultman-property-value-action')).toBeNull();
 	});
 
 	it('renders a datetime input', () => {
@@ -266,38 +266,9 @@ describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () =
 });
 
 describe('U121-003 shard 07 — value affordances', () => {
-	it('omits the remove control when no delete callback is supplied', () => {
-		expect(
-			render('cocina', 'tags').find('vaultman-property-value-remove'),
-		).toBeNull();
-	});
-
-	it('invokes the delete callback exactly once per activation', () => {
-		let calls = 0;
-		const root = render('cocina', 'tags', {
-			onRemoveValue: () => {
-				calls += 1;
-			},
-		});
-		const remove = root.find('vaultman-property-value-remove');
-		expect(remove).not.toBeNull();
-		click(remove!);
-		expect(calls).toBe(1);
-	});
-
-	it('keeps the removal gesture off the row', () => {
-		let stopped = 0;
-		const root = render('cocina', 'tags', { onRemoveValue: () => undefined });
-		const remove = root.find('vaultman-property-value-remove')!;
-		for (const handler of remove.listeners.get('click') ?? []) {
-			handler({
-				preventDefault: () => undefined,
-				stopPropagation: () => {
-					stopped += 1;
-				},
-			});
-		}
-		expect(stopped).toBe(1);
+	it('keeps row actions out of the value renderer', () => {
+		expect(render('cocina', 'tags', { onRemoveValue: () => undefined }).find('vaultman-property-value-remove')).toBeNull();
+		expect(render('cocina', 'tags').find('vaultman-property-value-action')).toBeNull();
 	});
 
 	it('is not editable without a rename callback', () => {
@@ -479,5 +450,176 @@ describe('U121-003 shard 07 — checkbox and date edits', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe('detectLinkType (ISSUE 1: solo el wikilink verdadero es node-note-link)', () => {
+	it.each([
+		['https://example.com/nota', 'hyperlink'],
+		['http://example.com', 'hyperlink'],
+		['  https://example.com/x  ', 'hyperlink'],
+		['[texto](https://example.com)', 'url_link'],
+		['[mi nota]([[mi nota]])', 'url_link'],
+		['[[nota]]', 'wikilink'],
+		['[[nota|alias]]', 'wikilink'],
+		['[[nota#seccion]]', 'wikilink'],
+		['texto plano', 'plain'],
+		['', 'plain'],
+		['#tag', 'plain'],
+		['[texto]()', 'plain'],
+		['[[]]', 'plain'],
+	])('clasifica %p como %p', (raw, expected) => {
+		expect(detectLinkType(raw)).toBe(expected);
+	});
+
+	it.each([
+		['[[nota]]', 'nota'],
+		['[[nota|alias]]', 'alias'],
+		['[[ruta/nota#sec|ver]]', 'ver'],
+		['  [[nota]]  ', 'nota'],
+		['texto plano', null],
+		['[t](u)', null],
+		['https://example.com', null],
+		['', null],
+	])('display de %p es %p', (raw, expected) => {
+		expect(parseWikilinkDisplay(raw)).toBe(expected);
+	});
+});
+
+describe('renderEditableText: hyperlinks y url_links con su decoracion (ISSUE 1)', () => {
+	it('hyperlink pelado renderiza anchor external-link con href', () => {
+		const root = render('https://example.com/x', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.tagName).toBe('a');
+		expect(anchor!.href).toBe('https://example.com/x');
+		expect(anchor!.textContent).toBe('https://example.com/x');
+		expect(anchor!.classes()).toContain('vaultman-property-value-link');
+	});
+
+	it('url_link [t](u) externa renderiza anchor con texto y href', () => {
+		const root = render('[texto](https://example.com/y)', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.textContent).toBe('texto');
+		expect(anchor!.href).toBe('https://example.com/y');
+	});
+
+	it('url_link [t]([[nota]]) renderiza internal-link con texto', () => {
+		const root = render('[ver]([[nota]])', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.textContent).toBe('ver');
+	});
+
+	it('hyperlink conserva el valor sin badges de delete', () => {
+		const root = render('https://example.com/x', 'text', { onRemoveValue: () => {} });
+		expect(root.find('external-link')).not.toBeNull();
+		expect(root.find('vaultman-property-value-remove')).toBeNull();
+	});
+});
+
+describe('preview de rename: navegacion neutralizada (spec rename-preview)', () => {
+	function renderPreview(raw: string, type: string): { root: StubEl; opened: string[] } {
+		const opened: string[] = [];
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw,
+			type,
+			app: {
+				workspace: { openLinkText: (target: string) => { opened.push(target); } },
+			} as unknown as App,
+			preview: true,
+		});
+		return { root: container, opened };
+	}
+
+	function click(el: StubEl | null): { prevented: boolean; stopped: boolean } {
+		const outcome = { prevented: false, stopped: false };
+		const handlers = el?.listeners.get('click') ?? [];
+		for (const handler of handlers) {
+			handler({
+				preventDefault: () => { outcome.prevented = true; },
+				stopPropagation: () => { outcome.stopped = true; },
+			});
+		}
+		return outcome;
+	}
+
+	it('wikilink en preview traga el click sin openLinkText', () => {
+		const { root, opened } = renderPreview('[[Nota]]', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		const outcome = click(anchor);
+		expect(outcome.prevented).toBe(true);
+		expect(outcome.stopped).toBe(true);
+		expect(opened).toEqual([]);
+	});
+
+	it('url_link en preview traga el click sin openLinkText', () => {
+		const { root, opened } = renderPreview('[ver]([[Nota]])', 'text');
+		const anchor = root.find('internal-link');
+		expect(anchor).not.toBeNull();
+		click(anchor);
+		expect(opened).toEqual([]);
+	});
+
+	it('hyperlink en preview traga el click (preventDefault)', () => {
+		const { root, opened } = renderPreview('https://example.com/x', 'text');
+		const anchor = root.find('external-link');
+		expect(anchor).not.toBeNull();
+		const outcome = click(anchor);
+		expect(outcome.prevented).toBe(true);
+		expect(opened).toEqual([]);
+	});
+
+	it('sin preview el wikilink si navega (puerta de regresion)', () => {
+		const opened: string[] = [];
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Nota]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: (target: string) => { opened.push(target); } },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		click(anchor);
+		expect(opened).toEqual(['Nota']);
+	});
+
+	it('wikilink sin destino marca is-unresolved como el frontmatter', () => {
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Falta]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: () => undefined },
+				metadataCache: { getFirstLinkpathDest: () => null },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.classes()).toContain('is-unresolved');
+	});
+
+	it('wikilink con destino no marca is-unresolved', () => {
+		const container = new StubEl('span');
+		renderPropertyValue({
+			container: container as unknown as HTMLElement,
+			raw: '[[Existe]]',
+			type: 'text',
+			app: {
+				workspace: { openLinkText: () => undefined },
+				metadataCache: { getFirstLinkpathDest: () => ({ path: 'Existe.md' }) },
+			} as unknown as App,
+		});
+		const anchor = container.find('internal-link');
+		expect(anchor).not.toBeNull();
+		expect(anchor!.classes()).not.toContain('is-unresolved');
 	});
 });

@@ -1,4 +1,25 @@
 export const es: Record<string, string> = {
+	'settings.native_surface_click_primary': 'Acción de Click Primario Nativo',
+	'settings.native_surface_click_primary.desc': 'Acción al hacer click en elementos nativos de Obsidian (breadcrumbs, tags, carpetas).',
+	'settings.native_surface_click_alt': 'Acción de Alt+Click Nativo',
+	'settings.native_surface_click_alt.desc': 'Acción al hacer Alt+Click en elementos nativos de Obsidian.',
+	'settings.native_surface_click_mod': 'Acción de Mod+Click Nativo',
+	'settings.native_surface_click_mod.desc': 'Acción al hacer Ctrl/Cmd-Click o click central en elementos nativos de Obsidian.',
+	'settings.node_note_tag_pattern': 'Patrón node-note para tags',
+	'settings.node_note_tag_pattern.desc': 'Patrón para bindings de tags. Usa "name" como placeholder para el nombre del tag. Por defecto "#name"',
+	'settings.node_note_snippet_pattern': 'Patrón node-note para snippets',
+	'settings.node_note_snippet_pattern.desc': 'Patrón para bindings de snippets. Usa "name" como placeholder. Por defecto "$name"',
+	'settings.node_note_plugin_pattern': 'Patrón node-note para plugins',
+	'settings.node_note_plugin_pattern.desc': 'Patrón para bindings de plugins. Usa "name" como placeholder. Por defecto "%name"',
+	'settings.node_note_prop_pattern': 'Patrón node-note para props',
+	'settings.node_note_prop_pattern.desc': 'Patrón para bindings de props. Usa "name" como placeholder. Por defecto "[name]". Cambiarlo prepara renames de alias para revisar.',
+	'settings.node_note_prefix_migrated': 'Se prepararon {count} renames de alias para revisar',
+	'settings.action.reveal_in_vaultman': 'Revelar en Vaultman Explorer',
+	'settings.action.open_node_note_same_tab': 'Abrir Node-Note (misma pestaña)',
+	'settings.action.open_node_note_new_tab': 'Abrir Node-Note (nueva pestaña)',
+	'settings.action.search_selection': 'Buscar Selección',
+	'settings.action.none': 'Ninguna (por defecto de Obsidian)',
+	'context_menu.node_note': 'Abrir Node-Note',
 	// General
 	'plugin.name': 'Vaultman',
 	'plugin.description':
@@ -228,6 +249,9 @@ export const es: Record<string, string> = {
 	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
+	'settings.persist_interaction_mode': 'Recordar el modo de interacción',
+	'settings.persist_interaction_mode.desc':
+		'Cada pestaña vuelve a abrirse en el último modo de interacción que elegiste allí. Al apagarlo, todas abren en Abrir; lo que ya elegiste se conserva.',
 	'settings.context_menu.page_desc':
 		'Dónde aparecen los items de Vaultman en los menús contextuales.',
 	'settings.style_preset': 'Preset de estilo',
@@ -454,6 +478,11 @@ export const es: Record<string, string> = {
 	'settings.saved_view_config.empty':
 		'Sin composición de vista guardada. Usa "Guardar composición de vista" en el menú de vista para recordar opciones y orden por tab.',
 	'settings.saved_view_config.clear': 'Limpiar',
+	'settings.saved_view_config.activate_global': 'Activar globalmente',
+	'settings.saved_view_config.activate_global_aria':
+		'Activar {name} globalmente (todas las instancias)',
+	'settings.saved_view_config.activate_global_notice':
+		'Activado {name} globalmente.',
 	'settings.floating_toc': 'Índice flotante',
 	'settings.floating_toc.desc':
 		'Configura el índice del explorer y el comportamiento Niagara.',
@@ -515,11 +544,12 @@ export const es: Record<string, string> = {
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',
-	'viewmenu.in_mode': 'Comportamiento',
-	'viewmenu.in_mode.open': 'Abrir',
-	'viewmenu.in_mode.add': 'Agregar',
-	'viewmenu.in_mode.select': 'Seleccionar',
-	'viewmenu.in_mode.filter': 'Filtrar',
+	'viewmenu.interaction': 'Entrada:',
+	'viewmenu.interaction.open': 'Abrir',
+	'viewmenu.interaction.add': 'Agregar',
+	'viewmenu.interaction.select': 'Seleccionar',
+	'viewmenu.interaction.filter': 'Filtrar',
+	'viewmenu.engines': 'Motores',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':
@@ -620,6 +650,8 @@ export const es: Record<string, string> = {
 	'explorer.tags.empty_search_desc':
 		'Prueba otro término o cambia la categoría de etiquetas.',
 	'explorer.toggle': 'Explorador',
+	// Task 3.3: consume esta clave para etiquetar el grupo vacio.
+	'explorer.group.no_group': 'Sin grupo',
 
 	// Explorer nav buttons
 	'explorer.btn.search': 'Buscar',
@@ -652,12 +684,38 @@ export const es: Record<string, string> = {
 	'explorer.ctx.move_to_prop': 'Mover a propiedad...',
 	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
 	'explorer.ctx.move_to_prop.cancel': 'Cancelar',
+	'sasi.move.proceed': 'Proceder',
+	'sasi.move.cancel': 'Cancelar',
+	'sasi.move.toggle_write': 'Añadir o reemplazar',
+	'sasi.move.toggle_origin': 'Mover o copiar',
+	'sasi.move.toggle_kind': 'Mover nodos o grupos',
+	'sasi.search.cycle_category': 'Categoría de búsqueda',
+	'sasi.search.create_target': 'Crear',
+	'sasi.addons.toggle_group_plugins': 'Conmutar grupo de plugins',
+	'sasi.addons.toggle_group_snippets': 'Conmutar grupo de snippets',
+	'sasi.inspector.title': 'Registro SASI',
+	'sasi.inspector.axis.provider': 'Providers',
+	'sasi.inspector.axis.kind': 'Kinds',
+	'sasi.inspector.axis.function': 'Functions',
+	'sasi.inspector.empty': 'Todavía no hay nada registrado en este eje.',
+	'sasi.inspector.mutates_vault': 'escribe en el vault',
+	'settings.sasi_inspector': 'Registro SASI',
+	'settings.sasi_inspector.desc':
+		'Inspecciona los kinds, providers y funciones que Vaultman tiene registrados.',
+	'settings.sasi_inspector.open': 'Inspeccionar',
 	'explorer.move_to_prop.write.append': 'Agregar al destino',
 	'explorer.move_to_prop.write.replace': 'Reemplazar en el destino',
 	'explorer.move_to_prop.origin.move': 'Mover',
 	'explorer.move_to_prop.origin.copy': 'Copiar',
 	'explorer.move_to_folder.rejected':
 		'No se puede mover una carpeta dentro de sí misma.',
+	'explorer.move_to_folder.rejectedBy': 'Destino rechazado: {reason}.',
+	'explorer.move_to_folder.pruned': 'Ya no existen: {detail}.',
+	'explorer.move_to_folder.unresolved': 'No se pudo stagear: {detail}.',
+	'explorer.move_to_folder.summaryTitle': 'Revisar este movimiento',
+	'explorer.move_to_folder.summaryBody': '{count} cambios encolados:\n{detail}',
+	'explorer.move_to_folder.summaryConfirm': 'Mover ahora',
+	'explorer.move_to_folder.staged': '{count} cambios stageados en la queue.',
 	'explorer.move_to_prop.summary': 'Revisar este movimiento',
 	'explorer.move_to_prop.summary.files': '{count} archivos',
 	'explorer.move_to_prop.summary.confirm': 'Ejecutar ahora',
@@ -690,6 +748,9 @@ export const es: Record<string, string> = {
 		'Los tags no admiten espacios. Usa "-", "_" o "/" en su lugar.',
 	'explorer.ctx.filter_include': 'Incluir como filtro',
 	'explorer.ctx.filter_exclude': 'Excluir como filtro',
+	'explorer.ctx.filter_clean': 'Limpiar este filtro',
+	'explorer.cell.open_daily_note': 'Abrir nota diaria',
+	'explorer.cell.delete_value': 'Encolar eliminación del valor',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
 	'file.ctx.open_window': 'Abrir en nueva ventana',
@@ -776,6 +837,7 @@ export const es: Record<string, string> = {
 	'addons.disabled': 'Desactivado',
 	'addons.enable': 'Activar',
 	'addons.disable': 'Desactivar',
+	'addons.mixed': 'Mixto',
 	'addons.snippets.empty': 'No se encontraron snippets CSS',
 	'addons.snippets.unavailable':
 		'Los controles de snippets CSS no están disponibles en esta versión de Obsidian',
@@ -898,7 +960,7 @@ export const es: Record<string, string> = {
 	'sort.by.parent': 'Padre',
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
-	'sort.by.custom': 'Personalizado',
+	'sort.by.note': 'Nota',
 	'sort.by.columns': 'Columnas',
 	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',
@@ -970,6 +1032,7 @@ export const es: Record<string, string> = {
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',
 	'sort.level.drill': 'Scope: drill',
+	'sort.level.groups': 'Grupos',
 	'sort.level.pick_hint': 'Mantén pulsada una fila para elegir el scope drill',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',
 	'sort.vertcol.direct_toggle': 'Alternar dirección',
@@ -1014,6 +1077,7 @@ export const es: Record<string, string> = {
 	'tags.source.inline': 'cuerpo',
 	'tags.source.both': 'ambos',
 	'viewmode.pill.format': 'Formato',
+	'viewmode.pill.cell_hover': 'Acciones al pasar',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',
 	'viewmode.pill.parent': 'Padre',
@@ -1128,4 +1192,10 @@ export const es: Record<string, string> = {
 		'Muestra las entradas de tiempo del tooltip como texto relativo. Independiente de las opciones de los cells.',
 	'settings.tooltip_timestamp_window.desc':
 		'Hasta cuándo las entradas del tooltip se muestran relativas. Independiente de las opciones de los cells.',
+	'transaction_bar.mode.node': 'Moviendo nodos',
+	'transaction_bar.mode.group': 'Moviendo grupos',
+	'transaction_bar.origins': 'orígenes: {count}',
+	'transaction_bar.destinations': 'destinos: {count}',
+	'transaction_bar.rejected': '{destination} rechazado ({reason})',
+	'transaction_bar.group_mode_unavailable': 'El modo grupo necesita una agrupación activa',
 };

@@ -4,6 +4,7 @@ import {
 	PANEL_MENU_KINDS,
 	panelMenuKindForNodeType,
 } from '../../src/logic/logicFilesContextMenu';
+import { resolveFolderMenuTarget } from '../../src/services/serviceContextMenu';
 import contextMenuSource from '../../src/services/serviceContextMenu.ts?raw';
 import propsSource from '../../src/components/containers/explorerProps.ts?raw';
 import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
@@ -40,5 +41,18 @@ describe('BT5-036 per-kind node context menus', () => {
 		expect(propsSource).toContain("submenu: translate('explorer.ctx.change_type')");
 		expect(tagsSource).toContain("id: 'tag.rename'");
 		expect(tagsSource).toContain("id: 'tag.delete'");
+	});
+});
+
+describe('breadcrumb/folder file-menu: open node-note target', () => {
+	it.each([
+		[{ path: 'calo', children: [] }, 'calo'],
+		[{ path: 'a/b', children: [{ path: 'a/b/c.md' }] }, 'a/b'],
+		[{ path: 'notes/n.md' }, null],
+		[{ path: '' , children: [] }, null],
+		[null, null],
+		['calo', null],
+	])('resuelve %p como %p', (file, expected) => {
+		expect(resolveFolderMenuTarget(file)).toBe(expected);
 	});
 });

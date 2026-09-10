@@ -24,6 +24,7 @@
 	import {
 		byLevelModel,
 		NODE_TYPE_MENU_OPTIONS,
+		supportsByLevel,
 		visibleSortOptions,
 		type ByLevelMenuItem,
 	} from '../../logic/logicSortMenu';
@@ -38,7 +39,6 @@
 		onScopeChange,
 		onRequestDrillPick,
 		onRequestRevealPick,
-		onNestedToggle,
 		initialSortState,
 		nestedActive = false,
 		revealActive = false,
@@ -52,7 +52,6 @@
 		onScopeChange?: (state: ExplorerSortState) => void;
 		onRequestDrillPick?: () => void;
 		onRequestRevealPick?: () => void;
-		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
 		revealActive?: boolean;
@@ -74,7 +73,7 @@
 	);
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
 	const levelModel = $derived(
-		byLevelModel(activeTab, sortState, nestedActive, treeCapable, revealActive),
+		byLevelModel(activeTab, sortState, treeCapable, revealActive),
 	);
 	const visibleSortOptionsForActiveTab = $derived(
 		visibleSortOptions(activeTab, sortState, nestedActive, revealActive),
@@ -168,14 +167,6 @@
 		emitSortChange();
 	}
 
-	function toggleFixedFolders() {
-		sortState = {
-			...sortState,
-			fixedFolders: sortState.fixedFolders === false,
-		};
-		emitSortChange();
-	}
-
 	function toggleFiltered() {
 		sortState = {
 			...sortState,
@@ -213,9 +204,6 @@
 			selectRevealAnchor(item.id);
 			return;
 		}
-		if (item.id === 'nested') onNestedToggle?.();
-		if (item.id === 'parentsFirst') toggleParentsFirst();
-		if (item.id === 'fixedFolders') toggleFixedFolders();
 		if (item.id === 'filtered') toggleFiltered();
 	}
 
@@ -230,7 +218,9 @@
 
 <div class="vaultman-sort-popup">
 	<!-- Vert-col: absolute, floats left over tab content -->
-	{#if activeTab === 'props' || activeTab === 'files' || activeTab === 'tags'}
+	<!-- U121-079 / U130-003: la lista a mano aqui era el quinto sitio de U121-079;
+	     ahora deriva de supportsByLevel para incluir snippets y plugins. -->
+	{#if supportsByLevel(activeTab)}
 		<div class="vaultman-sort-vertcol">
 			<div
 				class="vaultman-sort-vertcol-btn"
@@ -313,7 +303,7 @@
 					class="vaultman-squircle vaultman-sort-option"
 					class:is-accent={activeSort.sortBy === opt.id}
 					aria-label={translate(opt.labelKey) +
-						(activeSort.sortBy === opt.id && opt.id !== 'custom'
+						(activeSort.sortBy === opt.id
 							? ` ${sortDirectionGlyph(activeSort.direction)}`
 							: '')}
 					onclick={() => selectSort(opt.id)}
@@ -324,9 +314,9 @@
 					tabindex="0"
 				>
 					<span class="vaultman-squircle-icon" use:icon={opt.icon}></span>
-					<!-- `custom` no tiene direccion: ordena por el orden propio de la nota
-					     anclada, asi que un indicador arriba/abajo seria mentira. -->
-					{#if activeSort.sortBy === opt.id && opt.id !== 'custom'}
+					<!-- `note` keeps the note's physical order, but its direction still
+					     controls which occurrence a repeated reveal click visits first. -->
+					{#if activeSort.sortBy === opt.id}
 						<span
 							class="vaultman-sort-dir"
 							use:icon={sortDirectionIcon(activeSort.direction)}
