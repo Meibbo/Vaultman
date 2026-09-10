@@ -43,6 +43,18 @@ describe('file table layout', () => {
 		});
 	});
 
+	it('places the non-sortable tags count between words and extension', () => {
+		const layout = resolveFileTableLayout(new Set(['name', 'words', 'tags', 'ext']));
+
+		expect(layout.columns.map((column) => [column.id, column.dataProperty])).toEqual([
+			['name', 'file.name'],
+			['words', 'vaultman.words'],
+			['tags', 'vaultman.tags'],
+			['ext', 'file.ext'],
+		]);
+		expect(layout.columns[2]?.sortColumn).toBeUndefined();
+	});
+
 	it('keeps optional icon and count columns stable without shrinking text columns', () => {
 		const layout = resolveFileTableLayout(
 			new Set(['icon', 'name', 'count', 'ext', 'path']),

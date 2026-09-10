@@ -5545,7 +5545,8 @@ body.vaultman-resizing {
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  /* Keep indentation in its own flex column so selection stays aligned. */
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   height: 27px;
   margin-inline: var(--size-4-1, 4px);
@@ -5565,7 +5566,7 @@ body.vaultman-resizing {
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
 }
 
@@ -5653,7 +5654,7 @@ body.vaultman-resizing {
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  width: 0;
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
@@ -5665,6 +5666,23 @@ body.vaultman-resizing {
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
+}
+
+/* The indent is a real column. The checkbox therefore remains at one stable
+   x-coordinate while the label and other cells still follow the node depth. */
+.vaultman-tree-indent {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  margin-inline-end: -5px;
+  pointer-events: none;
+}
+
+.vaultman-tree-nested-guides .vaultman-tree-indent {
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
 }
 
 .vaultman-tree-row:hover {
@@ -5730,7 +5748,7 @@ body.vaultman-resizing {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);
@@ -6512,7 +6530,7 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   height: 27px;
   margin-bottom: 1px;
@@ -6531,7 +6549,7 @@ body.vaultman-bases-column-separators table th {
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
 }
 
@@ -6619,7 +6637,7 @@ body.vaultman-bases-column-separators table th {
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  width: 0;
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
@@ -6631,6 +6649,21 @@ body.vaultman-bases-column-separators table th {
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
+}
+
+.vaultman-tree-indent {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  margin-inline-end: -5px;
+  pointer-events: none;
+}
+
+.vaultman-tree-nested-guides .vaultman-tree-indent {
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
 }
 
 .vaultman-tree-row:hover {
@@ -6664,7 +6697,7 @@ body.vaultman-bases-column-separators table th {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);
@@ -7030,13 +7063,13 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   bottom: 0;
   inset-inline-start: var(--vaultman-tree-guide-start);
   background-image: repeating-linear-gradient(to right, var(--vaultman-tree-indent-line-color) 0, var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-line-width), transparent var(--vaultman-tree-indent-unit));
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  width: 0;
   pointer-events: none;
 }
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
 }
 
@@ -7178,7 +7211,7 @@ body.vm-reduced-motion.vm-reduced-motion.vm-reduced-motion * {
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: var(--vaultman-tree-row-padding-start);
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);

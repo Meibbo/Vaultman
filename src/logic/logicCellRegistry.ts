@@ -444,6 +444,32 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		],
 	},
 	{
+		id: 'tags',
+		role: 'value',
+		labelKey: 'viewmode.pill.tags',
+		icon: 'lucide-tags',
+		supports: [
+			{
+				explorer: 'files',
+				viewModes: FILE_TREE_MODES,
+				fixedRank: 75,
+				defaultOn: false,
+			},
+			{
+				explorer: 'files',
+				viewModes: ['table'],
+				fixedRank: 45,
+				defaultOn: false,
+			},
+			{
+				explorer: 'files',
+				viewModes: FILE_CARD_MODES,
+				fixedRank: 55,
+				defaultOn: false,
+			},
+		],
+	},
+	{
 		id: 'tasks',
 		role: 'value',
 		labelKey: 'viewmode.pill.tasks',

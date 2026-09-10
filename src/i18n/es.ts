@@ -105,6 +105,7 @@ export const es: Record<string, string> = {
 	'files.col.file_name': 'file name',
 	'files.col.props': 'Props',
 	'files.col.words': 'Palabras',
+	'files.col.tags': 'Etiquetas',
 	'files.col.ext': 'Ext',
 	'files.col.file_ext': 'file extension',
 	'files.col.path': 'Ruta',
@@ -454,6 +455,9 @@ export const es: Record<string, string> = {
 	'settings.sticky_parent_rows': 'Filas padre fijas',
 	'settings.sticky_parent_rows.desc':
 		'Mantiene visibles los nodos padre expandidos al recorrer su árbol.',
+	'settings.reapply_hover_on_render': 'Reaplicar hover al repintar la fila',
+	'settings.reapply_hover_on_render.desc':
+		'Reaplica el hover de Files cuando la virtualización o las filas fijas repintan una fila bajo el puntero.',
 	'settings.sticky_parent_rows_fraction': 'Límite de altura de las cabeceras fijadas',
 	'settings.sticky_parent_rows_fraction.desc': 'Parte del árbol que pueden tapar los padres fijados. Un panel corto se queda sin huecos antes del techo de siete filas: al 40 %, un árbol de 413 px admite cinco, así que un sexto nivel nunca se fija.',
 	'settings.sparse_auto_expand_top_level': 'Autoexpandir pocos padres de nivel 1',
@@ -1066,6 +1070,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.count': 'Cantidad',
 	'viewmode.pill.prop_count': 'Props',
 	'viewmode.pill.ext': 'Ext',
+	'viewmode.pill.tags': 'Etiquetas',
 	'viewmode.pill.nested': 'Anidadas',
 	'viewmode.pill.sub': 'Subelementos',
 	'viewmode.pill.name': 'Nombre',

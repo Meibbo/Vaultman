@@ -338,6 +338,16 @@ export class StatisticsCacheService extends Component {
 		return stale !== undefined && stale >= 0 ? stale : null;
 	}
 
+	/** Number of distinct tags collected for one file, or null before warmup. */
+	getFileTagCount(file: TFile): number | null {
+		const cached = this.fileStatsCache.get(file.path);
+		if (this.isFreshCachedStats(file, cached) && Array.isArray(cached.tags)) {
+			return cached.tags.length;
+		}
+		const stale = this.staleFileStatsCache.get(file.path)?.tags;
+		return Array.isArray(stale) ? stale.length : null;
+	}
+
 	/** Populate fresh file-level stats needed by explorer cells and sort modes. */
 	async ensureFileStats(
 		files: TFile[],
@@ -668,7 +678,8 @@ export class StatisticsCacheService extends Component {
 		return (
 			this.isFreshCachedStats(file, cached) &&
 			this.isValidNonNegativeNumber(cached.characters) &&
-			this.isValidNonNegativeNumber(cached.tasks)
+			this.isValidNonNegativeNumber(cached.tasks) &&
+			Array.isArray(cached.tags)
 		);
 	}
 

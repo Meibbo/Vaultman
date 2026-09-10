@@ -55,6 +55,7 @@ export function resolveCellCapabilities(
 
 	availableFilterTypeIds.add('file');
 	availableFilterTypeIds.add('folder');
+	if (ctx.providerId === 'files') availableCellIds.add('tags');
 
 	// Cell: count (file-count) is available for Files + Tree + nested + folders,
 	// and never inside reveal, where there is only one file to count.

@@ -90,6 +90,7 @@ export interface TreeNode<TMeta = unknown> {
 	/** BT5-013: formatted last-opened instant; absent when never opened. */
 	openedText?: string;
 	wordCountText?: string;
+	tagsText?: string;
 	fileCountText?: string;
 	subCountText?: string;
 	tasksText?: string;

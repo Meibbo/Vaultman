@@ -49,6 +49,7 @@ const ACTIVE_FILE_CLASSES = [
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
+	getTagCount?: (file: TFile) => number | null;
 	getTaskCount?: (file: TFile) => number | null;
 	getBadges?: (file: TFile) => NodeBadge[];
 	getFileIcon?: (
@@ -484,6 +485,7 @@ export class GridView {
 		propCount: number,
 		times: ExplorerFileTimes,
 		wordCount: number | null,
+		tagCount: number | null,
 		badges: NodeBadge[],
 		glyphColor: string | null,
 	): string {
@@ -508,6 +510,7 @@ export class GridView {
 			times.mtime,
 			propCount,
 			wordCount ?? '',
+			tagCount ?? '',
 			badges
 				.map((badge) =>
 					[
@@ -541,6 +544,10 @@ export class GridView {
 		const wordCount = needsWordCount
 			? (this.callbacks.getWordCount?.(file) ?? null)
 			: null;
+		const needsTagCount = layout.columns.some((column) => column.id === 'tags');
+		const tagCount = needsTagCount
+			? (this.callbacks.getTagCount?.(file) ?? null)
+			: null;
 		const badges = this.callbacks.getBadges?.(file) ?? [];
 		const glyphColor = this.callbacks.getGlyphColor?.(file, index) ?? null;
 		const signature = this.rowSignature(
@@ -549,6 +556,7 @@ export class GridView {
 			propCount,
 			times,
 			wordCount,
+			tagCount,
 			badges,
 			glyphColor,
 		);
@@ -605,6 +613,13 @@ export class GridView {
 					column,
 					wordCount == null ? '' : String(wordCount),
 					'vaultman-file-words',
+				);
+			} else if (column.id === 'tags') {
+				this._renderTextCell(
+					row,
+					column,
+					tagCount == null ? '' : String(tagCount),
+					'vaultman-file-tags',
 				);
 			} else if (column.id === 'ext') {
 				this._renderTextCell(
@@ -747,6 +762,7 @@ export class GridView {
 		if (column.id === 'name') return translate('files.col.file_name');
 		if (column.id === 'count') return translate('files.col.props');
 		if (column.id === 'words') return translate('files.col.words');
+		if (column.id === 'tags') return translate('files.col.tags');
 		if (column.id === 'ext') return translate('files.col.file_ext');
 		if (column.id === 'mtime') return translate('files.col.modified');
 		if (column.id === 'ctime') return translate('files.col.created');

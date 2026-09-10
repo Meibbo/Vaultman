@@ -163,6 +163,18 @@ describe('StatisticsCacheService', () => {
 		expect(readCounter.count).toBe(1);
 	});
 
+	it('counts distinct frontmatter and inline tags after file warmup', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/tags.md');
+		const service = new StatisticsCacheService(makeApp(readCounter));
+
+		expect(service.getFileTagCount(file)).toBeNull();
+		await service.ensureFileStats([file]);
+
+		expect(service.getFileTagCount(file)).toBe(2);
+		expect(readCounter.count).toBe(1);
+	});
+
 	it('migrates a fresh legacy cache record that has no remaining-task count', async () => {
 		const readCounter = { count: 0 };
 		const file = makeFile('Notes/legacy.md', 20, 40, 10);

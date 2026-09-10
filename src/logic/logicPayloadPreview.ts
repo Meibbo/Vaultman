@@ -93,6 +93,7 @@ const KNOWN_VISIBLE_CELLS: Record<ExplorerTabId, ReadonlySet<string>> = {
 		'text',
 		'ext',
 		'words',
+		'tags',
 		'tasks',
 		'mtime',
 		'ctime',

@@ -106,6 +106,7 @@ export const en: Record<string, string> = {
 	'files.col.file_name': 'file name',
 	'files.col.props': 'Props',
 	'files.col.words': 'Words',
+	'files.col.tags': 'Tags',
 	'files.col.ext': 'Ext',
 	'files.col.file_ext': 'file extension',
 	'files.col.path': 'Path',
@@ -453,6 +454,9 @@ export const en: Record<string, string> = {
 	'settings.sticky_parent_rows': 'Sticky parent rows',
 	'settings.sticky_parent_rows.desc':
 		'Keep expanded parent nodes visible while scrolling through their tree.',
+	'settings.reapply_hover_on_render': 'Refresh hover on row repaint',
+	'settings.reapply_hover_on_render.desc':
+		'Re-apply the Files row hover handler when virtualization or sticky rows repaints a row under the pointer.',
 	'settings.sticky_parent_rows_fraction': 'Sticky headers height limit',
 	'settings.sticky_parent_rows_fraction.desc': 'Share of the tree the pinned parents may cover. A short panel runs out of slots before the seven-row ceiling: a 413px tree fits five at 40%, so a sixth level never pins.',
 	'settings.sparse_auto_expand_top_level': 'Auto-expand few top-level folders',

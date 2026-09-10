@@ -85,6 +85,7 @@ describe('shared explorer cell registry', () => {
 			'opened',
 			'words',
 			'tasks',
+			'tags',
 			'file-count',
 			'count',
 			'nested',
@@ -98,6 +99,7 @@ describe('shared explorer cell registry', () => {
 			'count',
 			'format',
 			'words',
+			'tags',
 			'ext',
 			'mtime',
 			'ctime',
@@ -120,6 +122,7 @@ describe('shared explorer cell registry', () => {
 			'opened',
 			'words',
 			'tasks',
+			'tags',
 			'file-count',
 			'count',
 		]);

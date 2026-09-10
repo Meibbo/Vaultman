@@ -1221,6 +1221,21 @@ items.push({
 				);
 			},
 		});
+		items.push({
+			name: translate('settings.reapply_hover_on_render'),
+			desc: translate('settings.reapply_hover_on_render.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.reapplyHoverOnRender !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.reapplyHoverOnRender = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 
 		items.push({
 			name: translate('settings.sparse_auto_expand_top_level'),

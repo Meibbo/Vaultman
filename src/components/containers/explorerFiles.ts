@@ -1165,6 +1165,8 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.statisticsCache.getFileTimes(file),
 				getWordCount: (file: TFile) =>
 					this.plugin.statisticsCache.getFileWordCount(file),
+				getTagCount: (file: TFile) =>
+					this.plugin.statisticsCache.getFileTagCount(file),
 				getTaskCount: (file: TFile) =>
 					this.plugin.statisticsCache.getFileRemainingTasks(file),
 				getBadges: (file: TFile) => this._badgesForFile(file),
@@ -1236,6 +1238,8 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.statisticsCache.getFileTimes(file),
 				getWordCount: (file: TFile) =>
 					this.plugin.statisticsCache.getFileWordCount(file),
+				getTagCount: (file: TFile) =>
+					this.plugin.statisticsCache.getFileTagCount(file),
 			});
 			this.gridView.setVisibleCells(this.visibleCells);
 			this.gridView.setSelectedPaths(this.selectedFilePaths);
@@ -1893,6 +1897,9 @@ export class FilesExplorerPanel extends Component {
 			'vaultman.nodemove.cancel': async () => {
 				this.cancelNodeMoveMode();
 			},
+			'vaultman.move.cancel': async () => {
+				this.cancelNodeMoveMode();
+			},
 			'vaultman.nodemove.toggleWrite': async () => {
 				this.toggleNodeMoveWrite();
 			},
@@ -2333,7 +2340,9 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
-				stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
+			reapplyHoverOnRender:
+				this.plugin.settings.reapplyHoverOnRender !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
@@ -3045,6 +3054,7 @@ export class FilesExplorerPanel extends Component {
 	private _needsStatisticsWarmup(): boolean {
 		return (
 			this.visibleCells.has('words') ||
+			this.visibleCells.has('tags') ||
 			this.visibleCells.has('tasks') ||
 			this._usesStatisticsSort()
 		);
@@ -3327,6 +3337,10 @@ export class FilesExplorerPanel extends Component {
 			const tasks = this.plugin.statisticsCache.getFileRemainingTasks(file);
 			node.tasksText =
 				tasks === null || tasks === 0 ? undefined : String(tasks);
+		}
+		if (this.visibleCells.has('tags')) {
+			const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
+			node.tagsText = tagCount === null ? undefined : String(tagCount);
 		}
 	}
 
@@ -3639,7 +3653,9 @@ export class FilesExplorerPanel extends Component {
 			secondaryStatsSort: this._usesStatisticsSort(),
 			secondaryTimeSort: this._usesSecondaryTimeSort(),
 			statsCellVisible:
-				this.visibleCells.has('words') || this.visibleCells.has('tasks'),
+				this.visibleCells.has('words') ||
+				this.visibleCells.has('tags') ||
+				this.visibleCells.has('tasks'),
 			timeCellVisible: this._timeCellVisible(),
 			needsReorder: () => this._statisticsSortNeedsReorder(paths),
 		});
@@ -3689,11 +3705,17 @@ export class FilesExplorerPanel extends Component {
 
 	private _patchVisibleStatisticsCells(paths = new Set<string>()): void {
 		const patchWords = this.visibleCells.has('words');
+		const patchTags = this.visibleCells.has('tags');
 		const patchTasks =
 			this.visibleCells.has('tasks') && this.viewMode === 'tree';
-		if (!patchWords && !patchTasks) return;
+		if (!patchWords && !patchTags && !patchTasks) return;
 		if (this.viewMode === 'tree') {
-			this._patchCachedStatisticsNodes(paths, patchWords, patchTasks);
+			this._patchCachedStatisticsNodes(
+				paths,
+				patchWords,
+				patchTags,
+				patchTasks,
+			);
 		}
 		const rowSelector =
 			this.viewMode === 'tree'
@@ -3707,6 +3729,12 @@ export class FilesExplorerPanel extends Component {
 				: this.viewMode === 'table'
 					? '.vaultman-file-words'
 					: '.vaultman-files-grid-card-words';
+		const tagsCellSelector =
+			this.viewMode === 'tree'
+				? '.vaultman-tree-tags'
+				: this.viewMode === 'table'
+					? '.vaultman-file-tags'
+					: '.vaultman-files-grid-card-tags';
 		const rows = this.containerEl.querySelectorAll<HTMLElement>(rowSelector);
 		for (const row of Array.from(rows)) {
 			const path = row.dataset.path;
@@ -3736,6 +3764,30 @@ export class FilesExplorerPanel extends Component {
 					}
 					const text = this._formatWordCountCell(wordCount);
 					if (cell && cell.textContent !== text) cell.textContent = text;
+				}
+			}
+
+			if (patchTags) {
+				let tagCell = row.querySelector<HTMLElement>(tagsCellSelector);
+				const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
+				if (tagCount !== null) {
+					if (!tagCell && this.viewMode === 'tree') {
+						let badgeZone = row.querySelector<HTMLElement>(
+							'.vaultman-tree-badge-zone',
+						);
+						if (!badgeZone) {
+							badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+						}
+						tagCell = badgeZone.createSpan({
+							cls: 'vaultman-tree-tags nav-file-tag',
+						});
+						const laterCell = badgeZone.querySelector<HTMLElement>(
+							'.vaultman-tree-tasks, .vaultman-addon-cell, .vaultman-addon-toggle-cell, .vaultman-badge, .vaultman-tree-count',
+						);
+						if (laterCell) badgeZone.insertBefore(tagCell, laterCell);
+					}
+					const text = String(tagCount);
+					if (tagCell && tagCell.textContent !== text) tagCell.textContent = text;
 				}
 			}
 
@@ -3776,6 +3828,7 @@ export class FilesExplorerPanel extends Component {
 	private _patchCachedStatisticsNodes(
 		paths: ReadonlySet<string>,
 		patchWords: boolean,
+		patchTags: boolean,
 		patchTasks: boolean,
 	): void {
 		const patchNode = (node: TreeNode<FileMeta>): void => {
@@ -3786,6 +3839,10 @@ export class FilesExplorerPanel extends Component {
 				if (wordCount !== null) {
 					node.wordCountText = this._formatWordCountCell(wordCount);
 				}
+			}
+			if (patchTags) {
+				const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
+				if (tagCount !== null) node.tagsText = String(tagCount);
 			}
 			if (patchTasks) {
 				const remainingTasks =
@@ -4080,11 +4137,13 @@ export class FilesExplorerPanel extends Component {
 			return;
 		const aggregateCount = this.visibleCells.has('count');
 		const aggregateWords = this.visibleCells.has('words');
+		const aggregateTags = this.visibleCells.has('tags');
 		const aggregateTasks = this.visibleCells.has('tasks');
 		if (
 			!aggregateFiles &&
 			!aggregateCount &&
 			!aggregateWords &&
+			!aggregateTags &&
 			!aggregateTasks
 		)
 			return;
@@ -4097,6 +4156,10 @@ export class FilesExplorerPanel extends Component {
 					node.meta.file && aggregateWords
 						? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ??
 							0)
+						: 0,
+				tags:
+					node.meta.file && aggregateTags
+						? (this.plugin.statisticsCache.getFileTagCount(node.meta.file) ?? 0)
 						: 0,
 				tasks:
 					node.meta.file && aggregateTasks
@@ -4117,6 +4180,7 @@ export class FilesExplorerPanel extends Component {
 						total.words > 0
 							? this._formatWordCountCell(total.words)
 							: undefined;
+					node.tagsText = aggregateTags ? String(total.tags) : undefined;
 					node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
 				}
 				if (node.children?.length) apply(node.children);
@@ -4617,6 +4681,8 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+			reapplyHoverOnRender:
+				this.plugin.settings.reapplyHoverOnRender !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),

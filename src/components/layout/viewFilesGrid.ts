@@ -30,6 +30,7 @@ export interface FilesGridViewCallbacks {
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
+	getTagCount?: (file: TFile) => number | null;
 	/**
 	 * U121-027: supplied by the explorer so card dates follow the same
 	 * relative/specific mode as the tree cells. Absent = the 1.2.0 absolute date.
@@ -361,6 +362,10 @@ export class FilesGridView {
 		const wordCount = showWords
 			? (this.callbacks.getWordCount?.(file) ?? null)
 			: null;
+		const showTags = this.visibleCells.has('tags');
+		const tagCount = showTags
+			? (this.callbacks.getTagCount?.(file) ?? null)
+			: null;
 		const resolvedIcon =
 			this.visibleCells.has('icon') || this.visibleCells.has('name')
 				? this.resolvedIconForFile(file)
@@ -379,6 +384,7 @@ export class FilesGridView {
 			Array.from(this.visibleCells).sort().join(','),
 			propCount,
 			wordCount ?? '',
+			tagCount ?? '',
 			badges
 				.map((badge) =>
 					[
@@ -476,6 +482,12 @@ export class FilesGridView {
 				metaRow.createSpan({
 					cls: 'nav-file-tag vaultman-files-grid-card-words',
 					text: String(wordCount),
+				});
+			}
+			if (showTags && tagCount !== null) {
+				metaRow.createSpan({
+					cls: 'nav-file-tag vaultman-files-grid-card-tags',
+					text: String(tagCount),
 				});
 			}
 			if (this.visibleCells.has('mtime')) {

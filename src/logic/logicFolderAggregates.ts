@@ -2,7 +2,7 @@ import type { TreeNode } from '../types/typeTree';
 
 /**
  * BT5-040: when the option is on, a folder shows the recursive sum of a
- * countable cell (properties, words, tasks) across every file beneath it —
+ * countable cell (properties, words, tags, tasks) across every file beneath it —
  * including the totals of its own subfolders, so an L1 folder's total is the
  * sum of its child files plus each subfolder's total. Dates are excluded:
  * they have no sensible cumulative value.
@@ -11,10 +11,17 @@ export interface FolderAggregate {
 	files: number;
 	count: number;
 	words: number;
+	tags: number;
 	tasks: number;
 }
 
-const ZERO: FolderAggregate = { files: 0, count: 0, words: 0, tasks: 0 };
+const ZERO: FolderAggregate = {
+	files: 0,
+	count: 0,
+	words: 0,
+	tags: 0,
+	tasks: 0,
+};
 
 export type FileAggregateReader<TMeta> = (
 	node: TreeNode<TMeta>,
@@ -37,11 +44,12 @@ export function aggregateFolderCells<TMeta>(
 		let sum: FolderAggregate = { ...ZERO };
 		for (const child of node.children ?? []) {
 			const childTotal = visit(child);
-			sum = {
-				files: sum.files + childTotal.files,
-				count: sum.count + childTotal.count,
-				words: sum.words + childTotal.words,
-				tasks: sum.tasks + childTotal.tasks,
+				sum = {
+					files: sum.files + childTotal.files,
+					count: sum.count + childTotal.count,
+					words: sum.words + childTotal.words,
+					tags: sum.tags + childTotal.tags,
+					tasks: sum.tasks + childTotal.tasks,
 			};
 		}
 		totals.set(node.id, sum);

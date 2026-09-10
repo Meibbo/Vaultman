@@ -34,6 +34,7 @@ export const GRID_META_CELL_IDS = [
 	'ext',
 	'count',
 	'words',
+	'tags',
 	'mtime',
 	'ctime',
 ] as const;
@@ -55,6 +56,7 @@ const GRID_META_SAMPLE_BY_CELL: Record<string, string> = {
 	ext: 'markdown',
 	count: '999',
 	words: '99999',
+	tags: '999',
 	mtime: new Date(2026, 11, 29).toLocaleDateString(),
 	ctime: new Date(2026, 11, 29).toLocaleDateString(),
 };

@@ -10,6 +10,8 @@ describe('Files grid view source guards', () => {
 		expect(filesGridSource).toContain('onContextMenu');
 		expect(filesGridSource).toContain('onDragStart');
 		expect(filesGridSource).toContain('getSelectedFiles');
+		expect(filesGridSource).toContain('getTagCount?: (file: TFile) => number | null');
+		expect(filesGridSource).toContain('vaultman-files-grid-card-tags');
 	});
 
 	it('forwards selection and core open gestures to the panel policy', () => {

@@ -34,9 +34,9 @@ describe('BT5-032 one tooltip owner per row', () => {
 		// configured tooltip would vanish until the pointer left and returned.
 		expect(viewTreeSource).toContain('private _hoveredRowId');
 		expect(viewTreeSource).toContain('this._hoveredRowId = node.id;');
-		expect(viewTreeSource).toContain(
-			'if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);',
-		);
+		expect(viewTreeSource).toContain('opts.reapplyHoverOnRender !== false');
+		expect(viewTreeSource).toContain('this._hoveredRowId === node.id');
+		expect(viewTreeSource).toContain('opts.onRowHover?.(node.id, row);');
 	});
 
 	it('keeps each surface on its own configurable hover builder', () => {
