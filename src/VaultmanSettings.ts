@@ -98,7 +98,11 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 * revisar en la cola; solo rige el actual, sin matcheo legacy.
 	 */
 	private prefixItem(
-		field: 'nodeNoteTagPattern' | 'nodeNoteSnippetPattern' | 'nodeNotePluginPattern' | 'nodeNotePropPattern',
+		field:
+			| 'nodeNoteTagPattern'
+			| 'nodeNoteSnippetPattern'
+			| 'nodeNotePluginPattern'
+			| 'nodeNotePropPattern',
 		nameKey: string,
 		descKey: string,
 		placeholder: string,
@@ -125,13 +129,15 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		};
 	}
 
-	private stageAliasPrefixMigration(oldP: NodeNotePrefixes, newP: NodeNotePrefixes): void {
+	private stageAliasPrefixMigration(
+		oldP: NodeNotePrefixes,
+		newP: NodeNotePrefixes,
+	): void {
 		const app = this.plugin.app;
 		const files = app.vault.getMarkdownFiles?.() ?? [];
 		const inputs = files.map((file) => {
 			const fm = app.metadataCache?.getFileCache(file)?.frontmatter as
-				| { aliases?: unknown }
-				| undefined;
+				{ aliases?: unknown } | undefined;
 			const raw = fm?.aliases;
 			const aliases = Array.isArray(raw)
 				? raw.filter((a): a is string => typeof a === 'string')
@@ -177,25 +183,32 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			staged += 1;
 		}
 		if (staged > 0) {
-			new Notice(translate('settings.node_note_prefix_migrated', { count: staged }));
+			new Notice(
+				translate('settings.node_note_prefix_migrated', { count: staged }),
+			);
 		}
 	}
 
-	/**
-	 * The root page. Its order is the one the imperative tab had: the operation
-	 * settings first, then Layout Configuration, Operations, the templates and
-	 * the Add-ons/Developer tail. The sub-pages sit where their `Configure`
-	 * buttons used to be, so a user's muscle memory survives the port.
-	 */
-	private getRootItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
+	private getNativeClickPageItems(): SettingDefinitionItem[] {
 		const wirOptions = {
 			'reveal-in-vaultman': translate('settings.action.reveal_in_vaultman'),
-			'open-node-note-same-tab': translate('settings.action.open_node_note_same_tab'),
-			'open-node-note-new-tab': translate('settings.action.open_node_note_new_tab'),
+			'open-node-note-same-tab': translate(
+				'settings.action.open_node_note_same_tab',
+			),
+			'open-node-note-new-tab': translate(
+				'settings.action.open_node_note_new_tab',
+			),
 			'search-selection': translate('settings.action.search_selection'),
-			'none': translate('settings.action.none'),
+			none: translate('settings.action.none'),
 		};
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.native_surface_click'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
 
 		items.push({
 			name: translate('settings.native_surface_click_primary'),
@@ -204,9 +217,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions(wirOptions)
-						.setValue(this.plugin.settings.nativeSurfaceClickPrimary ?? 'reveal-in-vaultman')
+						.setValue(
+							this.plugin.settings.nativeSurfaceClickPrimary ??
+								'reveal-in-vaultman',
+						)
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickPrimary = value as NativeSurfaceClickAction;
+							this.plugin.settings.nativeSurfaceClickPrimary =
+								value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -220,9 +237,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions(wirOptions)
-						.setValue(this.plugin.settings.nativeSurfaceClickAlt ?? 'open-node-note-same-tab')
+						.setValue(
+							this.plugin.settings.nativeSurfaceClickAlt ??
+								'open-node-note-same-tab',
+						)
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickAlt = value as NativeSurfaceClickAction;
+							this.plugin.settings.nativeSurfaceClickAlt =
+								value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -236,23 +257,80 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions(wirOptions)
-						.setValue(this.plugin.settings.nativeSurfaceClickMod ?? 'open-node-note-new-tab')
+						.setValue(
+							this.plugin.settings.nativeSurfaceClickMod ??
+								'open-node-note-new-tab',
+						)
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickMod = value as NativeSurfaceClickAction;
+							this.plugin.settings.nativeSurfaceClickMod =
+								value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
 			},
 		});
 
-		items.push(
-			this.prefixItem('nodeNoteTagPattern', 'settings.node_note_tag_pattern', 'settings.node_note_tag_pattern.desc', '#name'),
-			this.prefixItem('nodeNoteSnippetPattern', 'settings.node_note_snippet_pattern', 'settings.node_note_snippet_pattern.desc', '$name'),
-			this.prefixItem('nodeNotePluginPattern', 'settings.node_note_plugin_pattern', 'settings.node_note_plugin_pattern.desc', '%name'),
-			this.prefixItem('nodeNotePropPattern', 'settings.node_note_prop_pattern', 'settings.node_note_prop_pattern.desc', '[name]'),
-		);
-						
-items.push({
+		return items;
+	}
+
+	private getNodeNotePrefixPageItems(): SettingDefinitionItem[] {
+		return [
+			{
+				name: translate('settings.node_note_prefixes'),
+				render: (setting: Setting) => {
+					setting.setHeading();
+				},
+			},
+			this.prefixItem(
+				'nodeNoteTagPattern',
+				'settings.node_note_tag_pattern',
+				'settings.node_note_tag_pattern.desc',
+				'#name',
+			),
+			this.prefixItem(
+				'nodeNoteSnippetPattern',
+				'settings.node_note_snippet_pattern',
+				'settings.node_note_snippet_pattern.desc',
+				'$name',
+			),
+			this.prefixItem(
+				'nodeNotePluginPattern',
+				'settings.node_note_plugin_pattern',
+				'settings.node_note_plugin_pattern.desc',
+				'%name',
+			),
+			this.prefixItem(
+				'nodeNotePropPattern',
+				'settings.node_note_prop_pattern',
+				'settings.node_note_prop_pattern.desc',
+				'[name]',
+			),
+		];
+	}
+
+	/**
+	 * The root page. Its order is the one the imperative tab had: the operation
+	 * settings first, then Layout Configuration, the templates and the
+	 * Add-ons/Developer tail. The sub-pages sit where their `Configure`
+	 * buttons used to be, so a user's muscle memory survives the port.
+	 */
+	private getRootItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+		items.push({
+			type: 'page',
+			name: translate('settings.native_surface_click'),
+			desc: translate('settings.native_surface_click.desc'),
+			items: this.getNativeClickPageItems(),
+		});
+
+		items.push({
+			type: 'page',
+			name: translate('settings.node_note_prefixes'),
+			desc: translate('settings.node_note_prefixes.desc'),
+			items: this.getNodeNotePrefixPageItems(),
+		});
+
+		items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {
@@ -385,28 +463,6 @@ items.push({
 			name: translate('settings.floating_toc'),
 			desc: translate('settings.floating_toc.desc'),
 			items: this.getFloatingTocPageItems(),
-		});
-
-		items.push({
-			name: translate('settings.operations'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		items.push({
-			name: translate('settings.queue_warn_supersede'),
-			desc: translate('settings.queue_warn_supersede.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.queueWarnOnSupersede)
-						.onChange(async (value) => {
-							this.plugin.settings.queueWarnOnSupersede = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
 		});
 
 		items.push({
@@ -574,10 +630,7 @@ items.push({
 					button
 						.setButtonText(translate('settings.sasi_inspector.open'))
 						.onClick(() => {
-							new SasiInspectorModal(
-								this.app,
-								this.plugin.sasiRegistry,
-							).open();
+							new SasiInspectorModal(this.app, this.plugin.sasiRegistry).open();
 						}),
 				);
 			},
@@ -714,7 +767,7 @@ items.push({
 		return items;
 	}
 
-	/** Operation sets, plus the bulk-warning toggle that governs them. */
+	/** Operation sets and their queue-warning toggles. */
 	private getQueueTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
 
@@ -735,6 +788,21 @@ items.push({
 						.setValue(!this.plugin.settings.suppressBulkOperationWarning)
 						.onChange(async (value) => {
 							this.plugin.settings.suppressBulkOperationWarning = !value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.queue_warn_supersede'),
+			desc: translate('settings.queue_warn_supersede.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.queueWarnOnSupersede)
+						.onChange(async (value) => {
+							this.plugin.settings.queueWarnOnSupersede = value;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -839,10 +907,9 @@ items.push({
 									translate('settings.saved_view_config.activate_global'),
 								)
 								.setTooltip(
-									translate(
-										'settings.saved_view_config.activate_global_aria',
-										{ name: layout.name },
-									),
+									translate('settings.saved_view_config.activate_global_aria', {
+										name: layout.name,
+									}),
 								)
 								.onClick(async () => {
 									this.plugin.settings.activeLayoutName = layout.name;
@@ -1154,7 +1221,6 @@ items.push({
 			},
 		});
 
-
 		// U121-027: the cell-shaping settings gather under one heading. This is not
 		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
 		// fields and the grid column options still live on their own pages; moving
@@ -1221,6 +1287,7 @@ items.push({
 				);
 			},
 		});
+
 		items.push({
 			name: translate('settings.reapply_hover_on_render'),
 			desc: translate('settings.reapply_hover_on_render.desc'),
@@ -1236,16 +1303,13 @@ items.push({
 			},
 		});
 
-
 		items.push({
 			name: translate('settings.sparse_auto_expand_top_level'),
 			desc: translate('settings.sparse_auto_expand_top_level.desc'),
 			render: (setting: Setting) => {
 				setting.addToggle((toggle) =>
 					toggle
-						.setValue(
-							this.plugin.settings.sparseAutoExpandTopLevel !== false,
-						)
+						.setValue(this.plugin.settings.sparseAutoExpandTopLevel !== false)
 						.onChange(async (value) => {
 							this.plugin.settings.sparseAutoExpandTopLevel = value;
 							await this.plugin.saveSettings();

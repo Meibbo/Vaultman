@@ -1,19 +1,33 @@
 export const en: Record<string, string> = {
+	'settings.native_surface_click': 'Native click actions',
+	'settings.native_surface_click.desc':
+		'Configure actions for primary, Alt and modifier clicks.',
+	'settings.node_note_prefixes': 'Node-note prefixes',
+	'settings.node_note_prefixes.desc':
+		'Configure the patterns used to identify node-notes.',
 	'settings.native_surface_click_primary': 'Native Primary Click Action',
-	'settings.native_surface_click_primary.desc': 'Action when clicking native Obsidian elements (breadcrumbs, tags, folders).',
+	'settings.native_surface_click_primary.desc':
+		'Action when clicking native Obsidian elements (breadcrumbs, tags, folders).',
 	'settings.native_surface_click_alt': 'Native Alt+Click Action',
-	'settings.native_surface_click_alt.desc': 'Action when Alt-clicking native Obsidian elements.',
+	'settings.native_surface_click_alt.desc':
+		'Action when Alt-clicking native Obsidian elements.',
 	'settings.native_surface_click_mod': 'Native Mod+Click Action',
-	'settings.native_surface_click_mod.desc': 'Action when Ctrl/Cmd-clicking or middle-clicking native Obsidian elements.',
+	'settings.native_surface_click_mod.desc':
+		'Action when Ctrl/Cmd-clicking or middle-clicking native Obsidian elements.',
 	'settings.node_note_tag_pattern': 'Node-Note tag pattern',
-	'settings.node_note_tag_pattern.desc': 'Pattern for tag bindings. Use "name" as placeholder for the tag name. Default "#name"',
+	'settings.node_note_tag_pattern.desc':
+		'Pattern for tag bindings. Use "name" as placeholder for the tag name. Default "#name"',
 	'settings.node_note_snippet_pattern': 'Node-Note snippet pattern',
-	'settings.node_note_snippet_pattern.desc': 'Pattern for snippet bindings. Use "name" as placeholder. Default "$name"',
+	'settings.node_note_snippet_pattern.desc':
+		'Pattern for snippet bindings. Use "name" as placeholder. Default "$name"',
 	'settings.node_note_plugin_pattern': 'Node-Note plugin pattern',
-	'settings.node_note_plugin_pattern.desc': 'Pattern for plugin bindings. Use "name" as placeholder. Default "%name"',
+	'settings.node_note_plugin_pattern.desc':
+		'Pattern for plugin bindings. Use "name" as placeholder. Default "%name"',
 	'settings.node_note_prop_pattern': 'Node-Note property pattern',
-	'settings.node_note_prop_pattern.desc': 'Pattern for property bindings. Use "name" as placeholder. Default "[name]". Changing it stages alias renames for review.',
-	'settings.node_note_prefix_migrated': 'Staged {count} alias rename(s) for review',
+	'settings.node_note_prop_pattern.desc':
+		'Pattern for property bindings. Use "name" as placeholder. Default "[name]". Changing it stages alias renames for review.',
+	'settings.node_note_prefix_migrated':
+		'Staged {count} alias rename(s) for review',
 	'settings.action.reveal_in_vaultman': 'Reveal in Vaultman Explorer',
 	'settings.action.open_node_note_same_tab': 'Open Node-Note (same tab)',
 	'settings.action.open_node_note_new_tab': 'Open Node-Note (new tab)',
@@ -280,10 +294,8 @@ export const en: Record<string, string> = {
 	'settings.collapsed_folder_badges': 'Collapsed folder activity',
 	'settings.collapsed_folder_badges.desc':
 		"How a collapsed folder shows the state hidden inside it: one dot that its children have activity (a pending operation or an active filter), or the descendants' own badges alongside the filter dot.",
-	'settings.collapsed_folder_badges.dot':
-		'One indicator dot',
-	'settings.collapsed_folder_badges.badges':
-		'Descendant badges',
+	'settings.collapsed_folder_badges.dot': 'One indicator dot',
+	'settings.collapsed_folder_badges.badges': 'Descendant badges',
 	'settings.floating_toc_sticky_actions': 'Keep the index widgets in place',
 	'settings.floating_toc_sticky_actions.desc':
 		'The floating index holds its own controls at the top while the nodes scroll underneath, the way explorer rows pass under the toolbar. Off, they scroll away with the list.',
@@ -291,8 +303,7 @@ export const en: Record<string, string> = {
 		'Keep the property when its last value goes',
 	'settings.keep_property_when_last_value_deleted.desc':
 		'Deleting the last value of a property leaves the property in place, holding an empty value. Off, the property is removed along with it — and you are asked first, because that deletes two things from one gesture.',
-	'ops.delete_value.also_property':
-		'Delete the properties left with no value?',
+	'ops.delete_value.also_property': 'Delete the properties left with no value?',
 	'ops.delete_value.also_property.message':
 		'Some notes have this as their only value for the property. Deleting it removes the property from those notes as well.',
 	'settings.deletion_highlight': 'Highlight rows queued for deletion',
@@ -312,14 +323,16 @@ export const en: Record<string, string> = {
 		'Export saved filter templates, queue templates, and saved layouts as JSON, or import a previously exported file.',
 	'settings.data_transfer.export': 'Export JSON',
 	'settings.data_transfer.import': 'Import JSON',
-	'settings.data_transfer.export.title': 'Export filters, operation sets & layouts',
+	'settings.data_transfer.export.title':
+		'Export filters, operation sets & layouts',
 	'settings.data_transfer.export.desc':
 		'Copy this JSON to back it up or move it to another vault.',
 	'settings.data_transfer.export.copy': 'Copy to clipboard',
 	'settings.data_transfer.export.copied': 'Copied to clipboard.',
 	'settings.data_transfer.export.copy_failed':
 		'Could not copy automatically — the text is selected, copy it manually.',
-	'settings.data_transfer.import.title': 'Import filters, operation sets & layouts',
+	'settings.data_transfer.import.title':
+		'Import filters, operation sets & layouts',
 	'settings.data_transfer.import.desc':
 		'Paste a previously exported JSON. Only the arrays present in the JSON are replaced — anything you exported as empty or left out stays untouched.',
 	'settings.data_transfer.import.placeholder': 'Paste exported JSON here…',
@@ -458,7 +471,8 @@ export const en: Record<string, string> = {
 	'settings.reapply_hover_on_render.desc':
 		'Re-apply the Files row hover handler when virtualization or sticky rows repaints a row under the pointer.',
 	'settings.sticky_parent_rows_fraction': 'Sticky headers height limit',
-	'settings.sticky_parent_rows_fraction.desc': 'Share of the tree the pinned parents may cover. A short panel runs out of slots before the seven-row ceiling: a 413px tree fits five at 40%, so a sixth level never pins.',
+	'settings.sticky_parent_rows_fraction.desc':
+		'Share of the tree the pinned parents may cover. A short panel runs out of slots before the seven-row ceiling: a 413px tree fits five at 40%, so a sixth level never pins.',
 	'settings.sparse_auto_expand_top_level': 'Auto-expand few top-level folders',
 	'settings.sparse_auto_expand_top_level.desc':
 		'When filters or search leave fewer than four top-level folders, expand them automatically. Off keeps level-1 parents collapsed whatever the result count is.',
@@ -1296,5 +1310,6 @@ export const en: Record<string, string> = {
 	'transaction_bar.origins': 'origins: {count}',
 	'transaction_bar.destinations': 'destinations: {count}',
 	'transaction_bar.rejected': '{destination} rejected ({reason})',
-	'transaction_bar.group_mode_unavailable': 'Group mode needs an active grouping',
+	'transaction_bar.group_mode_unavailable':
+		'Group mode needs an active grouping',
 };

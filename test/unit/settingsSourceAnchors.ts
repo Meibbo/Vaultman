@@ -7,6 +7,10 @@ import settingsSource from '../../src/VaultmanSettings.ts?raw';
  * private builders now. Keep these in sync with VaultmanSettings.ts.
  */
 export const ROOT = 'private getRootItems(): SettingDefinitionItem[]';
+export const NATIVE_CLICK_PAGE =
+	'private getNativeClickPageItems(): SettingDefinitionItem[]';
+export const NODE_NOTE_PREFIX_PAGE =
+	'private getNodeNotePrefixPageItems(): SettingDefinitionItem[]';
 export const FILTER_TEMPLATES =
 	'private getFilterTemplateItems(): SettingDefinitionItem[]';
 export const TOOLBAR_PAGE =

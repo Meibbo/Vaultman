@@ -1,19 +1,33 @@
 export const es: Record<string, string> = {
+	'settings.native_surface_click': 'Acciones de click nativo',
+	'settings.native_surface_click.desc':
+		'Configura las acciones para click primario, Alt y modificadores.',
+	'settings.node_note_prefixes': 'Prefijos de node-notes',
+	'settings.node_note_prefixes.desc':
+		'Configura los patrones usados para identificar node-notes.',
 	'settings.native_surface_click_primary': 'Acción de Click Primario Nativo',
-	'settings.native_surface_click_primary.desc': 'Acción al hacer click en elementos nativos de Obsidian (breadcrumbs, tags, carpetas).',
+	'settings.native_surface_click_primary.desc':
+		'Acción al hacer click en elementos nativos de Obsidian (breadcrumbs, tags, carpetas).',
 	'settings.native_surface_click_alt': 'Acción de Alt+Click Nativo',
-	'settings.native_surface_click_alt.desc': 'Acción al hacer Alt+Click en elementos nativos de Obsidian.',
+	'settings.native_surface_click_alt.desc':
+		'Acción al hacer Alt+Click en elementos nativos de Obsidian.',
 	'settings.native_surface_click_mod': 'Acción de Mod+Click Nativo',
-	'settings.native_surface_click_mod.desc': 'Acción al hacer Ctrl/Cmd-Click o click central en elementos nativos de Obsidian.',
+	'settings.native_surface_click_mod.desc':
+		'Acción al hacer Ctrl/Cmd-Click o click central en elementos nativos de Obsidian.',
 	'settings.node_note_tag_pattern': 'Patrón node-note para tags',
-	'settings.node_note_tag_pattern.desc': 'Patrón para bindings de tags. Usa "name" como placeholder para el nombre del tag. Por defecto "#name"',
+	'settings.node_note_tag_pattern.desc':
+		'Patrón para bindings de tags. Usa "name" como placeholder para el nombre del tag. Por defecto "#name"',
 	'settings.node_note_snippet_pattern': 'Patrón node-note para snippets',
-	'settings.node_note_snippet_pattern.desc': 'Patrón para bindings de snippets. Usa "name" como placeholder. Por defecto "$name"',
+	'settings.node_note_snippet_pattern.desc':
+		'Patrón para bindings de snippets. Usa "name" como placeholder. Por defecto "$name"',
 	'settings.node_note_plugin_pattern': 'Patrón node-note para plugins',
-	'settings.node_note_plugin_pattern.desc': 'Patrón para bindings de plugins. Usa "name" como placeholder. Por defecto "%name"',
+	'settings.node_note_plugin_pattern.desc':
+		'Patrón para bindings de plugins. Usa "name" como placeholder. Por defecto "%name"',
 	'settings.node_note_prop_pattern': 'Patrón node-note para props',
-	'settings.node_note_prop_pattern.desc': 'Patrón para bindings de props. Usa "name" como placeholder. Por defecto "[name]". Cambiarlo prepara renames de alias para revisar.',
-	'settings.node_note_prefix_migrated': 'Se prepararon {count} renames de alias para revisar',
+	'settings.node_note_prop_pattern.desc':
+		'Patrón para bindings de props. Usa "name" como placeholder. Por defecto "[name]". Cambiarlo prepara renames de alias para revisar.',
+	'settings.node_note_prefix_migrated':
+		'Se prepararon {count} renames de alias para revisar',
 	'settings.action.reveal_in_vaultman': 'Revelar en Vaultman Explorer',
 	'settings.action.open_node_note_same_tab': 'Abrir Node-Note (misma pestaña)',
 	'settings.action.open_node_note_new_tab': 'Abrir Node-Note (nueva pestaña)',
@@ -281,11 +295,10 @@ export const es: Record<string, string> = {
 	'settings.collapsed_folder_badges': 'Actividad de folder colapsado',
 	'settings.collapsed_folder_badges.desc':
 		'Cómo un folder colapsado muestra el estado que oculta: un dot de que sus childs tienen actividad (una operación pendiente o un filtro activo), o los badges propios de los descendientes junto al dot de filtro.',
-	'settings.collapsed_folder_badges.dot':
-		'Un dot indicativo',
-	'settings.collapsed_folder_badges.badges':
-		'Badges de descendientes',
-	'settings.floating_toc_sticky_actions': 'Mantener fijos los widgets del índice',
+	'settings.collapsed_folder_badges.dot': 'Un dot indicativo',
+	'settings.collapsed_folder_badges.badges': 'Badges de descendientes',
+	'settings.floating_toc_sticky_actions':
+		'Mantener fijos los widgets del índice',
 	'settings.floating_toc_sticky_actions.desc':
 		'El índice flotante conserva sus propios controles arriba mientras los nodos pasan por debajo, igual que las filas del explorer pasan bajo el toolbar. Desactivado, se van con la lista al hacer scroll.',
 	'settings.keep_property_when_last_value_deleted':
@@ -313,14 +326,16 @@ export const es: Record<string, string> = {
 		'Exporta filtros guardados, plantillas de queue y layouts guardados como JSON, o importa un archivo previamente exportado.',
 	'settings.data_transfer.export': 'Exportar JSON',
 	'settings.data_transfer.import': 'Importar JSON',
-	'settings.data_transfer.export.title': 'Exportar filtros, sets de operaciones y layouts',
+	'settings.data_transfer.export.title':
+		'Exportar filtros, sets de operaciones y layouts',
 	'settings.data_transfer.export.desc':
 		'Copia este JSON para respaldarlo o moverlo a otro vault.',
 	'settings.data_transfer.export.copy': 'Copiar al portapapeles',
 	'settings.data_transfer.export.copied': 'Copiado al portapapeles.',
 	'settings.data_transfer.export.copy_failed':
 		'No se pudo copiar automaticamente — el texto quedo seleccionado, copialo manualmente.',
-	'settings.data_transfer.import.title': 'Importar filtros, sets de operaciones y layouts',
+	'settings.data_transfer.import.title':
+		'Importar filtros, sets de operaciones y layouts',
 	'settings.data_transfer.import.desc':
 		'Pega un JSON previamente exportado. Solo se reemplazan los arrays presentes en el JSON — lo que exportaste vacio o dejaste afuera queda intacto.',
 	'settings.data_transfer.import.placeholder': 'Pega aqui el JSON exportado…',
@@ -458,9 +473,12 @@ export const es: Record<string, string> = {
 	'settings.reapply_hover_on_render': 'Reaplicar hover al repintar la fila',
 	'settings.reapply_hover_on_render.desc':
 		'Reaplica el hover de Files cuando la virtualización o las filas fijas repintan una fila bajo el puntero.',
-	'settings.sticky_parent_rows_fraction': 'Límite de altura de las cabeceras fijadas',
-	'settings.sticky_parent_rows_fraction.desc': 'Parte del árbol que pueden tapar los padres fijados. Un panel corto se queda sin huecos antes del techo de siete filas: al 40 %, un árbol de 413 px admite cinco, así que un sexto nivel nunca se fija.',
-	'settings.sparse_auto_expand_top_level': 'Autoexpandir pocos padres de nivel 1',
+	'settings.sticky_parent_rows_fraction':
+		'Límite de altura de las cabeceras fijadas',
+	'settings.sticky_parent_rows_fraction.desc':
+		'Parte del árbol que pueden tapar los padres fijados. Un panel corto se queda sin huecos antes del techo de siete filas: al 40 %, un árbol de 413 px admite cinco, así que un sexto nivel nunca se fija.',
+	'settings.sparse_auto_expand_top_level':
+		'Autoexpandir pocos padres de nivel 1',
 	'settings.sparse_auto_expand_top_level.desc':
 		'Cuando los filtros o la búsqueda dejan menos de cuatro carpetas de nivel superior, expandirlas automáticamente. Apagado mantiene colapsados los padres de nivel 1 sea cual sea el número de resultados.',
 	'settings.node_icon_scope': 'Alcance de icono de nodo',
@@ -1203,5 +1221,6 @@ export const es: Record<string, string> = {
 	'transaction_bar.origins': 'orígenes: {count}',
 	'transaction_bar.destinations': 'destinos: {count}',
 	'transaction_bar.rejected': '{destination} rechazado ({reason})',
-	'transaction_bar.group_mode_unavailable': 'El modo grupo necesita una agrupación activa',
+	'transaction_bar.group_mode_unavailable':
+		'El modo grupo necesita una agrupación activa',
 };

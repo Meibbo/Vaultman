@@ -16,6 +16,8 @@ import {
 	CONTEXT_MENUS_PAGE,
 	EXPLORER_PAGE,
 	FILTER_TEMPLATES,
+	NATIVE_CLICK_PAGE,
+	NODE_NOTE_PREFIX_PAGE,
 	ROOT,
 	TOOLBAR_COMMANDS,
 	TOOLBAR_PAGE,
@@ -179,7 +181,6 @@ describe('U121-029 declarative settings root inventory', () => {
 		'settings.bulk_operation_warning_threshold',
 		'settings.prop_move_conflict',
 		'settings.bypass_operations',
-		'settings.queue_warn_supersede',
 		'settings.text_search_intercepts',
 		'settings.show_dock',
 		'settings.style_preset',
@@ -190,7 +191,6 @@ describe('U121-029 declarative settings root inventory', () => {
 
 	const ROOT_HEADINGS = [
 		'settings.style_config',
-		'settings.operations',
 		'settings.addons',
 		'settings.developer_tools',
 	];
@@ -209,6 +209,7 @@ describe('U121-029 declarative settings root inventory', () => {
 			'settings.templates',
 			'queue.template.templates',
 			'settings.bulk_operation_warning',
+			'settings.queue_warn_supersede',
 			'settings.saved_view_config',
 		]) {
 			expect(templates).toContain(`translate('${key}')`);
@@ -218,11 +219,18 @@ describe('U121-029 declarative settings root inventory', () => {
 		expect(templates).toContain('this.plugin.settings.queueTemplates');
 		expect(templates).toContain('this.plugin.settings.savedLayouts');
 		expect(templates).toContain('PayloadPreviewModal');
+		expect(
+			templates.indexOf("translate('settings.queue_warn_supersede')"),
+		).toBeGreaterThan(
+			templates.indexOf("translate('settings.bulk_operation_warning')"),
+		);
 	});
 
 	it('wires all five sub-pages into the root', () => {
 		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
 		for (const builder of [
+			'getNativeClickPageItems',
+			'getNodeNotePrefixPageItems',
 			'getToolbarPageItems',
 			'getFloatingTocPageItems',
 			'getExplorerPageItems',
@@ -230,6 +238,44 @@ describe('U121-029 declarative settings root inventory', () => {
 			'getFilesHoverPageItems',
 		]) {
 			expect(rootSource).toContain(`items: this.${builder}(),`);
+		}
+	});
+
+	it('routes native click actions and node-note prefixes into sub-pages', () => {
+		const rootSource = sliceBetween(ROOT, FILTER_TEMPLATES);
+		const nativeClickPage = sliceBetween(
+			NATIVE_CLICK_PAGE,
+			NODE_NOTE_PREFIX_PAGE,
+		);
+		const nodeNotePage = sliceBetween(NODE_NOTE_PREFIX_PAGE, FILTER_TEMPLATES);
+
+		expect(rootSource).toContain('items: this.getNativeClickPageItems(),');
+		expect(rootSource).toContain('items: this.getNodeNotePrefixPageItems(),');
+		for (const key of [
+			'settings.native_surface_click_primary',
+			'settings.native_surface_click_alt',
+			'settings.native_surface_click_mod',
+			'settings.node_note_tag_pattern',
+			'settings.node_note_snippet_pattern',
+			'settings.node_note_plugin_pattern',
+			'settings.node_note_prop_pattern',
+		]) {
+			expect(rootSource).not.toContain(`translate('${key}')`);
+		}
+		for (const key of [
+			'settings.native_surface_click_primary',
+			'settings.native_surface_click_alt',
+			'settings.native_surface_click_mod',
+		]) {
+			expect(nativeClickPage).toContain(`translate('${key}')`);
+		}
+		for (const key of [
+			'settings.node_note_tag_pattern',
+			'settings.node_note_snippet_pattern',
+			'settings.node_note_plugin_pattern',
+			'settings.node_note_prop_pattern',
+		]) {
+			expect(nodeNotePage).toContain(`'${key}'`);
 		}
 	});
 
