@@ -397,6 +397,7 @@ export const en: Record<string, string> = {
 	'settings.context_menu_kind.content': 'Text node menu',
 	'settings.context_menu_kind.snippets': 'Snippets node menu',
 	'settings.context_menu_kind.plugins': 'Plugins node menu',
+	'settings.context_menu.experimental': 'Experimental',
 	'settings.files_context_menu': 'Files context menu',
 	'settings.files_context_menu.desc':
 		'Choose which actions the Files node context menu shows, in which order, and group them with dividers and submenus.',

@@ -1658,9 +1658,29 @@ items.push({
 			},
 		});
 
-		// BT5-018/036: every node context menu is configurable here, one row per
-		// explorer surface, sharing the same sub-page.
+		// BT5-018/036: normal node context menus stay together; the move actions
+		// live on their own experimental pages because they can strand an explorer
+		// in an operation mode when invoked unexpectedly.
+		const experimentalKinds = new Set(['files', 'props']);
 		for (const kind of PANEL_MENU_KINDS) {
+			if (experimentalKinds.has(kind)) continue;
+			items.push({
+				type: 'page',
+				name: translate(`settings.context_menu_kind.${kind}`),
+				desc: translate('settings.files_context_menu.desc'),
+				items: this.getFilesContextMenuPageItems(kind),
+			});
+		}
+
+		items.push({
+			name: translate('settings.context_menu.experimental'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		for (const kind of PANEL_MENU_KINDS) {
+			if (!experimentalKinds.has(kind)) continue;
 			items.push({
 				type: 'page',
 				name: translate(`settings.context_menu_kind.${kind}`),

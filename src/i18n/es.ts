@@ -398,6 +398,7 @@ export const es: Record<string, string> = {
 	'settings.context_menu_kind.content': 'Menú de nodos de Texto',
 	'settings.context_menu_kind.snippets': 'Menú de nodos Snippets',
 	'settings.context_menu_kind.plugins': 'Menú de nodos Plugins',
+	'settings.context_menu.experimental': 'Experimental',
 	'settings.files_context_menu': 'Menú contextual de Files',
 	'settings.files_context_menu.desc':
 		'Elige qué acciones muestra el menú contextual de los nodos de Files, en qué orden, y agrúpalas con separadores y submenús.',
