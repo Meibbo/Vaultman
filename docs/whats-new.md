@@ -20,6 +20,22 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-5"></a>
+
+## 1.3.0-beta.5 — Grouped explorers and safer movement
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.5 makes large explorer workflows easier to read and safer to act on, from grouped rows to clearer movement controls.
+
+- **See structure at a glance:** Grouped explorer headers project counts and expandable group members across Files, Properties, Tags, Snippets, and Plugins.
+- **Move with the right scope:** Move-to-prop and node movement expose their state through the existing toolbar and transaction controls, with node/group choices and explicit proceed/cancel actions.
+- **Rows explain themselves:** Elements, icons, timestamps, reveal controls, and hover actions stay in sync with each view and its filters.
+- **Keep your place:** Sticky headers, active-file reveal, search results, and saved layouts preserve context through navigation and reloads.
+- **Better mobile feedback:** Hidden or out-of-list actions are visibly subdued instead of pretending they can act.
+
+[Full changelog](../CHANGELOG.md#130-beta5---2026-09-10)
+
 <a id="v1-3-0-beta-3"></a>
 
 ## 1.3.0-beta.3 — Settings that stick, and options that finally do something
