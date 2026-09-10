@@ -2996,7 +2996,7 @@ export class FilesExplorerPanel extends Component {
 
 	private _refreshFolderIcon(id: string): void {
 		const node = this.bubbleIndex?.nodesById.get(id);
-		if (!node?.meta.isFolder) return;
+		if (!node?.meta.isFolder || isGroupHeader(id, this._groupIds)) return;
 		const defaultIcon = this.expandedIds.has(id)
 			? 'lucide-folder-open'
 			: 'lucide-folder';
