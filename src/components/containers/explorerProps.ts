@@ -106,7 +106,10 @@ import {
 	flattenPropertyValues,
 	sortFlatProjection,
 } from '../../logic/logicExplorerHierarchy';
-import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	collectExpandableSubtreeIds,
+	toggleExpandableSubtreeIds,
+} from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import { ConfirmModal } from '../../modals/modalConfirm';
 import {
@@ -2049,6 +2052,8 @@ export class PropsExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
+				onRowDoubleClick: (id: string) =>
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
@@ -2320,6 +2325,8 @@ export class PropsExplorerPanel extends Component {
 			},
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+			onRowDoubleClick: (id: string) =>
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
@@ -2566,10 +2573,8 @@ export class PropsExplorerPanel extends Component {
 
 	private _expandAll(nodes: TreeNode<PropMeta>[]): void {
 		for (const node of nodes) {
-			if (node.children?.length) {
-				this.expandedIds.add(node.id);
-				this._expandAll(node.children);
-			}
+			for (const id of collectExpandableSubtreeIds(node))
+				this.expandedIds.add(id);
 		}
 	}
 
@@ -2601,14 +2606,14 @@ export class PropsExplorerPanel extends Component {
 	private _expandSubtree(id: string, nodes: TreeNode<PropMeta>[]): void {
 		const root = this._findNode(id, nodes);
 		if (!root) return;
-		let changed = false;
-		for (const expandableId of collectExpandableSubtreeIds(root)) {
-			if (this.expandedIds.has(expandableId)) continue;
-			this.expandedIds.add(expandableId);
-			changed = true;
-		}
-		if (!changed) return;
-		this._notifyExpansionChanged();
+		const { expanded, changedIds } = toggleExpandableSubtreeIds(
+			root,
+			this.expandedIds,
+		);
+		if (changedIds.length === 0) return;
+		this._notifyExpansionChanged(
+			expanded ? undefined : { type: 'collapse-node', id },
+		);
 		void this._render();
 	}
 
@@ -3242,10 +3247,11 @@ export class PropsExplorerPanel extends Component {
 				}
 			}
 
-			const iconic = !meta.isValueNode
+			const isGroup = isGroupHeader(node.id, this._groupIds);
+			const iconic = !meta.isValueNode && !isGroup
 				? this.plugin.iconicService?.getIcon(meta.propName)
 				: null;
-			const defaultIcon = !meta.isValueNode
+			const defaultIcon = !meta.isValueNode && !isGroup
 				? this._effectivePropIcon(meta)
 				: undefined;
 			const hoverCell =
@@ -3257,7 +3263,7 @@ export class PropsExplorerPanel extends Component {
 			return {
 				...node,
 				cls: currentCls,
-				icon: (iconic?.icon ?? defaultIcon) || undefined,
+				icon: (node.icon ?? iconic?.icon ?? defaultIcon) || undefined,
 				iconColor: iconic?.color || undefined,
 				typeText: !meta.isValueNode ? this._effectivePropType(meta) : undefined,
 				badges: badges,

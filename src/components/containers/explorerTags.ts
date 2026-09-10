@@ -123,7 +123,10 @@ import {
 	sortFlatProjection,
 	tagStructureRank,
 } from '../../logic/logicExplorerHierarchy';
-import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	collectExpandableSubtreeIds,
+	toggleExpandableSubtreeIds,
+} from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import { queueDeletesSubject } from '../../logic/logicDeletionDecoration';
 import {
@@ -1119,10 +1122,7 @@ export class TagsExplorerPanel extends Component {
 
 	private _expandAll(nodes: TreeNode<TagMeta>[]): void {
 		for (const n of nodes) {
-			if (n.children && n.children.length > 0) {
-				this.expandedIds.add(n.id);
-				this._expandAll(n.children);
-			}
+			for (const id of collectExpandableSubtreeIds(n)) this.expandedIds.add(id);
 		}
 	}
 
@@ -1138,14 +1138,14 @@ export class TagsExplorerPanel extends Component {
 	private _expandSubtree(id: string, nodes: TreeNode<TagMeta>[]): void {
 		const root = this._findNode(id, nodes);
 		if (!root) return;
-		let changed = false;
-		for (const expandableId of collectExpandableSubtreeIds(root)) {
-			if (this.expandedIds.has(expandableId)) continue;
-			this.expandedIds.add(expandableId);
-			changed = true;
-		}
-		if (!changed) return;
-		this._notifyExpansionChanged();
+		const { expanded, changedIds } = toggleExpandableSubtreeIds(
+			root,
+			this.expandedIds,
+		);
+		if (changedIds.length === 0) return;
+		this._notifyExpansionChanged(
+			expanded ? undefined : { type: 'collapse-node', id },
+		);
 		void this._render();
 	}
 
@@ -1430,6 +1430,8 @@ export class TagsExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
+				onRowDoubleClick: (id: string) =>
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
@@ -1566,7 +1568,9 @@ export class TagsExplorerPanel extends Component {
 				this._toggleExpanded(id);
 				void this._render();
 			},
-			onRecursiveExpand: (id: string) =>
+		onRecursiveExpand: (id: string) =>
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+			onRowDoubleClick: (id: string) =>
 				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) return;
@@ -2030,12 +2034,15 @@ export class TagsExplorerPanel extends Component {
 				}
 			}
 
-			const iconic = this.plugin.iconicService?.getTagIcon(meta.tagPath);
+			const isGroup = isGroupHeader(node.id, this._groupIds);
+			const iconic = isGroup
+				? undefined
+				: this.plugin.iconicService?.getTagIcon(meta.tagPath);
 
 			return {
 				...node,
 				cls: cls,
-				icon: iconic?.icon ?? 'lucide-tag',
+				icon: node.icon ?? iconic?.icon ?? (isGroup ? undefined : 'lucide-tag'),
 				iconColor: iconic?.color || undefined,
 				badges: badges,
 				children: resolvedChildren,
