@@ -827,17 +827,26 @@ export class UnifiedTreeView {
 			.join('|');
 		const cells = (node.cells ?? [])
 			.map((cell) =>
-			cell.kind === 'toggle'
-				? [
-						cell.id,
-						cell.kind,
-						cell.enabled ? '1' : '0',
-						cell.style,
-						cell.label,
-						cell.disabled ? '1' : '0',
-						cell.mixed ? '1' : '0',
-					].join(':')
-					: [
+				cell.kind === 'toggle'
+					? [
+							cell.id,
+							cell.kind,
+							cell.enabled ? '1' : '0',
+							cell.style,
+							cell.label,
+							cell.disabled ? '1' : '0',
+							cell.mixed ? '1' : '0',
+						].join(':')
+					: cell.kind === 'cell_hover'
+						? [
+								cell.id,
+								cell.kind,
+								cell.actions
+									.map((action) => `${action.id}:${action.icon}`)
+									.join(','),
+								cell.disabled ? '1' : '0',
+							].join(':')
+						: [
 							cell.id,
 							cell.kind,
 							cell.icon,
@@ -1582,6 +1591,31 @@ export class UnifiedTreeView {
 		cell: TreeNodeCell,
 		opts: TreeViewOptions,
 	): void {
+		if (cell.kind === 'cell_hover') {
+			const hoverZone = parent.createDiv({
+				cls: 'vaultman-tree-hover-badge-zone',
+				attr: { 'aria-label': 'Row actions' },
+			});
+			for (const action of cell.actions) {
+				const actionEl = hoverZone.createEl('button', {
+					cls: 'clickable-icon vaultman-cell-hover-action',
+					attr: {
+						type: 'button',
+						'aria-label': action.label,
+						title: action.label,
+					},
+				});
+				setIcon(actionEl, action.icon);
+				actionEl.onclick = (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					if (!cell.disabled) {
+						opts.onCellClick?.(nodeId, `${cell.id}:${action.id}`, event);
+					}
+				};
+			}
+			return;
+		}
 		const handleClick = (element: HTMLElement) => {
 			element.onclick = (event) => {
 				event.preventDefault();

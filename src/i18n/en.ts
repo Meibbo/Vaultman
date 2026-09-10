@@ -730,6 +730,9 @@ export const en: Record<string, string> = {
 	'explorer.ctx.capitalize': 'First Letter Case',
 	'explorer.ctx.filter_include': 'Include as filter',
 	'explorer.ctx.filter_exclude': 'Exclude as filter',
+	'explorer.ctx.filter_clean': 'Clean this filter',
+	'explorer.cell.open_daily_note': 'Open daily note',
+	'explorer.cell.delete_value': 'Queue delete value',
 	'explorer.ctx.tag.coming_soon': 'More options coming soon',
 	'tags.invalid_name': 'That is not a valid tag name',
 	'tags.invalid_name.spaces':
@@ -1187,6 +1190,7 @@ export const en: Record<string, string> = {
 	'tags.source.inline': 'inline',
 	'tags.source.both': 'both',
 	'viewmode.pill.format': 'Format',
+	'viewmode.pill.cell_hover': 'Hover actions',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',
 	'viewmode.pill.ext': 'Ext',

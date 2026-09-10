@@ -57,7 +57,17 @@ export type TreeNodeCell =
 			label: string;
 			disabled?: boolean;
 			appearance?: 'button' | 'badge';
-	  };
+		}
+	| {
+			id: string;
+			kind: 'cell_hover';
+			actions: Array<{
+				id: string;
+				icon: string;
+				label: string;
+			}>;
+			disabled?: boolean;
+		};
 
 /** BT5-017: activity projected from descendants hidden by a collapsed node. */
 export interface NodeBubbleDot {

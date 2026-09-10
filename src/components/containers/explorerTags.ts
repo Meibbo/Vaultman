@@ -202,6 +202,20 @@ export class TagsExplorerPanel extends Component {
 	 */
 	private tagSourceIndex: Map<string, Set<TagSource>> | null = null;
 
+	private _tagFilterState(meta: TagMeta) {
+		return this.plugin.filterService.getFilterState('tag', `#${meta.tagPath}`);
+	}
+
+	private _tagFilterMenuLabel(
+		ctx: MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'explorer.ctx.filter_include' | 'explorer.ctx.filter_exclude',
+	): string {
+		return this._tagFilterState(ctx.node.meta as TagMeta) === activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
+	}
+
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
 		this.plugin = plugin;
@@ -221,14 +235,15 @@ export class TagsExplorerPanel extends Component {
 			id: 'tag.filter_include',
 			nodeTypes: ['tag'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_include'),
+			label: (ctx) =>
+				this._tagFilterMenuLabel(ctx, 'included', 'explorer.ctx.filter_include'),
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
 				this.filterClicks.cancel(`#${meta.tagPath}`);
 				this.plugin.filterService.setTagNodePolarity(
 					`#${meta.tagPath}`,
-					'inclusive',
+					this._tagFilterState(meta) === 'included' ? 'none' : 'inclusive',
 				);
 			},
 		});
@@ -237,14 +252,15 @@ export class TagsExplorerPanel extends Component {
 			id: 'tag.filter_exclude',
 			nodeTypes: ['tag'],
 			surfaces: ['panel'],
-			label: translate('explorer.ctx.filter_exclude'),
+			label: (ctx) =>
+				this._tagFilterMenuLabel(ctx, 'excluded', 'explorer.ctx.filter_exclude'),
 			icon: 'lucide-filter-x',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
 				this.filterClicks.cancel(`#${meta.tagPath}`);
 				this.plugin.filterService.setTagNodePolarity(
 					`#${meta.tagPath}`,
-					'exclusive',
+					this._tagFilterState(meta) === 'excluded' ? 'none' : 'exclusive',
 				);
 			},
 		});

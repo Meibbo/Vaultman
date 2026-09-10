@@ -1029,6 +1029,38 @@ body.vaultman-resizing {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
 }
 
+/* Hover actions remain in the badge zone's normal flex flow. The zone is
+   absent from layout at rest, then expands only while its row is hovered or
+   focused, so the value/name cells never lose space permanently and never
+   get covered by an overlay. */
+.vaultman-tree-hover-badge-zone {
+  display: none;
+  align-items: center;
+  gap: var(--size-2-1);
+}
+
+.vaultman-tree-row:hover .vaultman-tree-hover-badge-zone,
+.vaultman-tree-row:focus-within .vaultman-tree-hover-badge-zone {
+  display: inline-flex;
+  pointer-events: auto;
+}
+
+.vaultman-cell-hover-action {
+  width: var(--icon-s);
+  height: var(--icon-s);
+  padding: 0;
+  color: var(--text-faint);
+  background: transparent;
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+}
+
+.vaultman-cell-hover-action:hover,
+.vaultman-cell-hover-action:focus-visible {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
 .vaultman-tree-row.is-being-dragged,
 .vaultman-node-table-row.is-being-dragged,
 .vaultman-file-row.is-being-dragged {

@@ -1,4 +1,4 @@
-import { setIcon, type App } from 'obsidian';
+import { type App } from 'obsidian';
 
 import {
 	LIST_WIDGETS,
@@ -378,26 +378,13 @@ function renderDateInput(
 }
 
 function renderDate(context: PropertyValueRenderContext): void {
-	const { container, raw, app } = context;
+	const { raw } = context;
 	if (Number.isNaN(Date.parse(raw))) {
 		renderScalar(context);
 		return;
 	}
 	renderDateInput(context, 'date');
 
-	const day = raw.slice(0, 10);
-	// Same treatment as the delete control: it belongs to the row, appears on
-	// hover, and sits beside its value instead of across the cell.
-	const dailyNote = container.createSpan({
-		cls: 'clickable-icon vaultman-property-value-action',
-		attr: { 'aria-label': `Open daily note ${day}` },
-	});
-	setIcon(dailyNote, 'lucide-link');
-	dailyNote.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		void app.workspace.openLinkText(day, '', false);
-	});
 }
 
 function renderDateTime(context: PropertyValueRenderContext): void {
@@ -430,18 +417,6 @@ export function renderPropertyValue(context: PropertyValueRenderContext): void {
 	}
 	RENDER_MAP[widget](context);
 
-	if (!context.onRemoveValue) return;
-	// Reveals on row hover: a delete affordance on every value at rest is the
-	// visual noise this projection is supposed to avoid.
-	const remove = context.container.createSpan({
-		cls: 'vaultman-property-value-remove',
-	});
-	setIcon(remove, 'lucide-x');
-	remove.addEventListener('click', (event) => {
-		event.preventDefault();
-		event.stopPropagation();
-		context.onRemoveValue?.();
-	});
 }
 
 export { LIST_WIDGETS };
