@@ -1,50 +1,68 @@
 import { describe, it, expect, vi } from "vitest";
+import type { VaultmanPlugin } from "../../src/main";
+import type { ActionDef, MenuCtx } from "../../src/types/typeCMenu";
 import { registerNodeBindingActions } from "../../src/logic/logicNodeBindingContextMenu";
+
+type BindOrCreate = (node: { kind: string; label: string; path?: string }) => Promise<{ outcome: string }>;
+type TestPlugin = {
+	contextMenuService: { registerAction: (action: ActionDef) => void };
+	nodeBindingService: { bindOrCreate: BindOrCreate };
+};
+
+function makePlugin() {
+	let registered: ActionDef | undefined;
+	const bindOrCreate = vi.fn<BindOrCreate>().mockResolvedValue({ outcome: "opened" });
+	const plugin: TestPlugin = {
+		contextMenuService: {
+			registerAction: vi.fn<(action: ActionDef) => void>((action) => {
+				registered = action;
+			}),
+		},
+		nodeBindingService: { bindOrCreate },
+	};
+	return {
+		plugin: plugin as unknown as VaultmanPlugin,
+		registerAction: plugin.contextMenuService.registerAction,
+		bindOrCreate,
+		action: () => {
+			if (!registered) throw new Error("node binding action was not registered");
+			return registered;
+		},
+	};
+}
+
+function context(
+	nodeType: MenuCtx["nodeType"],
+	label: string,
+	meta: Record<string, string>,
+): MenuCtx {
+	return {
+		nodeType,
+		node: { id: label, label, depth: 0, meta },
+		surface: "panel",
+	};
+}
 
 describe("registerNodeBindingActions", () => {
 	it("registers node.binding-note action with contextMenuService", () => {
-		let registered: any = null;
-		const mockPlugin: any = {
-			contextMenuService: {
-				registerAction: vi.fn().mockImplementation((action) => {
-					registered = action;
-				}),
-			},
-			nodeBindingService: {
-				bindOrCreate: vi.fn(),
-			},
-		};
+		const { plugin, registerAction, action } = makePlugin();
 
-		registerNodeBindingActions(mockPlugin);
-		expect(mockPlugin.contextMenuService.registerAction).toHaveBeenCalled();
-		expect(registered.id).toBe("node.binding-note");
-		expect(registered.nodeTypes).toContain("tag");
-		expect(registered.nodeTypes).toContain("prop");
-		expect(registered.nodeTypes).toContain("folder");
-		expect(registered.nodeTypes).toContain("file");
+		registerNodeBindingActions(plugin);
+		expect(registerAction).toHaveBeenCalled();
+		expect(action().id).toBe("node.binding-note");
+		expect(action().nodeTypes).toContain("tag");
+		expect(action().nodeTypes).toContain("prop");
+		expect(action().nodeTypes).toContain("folder");
+		expect(action().nodeTypes).toContain("file");
 	});
 
 	it("invokes bindOrCreate on run with correct kind for tag", async () => {
-		let registered: any = null;
-		const mockBindOrCreate = vi.fn().mockResolvedValue({ outcome: "opened" });
-		const mockPlugin: any = {
-			contextMenuService: {
-				registerAction: vi.fn().mockImplementation((action) => {
-					registered = action;
-				}),
-			},
-			nodeBindingService: {
-				bindOrCreate: mockBindOrCreate,
-			},
-		};
+		const { plugin, bindOrCreate, action } = makePlugin();
 
-		registerNodeBindingActions(mockPlugin);
-		await registered.run({
-			nodeType: "tag",
-			node: { label: "dev", meta: { tagPath: "dev" } },
-		});
+		registerNodeBindingActions(plugin);
+		await action().run(context("tag", "dev", { tagPath: "dev" }));
 
-		expect(mockBindOrCreate).toHaveBeenCalledWith({
+		expect(bindOrCreate).toHaveBeenCalledWith({
 			kind: "tag",
 			label: "dev",
 			tagPath: "dev",
@@ -52,26 +70,12 @@ describe("registerNodeBindingActions", () => {
 	});
 
 	it("supports file nodeType and invokes bindOrCreate with file kind", async () => {
-		let registered: any = null;
-		const mockBindOrCreate = vi.fn().mockResolvedValue({ outcome: "opened" });
-		const mockPlugin: any = {
-			contextMenuService: {
-				registerAction: vi.fn().mockImplementation((action) => {
-					registered = action;
-				}),
-			},
-			nodeBindingService: {
-				bindOrCreate: mockBindOrCreate,
-			},
-		};
+		const { plugin, bindOrCreate, action } = makePlugin();
 
-		registerNodeBindingActions(mockPlugin);
-		await registered.run({
-			nodeType: "file",
-			node: { label: "manual.pdf", id: "docs/manual.pdf", meta: { path: "docs/manual.pdf" } },
-		});
+		registerNodeBindingActions(plugin);
+		await action().run(context("file", "manual.pdf", { path: "docs/manual.pdf" }));
 
-		expect(mockBindOrCreate).toHaveBeenCalledWith({
+		expect(bindOrCreate).toHaveBeenCalledWith({
 			kind: "file",
 			label: "manual.pdf",
 			path: "docs/manual.pdf",

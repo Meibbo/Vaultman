@@ -635,7 +635,7 @@ export class PropsExplorerPanel extends Component {
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
 			urnOf: (node) => {
-				const meta = node.meta as PropMeta;
+				const meta = node.meta;
 				const isValue = meta.isValueNode;
 				const canonicalId =
 					isValue && meta.rawValue !== undefined
@@ -2089,7 +2089,7 @@ export class PropsExplorerPanel extends Component {
 							cls: 'vaultman-tree-label vaultman-rename-preview',
 						});
 						label.setAttribute('data-preview', 'rename');
-						const previewMeta = node.meta as PropMeta;
+						const previewMeta = node.meta;
 						if (target === '') {
 							label.createSpan({
 								cls: 'vaultman-tree-label vaultman-property-value-empty',
@@ -2113,7 +2113,7 @@ export class PropsExplorerPanel extends Component {
 						if (node.labelColor) label.style.color = node.labelColor;
 						return true;
 					}
-					const nodeMeta = node.meta as PropMeta;
+					const nodeMeta = node.meta;
 					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
 					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
 					// formato node-note-link; hyperlink/url_link quedan plain.
@@ -2127,7 +2127,7 @@ export class PropsExplorerPanel extends Component {
 						label.onclick = (e) => {
 							e.stopPropagation();
 							e.preventDefault();
-							const meta = node.meta as PropMeta;
+							const meta = node.meta;
 							if (meta?.isValueNode) {
 								void this._bindAndRefreshLive(
 									{ kind: 'value', label: node.label, propName: meta.propName },
@@ -2423,7 +2423,7 @@ export class PropsExplorerPanel extends Component {
 	 * al vault. Spec rename-preview-decorated-cell-format §3/§6.
 	 */
 	private _wirePreviewDateReplace(label: HTMLElement, meta: PropMeta, nodeId: string): void {
-		const input = label.querySelector('input.mod-date, input.mod-datetime') as HTMLInputElement | null;
+		const input = label.querySelector<HTMLInputElement>('input.mod-date, input.mod-datetime');
 		if (!input) return;
 		input.removeAttribute('disabled');
 		input.addEventListener('change', () => {

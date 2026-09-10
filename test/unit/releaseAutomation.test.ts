@@ -23,6 +23,9 @@ import {
 	validateExplicitVersion,
 } from '../../scripts/release-core.mjs';
 
+type IsAlreadyPrepared = (request: { version: string }, notes: string) => boolean;
+const isAlreadyPreparedTyped = isAlreadyPrepared as unknown as IsAlreadyPrepared;
+
 describe('multichannel release version resolver', () => {
 	it('parses stable and prerelease SemVer tags', () => {
 		expect(parseVersion('1.2.3')).toMatchObject({
@@ -372,7 +375,7 @@ describe('isAlreadyPrepared compara tambien las notas (beta.3)', () => {
 		const previousCwd = process.cwd();
 		try {
 			process.chdir(dir);
-			expect(isAlreadyPrepared({ version } as any, notes)).toBe(true);
+			expect(isAlreadyPreparedTyped({ version }, notes)).toBe(true);
 		} finally {
 			process.chdir(previousCwd);
 			rmSync(dir, { recursive: true, force: true });
@@ -387,7 +390,7 @@ describe('isAlreadyPrepared compara tambien las notas (beta.3)', () => {
 		const previousCwd = process.cwd();
 		try {
 			process.chdir(dir);
-			expect(isAlreadyPrepared({ version } as any, freshNotes)).toBe(false);
+			expect(isAlreadyPreparedTyped({ version }, freshNotes)).toBe(false);
 		} finally {
 			process.chdir(previousCwd);
 			rmSync(dir, { recursive: true, force: true });
@@ -402,9 +405,9 @@ describe('isAlreadyPrepared compara tambien las notas (beta.3)', () => {
 		const previousCwd = process.cwd();
 		try {
 			process.chdir(dir);
-			expect(isAlreadyPrepared({ version } as any, expectedNotes)).toBe(true);
-			expect(isAlreadyPrepared({ version } as any, expectedNotes.replace('\n', '\r\n'))).toBe(true);
-			expect(isAlreadyPrepared({ version } as any, `${expectedNotes.trimEnd()}`)).toBe(true);
+			expect(isAlreadyPreparedTyped({ version }, expectedNotes)).toBe(true);
+			expect(isAlreadyPreparedTyped({ version }, expectedNotes.replace('\n', '\r\n'))).toBe(true);
+			expect(isAlreadyPreparedTyped({ version }, `${expectedNotes.trimEnd()}`)).toBe(true);
 		} finally {
 			process.chdir(previousCwd);
 			rmSync(dir, { recursive: true, force: true });
@@ -421,9 +424,9 @@ describe('isAlreadyPrepared compara tambien las notas (beta.3)', () => {
 		const previousCwd = process.cwd();
 		try {
 			process.chdir(dir);
-			expect(isAlreadyPrepared({ version } as any, notes)).toBe(false);
+			expect(isAlreadyPreparedTyped({ version }, notes)).toBe(false);
 			writeFileSync(join(dir, 'RELEASE_NOTES.md'), notes);
-			expect(isAlreadyPrepared({ version: '1.3.0-beta.4' } as any, notes)).toBe(false);
+			expect(isAlreadyPreparedTyped({ version: '1.3.0-beta.4' }, notes)).toBe(false);
 		} finally {
 			process.chdir(previousCwd);
 			rmSync(dir, { recursive: true, force: true });

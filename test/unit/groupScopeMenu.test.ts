@@ -63,6 +63,9 @@ describe('U130-03: el scope groups esta en los TRES sitios', () => {
 			start: number;
 			end: number;
 			expression?: AstNode;
+			callee?: AstNode;
+			arguments?: AstNode[];
+			name?: string;
 			[key: string]: unknown;
 		}
 
@@ -92,25 +95,18 @@ describe('U130-03: el scope groups esta en los TRES sitios', () => {
 		const ast = parse(popupSortSource);
 		const ifNode = findVertColIf(ast.html);
 		expect(ifNode).not.toBeNull();
+		const expression = ifNode?.expression;
 		const conditionExpression = popupSortSource.slice(
-			ifNode!.expression!.start,
-			ifNode!.expression!.end,
+			expression?.start ?? 0,
+			expression?.end ?? 0,
 		);
 
-		const evaluateCondition = (tab: ExplorerTabId) =>
-			new Function(
-				'activeTab',
-				'supportsByLevel',
-				`return Boolean(${conditionExpression});`,
-			)(tab, supportsByLevel);
-
-		for (const tab of TABS) {
-			expect(
-				evaluateCondition(tab),
-				`tab '${tab}' no coincide con supportsByLevel`,
-			).toBe(supportsByLevel(tab));
-		}
-
 		expect(conditionExpression.trim()).toBe('supportsByLevel(activeTab)');
+		expect(expression?.type).toBe('CallExpression');
+		expect(expression?.callee?.type).toBe('Identifier');
+		expect(expression?.callee?.name).toBe('supportsByLevel');
+		expect(expression?.arguments).toHaveLength(1);
+		expect(expression?.arguments?.[0]?.type).toBe('Identifier');
+		expect(expression?.arguments?.[0]?.name).toBe('activeTab');
 	});
 });

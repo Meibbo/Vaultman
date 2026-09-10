@@ -122,13 +122,13 @@ export class VaultmanPlugin extends Plugin {
 			targetLeaf = this.app.workspace.getLeftLeaf(false) ?? this.app.workspace.getLeaf('tab');
 			await targetLeaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
 		}
-		this.app.workspace.revealLeaf(targetLeaf);
+		await this.app.workspace.revealLeaf(targetLeaf);
 		this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
 
-		const view = targetLeaf.view as VaultmanFrame;
-		if (view && typeof (view as any).revealPath === 'function') {
-			(view as any).revealPath(node.path ?? node.label);
-		}
+		const view = targetLeaf.view as unknown as VaultmanFrame & {
+			revealPath?: (path: string) => void;
+		};
+		view.revealPath?.(node.path ?? node.label);
 		return true;
 	}
 

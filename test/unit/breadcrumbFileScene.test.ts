@@ -7,6 +7,45 @@ import {
 	BREADCRUMB_FLASH_CLASS,
 	BREADCRUMB_FLASH_MS,
 } from '../../src/services/serviceBreadcrumbFileScene';
+import type { App } from 'obsidian';
+
+type MockElement = {
+	classList: { contains: (cls: string) => boolean };
+	dataset: Record<string, string | undefined>;
+	textContent: string;
+	getAttribute: (attr: string) => string | null;
+	closest: (selector: string) => unknown;
+	querySelectorAll: () => unknown[];
+	preventDefault: ReturnType<typeof vi.fn>;
+	stopImmediatePropagation: ReturnType<typeof vi.fn>;
+};
+
+type MockRow = {
+	getAttribute: (attr: string) => string | null;
+	classList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> };
+	win: { setTimeout: (fn: () => void) => void };
+};
+
+type MockView = {
+	getActiveScene: ReturnType<typeof vi.fn>;
+	revealFolderInFileScene: ReturnType<typeof vi.fn>;
+};
+
+type MockLeaf = {
+	view: MockView;
+	containerEl: { querySelector: (selector: string) => unknown };
+};
+
+type MockWorkspace = {
+	getLeavesOfType: ReturnType<typeof vi.fn>;
+	revealLeaf: ReturnType<typeof vi.fn>;
+	setActiveLeaf: ReturnType<typeof vi.fn>;
+};
+
+type MockBreadcrumbApp = {
+	workspace: MockWorkspace;
+	vault: { getFolderByPath: ReturnType<typeof vi.fn> };
+};
 
 function mockElement(
 	opts: {
@@ -15,16 +54,16 @@ function mockElement(
 		dataset?: Record<string, string | undefined>;
 		textContent?: string;
 	} = {},
-) {
+): MockElement {
 	const classes = new Set(opts.classes ?? []);
 	const attributes = { ...(opts.attributes ?? {}) };
 	const dataset = { ...(opts.dataset ?? {}) };
-	const el: any = {
+	const el: MockElement = {
 		classList: { contains: (cls: string) => classes.has(cls) },
 		dataset,
 		textContent: opts.textContent ?? '',
 		getAttribute: (attr: string) => attributes[attr] ?? null,
-		closest: function (selector: string) {
+		closest: function (selector: string): unknown {
 			const parts = selector.split(',').map((s: string) => s.trim());
 			for (const part of parts) {
 				if (
@@ -47,7 +86,7 @@ function mockElement(
 	return el;
 }
 
-function mockRow(path: string) {
+function mockRow(path: string): MockRow {
 	return {
 		getAttribute: (attr: string) => (attr === 'data-path' ? path : null),
 		classList: { add: vi.fn(), remove: vi.fn() },
@@ -55,8 +94,8 @@ function mockRow(path: string) {
 	};
 }
 
-function mockLeaf(opts: { scene?: string; revealed?: boolean } = {}) {
-	const view: any = {
+function mockLeaf(opts: { scene?: string; revealed?: boolean } = {}): MockLeaf {
+	const view: MockView = {
 		getActiveScene: vi.fn(() => opts.scene ?? 'props'),
 		revealFolderInFileScene: vi.fn(() => opts.revealed ?? true),
 	};
@@ -66,7 +105,7 @@ function mockLeaf(opts: { scene?: string; revealed?: boolean } = {}) {
 	};
 }
 
-function mockApp(leaves: any[]) {
+function mockApp(leaves: MockLeaf[]): MockBreadcrumbApp {
 	return {
 		workspace: {
 			getLeavesOfType: vi.fn(() => leaves),
@@ -74,12 +113,12 @@ function mockApp(leaves: any[]) {
 			setActiveLeaf: vi.fn(),
 		},
 		vault: { getFolderByPath: vi.fn((p: string) => ({ path: p })) },
-	} as any;
+	};
 }
 
-function plainClick(target: any) {
+function plainClick(target: MockElement): MouseEvent {
 	return {
-		target,
+		target: target as unknown as EventTarget,
 		button: 0,
 		ctrlKey: false,
 		metaKey: false,
@@ -87,7 +126,7 @@ function plainClick(target: any) {
 		shiftKey: false,
 		preventDefault: vi.fn(),
 		stopImmediatePropagation: vi.fn(),
-	} as any;
+	} as unknown as MouseEvent;
 }
 
 describe('breadcrumb → fileScene intercept (task_113)', () => {
@@ -100,7 +139,7 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 		const leaf = mockLeaf({ scene: 'files' });
 		const app = mockApp([leaf]);
 		const handled = handleBreadcrumbFileSceneClick(plainClick(crumb), {
-			app,
+			app: app as unknown as App,
 			frameType: 'vaultman-frame',
 		});
 		expect(handled).toBe(true);
@@ -120,14 +159,14 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 		});
 		const leaf = mockLeaf({ scene: 'files' });
 		const app = mockApp([leaf]);
-		const event = { ...plainClick(crumb), ctrlKey: true };
+		const event = { ...plainClick(crumb), ctrlKey: true } as MouseEvent;
 		expect(
 			handleBreadcrumbFileSceneClick(event, {
-				app,
+				app: app as unknown as App,
 				frameType: 'vaultman-frame',
 			}),
 		).toBe(false);
-		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect((event as unknown as { preventDefault: ReturnType<typeof vi.fn> }).preventDefault).not.toHaveBeenCalled();
 		expect(leaf.view.revealFolderInFileScene).not.toHaveBeenCalled();
 	});
 
@@ -141,11 +180,11 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 		const event = plainClick(crumb);
 		expect(
 			handleBreadcrumbFileSceneClick(event, {
-				app,
+				app: app as unknown as App,
 				frameType: 'vaultman-frame',
 			}),
 		).toBe(false);
-		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect((event as unknown as { preventDefault: ReturnType<typeof vi.fn> }).preventDefault).not.toHaveBeenCalled();
 	});
 
 	it('ignores non-breadcrumb elements', () => {
@@ -153,17 +192,17 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 		const app = mockApp([mockLeaf({ scene: 'files' })]);
 		expect(
 			handleBreadcrumbFileSceneClick(plainClick(other), {
-				app,
+				app: app as unknown as App,
 				frameType: 'vaultman-frame',
 			}),
 		).toBe(false);
 	});
 
 	it('findFirstFileSceneLeaf skips instances without fileScene', () => {
-		const a = { view: mockLeaf({ scene: 'props' }).view };
-		const b = { view: mockLeaf({ scene: 'files' }).view };
-		expect(findFirstFileSceneLeaf([a, b] as any)).toBe(b);
-		expect(findFirstFileSceneLeaf([a] as any)).toBe(null);
+		const a: MockLeaf = { view: mockLeaf({ scene: 'props' }).view, containerEl: { querySelector: vi.fn(() => null) } };
+		const b: MockLeaf = { view: mockLeaf({ scene: 'files' }).view, containerEl: { querySelector: vi.fn(() => null) } };
+		expect(findFirstFileSceneLeaf([a, b])).toBe(b);
+		expect(findFirstFileSceneLeaf([a])).toBe(null);
 	});
 
 	it('isPlainPrimaryClick gates modifiers and aux buttons', () => {
@@ -176,7 +215,7 @@ describe('breadcrumb → fileScene intercept (task_113)', () => {
 	it('flashFolderRow adds and removes the flash class on the folder row', () => {
 		const row = mockRow('Notas/Diario');
 		const container = { querySelector: vi.fn(() => row) };
-		expect(flashFolderRow(container as any, 'Notas/Diario')).toBe(true);
+		expect(flashFolderRow(container as unknown as { querySelector: (sel: string) => unknown }, 'Notas/Diario')).toBe(true);
 		expect(row.classList.add).toHaveBeenCalledWith(BREADCRUMB_FLASH_CLASS);
 		expect(row.classList.remove).toHaveBeenCalledWith(BREADCRUMB_FLASH_CLASS);
 		expect(BREADCRUMB_FLASH_MS).toBe(750);
@@ -191,9 +230,9 @@ describe('task_113 adversarial: sin clicks muertos', () => {
 			textContent: 'Notas',
 		});
 		const row = mockRow('Notas');
-		const leaf = {
+		const leaf: MockLeaf = {
 			view: {
-				getActiveScene: () => 'files',
+				getActiveScene: vi.fn(() => 'files'),
 				revealFolderInFileScene: vi.fn(() => false),
 			},
 			containerEl: { querySelector: vi.fn(() => row) },
@@ -202,11 +241,11 @@ describe('task_113 adversarial: sin clicks muertos', () => {
 		const event = plainClick(crumb);
 		expect(
 			handleBreadcrumbFileSceneClick(event, {
-				app,
+				app: app as unknown as App,
 				frameType: 'vaultman-frame',
 			}),
 		).toBe(true);
-		expect(event.preventDefault).toHaveBeenCalled();
+		expect((event as unknown as { preventDefault: ReturnType<typeof vi.fn> }).preventDefault).toHaveBeenCalled();
 		expect(row.classList.add).toHaveBeenCalledWith(BREADCRUMB_FLASH_CLASS);
 	});
 });

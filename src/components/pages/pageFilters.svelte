@@ -1895,23 +1895,23 @@
 				showDock,
 				tabOptions: minimalStyle ? filterTabOptions : [],
 				tabMenuActions,
-					headerActions: [
-						...contentHeaderActions,
-						...valueMoveHeaderActions,
-						...fileMoveHeaderActions,
-					],
+				headerActions: [
+					...contentHeaderActions,
+					...valueMoveHeaderActions,
+					...fileMoveHeaderActions,
+				],
 				revealActive: revealingActiveFile,
 				activeFilePath: activeContentFilePath,
 				searchMoveToggles,
-					transactionBar: {
-						...transactionBarState,
+				transactionBar: {
+					...transactionBarState,
 					onToggleMoveKind: (next: 'node' | 'group') => {
 						moveKind = next;
 					},
-					},
-					sasiRegistry: plugin.sasiRegistry,
-					sasiMoveHandlers,
-					activeSectionTab: filtersActiveTab,
+				},
+				sasiRegistry: plugin.sasiRegistry,
+				sasiMoveHandlers,
+				activeSectionTab: filtersActiveTab,
 				onSectionTabChange: switchFiltersTab,
 				onContentSearch: activateNodeContentSearch,
 				onFiltersSearchChange: setExplorerSearch,

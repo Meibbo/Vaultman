@@ -31,8 +31,29 @@ const nodes: TreeNode<PropMeta>[] = [
 	},
 ];
 
-function propsPanelWith(memberships: Record<string, string[]>, scope: 'all' | 'groups'): any {
-	const panel = Object.create(PropsExplorerPanel.prototype) as any;
+type PropsPanelTestDouble = {
+	_groupIds: Set<string>;
+	sortState: ReturnType<typeof sortStateWithScope>;
+	activeLayoutName: string | null;
+	plugin: {
+		settings: {
+			savedLayouts: Array<{
+				name: string;
+				summary: string;
+				config: Record<string, unknown>;
+				groupMemberships: Record<string, string[]>;
+			}>;
+		};
+	};
+	projectedNodes: (nodes: readonly TreeNode<PropMeta>[]) => TreeNode<PropMeta>[];
+	hasProjectedGroups: () => boolean;
+};
+
+function propsPanelWith(
+	memberships: Record<string, string[]>,
+	scope: 'all' | 'groups',
+): PropsPanelTestDouble {
+	const panel = Object.create(PropsExplorerPanel.prototype) as PropsPanelTestDouble;
 	panel._groupIds = new Set<string>();
 	panel.sortState = sortStateWithScope('props', scope);
 	panel.activeLayoutName = 'layout-props';
@@ -108,7 +129,7 @@ describe('U130-03 / Task 3.6: el toggle node/group se habilita con grupos proyec
 			'groups',
 		);
 		const projected = panel.projectedNodes(nodes);
-		expect(projected.find((g: any) => g.id === 'grp-prop')).toBeDefined();
+		expect(projected.find((group) => group.id === 'grp-prop')).toBeDefined();
 		expect(panel.hasProjectedGroups()).toBe(true);
 		expect(barStateFor(panel.hasProjectedGroups()).moveKindAvailable).toBe(
 			true,

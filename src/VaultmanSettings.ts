@@ -10,6 +10,7 @@ import {
 	PROP_CONFLICT_WARNINGS,
 	type FilesIconScope,
 	type iVaultmanPlugin,
+	type NativeSurfaceClickAction,
 	type VaultmanSettings,
 } from './types/typeSettings';
 import { ConfirmModal } from './modals/modalConfirm';
@@ -157,15 +158,17 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				files: [file],
 				customLogic: true,
 				logicFunc: (_file, fm) => {
-					const cur = (fm as Record<string, unknown>).aliases;
+					const cur: unknown = fm.aliases;
 					if (Array.isArray(cur)) {
-						const next = cur.map((a) => (a === oldAlias ? newAlias : a));
+						const next: unknown[] = cur.map((a: unknown) =>
+							a === oldAlias ? newAlias : a,
+						);
 						if (next.every((a, i) => a === cur[i])) return null;
-						(fm as Record<string, unknown>).aliases = next;
+						fm.aliases = next;
 						return fm;
 					}
 					if (typeof cur === 'string' && cur === oldAlias) {
-						(fm as Record<string, unknown>).aliases = newAlias;
+						fm.aliases = newAlias;
 						return fm;
 					}
 					return null;
@@ -203,7 +206,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.addOptions(wirOptions)
 						.setValue(this.plugin.settings.nativeSurfaceClickPrimary ?? 'reveal-in-vaultman')
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickPrimary = value as any;
+							this.plugin.settings.nativeSurfaceClickPrimary = value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -219,7 +222,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.addOptions(wirOptions)
 						.setValue(this.plugin.settings.nativeSurfaceClickAlt ?? 'open-node-note-same-tab')
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickAlt = value as any;
+							this.plugin.settings.nativeSurfaceClickAlt = value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -235,7 +238,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.addOptions(wirOptions)
 						.setValue(this.plugin.settings.nativeSurfaceClickMod ?? 'open-node-note-new-tab')
 						.onChange(async (value) => {
-							this.plugin.settings.nativeSurfaceClickMod = value as any;
+							this.plugin.settings.nativeSurfaceClickMod = value as NativeSurfaceClickAction;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -613,7 +616,7 @@ items.push({
 								}
 								await this.plugin.saveSettings();
 								new Notice(translate('settings.data_transfer.import.done'));
-								this.display();
+								this.update();
 							}).open();
 						}),
 				);
@@ -639,7 +642,7 @@ items.push({
 									) as VaultmanSettings;
 									await this.plugin.saveSettings();
 									new Notice(translate('settings.reset.done'));
-									this.display();
+									this.update();
 								},
 							}).open();
 						}),

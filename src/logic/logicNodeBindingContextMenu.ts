@@ -2,6 +2,18 @@ import type { VaultmanPlugin } from "../main";
 import type { MenuCtx } from "../types/typeCMenu";
 import { translate } from "../i18n/index";
 
+type NodeBindingMeta = {
+	path?: string;
+	tagPath?: string;
+	propName?: string;
+	rawValue?: string;
+	folderPath?: string;
+	name?: string;
+	snippetName?: string;
+	pluginId?: string;
+	id?: string;
+};
+
 export function registerNodeBindingActions(plugin: VaultmanPlugin): void {
 	const svc = plugin.contextMenuService;
 	if (!svc?.registerAction) return;
@@ -15,7 +27,7 @@ export function registerNodeBindingActions(plugin: VaultmanPlugin): void {
 		run: async (ctx: MenuCtx) => {
 			if (!plugin.nodeBindingService) return;
 			const node = ctx.node;
-			const meta = (node?.meta ?? {}) as Record<string, any>;
+			const meta = (node?.meta ?? {}) as NodeBindingMeta;
 			const label = node?.label ?? "";
 
 			switch (ctx.nodeType) {

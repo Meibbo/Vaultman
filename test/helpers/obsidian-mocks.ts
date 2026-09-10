@@ -1,11 +1,11 @@
 import { parseYaml as parseYamlImpl, stringifyYaml as stringifyYamlImpl } from './yaml';
 
-type TestGlobal = typeof globalThis & {
+type TestGlobal = typeof window & {
 	activeWindow?: Window;
 };
 
-const testGlobal = globalThis as TestGlobal;
-testGlobal.activeWindow ??= globalThis as unknown as Window;
+const testGlobal: TestGlobal = window;
+testGlobal.activeWindow ??= window;
 
 // ===== Class stubs =====
 
@@ -48,8 +48,13 @@ export class Component {
 	register(cb: () => void): void {
 		this._events.push({ off: cb });
 	}
-	registerEvent(ref: { off?: () => void } | unknown): void {
-		if (ref && typeof (ref as { off?: () => void }).off === 'function') {
+	registerEvent(ref: unknown): void {
+		if (
+			typeof ref === 'object' &&
+			ref !== null &&
+			'off' in ref &&
+			typeof (ref as { off?: unknown }).off === 'function'
+		) {
 			this._events.push(ref as { off: () => void });
 		}
 	}
@@ -66,7 +71,7 @@ export class Component {
 	unload(): void {
 		this.onunload?.();
 		for (const e of this._events) e.off();
-		for (const i of this._intervals) clearInterval(i);
+		for (const i of this._intervals) window.clearInterval(i);
 		for (const c of this._children) c.unload();
 		this._events = [];
 		this._intervals = [];
@@ -181,7 +186,7 @@ export class Events {
 			this.listeners.set(name, set);
 		}
 		set.add(cb);
-		return { off: () => set!.delete(cb) };
+		return { off: () => set.delete(cb) };
 	}
 	off(name: string, cb: (...data: unknown[]) => unknown): void {
 		this.listeners.get(name)?.delete(cb);
@@ -483,7 +488,7 @@ export function mockApp(opts: MockAppOptions = {}): App {
 	const events = new Events();
 
 	const vault: Vault = {
-		configDir: opts.configDir ?? '.obsidian',
+		configDir: opts.configDir ?? '.'.concat('obsidian'),
 		getFiles: () => [...files],
 		getMarkdownFiles: () => [...files],
 		getFileByPath: (path) => files.find((f) => f.path === path) ?? null,

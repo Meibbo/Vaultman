@@ -7,6 +7,7 @@ import {
 	queuedRenameBadgeForPath,
 } from '../../src/logic/logicRenameBadges';
 import { buildSnippetRenameChange } from '../../src/logic/logicSnippetOperations';
+import type { PendingChange } from '../../src/types/typeOps';
 
 function file(path: string): TFile {
 	const name = path.split('/').pop() ?? path;
@@ -65,7 +66,7 @@ describe('queued rename badge projection', () => {
 });
 
 describe('findStagedRenameIndex (preview de fecha sustituye staged op)', () => {
-	function propRename(property: string, value: string, oldValue?: string): any {
+	function propRename(property: string, value: string, oldValue?: string): PendingChange {
 		return {
 			type: 'property',
 			action: 'rename',
@@ -73,6 +74,9 @@ describe('findStagedRenameIndex (preview de fecha sustituye staged op)', () => {
 			value,
 			oldValue,
 			details: `Rename value "${oldValue ?? ''}" → "${value}"`,
+			files: [],
+			customLogic: true,
+			logicFunc: () => null,
 		};
 	}
 

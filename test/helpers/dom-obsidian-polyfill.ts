@@ -14,6 +14,15 @@ type ObsEl = Element & {
 
 export function installObsidianDomPolyfill(): void {
 	if (typeof Element === 'undefined') return;
+	const nodeSlot = Node.prototype as unknown as Record<string, unknown>;
+	if (!('instanceOf' in nodeSlot)) {
+		nodeSlot.instanceOf = function <T>(
+			this: Node,
+			type: { new (): T; prototype: object },
+		): boolean {
+			return Object.prototype.isPrototypeOf.call(type.prototype, this);
+		};
+	}
 	// Obsidian YA declara `createEl`/`createDiv` sobre Element con firmas
 	// genericas (`<K extends keyof HTMLElementTagNameMap>`), asi que asignar
 	// nuestra version simplificada directamente sobre el prototipo tipado no
@@ -23,23 +32,22 @@ export function installObsidianDomPolyfill(): void {
 	const slot = Element.prototype as unknown as Record<string, unknown>;
 	if (!proto.addClass) {
 		proto.addClass = function (cls: string) {
-			(this as Element).classList.add(cls);
+			(this).classList.add(cls);
 		};
 	}
 	if (!proto.removeClass) {
 		proto.removeClass = function (cls: string) {
-			(this as Element).classList.remove(cls);
+			(this).classList.remove(cls);
 		};
 	}
 	if (!proto.toggleClass) {
 		proto.toggleClass = function (cls: string, force?: boolean) {
-			(this as Element).classList.toggle(cls, force);
+			(this).classList.toggle(cls, force);
 		};
 	}
 	if (!proto.empty) {
-		proto.empty = function () {
-			const el = this as Element;
-			while (el.firstChild) el.removeChild(el.firstChild);
+		proto.empty = function (this: Element) {
+			while (this.firstChild) this.removeChild(this.firstChild);
 		};
 	}
 	if (!proto.createEl) {
@@ -73,7 +81,7 @@ export function installObsidianDomPolyfill(): void {
 	}
 	if (!proto.setText) {
 		proto.setText = function (text: string) {
-			(this as Element).textContent = text;
+			(this).textContent = text;
 		};
 	}
 }

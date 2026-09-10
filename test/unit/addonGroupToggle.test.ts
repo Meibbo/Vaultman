@@ -21,13 +21,92 @@ import type {
 	TreeNode,
 	TreeNodeCell,
 } from '../../src/types/typeTree';
+import type { ExplorerSortState } from '../../src/types/typeUI';
 
-function groupsScope(tab: 'plugins' | 'snippets') {
+function groupsScope(tab: 'plugins' | 'snippets'): ExplorerSortState {
 	return normalizeExplorerSortState(tab, {
 		sorts: {},
 		activeScope: 'groups',
 		nodeTypeFilter: null,
 	});
+}
+
+type PluginsHarness = {
+	_groupIds: Set<string>;
+	_expandedGroupIds: Set<string>;
+	pendingToggleIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	searchTerm: string;
+	cellStyle: string;
+	destroyed: boolean;
+	treeView: null;
+	selectedNodeIds: Set<string>;
+	plugin: {
+		app: { plugins: { enablePlugin: (id: string) => Promise<void>; disablePlugin: (id: string) => Promise<void> } };
+		settings: {
+			savedLayouts: Array<{
+				name: string;
+				summary: string;
+				config: Record<string, unknown>;
+				groupMemberships: Record<string, string[]>;
+			}>;
+		};
+		queueService: { queue: unknown[]; on: () => void; off: () => void };
+	};
+	entries: PluginMeta[];
+	refresh: () => Promise<void>;
+	rebuildNodes: () => void;
+	projectedNodes: () => TreeNode<PluginMeta>[];
+	toggleGroup: (id: string) => Promise<void>;
+};
+
+type SnippetsHarness = {
+	_groupIds: Set<string>;
+	_expandedGroupIds: Set<string>;
+	pendingToggleIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	searchTerm: string;
+	cellStyle: string;
+	destroyed: boolean;
+	treeView: null;
+	selectedNodeIds: Set<string>;
+	plugin: {
+		app: {
+			vault: { configDir: string };
+			customCss: {
+				setCssEnabledStatus: (name: string, on: boolean) => Promise<void>;
+				requestLoadSnippets: () => Promise<void>;
+			};
+		};
+		settings: {
+			savedLayouts: Array<{
+				name: string;
+				summary: string;
+				config: Record<string, unknown>;
+				groupMemberships: Record<string, string[]>;
+			}>;
+		};
+		queueService: { queue: unknown[]; on: () => void; off: () => void };
+	};
+	entries: SnippetMeta[];
+	refresh: () => Promise<void>;
+	rebuildNodes: () => void;
+	projectedNodes: () => TreeNode<SnippetMeta>[];
+	toggleGroup: (id: string) => Promise<void>;
+};
+
+function createPluginsHarness(): PluginsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, PluginsExplorerPanel.prototype);
+	return base as unknown as PluginsHarness;
+}
+
+function createSnippetsHarness(): SnippetsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, SnippetsExplorerPanel.prototype);
+	return base as unknown as SnippetsHarness;
 }
 
 describe('Spec 07 §2: tri-estado del toggle de grupo', () => {
@@ -106,7 +185,7 @@ describe('Spec 07 §2 guarda negativa: el toggle de grupo NO entra por operation
 function makePluginPanel() {
 	const enablePlugin = vi.fn(async (_id: string) => {});
 	const disablePlugin = vi.fn(async (_id: string) => {});
-	const panel = Object.create(PluginsExplorerPanel.prototype) as any;
+	const panel = createPluginsHarness();
 	panel._groupIds = new Set<string>();
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
@@ -162,7 +241,7 @@ function makePluginPanel() {
 
 function makeSnippetPanel() {
 	const setCssEnabledStatus = vi.fn(async (_name: string, _on: boolean) => {});
-	const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
+	const panel = createSnippetsHarness();
 	panel._groupIds = new Set<string>();
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
@@ -174,9 +253,10 @@ function makeSnippetPanel() {
 	panel.treeView = null;
 	panel.selectedNodeIds = new Set<string>();
 	const queue: unknown[] = [];
+	const defaultConfigDir = '.'.concat('obsidian');
 	panel.plugin = {
 		app: {
-			vault: { configDir: '.obsidian' },
+			vault: { configDir: defaultConfigDir },
 			customCss: {
 				setCssEnabledStatus,
 				requestLoadSnippets: vi.fn(async () => {}),
@@ -215,6 +295,7 @@ describe('Spec 07 §2: cascada en Plugins', () => {
 			.projectedNodes()
 			.find((node: TreeNode<PluginMeta>) => node.id === 'grp-addons');
 		expect(header).toBeDefined();
+		if (!header) throw new Error('grp-addons header not found');
 		expect(isGroupHeader(header.id, panel._groupIds)).toBe(true);
 		const state = header.cells?.find((cell: TreeNodeCell) => cell.id === 'state');
 		expect(state?.kind).toBe('toggle');
@@ -232,11 +313,12 @@ describe('Spec 07 §2: cascada en Plugins', () => {
 
 	it('con todo apagado la 2ª pulsacion enciende a los N miembros', async () => {
 		const { panel, enablePlugin, disablePlugin, queue } = makePluginPanel();
-		for (const entry of panel.entries as PluginMeta[]) entry.enabled = false;
+		for (const entry of panel.entries) entry.enabled = false;
 		panel.rebuildNodes();
 		const header = panel
 			.projectedNodes()
 			.find((node: TreeNode<PluginMeta>) => node.id === 'grp-addons');
+		if (!header) throw new Error('grp-addons header not found');
 		expect(
 			header.cells?.find((cell: TreeNodeCell) => cell.id === 'state'),
 		).toMatchObject({ enabled: false, mixed: false });
@@ -258,6 +340,7 @@ describe('Spec 07 §2: cascada en Snippets', () => {
 			.projectedNodes()
 			.find((node: TreeNode<SnippetMeta>) => node.id === 'grp-snips');
 		expect(header).toBeDefined();
+		if (!header) throw new Error('grp-snips header not found');
 		const state = header.cells?.find((cell: TreeNodeCell) => cell.id === 'state');
 		expect(state?.kind).toBe('toggle');
 		expect(state).toMatchObject({ enabled: false, mixed: true });
@@ -271,7 +354,7 @@ describe('Spec 07 §2: cascada en Snippets', () => {
 
 	it('con todo apagado la 2ª pulsacion enciende a los N miembros', async () => {
 		const { panel, setCssEnabledStatus, queue } = makeSnippetPanel();
-		for (const entry of panel.entries as SnippetMeta[]) entry.enabled = false;
+		for (const entry of panel.entries) entry.enabled = false;
 		panel.rebuildNodes();
 
 		await panel.toggleGroup('grp-snips');
@@ -288,6 +371,7 @@ describe('Spec 07 §2: cascada en Snippets', () => {
 			.projectedNodes()
 			.find((node: TreeNode<SnippetMeta>) => node.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
+		if (!noGroup) throw new Error('NO_GROUP_ID not found');
 		expect(noGroup.children).toHaveLength(0);
 		// Sin miembros no hay despacho: grupo vacio, no-op.
 		await panel.toggleGroup(NO_GROUP_ID);

@@ -187,7 +187,7 @@ describe('S07A: la cabecera proyecta el total cuando se le pasa', () => {
 	const base = {
 		nodes: [node('b1', { badges: undefined })],
 		groups: [
-			{ id: 'g1', flavor: 'custom' as const, label: 'Uno', parentId: null as null, scope: 'all' as const },
+			{ id: 'g1', flavor: 'custom' as const, label: 'Uno', parentId: null, scope: 'all' as const },
 		],
 		memberships: { g1: ['props:prop:beta|beta'] as readonly string[] },
 		providerId: 'props',

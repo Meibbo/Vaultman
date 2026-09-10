@@ -178,8 +178,8 @@ export function projectGroupedTree<TMeta>(
 	if (!enabled) return nodes;
 	// Meta propia de la cabecera (L-PNODE): la escena la aporta; sin ella se
 	// conserva el prestamo historico del primer hijo.
-	const fallbackMeta = nodes[0]?.meta as TMeta;
-	const ownMeta = (headerMeta ?? fallbackMeta) as TMeta;
+	const fallbackMeta = nodes[0]?.meta;
+	const ownMeta = (headerMeta ?? fallbackMeta);
 
 	// --- Grupos CUSTOM: pertenencia explicita -------------------------------
 	if (groups.length > 0) {

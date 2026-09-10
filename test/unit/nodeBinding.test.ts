@@ -68,7 +68,7 @@ describe("quoteYamlValue", () => {
 
 describe("Folder Node-Notes hierarchy in NodeBindingService", () => {
 	it("1. Opens C-Node (folder/folder.md) when it exists in disk", async () => {
-		const cNodeFile = new (TFile as any)();
+		const cNodeFile = new TFile();
 		cNodeFile.path = "Projects/Projects.md";
 
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
@@ -94,7 +94,7 @@ describe("Folder Node-Notes hierarchy in NodeBindingService", () => {
 	});
 
 	it("2. Opens matching alias note when C-Node does not exist", async () => {
-		const aliasFile = new (TFile as any)();
+		const aliasFile = new TFile();
 		aliasFile.path = "Overview/Projects Index.md";
 
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
@@ -122,7 +122,7 @@ describe("Folder Node-Notes hierarchy in NodeBindingService", () => {
 	});
 
 	it("3. Creates C-Node (folder/folder.md) when no C-Node or alias match exists", async () => {
-		const createdFile = new (TFile as any)();
+		const createdFile = new TFile();
 		createdFile.path = "Projects/Projects.md";
 
 		const mockCreate = vi.fn().mockResolvedValue(createdFile);
@@ -149,7 +149,7 @@ describe("Folder Node-Notes hierarchy in NodeBindingService", () => {
 
 describe("Wikilink & Adoption in NodeBindingService", () => {
 	it("resolves [[Target|Alias]] property directly via getFirstLinkpathDest", async () => {
-		const targetFile = new (TFile as any)();
+		const targetFile = new TFile();
 		targetFile.path = "Notes/TargetNote.md";
 
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
@@ -171,15 +171,17 @@ describe("Wikilink & Adoption in NodeBindingService", () => {
 	});
 
 	it("adopts existing file on disk and updates frontmatter with processFrontMatter", async () => {
-		const existingFile = new (TFile as any)();
+		const existingFile = new TFile();
 		existingFile.path = "custom-snippet.md";
 
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
-		const mockProcessFrontMatter = vi.fn().mockImplementation(async (_file, cb) => {
+		const mockProcessFrontMatter = vi.fn().mockImplementation(
+			async (_file: TFile, cb: (frontmatter: { aliases: string[] }) => void) => {
 			const fm = { aliases: [] };
 			cb(fm);
 			expect(fm.aliases).toContain("$custom-snippet");
-		});
+			},
+		);
 
 		const mockApp = {
 			vault: {

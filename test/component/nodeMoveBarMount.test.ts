@@ -9,7 +9,7 @@ import {
 import { projectNodeMoveBar } from '../../src/logic/logicNodeMoveRuntime';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 
-if (typeof globalThis.ResizeObserver === 'undefined') {
+if (typeof window.ResizeObserver === 'undefined') {
 	// Mock minimo de ResizeObserver, igual que navbarTransactionBar.test.ts:
 	// implementa la interfaz para no necesitar aserciones ni supresiones.
 	class ResizeObserverMock implements ResizeObserver {
@@ -17,7 +17,7 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 		unobserve(): void {}
 		disconnect(): void {}
 	}
-	globalThis.ResizeObserver = ResizeObserverMock;
+	window.ResizeObserver = ResizeObserverMock;
 }
 
 describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {

@@ -49,6 +49,7 @@ export default tseslint.config(
 						'manifest.json',
 						'svelte.config.js',
 						'vitest.unit.config.mts',
+						'vitest.component.config.mts',
 						'wdio.conf.mts',
 						'stylelint.config.mjs',
 					],
@@ -73,7 +74,7 @@ export default tseslint.config(
 		// report a parsing error for a file it was never meant to own, so they
 		// are linted without type information rather than not linted at all.
 		// This block sits after the Obsidian preset so it is the one that wins.
-		files: ['scripts/**/*.mjs'],
+		files: ['scripts/**/*.mjs', 'scripts/**/*.mts'],
 		extends: [tseslint.configs.disableTypeChecked],
 		languageOptions: {
 			parserOptions: {
@@ -107,7 +108,7 @@ export default tseslint.config(
 		'eslint.config.js',
 		'version-bump.mjs',
 		'versions.json',
-		'main.js',
+		'**/main.js',
 		'coverage',
 		'.obsidian',
 		'.worktrees',

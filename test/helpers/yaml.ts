@@ -1,11 +1,11 @@
-import yaml from 'js-yaml';
+import { parse, stringify } from 'yaml';
 
 export function parseYaml(input: string): unknown {
 	if (!input || input.trim() === '') return null;
-	return yaml.load(input);
+	return parse(input);
 }
 
 export function stringifyYaml(value: unknown): string {
-	const out = yaml.dump(value, { lineWidth: -1, noRefs: true });
+	const out = stringify(value, { lineWidth: 0, aliasDuplicateObjects: false });
 	return out.endsWith('\n') ? out : out + '\n';
 }

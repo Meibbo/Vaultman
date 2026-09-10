@@ -51,7 +51,7 @@ describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales'
 
 describe('L-07AW: la cabecera muestra el agregado burbujeado, no children.length', () => {
 	const groups = [
-		{ id: 'P', flavor: 'custom' as const, label: 'Padre', parentId: null as null, scope: 'all' as const },
+		{ id: 'P', flavor: 'custom' as const, label: 'Padre', parentId: null, scope: 'all' as const },
 		{ id: 'H', flavor: 'custom' as const, label: 'Hijo', parentId: 'P', scope: 'all' as const },
 	];
 	// x pertenece al padre Y al hijo: es UNA identidad en DOS grupos.

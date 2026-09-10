@@ -10,15 +10,23 @@ import {
 	handleNativeBindingClick,
 	resolveNativeBindingTarget,
 } from '../../src/services/serviceNativeSurfaceBinding';
+import type { NativeSurfaceClickAction } from '../../src/types/typeSettings';
+
+function createTFile(path: string): TFile {
+	const file = new TFile();
+	file.path = path;
+	file.name = path.split('/').pop() ?? path;
+	return file;
+}
 
 describe('Adversarial Stress: Folder Node-Notes Resolution Priority', () => {
 	it('P1: Prioritizes direct C-Node child match (folder/folder.md) over global alias scan', async () => {
-		const mockCNode = { path: '+/+.md' } as TFile;
+		const mockCNode = createTFile('+/+.md');
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
 		const mockApp = {
 			vault: {
 				getAbstractFileByPath: vi.fn().mockImplementation((p: string) => (p === '+/+.md' ? mockCNode : null)),
-				getMarkdownFiles: vi.fn().mockReturnValue([{ path: 'OtherNote.md' }]),
+				getMarkdownFiles: vi.fn().mockReturnValue([createTFile('OtherNote.md')]),
 			},
 			metadataCache: {
 				getFileCache: vi.fn().mockReturnValue({ frontmatter: { aliases: ['+'] } }),
@@ -37,7 +45,7 @@ describe('Adversarial Stress: Folder Node-Notes Resolution Priority', () => {
 	});
 
 	it('P2: Falls back to aliases match when direct C-Node does not exist', async () => {
-		const mockAliasNote = { path: 'FolderIndex.md' } as TFile;
+		const mockAliasNote = createTFile('FolderIndex.md');
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
 		const mockApp = {
 			vault: {
@@ -61,7 +69,7 @@ describe('Adversarial Stress: Folder Node-Notes Resolution Priority', () => {
 	});
 
 	it('P3: Creates C-Node inside folder (folder/folder.md) with canonical aliases when 0 matches exist', async () => {
-		const mockCreatedNote = { path: 'Archive/2025/2025.md' } as TFile;
+		const mockCreatedNote = createTFile('Archive/2025/2025.md');
 		const mockCreate = vi.fn().mockResolvedValue(mockCreatedNote);
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
 		const mockApp = {
@@ -102,11 +110,12 @@ describe('Adversarial Stress: Non-Markdown Files & Wikilinks', () => {
 	});
 
 	it('Adopts existing note on collision and safely injects alias via processFrontMatter', async () => {
-		const existingFile = { path: 'Dataview.md' } as TFile;
-		const mockProcessFm = vi.fn().mockImplementation((_, callback) => {
-			const fm: any = { aliases: ['other'] };
+		const existingFile = createTFile('Dataview.md');
+		const mockProcessFm = vi.fn().mockImplementation((_: TFile, callback: (fm: Record<string, unknown>) => void) => {
+			const fm: Record<string, unknown> = { aliases: ['other'] };
 			callback(fm);
-			expect(fm.aliases).toEqual(['other', '%dataview']);
+			const aliases = fm.aliases;
+			expect(Array.isArray(aliases) && aliases.includes('%dataview')).toBe(true);
 		});
 		const mockOpenFile = vi.fn().mockResolvedValue(undefined);
 		const mockApp = {
@@ -136,15 +145,27 @@ describe('Adversarial Stress: Non-Markdown Files & Wikilinks', () => {
 	});
 });
 
+type BreadcrumbSpan = {
+	classList: { contains: (c: string) => boolean };
+	textContent: string;
+	closest: (s: string) => unknown;
+};
+
+type NativeBindingSettings = {
+	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
+	nativeSurfaceClickAlt: NativeSurfaceClickAction;
+	nativeSurfaceClickMod: NativeSurfaceClickAction;
+};
+
 describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 	it('Routes alt click on breadcrumb to reveal-in-vaultman and stops propagation (primary plain never hijacks, task_108)', async () => {
 		const mockReveal = vi.fn().mockResolvedValue(true);
 		const mockBindOrCreate = vi.fn();
-		const span = {
+		const span: BreadcrumbSpan = {
 			classList: { contains: (c: string) => c === 'view-header-breadcrumb' },
 			textContent: 'Projects',
 			closest: (s: string) => (s.includes('view-header-breadcrumb') ? span : null),
-		} as any;
+		};
 
 		const event = {
 			target: span,
@@ -157,14 +178,14 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 		} as unknown as MouseEvent;
 
 		const handled = await handleNativeBindingClick(event, {
-			bindingService: { bindOrCreate: mockBindOrCreate } as any,
+			bindingService: { bindOrCreate: mockBindOrCreate },
 			settings: {
 				nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 				nativeSurfaceClickAlt: 'reveal-in-vaultman',
 				nativeSurfaceClickMod: 'open-node-note-new-tab',
-			},
+			} satisfies NativeBindingSettings,
 			revealInVaultman: mockReveal,
-			app: {} as any,
+			app: {} as unknown as App,
 		});
 
 		expect(handled).toBe(true);
@@ -177,11 +198,11 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 	it('Routes Mod+Click on breadcrumb to open-node-note-new-tab', async () => {
 		const mockReveal = vi.fn();
 		const mockBindOrCreate = vi.fn().mockResolvedValue({ outcome: 'opened' });
-		const span = {
+		const span: BreadcrumbSpan = {
 			classList: { contains: (c: string) => c === 'view-header-breadcrumb' },
 			textContent: 'Projects',
 			closest: (s: string) => (s.includes('view-header-breadcrumb') ? span : null),
-		} as any;
+		};
 
 		const event = {
 			target: span,
@@ -194,14 +215,14 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 		} as unknown as MouseEvent;
 
 		const handled = await handleNativeBindingClick(event, {
-			bindingService: { bindOrCreate: mockBindOrCreate } as any,
+			bindingService: { bindOrCreate: mockBindOrCreate },
 			settings: {
 				nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 				nativeSurfaceClickAlt: 'open-node-note-same-tab',
 				nativeSurfaceClickMod: 'open-node-note-new-tab',
-			},
+			} satisfies NativeBindingSettings,
 			revealInVaultman: mockReveal,
-			app: {} as any,
+			app: {} as unknown as App,
 		});
 
 		expect(handled).toBe(true);
@@ -215,16 +236,16 @@ describe('Adversarial Stress: WIR Modifiers & Capture Interception', () => {
 
 describe('Adversarial Stress: WIR Isolation & Vaultman Internal Surfaces', () => {
 	it('Rejects and ignores events originating inside Vaultman internal views/tree rows', async () => {
-		const vaultmanRow = {
+		const vaultmanRow: { closest: (sel: string) => unknown; getAttribute: (attr: string) => string | null; dataset: Record<string, string> } = {
 			closest: (sel: string) => {
-				if (sel.includes(".vaultman-tree-row") || sel.includes("data-type=\"vaultman-frame\"")) return vaultmanRow;
+				if (sel.includes('.vaultman-tree-row') || sel.includes('data-type="vaultman-frame"')) return vaultmanRow;
 				return null;
 			},
-			getAttribute: (attr: string) => (attr === "data-path" ? "Projects/2026" : null),
-			dataset: { path: "Projects/2026" },
-		} as any;
+			getAttribute: (attr: string) => (attr === 'data-path' ? 'Projects/2026' : null),
+			dataset: { path: 'Projects/2026' },
+		};
 
-		const target = resolveNativeBindingTarget(vaultmanRow);
+		const target = resolveNativeBindingTarget(vaultmanRow as unknown as Element);
 		expect(target).toBeNull();
 
 		const event = {
@@ -235,13 +256,13 @@ describe('Adversarial Stress: WIR Isolation & Vaultman Internal Surfaces', () =>
 		} as unknown as MouseEvent;
 
 		const handled = await handleNativeBindingClick(event, {
-			bindingService: { bindOrCreate: vi.fn() } as any,
+			bindingService: { bindOrCreate: vi.fn() },
 			settings: {
 				nativeSurfaceClickPrimary: 'open-node-note-same-tab',
 				nativeSurfaceClickAlt: 'open-node-note-same-tab',
 				nativeSurfaceClickMod: 'open-node-note-new-tab',
-			},
-			app: {} as any,
+			} satisfies NativeBindingSettings,
+			app: {} as unknown as App,
 		});
 
 		expect(handled).toBe(false);

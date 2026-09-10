@@ -24,7 +24,7 @@ export interface BreadcrumbFileSceneDeps {
 
 export interface FileSceneLeaf {
 	view: unknown;
-	containerEl?: unknown;
+	containerEl?: { querySelector?: (selector: string) => unknown } | null;
 }
 
 /** Plain primary click only: modifiers and aux buttons belong to other handlers. */
@@ -79,7 +79,7 @@ export function findFirstFileSceneLeaf(
 
 /** Flash the folder row inside the revealed leaf, core-style (750 ms). */
 export function flashFolderRow(
-	container: { querySelector?: unknown } | null | undefined,
+	container: { querySelector?: (selector: string) => unknown } | null | undefined,
 	folderPath: string,
 ): boolean {
 	if (
@@ -88,34 +88,30 @@ export function flashFolderRow(
 		!folderPath
 	)
 		return false;
-	let row: unknown = null;
+	let row: unknown;
 	try {
-		row = (container.querySelector as (sel: string) => unknown)(
-			`[data-path="${folderPath}"]`,
-		);
+		row = container.querySelector(`[data-path="${folderPath}"]`);
 	} catch {
 		return false;
 	}
 	const rowEl = row as {
-		classList?: { add?: unknown; remove?: unknown };
-		win?: { setTimeout?: unknown };
+		classList?: { add?: (cls: string) => void; remove?: (cls: string) => void };
+		win?: { setTimeout?: (handler: () => void, timeout: number) => number };
 	} | null;
 	if (!rowEl || !rowEl.classList || typeof rowEl.classList.add !== 'function')
 		return false;
 	try {
-		(rowEl.classList.add as (cls: string) => void)(BREADCRUMB_FLASH_CLASS);
+		rowEl.classList.add(BREADCRUMB_FLASH_CLASS);
 	} catch {
 		return false;
 	}
-	const schedule =
+	const schedule: (handler: () => void, timeout: number) => number =
 		rowEl.win && typeof rowEl.win.setTimeout === 'function'
 			? rowEl.win.setTimeout.bind(rowEl.win)
-			: setTimeout;
+			: (handler, timeout) => window.setTimeout(handler, timeout);
 	schedule(() => {
 		try {
-			(rowEl.classList?.remove as (cls: string) => void)?.(
-				BREADCRUMB_FLASH_CLASS,
-			);
+			rowEl.classList?.remove?.(BREADCRUMB_FLASH_CLASS);
 		} catch {
 			// Non-fatal: the row may be gone when the timer fires.
 		}
@@ -170,9 +166,7 @@ export function handleBreadcrumbFileSceneClick(
 	}
 	// Sin clicks muertos: con leaf fileScene encontrado, siempre hay
 	// feedback visible (flash) aunque el reveal reporte false.
-	const container = (leaf as { containerEl?: unknown }).containerEl as {
-		querySelector?: unknown;
-	} | null;
+	const container = leaf.containerEl;
 	if (container) flashFolderRow(container, folderPath);
 	return true;
 }

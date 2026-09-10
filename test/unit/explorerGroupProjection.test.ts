@@ -9,11 +9,25 @@ import { SnippetsExplorerPanel } from '../../src/components/containers/explorerS
 import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
 import { isGroupHeader, NO_GROUP_ID, PRESET_GROUP_PREFIX } from '../../src/logic/logicTreeGroupProjection';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
-import type { ExplorerTabId } from '../../src/types/typeUI';
+import type { ExplorerTabId, ExplorerSortState } from '../../src/types/typeUI';
 import type { FileMeta, PluginMeta, PropMeta, SnippetMeta, TagMeta, TreeNode } from '../../src/types/typeTree';
 
+type SavedLayoutStub = {
+	name: string;
+	summary: string;
+	config: Record<string, unknown>;
+	groupMemberships?: Record<string, readonly string[]>;
+};
+
+type PluginStub = {
+	settings: {
+		savedLayouts?: SavedLayoutStub[];
+		activeLayoutName?: string | null;
+	};
+};
+
 /** L-CABLE: el interruptor es el scope `groups`, no un estado paralelo. */
-function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups') {
+function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups'): ExplorerSortState {
 	return normalizeExplorerSortState(tab, {
 		sorts: {},
 		activeScope,
@@ -21,9 +35,81 @@ function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups') {
 	});
 }
 
+type SnippetsHarness = {
+	_groupIds: Set<string>;
+	_expandedGroupIds: Set<string>;
+	pendingToggleIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	plugin: PluginStub;
+	nodes: TreeNode<SnippetMeta>[];
+	projectedNodes: () => TreeNode<SnippetMeta>[];
+};
+
+type PluginsHarness = {
+	_groupIds: Set<string>;
+	_expandedGroupIds: Set<string>;
+	pendingToggleIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	plugin: PluginStub;
+	nodes: TreeNode<PluginMeta>[];
+	projectedNodes: () => TreeNode<PluginMeta>[];
+};
+
+type TagsHarness = {
+	_groupIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	plugin: PluginStub;
+	projectedNodes: (nodes: TreeNode<TagMeta>[]) => TreeNode<TagMeta>[];
+};
+
+type PropsHarness = {
+	_groupIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	plugin: PluginStub;
+	projectedNodes: (nodes: TreeNode<PropMeta>[]) => TreeNode<PropMeta>[];
+};
+
+type FilesHarness = {
+	_groupIds: Set<string>;
+	sortState: ExplorerSortState;
+	activeLayoutName: string | null;
+	plugin: PluginStub;
+	projectedNodes: (nodes: TreeNode<FileMeta>[]) => TreeNode<FileMeta>[];
+};
+
+function createSnippetsHarness(): SnippetsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, SnippetsExplorerPanel.prototype);
+	return base as unknown as SnippetsHarness;
+}
+function createPluginsHarness(): PluginsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, PluginsExplorerPanel.prototype);
+	return base as unknown as PluginsHarness;
+}
+function createTagsHarness(): TagsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, TagsExplorerPanel.prototype);
+	return base as unknown as TagsHarness;
+}
+function createPropsHarness(): PropsHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, PropsExplorerPanel.prototype);
+	return base as unknown as PropsHarness;
+}
+function createFilesHarness(): FilesHarness {
+	const base: Record<string, unknown> = {};
+	Object.setPrototypeOf(base, FilesExplorerPanel.prototype);
+	return base as unknown as FilesHarness;
+}
+
 describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', () => {
 	it('SnippetsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
-		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
+		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
@@ -49,19 +135,19 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 				label: 'Alpha Snippet',
 				depth: 0,
 				meta: { name: 'alpha-snippet', enabled: true },
-			} as TreeNode<SnippetMeta>,
+			},
 			{
 				id: 's2',
 				label: 'Beta Snippet',
 				depth: 0,
 				meta: { name: 'beta-snippet', enabled: false },
-			} as TreeNode<SnippetMeta>,
+			},
 		];
 
 		// Con un scope distinto de `groups`, devuelve la lista original sin cabeceras
 		const raw = panel.projectedNodes();
 		expect(raw).toBe(panel.nodes);
-		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
+		expect(raw.some((n: TreeNode<SnippetMeta>) => isGroupHeader(n.id))).toBe(false);
 
 		// Con el scope `groups` activo, proyecta grupos custom y puebla _groupIds
 		panel.sortState = sortStateWithScope('snippets', 'groups');
@@ -69,22 +155,24 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(panel._groupIds.has('custom-snips')).toBe(true);
 		expect(projected.length).toBeGreaterThan(0);
 
-		const customGroup = projected.find((g: any) => g.id === 'custom-snips');
+		const customGroup = projected.find((g) => g.id === 'custom-snips');
 		expect(customGroup).toBeDefined();
+		if (!customGroup) throw new Error('custom-snips not found');
 		expect(isGroupHeader(customGroup.id, panel._groupIds)).toBe(true);
 		expect(customGroup.cls).toContain('vaultman-tree-row--group-header');
 		expect(customGroup.children).toHaveLength(1);
-		expect(customGroup.children[0].label).toBe('Alpha Snippet');
+		expect(customGroup.children?.[0]?.label).toBe('Alpha Snippet');
 
 		// El segundo snippet cae en NO_GROUP_ID
-		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		const noGroup = projected.find((g) => g.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
+		if (!noGroup) throw new Error('NO_GROUP_ID not found');
 		expect(noGroup.children).toHaveLength(1);
-		expect(noGroup.children[0].label).toBe('Beta Snippet');
+		expect(noGroup.children?.[0]?.label).toBe('Beta Snippet');
 	});
 
 	it('PluginsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
-		const panel = Object.create(PluginsExplorerPanel.prototype) as any;
+		const panel = createPluginsHarness();
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
@@ -116,7 +204,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 					loaded: true,
 					isVaultman: false,
 				},
-			} as TreeNode<PluginMeta>,
+			},
 			{
 				id: 'p2',
 				label: 'Dataview',
@@ -128,31 +216,33 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 					loaded: true,
 					isVaultman: false,
 				},
-			} as TreeNode<PluginMeta>,
+			},
 		];
 
 		// Disabled -> lista directa sin cabeceras
 		const raw = panel.projectedNodes();
 		expect(raw).toBe(panel.nodes);
-		expect(raw.some((n: any) => isGroupHeader(n.id))).toBe(false);
+		expect(raw.some((n: TreeNode<PluginMeta>) => isGroupHeader(n.id))).toBe(false);
 
 		// Enabled -> proyectado
 		panel.sortState = sortStateWithScope('plugins', 'groups');
 		const projected = panel.projectedNodes();
 		expect(panel._groupIds.has('custom-plugs')).toBe(true);
 
-		const customGroup = projected.find((g: any) => g.id === 'custom-plugs');
+		const customGroup = projected.find((g) => g.id === 'custom-plugs');
 		expect(customGroup).toBeDefined();
+		if (!customGroup) throw new Error('custom-plugs not found');
 		expect(isGroupHeader(customGroup.id, panel._groupIds)).toBe(true);
-		expect(customGroup.children[0].label).toBe('Obsidian Git');
+		expect(customGroup.children?.[0]?.label).toBe('Obsidian Git');
 
-		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		const noGroup = projected.find((g) => g.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
-		expect(noGroup.children[0].label).toBe('Dataview');
+		if (!noGroup) throw new Error('NO_GROUP not found');
+		expect(noGroup.children?.[0]?.label).toBe('Dataview');
 	});
 
 	it('TagsExplorerPanel: proyecta grupos custom con kind tag y tagPath', () => {
-		const panel = Object.create(TagsExplorerPanel.prototype) as any;
+		const panel = createTagsHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('tags', 'all');
 		panel.activeLayoutName = 'layout-tags';
@@ -191,17 +281,19 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-tags')).toBe(true);
 
-		const grp = projected.find((g: any) => g.id === 'grp-tags');
+		const grp = projected.find((g) => g.id === 'grp-tags');
 		expect(grp).toBeDefined();
-		expect(grp.children[0].label).toBe('activo');
+		if (!grp) throw new Error('grp-tags not found');
+		expect(grp.children?.[0]?.label).toBe('activo');
 
-		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		const noGroup = projected.find((g) => g.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
-		expect(noGroup.children[0].label).toBe('archivo');
+		if (!noGroup) throw new Error('NO_GROUP not found');
+		expect(noGroup.children?.[0]?.label).toBe('archivo');
 	});
 
 	it('PropsExplorerPanel: proyecta tanto props como values', () => {
-		const panel = Object.create(PropsExplorerPanel.prototype) as any;
+		const panel = createPropsHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('props', 'all');
 		panel.activeLayoutName = 'layout-props';
@@ -248,21 +340,24 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(panel._groupIds.has('grp-prop')).toBe(true);
 		expect(panel._groupIds.has('grp-val')).toBe(true);
 
-		const propGrp = projected.find((g: any) => g.id === 'grp-prop');
+		const propGrp = projected.find((g) => g.id === 'grp-prop');
 		expect(propGrp).toBeDefined();
-		expect(propGrp.children[0].label).toBe('status');
+		if (!propGrp) throw new Error('grp-prop not found');
+		expect(propGrp.children?.[0]?.label).toBe('status');
 
-		const valGrp = projected.find((g: any) => g.id === 'grp-val');
+		const valGrp = projected.find((g) => g.id === 'grp-val');
 		expect(valGrp).toBeDefined();
-		expect(valGrp.children[0].label).toBe('done');
+		if (!valGrp) throw new Error('grp-val not found');
+		expect(valGrp.children?.[0]?.label).toBe('done');
 
-		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		const noGroup = projected.find((g) => g.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
-		expect(noGroup.children.map((c: any) => c.label)).toContain('author');
+		if (!noGroup) throw new Error('noGroup not found');
+		expect(noGroup.children?.map((c) => c.label)).toContain('author');
 	});
 
 	it('FilesExplorerPanel: proyecta files y folders con su URN respectiva', () => {
-		const panel = Object.create(FilesExplorerPanel.prototype) as any;
+		const panel = createFilesHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('files', 'all');
 		panel.activeLayoutName = 'layout-files';
@@ -289,7 +384,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 				label: 'todo.md',
 				depth: 0,
 				meta: {
-					file: { path: 'notes/todo.md' } as any,
+					file: { path: 'notes/todo.md' } as unknown as FileMeta['file'],
 					isFolder: false,
 					folderPath: 'notes',
 				},
@@ -309,7 +404,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 				label: 'other.md',
 				depth: 0,
 				meta: {
-					file: { path: 'notes/other.md' } as any,
+					file: { path: 'notes/other.md' } as unknown as FileMeta['file'],
 					isFolder: false,
 					folderPath: 'notes',
 				},
@@ -322,18 +417,20 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-files')).toBe(true);
 
-		const grp = projected.find((g: any) => g.id === 'grp-files');
+		const grp = projected.find((g) => g.id === 'grp-files');
 		expect(grp).toBeDefined();
+		if (!grp) throw new Error('grp-files not found');
 		expect(grp.children).toHaveLength(2);
-		expect(grp.children.map((c: any) => c.label)).toEqual(['todo.md', 'projects']);
+		expect(grp.children?.map((c) => c.label)).toEqual(['todo.md', 'projects']);
 
-		const noGroup = projected.find((g: any) => g.id === NO_GROUP_ID);
+		const noGroup = projected.find((g) => g.id === NO_GROUP_ID);
 		expect(noGroup).toBeDefined();
-		expect(noGroup.children.map((c: any) => c.label)).toEqual(['other.md']);
+		if (!noGroup) throw new Error('noGroup not found');
+		expect(noGroup.children?.map((c) => c.label)).toEqual(['other.md']);
 	});
 
 	it('Preset grouping fallback: si el scope groups esta activo sin layout, agrupa por primera letra', () => {
-		const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
+		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
@@ -347,11 +444,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		];
 
 		const projected = panel.projectedNodes();
-		expect(projected.map((g: any) => g.label)).toEqual(['A', 'B']);
-		expect(projected[0].id).toBe(`${PRESET_GROUP_PREFIX}A`);
-		expect(isGroupHeader(projected[0].id)).toBe(true);
-		expect(projected[0].children?.map((c: any) => c.id)).toEqual(['1', '3']);
-		expect(projected[1].children?.map((c: any) => c.id)).toEqual(['2']);
+		expect(projected.map((g) => g.label)).toEqual(['A', 'B']);
+		expect(projected[0]?.id).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(isGroupHeader(projected[0]?.id ?? '')).toBe(true);
+		expect(projected[0]?.children?.map((c) => c.id)).toEqual(['1', '3']);
+		expect(projected[1]?.children?.map((c) => c.id)).toEqual(['2']);
 	});
 });
 

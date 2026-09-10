@@ -300,6 +300,10 @@ function aliasMatches(value: unknown, token: string): boolean {
 	return false;
 }
 
+function isUnknownArray(value: unknown): value is unknown[] {
+	return Array.isArray(value);
+}
+
 export function titleToFilename(title: string): string {
 	const cleaned = title.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim();
 	return cleaned.length > 0 ? cleaned : "binding-note";
@@ -317,7 +321,9 @@ export async function ensureFolderExists(app: App, folderPath: string): Promise<
 		if (!existing) {
 			try {
 				await app.vault?.createFolder?.(current);
-			} catch (_) {}
+			} catch {
+				// Another operation may have created the folder concurrently.
+			}
 		}
 	}
 }
@@ -417,13 +423,14 @@ export class NodeBindingService {
 		if (isTFile(existing)) {
 			// Adopt existing file and ensure alias via processFrontMatter
 			if (app.fileManager?.processFrontMatter) {
-				await app.fileManager.processFrontMatter(existing, (fm) => {
-					if (!fm.aliases) {
+				await app.fileManager.processFrontMatter(existing, (fm: Record<string, unknown>) => {
+					const aliases: unknown = fm.aliases;
+					if (!aliases) {
 						fm.aliases = [token];
-					} else if (Array.isArray(fm.aliases)) {
-						if (!fm.aliases.includes(token)) fm.aliases.push(token);
-					} else if (typeof fm.aliases === "string") {
-						if (fm.aliases !== token) fm.aliases = [fm.aliases, token];
+					} else if (isUnknownArray(aliases)) {
+						if (!aliases.includes(token)) aliases.push(token);
+					} else if (typeof aliases === "string") {
+						if (aliases !== token) fm.aliases = [aliases, token];
 					}
 				});
 			}
@@ -446,7 +453,9 @@ export class NodeBindingService {
 		} else {
 			try {
 				new Notice(msg);
-			} catch (_) {}
+			} catch {
+				// Notices are unavailable in some test and shutdown contexts.
+			}
 		}
 		return { outcome: "routed", token, matchCount };
 	}
@@ -494,7 +503,7 @@ export function titleLabelForNode(
 }
 
 export function quoteYamlValue(token: string): string {
-	const needsQuoting = /[#:\[\]{},&*!|>\x27"\x60%@$]/.test(token);
+	const needsQuoting = /[#:\]{},&*!|>\x27"\x60%@$]/u.test(token) || token.includes("[");
 	if (!needsQuoting) return token;
 	return "'" + token.replace(/'/g, "''") + "'";
 }

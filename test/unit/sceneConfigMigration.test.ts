@@ -4,6 +4,7 @@ import {
 	applyLayoutToPort,
 	type SceneConfigPort,
 } from '../../src/logic/logicSceneConfigPort';
+import type { SceneConfig, SceneDefinitionId } from '../../src/types/typeInstance';
 
 function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 	const calls: [string, unknown][] = [];
@@ -63,10 +64,14 @@ describe('applyLayoutToPort', () => {
 	});
 
 	it('uses proposeScenes when available to batch tab updates', async () => {
-		const port = fakePort() as any;
-		const batchCalls: any[] = [];
-		port.proposeScenes = async (updates: any) => {
+		const batchCalls: Array<Partial<Record<SceneDefinitionId, Required<SceneConfig>>>> = [];
+		const port = {
+			...fakePort(),
+			proposeScenes: async (
+				updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>>,
+			) => {
 			batchCalls.push(updates);
+			},
 		};
 		await applyLayoutToPort(port, {
 			viewModeByTab: { files: 'table', tags: 'grid' },
@@ -76,8 +81,11 @@ describe('applyLayoutToPort', () => {
 		});
 		expect(port.calls).toEqual([]);
 		expect(batchCalls.length).toBe(1);
-		expect(Object.keys(batchCalls[0]).sort()).toEqual(['files', 'tags']);
-		expect(batchCalls[0].files.viewMode).toBe('table');
-		expect(batchCalls[0].tags.viewMode).toBe('grid');
+		const batch = batchCalls[0];
+		if (!batch) throw new Error('expected one batch update');
+		expect(Object.keys(batch).sort()).toEqual(['files', 'tags']);
+		if (!batch.files || !batch.tags) throw new Error('expected files and tags updates');
+		expect(batch.files.viewMode).toBe('table');
+		expect(batch.tags.viewMode).toBe('grid');
 	});
 });

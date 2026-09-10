@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, unmount, type ComponentProps } from 'svelte';
 import NavbarFilters from '../../src/components/layout/navbarFilters.svelte';
 import type { TransactionBarState } from '../../src/logic/logicTransactionBarState';
+import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
+import type { SceneConfigPort } from '../../src/logic/logicSceneConfigPort';
+import type { ScenePanelWidgetActionPort } from '../../src/types/typePanelWidget';
 
-if (typeof globalThis.ResizeObserver === 'undefined') {
+if (typeof window.ResizeObserver === 'undefined') {
 	class ResizeObserverMock {
 		observe() {}
 		unobserve() {}
 		disconnect() {}
 	}
-	globalThis.ResizeObserver = ResizeObserverMock as any;
+	window.ResizeObserver = ResizeObserverMock;
 }
 
 describe('navbarFilters monta BarTransaction', () => {
@@ -37,29 +40,40 @@ describe('navbarFilters monta BarTransaction', () => {
 		rejection: null,
 	};
 
-	const render = (props: Record<string, unknown> = {}) => {
+	type RenderOverrides = Partial<Omit<
+		ComponentProps<typeof NavbarFilters>,
+		'providerId' | 'activeTab' | 'actionPort' | 'filtersSearch' |
+		'filtersSearchCategory' | 'icon' | 'sceneConfigPort'
+	>>;
+
+	const render = (props: RenderOverrides = {}) => {
 		instance = mount(NavbarFilters, {
 			target,
 			props: {
+				providerId: 'props',
 				activeTab: 'props',
-				actionPort: { invoke: () => Promise.resolve() } as any,
+				filtersSearch: '',
+				filtersSearchCategory: { files: 0, props: 0, tags: 0 },
+				actionPort: {
+					invoke: async () => true,
+				} satisfies ScenePanelWidgetActionPort,
 				sceneConfigPort: {
 					read: () => ({
 						viewMode: 'tree',
 						interactionMode: 'select',
 						visibleCells: [],
-						sortState: { field: 'name', direction: 'asc' },
+						sortState: normalizeExplorerSortState('props', null),
 					}),
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',
 					proposeActiveScene: () => Promise.resolve(),
 					setInstanceId: () => {},
 					onInstanceChange: () => () => {},
-				} as any,
+				} satisfies SceneConfigPort,
 				icon,
 				minimalStyle: true,
 				...props,
-			} as any,
+			},
 		});
 		flushSync();
 		return target;
@@ -91,7 +105,6 @@ describe('navbarFilters monta BarTransaction', () => {
 	it('en movil (above-search) monta la barra encima del searchbox', () => {
 		const el = render({
 			minimalStyle: true,
-			showSearchInput: true,
 			transactionBar: {
 				...baseBarState,
 				placement: 'above-search',

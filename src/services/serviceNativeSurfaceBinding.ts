@@ -73,12 +73,14 @@ type ClosableElement = HTMLElement & {
 	dataset?: DOMStringMap | Record<string, string | undefined>;
 };
 
+type WindowWithApp = Window & { app?: App };
+
 export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): string | null {
 	const parentEl = el.closest(".view-header-title-parent");
 	if (!parentEl || !parentEl.querySelectorAll) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
 
 	const breadcrumbs = Array.from(parentEl.querySelectorAll(".view-header-breadcrumb"));
-	const idx = breadcrumbs.indexOf(el as Element);
+	const idx = breadcrumbs.indexOf(el);
 	if (idx === -1) return el.getAttribute?.("data-path") ?? (el.dataset?.path as string) ?? el.textContent?.trim() ?? null;
 
 	let file: { parent?: { path?: string } | null } | null = null;
@@ -86,8 +88,12 @@ export function resolveBreadcrumbFolderPath(el: ClosableElement, app: App): stri
 	if (leafEl && app?.workspace?.getLeavesOfType) {
 		const leaves = app.workspace.getLeavesOfType("markdown");
 		for (const leaf of leaves) {
-			if ((leaf as any).containerEl === leafEl) {
-				file = (leaf.view as any)?.file ?? null;
+			const leafData = leaf as unknown as {
+				containerEl?: unknown;
+				view?: { file?: { parent?: { path?: string } | null } | null };
+			};
+			if (leafData.containerEl === leafEl) {
+				file = leafData.view?.file ?? null;
 				break;
 			}
 		}
@@ -133,7 +139,7 @@ export function decorateBoundBreadcrumbs(doc: Document | undefined, app?: App): 
 	const crumbs = doc.querySelectorAll(".view-header-breadcrumb");
 	crumbs.forEach((crumb) => {
 		const el = crumb as HTMLElement;
-		const folderPath = resolveBreadcrumbFolderPath(el as unknown as ClosableElement, app);
+		const folderPath = resolveBreadcrumbFolderPath(el, app);
 		const isBound = Boolean(folderPath && hasBoundFolderNote(folderPath, app));
 		if (isBound) {
 			el.classList.add("vaultman-node-note-link");
@@ -169,7 +175,9 @@ export function resolveNativeBindingTarget(
 	// 1. Breadcrumbs
 	const breadcrumb = base.closest<HTMLElement>(".view-header-breadcrumb");
 	if (breadcrumb) {
-		const resolvedApp = app ?? (typeof window !== "undefined" ? (window as any).app : undefined);
+		const resolvedApp =
+			app ?? (typeof window !== "undefined" ? (window as WindowWithApp).app : undefined);
+		if (!resolvedApp) return null;
 		const folderPath = resolveBreadcrumbFolderPath(breadcrumb, resolvedApp);
 		if (folderPath) {
 			// ISSUE 2: si el folder tiene nota bindeada, el breadcrumb lleva
@@ -362,7 +370,7 @@ export function resolveNativeFileHoverTarget(
 	const base = asElement(target);
 	if (!base) return null;
 	const fileEl = base.closest<HTMLElement>(".nav-file-title[data-path]");
-	const rawPath = fileEl?.getAttribute?.("data-path") ?? (fileEl?.dataset?.path as string) ?? null;
+	const rawPath = fileEl?.getAttribute?.("data-path") ?? (fileEl?.dataset?.path) ?? null;
 	if (!fileEl || !rawPath) return null;
 	const files = app?.vault?.getMarkdownFiles?.() ?? [];
 	const match = files.find((f) => f?.path === rawPath);
@@ -419,7 +427,7 @@ export function handleInternalNodeNoteHover(
 	) as unknown;
 	const anchor =
 		scopeEl !== null && scopeEl !== undefined
-			? (base.closest?.("a.internal-link[href]") as HTMLElement | null)
+			? asHtmlElement(base.closest?.("a.internal-link[href]"))
 			: null;
 	if (anchor) {
 		const href = anchor.getAttribute?.("href") ?? null;
@@ -436,7 +444,7 @@ export function handleInternalNodeNoteHover(
 		return false;
 	}
 
-	const link = base.closest?.(".vaultman-node-note-link") as HTMLElement | null;
+	const link = asHtmlElement(base.closest?.(".vaultman-node-note-link"));
 	if (!link) return false;
 	const app = deps.app;
 
@@ -460,8 +468,8 @@ export function handleInternalNodeNoteHover(
 	if (!app) return false;
 
 	// 2. Fila de archivo [data-path]: alias de path/filename/basename.
-	const row = link.closest?.("[data-path]") as HTMLElement | null;
-	const rowPath = row?.getAttribute?.("data-path") ?? (row?.dataset?.path as string) ?? null;
+	const row = asHtmlElement(link.closest?.("[data-path]"));
+	const rowPath = row?.getAttribute?.("data-path") ?? (row?.dataset?.path) ?? null;
 	if (rowPath) {
 		const fileName = rowPath.split("/").pop() ?? rowPath;
 		const basename = fileName.replace(/\.[^/.]+$/, "");
@@ -499,12 +507,7 @@ export class NativeSurfaceBindingService extends Component {
 	}
 
 	onload(): void {
-		const hoverPlugin = this.deps.plugin as typeof this.deps.plugin & {
-			registerHoverLinkSource?: (
-				source: string,
-				info: { display: string; defaultMod: boolean },
-			) => void;
-		};
+		const hoverPlugin = this.deps.plugin;
 		hoverPlugin?.registerHoverLinkSource?.(NATIVE_SURFACE_HOVER_SOURCE, {
 			display: "Vaultman native surfaces",
 			defaultMod: true,
@@ -520,8 +523,10 @@ export class NativeSurfaceBindingService extends Component {
 				void handleNativeBindingClick(event, {
 					bindingService: this.deps.bindingService,
 					settings: this.deps.plugin.settings,
-					revealInVaultman: this.deps.revealInVaultman,
-					searchInVaultman: this.deps.searchInVaultman,
+					revealInVaultman: (node) => this.deps.revealInVaultman?.(node) ?? false,
+					searchInVaultman: (query) => {
+						void this.deps.searchInVaultman?.(query);
+					},
 					app: this.deps.app,
 				});
 			},
@@ -534,7 +539,7 @@ export class NativeSurfaceBindingService extends Component {
 				void handleNativeBindingClick(event, {
 					bindingService: this.deps.bindingService,
 					settings: this.deps.plugin.settings,
-					revealInVaultman: this.deps.revealInVaultman,
+					revealInVaultman: (node) => this.deps.revealInVaultman?.(node) ?? false,
 					app: this.deps.app,
 				});
 			},
@@ -585,7 +590,7 @@ export class NativeSurfaceBindingService extends Component {
 				if (mutation.type !== "childList") continue;
 				let hit = false;
 				mutation.addedNodes.forEach((node) => {
-					if (!(node instanceof Element)) return;
+					if (!node.instanceOf(Element)) return;
 					if (
 						node.matches(".view-header-breadcrumb") ||
 						node.querySelector(".view-header-breadcrumb") !== null

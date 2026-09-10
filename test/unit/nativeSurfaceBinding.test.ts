@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, type Mock } from "vitest";
+import type { App } from "obsidian";
 import {
 	decorateBoundBreadcrumbs,
 	handleInternalNodeNoteHover,
@@ -9,21 +10,52 @@ import {
 	NATIVE_SURFACE_HOVER_SOURCE,
 } from "../../src/services/serviceNativeSurfaceBinding";
 
+type MockFile = { path: string; parent?: { path: string } };
+type MockElement = HTMLElement & {
+	parent: MockElement | null;
+	children: MockElement[];
+	closest: (selector: string) => MockElement | null;
+	querySelectorAll: (selector: string) => NodeListOf<Element>;
+	querySelector: (selector: string) => Element | null;
+	getAttribute: (attribute: string) => string | null;
+};
+type TestApp = {
+	vault: {
+		getMarkdownFiles: () => MockFile[];
+		getAbstractFileByPath?: (path: string) => MockFile | { path: string; children?: unknown[] } | null;
+	};
+	metadataCache: {
+		getFileCache: (file?: unknown) => { frontmatter?: Record<string, unknown> } | null;
+		getFirstLinkpathDest?: (target: string, sourcePath: string) => MockFile | null;
+	};
+	workspace: {
+		getActiveFile?: () => MockFile | null;
+		getLeavesOfType?: (type: string) => Array<{ containerEl: MockElement; view: { file: MockFile } }>;
+		trigger: Mock<(event: string, payload: unknown) => void>;
+	};
+};
+
+type BreadcrumbElement = MockElement & { added: string[] };
+
+function asApp(app: TestApp): App {
+	return app as unknown as App;
+}
+
 function mockElement(opts: {
 	classes?: string[];
 	attributes?: Record<string, string>;
 	dataset?: Record<string, string>;
 	textContent?: string;
-	parent?: any;
-	children?: any[];
+	parent?: MockElement;
+	children?: MockElement[];
 } = {}) {
 	const classes = new Set(opts.classes ?? []);
 	const attributes = { ...(opts.attributes ?? {}) };
 	const dataset = { ...(opts.dataset ?? {}) };
 	const textContent = opts.textContent ?? "";
-	const children = opts.children ?? [];
+	const children: MockElement[] = opts.children ?? [];
 
-	const el: any = {
+	const el = {
 		className: Array.from(classes).join(" "),
 		classList: {
 			contains: (cls: string) => classes.has(cls),
@@ -32,7 +64,7 @@ function mockElement(opts: {
 		textContent,
 		parent: opts.parent ?? null,
 		getAttribute: (attr: string) => attributes[attr] ?? null,
-		closest: function (selector: string) {
+		closest: function (this: MockElement, selector: string): MockElement | null {
 			const parts = selector.split(",").map((s: string) => s.trim());
 			for (const part of parts) {
 				if (
@@ -62,11 +94,13 @@ function mockElement(opts: {
 			return null;
 		},
 		querySelectorAll: (selector: string) => {
-			if (selector.includes("view-header-breadcrumb")) return children;
-			return [];
+			if (selector.includes("view-header-breadcrumb")) {
+				return children as unknown as NodeListOf<Element>;
+			}
+			return [] as unknown as NodeListOf<Element>;
 		},
 		querySelector: () => null,
-	};
+	} as unknown as MockElement;
 
 	for (const child of children) {
 		child.parent = el;
@@ -83,16 +117,17 @@ describe("resolveBreadcrumbFolderPath", () => {
 			children: [b1, b2],
 		});
 
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			workspace: {
 				getActiveFile: () => ({
 					parent: { path: "Projects/2026" },
 				}),
+				trigger: vi.fn<(event: string, payload: unknown) => void>(),
 			},
-		};
+		} as unknown as TestApp;
 
-		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Projects");
-		expect(resolveBreadcrumbFolderPath(b2, mockApp)).toBe("Projects/2026");
+		expect(resolveBreadcrumbFolderPath(b1, asApp(mockApp))).toBe("Projects");
+		expect(resolveBreadcrumbFolderPath(b2, asApp(mockApp))).toBe("Projects/2026");
 	});
 
 	it("resuelve slice path desde la hoja workspace-leaf en vez de activeFile global", () => {
@@ -114,16 +149,17 @@ describe("resolveBreadcrumbFolderPath", () => {
 		const leafFile = { parent: { path: "Docs" } };
 		const activeFile = { parent: { path: "UnrelatedFolder" } };
 
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			workspace: {
 				getActiveFile: () => activeFile,
 				getLeavesOfType: () => [
 					{ containerEl: leafContainer, view: { file: leafFile } },
 				],
+				trigger: vi.fn<(event: string, payload: unknown) => void>(),
 			},
-		};
+		} as unknown as TestApp;
 
-		expect(resolveBreadcrumbFolderPath(b1, mockApp)).toBe("Docs");
+		expect(resolveBreadcrumbFolderPath(b1, asApp(mockApp))).toBe("Docs");
 	});
 });
 
@@ -135,15 +171,16 @@ describe("resolveNativeBindingTarget", () => {
 			children: [b1],
 		});
 
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			workspace: {
 				getActiveFile: () => ({
 					parent: { path: "Docs" },
 				}),
+				trigger: vi.fn<(event: string, payload: unknown) => void>(),
 			},
-		};
+		} as unknown as TestApp;
 
-		const target = resolveNativeBindingTarget(b1, mockApp);
+		const target = resolveNativeBindingTarget(b1, asApp(mockApp));
 		expect(target).not.toBeNull();
 		expect(target?.node.kind).toBe("folder");
 		expect(target?.node.path).toBe("Docs");
@@ -178,11 +215,12 @@ describe("handleNativeBindingClick with WIR routing", () => {
 
 		const mockReveal = vi.fn().mockResolvedValue(true);
 		const mockBindOrCreate = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			workspace: {
 				getActiveFile: () => ({ parent: { path: "Inbox" } }),
+				trigger: vi.fn<(event: string, payload: unknown) => void>(),
 			},
-		};
+		} as unknown as TestApp;
 
 		const event = {
 			target: b,
@@ -202,7 +240,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 				nativeSurfaceClickMod: "open-node-note-new-tab",
 			},
 			revealInVaultman: mockReveal,
-			app: mockApp,
+			app: asApp(mockApp),
 		});
 
 		expect(handled).toBe(true);
@@ -242,7 +280,7 @@ describe("handleNativeBindingClick with WIR routing", () => {
 });
 
 describe("task_108 surface-guard negativos (primario llano nunca suprime)", () => {
-	function plainPrimary(target: any) {
+	function plainPrimary(target: unknown) {
 		return {
 			target,
 			ctrlKey: false,
@@ -314,9 +352,9 @@ describe("task_108 surface-guard negativos (primario llano nunca suprime)", () =
 });
 
 describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", () => {
-	function breadcrumbEl() {
+	function breadcrumbEl(): BreadcrumbElement {
 		const added: string[] = [];
-		const el: any = {
+		const el = {
 			dataset: {},
 			textContent: "Projects",
 			getAttribute: (attr: string) => (attr === "data-path" ? "Projects" : null),
@@ -331,34 +369,35 @@ describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", 
 			querySelectorAll: () => [],
 			querySelector: () => null,
 			added,
-		};
+		} as unknown as BreadcrumbElement;
 		return el;
 	}
 
-	function folderApp(files: any[], aliases: unknown = {}) {
+	function folderApp(files: MockFile[], aliases: unknown = {}): TestApp {
 		return {
 			vault: { getMarkdownFiles: () => files },
 			metadataCache: { getFileCache: () => ({ frontmatter: { aliases } }) },
-		} as any;
+			workspace: { trigger: vi.fn<(event: string, payload: unknown) => void>() },
+		};
 	}
 
 	it("anade la clase cuando existe el C-node del folder", () => {
 		const el = breadcrumbEl();
-		const target = resolveNativeBindingTarget(el, folderApp([{ path: "Projects/Projects.md" }]));
+		const target = resolveNativeBindingTarget(el, asApp(folderApp([{ path: "Projects/Projects.md" }])));
 		expect(target?.node.kind).toBe("folder");
 		expect(el.added).toContain("vaultman-node-note-link");
 	});
 
 	it("anade la clase cuando hay nota por alias del folder", () => {
 		const el = breadcrumbEl();
-		const target = resolveNativeBindingTarget(el, folderApp([{ path: "Notes/X.md" }], ["Projects"]));
+		const target = resolveNativeBindingTarget(el, asApp(folderApp([{ path: "Notes/X.md" }], ["Projects"])));
 		expect(target).not.toBeNull();
 		expect(el.added).toContain("vaultman-node-note-link");
 	});
 
 	it("no decora sin nota bindeada ni sin app", () => {
 		const el = breadcrumbEl();
-		const target = resolveNativeBindingTarget(el, folderApp([]));
+		const target = resolveNativeBindingTarget(el, asApp(folderApp([])));
 		expect(target?.node.kind).toBe("folder");
 		expect(el.added).not.toContain("vaultman-node-note-link");
 
@@ -369,8 +408,8 @@ describe("ISSUE 2: breadcrumb con nota bindeada lleva vaultman-node-note-link", 
 });
 
 describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
-	function crumbEl(path: string, added: string[], removed: string[] = []) {
-		const el: any = {
+	function crumbEl(path: string, added: string[], removed: string[] = []): MockElement {
+		const el = {
 			dataset: {},
 			textContent: path,
 			getAttribute: (attr: string) => (attr === "data-path" ? path : null),
@@ -385,26 +424,30 @@ describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
 			},
 			querySelectorAll: () => [],
 			querySelector: () => null,
-		};
+		} as unknown as MockElement;
 		return el;
 	}
 
-	function fakeDoc(crumbs: any[]) {
-		return { querySelectorAll: (sel: string) => (sel === ".view-header-breadcrumb" ? crumbs : []) } as any;
+	function fakeDoc(crumbs: MockElement[]): Document {
+		return {
+			querySelectorAll: (sel: string) =>
+				sel === ".view-header-breadcrumb" ? crumbs : [],
+		} as unknown as Document;
 	}
 
-	function folderApp(files: any[], aliases: unknown = {}) {
+	function folderApp(files: MockFile[], aliases: unknown = {}): TestApp {
 		return {
 			vault: { getMarkdownFiles: () => files },
 			metadataCache: { getFileCache: () => ({ frontmatter: { aliases } }) },
-		} as any;
+			workspace: { trigger: vi.fn<(event: string, payload: unknown) => void>() },
+		};
 	}
 
 	it("decora todos los breadcrumbs bindeados sin esperar click", () => {
 		const addedBound: string[] = [];
 		const addedPlain: string[] = [];
 		const doc = fakeDoc([crumbEl("Projects", addedBound), crumbEl("Inbox", addedPlain)]);
-		decorateBoundBreadcrumbs(doc, folderApp([{ path: "Projects/Projects.md" }]));
+		decorateBoundBreadcrumbs(doc, asApp(folderApp([{ path: "Projects/Projects.md" }])));
 		expect(addedBound).toContain("vaultman-node-note-link");
 		expect(addedPlain).not.toContain("vaultman-node-note-link");
 	});
@@ -413,12 +456,12 @@ describe("ISSUE 2: decorateBoundBreadcrumbs proactivo al render", () => {
 		const added: string[] = ["vaultman-node-note-link"];
 		const removed: string[] = [];
 		const doc = fakeDoc([crumbEl("Inbox", added, removed)]);
-		decorateBoundBreadcrumbs(doc, folderApp([]));
+		decorateBoundBreadcrumbs(doc, asApp(folderApp([])));
 		expect(removed).toContain("vaultman-node-note-link");
 	});
 
 	it("no hace nada sin doc ni sin app", () => {
-		expect(() => decorateBoundBreadcrumbs(undefined, folderApp([]))).not.toThrow();
+		expect(() => decorateBoundBreadcrumbs(undefined, asApp(folderApp([])))).not.toThrow();
 		expect(() => decorateBoundBreadcrumbs(fakeDoc([]))).not.toThrow();
 	});
 });
@@ -429,7 +472,7 @@ describe("handleNativeBindingHover", () => {
 		const mockTrigger = vi.fn();
 		const mockFile = { path: "Notes/Books.md" };
 
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: {
 				getMarkdownFiles: () => [mockFile],
 			},
@@ -442,7 +485,7 @@ describe("handleNativeBindingHover", () => {
 		};
 
 		const event = { target: span, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		const handled = handleNativeBindingHover(event, { app: mockApp });
+		const handled = handleNativeBindingHover(event, { app: asApp(mockApp) });
 
 		expect(handled).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
@@ -454,7 +497,7 @@ describe("handleNativeBindingHover", () => {
 	it("hover sobre superficie valida dispara hover-link incondicionalmente (Obsidian page-preview maneja defaultMod y deferred keydown)", () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: { getMarkdownFiles: () => [{ path: "Notes/Books.md" }] },
 			metadataCache: {
 				getFileCache: () => ({ frontmatter: { aliases: ["#books"] } }),
@@ -468,7 +511,7 @@ describe("handleNativeBindingHover", () => {
 			metaKey: false,
 			altKey: false,
 		} as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(handleNativeBindingHover(event, { app: asApp(mockApp) })).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			source: NATIVE_SURFACE_HOVER_SOURCE,
 			linktext: "Notes/Books.md",
@@ -478,7 +521,7 @@ describe("handleNativeBindingHover", () => {
 	it("ISSUE 3: ctrl+hover y meta+hover si disparan preview", () => {
 		const span = mockElement({ classes: ["cm-hashtag"], textContent: "#books" });
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: { getMarkdownFiles: () => [{ path: "Notes/Books.md" }] },
 			metadataCache: {
 				getFileCache: () => ({ frontmatter: { aliases: ["#books"] } }),
@@ -487,9 +530,9 @@ describe("handleNativeBindingHover", () => {
 		};
 
 		const ctrlEvent = { target: span, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(ctrlEvent, { app: mockApp })).toBe(true);
+		expect(handleNativeBindingHover(ctrlEvent, { app: asApp(mockApp) })).toBe(true);
 		const metaEvent = { target: span, ctrlKey: false, metaKey: true } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(metaEvent, { app: mockApp })).toBe(true);
+		expect(handleNativeBindingHover(metaEvent, { app: asApp(mockApp) })).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledTimes(2);
 	});
 
@@ -500,14 +543,14 @@ describe("handleNativeBindingHover", () => {
 			textContent: "A",
 		});
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: { getMarkdownFiles: () => [{ path: "Notes/A.md" }] },
 			metadataCache: { getFileCache: () => ({}) },
 			workspace: { trigger: mockTrigger },
 		};
 
 		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(handleNativeBindingHover(event, { app: asApp(mockApp) })).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			linktext: "Notes/A.md",
 		}));
@@ -520,16 +563,16 @@ describe("handleNativeBindingHover", () => {
 			textContent: "A",
 		});
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: { getMarkdownFiles: () => [] },
 			metadataCache: { getFileCache: () => ({}) },
 			workspace: { trigger: mockTrigger },
 		};
 
 		const unknownEvent = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(unknownEvent, { app: mockApp })).toBe(false);
+		expect(handleNativeBindingHover(unknownEvent, { app: asApp(mockApp) })).toBe(false);
 		const plainEvent = { target: row, ctrlKey: false, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(plainEvent, { app: mockApp })).toBe(false);
+		expect(handleNativeBindingHover(plainEvent, { app: asApp(mockApp) })).toBe(false);
 		expect(mockTrigger).not.toHaveBeenCalled();
 	});
 
@@ -540,7 +583,7 @@ describe("handleNativeBindingHover", () => {
 			textContent: "A",
 		});
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: {
 				getMarkdownFiles: () => [],
 				getAbstractFileByPath: (p: string) => (p === "Notes/A.md" ? { path: p } : null),
@@ -550,7 +593,7 @@ describe("handleNativeBindingHover", () => {
 		};
 
 		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(true);
+		expect(handleNativeBindingHover(event, { app: asApp(mockApp) })).toBe(true);
 		expect(mockTrigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			linktext: "Notes/A.md",
 		}));
@@ -563,7 +606,7 @@ describe("handleNativeBindingHover", () => {
 			textContent: "Notes",
 		});
 		const mockTrigger = vi.fn();
-		const mockApp: any = {
+		const mockApp: TestApp = {
 			vault: {
 				getMarkdownFiles: () => [],
 				getAbstractFileByPath: (p: string) => (p === "Notes" ? { path: p, children: [] } : null),
@@ -573,13 +616,13 @@ describe("handleNativeBindingHover", () => {
 		};
 
 		const event = { target: row, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleNativeBindingHover(event, { app: mockApp })).toBe(false);
+		expect(handleNativeBindingHover(event, { app: asApp(mockApp) })).toBe(false);
 		expect(mockTrigger).not.toHaveBeenCalled();
 	});
 });
 
 describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
-	function nnEl(opts: { classes?: string[]; attributes?: Record<string, string>; textContent?: string; parent?: any } = {}) {
+	function nnEl(opts: { classes?: string[]; attributes?: Record<string, string>; textContent?: string; parent?: MockElement } = {}) {
 		return mockElement({
 			classes: ["vaultman-node-note-link", ...(opts.classes ?? [])],
 			attributes: opts.attributes,
@@ -588,21 +631,21 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		});
 	}
 
-	function hoverApp(files: any[] = [], fileCache: any = {}) {
+	function hoverApp(files: MockFile[] = [], fileCache: Record<string, unknown> = {}): TestApp {
 		return {
 			vault: { getMarkdownFiles: () => files },
 			metadataCache: { getFileCache: () => ({ frontmatter: fileCache }) },
-			workspace: { trigger: vi.fn() },
-		} as any;
+			workspace: { trigger: vi.fn<(event: string, payload: unknown) => void>() },
+		};
 	}
 
 	it("anchor con href resuelto dispara preview del destino", () => {
 		const el = nnEl({ classes: ["internal-link"], attributes: { href: "Ideas" }, textContent: "Ideas" });
 		const app = hoverApp();
-		app.metadataCache = { getFirstLinkpathDest: () => ({ path: "Notes/Ideas.md" }) };
+		app.metadataCache.getFirstLinkpathDest = () => ({ path: "Notes/Ideas.md" });
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
 		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			linktext: "Notes/Ideas.md",
 		}));
@@ -611,10 +654,10 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 	it("anchor externo o sin destino no dispara", () => {
 		const el = nnEl({ classes: ["external-link"], attributes: { href: "https://example.com" }, textContent: "x" });
 		const app = hoverApp();
-		app.metadataCache = { getFirstLinkpathDest: () => null };
+		app.metadataCache.getFirstLinkpathDest = () => null;
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(false);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(false);
 		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});
 
@@ -624,7 +667,7 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		const app = hoverApp([{ path: "Notes/Manual.md" }], { aliases: ["docs/manual.pdf"] });
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
 		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			linktext: "Notes/Manual.md",
 		}));
@@ -635,21 +678,27 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		const app = hoverApp([{ path: "Notes/P.md" }], { aliases: ["Projects"] });
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
 
 		const plainMouseover = { target: el, ctrlKey: false, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(plainMouseover, { app })).toBe(true);
+		expect(handleInternalNodeNoteHover(plainMouseover, { app: asApp(app) })).toBe(true);
 
 		const lonely = nnEl({ textContent: "Nadie" });
-		expect(handleInternalNodeNoteHover({ target: lonely, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
+		expect(handleInternalNodeNoteHover(
+			{ target: lonely, ctrlKey: true, metaKey: false } as unknown as MouseEvent,
+			{ app: asApp(app) },
+		)).toBe(false);
 
 		const plain = mockElement({ classes: ["random"], textContent: "Projects" });
-		expect(handleInternalNodeNoteHover({ target: plain, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app })).toBe(false);
+		expect(handleInternalNodeNoteHover(
+			{ target: plain, ctrlKey: true, metaKey: false } as unknown as MouseEvent,
+			{ app: asApp(app) },
+		)).toBe(false);
 	});
 
 	it("superficie nativa la cubre el handler nativo (sin doble preview)", () => {
 		const added: string[] = [];
-		const el: any = {
+		const el: unknown = {
 			dataset: {},
 			textContent: "Projects",
 			getAttribute: (attr: string) => (attr === "data-path" ? "Projects" : null),
@@ -662,14 +711,14 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 			querySelectorAll: () => [],
 			querySelector: () => null,
 		};
-		const app = {
+		const app: TestApp = {
 			vault: { getMarkdownFiles: () => [{ path: "Projects/Projects.md" }] },
 			metadataCache: { getFileCache: () => ({}) },
 			workspace: { trigger: vi.fn() },
-		} as any;
+		};
 
 		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(false);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(false);
 		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});
 
@@ -684,17 +733,17 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 			textContent: "Ideas",
 			parent: view,
 		});
-		const app = {
+		const app: TestApp = {
 			vault: { getMarkdownFiles: () => [] },
 			metadataCache: {
 				getFileCache: () => ({}),
 				getFirstLinkpathDest: () => ({ path: "Notes/Ideas.md" }),
 			},
 			workspace: { trigger: vi.fn() },
-		} as any;
+		};
 
 		const event = { target: anchor, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
-		expect(handleInternalNodeNoteHover(event, { app })).toBe(true);
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
 		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
 			linktext: "Notes/Ideas.md",
 		}));
@@ -716,7 +765,7 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 			attributes: { href: "Ideas" },
 			textContent: "Ideas",
 		});
-		const app = {
+		const app: TestApp = {
 			vault: { getMarkdownFiles: () => [] },
 			metadataCache: {
 				getFileCache: () => ({}),
@@ -724,13 +773,15 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 					target === "Ideas" ? { path: "Notes/Ideas.md" } : null,
 			},
 			workspace: { trigger: vi.fn() },
-		} as any;
+		};
 
 		expect(handleInternalNodeNoteHover(
-			{ target: dangling, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app },
+			{ target: dangling, ctrlKey: true, metaKey: false } as unknown as MouseEvent,
+			{ app: asApp(app) },
 		)).toBe(false);
 		expect(handleInternalNodeNoteHover(
-			{ target: outside, ctrlKey: true, metaKey: false } as unknown as MouseEvent, { app },
+			{ target: outside, ctrlKey: true, metaKey: false } as unknown as MouseEvent,
+			{ app: asApp(app) },
 		)).toBe(false);
 		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});

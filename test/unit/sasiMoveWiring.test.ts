@@ -45,7 +45,7 @@ describe('U130-04: proceed solo escribe con consentimiento explicito', () => {
 	};
 
 	it('sin confirmed NO ejecuta: se rechaza, no se ejecuta a ciegas', async () => {
-		const proceed = vi.fn();
+		const proceed = vi.fn<() => void>();
 		const invoke = buildInvoker(proceed);
 		await expect(invoke('vaultman.move.proceed', {})).rejects.toThrow(
 			/confirmation-required/,
@@ -54,7 +54,7 @@ describe('U130-04: proceed solo escribe con consentimiento explicito', () => {
 	});
 
 	it('con confirmed ejecuta', async () => {
-		const proceed = vi.fn();
+		const proceed = vi.fn<() => void>();
 		const invoke = buildInvoker(proceed);
 		await invoke('vaultman.move.proceed', { confirmed: true });
 		expect(proceed).toHaveBeenCalledTimes(1);
@@ -63,7 +63,7 @@ describe('U130-04: proceed solo escribe con consentimiento explicito', () => {
 	it('la puerta vive en el adaptador, no en la UI', async () => {
 		// Una puerta que vive en la superficie se salta llamando por debajo, y
 		// por aqui pasan tambien las macros y los scripts.
-		const proceed = vi.fn();
+		const proceed = vi.fn<() => void>();
 		const registry = createSasiRegistry();
 		registerMoveActions(registry);
 		expect(registry.resolve('vaultman.move.proceed').def?.mutatesVault).toBe(true);

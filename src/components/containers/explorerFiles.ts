@@ -2589,14 +2589,15 @@ export class FilesExplorerPanel extends Component {
 
 		const visit = (list: TreeNode<FileMeta>[]) => {
 			for (const node of list) {
-				const isFolder = node.meta.isFolder === true || (node as any).isFolder === true;
+				const legacyNode = node as unknown as { isFolder?: boolean };
+				const isFolder = node.meta.isFolder === true || legacyNode.isFolder === true;
 				const path = isFolder
 					? (node.meta?.folderPath ?? node.id.replace(/^folder:/, ''))
 					: (node.meta?.file?.path ?? node.id);
 				let hasBoundNote = false;
 
 				if (isFolder) {
-					const folderPath = path.replace(/^[\/\\]+|[\/\\]+$/g, "");
+					const folderPath = path.replace(/^[/\\]+|[/\\]+$/g, "");
 					const folderName = folderPath.split("/").pop() ?? folderPath;
 					const cNodePath = folderPath ? folderPath + "/" + folderName + ".md" : folderName + ".md";
 					if (app.vault.getAbstractFileByPath?.(cNodePath)) {
@@ -2625,7 +2626,7 @@ export class FilesExplorerPanel extends Component {
 		visit(nodes);
 	}
 
-	private _renderFileLabel(container: HTMLElement, node: TreeNode<any>): boolean {
+	private _renderFileLabel(container: HTMLElement, node: TreeNode<unknown>): boolean {
 		const queue = this.plugin.queueService.queue;
 		const target = renameTargetFromQueue(queue, node.id);
 		if (target) {
@@ -2638,7 +2639,8 @@ export class FilesExplorerPanel extends Component {
 		}
 
 		// O(1) pure read: When format cell is visible and node was decorated with a Node-Note
-		if (this.visibleCells.has("format") && node.meta?.hasNodeNote === true) {
+		const meta = node.meta as FileMeta;
+		if (this.visibleCells.has("format") && meta.hasNodeNote === true) {
 			const linkEl = container.createSpan({
 				cls: "vaultman-tree-label vaultman-node-note-link",
 				text: node.label,
@@ -2647,7 +2649,6 @@ export class FilesExplorerPanel extends Component {
 			linkEl.onclick = (e) => {
 				e.stopPropagation();
 				e.preventDefault();
-				const meta = node.meta as FileMeta;
 				if (meta?.isFolder) {
 					void this.plugin.nodeBindingService?.bindOrCreate(
 						{
