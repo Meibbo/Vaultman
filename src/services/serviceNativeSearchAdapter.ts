@@ -6,6 +6,7 @@ import {
 	type ExtraContextCache,
 } from '../logic/logicExtraContext';
 import { isContentSearchableFile } from '../logic/logicContentSearch';
+import { orderedOpenFilePaths } from '../logic/logicContentOpenFiles';
 
 type SearchOffset = [number, number];
 
@@ -408,18 +409,25 @@ export class NativeSearchAdapter {
 	private preferLoadedInput(
 		inputs: readonly NativeSearchInput[],
 		loaded: NativeSearchInput | null,
+		openPaths: readonly string[] = [],
 	): NativeSearchInput[] {
-		if (!loaded) return [...inputs];
-		const replaced = inputs.map((input) =>
-			input.file.path === loaded.file.path ? loaded : input,
-		);
-		if (
-			loaded.offsets.length > 0 &&
-			!inputs.some((input) => input.file.path === loaded.file.path)
-		) {
-			replaced.push(loaded);
+		const byPath = new Map(inputs.map((input) => [input.file.path, input]));
+		if (loaded) byPath.set(loaded.file.path, loaded);
+		const ordered: NativeSearchInput[] = [];
+		const seen = new Set<string>();
+		for (const path of openPaths) {
+			const input = byPath.get(path);
+			if (input && input.offsets.length > 0) {
+				ordered.push(input);
+				seen.add(path);
+			}
 		}
-		return replaced.filter((input) => input.offsets.length > 0);
+		for (const input of byPath.values()) {
+			if (input.offsets.length > 0 && !seen.has(input.file.path)) {
+				ordered.push(input);
+			}
+		}
+		return ordered;
 	}
 
 	constructor(app: App) {
@@ -529,6 +537,11 @@ export class NativeSearchAdapter {
 	async search(options: NativeSearchOptions): Promise<void> {
 		const run = (this.activeRun += 1);
 		const loadedActiveInput = this.loadedActiveInput(options);
+		const openPaths = orderedOpenFilePaths(
+			this.app.workspace,
+			options.scopeFiles,
+			loadedActiveInput?.file.path ?? null,
+		);
 		if (loadedActiveInput) {
 			// The preview key is offset-based; an unsaved edit can change the text
 			// while leaving the same match count and last offset in place.
@@ -572,6 +585,7 @@ export class NativeSearchAdapter {
 		this.retained = this.preferLoadedInput(
 			this.mergeRetained([]),
 			loadedActiveInput,
+			openPaths,
 		);
 		options.onUpdate(this.publishPreview(this.retained, true));
 
@@ -601,6 +615,7 @@ export class NativeSearchAdapter {
 				this.retained = this.preferLoadedInput(
 					this.mergeRetained(attemptInputs),
 					loadedActiveInput,
+					openPaths,
 				);
 			}
 			const nativeScore = nativeMatchCount ?? totalOffsets;
@@ -664,6 +679,7 @@ export class NativeSearchAdapter {
 		const authoritativeInputs = this.preferLoadedInput(
 			nativeInputs,
 			loadedActiveInput,
+			openPaths,
 		);
 		const nativeMatchCount = view.dom?.getMatchCount?.();
 		if (
@@ -677,6 +693,7 @@ export class NativeSearchAdapter {
 			this.retained = this.preferLoadedInput(
 				this.mergeRetained(authoritativeInputs),
 				loadedActiveInput,
+				openPaths,
 			);
 			options.onUpdate(
 				this.publishPreview(
@@ -762,10 +779,22 @@ export class NativeSearchAdapter {
 			0,
 			Math.min(options.resumeFrom ?? 0, options.scopeFiles.length),
 		);
-		for (let index = start; index < options.scopeFiles.length; index += 1) {
+		const openPaths = orderedOpenFilePaths(
+			this.app.workspace,
+			options.scopeFiles,
+			authoritativeActiveInput?.file.path ?? null,
+		);
+		const openPathSet = new Set(openPaths);
+		const scanFiles = [
+			...openPaths
+				.map((path) => options.scopeFiles.find((file) => file.path === path))
+				.filter((file): file is TFile => file !== undefined),
+			...options.scopeFiles.filter((file) => !openPathSet.has(file.path)),
+		];
+		for (let index = start; index < scanFiles.length; index += 1) {
 			if (run !== this.activeRun) return [...inputsByPath.values()];
 			options.onProgress?.(index);
-			const file = options.scopeFiles[index];
+			const file = scanFiles[index];
 			if (!isContentSearchableFile(file)) continue;
 			let content: string;
 			try {

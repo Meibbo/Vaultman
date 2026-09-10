@@ -48,6 +48,7 @@
 		type ContentSortBy,
 		type ContentSortDirection,
 	} from '../../logic/logicContentPreview';
+	import { orderedOpenFilePaths } from '../../logic/logicContentOpenFiles';
 	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
 	import { openFileAtOffset } from '../../utils/openFileAtOffset';
 	import { sortDirectionGlyph } from '../../logic/logicSort';
@@ -617,6 +618,14 @@
 			contentPreviewResult?.files ?? [],
 			contentSortBy,
 			contentSortDirection,
+			{
+				activePath: activeContentFilePath,
+				openPaths: orderedOpenFilePaths(
+					plugin.app.workspace,
+					contentSearchScopeFiles(),
+					activeContentFilePath,
+				),
+			},
 		),
 	);
 	const collapsedContentPathSet = $derived(new Set(collapsedContentFilePaths));

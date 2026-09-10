@@ -57,4 +57,13 @@ describe('sortContentPreviewFiles', () => {
 			),
 		).toEqual(['a.md', 'm.md', 'z.md']);
 	});
+
+	it('pins the active file and then other open files ahead of the normal sort', () => {
+		expect(
+			sortContentPreviewFiles(entries, 'count', 'asc', {
+				activePath: 'z.md',
+				openPaths: ['z.md', 'a.md'],
+			}).map((entry) => entry.file.path),
+		).toEqual(['z.md', 'a.md', 'm.md']);
+	});
 });
