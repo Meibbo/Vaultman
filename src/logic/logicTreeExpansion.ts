@@ -16,6 +16,20 @@ export function collectExpandableSubtreeIds(root: TreeNode): string[] {
 	return expandableIds;
 }
 
+/** Toggle every expandable node in a subtree, including the pressed root. */
+export function toggleExpandableSubtreeIds(
+	root: TreeNode,
+	expandedIds: Set<string>,
+): { expanded: boolean; changedIds: string[] } {
+	const changedIds = collectExpandableSubtreeIds(root);
+	const expanded = !expandedIds.has(root.id);
+	for (const id of changedIds) {
+		if (expanded) expandedIds.add(id);
+		else expandedIds.delete(id);
+	}
+	return { expanded, changedIds };
+}
+
 export function expansionActionAvailable(
 	tab: ExplorerTabId,
 	visibleCells: readonly string[] | undefined,
