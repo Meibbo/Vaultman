@@ -49,6 +49,7 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain(
 			'tabLabelVisible: showTabsButtonLabel',
 		);
+		expect(navbarFiltersSource).toContain("activeSectionTab !== 'content'");
 	});
 
 	it('renders caller-provided header actions immediately after the tabs button', () => {

@@ -752,12 +752,13 @@
 		minimalStyle && toolbarOverflowStrategy === 'wrap',
 	);
 	const showSearchInput = $derived(
-		shouldShowMinimalSearchInput({
-			frameWidth,
-			minimalStyle,
-			searchExpanded,
-			tabLabelVisible: showTabsButtonLabel,
-		}),
+		activeSectionTab !== 'content' &&
+			shouldShowMinimalSearchInput({
+				frameWidth,
+				minimalStyle,
+				searchExpanded,
+				tabLabelVisible: showTabsButtonLabel,
+			}),
 	);
 
 	function measurePanelWidgetOverflow(): void {
