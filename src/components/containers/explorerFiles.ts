@@ -2120,7 +2120,11 @@ export class FilesExplorerPanel extends Component {
 	 * desincronizarse. Tambien es lo que da el repintado en vivo de U121-108.
 	 */
 	private _selectionCheckboxPosition(): 'start' | 'end' | 'hidden' {
-		if (this.interactionMode !== 'select') return 'hidden';
+		// U130-p2: el checkbox vive donde la celda `checkbox` este activa,
+		// tambien en `open` (seleccionar sin abrir la fila). Solo `filter` y
+		// `add` lo ocultan: ahi el click de la fila ya tiene otro dueno.
+		if (this.interactionMode === 'filter' || this.interactionMode === 'add')
+			return 'hidden';
 		if (!this.visibleCells.has('checkbox')) return 'hidden';
 		return this.plugin.settings.selectionCheckboxPosition ?? 'start';
 	}
@@ -2375,14 +2379,32 @@ export class FilesExplorerPanel extends Component {
 						anchorPath: anySelected ? this.selectionAnchorPath : id,
 					});
 				},
-				onSelectionToggle: (id: string, selected: boolean) => {
-					const next = new Set(this.selectedFilePaths);
-					if (selected) next.add(id);
-					else next.delete(id);
-					this._applyFileSelection({
-						selectedPaths: next,
-						anchorPath: selected ? id : this.selectionAnchorPath,
-					});
+				onSelectionToggle: (
+					id: string,
+					_selected: boolean,
+					event?: MouseEvent,
+				) => {
+					// U130-p2: el checkbox es un control de SELECCION, nunca de
+					// apertura: un click plano reemplaza la seleccion (el gesto
+					// `open` de updateFileSelection es seleccion unica, no abre
+					// nada aqui), Shift extiende el rango y Ctrl/Meta/Alt
+					// conmutan de forma aditiva. El `true` es el modo aditivo
+					// propio del checkbox, como en `add`: Ctrl/Meta tambien
+					// conmutan aqui en vez de abrir en pestana nueva.
+					const gesture = fileSelectionGesture(event ?? null, true);
+					const orderedIds =
+						gesture === 'range' ? this._orderedVisibleTreeIds() : [];
+					this._applyFileSelection(
+						updateFileSelection(
+							{
+								selectedPaths: this.selectedFilePaths,
+								anchorPath: this.selectionAnchorPath,
+							},
+							orderedIds,
+							id,
+							gesture,
+						),
+					);
 				},
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
@@ -4455,6 +4477,25 @@ export class FilesExplorerPanel extends Component {
 				.map((file) => file.path);
 		}
 		return this._lastFlatFiles.map((file) => file.id);
+	}
+
+	/**
+	 * U130-p2: orden visible de NODOS (archivos y carpetas) para el rango
+	 * del checkbox. `_orderedVisibleFilePaths` solo cubre archivos
+	 * (`node.meta.file` filtra las carpetas, cuyos ids son `folder:<path>`),
+	 * asi que un Shift+click sobre una carpeta caeria al fallback de
+	 * seleccion unica. El modelo de seleccion ya mezcla ambos en
+	 * `selectedFilePaths`, y el ancla de un click de fila (un path, que es
+	 * el id del nodo de archivo) tambien vive en esta lista, asi que los
+	 * dos caminos de ancla son compatibles.
+	 */
+	private _orderedVisibleTreeIds(): string[] {
+		return (
+			flattenVisibleTree(
+				this._lastRenderTree,
+				this.expandedIds,
+			) as TreeNode<FileMeta>[]
+		).map((node) => node.id);
 	}
 
 	private _applyFileSelection({
