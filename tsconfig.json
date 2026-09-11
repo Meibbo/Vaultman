@@ -20,6 +20,8 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
 		"paths": {
 			"@types/*": [
 				"./src/types/*"
@@ -47,6 +49,7 @@
 		"src/**/*.svelte",
 		"vitest.config.ts",
 		"esbuild.config.mjs",
+		"scripts/sync-test-build.mts",
 		"test/**/*.ts"
 	]
 }

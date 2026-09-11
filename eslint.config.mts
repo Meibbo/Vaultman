@@ -60,7 +60,7 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ['scripts/**/*.mjs', '*.mjs', '*.mts'],
+		files: ['scripts/**/*.mjs', 'scripts/**/*.mts', '*.mjs', '*.mts'],
 		languageOptions: {
 			globals: {
 				...globals.node,

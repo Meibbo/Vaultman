@@ -12,7 +12,7 @@
 	"scripts": {
 		"dev": "node scripts/build-styles.mjs && node esbuild.config.mjs",
 		"build:styles": "node scripts/build-styles.mjs",
-		"build": "pnpm run build:styles && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/sync-test-build.mjs",
+		"build": "pnpm run build:styles && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/sync-test-build.mts",
 		"build:plugin": "pnpm run build:styles && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node scripts/version-bump.mjs && git add manifest.json versions.json",
 		"release": "node scripts/release.mjs",

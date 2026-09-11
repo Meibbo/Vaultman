@@ -25,7 +25,7 @@ async function buildStyles() {
 
 	// 3. Assemble monolithic replacement
 	const header = `/* ==========================================================================
-   Vaultman Style System (UnoCSS + SOLID Modular SCSS)
+   Vaultman Style System (UnoCSS + Modular SCSS)
    Generated automatically via scripts/build-styles.mjs
    ========================================================================== */\n\n`;
 
@@ -34,7 +34,7 @@ async function buildStyles() {
 		.replace(/\[data-type=vaultman-frame\]/g, '[data-type="vaultman-frame"]')
 		.replace(/\[data-type=vaultman-view\]/g, '[data-type="vaultman-view"]');
 
-	await writeFile('./styles.css', finalCss, 'utf8');
+	await writeFile('./dist/build/styles.css', finalCss, 'utf8');
 	console.log(`✅ styles.css generated successfully (${Buffer.byteLength(finalCss, 'utf8')} bytes)`);
 }
 
