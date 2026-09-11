@@ -20,6 +20,15 @@ describe('U130-01 wiring de las move actions', () => {
 		}
 	});
 
+	it('Files expone la cancelacion generica y la especifica', () => {
+		const src = readFileSync(
+			new URL('../../src/components/containers/explorerFiles.ts', import.meta.url),
+			'utf8',
+		);
+		expect(src).toContain("'vaultman.move.cancel'");
+		expect(src).toContain("'vaultman.nodemove.cancel'");
+	});
+
 	it('los metodos originales siguen existiendo', () => {
 		const src = readFileSync(
 			new URL('../../src/components/containers/explorerProps.ts', import.meta.url),

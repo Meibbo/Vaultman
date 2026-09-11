@@ -1897,6 +1897,9 @@ export class FilesExplorerPanel extends Component {
 			'vaultman.nodemove.cancel': async () => {
 				this.cancelNodeMoveMode();
 			},
+			'vaultman.move.cancel': async () => {
+				this.cancelNodeMoveMode();
+			},
 			'vaultman.nodemove.toggleWrite': async () => {
 				this.toggleNodeMoveWrite();
 			},
