@@ -1032,15 +1032,7 @@
 
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
-  margin: 0;
-}
-
-.vaultman-selection-checkbox--start {
-  margin-inline-end: var(--size-2-2);
-}
-
-.vaultman-selection-checkbox--end {
-  margin-inline-start: var(--size-2-2);
+  margin: 0 var(--size-2-2);
 }
 
 .vaultman-node-table-row > .vaultman-selection-checkbox,
