@@ -950,6 +950,8 @@ body.vaultman-resizing {
   height: 0;
   overflow: visible;
   pointer-events: none;
+  background-color: var(--background-
+   secondary);
 }
 
 /* The tab surface paints no background of its own, so the pinned rows take the
