@@ -1030,9 +1030,17 @@
 	opacity: var(--icon-opacity, 0.5);
 }
 
-.vaultman-selection-checkbox {
+input.metadata-input-checkbox.vaultman-selection-checkbox {
   flex: 0 0 auto;
-  margin: 0 var(--size-2-2);
+  margin: 0;
+}
+
+.vaultman-selection-checkbox--start {
+  margin-inline-end: 0;
+}
+
+.vaultman-selection-checkbox--end {
+  margin-inline-start: 0;
 }
 
 .vaultman-node-table-row > .vaultman-selection-checkbox,
@@ -1046,12 +1054,19 @@
   inset-inline-start: var(--size-4-2);
 }
 
-.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
-  position: static;
-}
+// TODO // Meibbo: Visual bug that makes the caret overlap the checkbox when is activated. I'm not deleting
+// it yet, since that same position is where the caret should go when the option for the checkbox
+// is the very first cell in the row.
+//
+// .vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
+//   position: static;
+// }
 
 .vaultman-tree-row > .vaultman-selection-checkbox--start {
-  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+  position: static;
+  inset-inline-start: auto;
+  margin-inline-start: 0;
+  order: -1;
 }
 
 .vaultman-selection-checkbox--end {
