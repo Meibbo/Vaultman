@@ -34,9 +34,11 @@ describe('Niagara track math', () => {
 	it('doubles the held node and goes flat by the tenth neighbour', () => {
 		const pull = 38;
 		const held = niagaraNodeTransform(0, 25, -1, pull);
-		// Proportional, and amplified: pinning it to a fixed px took away the
-		// rail's ability to displace at all.
-		expect(Math.abs(held.perpendicular)).toBeCloseTo(2.5 * pull);
+		// Fixed, not proportional: the raw pull only says the gesture is on.
+		expect(Math.abs(held.perpendicular)).toBeCloseTo(120);
+		expect(
+			Math.abs(niagaraNodeTransform(0, 25, -1, pull * 4).perpendicular),
+		).toBeCloseTo(120);
 		// The epicentre is not displaced along the rail, so the horizontal
 		// component cannot change how far it sits from the finger.
 		expect(held.spread).toBeCloseTo(0);
@@ -56,7 +58,7 @@ describe('Niagara track math', () => {
 		const center = niagaraNodeTransform(0, 25, -1, 38);
 		expect(center).toEqual({
 			scale: 1.5,
-			perpendicular: -95,
+			perpendicular: -120,
 			spread: 0,
 		});
 
@@ -64,7 +66,7 @@ describe('Niagara track math', () => {
 		const gaussian = niagaraGaussian(distance, niagaraSigma(25));
 		const neighbour = niagaraNodeTransform(distance, 25, 1, 38);
 		expect(neighbour.scale).toBeCloseTo(1 + 0.5 * gaussian);
-		expect(neighbour.perpendicular).toBeCloseTo(95 * gaussian);
+		expect(neighbour.perpendicular).toBeCloseTo(120 * gaussian);
 		expect(neighbour.spread).toBeCloseTo(
 			7 * Math.tanh(distance / 1.5) * gaussian,
 		);

@@ -858,30 +858,12 @@ export function cellsForExplorer(
 	return REGISTRY.cellsForExplorer(explorer, viewMode);
 }
 
-/**
- * U121-081: the selection checkbox is a cell only while a selection can be
- * made. Both menu surfaces -- the view popup and the native menu -- come
- * through here, so the rule lives here once instead of being copied into each
- * of them and drifting.
- */
-function withoutUnavailableCells(
-	cells: ExplorerCellDef[],
-	selectionMode: boolean,
-): ExplorerCellDef[] {
-	if (selectionMode) return cells;
-	return cells.filter((definition) => definition.id !== 'checkbox');
-}
-
 export function viewMenuCells(
 	explorer: ExplorerTabId,
 	viewMode?: ExplorerViewMode,
 	activeCells?: Iterable<string>,
-	selectionMode = false,
 ): ExplorerCellDef[] {
-	return withoutUnavailableCells(
-		REGISTRY.viewMenuCells(explorer, viewMode, activeCells),
-		selectionMode,
-	);
+	return REGISTRY.viewMenuCells(explorer, viewMode, activeCells);
 }
 
 /**
@@ -894,8 +876,6 @@ export function viewMenuCells(
 export interface CellOrderOptions {
 	byActivation: boolean;
 	viewMode?: ExplorerViewMode;
-	/** U121-081: offer the selection checkbox only while `select` is active. */
-	selectionMode?: boolean;
 }
 
 /** Ids that this surface can actually show, in the requested order. */
@@ -946,13 +926,10 @@ export function cellMenuOrder(
 	visibleCells: readonly string[],
 	options: CellOrderOptions,
 ): CellMenuEntry[] {
-	const menuCells = withoutUnavailableCells(
-		REGISTRY.viewMenuCells(
-			explorer,
-			options.viewMode,
-			REGISTRY.normalizeVisibleCellIds(explorer, visibleCells, options.viewMode),
-		),
-		options.selectionMode === true,
+	const menuCells = REGISTRY.viewMenuCells(
+		explorer,
+		options.viewMode,
+		REGISTRY.normalizeVisibleCellIds(explorer, visibleCells, options.viewMode),
 	);
 	const byId = new Map(
 		menuCells.map((definition) => [definition.id, definition]),

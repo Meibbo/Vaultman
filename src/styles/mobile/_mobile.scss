@@ -1032,11 +1032,6 @@
 
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
-  /* U121-081: the gap the dev measured against the caret and, at `end`,
-     against the scrollbar was the SAME gap -- because this margin was
-     symmetric. It is the checkbox's own spacing, not anything external. It
-     now hugs the edge it is anchored to and keeps a small gap only on the
-     side that faces the rest of the cells. */
   margin: 0;
 }
 
@@ -1059,19 +1054,12 @@
   inset-inline-start: var(--size-4-2);
 }
 
-/* U121-081: the checkbox is the node's FIRST CELL, in flow, before the caret.
-   It pushes the caret and everything after it to the right, exactly the way
-   the caret pushes the rest when `nested` is on -- and it sits inside the
-   node, so it starts after that node's own indent like every other cell.
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
+  position: static;
+}
 
-   It is deliberately NOT positioned: an absolute checkbox leaves the flow, so
-   it cannot push anything, it stops sharing the row's `align-items: center`,
-   and it paints under the cells instead of beside them. That is also what the
-   2026-08-02 corrective-primitives plan forbids in so many words -- "guards
-   forbidding absolute frame-owned checkboxes". `--end` was never broken
-   precisely because it stayed in flow. */
 .vaultman-tree-row > .vaultman-selection-checkbox--start {
-  order: -1;
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
 }
 
 .vaultman-selection-checkbox--end {

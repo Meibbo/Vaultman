@@ -71,12 +71,14 @@
 	});
 
 	const currentPillDefs = $derived(
-		viewMenuCells(activeTab, activeView, activePills, selectionMode).map(
-			(definition) => ({
+		viewMenuCells(activeTab, activeView, activePills)
+			.filter(
+				(definition) => definition.id !== 'checkbox' || selectionMode === true,
+			)
+			.map((definition) => ({
 				id: definition.id,
 				labelKey: cellLabelKey(definition, activeTab, activeView),
-			}),
-		),
+			})),
 	);
 	const currentViewModes = $derived(viewModesForDataSurface(activeTab));
 

@@ -1363,7 +1363,6 @@
 			{
 				byActivation: orderCellsByActivation,
 				viewMode: activeView,
-				selectionMode: interactionModeByTab[activeTab] === 'select',
 			},
 		)) {
 			menu.addItem((item) => {
