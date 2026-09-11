@@ -55,7 +55,7 @@ import {
 	normalizeGlyphCustomColor,
 	type GlyphColorChoice,
 } from './logic/logicGlyphColor';
-import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
+// import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
 import { SasiInspectorModal } from './modals/modalSasiInspector';
@@ -316,18 +316,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 */
 	private getRootItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-		items.push({
-			type: 'page',
-			name: translate('settings.native_surface_click'),
-			desc: translate('settings.native_surface_click.desc'),
-			items: this.getNativeClickPageItems(),
-		});
 
 		items.push({
-			type: 'page',
-			name: translate('settings.node_note_prefixes'),
-			desc: translate('settings.node_note_prefixes.desc'),
-			items: this.getNodeNotePrefixPageItems(),
+			name: translate('settings.bypass_operations'),
+			desc: translate('settings.bypass_operations.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.bypassOperations)
+						.onChange(async (value) => {
+							this.plugin.settings.bypassOperations = value;
+							this.plugin.queueService?.setBypassOperations(value);
+							await this.plugin.saveSettings();
+							// The threshold row appears and disappears with this toggle.
+							this.update();
+						}),
+				);
+			},
 		});
 
 		items.push({
@@ -399,50 +404,32 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		items.push({
-			name: translate('settings.prop_move_conflict'),
-			desc: translate('settings.prop_move_conflict.desc'),
-			render: (setting: Setting) => {
-				setting.addDropdown((dropdown) =>
-					dropdown
-						.addOptions({
-							coerce: translate('settings.prop_move_conflict.coerce'),
-							block: translate('settings.prop_move_conflict.block'),
-							ask: translate('settings.prop_move_conflict.ask'),
-						})
-						// Normalized in both directions, so a stale persisted choice
-						// shows the default rather than an empty dropdown.
-						.setValue(
-							normalizePropMoveTypeConflict(
-								this.plugin.settings.propMoveTypeConflict,
-							),
-						)
-						.onChange(async (value) => {
-							this.plugin.settings.propMoveTypeConflict =
-								normalizePropMoveTypeConflict(value);
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
-
-		items.push({
-			name: translate('settings.bypass_operations'),
-			desc: translate('settings.bypass_operations.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.bypassOperations)
-						.onChange(async (value) => {
-							this.plugin.settings.bypassOperations = value;
-							this.plugin.queueService?.setBypassOperations(value);
-							await this.plugin.saveSettings();
-							// The threshold row appears and disappears with this toggle.
-							this.update();
-						}),
-				);
-			},
-		});
+		// items.push({
+		// 	name: translate('settings.prop_move_conflict'),
+		// 	desc: translate('settings.prop_move_conflict.desc'),
+		// 	render: (setting: Setting) => {
+		// 		setting.addDropdown((dropdown) =>
+		// 			dropdown
+		// 				.addOptions({
+		// 					coerce: translate('settings.prop_move_conflict.coerce'),
+		// 					block: translate('settings.prop_move_conflict.block'),
+		// 					ask: translate('settings.prop_move_conflict.ask'),
+		// 				})
+		// 				// Normalized in both directions, so a stale persisted choice
+		// 				// shows the default rather than an empty dropdown.
+		// 				.setValue(
+		// 					normalizePropMoveTypeConflict(
+		// 						this.plugin.settings.propMoveTypeConflict,
+		// 					),
+		// 				)
+		// 				.onChange(async (value) => {
+		// 					this.plugin.settings.propMoveTypeConflict =
+		// 						normalizePropMoveTypeConflict(value);
+		// 					await this.plugin.saveSettings();
+		// 				}),
+		// 		);
+		// 	},
+		// });
 
 		items.push({
 			name: translate('settings.style_config'),
@@ -463,21 +450,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			name: translate('settings.floating_toc'),
 			desc: translate('settings.floating_toc.desc'),
 			items: this.getFloatingTocPageItems(),
-		});
-
-		items.push({
-			name: translate('settings.text_search_intercepts'),
-			desc: translate('settings.text_search_intercepts.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
-						.onChange(async (value) => {
-							this.plugin.settings.textSearchInterceptsCoreSearch = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
 		});
 
 		items.push({
@@ -514,9 +486,16 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			name: translate('settings.files_hover_info'),
 			desc: translate('settings.files_hover_info.desc'),
 			items: this.getFilesHoverPageItems(),
-		});
+    });
 
 		items.push({
+			name: translate('settings.workspace_config'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+    });
+
+		items.push({    //Future Workspace Profiles
 			name: translate('settings.style_preset'),
 			desc: translate('settings.style_preset.desc'),
 			render: (setting: Setting) => {
@@ -538,7 +517,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 							this.update();
 						}),
 				);
-			},
+      },
+		});
+
+		items.push({    //Node-Note
+			type: 'page',
+			name: translate('settings.node_note_prefixes'),
+			desc: translate('settings.node_note_prefixes.desc'),
+			items: this.getNodeNotePrefixPageItems(),
+    });
+
+		items.push({    //WIR
+			type: 'page',
+			name: translate('settings.native_surface_click'),
+			desc: translate('settings.native_surface_click.desc'),
+			items: this.getNativeClickPageItems(),
 		});
 
 		if (!this.plugin.settings.minimalStyle) {
@@ -767,6 +760,83 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		return items;
 	}
 
+	/** Saved compositions of the explorer view. */
+	private getSavedLayoutItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.saved_view_config'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		const layouts = this.plugin.settings.savedLayouts ?? [];
+		if (layouts.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.saved_view_config.empty'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const layout of layouts) {
+			items.push({
+				name: layout.name,
+				desc: layout.summary,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: layout.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildSavedLayoutPreview(layout),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(
+									translate('settings.saved_view_config.activate_global'),
+								)
+								.setTooltip(
+									translate('settings.saved_view_config.activate_global_aria', {
+										name: layout.name,
+									}),
+								)
+								.onClick(async () => {
+									this.plugin.settings.activeLayoutName = layout.name;
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('settings.saved_view_config.clear'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.savedLayouts = (
+										this.plugin.settings.savedLayouts ?? []
+									).filter((entry) => entry.name !== layout.name);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
+
+
 	/** Operation sets and their queue-warning toggles. */
 	private getQueueTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
@@ -849,82 +919,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 										this.plugin.settings.queueTemplates.filter(
 											(item) => item.name !== template.name,
 										);
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						);
-				},
-			});
-		}
-		return items;
-	}
-
-	/** Saved compositions of the explorer view. */
-	private getSavedLayoutItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.saved_view_config'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		const layouts = this.plugin.settings.savedLayouts ?? [];
-		if (layouts.length === 0) {
-			items.push({
-				name: '',
-				desc: translate('settings.saved_view_config.empty'),
-				render: () => {},
-			});
-			return items;
-		}
-
-		for (const layout of layouts) {
-			items.push({
-				name: layout.name,
-				desc: layout.summary,
-				render: (setting: Setting) => {
-					setting
-						.addButton((button) =>
-							button
-								.setButtonText(translate('payload_preview.view'))
-								.setTooltip(
-									translate('payload_preview.view_aria', {
-										name: layout.name,
-									}),
-								)
-								.onClick(() =>
-									new PayloadPreviewModal(
-										this.app,
-										buildSavedLayoutPreview(layout),
-									).open(),
-								),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(
-									translate('settings.saved_view_config.activate_global'),
-								)
-								.setTooltip(
-									translate('settings.saved_view_config.activate_global_aria', {
-										name: layout.name,
-									}),
-								)
-								.onClick(async () => {
-									this.plugin.settings.activeLayoutName = layout.name;
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(translate('settings.saved_view_config.clear'))
-								.setWarning()
-								.onClick(async () => {
-									this.plugin.settings.savedLayouts = (
-										this.plugin.settings.savedLayouts ?? []
-									).filter((entry) => entry.name !== layout.name);
 									await this.plugin.saveSettings();
 									this.update();
 								}),
@@ -1282,21 +1276,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.stickyParentRows !== false)
 						.onChange(async (value) => {
 							this.plugin.settings.stickyParentRows = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
-
-		items.push({
-			name: translate('settings.reapply_hover_on_render'),
-			desc: translate('settings.reapply_hover_on_render.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.reapplyHoverOnRender !== false)
-						.onChange(async (value) => {
-							this.plugin.settings.reapplyHoverOnRender = value;
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -1763,7 +1742,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			items.push({
 				type: 'page',
 				name: translate(`settings.context_menu_kind.${kind}`),
-				desc: translate('settings.files_context_menu.desc'),
+				desc: translate(`settings.${kind}_context_menu.desc`),
 				items: this.getFilesContextMenuPageItems(kind),
 			});
 		}
@@ -1807,6 +1786,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.contextMenuShowInMoreOptions)
 						.onChange(async (value) => {
 							this.plugin.settings.contextMenuShowInMoreOptions = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+    });
+
+		items.push({
+			name: translate('settings.text_search_intercepts'),
+			desc: translate('settings.text_search_intercepts.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
+						.onChange(async (value) => {
+							this.plugin.settings.textSearchInterceptsCoreSearch = value;
 							await this.plugin.saveSettings();
 						}),
 				);

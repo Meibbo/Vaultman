@@ -2,6 +2,7 @@ export const es: Record<string, string> = {
 	'settings.native_surface_click': 'Acciones de click nativo',
 	'settings.native_surface_click.desc':
 		'Configura las acciones para click primario, Alt y modificadores.',
+	'settings.workspace_config': 'Configuración del espacio de trabajo',
 	'settings.node_note_prefixes': 'Prefijos de node-notes',
 	'settings.node_note_prefixes.desc':
 		'Configura los patrones usados para identificar node-notes.',

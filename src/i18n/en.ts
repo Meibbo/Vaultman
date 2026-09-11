@@ -2,6 +2,7 @@ export const en: Record<string, string> = {
 	'settings.native_surface_click': 'Native click actions',
 	'settings.native_surface_click.desc':
 		'Configure actions for primary, Alt and modifier clicks.',
+	'settings.workspace_config': 'Workspace Configs',
 	'settings.node_note_prefixes': 'Node-note prefixes',
 	'settings.node_note_prefixes.desc':
 		'Configure the patterns used to identify node-notes.',
