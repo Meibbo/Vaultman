@@ -470,9 +470,6 @@ export const es: Record<string, string> = {
 	'settings.sticky_parent_rows': 'Filas padre fijas',
 	'settings.sticky_parent_rows.desc':
 		'Mantiene visibles los nodos padre expandidos al recorrer su árbol.',
-	'settings.reapply_hover_on_render': 'Reaplicar hover al repintar la fila',
-	'settings.reapply_hover_on_render.desc':
-		'Reaplica el hover de Files cuando la virtualización o las filas fijas repintan una fila bajo el puntero.',
 	'settings.sticky_parent_rows_fraction':
 		'Límite de altura de las cabeceras fijadas',
 	'settings.sticky_parent_rows_fraction.desc':

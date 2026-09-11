@@ -62,11 +62,10 @@ describe('virtual scroll CSS source guards', () => {
 			)?.[0] ?? '';
 
 		expect(desktopCoreRowIndentBlock).toContain(
-			'padding-inline-start: var(--vaultman-tree-row-padding-start)',
+			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
 		expect(desktopCoreRowIndentBlock).toContain('padding-inline-end: 8px');
 		expect(desktopCoreRowIndentBlock).not.toContain('!important');
-		expect(stylesSource).toContain('.vaultman-tree-indent');
 	});
 
 	it('only adds top motion to virtual rows during expand collapse structure animation', () => {

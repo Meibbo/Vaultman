@@ -298,7 +298,7 @@
   align-items: center;
   gap: 5px;
   padding-block: 0;
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   height: 27px;
   margin-bottom: 1px;
@@ -318,7 +318,7 @@
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
 }
 
@@ -414,7 +414,7 @@
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
-  width: 0;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(
@@ -432,27 +432,6 @@
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
-}
-
-.vaultman-tree-indent {
-  flex: 0 0 auto;
-  align-self: stretch;
-  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  margin-inline-end: -5px;
-  pointer-events: none;
-}
-
-.vaultman-tree-nested-guides .vaultman-tree-indent {
-  opacity: 0.7;
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--vaultman-tree-indent-line-color) 0,
-    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
-    transparent var(--vaultman-tree-indent-line-width),
-    transparent var(--vaultman-tree-indent-unit)
-  );
-  background-size: var(--vaultman-tree-indent-unit) 100%;
-  background-repeat: repeat-x;
 }
 
 .vaultman-tree-row:hover {
@@ -486,7 +465,7 @@
   height: 37px;
   margin-bottom: 0;
   padding-block: 8px;
-  padding-inline-start: var(--vaultman-tree-row-padding-start);
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);

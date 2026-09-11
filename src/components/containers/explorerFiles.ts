@@ -1897,9 +1897,6 @@ export class FilesExplorerPanel extends Component {
 			'vaultman.nodemove.cancel': async () => {
 				this.cancelNodeMoveMode();
 			},
-			'vaultman.move.cancel': async () => {
-				this.cancelNodeMoveMode();
-			},
 			'vaultman.nodemove.toggleWrite': async () => {
 				this.toggleNodeMoveWrite();
 			},
@@ -2340,8 +2337,6 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
-			reapplyHoverOnRender:
-				this.plugin.settings.reapplyHoverOnRender !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
@@ -4681,8 +4676,6 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
-			reapplyHoverOnRender:
-				this.plugin.settings.reapplyHoverOnRender !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
