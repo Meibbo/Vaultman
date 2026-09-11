@@ -134,7 +134,7 @@ function parseArgs(argv: string[]): {
 	if (!layout) throw new Error('--layout no puede estar vacio');
 	const resolved =
 		pluginDir ||
-		process.env.VAULTMAN_PLUGIN_DIR ||
+		process.env.VAULTMAN_TARGET ||
 		path.join(os.homedir(), 'storage/shared/Documents', vault, '.obsidian/plugins/vaultman');
 	return {
 		vault,

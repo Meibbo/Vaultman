@@ -322,7 +322,7 @@ function parseOptions(args) {
 	if (!parsed.host) throw new Error('--host must not be empty');
 	const rawPluginDir =
 		parsed.pluginDir ||
-		process.env.VAULTMAN_PLUGIN_DIR ||
+		process.env.VAULTMAN_TARGET ||
 		path.join(
 			os.homedir(),
 			'storage/shared/Documents',
