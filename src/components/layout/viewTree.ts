@@ -61,7 +61,7 @@ export interface TreeViewOptions {
 	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
 	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
-	onSelectionToggle?: (id: string, selected: boolean) => void;
+	onSelectionToggle?: (id: string, selected: boolean, event?: MouseEvent) => void;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	editingId?: string | null;
@@ -1257,17 +1257,38 @@ export class UnifiedTreeView {
 				attr: { 'aria-label': `Select ${node.label}` },
 			});
 			checkbox.checked = isSelected;
-			checkbox.onclick = (event) => event.stopPropagation();
-			checkbox.onchange = (event) => {
+			// U130-p2: la seleccion se aplica en `click`, que es el unico
+			// evento que trae los modificadores (el `change` del checkbox no
+			// expone teclas). El `change` que sigue a cada click fisico se
+			// consume sin aplicar: sin esta bandera cada click aplicaria dos
+			// veces (click+change). El teclado tambien dispara `click` en el
+			// checkbox, asi que este camino cubre raton y teclado.
+			let selectionAppliedByClick = false;
+			checkbox.onclick = (event) => {
 				event.stopPropagation();
 				// U121-106: soltar tras una pulsacion larga dispara igualmente
-				// click+change. Sin esta guarda la seleccion recursiva se desharia
-				// acto seguido con el toggle normal.
+				// click+change. Sin esta guarda la seleccion recursiva se
+				// desharia acto seguido con el toggle normal.
+				if (this._recursiveSelectGesture.isActivationSuppressed()) {
+					event.preventDefault();
+					checkbox.checked = isSelected;
+					selectionAppliedByClick = true;
+					return;
+				}
+				selectionAppliedByClick = true;
+				opts.onSelectionToggle?.(node.id, checkbox.checked, event);
+			};
+			checkbox.onchange = (event) => {
+				event.stopPropagation();
+				if (selectionAppliedByClick) {
+					selectionAppliedByClick = false;
+					return;
+				}
 				if (this._recursiveSelectGesture.isActivationSuppressed()) {
 					checkbox.checked = isSelected;
 					return;
 				}
-				opts.onSelectionToggle?.(node.id, checkbox.checked);
+				opts.onSelectionToggle?.(node.id, checkbox.checked, undefined);
 			};
 			if (hasChildren && opts.onRecursiveSelect) {
 				bindLongPressGesture(checkbox, this._recursiveSelectGesture, () =>
