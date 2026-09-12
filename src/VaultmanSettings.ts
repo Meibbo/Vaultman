@@ -554,9 +554,33 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		items.push(...this.getFilterTemplateItems());
-		items.push(...this.getQueueTemplateItems());
-		items.push(...this.getSavedLayoutItems());
+		items.push({
+			name: translate('settings.vaultman_sets'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+    });
+
+		items.push({
+			type: 'page',
+			name: translate('settings.templates'),
+			desc: translate('settings.templates.desc'),
+			items: this.getFilterTemplateItems(),
+		});
+
+		items.push({
+			type: 'page',
+			name: translate('settings.saved_view_config'),
+			desc: translate('settings.saved_view_config.desc'),
+			items: this.getSavedLayoutItems(),
+		});
+
+		items.push({
+			type: 'page',
+			name: translate('settings.queue.template.templates'),
+			desc: translate('settings.queue.template.templates.desc'),
+			items: this.getQueueTemplateItems(),
+		});
 
 		items.push({
 			name: translate('settings.addons'),
@@ -609,9 +633,218 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			desc: translate('settings.developer.desc'),
 			items: this.getDeveloperPageItems(),
 		});
+
 		return items;
 	}
 
+	/** Saved filter templates: preview the payload or drop the template. */
+	private getFilterTemplateItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		const templates = this.plugin.settings.filterTemplates;
+		if (templates.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.templates.desc'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const template of templates) {
+			items.push({
+				name: template.name,
+				desc: `${template.root.children.length} filters`,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: template.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildFilterTemplatePreview(template),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('filter.template.delete'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.filterTemplates =
+										this.plugin.settings.filterTemplates.filter(
+											(item) => item.name !== template.name,
+										);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
+
+	/** Saved compositions of the explorer view. */
+	private getSavedLayoutItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		const layouts = this.plugin.settings.savedLayouts ?? [];
+		if (layouts.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.saved_view_config.empty'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const layout of layouts) {
+			items.push({
+				name: layout.name,
+				desc: layout.summary,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: layout.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildSavedLayoutPreview(layout),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(
+									translate('settings.saved_view_config.activate_global'),
+								)
+								.setTooltip(
+									translate('settings.saved_view_config.activate_global_aria', {
+										name: layout.name,
+									}),
+								)
+								.onClick(async () => {
+									this.plugin.settings.activeLayoutName = layout.name;
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('settings.saved_view_config.clear'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.savedLayouts = (
+										this.plugin.settings.savedLayouts ?? []
+									).filter((entry) => entry.name !== layout.name);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
+
+
+	/** Operation sets and their queue-warning toggles. */
+	private getQueueTemplateItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.bulk_operation_warning'),
+			desc: translate('settings.bulk_operation_warning.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						// The setting stores the suppression; the toggle shows the warning.
+						.setValue(!this.plugin.settings.suppressBulkOperationWarning)
+						.onChange(async (value) => {
+							this.plugin.settings.suppressBulkOperationWarning = !value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.queue_warn_supersede'),
+			desc: translate('settings.queue_warn_supersede.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.queueWarnOnSupersede)
+						.onChange(async (value) => {
+							this.plugin.settings.queueWarnOnSupersede = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		const templates = this.plugin.settings.queueTemplates;
+		if (templates.length === 0) {
+			items.push({
+				name: '',
+				desc: translate('settings.queue_templates.desc'),
+				render: () => {},
+			});
+			return items;
+		}
+
+		for (const template of templates) {
+			items.push({
+				name: template.name,
+				desc: `${template.changes.length} operations`,
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) =>
+							button
+								.setButtonText(translate('payload_preview.view'))
+								.setTooltip(
+									translate('payload_preview.view_aria', {
+										name: template.name,
+									}),
+								)
+								.onClick(() =>
+									new PayloadPreviewModal(
+										this.app,
+										buildQueueTemplatePreview(template),
+									).open(),
+								),
+						)
+						.addButton((button) =>
+							button
+								.setButtonText(translate('filter.template.delete'))
+								.setWarning()
+								.onClick(async () => {
+									this.plugin.settings.queueTemplates =
+										this.plugin.settings.queueTemplates.filter(
+											(item) => item.name !== template.name,
+										);
+									await this.plugin.saveSettings();
+									this.update();
+								}),
+						);
+				},
+			});
+		}
+		return items;
+	}
 	private getDeveloperPageItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
 
@@ -696,236 +929,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		return items;
-	}
-
-	/** Saved filter templates: preview the payload or drop the template. */
-	private getFilterTemplateItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.templates'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		const templates = this.plugin.settings.filterTemplates;
-		if (templates.length === 0) {
-			items.push({
-				name: '',
-				desc: translate('settings.templates.desc'),
-				render: () => {},
-			});
-			return items;
-		}
-
-		for (const template of templates) {
-			items.push({
-				name: template.name,
-				desc: `${template.root.children.length} filters`,
-				render: (setting: Setting) => {
-					setting
-						.addButton((button) =>
-							button
-								.setButtonText(translate('payload_preview.view'))
-								.setTooltip(
-									translate('payload_preview.view_aria', {
-										name: template.name,
-									}),
-								)
-								.onClick(() =>
-									new PayloadPreviewModal(
-										this.app,
-										buildFilterTemplatePreview(template),
-									).open(),
-								),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(translate('filter.template.delete'))
-								.setWarning()
-								.onClick(async () => {
-									this.plugin.settings.filterTemplates =
-										this.plugin.settings.filterTemplates.filter(
-											(item) => item.name !== template.name,
-										);
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						);
-				},
-			});
-		}
-		return items;
-	}
-
-	/** Saved compositions of the explorer view. */
-	private getSavedLayoutItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.saved_view_config'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		const layouts = this.plugin.settings.savedLayouts ?? [];
-		if (layouts.length === 0) {
-			items.push({
-				name: '',
-				desc: translate('settings.saved_view_config.empty'),
-				render: () => {},
-			});
-			return items;
-		}
-
-		for (const layout of layouts) {
-			items.push({
-				name: layout.name,
-				desc: layout.summary,
-				render: (setting: Setting) => {
-					setting
-						.addButton((button) =>
-							button
-								.setButtonText(translate('payload_preview.view'))
-								.setTooltip(
-									translate('payload_preview.view_aria', {
-										name: layout.name,
-									}),
-								)
-								.onClick(() =>
-									new PayloadPreviewModal(
-										this.app,
-										buildSavedLayoutPreview(layout),
-									).open(),
-								),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(
-									translate('settings.saved_view_config.activate_global'),
-								)
-								.setTooltip(
-									translate('settings.saved_view_config.activate_global_aria', {
-										name: layout.name,
-									}),
-								)
-								.onClick(async () => {
-									this.plugin.settings.activeLayoutName = layout.name;
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(translate('settings.saved_view_config.clear'))
-								.setWarning()
-								.onClick(async () => {
-									this.plugin.settings.savedLayouts = (
-										this.plugin.settings.savedLayouts ?? []
-									).filter((entry) => entry.name !== layout.name);
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						);
-				},
-			});
-		}
-		return items;
-	}
-
-
-	/** Operation sets and their queue-warning toggles. */
-	private getQueueTemplateItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('queue.template.templates'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		items.push({
-			name: translate('settings.bulk_operation_warning'),
-			desc: translate('settings.bulk_operation_warning.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						// The setting stores the suppression; the toggle shows the warning.
-						.setValue(!this.plugin.settings.suppressBulkOperationWarning)
-						.onChange(async (value) => {
-							this.plugin.settings.suppressBulkOperationWarning = !value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
-
-		items.push({
-			name: translate('settings.queue_warn_supersede'),
-			desc: translate('settings.queue_warn_supersede.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.queueWarnOnSupersede)
-						.onChange(async (value) => {
-							this.plugin.settings.queueWarnOnSupersede = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
-
-		const templates = this.plugin.settings.queueTemplates;
-		if (templates.length === 0) {
-			items.push({
-				name: '',
-				desc: translate('settings.queue_templates.desc'),
-				render: () => {},
-			});
-			return items;
-		}
-
-		for (const template of templates) {
-			items.push({
-				name: template.name,
-				desc: `${template.changes.length} operations`,
-				render: (setting: Setting) => {
-					setting
-						.addButton((button) =>
-							button
-								.setButtonText(translate('payload_preview.view'))
-								.setTooltip(
-									translate('payload_preview.view_aria', {
-										name: template.name,
-									}),
-								)
-								.onClick(() =>
-									new PayloadPreviewModal(
-										this.app,
-										buildQueueTemplatePreview(template),
-									).open(),
-								),
-						)
-						.addButton((button) =>
-							button
-								.setButtonText(translate('filter.template.delete'))
-								.setWarning()
-								.onClick(async () => {
-									this.plugin.settings.queueTemplates =
-										this.plugin.settings.queueTemplates.filter(
-											(item) => item.name !== template.name,
-										);
-									await this.plugin.saveSettings();
-									this.update();
-								}),
-						);
-				},
-			});
-		}
 		return items;
 	}
 
