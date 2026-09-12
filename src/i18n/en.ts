@@ -43,7 +43,7 @@ export const en: Record<string, string> = {
 	'plugin.description': 'Bulk property editor and vault management tool',
 	'plugin.open': 'Open Vaultman',
 	'common.cancel': 'Cancel',
-	'icon.not_found': 'not found',
+	'icon.not_found': '??', //add tooltip that says 'not found'
 	'iconic.change_icon': 'Change icon',
 
 	// Sections

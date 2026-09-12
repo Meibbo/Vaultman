@@ -575,7 +575,7 @@
 }
 
 .vaultman-search-highlight {
-  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 12%, var(--vaultman-row-bg-base, transparent));
   color: var(--text-normal);
 }
 
@@ -681,7 +681,11 @@
 
 .vaultman-tree-row.is-selected,
 .vaultman-file-table-row.is-selected {
-	background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+	background-color: color-mix(in srgb, var(--interactive-accent) 12%, var(--vaultman-row-bg-base, transparent));
+
+	&:hover {
+		background-color: color-mix(in srgb, var(--text-normal) 6%, color-mix(in srgb, var(--interactive-accent) 12%, var(--vaultman-row-bg-base, transparent)));
+	}
 }
 
 .vaultman-files-grid-card-icon,

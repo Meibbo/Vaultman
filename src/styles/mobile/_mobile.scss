@@ -831,7 +831,7 @@
 	background-color: color-mix(
 		in srgb,
 		var(--vaultman-glyph-color),
-		transparent 80%
+		var(--vaultman-row-bg-base, transparent) 80%
 	);
 }
 
@@ -839,7 +839,7 @@
 .vaultman-tag-card.is-excluded-filter,
 .vaultman-node-table-row.is-excluded-filter,
 .vaultman-tree-row.is-excluded-filter {
-	background-color: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	background-color: color-mix(in srgb, var(--text-normal) 8%, var(--vaultman-row-bg-base, transparent));
 	border-color: var(--text-normal);
 	color: var(--text-normal);
 	box-shadow: inset 2px 0 0 0 var(--text-normal);
@@ -850,14 +850,14 @@
 .vaultman-tag-card.is-excluded-filter:hover,
 .vaultman-node-table-row.is-excluded-filter:hover,
 .vaultman-tree-row.is-excluded-filter:hover {
-	background-color: color-mix(in srgb, var(--text-normal) 12%, transparent);
+	background-color: color-mix(in srgb, var(--text-normal) 12%, var(--vaultman-row-bg-base, transparent));
 }
 
 .vaultman-prop-card.is-deletion-highlight,
 .vaultman-tag-card.is-deletion-highlight,
 .vaultman-node-table-row.is-deletion-highlight,
 .vaultman-tree-row.is-deletion-highlight {
-  background-color: color-mix(in srgb, var(--text-error) 10%, transparent);
+  background-color: color-mix(in srgb, var(--text-error) 10%, var(--vaultman-row-bg-base, transparent));
   color: var(--text-normal);
   box-shadow: inset 2px 0 0 0 var(--text-error);
 }

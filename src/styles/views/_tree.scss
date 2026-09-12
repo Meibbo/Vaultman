@@ -881,6 +881,7 @@ body.vaultman-resizing {
 }
 
 .vaultman-tree-row {
+  --vaultman-row-bg-base: transparent;
   position: relative;
   display: flex;
   align-items: center;
@@ -897,6 +898,7 @@ body.vaultman-resizing {
   box-sizing: border-box;
   overflow: hidden;
   color: var(--text-muted);
+  background-color: var(--vaultman-row-bg-base);
   transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
 
   /* Sharp UI Fixes */
@@ -950,8 +952,6 @@ body.vaultman-resizing {
   height: 0;
   overflow: visible;
   pointer-events: none;
-  background-color: var(--background-
-   secondary);
 }
 
 /* The tab surface paints no background of its own, so the pinned rows take the
@@ -975,11 +975,67 @@ body.vaultman-resizing {
   left: 0;
   right: 0;
   pointer-events: auto;
-  background-color: var(--background-secondary);
+  --vaultman-row-bg-base: var(--background-secondary);
+  background-color: var(--vaultman-row-bg-base);
+
+  /* Sticky cell highlights: all states blend against --vaultman-row-bg-base
+     to produce fully opaque, solid colors that prevent scrolling rows beneath
+     from showing through while preserving the full visual fidelity of highlights. */
+  &.is-selected {
+    background-color: color-mix(in srgb, var(--interactive-accent) 12%, var(--vaultman-row-bg-base));
+  }
+
+  &.is-active-filter {
+    background-color: color-mix(in srgb, var(--color-accent) 8%, var(--vaultman-row-bg-base));
+    box-shadow: inset 2px 0 0 0 var(--color-accent);
+  }
+
+  &.is-excluded-filter {
+    background-color: color-mix(in srgb, var(--text-normal) 8%, var(--vaultman-row-bg-base));
+  }
+
+  &.is-deletion-highlight {
+    background-color: color-mix(in srgb, var(--text-error, var(--color-red)) 10%, var(--vaultman-row-bg-base));
+  }
+
+  &.vaultman-search-highlight {
+    background-color: color-mix(in srgb, var(--color-accent) 12%, var(--vaultman-row-bg-base));
+  }
+}
+
+/* High-specificity hover rules for sticky rows to override Obsidian core's
+   semi-transparent body:not(.is-grabbing) .tree-item-self.is-clickable:hover */
+body:not(.is-grabbing) .vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is-clickable:hover,
+.vaultman-tree-sticky-layer .vaultman-tree-row--sticky:hover {
+  background-color: color-mix(in srgb, var(--text-normal) 6%, var(--vaultman-row-bg-base));
+  color: var(--text-normal);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, var(--vaultman-row-bg-base));
+
+  &.is-selected {
+    background-color: color-mix(in srgb, var(--text-normal) 6%, color-mix(in srgb, var(--interactive-accent) 12%, var(--vaultman-row-bg-base)));
+  }
+
+  &.is-active-filter {
+    background-color: color-mix(in srgb, var(--text-normal) 6%, color-mix(in srgb, var(--color-accent) 8%, var(--vaultman-row-bg-base)));
+    box-shadow: inset 2px 0 0 0 var(--color-accent), inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, var(--vaultman-row-bg-base));
+  }
+
+  &.is-excluded-filter {
+    background-color: color-mix(in srgb, var(--text-normal) 12%, var(--vaultman-row-bg-base));
+  }
+
+  &.is-deletion-highlight {
+    background-color: color-mix(in srgb, var(--text-normal) 6%, color-mix(in srgb, var(--text-error, var(--color-red)) 10%, var(--vaultman-row-bg-base)));
+  }
+
+  &.vaultman-search-highlight {
+    background-color: color-mix(in srgb, var(--text-normal) 6%, color-mix(in srgb, var(--color-accent) 12%, var(--vaultman-row-bg-base)));
+  }
 }
 
 .workspace-split.mod-root .vaultman-tree-sticky-layer .vaultman-tree-row--sticky {
-  background-color: var(--background-primary);
+  --vaultman-row-bg-base: var(--background-primary);
+  background-color: var(--vaultman-row-bg-base);
 }
 
 /* Only the row the stack currently ends on carries the separator, so a nested
@@ -1025,10 +1081,11 @@ body.vaultman-resizing {
   display: none;
 }
 
+body:not(.is-grabbing) .vaultman-tree-row.is-clickable:hover,
 .vaultman-tree-row:hover {
-  background-color: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  background-color: color-mix(in srgb, var(--text-normal) 6%, var(--vaultman-row-bg-base, transparent));
   color: var(--text-normal);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-normal) 8%, var(--vaultman-row-bg-base, transparent));
 }
 
 /* Hover actions remain in the badge zone's normal flex flow. The zone is
@@ -1126,7 +1183,7 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 }
 
 .vaultman-tree-row.is-active-filter {
-  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  background-color: color-mix(in srgb, var(--color-accent) 8%, var(--vaultman-row-bg-base, transparent));
   color: var(--text-normal);
   box-shadow: inset 2px 0 0 0 var(--color-accent);
   /* Inset doesn't push */
