@@ -7,7 +7,6 @@ import {
 	Notice,
 	TFile,
 	setIcon,
-	setTooltip,
 } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
@@ -38,7 +37,7 @@ import {
 	type OperationTarget,
 } from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
-import { cellTooltipText } from '../../logic/logicCellTooltip';
+import { applyCellTooltip } from '../../logic/logicCellTooltip';
 import { openFileAtOffset } from '../../utils/openFileAtOffset';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
@@ -1803,9 +1802,7 @@ export class TagsExplorerPanel extends Component {
 				cls: 'vaultman-tree-count',
 				text: String(node.count),
 			});
-			const tooltip = cellTooltipText('tags', 'grid', 'count');
-			countCell.setAttribute('aria-label', tooltip);
-			setTooltip(countCell, tooltip);
+			applyCellTooltip(countCell, 'tags', 'grid', 'count');
 		}
 	}
 

@@ -31,7 +31,8 @@ describe('BT5-034 the tooltip is ready before the pointer arrives', () => {
 	});
 
 	it('wires every surface that owns a configurable tooltip', () => {
-		expect(explorerFilesSource).toContain('rowTooltip: (node');
+		expect(explorerFilesSource).not.toContain('rowTooltip: (node');
+		expect(explorerFilesSource).toContain('onRowHover: (id: string, row: HTMLElement)');
 		for (const source of [explorerPluginsSource, explorerSnippetsSource]) {
 			expect(source).toContain('rowTooltip: (node');
 		}

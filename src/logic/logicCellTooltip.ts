@@ -1,3 +1,4 @@
+import { setTooltip } from 'obsidian';
 import { translate } from '../i18n/index';
 import type { ExplorerTabId, ExplorerViewMode } from '../types/typeUI';
 import { cellDef, cellLabelKey } from './logicCellRegistry';
@@ -40,5 +41,24 @@ export function cellTooltipText(
 	if (!cellTooltipKind(cellId)) return '';
 	const definition = cellDef(cellId);
 	if (!definition) return '';
+	const supported = definition.supports.some(
+		(support) =>
+			support.explorer === explorer &&
+			(!support.viewModes || support.viewModes.includes(viewMode)),
+	);
+	if (!supported) return '';
 	return translate(cellLabelKey(definition, explorer, viewMode));
+}
+
+export function applyCellTooltip(
+	element: HTMLElement,
+	explorer: ExplorerTabId,
+	viewMode: ExplorerViewMode,
+	cellId: string,
+): void {
+	const text = cellTooltipText(explorer, viewMode, cellId);
+	element.removeAttribute('title');
+	if (!text) return;
+	element.setAttribute('aria-label', text);
+	setTooltip(element, text);
 }

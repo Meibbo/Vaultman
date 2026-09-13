@@ -6,7 +6,7 @@ import type {
 	TreeNodeCell,
 } from '../../types/typeTree';
 import type { ExplorerTabId } from '../../types/typeUI';
-import { cellTooltipText } from '../../logic/logicCellTooltip';
+import { applyCellTooltip as applySharedCellTooltip } from '../../logic/logicCellTooltip';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import {
 	resolveExplorerHighlight,
@@ -919,13 +919,11 @@ export class UnifiedTreeView {
 		cellId: string,
 		opts: TreeViewOptions,
 	): void {
-		const text = opts.surface
-			? cellTooltipText(opts.surface, 'tree', cellId)
-			: '';
-		element.removeAttribute('title');
-		if (!text) return;
-		element.setAttribute('aria-label', text);
-		setTooltip(element, text);
+		if (opts.surface) {
+			applySharedCellTooltip(element, opts.surface, 'tree', cellId);
+		} else {
+			element.removeAttribute('title');
+		}
 	}
 
 	private nodeDataPath(node: TreeNode): string | null {

@@ -1,4 +1,4 @@
-import { Platform, setIcon, setTooltip, type TFile } from 'obsidian';
+import { Platform, setIcon, type TFile } from 'obsidian';
 import { formatFileTableName } from '../../logic/logicTableLayout';
 import type { ExplorerFileTimes } from '../../logic/logicSort';
 import type { NodeBadge } from '../../types/typeTree';
@@ -14,7 +14,7 @@ import {
 } from '../../logic/logicResponsiveLayout';
 import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
 import { renderIconValue } from '../../utils/renderIconValue';
-import { cellTooltipText } from '../../logic/logicCellTooltip';
+import { applyCellTooltip } from '../../logic/logicCellTooltip';
 
 export interface FilesGridViewCallbacks {
 	onContextMenu: (file: TFile, event: MouseEvent) => void;
@@ -524,11 +524,7 @@ export class FilesGridView {
 	}
 
 	private applyCellTooltip(element: HTMLElement, cellId: string): void {
-		const tooltip = cellTooltipText('files', 'grid', cellId);
-		element.removeAttribute('title');
-		if (!tooltip) return;
-		element.setAttribute('aria-label', tooltip);
-		setTooltip(element, tooltip);
+		applyCellTooltip(element, 'files', 'grid', cellId);
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {

@@ -6,7 +6,6 @@ import {
 	Notice,
 	prepareSimpleSearch,
 	setIcon,
-	setTooltip,
 } from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
@@ -31,7 +30,7 @@ import {
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
 } from '../../logic/logicNodeTypeFilters';
-import { cellTooltipText } from '../../logic/logicCellTooltip';
+import { applyCellTooltip } from '../../logic/logicCellTooltip';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -1914,9 +1913,7 @@ export class PropsExplorerPanel extends Component {
 				cls: 'vaultman-tree-count',
 				text: String(node.count),
 			});
-			const tooltip = cellTooltipText('props', 'grid', 'count');
-			countCell.setAttribute('aria-label', tooltip);
-			setTooltip(countCell, tooltip);
+			applyCellTooltip(countCell, 'props', 'grid', 'count');
 		}
 	}
 
