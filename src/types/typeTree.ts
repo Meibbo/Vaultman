@@ -144,6 +144,16 @@ export interface FileMeta {
 	isFolder: boolean;
 	folderPath: string;
 	hasNodeNote?: boolean;
+	/**
+	 * Spec 08 §2, "Compact folders": set only on a folder row that merged a
+	 * run of single-child folders (VS Code's compact folders). Each entry is
+	 * one merged folder's own name, in order; `node.label` is already their
+	 * `join('/')`. `folderPath`/`folder` point at the DEEPEST folder in the
+	 * chain -- rename, context menu, drag-drop and click all act on it.
+	 * Per-segment interaction (VS Code lets you target any single segment) is
+	 * not implemented.
+	 */
+	compactedSegments?: string[];
 }
 
 export interface SnippetMeta {

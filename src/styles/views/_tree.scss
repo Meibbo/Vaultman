@@ -1216,3 +1216,20 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   max-width: 100%;
   margin-right: auto;
 }
+
+/* Spec 08 §2, "Compact folders": a merged single-child-folder chain renders
+   as its segments joined by a thin separator inside one `.vaultman-tree-label`.
+   Only the deepest segment (the one that is actually the operable folder)
+   gets full-strength text color; the rest read as breadcrumb context. */
+.vaultman-tree-compact-sep {
+  margin: 0 0.15em;
+  color: var(--text-faint);
+}
+
+.vaultman-tree-compact-segment {
+  color: var(--text-muted);
+}
+
+.vaultman-tree-compact-segment:last-child {
+  color: inherit;
+}

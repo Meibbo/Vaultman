@@ -57,6 +57,11 @@ export interface BuildFileTreeOptions {
 	 * projection itself removed.
 	 */
 	emptyFolderCarets?: boolean;
+	/**
+	 * Spec 08 §2, engine `tree`: merge runs of single-child folders into one
+	 * row (VS Code's "compact folders"). Only meaningful with `nested`.
+	 */
+	compactFolders?: boolean;
 	compareNodes?: (
 		a: TreeNode<FileMeta>,
 		b: TreeNode<FileMeta>,
@@ -255,11 +260,12 @@ export class FilesLogic {
 					folderNode.showCaret = false;
 			}
 		}
-		return this.sortFileTreeNodes(root, {
+		const sorted = this.sortFileTreeNodes(root, {
 			...options,
 			parentsFirst,
 			fixedFolders,
 		});
+		return options.compactFolders ? compactFolderChains(sorted) : sorted;
 	}
 
 	/**
@@ -404,4 +410,58 @@ function rebaseFolderInfo(
 		}
 	}
 	return null;
+}
+
+/**
+ * Spec 08 §2, "Compact folders": merges a run of folders that each have
+ * EXACTLY one child, itself a folder, into a single row -- VS Code's compact
+ * folders. Mirrors `CompressedObjectTreeModel.compress` (vscode base/browser/
+ * ui/tree): keep absorbing the sole child while `children.length === 1` AND
+ * that child is a folder (a file, or 0/2+ children, stops the chain -- a
+ * folder is never merged with a lone FILE child, only with a lone SUBFOLDER).
+ *
+ * Runs AFTER sort, so a chain's order already reflects the active sort. The
+ * merged row keeps the DEEPEST folder's id/meta (rename, context menu,
+ * drag-drop and click all act on it); only the label becomes the joined
+ * path. Per-segment interaction (VS Code lets you target any single segment)
+ * is not implemented -- see `FileMeta.compactedSegments`.
+ */
+function compactFolderChains(
+	nodes: TreeNode<FileMeta>[],
+): TreeNode<FileMeta>[] {
+	const shiftDepth = (list: TreeNode<FileMeta>[] | undefined, by: number): void => {
+		if (!list || by === 0) return;
+		for (const child of list) {
+			child.depth -= by;
+			shiftDepth(child.children, by);
+		}
+	};
+
+	const compactOne = (node: TreeNode<FileMeta>): TreeNode<FileMeta> => {
+		if (!node.meta?.isFolder) return node;
+
+		const segments = [node.label];
+		let tail = node;
+		while (tail.children?.length === 1 && tail.children[0].meta?.isFolder) {
+			tail = tail.children[0];
+			segments.push(tail.label);
+		}
+		if (tail === node) return node;
+
+		shiftDepth(tail.children, tail.depth - node.depth);
+		return {
+			...tail,
+			label: segments.join('/'),
+			depth: node.depth,
+			meta: { ...tail.meta, compactedSegments: segments },
+		};
+	};
+
+	return nodes.map((node) => {
+		const merged = compactOne(node);
+		if (merged.children?.length) {
+			merged.children = compactFolderChains(merged.children);
+		}
+		return merged;
+	});
 }

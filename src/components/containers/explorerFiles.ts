@@ -2321,6 +2321,9 @@ export class FilesExplorerPanel extends Component {
 									// only content is files is a leaf here. Its caret
 									// would open onto the level the projection removed.
 									emptyFolderCarets: !foldersOnly,
+									// Spec 08 §2: view_option of the `tree` engine, gated on
+									// `nested` same as the rest of them.
+									compactFolders: this.compactFoldersOverride ?? false,
 									...this._treeOrderingOptions(),
 								},
 							),
@@ -2747,6 +2750,29 @@ export class FilesExplorerPanel extends Component {
 					);
 				}
 			};
+			return true;
+		}
+
+		// Spec 08 §2, "Compact folders": a merged single-child-folder chain
+		// renders as its segments joined by a separator span instead of one
+		// plain label. Click/rename/context-menu/drag-drop all still act on
+		// the row as a whole (the deepest folder, per `meta.folderPath`) --
+		// per-segment targeting is not implemented.
+		if (meta.isFolder && meta.compactedSegments?.length) {
+			const label = container.createSpan({ cls: 'vaultman-tree-label' });
+			if (node.labelColor) label.style.color = node.labelColor;
+			meta.compactedSegments.forEach((segment, index) => {
+				if (index > 0) {
+					label.createSpan({
+						cls: 'vaultman-tree-compact-sep',
+						text: '/',
+					});
+				}
+				label.createSpan({
+					cls: 'vaultman-tree-compact-segment',
+					text: segment,
+				});
+			});
 			return true;
 		}
 
