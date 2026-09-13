@@ -72,6 +72,24 @@ describe('U121-027 typing-path performance guard', () => {
 		).toBe('reorder');
 	});
 
+	it('tracks Tags so refreshed counts patch while ordered and reposition when needed', () => {
+		expect(isTrackedPrimarySort('tags')).toBe(true);
+		expect(
+			resolveStatsChangeAction({
+				...typingBurst,
+				primarySort: 'tags',
+				needsReorder: () => false,
+			}),
+		).toBe('patch');
+		expect(
+			resolveStatsChangeAction({
+				...typingBurst,
+				primarySort: 'tags',
+				needsReorder: () => true,
+			}),
+		).toBe('reorder');
+	});
+
 	it('a layout with nothing statistics-driven on screen ignores the change outright', () => {
 		expect(
 			resolveStatsChangeAction({

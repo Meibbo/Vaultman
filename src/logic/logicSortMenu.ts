@@ -73,6 +73,7 @@ export const SORT_MENU_OPTIONS: Record<
 		{ id: 'file-count', icon: 'lucide-files', labelKey: 'stats.files' },
 		{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.props' },
 		{ id: 'words', icon: 'lucide-text', labelKey: 'sort.by.words' },
+		{ id: 'tags', icon: 'lucide-tags', labelKey: 'sort.by.tags' },
 		{ id: 'tasks', icon: 'lucide-square-check', labelKey: 'sort.by.tasks' },
 		{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
 		{

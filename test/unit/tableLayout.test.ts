@@ -43,7 +43,7 @@ describe('file table layout', () => {
 		});
 	});
 
-	it('places the non-sortable tags count between words and extension', () => {
+	it('places the sortable tags count between words and extension', () => {
 		const layout = resolveFileTableLayout(new Set(['name', 'words', 'tags', 'ext']));
 
 		expect(layout.columns.map((column) => [column.id, column.dataProperty])).toEqual([
@@ -52,7 +52,7 @@ describe('file table layout', () => {
 			['tags', 'vaultman.tags'],
 			['ext', 'file.ext'],
 		]);
-		expect(layout.columns[2]?.sortColumn).toBeUndefined();
+		expect(layout.columns[2]?.sortColumn).toBe('tags');
 	});
 
 	it('keeps optional icon and count columns stable without shrinking text columns', () => {

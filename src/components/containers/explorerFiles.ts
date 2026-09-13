@@ -1011,6 +1011,7 @@ export class FilesExplorerPanel extends Component {
 				name: 'name',
 				count: 'props',
 				words: 'words',
+				tags: 'tags',
 				tasks: 'tasks',
 				ext: 'ext',
 				mtime: 'mtime',
@@ -1230,6 +1231,7 @@ export class FilesExplorerPanel extends Component {
 				name: 'name',
 				count: 'props',
 				words: 'words',
+				tags: 'tags',
 				tasks: 'tasks',
 				ext: 'ext',
 				mtime: 'mtime',
@@ -1284,6 +1286,8 @@ export class FilesExplorerPanel extends Component {
 				countForFile: (file) => this._propCountForFile(file),
 				wordCountForFile: (file) =>
 					this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
+				tagCountForFile: (file) =>
+					this.plugin.statisticsCache.getFileTagCount(file) ?? 0,
 				taskCountForFile: (file) =>
 					this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
@@ -1312,6 +1316,8 @@ export class FilesExplorerPanel extends Component {
 					countForFile: (file) => this._propCountForFile(file),
 					wordCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
+					tagCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileTagCount(file) ?? 0,
 					taskCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 					getFileTimes: (file) =>
@@ -1335,6 +1341,11 @@ export class FilesExplorerPanel extends Component {
 			if (sortBy === 'words') {
 				return node.meta.file
 					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
+					: 0;
+			}
+			if (sortBy === 'tags') {
+				return node.meta.file
+					? (this.plugin.statisticsCache.getFileTagCount(node.meta.file) ?? 0)
 					: 0;
 			}
 			if (sortBy === 'tasks') {
@@ -1368,6 +1379,7 @@ export class FilesExplorerPanel extends Component {
 				'count',
 				'sub',
 				'words',
+				'tags',
 				'tasks',
 				'mtime',
 				'ctime',
@@ -3130,7 +3142,10 @@ export class FilesExplorerPanel extends Component {
 
 	private _usesStatisticsSort(): boolean {
 		return Object.values(this.sortState.sorts).some(
-			(sort) => sort?.sortBy === 'words' || sort?.sortBy === 'tasks',
+			(sort) =>
+				sort?.sortBy === 'words' ||
+				sort?.sortBy === 'tags' ||
+				sort?.sortBy === 'tasks',
 		);
 	}
 
@@ -3159,14 +3174,17 @@ export class FilesExplorerPanel extends Component {
 		// File times and Last opened resolve synchronously, so a time-sorted
 		// snapshot is always complete (U121-027).
 		this.lastStatisticsSortComplete =
-			sortBy === 'words' || sortBy === 'tasks'
+			sortBy === 'words' || sortBy === 'tags' || sortBy === 'tasks'
 				? files.every(
 						(file) =>
-							file.extension !== 'md' ||
-							(sortBy === 'words'
-								? this.plugin.statisticsCache.getFileWordCount(file)
-								: this.plugin.statisticsCache.getFileRemainingTasks(file)) !==
-								null,
+							sortBy === 'tags'
+								? this.plugin.statisticsCache.getFileTagCount(file) !== null
+								: file.extension !== 'md' ||
+									(sortBy === 'words'
+										? this.plugin.statisticsCache.getFileWordCount(file)
+										: this.plugin.statisticsCache.getFileRemainingTasks(
+												file,
+											)) !== null,
 					)
 				: true;
 	}
@@ -3184,6 +3202,8 @@ export class FilesExplorerPanel extends Component {
 					countForFile: (file) => this._propCountForFile(file),
 					wordCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileWordCount(file),
+					tagCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileTagCount(file),
 					taskCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileRemainingTasks(file),
 					getFileTimes: (file) =>

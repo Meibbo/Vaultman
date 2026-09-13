@@ -56,6 +56,12 @@ describe('explorer sort helpers', () => {
 		expect(nextExplorerSortDirection('tasks', 'desc', 'tasks')).toBe('asc');
 	});
 
+	it('defaults Tags to descending, then toggles to ascending', () => {
+		expect(DEFAULT_EXPLORER_SORT_DIR.tags).toBe('desc');
+		expect(nextExplorerSortDirection('name', 'asc', 'tags')).toBe('desc');
+		expect(nextExplorerSortDirection('tags', 'desc', 'tags')).toBe('asc');
+	});
+
 	it('defaults semantic State and Type sorts to their meaningful directions', () => {
 		expect(DEFAULT_EXPLORER_SORT_DIR.state).toBe('desc');
 		expect(DEFAULT_EXPLORER_SORT_DIR.type).toBe('asc');
@@ -140,6 +146,28 @@ describe('explorer sort helpers', () => {
 			'Notes/a-long.md',
 			'Notes/b-long.md',
 			'Notes/z-short.md',
+		]);
+	});
+
+	it('sorts files by cached tag count with null as zero and a stable path tie-breaker', () => {
+		const untagged = makeFile('Notes/z-untagged.md', { ctime: 1, mtime: 1 });
+		const taggedA = makeFile('Notes/a-tagged.md', { ctime: 1, mtime: 1 });
+		const taggedB = makeFile('Notes/b-tagged.md', { ctime: 1, mtime: 1 });
+		const tags = new Map<TFile, number | null>([
+			[untagged, null],
+			[taggedA, 3],
+			[taggedB, 3],
+		]);
+		const sorted = [untagged, taggedB, taggedA].sort((a, b) =>
+			compareFilesForExplorer(a, b, 'tags', 'desc', {
+				tagCountForFile: (file) => tags.get(file),
+			}),
+		);
+
+		expect(sorted.map((file) => file.path)).toEqual([
+			'Notes/a-tagged.md',
+			'Notes/b-tagged.md',
+			'Notes/z-untagged.md',
 		]);
 	});
 

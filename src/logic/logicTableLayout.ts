@@ -12,6 +12,7 @@ export type FileTableSortColumn =
 	| 'name'
 	| 'props'
 	| 'words'
+	| 'tags'
 	| 'path'
 	| 'mtime'
 	| 'ctime'
@@ -129,7 +130,8 @@ function columnMetadata(
 		return { sortColumn: 'props', dataProperty: 'vaultman.props' };
 	if (id === 'words')
 		return { sortColumn: 'words', dataProperty: 'vaultman.words' };
-	if (id === 'tags') return { dataProperty: 'vaultman.tags' };
+	if (id === 'tags')
+		return { sortColumn: 'tags', dataProperty: 'vaultman.tags' };
 	if (id === 'ext')
 		return {
 			sortColumn: 'ext',

@@ -9,6 +9,7 @@ export type ExplorerFileSortBy =
 	| 'ext'
 	| 'path'
 	| 'words'
+	| 'tags'
 	| 'tasks'
 	| 'mtime'
 	| 'ctime'
@@ -22,6 +23,7 @@ export interface ExplorerFileTimes {
 export interface ExplorerFileSortOptions {
 	countForFile?: (file: TFile) => number;
 	wordCountForFile?: (file: TFile) => number | null | undefined;
+	tagCountForFile?: (file: TFile) => number | null | undefined;
 	taskCountForFile?: (file: TFile) => number | null | undefined;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	/** BT5-013: null means the file was never opened. */
@@ -43,6 +45,7 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		count: 'desc',
 		props: 'desc',
 		words: 'desc',
+		tags: 'desc',
 		tasks: 'desc',
 		mtime: 'desc',
 		ctime: 'desc',
@@ -133,6 +136,10 @@ export function compareFilesForExplorer(
 		result =
 			(options.wordCountForFile?.(a) ?? 0) -
 			(options.wordCountForFile?.(b) ?? 0);
+	} else if (normalizedSortBy === 'tags') {
+		result =
+			(options.tagCountForFile?.(a) ?? 0) -
+			(options.tagCountForFile?.(b) ?? 0);
 	} else if (normalizedSortBy === 'tasks') {
 		result =
 			(options.taskCountForFile?.(a) ?? 0) -
