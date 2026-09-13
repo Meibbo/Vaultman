@@ -31,6 +31,7 @@ export type SortColumn =
 	| 'name'
 	| 'props'
 	| 'words'
+	| 'tags'
 	| 'tasks'
 	| 'path'
 	| 'mtime'
@@ -784,6 +785,7 @@ export class GridView {
 						return Object.keys(fm).filter((k) => k !== 'position').length;
 					},
 					wordCountForFile: this.callbacks.getWordCount,
+					tagCountForFile: this.callbacks.getTagCount,
 					taskCountForFile: this.callbacks.getTaskCount,
 					getFileTimes: this.callbacks.getFileTimes,
 				},

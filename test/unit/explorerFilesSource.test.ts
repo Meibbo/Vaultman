@@ -173,6 +173,7 @@ describe('FilesExplorerPanel source guards', () => {
 
 	it('keeps statistics sorting owned by the panel across Table mounts and header clicks', () => {
 		expect(explorerFilesSource).toContain("words: 'words'");
+		expect(explorerFilesSource).toContain("tags: 'tags'");
 		expect(explorerFilesSource).toContain(
 			'onSortChange: (column, direction) =>',
 		);
@@ -180,6 +181,22 @@ describe('FilesExplorerPanel source guards', () => {
 			"column === 'props' ? 'count' : column",
 		);
 		expect(explorerFilesSource).toContain('this._warmStatisticsCache()');
+	});
+
+	it('sorts and incrementally reorders every Files surface by cached tag count', () => {
+		const tagComparatorUsages =
+			explorerFilesSource.match(/tagCountForFile:/g) ?? [];
+		expect(tagComparatorUsages).toHaveLength(3);
+		expect(explorerFilesSource).toContain(
+			"sort?.sortBy === 'words' ||\n\t\t\t\tsort?.sortBy === 'tags' ||\n\t\t\t\tsort?.sortBy === 'tasks'",
+		);
+		expect(explorerFilesSource).toContain(
+			"sortBy === 'words' || sortBy === 'tags' || sortBy === 'tasks'",
+		);
+		expect(explorerFilesSource).toContain(
+			"sortBy === 'tags'\n\t\t\t\t\t\t\t\t? this.plugin.statisticsCache.getFileTagCount(file)",
+		);
+		expect(explorerFilesSource).toContain("if (sortBy === 'tags')");
 	});
 
 	it('prioritizes visible statistics and only reorders when refreshed keys cross neighbors', () => {

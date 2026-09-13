@@ -20,6 +20,7 @@
  */
 const TRACKED_PRIMARY_SORTS = new Set([
 	'words',
+	'tags',
 	'tasks',
 	'mtime',
 	'ctime',

@@ -1078,6 +1078,7 @@ export const en: Record<string, string> = {
 	'sort.by.count': 'Count',
 	'sort.by.props': 'Props',
 	'sort.by.words': 'Words',
+	'sort.by.tags': 'Tags',
 	'sort.by.date': 'Date',
 	'sort.by.modified': 'Modified time',
 	'sort.by.created': 'Created time',

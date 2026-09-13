@@ -970,6 +970,7 @@ export const es: Record<string, string> = {
 	'sort.by.count': 'Cantidad',
 	'sort.by.props': 'Props',
 	'sort.by.words': 'Palabras',
+	'sort.by.tags': 'Etiquetas',
 	'sort.by.date': 'Fecha',
 	'sort.by.modified': 'Modificación',
 	'sort.by.created': 'Creación',

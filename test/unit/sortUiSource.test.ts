@@ -163,6 +163,7 @@ describe('explorer sort UI source', () => {
 		expect(SORT_MENU_OPTIONS.files).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ id: 'words', labelKey: 'sort.by.words' }),
+				expect.objectContaining({ id: 'tags', labelKey: 'sort.by.tags' }),
 				expect.objectContaining({ id: 'tasks', labelKey: 'sort.by.tasks' }),
 			]),
 		);
@@ -172,7 +173,7 @@ describe('explorer sort UI source', () => {
 		);
 		expect(filesSource).toContain('private _usesStatisticsSort(): boolean');
 		expect(filesSource).toMatch(
-			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,120}sort\?\.sortBy === 'tasks'/,
+			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,180}sort\?\.sortBy === 'tags'[\s\S]{0,80}sort\?\.sortBy === 'tasks'/,
 		);
 		expect(filesSource).toMatch(/\.ensureFileStats\(\s*files,\s*\{/);
 		expect(filesSource).toContain(
@@ -181,6 +182,8 @@ describe('explorer sort UI source', () => {
 		expect(filesSource).toContain('node.meta.file?.name ?? node.label');
 		expect(en['sort.by.words']).toBe('Words');
 		expect(es['sort.by.words']).toBe('Palabras');
+		expect(en['sort.by.tags']).toBe('Tags');
+		expect(es['sort.by.tags']).toBe('Etiquetas');
 	});
 
 	it('keeps Remaining Tasks sorting wired when Files uses Table view', () => {
@@ -194,6 +197,17 @@ describe('explorer sort UI source', () => {
 		expect(filesSource.match(/tasks:\s*'tasks'/g)).toHaveLength(2);
 		expect(filesSource).toContain(
 			'getTaskCount: (file: TFile) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileRemainingTasks(file)',
+		);
+	});
+
+	it('keeps Tags sorting wired when Files uses Table view', () => {
+		expect(viewGridSource).toContain("| 'tags'");
+		expect(viewGridSource).toContain(
+			'tagCountForFile: this.callbacks.getTagCount',
+		);
+		expect(filesSource.match(/tags:\s*'tags'/g)).toHaveLength(2);
+		expect(filesSource).toContain(
+			'getTagCount: (file: TFile) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileTagCount(file)',
 		);
 	});
 });
