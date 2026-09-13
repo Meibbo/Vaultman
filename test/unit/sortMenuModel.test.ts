@@ -27,9 +27,10 @@ describe('BT5-007 shared sort menu model', () => {
 			stateFor('files', { parentsFirst: true, fixedFolders: false }),
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
+		// Spec 08 §3.4: `filtered` ya no vive aquí -- se movió a su propio
+		// lugar en `openNativeSortMenu`, cerca de `By type` (ver
+		// `sortUiSource.test.ts` para ese guard).
 		expect(enabled?.items.map((item) => item.id)).toEqual([
-			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
-			'filtered',
 			'scope-separator',
 			'drill',
 			'all',
@@ -42,8 +43,6 @@ describe('BT5-007 shared sort menu model', () => {
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
-			// U121-052: `filtered` encabeza el grupo, como en Props y Tags.
-			'filtered',
 			'scope-separator',
 			'drill',
 			'all',
@@ -55,13 +54,10 @@ describe('BT5-007 shared sort menu model', () => {
 		// Scopes are always in the sort menu (guard removed per spec 08).
 		expect(
 			byLevelModel('files', stateFor('files'))?.items.map((i) => i.id),
-		).toEqual(['filtered', 'scope-separator', 'drill', 'all', 'groups']);
-		// U121-052: `files` gana `filtered` y, por el mismo motivo que ya se
-		// documenta debajo para los node providers, NO se condiciona al anidado:
-		// estrechar el conjunto de origen tambien significa algo en plano.
+		).toEqual(['scope-separator', 'drill', 'all', 'groups']);
 		expect(
 			byLevelModel('tags', stateFor('tags'))?.items.map((i) => i.id),
-		).toEqual(['filtered', 'scope-separator', 'drill', 'all', 'groups']);
+		).toEqual(['scope-separator', 'drill', 'all', 'groups']);
 		// A flat view (table/cards) has no By-level group at all.
 		expect(byLevelModel('files', stateFor('files'), false)).toBeNull();
 		expect(byLevelModel('tags', stateFor('tags'), false)).toBeNull();
@@ -74,7 +70,6 @@ describe('BT5-007 shared sort menu model', () => {
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(props?.items.map((item) => item.id)).toEqual([
-			'filtered',
 			'scope-separator',
 			'all',
 			'properties',
@@ -91,7 +86,6 @@ describe('BT5-007 shared sort menu model', () => {
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(tags?.items.map((item) => item.id)).toEqual([
-			'filtered',
 			'scope-separator',
 			'drill',
 			'all',
@@ -109,6 +103,59 @@ describe('BT5-007 shared sort menu model', () => {
 				(item) => item.id,
 			),
 		).toEqual(['scope-separator', 'all', 'groups']);
+	});
+
+	it('pins the add-property toggle to the reveal drawer, last by default', () => {
+		// Without an anchored note there is no in-list add row, so no toggle.
+		expect(
+			byLevelModel('props', stateFor('props'))?.items.map((i) => i.id),
+		).not.toContain('addPropertyFirst');
+		const revealed = byLevelModel(
+			'props',
+			stateFor('props'),
+			true,
+			true,
+		);
+		expect(revealed?.items.map((i) => i.id)).toContain('addPropertyFirst');
+		expect(
+			revealed?.items.find((i) => i.id === 'addPropertyFirst'),
+		).toMatchObject({
+			kind: 'toggle',
+			labelKey: 'sort.level.add_property_first',
+			checked: false,
+		});
+		const first = byLevelModel(
+			'props',
+			stateFor('props', { addPropertyFirst: true }),
+			true,
+			true,
+		);
+		expect(
+			first?.items.find((i) => i.id === 'addPropertyFirst'),
+		).toMatchObject({ checked: true });
+	});
+
+	it('normalizes the add-property pin as a strict boolean for props', () => {
+		expect(
+			normalizeExplorerSortState('props', {
+				sorts: {},
+				activeScope: 'all',
+				addPropertyFirst: true,
+			}).addPropertyFirst,
+		).toBe(true);
+		expect(
+			normalizeExplorerSortState('props', {
+				sorts: {},
+				activeScope: 'all',
+				addPropertyFirst: 'yes',
+			}).addPropertyFirst,
+		).toBe(false);
+		expect(
+			normalizeExplorerSortState('props', {
+				sorts: {},
+				activeScope: 'all',
+			}).addPropertyFirst,
+		).toBe(false);
 	});
 
 	it('shares contextual sort visibility and option registries', () => {
@@ -207,8 +254,8 @@ describe('BT5-007 shared sort menu model', () => {
 	});
 
 	// U121-029: while a note is anchored the drawer leads with the two modes
-	// that decide *which* note, separated from everything below that shapes the
-	// level. `filtered` sits with Nested, deliberately without a divider.
+	// that decide *which* note, separated from everything below that shapes
+	// the level. Spec 08 §3.4 moved `filtered` out of this block entirely.
 	it('leads with the reveal anchor modes only while a note is anchored', () => {
 		const withReveal = byLevelModel(
 			'props',
@@ -221,7 +268,7 @@ describe('BT5-007 shared sort menu model', () => {
 			'reveal-current-file',
 			'reveal-drill',
 			'reveal-separator',
-			'filtered',
+			'addPropertyFirst',
 			'scope-separator',
 			'all',
 			'properties',

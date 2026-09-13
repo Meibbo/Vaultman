@@ -1846,7 +1846,10 @@
 		if (!label) return base;
 		const chars = [...label];
 		const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
-		return base.replace(/drill\s*$/i, short);
+		// Spec 08 §5: the label is now "Select a parent", which has no
+		// trailing word to regex-replace the way the old "Scope: drill" did.
+		// Append the picked node's short name instead.
+		return `${base}: ${short}`;
 	}
 
 	function addByLevelItems(
@@ -1975,6 +1978,31 @@
 				});
 			}
 		}
+
+		// Spec 08 §3.4, items 10-11: `Filtered` sits on its own, right before
+		// the (not yet built) `custom sorts` submenu and `By type`.
+		if (
+			activeTab === 'props' ||
+			activeTab === 'tags' ||
+			activeTab === 'files'
+		) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('sort.level.filtered'))
+					.setIcon('lucide-filter')
+					.setChecked(current.filtered === true)
+					.onClick(() =>
+						handleFilterChange({
+							...current,
+							filtered: !(current.filtered === true),
+						}),
+					);
+			});
+		}
+		// TODO(spec-08 §3.4 item 12): a `custom sorts` submenu belongs right
+		// here. Not this initiative's scope -- left as a pointer for whoever
+		// builds it next.
 
 		const nodeTypeOptions = nodeTypeOptionsForActiveTab();
 		if (nodeTypeOptions.length > 0) {

@@ -928,6 +928,7 @@ export const en: Record<string, string> = {
 	'ops.add_property': 'Add property',
 	'ops.add_property.unavailable':
 		'Adding a property needs the inline key editor, which is not built yet.',
+	'ops.add_property.empty': 'Type a property name first.',
 	'ops.linter.desc':
 		'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
 	'ops.linter.run': 'Run Linter',
@@ -1145,6 +1146,7 @@ export const en: Record<string, string> = {
 	'content.copy_unavailable': 'Core search is unavailable in this vault.',
 	'sort.level.nested': 'Nested',
 	'sort.level.filtered': 'Filtered',
+	'sort.level.add_property_first': 'Add property first',
 	'sort.reveal.current_file': 'Current file',
 	'sort.reveal.drill': 'Pin a note',
 	'sort.reveal.pick_hint':
@@ -1162,7 +1164,7 @@ export const en: Record<string, string> = {
 	'sort.level.properties': 'Properties',
 	'sort.level.values': 'Values',
 	'sort.level.all': 'All levels',
-	'sort.level.drill': 'Scope: drill',
+	'sort.level.drill': 'Select a parent',
 	'sort.level.groups': 'Groups',
 	'sort.level.pick_hint': 'Click a row to choose its level as the sort scope',
 	'sort.vertcol.node_level': 'Toggle node level',

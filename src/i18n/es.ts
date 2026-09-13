@@ -143,6 +143,7 @@ export const es: Record<string, string> = {
 	'ops.add_property': 'Agregar propiedad',
 	'ops.add_property.unavailable':
 		'Agregar una propiedad necesita el editor de clave inline, que aún no existe.',
+	'ops.add_property.empty': 'Escribe primero un nombre de propiedad.',
 
 	// Property manager
 	'prop.title': 'Gestor de Propiedades',
@@ -1038,6 +1039,7 @@ export const es: Record<string, string> = {
 		'La búsqueda de Obsidian no está disponible en esta bóveda.',
 	'sort.level.nested': 'Anidado',
 	'sort.level.filtered': 'Filtrado',
+	'sort.level.add_property_first': 'Agregar propiedad primero',
 	'sort.reveal.current_file': 'Archivo actual',
 	'sort.reveal.drill': 'Anclar una nota',
 	'sort.reveal.pick_hint':
@@ -1056,7 +1058,7 @@ export const es: Record<string, string> = {
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',
-	'sort.level.drill': 'Scope: drill',
+	'sort.level.drill': 'Seleccionar un padre',
 	'sort.level.groups': 'Grupos',
 	'sort.level.pick_hint': 'Mantén pulsada una fila para elegir el scope drill',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',

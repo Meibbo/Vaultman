@@ -174,7 +174,7 @@ interface ByLevelBaseItem {
 
 export interface ByLevelToggleItem extends ByLevelBaseItem {
 	kind: 'toggle';
-	id: 'nested' | 'parentsFirst' | 'fixedFolders' | 'filtered';
+	id: 'nested' | 'parentsFirst' | 'fixedFolders' | 'filtered' | 'addPropertyFirst';
 }
 
 /**
@@ -222,8 +222,11 @@ interface SortScopeMenuOption {
  */
 const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
 	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
+	// Spec 08 §5: renamed to "Select a parent" in the UI; the symbol
+	// (`SortScopeKey = 'drill'`) and this labelKey are NOT reimplemented,
+	// only the icon and the translated string change.
 	drill: {
-		icon: 'lucide-mouse-pointer-click',
+		icon: 'lucide-crosshair',
 		labelKey: 'sort.level.drill',
 	},
 	properties: { icon: 'lucide-list-tree', labelKey: 'sort.level.properties' },
@@ -283,13 +286,21 @@ export function byLevelModel(
 		);
 	}
 
-	if (tab === 'props' || tab === 'tags' || tab === 'files') {
+	// Spec 08 §3.4: `Filtered` moved out of this block -- it now sits near
+	// the end of the sort_menu, right before the `custom sorts` placeholder
+	// and the `By type` submenu (see `openNativeSortMenu`), not up here with
+	// the scope items.
+
+	// The synthetic "+ Add property" row only exists while a note is
+	// revealed, so its pin toggle lives next to the reveal radios rather
+	// than as a global props option.
+	if (tab === 'props' && revealActive) {
 		items.push({
 			kind: 'toggle',
-			id: 'filtered',
-			icon: 'lucide-filter',
-			labelKey: 'sort.level.filtered',
-			checked: state.filtered === true,
+			id: 'addPropertyFirst',
+			icon: 'lucide-list-plus',
+			labelKey: 'sort.level.add_property_first',
+			checked: state.addPropertyFirst === true,
 		});
 	}
 
