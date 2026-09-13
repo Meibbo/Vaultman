@@ -71,13 +71,6 @@
 		fab.action?.();
 	}
 
-	function triggerFabDoubleClick(fab: FabDef, e: MouseEvent): void {
-		e.preventDefault();
-		e.stopPropagation();
-		if (fab.locked) return;
-		fab.doubleClickAction?.();
-	}
-
 	function fabIndicator(fab: FabDef): FabIndicator {
 		return resolveFabIndicator({
 			badge: fab.badge,
@@ -163,7 +156,6 @@
 					aria-label={fabLabel(leftFab)}
 					aria-disabled={leftFab.locked ? 'true' : undefined}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
-					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(leftFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(leftFab, e);
 					}}
@@ -236,7 +228,6 @@
 					aria-label={fabLabel(rightFab)}
 					aria-disabled={rightFab.locked ? 'true' : undefined}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
-					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(rightFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(rightFab, e);
 					}}
@@ -278,7 +269,6 @@
 					aria-label={fabLabel(leftFab)}
 					use:icon={leftFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
-					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(leftFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(leftFab, e);
 					}}
@@ -348,7 +338,6 @@
 					aria-label={fabLabel(rightFab)}
 					use:icon={rightFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
-					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(rightFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(rightFab, e);
 					}}

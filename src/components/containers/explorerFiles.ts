@@ -146,6 +146,7 @@ import {
 } from '../../logic/logicFileIcons';
 import {
 	fileSelectionGesture,
+	toggleDescendantSelection,
 	updateFileSelection,
 } from '../../logic/logicNodeSelection';
 import {
@@ -170,6 +171,7 @@ import {
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
+	resolveRecursiveInteractionAction,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import {
@@ -2476,10 +2478,16 @@ export class FilesExplorerPanel extends Component {
 				onToggle: (id: string) => {
 					this._toggleFolderWithStickyAnchor(id);
 				},
-				onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, this.projectedNodes(renderTree)),
-				onRowDoubleClick: (id: string) =>
-					this._expandSubtree(id, this.projectedNodes(renderTree)),
+			onRecursiveExpand: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, this.projectedNodes(renderTree)),
+			onRowDoubleClick: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, this.projectedNodes(renderTree)),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, renderTree);
@@ -3008,6 +3016,22 @@ export class FilesExplorerPanel extends Component {
 			expanded ? undefined : { type: 'collapse-node', id },
 		);
 		this._refreshTreeExpansion(id, changedIds);
+	}
+
+	/**
+	 * U130 gestures: `hold` / double click on `input: select` toggles every
+	 * descendant of the node in this instance's own selection. Never opens,
+	 * never expands, never queues a file operation.
+	 */
+	private _toggleDescendantSelection(id: string): void {
+		const node = this._findNode(id, this._lastRenderTree);
+		if (!node?.children?.length) return;
+		const prev = this.selectedFilePaths;
+		const next = toggleDescendantSelection(node, prev);
+		this._applyFileSelection({
+			selectedPaths: next,
+			anchorPath: next.size > prev.size ? id : this.selectionAnchorPath,
+		});
 	}
 
 	private _refreshTreeExpansion(

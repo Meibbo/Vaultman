@@ -49,6 +49,7 @@
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
 	import { defaultVisibleCells } from './logic/logicCellRegistry';
 	import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
+	import { ClickBurstGesture } from './utils/clickBurstGesture';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -281,7 +282,6 @@
 					badge: 'queue',
 					warningCount: queueWarningCount,
 					action: () => openQueueLauncher(),
-					doubleClickAction: () => clearQueueQuick(),
 				},
 				right: {
 					icon: 'lucide-sparkles',
@@ -298,14 +298,12 @@
 					badge: 'queue',
 					warningCount: queueWarningCount,
 					action: () => openQueueLauncher(),
-					doubleClickAction: () => clearQueueQuick(),
 				},
 				right: {
 					icon: 'lucide-filter',
 					label: translate('filters.active'),
 					badge: 'filters',
 					action: () => openFiltersLauncher(),
-					doubleClickAction: () => clearActiveFilters(),
 				},
 			},
 		};
@@ -1144,32 +1142,22 @@
 	}
 
 	type LauncherKey = 'filters' | 'queue';
-	const launcherTimers: Partial<Record<LauncherKey, number>> = {};
+	// U130 gestures: single shared burst coordinator for the launcher double-
+	// click grammar. Same target inside the window resolves to exactly one
+	// secondary gesture; slow pairs stay two primaries (event timestamps
+	// decide, not a throttled timer), and teardown cancels without late fires.
+	const launcherBursts = new ClickBurstGesture(undefined, 180);
 
 	function handleLauncherClick(
 		key: LauncherKey,
 		singleClick: () => void,
 		doubleClick: () => void,
 	): void {
-		const existing = launcherTimers[key];
-		if (existing !== undefined) {
-			window.clearTimeout(existing);
-			delete launcherTimers[key];
-			doubleClick();
-			return;
-		}
-		launcherTimers[key] = window.setTimeout(() => {
-			delete launcherTimers[key];
-			singleClick();
-		}, 180);
+		launcherBursts.click(key, Date.now(), singleClick, doubleClick);
 	}
 
 	function clearLauncherTimers(): void {
-		for (const key of Object.keys(launcherTimers) as LauncherKey[]) {
-			const timer = launcherTimers[key];
-			if (timer !== undefined) window.clearTimeout(timer);
-			delete launcherTimers[key];
-		}
+		launcherBursts.cancel();
 	}
 
 	function openQueueLauncher(): void {

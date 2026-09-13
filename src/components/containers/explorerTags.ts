@@ -139,8 +139,10 @@ import { queueDeletesSubject } from '../../logic/logicDeletionDecoration';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
+	resolveRecursiveInteractionAction,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
+import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -1184,6 +1186,18 @@ export class TagsExplorerPanel extends Component {
 		void this._render();
 	}
 
+	/**
+	 * U130 gestures: `hold` / double click on `input: select` toggles every
+	 * descendant of the node in this instance's own selection. Never opens,
+	 * never expands, never queues a file operation.
+	 */
+	private _toggleDescendantSelection(id: string): void {
+		const node = this._findNode(id, this._lastRenderTree);
+		if (!node?.children?.length) return;
+		this.selectedNodeIds = toggleDescendantSelection(node, this.selectedNodeIds);
+		void this._render();
+	}
+
 	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
 		if (change) this.onIndexChanged?.(change);
@@ -1463,10 +1477,16 @@ export class TagsExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					void this._render();
 				},
-				onRecursiveExpand: (id: string) =>
-					this._expandSubtree(id, nodesWithIcons),
-				onRowDoubleClick: (id: string) =>
-					this._expandSubtree(id, nodesWithIcons),
+			onRecursiveExpand: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, nodesWithIcons),
+			onRowDoubleClick: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					if (isGroupHeader(id, this._groupIds)) return;
 					const node = this._findNode(id, tree);
@@ -1606,9 +1626,16 @@ export class TagsExplorerPanel extends Component {
 				void this._render();
 			},
 		onRecursiveExpand: (id: string) =>
-				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-			onRowDoubleClick: (id: string) =>
-				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+			resolveRecursiveInteractionAction(this.interactionMode) ===
+			'select-descendants'
+				? this._toggleDescendantSelection(id)
+				: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+		onRowDoubleClick: (id: string) =>
+			resolveRecursiveInteractionAction(this.interactionMode) ===
+			'select-descendants'
+				? this._toggleDescendantSelection(id)
+				: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+		onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);

@@ -1,5 +1,47 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NodeSelectionAxon } from '../../src/logic/logicNodeSelection';
+import {
+	NodeSelectionAxon,
+	toggleDescendantSelection,
+} from '../../src/logic/logicNodeSelection';
+
+describe('recursive descendant selection', () => {
+	const tree = {
+		id: 'parent',
+		label: 'Parent',
+		depth: 0,
+		meta: {},
+		children: [
+			{ id: 'a', label: 'A', depth: 1, meta: {} },
+			{
+				id: 'b',
+				label: 'B',
+				depth: 1,
+				meta: {},
+				children: [{ id: 'c', label: 'C', depth: 2, meta: {} }],
+			},
+		],
+	};
+
+	it('selects every descendant when none is selected', () => {
+		expect([...toggleDescendantSelection(tree, new Set(['outside']))]).toEqual([
+			'outside',
+			'a',
+			'b',
+			'c',
+		]);
+	});
+
+	it('deselects every descendant from a mixed selection, then selects all', () => {
+		const cleared = toggleDescendantSelection(tree, new Set(['a', 'outside']));
+		expect([...cleared]).toEqual(['outside']);
+		expect([...toggleDescendantSelection(tree, cleared)]).toEqual([
+			'outside',
+			'a',
+			'b',
+			'c',
+		]);
+	});
+});
 
 describe('NodeSelectionAxon generic selection logic', () => {
 	const visibleIds = ['node-1', 'node-2', 'node-3', 'node-4', 'node-5'];

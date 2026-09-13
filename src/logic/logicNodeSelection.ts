@@ -193,3 +193,39 @@ export class NodeSelectionAxon<T> {
 		}
 	}
 }
+
+/** Minimal shape for descendant selection: an id plus optional children. */
+export interface DescendantNode<TId> {
+	id: TId;
+	children?: readonly DescendantNode<TId>[] | undefined;
+}
+
+/**
+ * U130 gestures: `hold` / double click on `input: select` toggles every
+ * descendant of the node. Same rule as the expansion toggle: a mixed state
+ * first deselects everything, the next action selects everything. Pure and
+ * instance-local: it only rewrites the passed selection set, never touches
+ * files, the queue, or shared state.
+ */
+export function toggleDescendantSelection<TId>(
+	root: DescendantNode<TId>,
+	selected: ReadonlySet<TId>,
+): Set<TId> {
+	const ids: TId[] = [];
+	const collect = (
+		children: readonly DescendantNode<TId>[] | undefined,
+	): void => {
+		for (const child of children ?? []) {
+			ids.push(child.id);
+			collect(child.children);
+		}
+	};
+	collect(root.children);
+	const next = new Set(selected);
+	if (ids.some((id) => next.has(id))) {
+		for (const id of ids) next.delete(id);
+	} else {
+		for (const id of ids) next.add(id);
+	}
+	return next;
+}

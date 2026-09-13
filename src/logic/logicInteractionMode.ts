@@ -60,6 +60,22 @@ export function resolveInteractionAction(
 }
 
 /**
+ * U130 gestures: recursive gestures (hold / double click) are never routed
+ * through `open`. On `input: select` they select/deselect every descendant
+ * of the node; any other input keeps the previous expand-descendants
+ * routing.
+ */
+export type RecursiveInteractionAction =
+	| 'select-descendants'
+	| 'expand-descendants';
+
+export function resolveRecursiveInteractionAction(
+	mode: string | null | undefined,
+): RecursiveInteractionAction {
+	return mode === 'select' ? 'select-descendants' : 'expand-descendants';
+}
+
+/**
  * U130-06: nivel intermedio de la cascada del modo de interaccion.
  *
  *   layout aplicado  ->  ESTE defecto persistido  ->  DEFAULT_INTERACTION_MODE

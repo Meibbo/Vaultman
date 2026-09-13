@@ -7,6 +7,7 @@ import {
 	normalizeInteractionMode,
 	resolveDefaultInteractionMode,
 	resolveInteractionAction,
+	resolveRecursiveInteractionAction,
 } from '../../src/logic/logicInteractionMode';
 
 describe('explorer interaction modes', () => {
@@ -79,6 +80,17 @@ describe('explorer interaction modes', () => {
 		}
 	});
 
+	it('routes recursive gestures to selection only for input select', () => {
+		expect(resolveRecursiveInteractionAction('select')).toBe(
+			'select-descendants',
+		);
+		for (const mode of ['open', 'filter', 'add'] as const) {
+			expect(resolveRecursiveInteractionAction(mode)).toBe(
+				'expand-descendants',
+			);
+		}
+	});
+
 	it('normalizes stale or cross-tab saved values to each tab default', () => {
 		// `filter` is a real Files mode now, so the cross-tab case has to come
 		// from a provider that genuinely lacks it.
@@ -128,5 +140,4 @@ describe('U130-06 default interaction mode resolution', () => {
 		).toBe(DEFAULT_INTERACTION_MODE.plugins);
 	});
 });
-
 
