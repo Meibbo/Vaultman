@@ -80,12 +80,13 @@ function defaultState(tab: ExplorerTabId): ExplorerSortState {
 		nodeTypeFilter: null,
 		// Explicit rather than absent, and only where they mean something:
 		// `sameExplorerSortState` compares these, and an undefined here against a
-		// false there reads as a change that is not one. Off is the resting state
-		// — "global" is `filtered` being off. Files carries the narrowing switch
-		// too (the tree shows the whole vault until it is on) but has no reveal
+		// false there reads as a change that is not one. Files carries the narrowing
+		// switch and starts scoped to the filtered set, but has no reveal
 		// projection. Add-on explorers project no note and no property set, so
 		// they carry neither field.
-		...(isNodeProviderTab(tab) || tab === 'files' ? { filtered: false } : {}),
+		...(isNodeProviderTab(tab) || tab === 'files'
+			? { filtered: tab === 'files' }
+			: {}),
 		...(isNodeProviderTab(tab)
 			? {
 					revealAnchor: 'current-file' as const,

@@ -14,8 +14,8 @@ function stateFor(
 // U121-052: propScene and tagScene offer the `Filtered` toggle in the By-level
 // menu so the projection narrows to the filtered file set; fileScene was the
 // only hierarchical tab without it, so the tree kept hiding filtered-out files
-// while a filter was being built. Files shares the toggle: off (default) shows
-// the whole vault, on hides the files the active filter leaves out.
+// while a filter was being built. Files shares the toggle and starts scoped to
+// the filtered set; turning it off shows the whole vault.
 describe('U121-052 files Filtered sort option', () => {
 	it('offers the Filtered toggle in the Files By-level menu', () => {
 		const model = byLevelModel('files', stateFor());
@@ -29,7 +29,7 @@ describe('U121-052 files Filtered sort option', () => {
 		expect(model?.items.find((item) => item.id === 'filtered')).toMatchObject({
 			kind: 'toggle',
 			labelKey: 'sort.level.filtered',
-			checked: false,
+			checked: true,
 		});
 	});
 
@@ -47,7 +47,7 @@ describe('U121-052 files Filtered sort option', () => {
 	});
 
 	it('persists the Files Filtered flag through normalization', () => {
-		expect(normalizeExplorerSortState('files', null).filtered).toBe(false);
+		expect(normalizeExplorerSortState('files', null).filtered).toBe(true);
 		expect(
 			normalizeExplorerSortState('files', stateFor({ filtered: true }))
 				.filtered,
