@@ -69,6 +69,8 @@ describe('navbarFilters monta BarTransaction', () => {
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',
 					proposeActiveScene: () => Promise.resolve(),
+					readFloatingToc: () => null,
+					proposeFloatingToc: () => Promise.resolve(),
 					setInstanceId: () => {},
 					onInstanceChange: () => () => {},
 				} satisfies SceneConfigPort,

@@ -48,6 +48,7 @@
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
 	import { defaultVisibleCells } from './logic/logicCellRegistry';
+	import type { SavedFloatingTocState } from './types/typeSettings';
 	import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
 	import { ClickBurstGesture } from './utils/clickBurstGesture';
 
@@ -151,48 +152,6 @@
 		void settingsRevision;
 		return plugin.settings.showDock;
 	});
-	// Rail visibility is a local $state so toggling it is instant — persisting
-	// through the generic saveSettings would remount the page and add a visible
-	// lag. We sync from settings (settings-tab toggle) and save quietly.
-	let floatingTocEnabled = $state(false);
-	$effect(() => {
-		void settingsRevision;
-		floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
-	});
-	// D40: the floating index (on/off, kind, scope) rides in saved layouts.
-	function getFloatingTocState() {
-		return {
-			enabled: floatingTocEnabled,
-			kind: tocKind,
-			rootId: tocRootId,
-		};
-	}
-	function applyFloatingTocState(state?: {
-		enabled: boolean;
-		kind: 'files' | 'folders';
-		rootId: string | null;
-	}) {
-		if (!state) return;
-		floatingTocEnabled = state.enabled === true;
-		plugin.settings.floatingTocEnabled = floatingTocEnabled;
-		void plugin.saveData(plugin.settings);
-		tocKind = state.kind === 'files' ? 'files' : 'folders';
-		tocRootId = state.rootId || null;
-	}
-
-	function toggleFloatingToc() {
-		const decision = resolveFloatingTocToggle(
-			floatingTocEnabled,
-			activeFloatingTocPanel()?.isIndexableSort() === true,
-		);
-		if (decision.rejection === 'incompatible-sort') {
-			new Notice(translate('floating_toc.incompatible_sort'));
-			return;
-		}
-		floatingTocEnabled = decision.nextEnabled;
-		plugin.settings.floatingTocEnabled = decision.nextEnabled;
-		void plugin.saveData(plugin.settings);
-	}
 	const floatingTocNiagara = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.floatingTocNiagara === true;
@@ -362,6 +321,78 @@
 	if (rememberedTab && REMEMBERED_TABS.includes(rememberedTab)) {
 		filtersActiveTab = rememberedTab as FiltersTab;
 	}
+
+	// Índice flotante por instancia: una instancia explícita gana al ajuste global.
+	// Si no hay estado guardado, Settings sigue siendo el fallback global.
+	const rememberedFloatingToc = sceneConfigPort.readFloatingToc();
+	let hasExplicitFloatingToc = rememberedFloatingToc !== null;
+	let floatingTocEnabled = $state(
+		untrack(() =>
+			rememberedFloatingToc
+				? rememberedFloatingToc.enabled
+				: plugin.settings.floatingTocEnabled === true,
+		),
+	);
+	let tocKind = $state<'files' | 'folders'>(
+		rememberedFloatingToc?.kind ?? 'folders',
+	);
+	let tocRootId = $state<string | null>(rememberedFloatingToc?.rootId ?? null);
+
+	$effect(() => {
+		void settingsRevision;
+		if (!hasExplicitFloatingToc) {
+			floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
+		}
+	});
+
+	$effect(() =>
+		sceneConfigPort.onInstanceChange(() => {
+			const savedTab = sceneConfigPort.readActiveScene();
+			if (savedTab && REMEMBERED_TABS.includes(savedTab)) {
+				filtersActiveTab = savedTab as FiltersTab;
+			}
+			const savedToc = sceneConfigPort.readFloatingToc();
+			if (savedToc) {
+				hasExplicitFloatingToc = true;
+				floatingTocEnabled = savedToc.enabled;
+				tocKind = savedToc.kind;
+				tocRootId = savedToc.rootId;
+			} else {
+				hasExplicitFloatingToc = false;
+				floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
+				tocKind = 'folders';
+				tocRootId = null;
+			}
+		}),
+	);
+
+	function getFloatingTocState(): SavedFloatingTocState {
+		return { enabled: floatingTocEnabled, kind: tocKind, rootId: tocRootId };
+	}
+
+	function applyFloatingTocState(state?: SavedFloatingTocState) {
+		if (!state) return;
+		hasExplicitFloatingToc = true;
+		floatingTocEnabled = state.enabled === true;
+		tocKind = state.kind === 'files' ? 'files' : 'folders';
+		tocRootId = state.rootId || null;
+		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
+	}
+
+	function toggleFloatingToc() {
+		const decision = resolveFloatingTocToggle(
+			floatingTocEnabled,
+			activeFloatingTocPanel()?.isIndexableSort() === true,
+		);
+		if (decision.rejection === 'incompatible-sort') {
+			new Notice(translate('floating_toc.incompatible_sort'));
+			return;
+		}
+		hasExplicitFloatingToc = true;
+		floatingTocEnabled = decision.nextEnabled;
+		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
+	}
+
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
 
@@ -814,8 +845,6 @@
 	let explorerRenderRevision = $state(0);
 	// Index scope: which node kind (files=leaves / folders=containers) and which
 	// subtree root (null = top level; set by the long-press scope drill).
-	let tocKind = $state<'files' | 'folders'>('folders');
-	let tocRootId = $state<string | null>(null);
 	let tocPickMode = $state(false);
 	// Pick-mode listener lifecycle is imperative (NOT a reactive $effect) so it can
 	// never form a self-referential effect loop with tocPickMode.
@@ -979,12 +1008,15 @@
 	}
 	function toggleTocKind(): void {
 		tocKind = tocKind === 'folders' ? 'files' : 'folders';
+		if (hasExplicitFloatingToc) {
+			void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
+		}
 	}
 	function closeFloatingToc(): void {
 		if (!floatingTocEnabled) return;
+		hasExplicitFloatingToc = true;
 		floatingTocEnabled = false;
-		plugin.settings.floatingTocEnabled = false;
-		void plugin.saveData(plugin.settings);
+		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
 		stopTocPick();
 	}
 	function backTocScope(): void {

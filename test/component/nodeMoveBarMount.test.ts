@@ -51,6 +51,8 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 			propose: () => Promise.resolve(),
 			readActiveScene: () => 'files',
 			proposeActiveScene: () => Promise.resolve(),
+			readFloatingToc: () => null,
+			proposeFloatingToc: () => Promise.resolve(),
 			setInstanceId: () => {},
 			onInstanceChange: () => () => {},
 		},

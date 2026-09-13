@@ -133,7 +133,7 @@ describe('Floating TOC source and panel contracts', () => {
 		);
 		expect(toggleSource).toContain('decision.nextEnabled');
 		expect(toggleSource!.indexOf('return;')).toBeLessThan(
-			toggleSource!.indexOf('void plugin.saveData(plugin.settings);'),
+			toggleSource!.indexOf('sceneConfigPort.proposeFloatingToc'),
 		);
 	});
 
