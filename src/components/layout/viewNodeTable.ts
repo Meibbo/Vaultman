@@ -147,6 +147,20 @@ export class NodeTableView<TMeta = unknown> {
 		this._renderWindow();
 	}
 
+	/** Scroll through the virtual index; never query rows that are not mounted. */
+	scrollToId(id: string, behavior: ScrollBehavior = 'auto'): boolean {
+		if (!this.listEl) return false;
+		const index = this.rows.findIndex((row) => row.id === id);
+		if (index < 0) return false;
+		this.listEl.scrollTo({
+			top: Math.max(0, index * this.rowHeight - this.listEl.clientHeight / 2),
+			behavior,
+		});
+		this.cancelScheduledRender();
+		this._renderWindow();
+		return true;
+	}
+
 	destroy(): void {
 		this.recursiveExpandGesture.cancel();
 		this.cancelScheduledRender();

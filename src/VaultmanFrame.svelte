@@ -48,6 +48,7 @@
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
 	import { defaultVisibleCells } from './logic/logicCellRegistry';
+	import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,19 @@
 			query: string,
 			modifiers?: { caseSensitive: boolean; isRegex: boolean },
 		): void;
+		revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
+		isPropRevealActive?(): boolean;
 	};
+
+	export function revealCurrentFileProperty(
+		request: FrontmatterPropertyRevealRequest,
+	): boolean {
+		return filtersPageRef?.revealCurrentFileProperty?.(request) ?? false;
+	}
+
+	export function isPropRevealActive(): boolean {
+		return filtersPageRef?.isPropRevealActive?.() ?? false;
+	}
 
 	// ─── Page navigation ──────────────────────────────────────────────────────
 

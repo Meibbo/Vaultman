@@ -71,6 +71,7 @@
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
+	import type { FrontmatterPropertyRevealRequest } from '../../services/serviceFrontmatterPropertyReveal';
 	import type {
 		NavbarPanelWidgetState,
 		ScenePanelWidgetActionPort,
@@ -261,6 +262,16 @@
 
 	export function setShowToolbar(val: boolean): void {
 		localShowToolbar = val;
+	}
+
+	export function revealCurrentFileProperty(
+		request: FrontmatterPropertyRevealRequest,
+	): boolean {
+		return propExplorer?.revealCurrentFileProperty(request) ?? false;
+	}
+
+	export function isPropRevealActive(): boolean {
+		return propExplorer?.isRevealingActiveFile() === true;
 	}
 
 	/**

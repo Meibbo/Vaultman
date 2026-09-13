@@ -23,6 +23,10 @@ import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import {
+	isCurrentFilePropertyRevealEligible,
+	type FrontmatterPropertyRevealRequest,
+} from '../../services/serviceFrontmatterPropertyReveal';
+import {
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
 } from '../../logic/logicNodeTypeFilters';
@@ -218,6 +222,8 @@ export class PropsExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('props', null);
 	private searchMode = 0;
 	private nodeTypeFilters: string[] = [];
+	private currentFilePropertyRevealId: string | null = null;
+	private gridCardEls = new Map<string, HTMLElement>();
 	private visibleCells = new Set<string>([
 		'checkbox',
 		'icon',
@@ -991,6 +997,47 @@ export class PropsExplorerPanel extends Component {
 		return this.revealActiveFile;
 	}
 
+	get scene_prop_reveal(): boolean {
+		return this.revealActiveFile;
+	}
+
+	/**
+	 * Receive U130's cross-instance reveal without guessing which instance this
+	 * panel belongs to. The frame router already keyed delivery by its durable
+	 * workspace identity; this panel owns the scene/anchor decision.
+	 */
+	revealCurrentFileProperty(request: FrontmatterPropertyRevealRequest): boolean {
+		if (
+			!isCurrentFilePropertyRevealEligible(
+				{
+					revealActive: this.revealActiveFile,
+					scene_prop_reveal: this.revealActiveFile,
+					revealAnchor: this.sortState?.revealAnchor,
+					revealAnchorPath: this.sortState?.revealAnchorPath,
+					currentFilePath: this.revealActivePath,
+				},
+				request.filePath,
+			)
+		)
+			return false;
+		if (!this._findNode(request.propertyName, this._lastRenderTree)) return false;
+
+		this.currentFilePropertyRevealId = request.propertyName;
+		this._render();
+		if (this.viewMode === 'tree') {
+			this.view.scrollToId(request.propertyName, 'center', 'smooth');
+		} else if (this.viewMode === 'table') {
+			this.tableView?.scrollToId(request.propertyName, 'smooth');
+		} else {
+			this.gridCardEls.get(request.propertyName)?.scrollIntoView({
+				block: 'center',
+				inline: 'nearest',
+				behavior: 'smooth',
+			});
+		}
+		return true;
+	}
+
 	/**
 	 * Toolbar reveal-faint oracle: is this path inside the file set the
 	 * scene projects (the active filter's survivors when `filtered` is on)?
@@ -1046,6 +1093,7 @@ export class PropsExplorerPanel extends Component {
 		this.stopRevealWatch?.();
 		this.stopRevealWatch = undefined;
 		this.revealActivePath = null;
+		this.currentFilePropertyRevealId = null;
 	}
 
 	/**
@@ -1974,6 +2022,9 @@ export class PropsExplorerPanel extends Component {
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;
 		const highlightIds = new Set<string>();
+		if (this.currentFilePropertyRevealId) {
+			highlightIds.add(this.currentFilePropertyRevealId);
+		}
 		const warningIds = new Set<string>();
 		const searchHighlightsEnabled =
 			this.plugin.settings?.explorerSearchHighlights === true;
@@ -2850,6 +2901,7 @@ export class PropsExplorerPanel extends Component {
 
 	private _renderGrid(): void {
 		this.containerEl.empty();
+		this.gridCardEls.clear();
 		// Narrowed before anything else consumes it, so search, filters, sort and
 		// every engine see one projection rather than each deciding for itself.
 		let tree = this._scopeProjection(this.logic.getTree());
@@ -2857,6 +2909,9 @@ export class PropsExplorerPanel extends Component {
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;
 		const highlightIds = new Set<string>();
+		if (this.currentFilePropertyRevealId) {
+			highlightIds.add(this.currentFilePropertyRevealId);
+		}
 		const warningIds = new Set<string>();
 		const searchHighlightsEnabled =
 			this.plugin.settings?.explorerSearchHighlights === true;
@@ -2897,6 +2952,7 @@ export class PropsExplorerPanel extends Component {
 		const grid = this.containerEl.createDiv({ cls: 'vaultman-props-grid' });
 		for (const node of filtered) {
 			const card = grid.createDiv({ cls: 'vaultman-prop-card' });
+			this.gridCardEls.set(node.id, card);
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
