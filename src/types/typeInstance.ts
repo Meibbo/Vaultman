@@ -1,6 +1,7 @@
 import type { ExplorerSortState, ExplorerTabId, ExplorerViewMode } from './typeUI';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { SavedFloatingTocState } from './typeSettings';
+import type { GroupPreset } from './typeGroupPreset';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -22,6 +23,8 @@ export interface SceneConfig {
 	stickyRows?: boolean;
 	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
 	compactFolders?: boolean;
+	/** Spec 08 §3.2: el group preset seleccionado, per_instance. `none` por defecto. */
+	groupPreset?: GroupPreset;
 }
 
 export interface WorkspaceInstanceRecord {

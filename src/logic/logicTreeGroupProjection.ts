@@ -1,6 +1,11 @@
-import { buildIndexGroups, type IndexNodeRef } from './logicIndexGroups';
+import {
+	buildPresetBuckets,
+	type PresetValueOf,
+	type RangeLabels,
+} from './logicGroupPresets';
 import { parseMembershipUrn, type MembershipRef } from './logicMembershipUrn';
 import type { NodeGroupDef } from './logicNodeGroup';
+import type { GroupPreset } from '../types/typeGroupPreset';
 import type { TreeNode } from '../types/typeTree';
 
 export const NO_GROUP_ID = 'vaultman.group.none';
@@ -55,6 +60,19 @@ export interface GroupProjectionInput<TMeta> {
 	urnOf?: (node: TreeNode<TMeta>) => string;
 	/** `false` devuelve la lista TAL CUAL, por identidad. */
 	enabled?: boolean;
+	/**
+	 * Spec 08 §3.2: el group preset seleccionado. `custom` proyecta `groups`
+	 * (pertenencia explicita); el resto son predicados sobre los nodos. Sin
+	 * preset se conserva la derivacion historica: custom si los hay, si no
+	 * por primera letra.
+	 */
+	preset?: GroupPreset;
+	/** Extractor de valor para los presets `type`, counters y fechas. */
+	presetValueOf?: PresetValueOf<TreeNode<TMeta>>;
+	/** Etiquetas de los rangos (§3.2.1); la escena pasa las traducidas. */
+	rangeLabels?: RangeLabels;
+	/** "Hoy" para las fechas; los tests lo fijan. */
+	now?: number;
 	/**
 	 * S07A: nested/deduped member totals (`bubbleMemberCountsToGroups`).
 	 * When present, a custom header shows its total instead of
@@ -174,15 +192,24 @@ export function projectGroupedTree<TMeta>(
 		groupTotals,
 		headerCoreCls,
 		headerMeta,
+		preset,
+		presetValueOf,
+		rangeLabels,
+		now,
 	} = input;
 	if (!enabled) return nodes;
+	if (preset?.kind === 'none') return nodes;
 	// Meta propia de la cabecera (L-PNODE): la escena la aporta; sin ella se
 	// conserva el prestamo historico del primer hijo.
 	const fallbackMeta = nodes[0]?.meta;
 	const ownMeta = (headerMeta ?? fallbackMeta);
 
 	// --- Grupos CUSTOM: pertenencia explicita -------------------------------
-	if (groups.length > 0) {
+	// Con preset declarado solo `custom` entra aqui; sin preset (llamadores
+	// aun no migrados) se conserva "custom si los hay".
+	const wantsCustom = preset ? preset.kind === 'custom' : groups.length > 0;
+	if (wantsCustom) {
+		if (groups.length === 0) return nodes;
 		if (!urnOf) {
 			throw new Error(
 				'projectGroupedTree: hay grupos custom y falta urnOf. Sin ella no ' +
@@ -255,36 +282,38 @@ export function projectGroupedTree<TMeta>(
 	}
 
 	// --- Grupos PRESET: predicado, en memoria, sin tocar settings ------------
-	// Es LA MISMA derivacion que alimenta el rail del indice flotante. Escribir
-	// aqui un segundo motor de agrupacion dejaria a vaultman con dos.
-	const refs: IndexNodeRef[] = nodes.map((node) => ({
-		id: node.id,
-		label: node.label,
-		isContainer: (node.children?.length ?? 0) > 0,
-	}));
-	const indexGroups = buildIndexGroups(refs);
-	if (indexGroups.length === 0) return nodes;
-	const byKey = new Map(indexGroups.map((group) => [group.key, group]));
-	const buckets = new Map<string, TreeNode<TMeta>[]>();
-	for (const node of nodes) {
-		const [first] = Array.from((node.label ?? '').trim());
-		if (!first) continue;
-		const [key] = Array.from(first.toLocaleUpperCase());
-		if (!byKey.has(key)) continue;
-		const bucket = buckets.get(key) ?? [];
-		bucket.push(node);
-		buckets.set(key, bucket);
-	}
-	// Cada nodo cae en exactamente un bucket (una letra), asi que nunca hay
-	// dos ocurrencias del mismo id: las filas conservan su identidad.
-	return indexGroups.map((group) =>
+	// Es LA MISMA familia de derivaciones que alimenta el rail del indice
+	// flotante (`letter`); los demas presets son predicados hermanos en
+	// `logicGroupPresets`. Escribir aqui un segundo motor dejaria dos.
+	const resolved = buildPresetBuckets(
+		nodes,
+		preset ?? { kind: 'letter', direction: 'asc' },
+		{ extract: presetValueOf, labels: rangeLabels, now },
+	);
+	if (!resolved || resolved.buckets.length === 0) return nodes;
+	// Cada nodo cae en exactamente un bucket, asi que nunca hay dos
+	// ocurrencias del mismo id: las filas conservan su identidad.
+	const out = resolved.buckets.map((bucket) =>
 		headerNode(
-			`${PRESET_GROUP_PREFIX}${group.key}`,
-			group.label,
-			reparent(buckets.get(group.key) ?? [], group.key, 1, NO_SUFFIX),
+			`${PRESET_GROUP_PREFIX}${bucket.key}`,
+			bucket.label,
+			reparent(bucket.members, bucket.key, 1, NO_SUFFIX),
 			ownMeta,
 			undefined,
 			headerCoreCls,
 		),
 	);
+	if (resolved.ungrouped.length > 0) {
+		out.push(
+			headerNode(
+				NO_GROUP_ID,
+				noGroupLabel,
+				reparent(resolved.ungrouped, NO_GROUP_ID, 1, NO_SUFFIX),
+				ownMeta,
+				undefined,
+				headerCoreCls,
+			),
+		);
+	}
+	return out;
 }

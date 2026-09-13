@@ -4,6 +4,7 @@ import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { ToolbarOverflowStrategy } from '../logic/logicResponsiveLayout';
 import type { SavedLayout } from './typeSettings';
 import type { ExplorerSortState, ExplorerTabId } from './typeUI';
+import type { GroupPreset } from './typeGroupPreset';
 import type { SasiRegistry } from '../logic/logicSasiRegistry';
 import type { SasiHandler } from '../logic/logicSasiInvoke';
 import type { TransactionBarState } from '../logic/logicTransactionBarState';
@@ -66,6 +67,8 @@ export interface PanelWidgetExplorerProjectionConfig {
 	stickyRows?: boolean;
 	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
 	compactFolders?: boolean;
+	/** Spec 08 §3.2: group preset seleccionado, per_instance. */
+	groupPreset?: GroupPreset;
 }
 
 export interface PanelWidgetExplorerPort {

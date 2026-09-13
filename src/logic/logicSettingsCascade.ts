@@ -1,4 +1,5 @@
 import type { SceneConfig } from '../types/typeInstance';
+import { sameGroupPreset } from '../types/typeGroupPreset';
 
 /**
  * Las capas de la cascada, en el orden EXACTO del diseño aprobado:
@@ -32,6 +33,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		sortState: { ...input.defaults.sortState },
 		stickyRows: input.defaults.stickyRows,
 		compactFolders: input.defaults.compactFolders,
+		groupPreset: { ...input.defaults.groupPreset },
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -42,6 +44,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.sortState !== undefined) out.sortState = { ...layer.sortState };
 		if (layer.stickyRows !== undefined) out.stickyRows = layer.stickyRows;
 		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
+		if (layer.groupPreset !== undefined) out.groupPreset = { ...layer.groupPreset };
 	}
 	return out;
 }
@@ -72,6 +75,9 @@ export function diffSceneConfig(
 	if (next.stickyRows !== baseline.stickyRows) patch.stickyRows = next.stickyRows;
 	if (next.compactFolders !== baseline.compactFolders) {
 		patch.compactFolders = next.compactFolders;
+	}
+	if (!sameGroupPreset(next.groupPreset, baseline.groupPreset)) {
+		patch.groupPreset = { ...next.groupPreset };
 	}
 	return patch;
 }

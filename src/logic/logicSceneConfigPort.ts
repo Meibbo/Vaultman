@@ -87,6 +87,7 @@ export async function applyLayoutToPort(
 			// (spec 08 §2 es posterior a `SavedLayoutConfig`): se preservan.
 			stickyRows: current.stickyRows,
 			compactFolders: current.compactFolders,
+			groupPreset: current.groupPreset,
 		};
 	}
 	if (port.proposeScenes) {

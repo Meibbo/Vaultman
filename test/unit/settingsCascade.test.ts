@@ -13,6 +13,7 @@ const defaults: Required<SceneConfig> = {
 	sortState: normalizeExplorerSortState('files', null),
 	stickyRows: true,
 	compactFolders: false,
+	groupPreset: { kind: 'none', direction: 'asc' },
 };
 
 describe('resolveSceneConfig', () => {

@@ -46,6 +46,7 @@
 	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
 	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
+	import { NO_GROUP_PRESET } from './types/typeGroupPreset';
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
 	import { defaultVisibleCells } from './logic/logicCellRegistry';
 	import type { SavedFloatingTocState } from './types/typeSettings';
@@ -312,6 +313,8 @@
 			// nuevas (spec 08 §1.1); el per_instance lo pisa desde el view_menu.
 			stickyRows: plugin.settings.stickyParentRows !== false,
 			compactFolders: false,
+			// Spec 08 §3.2: la agrupacion es una seleccion de preset y `none` es el defecto.
+			groupPreset: { ...NO_GROUP_PRESET },
 		}),
 	});
 

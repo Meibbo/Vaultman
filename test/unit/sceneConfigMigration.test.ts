@@ -17,6 +17,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			sortState: normalizeExplorerSortState('files', null),
 			stickyRows: true,
 			compactFolders: false,
+			groupPreset: { kind: 'none', direction: 'asc' },
 		}),
 		propose: async (scene, next) => {
 			calls.push([scene, next]);
