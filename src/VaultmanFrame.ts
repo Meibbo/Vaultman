@@ -13,6 +13,7 @@ import {
 	measureSceneAsync,
 	measureSceneSync,
 } from './logic/logicScenePerformance';
+import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
 
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
@@ -26,6 +27,8 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	focusActiveExplorerSearch?(): Promise<void> | void;
 	refreshActiveExplorerViewport?(): boolean | void;
 	setShowToolbar?(value: boolean): void;
+	revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
+	isPropRevealActive?(): boolean;
 };
 
 /**
@@ -204,6 +207,14 @@ export class VaultmanFrame extends ItemView {
 
 	async focusActiveExplorerSearch(): Promise<void> {
 		await this.svelteApp?.focusActiveExplorerSearch?.();
+	}
+
+	get scene_prop_reveal(): boolean {
+		return Boolean(this.svelteApp?.isPropRevealActive?.());
+	}
+
+	revealCurrentFileProperty(request: FrontmatterPropertyRevealRequest): boolean {
+		return this.svelteApp?.revealCurrentFileProperty?.(request) ?? false;
 	}
 
 	onResize(): void {

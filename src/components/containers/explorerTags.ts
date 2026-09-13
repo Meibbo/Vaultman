@@ -85,6 +85,11 @@ export interface PanelPluginCtx {
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
 	clearDragActionGuide?: () => void;
+	revealFrontmatterProperty?: (
+		file: TFile,
+		propertyName: string,
+		source: { offset: number; content: string; range: readonly [number, number] },
+	) => Promise<boolean>;
 }
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
@@ -857,10 +862,18 @@ export class TagsExplorerPanel extends Component {
 		// A missing metadata position is recoverable from the loaded text. If the
 		// text also has no matching token, do not send offset zero to the editor.
 		if (!range) return;
-		const opened = await openFileAtOffset(this.plugin.app, file, range[0], {
-			match: { content, range },
-			source: occurrence.source,
-		});
+		const opened =
+			occurrence.source === 'frontmatter' &&
+			typeof this.plugin.revealFrontmatterProperty === 'function'
+				? await this.plugin.revealFrontmatterProperty(file, 'tags', {
+						offset: range[0],
+						content,
+						range,
+					})
+				: await openFileAtOffset(this.plugin.app, file, range[0], {
+						match: { content, range },
+						source: occurrence.source,
+					});
 		if (!opened) return;
 		this.revealCycle = {
 			path,

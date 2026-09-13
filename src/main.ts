@@ -81,6 +81,11 @@ import type { SasiProvider } from './services/serviceSasiProvider';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
 import { formatPerfTimeline } from './utils/perfTimeline';
+import {
+	revealNativeFrontmatterProperty,
+	routeVaultmanCurrentFileProperty,
+	type FrontmatterSourceLocation,
+} from './services/serviceFrontmatterPropertyReveal';
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -130,6 +135,25 @@ export class VaultmanPlugin extends Plugin {
 		};
 		view.revealPath?.(node.path ?? node.label);
 		return true;
+	}
+
+	/** U130: frontmatter tags land in Core and every eligible Props reveal scene. */
+	async revealFrontmatterProperty(
+		file: TFile,
+		propertyName: string,
+		source: FrontmatterSourceLocation,
+	): Promise<boolean> {
+		const nativeRevealed = await revealNativeFrontmatterProperty(
+			this.app,
+			file,
+			propertyName,
+			source,
+		);
+		const sceneCount = routeVaultmanCurrentFileProperty(
+			this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE),
+			{ filePath: file.path, propertyName },
+		);
+		return nativeRevealed || sceneCount > 0;
 	}
 
 	async onload(): Promise<void> {
