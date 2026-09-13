@@ -13,6 +13,8 @@ export interface OpenFileAtOffsetOptions {
 	};
 	/** Frontmatter is navigable only from an explicit Source view. */
 	source?: 'inline' | 'frontmatter';
+	/** The caller verified that Properties in document is configured as Source. */
+	allowFrontmatterInLivePreview?: boolean;
 }
 
 function leafFilePath(leaf: WorkspaceLeaf): string | undefined {
@@ -60,7 +62,11 @@ export async function openFileAtOffset(
 	options: OpenFileAtOffsetOptions = {},
 ): Promise<boolean> {
 	const leaf = leafForFile(app, file);
-	if (options.source === 'frontmatter' && !isExplicitSourceView(leaf, file)) {
+	if (
+		options.source === 'frontmatter' &&
+		!options.allowFrontmatterInLivePreview &&
+		!isExplicitSourceView(leaf, file)
+	) {
 		return false;
 	}
 	await leaf.openFile(file, {

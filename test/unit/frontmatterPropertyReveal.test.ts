@@ -145,6 +145,7 @@ describe('native Show properties in document reveal', () => {
 			getViewState: () => ({ state: { file: 'notes/current.md', mode: 'source', source: false } }),
 		};
 		const app = {
+			vault: { getConfig: () => 'visible' },
 			workspace: {
 				getLeavesOfType: () => [leaf],
 				getActiveViewOfType: () => leaf.view,
@@ -173,10 +174,11 @@ describe('native Show properties in document reveal', () => {
 		};
 		const leaf = {
 			view,
-			getViewState: () => ({ state: { file: 'notes/current.md', mode: 'source', source: true } }),
+			getViewState: () => ({ state: { file: 'notes/current.md', mode: 'source', source: false } }),
 			openFile: vi.fn().mockResolvedValue(undefined),
 		};
 		const app = {
+			vault: { getConfig: () => 'source' },
 			workspace: {
 				getLeavesOfType: () => [leaf],
 				getActiveViewOfType: () => view,
@@ -197,6 +199,39 @@ describe('native Show properties in document reveal', () => {
 		const openArgs = leaf.openFile.mock.calls[0];
 		expect(openArgs?.[1]).toHaveProperty('eState');
 		expect(editor.setCursor).toHaveBeenCalledOnce();
+	});
+
+	it('does not jump when Properties in document is Hidden', async () => {
+		const querySelector = vi.fn(() => null);
+		const leaf = {
+			view: {
+				file: { path: 'notes/current.md' },
+				getMode: () => 'source',
+				containerEl: { querySelector },
+			},
+			getViewState: () => ({
+				state: { file: 'notes/current.md', mode: 'source', source: false },
+			}),
+			openFile: vi.fn(),
+		};
+		const app = {
+			vault: { getConfig: () => 'hidden' },
+			workspace: {
+				getLeavesOfType: () => [leaf],
+				getActiveViewOfType: () => leaf.view,
+			},
+		};
+
+		await expect(
+			revealNativeFrontmatterProperty(
+				app as never,
+				{ path: 'notes/current.md' } as never,
+				'tags',
+				{ offset: 4, content: '---\ntags: [a]\n---', range: [4, 8] },
+			),
+		).resolves.toBe(false);
+		expect(querySelector).not.toHaveBeenCalled();
+		expect(leaf.openFile).not.toHaveBeenCalled();
 	});
 
 	it('does not throw when the native property surface is absent', async () => {

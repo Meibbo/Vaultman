@@ -117,6 +117,19 @@ function propertySelector(propertyName: string): string {
 	return `.metadata-property[data-property-key="${escaped}"]`;
 }
 
+function propertiesInDocumentMode(app: App): 'visible' | 'source' | 'hidden' | null {
+	try {
+		const value = (
+			app.vault as unknown as { getConfig?: (key: string) => unknown }
+		).getConfig?.('showPropertiesInDocument');
+		return value === 'visible' || value === 'source' || value === 'hidden'
+			? value
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 function flashNativePropertyRow(row: NativePropertyRow): boolean {
 	try {
 		row.scrollIntoView?.({ block: 'center', inline: 'nearest', behavior: 'smooth' });
@@ -166,13 +179,16 @@ export async function revealNativeFrontmatterProperty(
 		matching.find((candidate) => candidate === workspace.activeLeaf) ?? matching[0];
 	if (!leaf) return false;
 
-	if (isExplicitSourceLeaf(leaf)) {
+	const documentMode = propertiesInDocumentMode(app);
+	if (isExplicitSourceLeaf(leaf) || documentMode === 'source') {
 		if (!source) return false;
 		return openFileAtOffset(app, file, source.offset, {
 			match: { content: source.content, range: source.range },
 			source: 'frontmatter',
+			allowFrontmatterInLivePreview: documentMode === 'source',
 		});
 	}
+	if (documentMode === 'hidden') return false;
 
 	const root = leaf.view?.containerEl ?? leaf.view?.contentEl;
 	if (!root || typeof root.querySelector !== 'function') return false;
