@@ -11,6 +11,8 @@ const defaults = {
 	interactionMode: 'open' as const,
 	visibleCells: ['name'],
 	sortState: normalizeExplorerSortState('files', null),
+	stickyRows: true,
+	compactFolders: false,
 };
 
 function harness() {

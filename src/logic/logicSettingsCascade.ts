@@ -30,6 +30,8 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		interactionMode: input.defaults.interactionMode,
 		visibleCells: cloneCells(input.defaults.visibleCells),
 		sortState: { ...input.defaults.sortState },
+		stickyRows: input.defaults.stickyRows,
+		compactFolders: input.defaults.compactFolders,
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -38,6 +40,8 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		// Un array NO se fusiona: la capa que lo declara decide la lista entera.
 		if (layer.visibleCells !== undefined) out.visibleCells = cloneCells(layer.visibleCells);
 		if (layer.sortState !== undefined) out.sortState = { ...layer.sortState };
+		if (layer.stickyRows !== undefined) out.stickyRows = layer.stickyRows;
+		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
 	}
 	return out;
 }
@@ -64,6 +68,10 @@ export function diffSceneConfig(
 	}
 	if (JSON.stringify(next.sortState) !== JSON.stringify(baseline.sortState)) {
 		patch.sortState = { ...next.sortState };
+	}
+	if (next.stickyRows !== baseline.stickyRows) patch.stickyRows = next.stickyRows;
+	if (next.compactFolders !== baseline.compactFolders) {
+		patch.compactFolders = next.compactFolders;
 	}
 	return patch;
 }

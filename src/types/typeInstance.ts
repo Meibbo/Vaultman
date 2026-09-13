@@ -17,6 +17,10 @@ export interface SceneConfig {
 	interactionMode?: InteractionMode;
 	visibleCells?: string[];
 	sortState?: ExplorerSortState;
+	/** Spec 08 §2: view_option del engine `tree`, per_instance. */
+	stickyRows?: boolean;
+	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
+	compactFolders?: boolean;
 }
 
 export interface WorkspaceInstanceRecord {

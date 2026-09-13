@@ -45,6 +45,8 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				interactionMode: 'select' as const,
 				visibleCells: [],
 				sortState: normalizeExplorerSortState('files', null),
+				stickyRows: true,
+				compactFolders: false,
 			}),
 			propose: () => Promise.resolve(),
 			readActiveScene: () => 'files',

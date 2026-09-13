@@ -227,6 +227,8 @@ export class PropsExplorerPanel extends Component {
 	]);
 	private onExpansionChange?: () => void;
 	private readonly deferredRender = new DeferredExplorerRender();
+	/** Spec 08 §2: override per_instance sobre `plugin.settings.stickyParentRows`. */
+	private stickyRowsOverride: boolean | undefined;
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
@@ -851,8 +853,17 @@ export class PropsExplorerPanel extends Component {
 		const interactionChanged =
 			normalizedInteractionMode !== undefined &&
 			this.interactionMode !== normalizedInteractionMode;
+		const stickyChanged =
+			config.stickyRows !== undefined &&
+			this.stickyRowsOverride !== config.stickyRows;
 
-		if (!viewChanged && !cellsChanged && !sortChanged && !interactionChanged) {
+		if (
+			!viewChanged &&
+			!cellsChanged &&
+			!sortChanged &&
+			!interactionChanged &&
+			!stickyChanged
+		) {
 			return;
 		}
 
@@ -880,7 +891,16 @@ export class PropsExplorerPanel extends Component {
 		if (interactionChanged && normalizedInteractionMode) {
 			this.interactionMode = normalizedInteractionMode;
 		}
+		if (stickyChanged) {
+			this.stickyRowsOverride = config.stickyRows;
+		}
 
+		this._render();
+	}
+
+	setStickyRowsEnabled(enabled: boolean): void {
+		if (this.stickyRowsOverride === enabled) return;
+		this.stickyRowsOverride = enabled;
 		this._render();
 	}
 
@@ -2165,7 +2185,8 @@ export class PropsExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
-			stickyParentRows: this.plugin.settings?.stickyParentRows !== false,
+			stickyParentRows:
+				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),

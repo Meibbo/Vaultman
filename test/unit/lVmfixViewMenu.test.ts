@@ -9,13 +9,14 @@ function functionSlice(source: string, name: string): string {
 }
 
 // L-VMFIX — guard: nested / parentsFirst / fixedFolders only exist INSIDE
-// the `engines` submenu, never at the top level of the view_menu; the
-// `Toolbar` toggle shares its section with `engines` with no divider
-// between them; with `nested` off, parentsFirst / fixedFolders do not
-// appear inside the submenu.
+// the `engines` submenu, never at the top level of the view_menu; `engines`
+// and the `Toolbar` toggle share one section (a divider ahead of `engines`,
+// none between `engines` and `Toolbar` -- order dev, 2026-09-13); with
+// `nested` off, parentsFirst / fixedFolders do not appear inside the submenu.
 //
-// Reasoning kept short on purpose: the dev's spec 08 §2 is the contract,
-// and these three assertions are the negative form of it.
+// Reasoning kept short on purpose: the dev's spec 08 §2 (and the 2026-09-13
+// reorder on top of it) is the contract, and these assertions are its
+// negative form.
 describe('L-VMFIX view_menu guard', () => {
 	it('emits nested/parentsFirst/fixedFolders only inside the engines submenu', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
@@ -32,19 +33,25 @@ describe('L-VMFIX view_menu guard', () => {
 		);
 	});
 
-	it('puts Toolbar immediately before engines with no divider between them', () => {
+	it('puts engines before Toolbar, with a divider ahead of engines and none between them', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
-		const toolbarIdx = menu.indexOf("translate('viewmenu.toolbar')");
 		const enginesIdx = menu.indexOf("translate('viewmenu.engines')");
-		expect(toolbarIdx).toBeGreaterThan(-1);
-		expect(enginesIdx).toBeGreaterThan(toolbarIdx);
+		const toolbarIdx = menu.indexOf("translate('viewmenu.toolbar')");
+		expect(enginesIdx).toBeGreaterThan(-1);
+		expect(toolbarIdx).toBeGreaterThan(enginesIdx);
 
-		// Walk the source between the two tokens and confirm there is no
-		// menu.addSeparator() between them. The only allowed separators are
-		// BEFORE the toolbar (separating it from the cells section above) and
-		// INSIDE the engines submenu (between engines and the view options).
-		const between = menu.slice(toolbarIdx, enginesIdx);
-		expect(between).not.toMatch(/\.addSeparator\(/);
+		// A top-level divider (on `menu`, not the `engines` submenu) sits
+		// ahead of the engines section, separating it from the cell presets
+		// above (order dev, 2026-09-13).
+		const beforeEngines = menu.slice(0, enginesIdx);
+		expect(beforeEngines).toMatch(/\tmenu\.addSeparator\(/);
+
+		// No TOP-LEVEL divider between engines and Toolbar. The tab right
+		// before `menu.addSeparator(` distinguishes it from the submenu's own
+		// `submenu.addSeparator()` calls, which are expected inside this span
+		// (e.g. before `nested`) and are not a top-level divider.
+		const between = menu.slice(enginesIdx, toolbarIdx);
+		expect(between).not.toMatch(/\tmenu\.addSeparator\(/);
 	});
 
 	it('keeps the nested -> parentsFirst -> fixedFolders projection chain inside engines', () => {

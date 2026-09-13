@@ -41,7 +41,7 @@ export const es: Record<string, string> = {
 		'Editor masivo de propiedades y herramienta de gestión de vault',
 	'plugin.open': 'Abrir Vaultman',
 	'common.cancel': 'Cancelar',
-	'icon.not_found': '??',
+	'icon.not_found': '???',
 	'iconic.change_icon': 'Cambiar ícono',
 
 	// Sections
@@ -1043,6 +1043,8 @@ export const es: Record<string, string> = {
 	'sort.reveal.pick_needs_note':
 		'Elige una nota: una carpeta no se puede anclar',
 	'sort.level.fixed_folders': 'Carpetas fijas',
+	'sort.level.sticky_rows': 'Filas fijas',
+	'sort.level.compact_folders': 'Carpetas compactas',
 	'settings.sort_level_inline': 'Opciones By level en línea',
 	'settings.sort_level_inline.desc':
 		'Muestra las opciones By level directamente en el menú de orden en vez de un submenú.',

@@ -11,6 +11,8 @@ const defaults: Required<SceneConfig> = {
 	interactionMode: 'open',
 	visibleCells: ['name', 'count'],
 	sortState: normalizeExplorerSortState('files', null),
+	stickyRows: true,
+	compactFolders: false,
 };
 
 describe('resolveSceneConfig', () => {

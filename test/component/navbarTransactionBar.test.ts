@@ -63,6 +63,8 @@ describe('navbarFilters monta BarTransaction', () => {
 						interactionMode: 'select',
 						visibleCells: [],
 						sortState: normalizeExplorerSortState('props', null),
+						stickyRows: true,
+						compactFolders: false,
 					}),
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',

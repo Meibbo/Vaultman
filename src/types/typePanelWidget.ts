@@ -62,6 +62,10 @@ export interface PanelWidgetExplorerProjectionConfig {
 	visibleCells: ReadonlySet<string>;
 	viewMode: 'tree' | 'grid' | 'table';
 	interactionMode?: InteractionMode;
+	/** Spec 08 §2: view_options del engine `tree`, per_instance. */
+	stickyRows?: boolean;
+	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
+	compactFolders?: boolean;
 }
 
 export interface PanelWidgetExplorerPort {
@@ -72,6 +76,8 @@ export interface PanelWidgetExplorerPort {
 	setInteractionModeChangeHandler?(
 		handler?: (mode: InteractionMode) => void,
 	): void;
+	setStickyRowsEnabled?(enabled: boolean): void;
+	setCompactFoldersEnabled?(enabled: boolean): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;

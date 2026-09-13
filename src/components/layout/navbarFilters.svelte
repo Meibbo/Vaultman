@@ -1070,6 +1070,8 @@
 			visibleCells: string[];
 			sortState: ExplorerSortState;
 			interactionMode?: InteractionMode;
+			stickyRows?: boolean;
+			compactFolders?: boolean;
 		},
 	) {
 		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
@@ -1095,6 +1097,12 @@
 					...(config.interactionMode
 						? { interactionMode: config.interactionMode }
 						: {}),
+					...(config.stickyRows !== undefined
+						? { stickyRows: config.stickyRows }
+						: {}),
+					...(config.compactFolders !== undefined
+						? { compactFolders: config.compactFolders }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1102,6 +1110,9 @@
 				applySortState(tab, normalizedState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
+				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.compactFolders !== undefined)
+					applyCompactFolders(tab, config.compactFolders);
 			}
 			return;
 		}
@@ -1115,6 +1126,9 @@
 					...(config.interactionMode
 						? { interactionMode: config.interactionMode }
 						: {}),
+					...(config.stickyRows !== undefined
+						? { stickyRows: config.stickyRows }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1122,6 +1136,7 @@
 				applySortState(tab, config.sortState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
+				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
 			}
 			return;
 		}
@@ -1135,6 +1150,9 @@
 					...(config.interactionMode
 						? { interactionMode: config.interactionMode }
 						: {}),
+					...(config.stickyRows !== undefined
+						? { stickyRows: config.stickyRows }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1142,6 +1160,7 @@
 				applySortState(tab, config.sortState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
+				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
 			}
 			return;
 		}
@@ -1376,21 +1395,14 @@
 			});
 		}
 
-		// Toolbar toggle sits in the same section as engines, immediately
-		// before it, with NO divider between the two (spec 08 §2).
-		if (onToggleToolbar) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-		}
+		// Orden (dev, 2026-09-13): un divider tras los cell presets, luego el
+		// submenu `engines`, y despues el toggle `Toolbar` -- en ese orden.
+		menu.addSeparator();
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
-		// fixed-folders). Those options are modes of the SELECTED engine, so
-		// they live INSIDE this submenu, not at the view_menu top level.
+		// fixed-folders, sticky rows, compact folders). Those options are modes
+		// of the SELECTED engine, so they live INSIDE this submenu, not at the
+		// view_menu top level.
 		const sortState =
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
 		const nestedAct = nestedActiveFor(activeTab);
@@ -1419,6 +1431,8 @@
 			// fixedFolders also vanishes when parentsFirst is off. The chain:
 			// nested -> parentsFirst -> fixedFolders. parentsFirst /
 			// fixedFolders only exist in Files (the Files-specific sort knobs).
+			// stickyRows applies to any nested-capable tab (Files/Props/Tags);
+			// compactFolders only exists in Files -- folders live only there.
 			submenu.addSeparator();
 			submenu.addItem((item) => {
 				item
@@ -1456,7 +1470,39 @@
 					});
 				}
 			}
+			if (nestedAct) {
+				submenu.addItem((item) => {
+					item
+						.setTitle(translate('sort.level.sticky_rows'))
+						.setIcon('lucide-pin')
+						.setChecked(stickyRowsEnabledFor(activeTab))
+						.onClick(() => toggleStickyRowsFor(activeTab));
+				});
+			}
+			if (nestedAct && activeTab === 'files') {
+				// TODO(spec-08 §2): esto persiste el flag per_instance, pero la
+				// compactacion real de cadenas de carpetas de un solo hijo (estilo
+				// VS Code) todavia no esta implementada en el arbol.
+				submenu.addItem((item) => {
+					item
+						.setTitle(translate('sort.level.compact_folders'))
+						.setIcon('lucide-folder-minus')
+						.setChecked(compactFoldersEnabledFor(activeTab))
+						.onClick(() => toggleCompactFoldersFor(activeTab));
+				});
+			}
 		});
+		// Toolbar toggle sits in the same section as engines, right after it,
+		// with NO divider between the two (spec 08 §2; orden dev 2026-09-13).
+		if (onToggleToolbar) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1753,6 +1799,39 @@
 				onViewFiltersChanged?.();
 			},
 		);
+	}
+
+	function stickyRowsEnabledFor(tab: FiltersTab): boolean {
+		return configByTab[tab].stickyRows;
+	}
+
+	function applyStickyRows(tab: FiltersTab, enabled: boolean) {
+		if (tab === 'files') fileList?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'props') propExplorer?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
+	}
+
+	function toggleStickyRowsFor(tab: FiltersTab) {
+		const next = !stickyRowsEnabledFor(tab);
+		commitConfig(tab, { stickyRows: next });
+		applyStickyRows(tab, next);
+	}
+
+	function compactFoldersEnabledFor(tab: FiltersTab): boolean {
+		return configByTab[tab].compactFolders;
+	}
+
+	// TODO(spec-08 §2): solo persiste el flag per_instance -- la compactacion
+	// real de cadenas de carpetas de un solo hijo (estilo VS Code) todavia no
+	// esta implementada en el arbol.
+	function applyCompactFolders(tab: FiltersTab, enabled: boolean) {
+		if (tab === 'files') fileList?.setCompactFoldersEnabled?.(enabled);
+	}
+
+	function toggleCompactFoldersFor(tab: FiltersTab) {
+		const next = !compactFoldersEnabledFor(tab);
+		commitConfig(tab, { compactFolders: next });
+		applyCompactFolders(tab, next);
 	}
 
 	function drillScopeTitle(
@@ -2059,11 +2138,15 @@
 		const sortState = untrack(
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
+		const stickyRows = configByTab[tab].stickyRows;
+		const compactFolders = configByTab[tab].compactFolders;
 		applyTabProjection(tab, {
 			viewMode,
 			visibleCells: cells,
 			sortState,
 			interactionMode,
+			stickyRows,
+			compactFolders,
 		});
 		if (tab === 'files' && fileList) {
 			fileList.setInteractionModeChangeHandler?.((mode) => {

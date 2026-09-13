@@ -339,6 +339,14 @@ export class FilesExplorerPanel extends Component {
 	private renderBatchDepth = 0;
 	private renderPending = false;
 	private filterProjectionSnapshot: FilterProjectionSnapshot | null = null;
+	/** Spec 08 §2: override per_instance sobre `plugin.settings.stickyParentRows`. */
+	private stickyRowsOverride: boolean | undefined;
+	/**
+	 * Spec 08 §2: solo el flag per_instance esta cableado. La compactacion real
+	 * de cadenas de carpetas de un solo hijo (estilo VS Code) NO esta implementada
+	 * todavia -- no improvisar, hay que ir a mirar como lo hace VS Code primero.
+	 */
+	private compactFoldersOverride: boolean | undefined;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -900,7 +908,25 @@ export class FilesExplorerPanel extends Component {
 			if (config.interactionMode) {
 				this.setInteractionMode(config.interactionMode);
 			}
+			if (config.stickyRows !== undefined) {
+				this.setStickyRowsEnabled(config.stickyRows);
+			}
+			if (config.compactFolders !== undefined) {
+				this.setCompactFoldersEnabled(config.compactFolders);
+			}
 		});
+	}
+
+	setStickyRowsEnabled(enabled: boolean): void {
+		if (this.stickyRowsOverride === enabled) return;
+		this.stickyRowsOverride = enabled;
+		this._render();
+	}
+
+	setCompactFoldersEnabled(enabled: boolean): void {
+		if (this.compactFoldersOverride === enabled) return;
+		this.compactFoldersOverride = enabled;
+		this._render();
 	}
 
 	setViewMode(mode: FilesViewMode): void {
@@ -2343,7 +2369,8 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
-			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+			stickyParentRows:
+				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
@@ -4719,7 +4746,8 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
-			stickyParentRows: this.plugin.settings.stickyParentRows !== false,
+			stickyParentRows:
+				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			cellRenderOrder: this._activationCellOrder(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
