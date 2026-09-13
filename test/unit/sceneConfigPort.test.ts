@@ -173,4 +173,38 @@ describe('createSceneConfigPort', () => {
 		});
 		expect(h.persist).not.toHaveBeenCalled();
 	});
+
+	it('reads null when floatingToc is not set on the instance', () => {
+		const { port } = harness();
+		expect(port.readFloatingToc()).toBeNull();
+	});
+
+	it('persists floatingToc state when proposed', async () => {
+		const h = harness();
+		await h.port.proposeFloatingToc({
+			enabled: true,
+			kind: 'files',
+			rootId: 'folder-1',
+		});
+		expect(h.port.readFloatingToc()).toEqual({
+			enabled: true,
+			kind: 'files',
+			rootId: 'folder-1',
+		});
+		expect(h.registry.instances['vm-1'].floatingToc).toEqual({
+			enabled: true,
+			kind: 'files',
+			rootId: 'folder-1',
+		});
+		expect(h.persist).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not persist floatingToc if values are unchanged', async () => {
+		const h = harness();
+		const toc = { enabled: true, kind: 'folders' as const, rootId: null };
+		await h.port.proposeFloatingToc(toc);
+		expect(h.persist).toHaveBeenCalledTimes(1);
+		await h.port.proposeFloatingToc(toc);
+		expect(h.persist).toHaveBeenCalledTimes(1);
+	});
 });

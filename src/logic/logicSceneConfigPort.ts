@@ -1,4 +1,8 @@
-import { replaceSceneConfig, setActiveScene } from './logicInstanceRegistry';
+import {
+	replaceSceneConfig,
+	setActiveScene,
+	setInstanceFloatingToc,
+} from './logicInstanceRegistry';
 import { diffSceneConfig, resolveSceneConfig } from './logicSettingsCascade';
 import type {
 	InstanceRegistryData,
@@ -12,6 +16,7 @@ import type {
 	ExplorerViewMode,
 } from '../types/typeUI';
 import type { InteractionMode } from './logicInteractionMode';
+import type { SavedFloatingTocState } from '../types/typeSettings';
 
 export interface SceneConfigPortDeps {
 	instanceId: WorkspaceInstanceId;
@@ -30,6 +35,9 @@ export interface SceneConfigPort {
 	/** La scene en la que estaba la instancia, o `null` si nunca se guardo. */
 	readActiveScene: () => string | null;
 	proposeActiveScene: (scene: string) => Promise<void>;
+	/** Estado del índice flotante de esta instancia, o `null` si nunca se guardó. */
+	readFloatingToc: () => SavedFloatingTocState | null;
+	proposeFloatingToc: (state: SavedFloatingTocState) => Promise<void>;
 	/**
 	 * U121-109: Obsidian llama `onOpen()` ANTES que `setState()`, asi que cuando
 	 * se construye este puerto el ancla de la hoja **todavia no existe** y la
@@ -177,12 +185,27 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 		await deps.persist();
 	};
 
+	const readFloatingToc = (): SavedFloatingTocState | null =>
+		deps.readRegistry().instances[currentId]?.floatingToc ?? null;
+
+	const proposeFloatingToc = async (
+		state: SavedFloatingTocState,
+	): Promise<void> => {
+		const registry = deps.readRegistry();
+		const next = setInstanceFloatingToc(registry, currentId, state);
+		if (next === registry) return;
+		deps.writeRegistry(next);
+		await deps.persist();
+	};
+
 	return {
 		read,
 		propose,
 		proposeScenes,
 		readActiveScene,
 		proposeActiveScene,
+		readFloatingToc,
+		proposeFloatingToc,
 		setInstanceId,
 		onInstanceChange,
 	};
