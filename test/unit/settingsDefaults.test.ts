@@ -72,6 +72,10 @@ describe('Vaultman default settings', () => {
 	it('keeps the standing reveal opt-in', () => {
 		expect(DEFAULT_SETTINGS.autoRevealActiveFile).toBe(false);
 	});
+
+	it('defaults openMode to new_instance', () => {
+		expect(DEFAULT_SETTINGS.openMode).toBe('new_instance');
+	});
 });
 
 // The toolbar reveal action is a one-shot: it reveals the current file and then
@@ -111,5 +115,27 @@ describe('always reveal the current file', () => {
 			expect(es[key]).toBeTruthy();
 			expect(es[key]).not.toBe(en[key]);
 		}
+	});
+});
+
+describe('openMode setting localizes', () => {
+	it('has en and es labels for left_sidebar and right_sidebar', () => {
+		for (const key of [
+			'settings.open_mode.left_sidebar',
+			'settings.open_mode.right_sidebar',
+		]) {
+			expect(en[key]).toBeTruthy();
+			expect(es[key]).toBeTruthy();
+			expect(es[key]).not.toBe(en[key]);
+		}
+	});
+
+	it('settings UI has left_sidebar and right_sidebar options', () => {
+		expect(settingsSource).toContain(
+			"'settings.open_mode.left_sidebar'",
+		);
+		expect(settingsSource).toContain(
+			"'settings.open_mode.right_sidebar'",
+		);
 	});
 });

@@ -8,10 +8,20 @@
  * only the explicit open command may toggle.
  */
 
-/** `both` is the legacy spelling of `new_instance`. */
-export function normalizeOpenMode(mode: string): 'new_instance' | 'sidebar' | 'main' {
+/**
+ * Normalizes openMode to a concrete placement.
+ * - `both` and `new_instance` → `new_instance`
+ * - `left_sidebar` / `right_sidebar` → preserved
+ * - legacy `sidebar` → `left_sidebar` (idempotent migration)
+ * - anything else → `main`
+ */
+export function normalizeOpenMode(
+	mode: string,
+): 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' {
 	if (mode === 'both' || mode === 'new_instance') return 'new_instance';
-	return mode === 'sidebar' ? 'sidebar' : 'main';
+	if (mode === 'left_sidebar' || mode === 'right_sidebar') return mode;
+	if (mode === 'sidebar') return 'left_sidebar';
+	return 'main';
 }
 
 /**

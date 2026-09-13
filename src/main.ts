@@ -666,6 +666,12 @@ export class VaultmanPlugin extends Plugin {
 			}
 			await this.saveData(this.settings);
 		}
+
+		// U130: legacy `sidebar` value migrates to `left_sidebar`.
+		if ((this.settings.openMode as string) === 'sidebar') {
+			this.settings.openMode = 'left_sidebar';
+			await this.saveData(this.settings);
+		}
 	}
 
 	async saveSettings(): Promise<void> {
@@ -753,10 +759,14 @@ export class VaultmanPlugin extends Plugin {
 	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
 		const mode = normalizeOpenMode(this.settings.openMode);
-		const leaf =
-			mode === 'sidebar'
-				? workspace.getLeftLeaf(false) || workspace.getRightLeaf(false)
-				: workspace.getLeaf('tab');
+		let leaf: WorkspaceLeaf | null = null;
+		if (mode === 'left_sidebar') {
+			leaf = workspace.getLeftLeaf(false);
+		} else if (mode === 'right_sidebar') {
+			leaf = workspace.getRightLeaf(false);
+		} else {
+			leaf = workspace.getLeaf('tab');
+		}
 		if (!leaf) return null;
 		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
 		void workspace.revealLeaf(leaf);

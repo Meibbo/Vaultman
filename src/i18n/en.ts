@@ -847,8 +847,9 @@ export const en: Record<string, string> = {
 	'settings.view_section': 'View',
 	'settings.open_mode': 'Where to Open Vaultman',
 	'settings.open_mode.desc':
-		'Select what the "Open Vaultman" command and ribbon icon does, selecting "Sidebar|Main leaf" will create one instance and close it if you invoke the command again',
-	'settings.open_mode.sidebar': 'Sidebar',
+		'Select what the "Open Vaultman" command and ribbon icon does. "Left/Right sidebar" opens in that sidebar leaf; "Main leaf" opens full-width; "New instance" always adds a fresh frame',
+	'settings.open_mode.left_sidebar': 'Left sidebar',
+	'settings.open_mode.right_sidebar': 'Right sidebar',
 	'settings.open_mode.main': 'Main leaf (full-width)',
 	'settings.open_mode.new_instance': 'New instance',
 	'settings.open_mode.both': 'New instance',

@@ -117,8 +117,8 @@ export interface VaultmanSettings {
 	basesInjectCheckboxes: boolean;
 	/** Show column separators in .base table */
 	basesShowColumnSeparators: boolean;
-	/** What to open when the ribbon icon is clicked: sidebar only, main view only, or both */
-	openMode: 'sidebar' | 'main' | 'new_instance' | 'both';
+	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
+	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
 	/**
 	 * U121-027: render Last opened / Modified / Created as relative copy ("3 hours
 	 * ago") while they are under a day old. Off renders the exact date everywhere,

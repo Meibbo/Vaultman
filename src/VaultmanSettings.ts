@@ -342,9 +342,16 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions({
-							sidebar: translate('settings.open_mode.sidebar'),
+							left_sidebar: translate(
+								'settings.open_mode.left_sidebar',
+							),
+							right_sidebar: translate(
+								'settings.open_mode.right_sidebar',
+							),
 							main: translate('settings.open_mode.main'),
-							new_instance: translate('settings.open_mode.new_instance'),
+							new_instance: translate(
+								'settings.open_mode.new_instance',
+							),
 						})
 						.setValue(
 							this.plugin.settings.openMode === 'both'
@@ -353,7 +360,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						)
 						.onChange(async (value) => {
 							this.plugin.settings.openMode = value as
-								'sidebar' | 'main' | 'new_instance';
+								| 'left_sidebar'
+								| 'right_sidebar'
+								| 'main'
+								| 'new_instance';
 							await this.plugin.saveSettings();
 						}),
 				);

@@ -826,8 +826,9 @@ export const es: Record<string, string> = {
 	'settings.scope.all': 'Todos los archivos',
 	'settings.open_mode': 'Vista por defecto',
 	'settings.open_mode.desc':
-		'Qué se abre al hacer click en el icono de Vaultman',
-	'settings.open_mode.sidebar': 'Sidebar',
+		'Qué se abre al hacer click en el icono de Vaultman: barra izquierda, derecha, vista principal o nueva instancia',
+	'settings.open_mode.left_sidebar': 'Barra lateral izquierda',
+	'settings.open_mode.right_sidebar': 'Barra lateral derecha',
 	'settings.open_mode.main': 'Vista principal',
 	'settings.open_mode.new_instance': 'Nueva instancia',
 	'settings.open_mode.both': 'Nueva instancia',

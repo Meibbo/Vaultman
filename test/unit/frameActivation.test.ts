@@ -21,9 +21,18 @@ describe('normalizeFramePlacement legacy migration and routing', () => {
 		expect(normalizeFramePlacement('invalid')).toBe('left_sidebar');
 	});
 
+	it('migrates legacy sidebar to left_sidebar in normalizeOpenMode', () => {
+		expect(normalizeOpenMode('sidebar')).toBe('left_sidebar');
+	});
+
 	it('preserves normalizeOpenMode and toggle contracts', () => {
-		expect(normalizeOpenMode('sidebar')).toBe('sidebar');
-		expect(shouldToggleCloseFrame('sidebar', 1)).toBe(true);
+		expect(normalizeOpenMode('left_sidebar')).toBe('left_sidebar');
+		expect(normalizeOpenMode('right_sidebar')).toBe('right_sidebar');
+		expect(normalizeOpenMode('main')).toBe('main');
+		expect(normalizeOpenMode('new_instance')).toBe('new_instance');
+		expect(normalizeOpenMode('both')).toBe('new_instance');
+		expect(shouldToggleCloseFrame('left_sidebar', 1)).toBe(true);
+		expect(shouldToggleCloseFrame('right_sidebar', 1)).toBe(true);
 		expect(shouldToggleCloseFrame('new_instance', 1)).toBe(false);
 	});
 });
