@@ -5,6 +5,8 @@ import type {
 	TreeNode,
 	TreeNodeCell,
 } from '../../types/typeTree';
+import type { ExplorerTabId } from '../../types/typeUI';
+import { cellTooltipText } from '../../logic/logicCellTooltip';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import {
 	resolveExplorerHighlight,
@@ -46,6 +48,8 @@ import {
 export type { CoreMetadataTreeAnatomy } from './viewCoreMetadataTree';
 
 export interface TreeViewOptions {
+	/** Provider context used only to resolve localized per-cell names. */
+	surface?: ExplorerTabId;
 	nodes: TreeNode[];
 	expandedIds: Set<string>;
 	onToggle: (id: string) => void;
@@ -910,6 +914,20 @@ export class UnifiedTreeView {
 		setTooltip(row, text);
 	}
 
+	private applyCellTooltip(
+		element: HTMLElement,
+		cellId: string,
+		opts: TreeViewOptions,
+	): void {
+		const text = opts.surface
+			? cellTooltipText(opts.surface, 'tree', cellId)
+			: '';
+		element.removeAttribute('title');
+		if (!text) return;
+		element.setAttribute('aria-label', text);
+		setTooltip(element, text);
+	}
+
 	private nodeDataPath(node: TreeNode): string | null {
 		const meta = node.meta as
 			| {
@@ -1357,21 +1375,24 @@ export class UnifiedTreeView {
 		const emitDate = (
 			parent: HTMLElement,
 			text: string | undefined,
-			cellId: string,
+			dataCellId: string,
+			tooltipCellId = dataCellId,
 		): void => {
 			if (!text) return;
 			const span = parent.createSpan({
 				cls: 'vaultman-tree-date nav-file-tag',
 				text,
 			});
-			span.dataset.cell = cellId;
+			span.dataset.cell = dataCellId;
+			this.applyCellTooltip(span, tooltipCellId, opts);
 		};
 		const emitWords = (parent: HTMLElement): void => {
 			if (!showWords || !node.wordCountText) return;
-			parent.createSpan({
+			const cell = parent.createSpan({
 				cls: 'vaultman-tree-words nav-file-tag',
 				text: node.wordCountText,
 			});
+			this.applyCellTooltip(cell, 'words', opts);
 		};
 		const emitFileCount = (parent: HTMLElement): void => {
 			if (!showFileCount || !node.fileCountText) return;
@@ -1379,36 +1400,39 @@ export class UnifiedTreeView {
 				cls: 'vaultman-tree-file-count nav-file-tag',
 				text: node.fileCountText,
 			});
-			cell.setAttribute('aria-label', `${node.fileCountText} files`);
-			cell.setAttribute('title', `${node.fileCountText} files`);
+			this.applyCellTooltip(cell, 'file-count', opts);
 		};
 		const emitSub = (parent: HTMLElement): void => {
 			if (!showSub || !node.subCountText) return;
-			parent.createSpan({
+			const cell = parent.createSpan({
 				cls: 'vaultman-tree-sub-count nav-file-tag',
 				text: node.subCountText,
 			});
+			this.applyCellTooltip(cell, 'sub', opts);
 		};
 		const emitTasks = (parent: HTMLElement): void => {
 			if (!showTasks || !node.tasksText) return;
-			parent.createSpan({
+			const cell = parent.createSpan({
 				cls: 'vaultman-tree-tasks nav-file-tag',
 				text: node.tasksText,
 			});
+			this.applyCellTooltip(cell, 'tasks', opts);
 		};
 		const emitTags = (parent: HTMLElement): void => {
 			if (!showTags || !node.tagsText) return;
-			parent.createSpan({
+			const cell = parent.createSpan({
 				cls: 'vaultman-tree-tags nav-file-tag',
 				text: node.tagsText,
 			});
+			this.applyCellTooltip(cell, 'tags', opts);
 		};
 		const emitCount = (parent: HTMLElement): void => {
 			if (!showCount || node.count == null || node.count <= 0) return;
-			parent.createSpan({
+			const cell = parent.createSpan({
 				cls: 'vaultman-tree-count',
 				text: String(node.count),
 			});
+			this.applyCellTooltip(cell, 'count', opts);
 		};
 		const cellEmitters: Record<string, (parent: HTMLElement) => void> = {
 			icon: emitIcon,
@@ -1420,11 +1444,11 @@ export class UnifiedTreeView {
 			mtime: (parent) =>
 				emitDate(parent, showMtime ? node.mtimeText : '', 'mtime'),
 			updated: (parent) =>
-				emitDate(parent, showMtime ? node.mtimeText : '', 'mtime'),
+				emitDate(parent, showMtime ? node.mtimeText : '', 'mtime', 'updated'),
 			ctime: (parent) =>
 				emitDate(parent, showCtime ? node.ctimeText : '', 'ctime'),
 			installed: (parent) =>
-				emitDate(parent, showCtime ? node.ctimeText : '', 'ctime'),
+				emitDate(parent, showCtime ? node.ctimeText : '', 'ctime', 'installed'),
 			opened: (parent) =>
 				emitDate(parent, showOpened ? node.openedText : '', 'opened'),
 			words: emitWords,
@@ -1522,8 +1546,18 @@ export class UnifiedTreeView {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
 			if (!usesActivationOrder) {
-				emitDate(badgeZone, showMtime ? node.mtimeText : '', 'mtime');
-				emitDate(badgeZone, showCtime ? node.ctimeText : '', 'ctime');
+				emitDate(
+					badgeZone,
+					showMtime ? node.mtimeText : '',
+					'mtime',
+					visibleCells?.has('updated') ? 'updated' : 'mtime',
+				);
+				emitDate(
+					badgeZone,
+					showCtime ? node.ctimeText : '',
+					'ctime',
+					visibleCells?.has('installed') ? 'installed' : 'ctime',
+				);
 				emitDate(badgeZone, showOpened ? node.openedText : '', 'opened');
 				emitWords(badgeZone);
 				emitFileCount(badgeZone);

@@ -445,6 +445,7 @@ export class PluginsExplorerPanel
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
+			surface: 'plugins',
 			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
 			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un

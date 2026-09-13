@@ -1,4 +1,4 @@
-import { Platform, setIcon } from 'obsidian';
+import { Platform, setIcon, setTooltip } from 'obsidian';
 import { translate } from '../../i18n/index';
 import {
 	clampNodeTableColumnWidth,
@@ -35,6 +35,7 @@ import {
 	LongPressGesture,
 } from '../../utils/longPressGesture';
 import { renderIconValue } from '../../utils/renderIconValue';
+import { cellTooltipText } from '../../logic/logicCellTooltip';
 
 export interface NodeTableViewOptions<TMeta = unknown> {
 	surface: NodeTableSurface;
@@ -704,10 +705,15 @@ export class NodeTableView<TMeta = unknown> {
 			}
 		}
 		if (node.count != null && node.count > 0) {
-			zone.createSpan({
+			const countCell = zone.createSpan({
 				cls: 'vaultman-tree-count',
 				text: String(node.count),
 			});
+			const tooltip = cellTooltipText(opts.surface, 'table', 'count');
+			if (tooltip) {
+				countCell.setAttribute('aria-label', tooltip);
+				setTooltip(countCell, tooltip);
+			}
 		}
 	}
 

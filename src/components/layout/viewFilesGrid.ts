@@ -1,4 +1,4 @@
-import { Platform, setIcon, type TFile } from 'obsidian';
+import { Platform, setIcon, setTooltip, type TFile } from 'obsidian';
 import { formatFileTableName } from '../../logic/logicTableLayout';
 import type { ExplorerFileTimes } from '../../logic/logicSort';
 import type { NodeBadge } from '../../types/typeTree';
@@ -14,6 +14,7 @@ import {
 } from '../../logic/logicResponsiveLayout';
 import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
 import { renderIconValue } from '../../utils/renderIconValue';
+import { cellTooltipText } from '../../logic/logicCellTooltip';
 
 export interface FilesGridViewCallbacks {
 	onContextMenu: (file: TFile, event: MouseEvent) => void;
@@ -473,22 +474,25 @@ export class FilesGridView {
 				});
 			}
 			if (this.visibleCells.has('count') && propCount > 0) {
-				metaRow.createSpan({
+				const countCell = metaRow.createSpan({
 					cls: 'vaultman-tree-count',
 					text: String(propCount),
 				});
+				this.applyCellTooltip(countCell, 'count');
 			}
 			if (showWords && wordCount !== null) {
-				metaRow.createSpan({
+				const wordsCell = metaRow.createSpan({
 					cls: 'nav-file-tag vaultman-files-grid-card-words',
 					text: String(wordCount),
 				});
+				this.applyCellTooltip(wordsCell, 'words');
 			}
 			if (showTags && tagCount !== null) {
-				metaRow.createSpan({
+				const tagsCell = metaRow.createSpan({
 					cls: 'nav-file-tag vaultman-files-grid-card-tags',
 					text: String(tagCount),
 				});
+				this.applyCellTooltip(tagsCell, 'tags');
 			}
 			if (this.visibleCells.has('mtime')) {
 				this.renderDateCell(metaRow, times.mtime, 'mtime');
@@ -516,6 +520,15 @@ export class FilesGridView {
 			text,
 		});
 		span.dataset.cell = cellId;
+		this.applyCellTooltip(span, cellId);
+	}
+
+	private applyCellTooltip(element: HTMLElement, cellId: string): void {
+		const tooltip = cellTooltipText('files', 'grid', cellId);
+		element.removeAttribute('title');
+		if (!tooltip) return;
+		element.setAttribute('aria-label', tooltip);
+		setTooltip(element, tooltip);
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {

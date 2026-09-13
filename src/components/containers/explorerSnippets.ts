@@ -419,6 +419,7 @@ export class SnippetsExplorerPanel
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		this.treeView.render({
+			surface: 'snippets',
 			nodes: this.projectedNodes(),
 			visibleCells: this.visibleCells,
 			// U130-t33 (L-PNODE): snippets no tiene anidacion propia, pero un

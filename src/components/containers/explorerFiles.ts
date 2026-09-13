@@ -2365,6 +2365,7 @@ export class FilesExplorerPanel extends Component {
 			);
 		this._setIndexRoots(renderTree, []);
 		this._treeRenderOpts = {
+			surface: 'files',
 			nodes: renderTree,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,

@@ -1,5 +1,5 @@
 // src/components/GridView.ts
-import { Platform, setIcon, type App, type TFile } from 'obsidian';
+import { Platform, setIcon, setTooltip, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import type { NodeBadge } from '../../types/typeTree';
@@ -26,6 +26,7 @@ import {
 } from '../../logic/logicResponsiveLayout';
 import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
 import { renderIconValue } from '../../utils/renderIconValue';
+import { cellTooltipText } from '../../logic/logicCellTooltip';
 
 export type SortColumn =
 	| 'name'
@@ -750,6 +751,12 @@ export class GridView {
 		// U121-027: mtime and ctime share `vaultman-file-date`, so the column id
 		// is the only identity a targeted cell patch can address.
 		valueEl.dataset.cell = column.id;
+		const tooltip = cellTooltipText('files', 'table', column.id);
+		valueEl.removeAttribute('title');
+		if (tooltip) {
+			valueEl.setAttribute('aria-label', tooltip);
+			setTooltip(valueEl, tooltip);
+		}
 	}
 
 	private visibleExtension(file: TFile): string {

@@ -6,6 +6,7 @@ import {
 	Notice,
 	prepareSimpleSearch,
 	setIcon,
+	setTooltip,
 } from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
@@ -30,6 +31,7 @@ import {
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
 } from '../../logic/logicNodeTypeFilters';
+import { cellTooltipText } from '../../logic/logicCellTooltip';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -1906,10 +1908,13 @@ export class PropsExplorerPanel extends Component {
 			}
 		}
 		if (this.visibleCells.has('count') && node.count && node.count > 0) {
-			badgeZone.createSpan({
+			const countCell = badgeZone.createSpan({
 				cls: 'vaultman-tree-count',
 				text: String(node.count),
 			});
+			const tooltip = cellTooltipText('props', 'grid', 'count');
+			countCell.setAttribute('aria-label', tooltip);
+			setTooltip(countCell, tooltip);
 		}
 	}
 
@@ -2232,6 +2237,7 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		this.view.render({
+			surface: 'props',
 			nodes: this.projectedNodes(nodesWithIcons),
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
