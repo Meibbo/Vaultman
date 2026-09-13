@@ -92,11 +92,12 @@ describe('BT3 settings information architecture source guards', () => {
 		expect(DEFAULT_SETTINGS.glassBlurIntensity).toBe(60);
 	});
 
-	it('keeps Props available but off by default for new Files layouts', () => {
+	it('keeps Props available and enables format by default for new Files layouts', () => {
 		// BT5-010: Files defaults come from the shared registry.
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
 			'name',
 			'ext',
+			'format',
 			'nested',
 		]);
 		expect(

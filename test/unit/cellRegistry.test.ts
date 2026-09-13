@@ -30,6 +30,7 @@ describe('shared explorer cell registry', () => {
 			'icon',
 			'text',
 			'parent',
+			'format',
 			'count',
 			'cell_hover',
 			'nested',
@@ -39,12 +40,14 @@ describe('shared explorer cell registry', () => {
 			'icon',
 			'text',
 			'parent',
+			'format',
 			'count',
 			'nested',
 		]);
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
 			'name',
 			'ext',
+			'format',
 			'nested',
 		]);
 		expect(defaultVisibleCells('snippets', 'tree')).toEqual([
@@ -52,12 +55,14 @@ describe('shared explorer cell registry', () => {
 			'icon',
 			'text',
 			'state',
+			'format',
 		]);
 		expect(defaultVisibleCells('plugins', 'tree')).toEqual([
 			'checkbox',
 			'icon',
 			'text',
 			'state',
+			'format',
 			'config',
 		]);
 	});
