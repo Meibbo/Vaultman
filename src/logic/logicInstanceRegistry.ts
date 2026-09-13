@@ -5,6 +5,7 @@ import type {
 	WorkspaceInstanceId,
 	WorkspaceInstanceRecord,
 } from '../types/typeInstance';
+import type { SavedFloatingTocState } from '../types/typeSettings';
 
 export const EMPTY_REGISTRY: InstanceRegistryData = { schema: 1, instances: {} };
 
@@ -174,6 +175,31 @@ export function setActiveScene(
 		...record,
 		revision: record.revision + 1,
 		activeScene,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
+}
+
+/** Guarda el estado del índice flotante para la instancia. Sin efecto si el id no existe. */
+export function setInstanceFloatingToc(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	floatingToc: SavedFloatingTocState,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record) return registry;
+	const current = record.floatingToc;
+	if (
+		current &&
+		current.enabled === floatingToc.enabled &&
+		current.kind === floatingToc.kind &&
+		current.rootId === floatingToc.rootId
+	) {
+		return registry;
+	}
+	const nextRecord: WorkspaceInstanceRecord = {
+		...record,
+		revision: record.revision + 1,
+		floatingToc: { ...floatingToc },
 	};
 	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
 }

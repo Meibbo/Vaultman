@@ -1,5 +1,6 @@
 import type { ExplorerSortState, ExplorerTabId, ExplorerViewMode } from './typeUI';
 import type { InteractionMode } from '../logic/logicInteractionMode';
+import type { SavedFloatingTocState } from './typeSettings';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -41,6 +42,8 @@ export interface WorkspaceInstanceRecord {
 	activeScene?: string;
 	/** una scene como mucho por definición estable. */
 	scenes: Partial<Record<SceneDefinitionId, SceneConfig>>;
+	/** Estado del índice flotante (floating TOC) para esta instancia. */
+	floatingToc?: SavedFloatingTocState;
 }
 
 export interface InstanceRegistryData {

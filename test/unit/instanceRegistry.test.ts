@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
-import { createInstanceRecord, EMPTY_REGISTRY, setActiveScene } from '../../src/logic/logicInstanceRegistry';
+import {
+	createInstanceRecord,
+	EMPTY_REGISTRY,
+	setActiveScene,
+	setInstanceFloatingToc,
+} from '../../src/logic/logicInstanceRegistry';
 import { reconcileRegistry } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
@@ -139,5 +144,39 @@ describe('setActiveScene', () => {
 
 	it('ignores an unknown instance instead of throwing', () => {
 		expect(setActiveScene(EMPTY_REGISTRY, 'nope', 'props')).toBe(EMPTY_REGISTRY);
+	});
+});
+
+describe('setInstanceFloatingToc', () => {
+	it('remembers the floatingToc state and bumps the revision', () => {
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		const next = setInstanceFloatingToc(registry, 'vm-1', {
+			enabled: true,
+			kind: 'files',
+			rootId: 'folder-a',
+		});
+		expect(next.instances['vm-1'].floatingToc).toEqual({
+			enabled: true,
+			kind: 'files',
+			rootId: 'folder-a',
+		});
+		expect(next.instances['vm-1'].revision).toBe(2);
+	});
+
+	it('returns the same registry when nothing changed, so nothing is persisted', () => {
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		const toc = { enabled: true, kind: 'folders' as const, rootId: null };
+		registry = setInstanceFloatingToc(registry, 'vm-1', toc);
+		expect(setInstanceFloatingToc(registry, 'vm-1', toc)).toBe(registry);
+	});
+
+	it('ignores an unknown instance instead of throwing', () => {
+		expect(
+			setInstanceFloatingToc(EMPTY_REGISTRY, 'nope', {
+				enabled: true,
+				kind: 'folders',
+				rootId: null,
+			}),
+		).toBe(EMPTY_REGISTRY);
 	});
 });
