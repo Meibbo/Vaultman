@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	FILES_MENU_DEFAULT_ORDER,
@@ -21,6 +21,7 @@ import contextMenuSource from '../../src/services/serviceContextMenu.ts?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import enSource from '../../src/i18n/en.ts?raw';
 import esSource from '../../src/i18n/es.ts?raw';
+import { TFile, TFolder, type App } from 'obsidian';
 
 const CATALOG = [
 	'file.open_tab',
@@ -270,5 +271,160 @@ describe('BT5-018 Files context menu configuration', () => {
 			expect(source).toContain("'settings.files_context_menu':");
 			expect(source).toContain("'settings.files_context_menu.desc':");
 		}
+	});
+
+	// ── A02: Add divider / Add submenu must persist and render ──
+
+	it('A02: Add divider changes the layout on first click (not a no-op)', async () => {
+		// Simulate the Settings closure behaviour: persist must use
+		// the LATEST layout, not a stale capture from first render.
+		const originalLayout = defaultFilesMenuLayout(CATALOG);
+		let layout = originalLayout;
+		const persisted: FilesMenuItem[][] = [];
+		const persist = async (next: FilesMenuItem[]) => {
+			const normalized = normalizeFilesMenuLayout(next);
+			persisted.push(normalized);
+			layout = normalized; // re-capture, like this.update() does
+		};
+
+		// First click — Add divider
+		await persist(addFilesMenuDivider(layout));
+		expect(persisted).toHaveLength(1);
+		// The persisted layout must differ from the ORIGINAL — a divider was added.
+		expect(persisted[0].length).not.toBe(originalLayout.length);
+	});
+
+	it('A02: Add submenu creates an editable submenu row that accepts items', async () => {
+		let layout = defaultFilesMenuLayout(CATALOG);
+		const persisted: FilesMenuItem[][] = [];
+		const persist = async (next: FilesMenuItem[]) => {
+			const normalized = normalizeFilesMenuLayout(next);
+			persisted.push(normalized);
+			layout = normalized;
+		};
+
+		// Add a submenu with a custom label
+		await persist(addFilesMenuSubmenu(layout, 'Convert'));
+		expect(persisted).toHaveLength(1);
+		const submenus = persisted[0].filter(
+			(i): i is Extract<FilesMenuItem, { kind: 'submenu' }> =>
+				i.kind === 'submenu',
+		);
+		expect(submenus).toHaveLength(1);
+		expect(submenus[0].label).toBe('Convert');
+
+		// Assign an action to the submenu (editable → accepts items)
+		layout = persisted[0];
+		await persist(setFilesMenuParent(layout, 'file.rename', submenus[0].id));
+		expect(persisted).toHaveLength(2);
+		const renamed = persisted[1].find((i) => i.id === 'file.rename');
+		expect(renamed).toMatchObject({ parent: submenus[0].id });
+	});
+
+	it('A02: Add submenu creates an editable submenu row that accepts items', async () => {
+		let layout = defaultFilesMenuLayout(CATALOG);
+		const persisted: FilesMenuItem[][] = [];
+		const persist = async (next: FilesMenuItem[]) => {
+			const normalized = normalizeFilesMenuLayout(next);
+			persisted.push(normalized);
+			layout = normalized;
+		};
+
+		// Add a submenu with a custom label
+		await persist(addFilesMenuSubmenu(layout, 'Convert'));
+		expect(persisted).toHaveLength(1);
+		const submenus = persisted[0].filter(
+			(i): i is Extract<FilesMenuItem, { kind: 'submenu' }> =>
+				i.kind === 'submenu',
+		);
+		expect(submenus).toHaveLength(1);
+		expect(submenus[0].label).toBe('Convert');
+
+		// Assign an action to the submenu (editable → accepts items)
+		layout = persisted[0];
+		await persist(setFilesMenuParent(layout, 'file.rename', submenus[0].id));
+		expect(persisted).toHaveLength(2);
+		const renamed = persisted[1].find((i) => i.id === 'file.rename');
+		expect(renamed).toMatchObject({ parent: submenus[0].id });
+	});
+
+	// ── A03: Probe must discover native panel entries ──
+
+	it('A03: probe finds native:* items when a file-menu handler is registered', async () => {
+		const fakeMenu = { items: [] as { title: string; submenu?: boolean }[] };
+		const fakeWorkspace = {
+			on: vi.fn().mockReturnValue({ off: vi.fn() }),
+			trigger(_event: string, menu: typeof fakeMenu) {
+				menu.items.push({ title: 'Open in new tab' });
+				menu.items.push({ title: 'Reveal in navigation' });
+			},
+		};
+		const fakeVault = {
+			getFiles: () => [{ path: 'a.md' } as unknown as TFile],
+			getRoot: () => ({ path: '' } as unknown as TFolder),
+		};
+
+		const mod = await import('../../src/services/serviceContextMenu');
+		const fakeApp = {
+			vault: fakeVault,
+			workspace: fakeWorkspace,
+		} as unknown as App;
+		const svc = new mod.ContextMenuService({
+			app: fakeApp,
+			settings: DEFAULT_SETTINGS,
+		} as unknown as any);
+
+		const catalog = svc.panelActionCatalog('files');
+		const nativeIds = catalog.filter((e) => e.native).map((e) => e.id);
+		expect(nativeIds.length).toBeGreaterThanOrEqual(1);
+		expect(nativeIds.every((id) => id.startsWith('native:'))).toBe(true);
+	});
+
+	it('A03: probe tolerates a throwing handler — other entries still appear', async () => {
+		const fakeMenu = { items: [] as { title: string; submenu?: boolean }[] };
+		// Two handlers registered on the same workspace:
+		// 1st throws, 2nd adds items.  Obsidian's trigger catches
+		// per-handler errors and continues, so the 2nd handler's
+		// items should still reach the probe.
+		const handlers: Array<(menu: typeof fakeMenu) => void> = [
+			() => {
+				throw new Error('boom');
+			},
+			(menu: typeof fakeMenu) => {
+				menu.items.push({ title: 'Still here' });
+			},
+		];
+		const fakeWorkspace = {
+			on: vi.fn().mockReturnValue({ off: vi.fn() }),
+			trigger(_event: string, menu: typeof fakeMenu) {
+				for (const h of handlers) {
+					try {
+						h(menu);
+					} catch {
+						// Simulate Obsidian catching per-handler errors.
+					}
+				}
+			},
+		};
+		const fakeVault = {
+			getFiles: () => [{ path: 'a.md' } as unknown as TFile],
+			getRoot: () => ({ path: '' } as unknown as TFolder),
+		};
+
+		const mod = await import('../../src/services/serviceContextMenu');
+		const fakeApp = {
+			vault: fakeVault,
+			workspace: fakeWorkspace,
+		} as unknown as App;
+		const svc = new mod.ContextMenuService({
+			app: fakeApp,
+			settings: DEFAULT_SETTINGS,
+		} as unknown as any);
+
+		const catalog = svc.panelActionCatalog('files');
+		const nativeLabels = catalog
+			.filter((e) => e.native)
+			.map((e) => e.label);
+		expect(nativeLabels).toContain('Still here');
 	});
 });

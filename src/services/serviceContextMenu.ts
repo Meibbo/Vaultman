@@ -291,6 +291,9 @@ export class ContextMenuService extends Component {
 							): void;
 						}
 					).trigger('file-menu', menu, target, FILE_EXPLORER_CONTEXT_SOURCE);
+				} catch {
+					// A foreign handler threw — ignore it and keep whatever
+					// the other handlers already deposited into the menu.
 				} finally {
 					this.suppressWorkspaceInjection = false;
 				}

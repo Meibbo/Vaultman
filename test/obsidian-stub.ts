@@ -142,6 +142,7 @@ interface MenuItemStub {
 }
 
 export class Menu {
+	items: { title?: string; submenu?: boolean }[] = [];
 	addItem(callback: (item: MenuItemStub) => unknown): void {
 		const chain: MenuItemStub = {
 			setTitle: () => chain,
