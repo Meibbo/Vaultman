@@ -464,6 +464,20 @@
 		void plugin.saveData(plugin.settings);
 		new Notice(translate('viewmenu.saved_config_notice'));
 	}
+	/** Spec 08 §3.2.2/§3.3: custom groups are a property of the layout; persist quietly. */
+	function updateGroupMemberships(
+		layoutName: string,
+		memberships: Record<string, readonly string[]>,
+	) {
+		const target = savedLayouts.find((entry) => entry.name === layoutName);
+		if (!target) return;
+		const next = savedLayouts.map((entry) =>
+			entry === target ? { ...entry, groupMemberships: memberships } : entry,
+		);
+		plugin.settings.savedLayouts = next;
+		savedLayouts = next;
+		void plugin.saveData(plugin.settings);
+	}
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
@@ -1958,6 +1972,8 @@
 				savedLayouts,
 				onSaveLayout: saveLayout,
 				onLayoutLoaded: (layout) => applyFloatingTocState?.(layout.floatingToc),
+				activeLayoutName: plugin.settings.activeLayoutName ?? null,
+				onGroupMembershipsChange: updateGroupMemberships,
 				toolbarShown: showToolbar,
 				app: plugin.app,
 				showTabLabels,

@@ -1,8 +1,14 @@
 import type {
+	ExplorerSortDirection,
 	ExplorerSortState,
 	ExplorerTabId,
 	SortScopeKey,
 } from '../types/typeUI';
+import {
+	GROUP_PRESETS_BY_TAB,
+	type GroupPreset,
+	type GroupPresetKind,
+} from '../types/typeGroupPreset';
 import { isSortOptionVisible, scopesForTab } from './logicScopedSort';
 import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
 import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
@@ -341,4 +347,124 @@ export function visibleSortOptions(
 				revealActive,
 			}),
 	);
+}
+
+// --- Spec 08 §3.2: the groups submenu ---------------------------------------
+
+export const GROUP_PRESET_META: Record<
+	GroupPresetKind,
+	{ icon: string; labelKey: string }
+> = {
+	none: { icon: 'lucide-ban', labelKey: 'group.preset.none' },
+	letter: { icon: 'lucide-a-large-small', labelKey: 'group.preset.letter' },
+	name: { icon: 'lucide-text', labelKey: 'group.preset.name' },
+	type: { icon: 'lucide-file-type', labelKey: 'group.preset.type' },
+	words: { icon: 'lucide-whole-word', labelKey: 'group.preset.words' },
+	tasks: { icon: 'lucide-list-checks', labelKey: 'group.preset.tasks' },
+	props: { icon: 'lucide-list', labelKey: 'group.preset.props' },
+	modified: { icon: 'lucide-calendar-clock', labelKey: 'group.preset.modified' },
+	opened: { icon: 'lucide-eye', labelKey: 'group.preset.opened' },
+	created: { icon: 'lucide-calendar-plus', labelKey: 'group.preset.created' },
+	custom: { icon: 'lucide-boxes', labelKey: 'group.preset.custom' },
+};
+
+export interface GroupMenuPresetItem {
+	kind: 'preset';
+	id: GroupPresetKind;
+	icon: string;
+	labelKey: string;
+	checked: boolean;
+	/** Only a checked, non-`none` preset shows its direction. */
+	direction: ExplorerSortDirection | null;
+}
+
+export interface GroupMenuNewGroupItem {
+	kind: 'new-group';
+	id: 'new-group';
+	icon: string;
+	labelKey: string;
+	/** Custom groups live in a layout (U130-05): without one there is nowhere to put it. */
+	disabled: boolean;
+}
+
+export interface GroupMenuCustomGroupItem {
+	kind: 'custom-group';
+	id: string;
+	icon: string;
+	label: string;
+	checked: boolean;
+}
+
+export interface GroupMenuSeparatorItem {
+	kind: 'separator';
+	id: 'group-separator';
+}
+
+export type GroupMenuItem =
+	| GroupMenuPresetItem
+	| GroupMenuNewGroupItem
+	| GroupMenuCustomGroupItem
+	| GroupMenuSeparatorItem;
+
+export interface GroupMenuModel {
+	items: GroupMenuItem[];
+}
+
+/**
+ * The groups submenu, in the spec's order: `none` first and checked by
+ * default, the presets of the tab, a divider, `New group`, the custom groups.
+ * `custom` is not listed as a preset row: choosing any custom group row is
+ * what selects it, mirroring how the presets are the selection.
+ */
+export function groupMenuModel(
+	tab: ExplorerTabId,
+	preset: GroupPreset,
+	customGroups: readonly { id: string; label: string }[],
+	canCreateGroup: boolean,
+): GroupMenuModel {
+	const items: GroupMenuItem[] = [];
+	for (const kind of GROUP_PRESETS_BY_TAB[tab]) {
+		if (kind === 'custom') continue;
+		const checked = preset.kind === kind;
+		items.push({
+			kind: 'preset',
+			id: kind,
+			...GROUP_PRESET_META[kind],
+			checked,
+			direction: checked && kind !== 'none' ? preset.direction : null,
+		});
+	}
+	items.push({ kind: 'separator', id: 'group-separator' });
+	items.push({
+		kind: 'new-group',
+		id: 'new-group',
+		icon: 'lucide-folder-plus',
+		labelKey: 'group.new',
+		disabled: !canCreateGroup,
+	});
+	for (const group of customGroups) {
+		items.push({
+			kind: 'custom-group',
+			id: group.id,
+			icon: GROUP_PRESET_META.custom.icon,
+			label: group.label,
+			checked: preset.kind === 'custom',
+		});
+	}
+	return { items };
+}
+
+/**
+ * Presets are also asc/desc toggles (§3.2): picking the checked one flips its
+ * direction; picking another selects it ascending; `none` has no direction.
+ */
+export function nextGroupPreset(
+	current: GroupPreset,
+	kind: GroupPresetKind,
+): GroupPreset {
+	if (kind === 'none') return { kind: 'none', direction: 'asc' };
+	if (current.kind === kind) {
+		return { kind, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+	}
+	return { kind, direction: 'asc' };
 }

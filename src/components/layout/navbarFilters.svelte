@@ -65,11 +65,14 @@
 	import { shouldFaintRevealNode } from '../../logic/logicRevealFaint';
 	import {
 		byLevelModel,
+		groupMenuModel,
+		nextGroupPreset,
 		NODE_TYPE_MENU_OPTIONS,
 		supportsByLevel,
 		visibleSortOptions,
 		type NodeTypeMenuOption,
 	} from '../../logic/logicSortMenu';
+	import type { GroupPresetKind } from '../../types/typeGroupPreset';
 	import {
 		cellIcon,
 		cellLabelKey,
@@ -159,6 +162,8 @@
 		savedLayouts = [],
 		onSaveLayout,
 		onLayoutLoaded,
+		activeLayoutName = null,
+		onGroupMembershipsChange,
 		app,
 		showTabLabels = true,
 		sortLevelInline = true,
@@ -429,7 +434,101 @@
 		for (const tab of LAYOUT_TABS) {
 			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
 		}
+		loadedLayoutName = layout.name;
 		onLayoutLoaded?.(layout);
+	}
+	/** U130-05: the layout this instance loaded; falls back to the global activation. */
+	let loadedLayoutName = $state<string | null>(null);
+	function activeLayout(): SavedLayout | null {
+		const name = loadedLayoutName ?? activeLayoutName;
+		if (!name) return null;
+		return savedLayouts.find((layout) => layout.name === name) ?? null;
+	}
+	/** Spec 08 §3.2.2: the custom groups are the membership keys of the active layout. */
+	function customGroupsForMenu(): { id: string; label: string }[] {
+		const memberships = activeLayout()?.groupMemberships ?? {};
+		return Object.keys(memberships).map((id) => ({ id, label: id }));
+	}
+	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
+		commitConfig(tab, { groupPreset: next });
+		applyGroupPreset(tab, next);
+	}
+	function selectGroupPreset(tab: FiltersTab, kind: GroupPresetKind) {
+		setGroupPresetFor(tab, nextGroupPreset(configByTab[tab].groupPreset, kind));
+	}
+	/**
+	 * Spec 08 §3.2.2 `New group` / §3.3 `Create group with selected`: a custom
+	 * group is a membership key of the active layout, so it needs one. The
+	 * created group is selected right away (`kind: 'custom'`), which is what
+	 * makes it visible.
+	 */
+	async function createCustomGroup(
+		tab: FiltersTab,
+		urns: readonly string[] = [],
+	): Promise<void> {
+		const layout = activeLayout();
+		if (!layout || !app || !onGroupMembershipsChange) return;
+		const name = (
+			await showInputModal(app, translate('group.new.prompt'))
+		)?.trim();
+		if (!name) return;
+		const memberships = layout.groupMemberships ?? {};
+		if (name in memberships) return;
+		onGroupMembershipsChange(layout.name, { ...memberships, [name]: urns });
+		setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+	}
+	function addGroupsSubmenu(menu: Menu, tab: FiltersTab) {
+		const model = groupMenuModel(
+			tab,
+			configByTab[tab].groupPreset,
+			customGroupsForMenu(),
+			activeLayout() !== null && Boolean(onGroupMembershipsChange),
+		);
+		menu.addItem((item) => {
+			item.setTitle(translate('group.menu.title')).setIcon('lucide-group');
+			const sub = (
+				item as typeof item & { setSubmenu: () => Menu }
+			).setSubmenu();
+			for (const entry of model.items) {
+				if (entry.kind === 'separator') {
+					sub.addSeparator();
+					continue;
+				}
+				sub.addItem((row) => {
+					if (entry.kind === 'preset') {
+						row
+							.setTitle(
+								`${translate(entry.labelKey)}${
+									entry.direction
+										? ` ${sortDirectionGlyph(entry.direction)}`
+										: ''
+								}`,
+							)
+							.setIcon(entry.icon)
+							.setChecked(entry.checked)
+							.onClick(() => selectGroupPreset(tab, entry.id));
+					} else if (entry.kind === 'new-group') {
+						row
+							.setTitle(
+								translate(
+									entry.disabled ? 'group.new.needs_layout' : entry.labelKey,
+								),
+							)
+							.setIcon(entry.icon)
+							.setDisabled(entry.disabled)
+							.onClick(() => void createCustomGroup(tab));
+					} else {
+						row
+							.setTitle(entry.label)
+							.setIcon(entry.icon)
+							.setChecked(entry.checked)
+							.onClick(() =>
+								setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' }),
+							);
+					}
+				});
+			}
+		});
 	}
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
@@ -1113,7 +1212,8 @@
 				applySortState(tab, normalizedState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
-				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.stickyRows !== undefined)
+					applyStickyRows(tab, config.stickyRows);
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
@@ -1141,7 +1241,8 @@
 				applySortState(tab, config.sortState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
-				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.stickyRows !== undefined)
+					applyStickyRows(tab, config.stickyRows);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			}
 			return;
@@ -1167,7 +1268,8 @@
 				applySortState(tab, config.sortState);
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
-				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.stickyRows !== undefined)
+					applyStickyRows(tab, config.stickyRows);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			}
 			return;
@@ -1957,6 +2059,12 @@
 		);
 		const activeSort = activeScopeSort(activeTab, current);
 
+		// Spec 08 §3.2: the groups submenu goes right after the scope submenu
+		// (step 6 of plan U130-08 moves the scope items up here) and before
+		// the sort presets.
+		addGroupsSubmenu(menu, activeTab);
+		menu.addSeparator();
+
 		const nestedActive = nestedActiveFor(activeTab);
 		// The native menu shows the same options as the popup, so it needs the
 		// same reveal signal — without it `note` was filtered out here even
@@ -2636,6 +2744,14 @@
 					{revealActive}
 					onRequestRevealPick={() => void beginRevealPick(activeTab)}
 					treeCapable={treeCapableFor(activeTab)}
+					groupPreset={configByTab[activeTab].groupPreset}
+					customGroups={customGroupsForMenu()}
+					canCreateGroup={activeLayout() !== null &&
+						Boolean(onGroupMembershipsChange)}
+					onGroupPresetChange={(kind) => selectGroupPreset(activeTab, kind)}
+					onSelectCustomGroups={() =>
+						setGroupPresetFor(activeTab, { kind: 'custom', direction: 'asc' })}
+					onNewGroup={() => void createCustomGroup(activeTab)}
 					{icon}
 				/>
 			</div>
