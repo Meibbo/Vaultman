@@ -269,6 +269,10 @@ export class PropsExplorerPanel extends Component {
 	private readonly deferredRender = new DeferredExplorerRender();
 	/** Spec 08 §2: override per_instance sobre `plugin.settings.stickyParentRows`. */
 	private stickyRowsOverride: boolean | undefined;
+	/** Spec 08: view_option `indent` per_instance. `false` flattens row padding
+	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
+	 *  indented geometry of today. */
+	private indentOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
@@ -930,6 +934,8 @@ export class PropsExplorerPanel extends Component {
 		const stickyChanged =
 			config.stickyRows !== undefined &&
 			this.stickyRowsOverride !== config.stickyRows;
+		const indentChanged =
+			config.indent !== undefined && this.indentOverride !== config.indent;
 		const presetChanged =
 			config.groupPreset !== undefined &&
 			!sameGroupPreset(this.groupPreset, config.groupPreset);
@@ -940,6 +946,7 @@ export class PropsExplorerPanel extends Component {
 			!sortChanged &&
 			!interactionChanged &&
 			!stickyChanged &&
+			!indentChanged &&
 			!presetChanged
 		) {
 			return;
@@ -971,6 +978,9 @@ export class PropsExplorerPanel extends Component {
 		}
 		if (stickyChanged) {
 			this.stickyRowsOverride = config.stickyRows;
+		}
+		if (indentChanged) {
+			this.indentOverride = config.indent;
 		}
 		if (presetChanged && config.groupPreset) {
 			this.groupPreset = { ...config.groupPreset };
@@ -1045,6 +1055,12 @@ export class PropsExplorerPanel extends Component {
 	setStickyRowsEnabled(enabled: boolean): void {
 		if (this.stickyRowsOverride === enabled) return;
 		this.stickyRowsOverride = enabled;
+		this._render();
+	}
+
+	setIndentEnabled(enabled: boolean): void {
+		if (this.indentOverride === enabled) return;
+		this.indentOverride = enabled;
 		this._render();
 	}
 
@@ -2496,6 +2512,7 @@ export class PropsExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
+			indent: this.indentOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

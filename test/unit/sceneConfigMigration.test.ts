@@ -17,6 +17,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			sortState: normalizeExplorerSortState('files', null),
 			stickyRows: true,
 			compactFolders: false,
+			indent: true,
 			groupPreset: { kind: 'none', direction: 'asc' },
 			hiddenGroupIds: [],
 		}),

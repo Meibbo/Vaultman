@@ -83,10 +83,11 @@ export async function applyLayoutToPort(
 				layout.interactionModeByTab[tab] ?? current.interactionMode,
 			visibleCells: layout.visibleCellsByTab[tab] ?? current.visibleCells,
 			sortState: layout.sortStateByTab[tab] ?? current.sortState,
-			// Los layouts guardados todavia no cargan stickyRows/compactFolders
+			// Los layouts guardados todavia no cargan stickyRows/compactFolders/indent
 			// (spec 08 §2 es posterior a `SavedLayoutConfig`): se preservan.
 			stickyRows: current.stickyRows,
 			compactFolders: current.compactFolders,
+			indent: current.indent,
 			groupPreset: current.groupPreset,
 			hiddenGroupIds: current.hiddenGroupIds,
 		};

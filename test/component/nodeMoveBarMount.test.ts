@@ -47,6 +47,7 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				sortState: normalizeExplorerSortState('files', null),
 				stickyRows: true,
 				compactFolders: false,
+				indent: true,
 				groupPreset: { kind: 'none' as const, direction: 'asc' as const },
 				hiddenGroupIds: [],
 			}),

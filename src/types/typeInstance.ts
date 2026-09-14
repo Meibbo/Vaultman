@@ -23,6 +23,12 @@ export interface SceneConfig {
 	stickyRows?: boolean;
 	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
 	compactFolders?: boolean;
+	/**
+	 * Spec 08: view_option del engine `tree`, per_instance. Colapsa el padding
+	 * de fila a 4px e ignora la sangría por profundidad; el caret de un p-node
+	 * se conserva, solo deja de desplazarse por `--depth`.
+	 */
+	indent?: boolean;
 	/** Spec 08 §3.2: el group preset seleccionado, per_instance. `none` por defecto. */
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos (no borrados) en esta instancia. */

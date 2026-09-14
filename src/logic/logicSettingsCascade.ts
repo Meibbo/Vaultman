@@ -33,6 +33,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		sortState: { ...input.defaults.sortState },
 		stickyRows: input.defaults.stickyRows,
 		compactFolders: input.defaults.compactFolders,
+		indent: input.defaults.indent,
 		groupPreset: { ...input.defaults.groupPreset },
 		hiddenGroupIds: cloneCells(input.defaults.hiddenGroupIds),
 	};
@@ -45,6 +46,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.sortState !== undefined) out.sortState = { ...layer.sortState };
 		if (layer.stickyRows !== undefined) out.stickyRows = layer.stickyRows;
 		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
+		if (layer.indent !== undefined) out.indent = layer.indent;
 		if (layer.groupPreset !== undefined) out.groupPreset = { ...layer.groupPreset };
 		if (layer.hiddenGroupIds !== undefined) {
 			out.hiddenGroupIds = cloneCells(layer.hiddenGroupIds);
@@ -80,6 +82,7 @@ export function diffSceneConfig(
 	if (next.compactFolders !== baseline.compactFolders) {
 		patch.compactFolders = next.compactFolders;
 	}
+	if (next.indent !== baseline.indent) patch.indent = next.indent;
 	if (!sameGroupPreset(next.groupPreset, baseline.groupPreset)) {
 		patch.groupPreset = { ...next.groupPreset };
 	}

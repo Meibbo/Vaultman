@@ -65,6 +65,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						sortState: normalizeExplorerSortState('props', null),
 						stickyRows: true,
 						compactFolders: false,
+						indent: true,
 						groupPreset: { kind: 'none', direction: 'asc' },
 						hiddenGroupIds: [],
 					}),

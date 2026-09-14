@@ -35,6 +35,10 @@ export const es: Record<string, string> = {
 	'settings.action.search_selection': 'Buscar Selección',
 	'settings.action.none': 'Ninguna (por defecto de Obsidian)',
 	'context_menu.node_note': 'Abrir Node-Note',
+	'settings.vaultman_sets': 'Tus Conjuntos',
+	'settings.queue.template.templates': 'Plantillas de Operaciones',
+	'settings.queue.template.templates.desc': 'Revisa tus operaciones comunes',
+
 	// General
 	'plugin.name': 'Vaultman',
 	'plugin.description':
@@ -1113,6 +1117,7 @@ export const es: Record<string, string> = {
 	'content.copy_unavailable':
 		'La búsqueda de Obsidian no está disponible en esta bóveda.',
 	'sort.level.nested': 'Anidado',
+	'sort.level.indent': 'Sangría',
 	'sort.level.filtered': 'Filtrado',
 	'sort.level.add_property_first': 'Agregar propiedad primero',
 	'sort.reveal.current_file': 'Archivo actual',

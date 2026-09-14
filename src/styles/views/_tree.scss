@@ -1217,6 +1217,12 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   margin-right: auto;
 }
 
+.metadata-add-button-divider {
+  border-top: 1px solid var(--divider-color, var(--background-modifier-border));
+  margin: 8px 12px 6px 12px;
+}
+
+
 /* Spec 08 §2, "Compact folders": a merged single-child-folder chain renders
    as its segments joined by a thin separator inside one `.vaultman-tree-label`.
    Only the deepest segment (the one that is actually the operable folder)

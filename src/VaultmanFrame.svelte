@@ -313,6 +313,9 @@
 			// nuevas (spec 08 §1.1); el per_instance lo pisa desde el view_menu.
 			stickyRows: plugin.settings.stickyParentRows !== false,
 			compactFolders: false,
+			// Sin default en Settings: el view_option nuevo nace `on` (geometria
+			// de hoy) y solo lo toca quien abra el submenu `engines` y lo apague.
+			indent: true,
 			// Spec 08 §3.2: la agrupacion es una seleccion de preset y `none` es el defecto.
 			groupPreset: { ...NO_GROUP_PRESET },
 			hiddenGroupIds: [],

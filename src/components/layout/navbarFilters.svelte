@@ -1226,6 +1226,7 @@
 			interactionMode?: InteractionMode;
 			stickyRows?: boolean;
 			compactFolders?: boolean;
+			indent?: boolean;
 			groupPreset?: GroupPreset;
 			hiddenGroupIds?: readonly string[];
 		},
@@ -1259,6 +1260,7 @@
 					...(config.compactFolders !== undefined
 						? { compactFolders: config.compactFolders }
 						: {}),
+					...(config.indent !== undefined ? { indent: config.indent } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1274,6 +1276,7 @@
 					applyStickyRows(tab, config.stickyRows);
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
+				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1293,6 +1296,7 @@
 					...(config.stickyRows !== undefined
 						? { stickyRows: config.stickyRows }
 						: {}),
+					...(config.indent !== undefined ? { indent: config.indent } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1306,6 +1310,7 @@
 					applyInteractionMode(tab, config.interactionMode);
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
+				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1325,6 +1330,7 @@
 					...(config.stickyRows !== undefined
 						? { stickyRows: config.stickyRows }
 						: {}),
+					...(config.indent !== undefined ? { indent: config.indent } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1338,6 +1344,7 @@
 					applyInteractionMode(tab, config.interactionMode);
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
+				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1621,6 +1628,10 @@
 			// fixedFolders only exist in Files (the Files-specific sort knobs).
 			// stickyRows applies to any nested-capable tab (Files/Props/Tags);
 			// compactFolders only exists in Files -- folders live only there.
+			// `indent` is independent of the nested/grouping chain above: it is
+			// a flat padding override (4px, no per-depth sangria) that applies
+			// whether or not there is anything to nest or group, so it is gated
+			// only by the engine being `tree`, not by `nestedAct`.
 			submenu.addSeparator();
 			submenu.addItem((item) => {
 				item
@@ -1629,6 +1640,15 @@
 					.setChecked(nestedAct)
 					.onClick(() => toggleNestedFor(activeTab));
 			});
+			if (treeCapableFor(activeTab)) {
+				submenu.addItem((item) => {
+					item
+						.setTitle(translate('sort.level.indent'))
+						.setIcon('lucide-indent')
+						.setChecked(indentEnabledFor(activeTab))
+						.onClick(() => toggleIndentFor(activeTab));
+				});
+			}
 			if (nestedAct && activeTab === 'files') {
 				const parentsFirst = sortState.parentsFirst ?? true;
 				submenu.addItem((item) => {
@@ -2202,6 +2222,16 @@
 		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
 	}
 
+	function indentEnabledFor(tab: FiltersTab): boolean {
+		return configByTab[tab].indent;
+	}
+
+	function applyIndent(tab: FiltersTab, enabled: boolean) {
+		if (tab === 'files') fileList?.setIndentEnabled?.(enabled);
+		if (tab === 'props') propExplorer?.setIndentEnabled?.(enabled);
+		if (tab === 'tags') tagsExplorer?.setIndentEnabled?.(enabled);
+	}
+
 	function applyHiddenGroupIds(tab: FiltersTab, ids: readonly string[]) {
 		explorerPortForTab(tab)?.setHiddenGroupIds?.(ids);
 	}
@@ -2213,6 +2243,12 @@
 		if (tab === 'tags') tagsExplorer?.setGroupPreset?.(preset);
 		if (tab === 'snippets') snippetsExplorer?.setGroupPreset?.(preset);
 		if (tab === 'plugins') pluginsExplorer?.setGroupPreset?.(preset);
+	}
+
+	function toggleIndentFor(tab: FiltersTab) {
+		const next = !indentEnabledFor(tab);
+		commitConfig(tab, { indent: next });
+		applyIndent(tab, next);
 	}
 
 	function toggleStickyRowsFor(tab: FiltersTab) {
@@ -2545,6 +2581,7 @@
 		);
 		const stickyRows = configByTab[tab].stickyRows;
 		const compactFolders = configByTab[tab].compactFolders;
+		const indent = configByTab[tab].indent;
 		const groupPreset = configByTab[tab].groupPreset;
 		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
 		applyTabProjection(tab, {
@@ -2554,6 +2591,7 @@
 			interactionMode,
 			stickyRows,
 			compactFolders,
+			indent,
 			groupPreset,
 			hiddenGroupIds,
 		});

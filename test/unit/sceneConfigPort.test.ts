@@ -13,6 +13,7 @@ const defaults = {
 	sortState: normalizeExplorerSortState('files', null),
 	stickyRows: true,
 	compactFolders: false,
+	indent: true,
 	groupPreset: { kind: 'none' as const, direction: 'asc' as const },
 	hiddenGroupIds: [],
 };

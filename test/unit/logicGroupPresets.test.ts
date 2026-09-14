@@ -244,6 +244,7 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		sortState: normalizeExplorerSortState('files', null),
 		stickyRows: true,
 		compactFolders: false,
+		indent: true,
 		groupPreset: { kind: 'none', direction: 'asc' },
 		hiddenGroupIds: [],
 	};

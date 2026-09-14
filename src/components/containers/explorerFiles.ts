@@ -350,6 +350,12 @@ export class FilesExplorerPanel extends Component {
 	 */
 	private _folderMaxMtime: ReadonlyMap<string, number> = new Map();
 	private _folderFileCount: ReadonlyMap<string, number> = new Map();
+	/** Sum (not count) of each stat across every file under a folder, keyed by
+	 *  ancestor folder path -- same bubbling as `_folderFileCount`, one map per
+	 *  stat so a folder sorts by what is actually inside it instead of 0. */
+	private _folderTagCount: ReadonlyMap<string, number> = new Map();
+	private _folderWordCount: ReadonlyMap<string, number> = new Map();
+	private _folderTaskCount: ReadonlyMap<string, number> = new Map();
 	private _lastFlatFiles: { id: string; label: string }[] = [];
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
@@ -368,6 +374,10 @@ export class FilesExplorerPanel extends Component {
 	 * todavia -- no improvisar, hay que ir a mirar como lo hace VS Code primero.
 	 */
 	private compactFoldersOverride: boolean | undefined;
+	/** Spec 08: view_option `indent` per_instance. `false` flattens row padding
+	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
+	 *  indented geometry of today. */
+	private indentOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
@@ -943,6 +953,9 @@ export class FilesExplorerPanel extends Component {
 			if (config.compactFolders !== undefined) {
 				this.setCompactFoldersEnabled(config.compactFolders);
 			}
+			if (config.indent !== undefined) {
+				this.setIndentEnabled(config.indent);
+			}
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 		});
@@ -1013,6 +1026,12 @@ export class FilesExplorerPanel extends Component {
 	setCompactFoldersEnabled(enabled: boolean): void {
 		if (this.compactFoldersOverride === enabled) return;
 		this.compactFoldersOverride = enabled;
+		this._render();
+	}
+
+	setIndentEnabled(enabled: boolean): void {
+		if (this.indentOverride === enabled) return;
+		this.indentOverride = enabled;
 		this._render();
 	}
 
@@ -1426,19 +1445,19 @@ export class FilesExplorerPanel extends Component {
 			if (sortBy === 'words') {
 				return node.meta.file
 					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
-					: 0;
+					: (this._folderWordCount.get(node.meta.folderPath) ?? 0);
 			}
 			if (sortBy === 'tags') {
 				return node.meta.file
 					? (this.plugin.statisticsCache.getFileTagCount(node.meta.file) ?? 0)
-					: 0;
+					: (this._folderTagCount.get(node.meta.folderPath) ?? 0);
 			}
 			if (sortBy === 'tasks') {
 				return node.meta.file
 					? (this.plugin.statisticsCache.getFileRemainingTasks(
 							node.meta.file,
 						) ?? 0)
-					: 0;
+					: (this._folderTaskCount.get(node.meta.folderPath) ?? 0);
 			}
 			if (sortBy === 'mtime' || sortBy === 'ctime') {
 				return node.meta.file
@@ -2206,6 +2225,38 @@ export class FilesExplorerPanel extends Component {
 		this._folderFileCount = counts;
 	}
 
+	/** Same bubbling as `_refreshFolderFileCount`, summing the stat instead of
+	 *  counting files. Gated like `_refreshFolderMaxMtime`: only the sorts
+	 *  that read it pay for the vault-wide scan. */
+	private _refreshFolderStatCounts(files: readonly TFile[]): void {
+		if (!this._usesStatisticsSort()) {
+			this._folderTagCount = new Map();
+			this._folderWordCount = new Map();
+			this._folderTaskCount = new Map();
+			return;
+		}
+		const tags = new Map<string, number>();
+		const words = new Map<string, number>();
+		const tasks = new Map<string, number>();
+		for (const file of files) {
+			const tagN = this.plugin.statisticsCache.getFileTagCount(file) ?? 0;
+			const wordN = this.plugin.statisticsCache.getFileWordCount(file) ?? 0;
+			const taskN =
+				this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0;
+			const parts = file.path.split('/');
+			parts.pop();
+			for (let depth = 1; depth <= parts.length; depth += 1) {
+				const path = parts.slice(0, depth).join('/');
+				tags.set(path, (tags.get(path) ?? 0) + tagN);
+				words.set(path, (words.get(path) ?? 0) + wordN);
+				tasks.set(path, (tasks.get(path) ?? 0) + taskN);
+			}
+		}
+		this._folderTagCount = tags;
+		this._folderWordCount = words;
+		this._folderTaskCount = tasks;
+	}
+
 	private _refreshCachedTreeLabels(nodes: TreeNode<FileMeta>[]): void {
 		if (this._nestedEnabled()) return;
 		const pathLabel = this._pathLabelActive();
@@ -2233,6 +2284,7 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
+			indent: this.indentOverride ?? true,
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2326,6 +2378,7 @@ export class FilesExplorerPanel extends Component {
 		this._alternateTreeProjection = null;
 		this._refreshFolderMaxMtime();
 		this._refreshFolderFileCount(this._filesForDisplay());
+		this._refreshFolderStatCounts(this._filesForDisplay());
 		this.logic.sortFileTreeNodes(
 			this._lastRenderTree,
 			this._treeOrderingOptions(),
@@ -2401,6 +2454,7 @@ export class FilesExplorerPanel extends Component {
 			// U121-103: los agregados van SIEMPRE sobre el conjunto real.
 			this._refreshFolderMaxMtime(modelFiles);
 			this._refreshFolderFileCount(modelFiles);
+			this._refreshFolderStatCounts(modelFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
@@ -2481,6 +2535,7 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
+			indent: this.indentOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -4966,6 +5021,7 @@ export class FilesExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
+			indent: this.indentOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

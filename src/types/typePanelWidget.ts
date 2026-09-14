@@ -67,6 +67,12 @@ export interface PanelWidgetExplorerProjectionConfig {
 	stickyRows?: boolean;
 	/** Spec 08 §2: view_option del engine `tree`, per_instance, solo Files. */
 	compactFolders?: boolean;
+	/**
+	 * Spec 08: view_option del engine `tree`, per_instance. Colapsa el padding
+	 * de fila a 4px e ignora la sangría por profundidad; el caret de un p-node
+	 * se conserva, solo deja de desplazarse por `--depth`.
+	 */
+	indent?: boolean;
 	/** Spec 08 §3.2: group preset seleccionado, per_instance. */
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos en esta instancia. */
@@ -83,6 +89,7 @@ export interface PanelWidgetExplorerPort {
 	): void;
 	setStickyRowsEnabled?(enabled: boolean): void;
 	setCompactFoldersEnabled?(enabled: boolean): void;
+	setIndentEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
 	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */

@@ -66,6 +66,7 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		sortState: normalizeExplorerSortState('files', null),
 		stickyRows: true,
 		compactFolders: false,
+		indent: true,
 		groupPreset: { kind: 'none', direction: 'asc' },
 		hiddenGroupIds: [],
 	};

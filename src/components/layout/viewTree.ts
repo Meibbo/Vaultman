@@ -143,6 +143,16 @@ export interface TreeViewOptions {
 	 * Ausente: se conserva la lectura historica de `visibleCells`.
 	 */
 	indentGuides?: boolean;
+	/**
+	 * view_option `indent`, per_instance. `false` collapses ONLY the rows
+	 * that have no caret (no children, no `showCaret`) to the flat 4px
+	 * gutter, zeroing their per-depth offset. A p-node keeps its full
+	 * `--depth` indent unconditionally — otherwise a deep p-node and a
+	 * shallow one would draw their carets at the same x, and there would be
+	 * no way to tell which level a given caret belongs to. Absent/`true`
+	 * keeps today's geometry for every row.
+	 */
+	indent?: boolean;
 	/** Height to reserve above the pinned rows when the layout overlays nav
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
@@ -1134,6 +1144,18 @@ export class UnifiedTreeView {
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.setProperty('--depth', String(node.depth));
+		// view_option `indent` off: only a row with no caret — it has nothing
+		// to disclose, so its depth carries no information the caret already
+		// doesn't — collapses to the flat 4px gutter. A p-node keeps the real
+		// formula unconditionally, at any depth, so its caret still marks the
+		// level it actually sits at.
+		if (opts.indent === false && !showCaret) {
+			row.style.setProperty('--vaultman-tree-row-padding-start', 'var(--size-4-1)');
+			row.style.setProperty('--vaultman-tree-indent-unit', '0px');
+		} else {
+			row.style.removeProperty('--vaultman-tree-row-padding-start');
+			row.style.removeProperty('--vaultman-tree-indent-unit');
+		}
 		if (node.folderColor) {
 			row.style.setProperty('--folder-color', node.folderColor);
 		} else {
