@@ -1426,12 +1426,12 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			desc: translate('settings.sticky_parent_rows_fraction.desc'),
 			render: (setting: Setting) => {
 				// En porcentaje, que es como se lee el limite; se guarda como
-				// fraccion. El rango va de 20 a 60: por debajo no cabe casi
-				// ninguna cabecera y por encima el arbol se queda sin sitio
-				// para su propio contenido.
+				// fraccion. El rango va de 20 a 100 (issue #105/065): por
+				// debajo no cabe casi ninguna cabecera y al 100% pueden ocupar
+				// todo el viewport.
 				setting.addSlider((slider) =>
 					slider
-						.setLimits(20, 60, 5)
+						.setLimits(20, 100, 5)
 						.setDynamicTooltip()
 						.setValue(
 							Math.round(

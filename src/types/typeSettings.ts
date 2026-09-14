@@ -189,7 +189,7 @@ export interface VaultmanSettings {
 	minimalStyle: boolean;
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows: boolean;
-	/** Share of the tree's height the pinned headers may cover, 0.2 to 0.6.
+	/** Share of the tree's height the pinned headers may cover, 0.2 to 1.
 	 * A short panel runs out of slots long before the seven-row ceiling: at
 	 * 413px the default 0.4 allows five, so a sixth level never appears. */
 	stickyParentRowsMaxFraction: number;

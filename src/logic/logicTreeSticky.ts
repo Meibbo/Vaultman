@@ -11,8 +11,9 @@ export interface StickyTreeRowsOptions {
 	viewportHeight: number;
 	maxRows?: number;
 	/** Share of the viewport the stack may cover. Defaults to the 0.4 the
-	 * feature shipped with. Clamped, because a value near 1 would leave the
-	 * tree with no room for its own content. */
+	 * feature shipped with. Clamped to [0.2, 1]: below 0.2 almost no header
+	 * fits, and 1 (issue #105/065) lets the headers cover the whole viewport.
+	 * The seven-row ceiling still bounds the count. */
 	maxFraction?: number;
 	/** The ancestor chain emitted by `flattenVisibleTreeWithChain`. With it the
 	 * active headers are found by walking pointers up from the first visible
@@ -56,7 +57,7 @@ export function stickyTreeRows(
 	);
 	if (firstVisibleIndex < 0) return [];
 
-	const fraction = Math.min(0.6, Math.max(0.2, maxFraction));
+	const fraction = Math.min(1, Math.max(0.2, maxFraction));
 	const viewportRowLimit = Math.floor((viewportHeight * fraction) / rowHeight);
 	const rowLimit = Math.min(maxRows, viewportRowLimit);
 	if (rowLimit <= 0) return [];
