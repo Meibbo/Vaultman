@@ -2260,9 +2260,19 @@ export class FilesExplorerPanel extends Component {
 	private _refreshCachedTreeLabels(nodes: TreeNode<FileMeta>[]): void {
 		if (this._nestedEnabled()) return;
 		const pathLabel = this._pathLabelActive();
+		const stripExt = this.visibleCells.has('ext');
 		for (const node of nodes) {
 			const file = node.meta.file;
-			if (file) node.label = pathLabel ? file.path : file.name;
+			if (file) {
+				if (pathLabel) {
+					node.label = file.path;
+					if (stripExt && file.extension) {
+						node.label = node.label.slice(0, -(file.extension.length + 1));
+					}
+				} else {
+					node.label = stripExt ? file.basename : file.name;
+				}
+			}
 		}
 	}
 
@@ -2323,14 +2333,24 @@ export class FilesExplorerPanel extends Component {
 		nodes: readonly TreeNode<FileMeta>[],
 	): TreeNode<FileMeta>[] {
 		const flat: TreeNode<FileMeta>[] = [];
+		const stripExt = !this._nestedEnabled() && this.visibleCells.has('ext');
+		const pathLabel = this._pathLabelActive();
 		const visit = (subtree: readonly TreeNode<FileMeta>[]): void => {
 			for (const node of subtree) {
 				if (node.meta.file) {
+					const file = node.meta.file;
+					let label: string;
+					if (pathLabel) {
+						label = file.path;
+						if (stripExt && file.extension) {
+							label = label.slice(0, -(file.extension.length + 1));
+						}
+					} else {
+						label = stripExt ? file.basename : file.name;
+					}
 					flat.push({
 						...node,
-						label: this._pathLabelActive()
-							? node.meta.file.path
-							: node.meta.file.name,
+						label,
 						depth: 0,
 						showCaret: false,
 						bubbleDot: undefined,
@@ -2485,6 +2505,8 @@ export class FilesExplorerPanel extends Component {
 					: this.logic.buildFlatFileNodes(sortedFiles, {
 							rebaseFolderPaths,
 							labelMode: this._pathLabelActive() ? 'path' : 'name',
+							stripExtension:
+								!this._nestedEnabled() && this.visibleCells.has('ext'),
 						});
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
 			vaultmanPerfMonitor.measure(
@@ -4988,6 +5010,7 @@ export class FilesExplorerPanel extends Component {
 		const enteredNodes = this.logic.buildFlatFileNodes(enteredFiles, {
 			rebaseFolderPaths: [],
 			labelMode: 'name',
+			stripExtension: !this._nestedEnabled() && this.visibleCells.has('ext'),
 		});
 		const enteredNodesByPath = new Map(
 			enteredNodes.map((node) => [node.id, node] as const),

@@ -404,6 +404,44 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(nodes.every((node) => node.depth === 0)).toBe(true);
 		expect(nodes.every((node) => node.showCaret === false)).toBe(true);
 	});
+
+	it('A06: strips extension from label when stripExtension option is set', () => {
+		const logic = new FilesLogic(makeApp({}));
+		const files = [
+			makeFile('nota.md'),
+			makeFile('document.pdf'),
+			makeFile('script.js'),
+			makeFile('README'), // no extension
+		];
+
+		// Default: label includes extension (backward compatible)
+		expect(logic.buildFlatFileNodes(files).map((node) => node.label)).toEqual([
+			'nota.md',
+			'document.pdf',
+			'script.js',
+			'README',
+		]);
+
+		// With stripExtension: label is basename (no extension)
+		expect(logic.buildFlatFileNodes(files, { stripExtension: true }).map((node) => node.label)).toEqual([
+			'nota',
+			'document',
+			'script',
+			'README',
+		]);
+
+		// stripExtension with labelMode: 'path' should still strip extension from filename part
+		expect(
+			logic
+				.buildFlatFileNodes(files, { labelMode: 'path', stripExtension: true })
+				.map((node) => node.label),
+		).toEqual([
+			'nota',
+			'document',
+			'script',
+			'README',
+		]);
+	});
 });
 
 describe('All-scope sort covers L1 root (BT4-009 repro)', () => {

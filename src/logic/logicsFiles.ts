@@ -56,6 +56,12 @@ export interface BuildFileTreeOptions {
 	 */
 	labelMode?: 'name' | 'path';
 	/**
+	 * A06: when the ext cell is visible in flat mode, the name cell should
+	 * show the basename (without extension) since the extension is already
+	 * represented by the ext cell. Only applies when labelMode is 'name'.
+	 */
+	stripExtension?: boolean;
+	/**
 	 * Whether a folder that ends up with no children still reserves a caret.
 	 * Core draws one on every folder, so the default keeps that. The
 	 * folders-only projection turns it off: there, a childless folder has
@@ -102,13 +108,26 @@ export class FilesLogic {
 			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
 			if (!rebaseInfo) return [];
 
+			let label: string;
+			if (options.labelMode === 'path') {
+				label = file.path;
+				if (options.stripExtension && file.extension) {
+					// Strip extension from the filename part of the path
+					label = label.slice(0, -(file.extension.length + 1));
+				}
+			} else if (options.stripExtension) {
+				label = file.basename;
+			} else {
+				label = file.name;
+			}
+
 			return [
 				{
 					id: file.path,
 					// BT5-012: the two projections are the file's own fields. The
 					// old folder-relative hybrid was neither, so a flat list is now
 					// genuinely flat until Path is switched on.
-					label: options.labelMode === 'path' ? file.path : file.name,
+					label,
 					icon: this.iconForExtension(file.extension),
 					showCaret: false,
 					depth: 0,
