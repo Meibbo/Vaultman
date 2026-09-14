@@ -45,8 +45,45 @@ function propNode(
 }
 
 // The vault-wide snapshot: three properties, more values than any one file has.
+// 'lugar' has 3 values, but 'cocina' appears in 5 files vault-wide (count=5).
 const snapshot: TreeNode<PropMeta>[] = [
-	propNode('lugar', 'text', ['cocina', 'salon', 'patio']),
+	{
+		id: 'lugar',
+		label: 'lugar',
+		count: 10,
+		depth: 0,
+		coreCls: 'tree-item-self tappable is-clickable',
+		children: [
+			{
+				id: 'lugar::cocina',
+				label: 'cocina',
+				count: 5, // vault-wide: 5 files have lugar=cocina
+				depth: 1,
+				coreCls: 'tree-item-self tappable is-clickable',
+				children: [],
+				meta: { propName: 'lugar', propType: 'text', isValueNode: true, rawValue: 'cocina' },
+			},
+			{
+				id: 'lugar::salon',
+				label: 'salon',
+				count: 3,
+				depth: 1,
+				coreCls: 'tree-item-self tappable is-clickable',
+				children: [],
+				meta: { propName: 'lugar', propType: 'text', isValueNode: true, rawValue: 'salon' },
+			},
+			{
+				id: 'lugar::patio',
+				label: 'patio',
+				count: 2,
+				depth: 1,
+				coreCls: 'tree-item-self tappable is-clickable',
+				children: [],
+				meta: { propName: 'lugar', propType: 'text', isValueNode: true, rawValue: 'patio' },
+			},
+		],
+		meta: { propName: 'lugar', propType: 'text', isValueNode: false },
+	},
 	propNode('peso', 'number', ['42', '7']),
 	propNode('tags', 'tags', ['casa', 'obra']),
 ];
@@ -124,6 +161,15 @@ describe('reveal projects the active file over the vault-wide index', () => {
 		const nodes = projectActiveFileProps(snapshot, { nuevo: 'x' });
 		expect(nodes.map((node) => node.id)).toEqual(['nuevo']);
 		expect(nodes[0].children?.map((child) => child.id)).toEqual(['nuevo::x']);
+	});
+
+	it('A17: value nodes in reveal have count=1 (this file), not vault-wide count', () => {
+		// The vault-wide snapshot has 'lugar::cocina' with count=1 (only one file in snapshot)
+		// but in a real vault it could be hundreds. Reveal must show count=1 for this file.
+		const nodes = projectActiveFileProps(snapshot, { lugar: 'cocina' });
+		const valueNode = nodes[0].children?.find((c) => c.meta.rawValue === 'cocina');
+		expect(valueNode?.count).toBe(1);
+		expect(valueNode?.meta.rawValue).toBe('cocina');
 	});
 
 	it('returns the canonical empty state with no active file', () => {

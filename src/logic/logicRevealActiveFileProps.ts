@@ -61,8 +61,9 @@ function valueNode(
 		(child) => child.meta.rawValue === rawValue,
 	);
 	// Reuse the vault-wide node when there is one, so the ID, the badges and
-	// every other projected fact come from one place.
-	if (existing) return existing;
+	// every other projected fact come from one place. But override the count:
+	// in reveal, count=1 means "this file has this value", not "N files have it".
+	if (existing) return { ...existing, count: 1 };
 
 	return {
 		id: `${propName}::${rawValue}`,
