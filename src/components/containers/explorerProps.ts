@@ -679,6 +679,8 @@ export class PropsExplorerPanel extends Component {
 			preset: this.groupPreset,
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			rangeLabels: translatedRangeLabels(),
+			// Dev 2026-09-14: la cabecera colapsada burbujea los badges como un p-node.
+			expandedIds: this.expandedIds,
 			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
 			// de props: clases nativas y meta propia en vez de la prestada
 			// del primer hijo.

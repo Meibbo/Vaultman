@@ -100,6 +100,7 @@ type PropsHarness = {
 };
 
 type FilesHarness = {
+	visibleCells: Set<string>;
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
 	_seenGroupHeaderIds: Set<string>;
@@ -420,6 +421,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 	it('FilesExplorerPanel: proyecta files y folders con su URN respectiva', () => {
 		const panel = createFilesHarness();
+		// Dev 2026-09-14: la cabecera agrega como una carpeta; sin celdas no agrega.
+		panel.visibleCells = new Set<string>();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
 		panel._seenGroupHeaderIds = new Set<string>();

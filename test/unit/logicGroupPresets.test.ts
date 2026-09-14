@@ -315,3 +315,44 @@ describe('SOTR pass F1 — group headers open on first sight, collapses are resp
 		expect(expanded.has('Work')).toBe(true);
 	});
 });
+
+describe('dev 2026-09-14 — a group header bubbles what a folder bubbles', () => {
+	const nodes: TreeNode<null>[] = [
+		{ id: 'a1', label: 'alpha', depth: 0, meta: null, badges: [{ text: 'q', color: 'accent' }] },
+		{ id: 'a2', label: 'avocado', depth: 0, meta: null },
+		{ id: 'b1', label: 'beta', depth: 0, meta: null },
+	];
+	const project = (expandedIds: ReadonlySet<string>, decorateHeader?: (h: TreeNode<null>, m: readonly TreeNode<null>[]) => void) =>
+		projectGroupedTree({
+			nodes,
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: 'No group',
+			filtered: false,
+			preset: { kind: 'letter', direction: 'asc' },
+			expandedIds,
+			decorateHeader,
+		});
+
+	it('a collapsed header gets the dot of its descendants\' badges; an expanded one does not', () => {
+		const collapsed = project(new Set());
+		expect(collapsed[0]?.id).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(collapsed[0]?.bubbleDot).toBeDefined();
+		expect(collapsed[1]?.bubbleDot).toBeUndefined();
+		const expanded = project(new Set([`${PRESET_GROUP_PREFIX}A`]));
+		expect(expanded[0]?.bubbleDot).toBeUndefined();
+	});
+
+	it('hands every header to the scene decorator with its members', () => {
+		const seen: [string, number][] = [];
+		project(new Set(), (header, members) => {
+			seen.push([header.id, members.length]);
+			header.fileCountText = String(members.length);
+		});
+		expect(seen).toEqual([
+			[`${PRESET_GROUP_PREFIX}A`, 2],
+			[`${PRESET_GROUP_PREFIX}B`, 1],
+		]);
+	});
+});

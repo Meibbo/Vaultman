@@ -463,6 +463,8 @@ export class PluginsExplorerPanel
 			preset: this.groupPreset,
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			rangeLabels: translatedRangeLabels(),
+			// Dev 2026-09-14: la cabecera colapsada burbujea los badges como un p-node.
+			expandedIds: this._expandedGroupIds,
 			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
 			// mismo camino que files/tags/props — sin esto se colaba el
 			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por

@@ -33,7 +33,10 @@ import {
 	findDeletionMatch,
 	queueDeletesSubject,
 } from '../../logic/logicDeletionDecoration';
-import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
+import {
+	aggregateFolderCells,
+	type FolderAggregate,
+} from '../../logic/logicFolderAggregates';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import {
@@ -290,6 +293,9 @@ export class FilesExplorerPanel extends Component {
 			preset: this.groupPreset,
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			rangeLabels: translatedRangeLabels(),
+			// Dev 2026-09-14: la cabecera burbujea lo mismo que una carpeta.
+			expandedIds: this.expandedIds,
+			decorateHeader: (header) => this._decorateGroupHeader(header),
 			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
 			// contenedor (carpeta): clases nativas y meta propia en vez de la
 			// prestada del primer hijo.
@@ -4362,38 +4368,46 @@ export class FilesExplorerPanel extends Component {
 		this._decorateFoldersWithAggregates(nodes);
 	}
 
-	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
-		const aggregateFiles = this.visibleCells.has('file-count');
-		if (this.plugin.settings.folderAggregateCells !== true && !aggregateFiles)
-			return;
-		const aggregateCount = this.visibleCells.has('count');
-		const aggregateWords = this.visibleCells.has('words');
-		const aggregateTags = this.visibleCells.has('tags');
-		const aggregateTasks = this.visibleCells.has('tasks');
-		if (
-			!aggregateFiles &&
-			!aggregateCount &&
-			!aggregateWords &&
-			!aggregateTags &&
-			!aggregateTasks
-		)
-			return;
-		const totals = aggregateFolderCells(
+	/** Which folder aggregates the visible cells ask for; null when none. */
+	private _folderAggregateFlags(): {
+		files: boolean;
+		count: boolean;
+		words: boolean;
+		tags: boolean;
+		tasks: boolean;
+	} | null {
+		const files = this.visibleCells.has('file-count');
+		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
+		const flags = {
+			files,
+			count: this.visibleCells.has('count'),
+			words: this.visibleCells.has('words'),
+			tags: this.visibleCells.has('tags'),
+			tasks: this.visibleCells.has('tasks'),
+		};
+		return Object.values(flags).some(Boolean) ? flags : null;
+	}
+
+	private _folderAggregateTotals(
+		nodes: readonly TreeNode<FileMeta>[],
+		flags: NonNullable<ReturnType<FilesExplorerPanel['_folderAggregateFlags']>>,
+	): Map<string, FolderAggregate> {
+		return aggregateFolderCells(
 			nodes,
 			(node) => ({
 				files: node.meta.file ? 1 : 0,
-				count: node.meta.file && aggregateCount ? (node.count ?? 0) : 0,
+				count: node.meta.file && flags.count ? (node.count ?? 0) : 0,
 				words:
-					node.meta.file && aggregateWords
+					node.meta.file && flags.words
 						? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ??
 							0)
 						: 0,
 				tags:
-					node.meta.file && aggregateTags
+					node.meta.file && flags.tags
 						? (this.plugin.statisticsCache.getFileTagCount(node.meta.file) ?? 0)
 						: 0,
 				tasks:
-					node.meta.file && aggregateTasks
+					node.meta.file && flags.tasks
 						? (this.plugin.statisticsCache.getFileRemainingTasks(
 								node.meta.file,
 							) ?? 0)
@@ -4401,23 +4415,45 @@ export class FilesExplorerPanel extends Component {
 			}),
 			(node) => node.meta.isFolder,
 		);
+	}
+
+	private _applyAggregateCells(
+		node: TreeNode<FileMeta>,
+		total: FolderAggregate,
+		flags: NonNullable<ReturnType<FilesExplorerPanel['_folderAggregateFlags']>>,
+	): void {
+		node.fileCountText = flags.files ? String(total.files) : undefined;
+		node.count = total.count > 0 ? total.count : undefined;
+		node.wordCountText =
+			total.words > 0 ? this._formatWordCountCell(total.words) : undefined;
+		node.tagsText = flags.tags ? String(total.tags) : undefined;
+		node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
+	}
+
+	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
+		const flags = this._folderAggregateFlags();
+		if (!flags) return;
+		const totals = this._folderAggregateTotals(nodes, flags);
 		const apply = (subtree: TreeNode<FileMeta>[]): void => {
 			for (const node of subtree) {
 				const total = node.meta.isFolder ? totals.get(node.id) : undefined;
-				if (total) {
-					node.fileCountText = aggregateFiles ? String(total.files) : undefined;
-					node.count = total.count > 0 ? total.count : undefined;
-					node.wordCountText =
-						total.words > 0
-							? this._formatWordCountCell(total.words)
-							: undefined;
-					node.tagsText = aggregateTags ? String(total.tags) : undefined;
-					node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
-				}
+				if (total) this._applyAggregateCells(node, total, flags);
 				if (node.children?.length) apply(node.children);
 			}
 		};
 		apply(nodes);
+	}
+
+	/**
+	 * Dev 2026-09-14: a group header is a p-node like a folder, so it carries
+	 * the same aggregated counters over everything under it. Same reader,
+	 * same cell gating; only the container is the header instead of a folder.
+	 */
+	private _decorateGroupHeader(header: TreeNode<FileMeta>): void {
+		const flags = this._folderAggregateFlags();
+		if (!flags) return;
+		const total = this._folderAggregateTotals([header], flags).get(header.id);
+		if (total) this._applyAggregateCells(header, total, flags);
 	}
 
 	private _formatWordCountCell(wordCount: number): string {

@@ -1,3 +1,4 @@
+import { resolveCollapsedBubbleDots } from './logicBadgeBubbling';
 import {
 	buildPresetBuckets,
 	type PresetValueOf,
@@ -74,6 +75,17 @@ export interface GroupProjectionInput<TMeta> {
 	/** "Hoy" para las fechas; los tests lo fijan. */
 	now?: number;
 	/**
+	 * Dev 2026-09-14: una cabecera es un p-node como una carpeta y lleva lo
+	 * mismo que ella. Con `expandedIds` la cabecera COLAPSADA recibe el
+	 * `bubbleDot` de los badges de sus descendientes (BT5-017), en toda scene.
+	 */
+	expandedIds?: ReadonlySet<string>;
+	/** Contadores/fechas agregados de la escena (Files: lo mismo que una carpeta). */
+	decorateHeader?: (
+		header: TreeNode<TMeta>,
+		members: readonly TreeNode<TMeta>[],
+	) => void;
+	/**
 	 * S07A: nested/deduped member totals (`bubbleMemberCountsToGroups`).
 	 * When present, a custom header shows its total instead of
 	 * `children.length` — the dev's «total de ficheros de todos sus c-nodes».
@@ -98,6 +110,21 @@ export interface GroupProjectionInput<TMeta> {
 	 * el camino comun: temas, densidad movil y geometria nativa la ignoran.
 	 */
 	headerCoreCls?: string;
+}
+
+/** What a folder gets, a group header gets: the collapsed-activity dot and the scene's aggregates. */
+function finishHeader<TMeta>(
+	header: TreeNode<TMeta>,
+	members: readonly TreeNode<TMeta>[],
+	expandedIds: ReadonlySet<string> | undefined,
+	decorateHeader: GroupProjectionInput<TMeta>['decorateHeader'],
+): TreeNode<TMeta> {
+	decorateHeader?.(header, members);
+	if (expandedIds && !expandedIds.has(header.id)) {
+		const dot = resolveCollapsedBubbleDots([header], expandedIds).get(header.id);
+		if (dot) header.bubbleDot = dot;
+	}
+	return header;
 }
 
 function headerNode<TMeta>(
@@ -247,6 +274,8 @@ export function projectGroupedTree<TMeta>(
 		presetValueOf,
 		rangeLabels,
 		now,
+		expandedIds,
+		decorateHeader,
 	} = input;
 	if (!enabled) return nodes;
 	if (preset?.kind === 'none') return nodes;
@@ -303,14 +332,20 @@ export function projectGroupedTree<TMeta>(
 			for (const member of members) claimed.add(member.id);
 			// Poda normal del pipeline, no inmunidad.
 			if (members.length === 0 && filtered) return;
+			const reparented = reparent(members, group.id, 1, suffixed);
 			out.push(
-				headerNode(
-					group.id,
-					group.label,
-					reparent(members, group.id, 1, suffixed),
-					ownMeta,
-					groupTotals?.get(group.id),
-					headerCoreCls,
+				finishHeader(
+					headerNode(
+						group.id,
+						group.label,
+						reparented,
+						ownMeta,
+						groupTotals?.get(group.id),
+						headerCoreCls,
+					),
+					reparented,
+					expandedIds,
+					decorateHeader,
 				),
 			);
 		});
@@ -318,14 +353,20 @@ export function projectGroupedTree<TMeta>(
 		// renombra, y por eso no lleva id de grupo custom.
 		const orphans = nodes.filter((node) => !claimed.has(node.id));
 		if (orphans.length > 0 || !filtered) {
+			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed);
 			out.push(
-				headerNode(
-					NO_GROUP_ID,
-					noGroupLabel,
-					reparent(orphans, NO_GROUP_ID, 1, suffixed),
-					ownMeta,
-					undefined,
-					headerCoreCls,
+				finishHeader(
+					headerNode(
+						NO_GROUP_ID,
+						noGroupLabel,
+						reparented,
+						ownMeta,
+						undefined,
+						headerCoreCls,
+					),
+					reparented,
+					expandedIds,
+					decorateHeader,
 				),
 			);
 		}
@@ -344,25 +385,37 @@ export function projectGroupedTree<TMeta>(
 	if (!resolved || resolved.buckets.length === 0) return nodes;
 	// Cada nodo cae en exactamente un bucket, asi que nunca hay dos
 	// ocurrencias del mismo id: las filas conservan su identidad.
-	const out = resolved.buckets.map((bucket) =>
-		headerNode(
-			`${PRESET_GROUP_PREFIX}${bucket.key}`,
-			bucket.label,
-			reparent(bucket.members, bucket.key, 1, NO_SUFFIX),
-			ownMeta,
-			undefined,
-			headerCoreCls,
-		),
-	);
-	if (resolved.ungrouped.length > 0) {
-		out.push(
+	const out = resolved.buckets.map((bucket) => {
+		const reparented = reparent(bucket.members, bucket.key, 1, NO_SUFFIX);
+		return finishHeader(
 			headerNode(
-				NO_GROUP_ID,
-				noGroupLabel,
-				reparent(resolved.ungrouped, NO_GROUP_ID, 1, NO_SUFFIX),
+				`${PRESET_GROUP_PREFIX}${bucket.key}`,
+				bucket.label,
+				reparented,
 				ownMeta,
 				undefined,
 				headerCoreCls,
+			),
+			reparented,
+			expandedIds,
+			decorateHeader,
+		);
+	});
+	if (resolved.ungrouped.length > 0) {
+		const reparented = reparent(resolved.ungrouped, NO_GROUP_ID, 1, NO_SUFFIX);
+		out.push(
+			finishHeader(
+				headerNode(
+					NO_GROUP_ID,
+					noGroupLabel,
+					reparented,
+					ownMeta,
+					undefined,
+					headerCoreCls,
+				),
+				reparented,
+				expandedIds,
+				decorateHeader,
 			),
 		);
 	}
