@@ -1549,7 +1549,9 @@
 									? 'lucide-list-filter'
 									: mode === 'add'
 										? 'lucide-plus'
-										: 'lucide-mouse-pointer-2',
+										: mode === 'input'
+											? 'lucide-pencil'
+											: 'lucide-mouse-pointer-2',
 						)
 						.setChecked(interactionModeByTab[activeTab] === mode)
 						.onClick(() => selectInteractionMode(activeTab, mode)),

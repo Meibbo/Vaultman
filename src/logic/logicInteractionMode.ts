@@ -1,11 +1,12 @@
 export type InteractionTab = 'files' | 'props' | 'tags' | 'snippets' | 'plugins';
-export type InteractionMode = 'open' | 'filter' | 'add' | 'select';
+export type InteractionMode = 'open' | 'filter' | 'add' | 'select' | 'input';
 export type InteractionAction =
 	| 'open'
 	| 'expand'
 	| 'filter'
 	| 'add'
 	| 'select'
+	| 'input'
 	| 'content-search';
 
 /**
@@ -25,7 +26,7 @@ export const DEFAULT_INTERACTION_MODE: Record<InteractionTab, InteractionMode> =
 
 const INTERACTION_MODES: Record<InteractionTab, readonly InteractionMode[]> = {
 	files: ['open', 'filter', 'add', 'select'],
-	props: ['open', 'filter', 'add', 'select'],
+	props: ['open', 'filter', 'add', 'select', 'input'],
 	tags: ['open', 'filter', 'add', 'select'],
 	snippets: ['open', 'select'],
 	plugins: ['open', 'select'],

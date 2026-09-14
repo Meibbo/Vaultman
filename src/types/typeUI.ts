@@ -107,6 +107,12 @@ export interface ExplorerSortState {
 	/** Multi-selection form. Missing means load nodeTypeFilter for compatibility. */
 	nodeTypeFilters?: string[];
 	parentsFirst?: boolean;
+	/**
+	 * Props reveal: pin the synthetic "+ Add property" row first instead of
+	 * last. Off by default — last is the resting state, mirroring how
+	 * folders-first pins without re-sorting the list itself.
+	 */
+	addPropertyFirst?: boolean;
 	/** Files: folders-first keeps a stable name order, immune to the sort */
 	fixedFolders?: boolean;
 	/**

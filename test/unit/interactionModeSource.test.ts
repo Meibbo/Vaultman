@@ -87,7 +87,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		// The submenu names the selected input mode, not the implementation type.
 		expect(en['viewmenu.interaction']).toBe('Input:');
 		expect(es['viewmenu.interaction']).toBe('Entrada:');
-		for (const key of ['open', 'add', 'select', 'filter']) {
+		for (const key of ['open', 'add', 'select', 'filter', 'input']) {
 			expect(en[`viewmenu.interaction.${key}`]).toBeTruthy();
 			expect(es[`viewmenu.interaction.${key}`]).toBeTruthy();
 		}

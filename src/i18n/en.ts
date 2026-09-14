@@ -568,6 +568,7 @@ export const en: Record<string, string> = {
 	'viewmenu.interaction.add': 'Add',
 	'viewmenu.interaction.select': 'Select',
 	'viewmenu.interaction.filter': 'Filter',
+	'viewmenu.interaction.input': 'Input',
 	'viewmenu.engines': 'Engines',
 	'floating_toc.files': 'Index folders',
 	'floating_toc.folders': 'Index files',

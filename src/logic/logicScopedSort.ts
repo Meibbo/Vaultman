@@ -307,6 +307,11 @@ export function normalizeExplorerSortState(
 						typeof value.fixedFolders === 'boolean' ? value.fixedFolders : true,
 				}
 			: {}),
+		...(tab === 'props'
+			? {
+					addPropertyFirst: value.addPropertyFirst === true,
+				}
+			: {}),
 	};
 }
 

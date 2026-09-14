@@ -14,12 +14,13 @@ describe('view option uses the Input label', () => {
 		expect(es['viewmenu.interaction']).toBe('Entrada:');
 	});
 
-	it('keeps the i18n key and its four children unchanged', () => {
+	it('keeps the i18n key and its five children unchanged', () => {
 		for (const dict of [en, es]) {
 			expect(dict['viewmenu.interaction.open']).toBeTruthy();
 			expect(dict['viewmenu.interaction.add']).toBeTruthy();
 			expect(dict['viewmenu.interaction.select']).toBeTruthy();
 			expect(dict['viewmenu.interaction.filter']).toBeTruthy();
+			expect(dict['viewmenu.interaction.input']).toBeTruthy();
 		}
 	});
 

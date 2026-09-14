@@ -47,7 +47,7 @@ function makeApp(): App {
 				return { frontmatter: {} };
 			},
 		},
-	} as App;
+	} as unknown as App;
 }
 
 describe('FilesLogic.buildFileTree compactFolders (spec 08 §2)', () => {

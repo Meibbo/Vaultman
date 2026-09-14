@@ -26,6 +26,7 @@ describe('explorer interaction modes', () => {
 			'filter',
 			'add',
 			'select',
+			'input',
 		]);
 		expect(interactionModesForTab('tags')).toEqual([
 			'open',
@@ -71,6 +72,10 @@ describe('explorer interaction modes', () => {
 			expect(resolveInteractionAction(tab, 'add', false)).toBe('add');
 			expect(resolveInteractionAction(tab, 'select', false)).toBe('select');
 		}
+		expect(resolveInteractionAction('props', 'input', false)).toBe('input');
+		expect(resolveInteractionAction('props', 'input', true)).toBe('input');
+		// Tags does not admit `input`: it normalizes to the factory default.
+		expect(resolveInteractionAction('tags', 'input', false)).toBe('expand');
 	});
 
 	it('dispatches selection for add-on providers', () => {
@@ -84,7 +89,7 @@ describe('explorer interaction modes', () => {
 		expect(resolveRecursiveInteractionAction('select')).toBe(
 			'select-descendants',
 		);
-		for (const mode of ['open', 'filter', 'add'] as const) {
+		for (const mode of ['open', 'filter', 'add', 'input'] as const) {
 			expect(resolveRecursiveInteractionAction(mode)).toBe(
 				'expand-descendants',
 			);

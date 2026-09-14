@@ -571,6 +571,7 @@ export const es: Record<string, string> = {
 	'viewmenu.interaction.add': 'Agregar',
 	'viewmenu.interaction.select': 'Seleccionar',
 	'viewmenu.interaction.filter': 'Filtrar',
+	'viewmenu.interaction.input': 'Entrada',
 	'viewmenu.engines': 'Motores',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
@@ -1134,7 +1135,8 @@ export const es: Record<string, string> = {
 	'sort.level.all': 'Todos los niveles',
 	// Spec 08 §3.1: el submenú `Scope: <variable>`.
 	'sort.level.select_level': 'Elegir un nivel',
-	'sort.level.pick_level_hint': 'Pulsa una fila para ordenar todos los parents de su nivel',
+	'sort.level.pick_level_hint':
+		'Pulsa una fila para ordenar todos los parents de su nivel',
 	'sort.scope.title': 'Scope: {scope}',
 	'sort.scope.level_n': 'Nivel {n}',
 	'sort.level.drill': 'Seleccionar un padre',

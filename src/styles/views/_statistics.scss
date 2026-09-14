@@ -694,6 +694,38 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
+/* Reveal parity: while a row edits, its sibling cells step aside so the
+   input spans from the name cell to the right end of the row. */
+.vaultman-tree-row:has(> .vaultman-tree-input) > :not(.vaultman-tree-input) {
+  display: none;
+}
+
+/* Native-parity suggester rows: type icon plus label, like the core
+   Properties popover built from {value, icon} pairs. */
+.vaultman-suggest-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  color: var(--text-muted);
+}
+
+.vaultman-suggest-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In-list "+ Add property" row: same row box as a property, accent-tinted
+   label so it reads as an action, not data. */
+.vaultman-add-property-row .vaultman-tree-label {
+  color: var(--text-accent);
+}
+
+.vaultman-add-property-row .vaultman-tree-icon {
+  color: var(--text-accent);
+}
+
 /* Shrink empty icons so they don't consume horizontal space */
 .vaultman-tree-icon:empty {
   display: none;

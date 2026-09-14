@@ -70,6 +70,10 @@ export interface TreeViewOptions {
 	warningIds?: Set<string>;
 	editingId?: string | null;
 	onRename?: (id: string, newLabel: string) => void;
+	onBlurRename?: (id: string, newLabel: string) => void;
+	onAttachInput?: (node: TreeNode, inputEl: HTMLInputElement) => void;
+	getEditingValue?: (node: TreeNode) => string;
+	getEditingPlaceholder?: (node: TreeNode) => string;
 	onCancelRename?: () => void;
 	onOpenRichRename?: (id: string, currentValue: string) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
@@ -1481,22 +1485,42 @@ export class UnifiedTreeView {
 
 		// Label / Input
 		if (isEditing && showLabel) {
+			const initialValue = opts.getEditingValue
+				? opts.getEditingValue(node)
+				: (node.label === 'empty' ? '' : node.label);
 			const input = row.createEl('input', {
 				cls: 'vaultman-tree-input',
-				value: node.label,
+				value: initialValue,
 			});
+			if (opts.getEditingPlaceholder) {
+				const placeholder = opts.getEditingPlaceholder(node);
+				if (placeholder) input.placeholder = placeholder;
+			}
+			opts.onAttachInput?.(node, input);
+
+			let isCommitted = false;
 			input.addEventListener('click', (e) => e.stopPropagation());
 			input.addEventListener('keydown', (e) => {
 				if (e.key === 'Enter') {
+					if (isCommitted || (input as any)._vaultmanCommitted) return;
+					isCommitted = true;
 					opts.onRename?.(node.id, input.value);
 				} else if (e.key === 'Escape') {
+					if (isCommitted || (input as any)._vaultmanCommitted) return;
+					isCommitted = true;
 					opts.onCancelRename?.();
 				}
 			});
 			input.addEventListener('blur', () => {
+				if (isCommitted || (input as any)._vaultmanCommitted) return;
 				// Prevent blur from firing if we are already re-rendering
 				if (this._opts?.editingId === node.id) {
-					opts.onCancelRename?.();
+					isCommitted = true;
+					if (opts.onBlurRename) {
+						opts.onBlurRename(node.id, input.value);
+					} else {
+						opts.onCancelRename?.();
+					}
 				}
 			});
 

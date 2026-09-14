@@ -136,6 +136,11 @@ export interface PropMeta {
 	/** Prefix projected only by the non-nested property scene. */
 	flatLabelPrefix?: string;
 	isTypeIncompatible?: boolean;
+	/**
+	 * Synthetic "+ Add property" row injected inside the reveal list (never a
+	 * real property: excluded from filters, menus, drag and counts).
+	 */
+	isAddPropertyRow?: boolean;
 }
 
 export interface FileMeta {

@@ -36,6 +36,7 @@ export interface PanelPluginCtx {
 	app: import('obsidian').App;
 	nodeBindingService?: import('../../services/serviceNodeBinding').NodeBindingService;
 	filterService: FilterService;
+	propertyIndex?: import('../../services/servicePropertyIndex').PropertyIndexService;
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
@@ -73,6 +74,25 @@ import type { PropertyChange } from '../../types/typeOps';
 import type { PropConflictWarnings } from '../../types/typeSettings';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
+import {
+	dedupeSuggestItems,
+	excludeSuggestItems,
+	nativePropertyItems,
+	normalizeFrontmatterValues,
+	PropertySuggest,
+	type PropertySuggestItem,
+} from '../../utils/autocomplete';
+
+function isListType(type: string): boolean {
+	const t = type.toLowerCase();
+	return (
+		t === 'list' ||
+		t === 'tags' ||
+		t === 'aliases' ||
+		t === 'cssclasses' ||
+		t === 'multitext'
+	);
+}
 import { translate } from '../../i18n/index';
 import {
 	attachBadgeCancelInteraction,
@@ -258,6 +278,13 @@ export class PropsExplorerPanel extends Component {
 	/** Group headers this explorer has already shown once (they open on first sight). */
 	private readonly _seenGroupHeaderIds = new Set<string>();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
+	private _revealAdding?: {
+		stage: 'prop' | 'initial_value' | 'subsequent_value';
+		propName?: string;
+		tempId: string;
+	};
+	private _optimisticFrontmatter: Record<string, unknown> | null = null;
+	private _optimisticFrontmatterPath: string | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -585,7 +612,11 @@ export class PropsExplorerPanel extends Component {
 		});
 
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
+			this.plugin.app.metadataCache.on('changed', (file) => {
+				if (this._optimisticFrontmatter && file?.path === this._optimisticFrontmatterPath) {
+					this._optimisticFrontmatter = null;
+					this._optimisticFrontmatterPath = null;
+				}
 				this.logic.invalidate();
 				this._deferRender();
 			}),
@@ -768,6 +799,23 @@ export class PropsExplorerPanel extends Component {
 	private readonly _handleStateChange = () => this._deferRender();
 
 	private _deferRender(): void {
+		// Native parity (MetadataEditor.synchronize): a focused editing row
+		// survives external re-syncs. A deferred render while the user types in
+		// an inline input would detach that input (and its suggester) without
+		// any Esc/Enter/blur — the value box vanished exactly this way after
+		// the prop commit wrote the file. The explicit _render() calls on the
+		// commit/blur/cancel paths refresh afterwards, so skipping here loses
+		// nothing.
+		const active = this.containerEl.ownerDocument.activeElement;
+		if (
+			active instanceof HTMLElement &&
+			this.containerEl.contains(active) &&
+			(active.tagName === 'INPUT' ||
+				active.tagName === 'TEXTAREA' ||
+				active.isContentEditable)
+		) {
+			return;
+		}
 		this.deferredRender.invalidate(this.containerEl.isShown(), () =>
 			this._render(),
 		);
@@ -1226,6 +1274,9 @@ export class PropsExplorerPanel extends Component {
 		if (!path) return null;
 		const file = this.plugin.app.vault.getFileByPath(path);
 		if (!(file instanceof TFile)) return null;
+		if (this._optimisticFrontmatter && this._optimisticFrontmatterPath === path) {
+			return this._optimisticFrontmatter;
+		}
 		return this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 	}
 
@@ -1247,7 +1298,91 @@ export class PropsExplorerPanel extends Component {
 		snapshot: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
 		if (this.revealActiveFile) {
-			return projectActiveFileProps(snapshot, this._revealFrontmatter());
+			let nodes = projectActiveFileProps(snapshot, this._revealFrontmatter());
+			if (this._revealAdding) {
+				if (this._revealAdding.stage === 'prop') {
+					nodes = [
+						...nodes,
+						{
+							id: this._revealAdding.tempId,
+							label: '',
+							count: 0,
+							depth: 0,
+							coreCls: 'tree-item-self tappable is-clickable',
+							children: [],
+							meta: { propName: '', propType: 'text', isValueNode: false },
+						},
+					];
+				} else if (
+					this._revealAdding.stage === 'initial_value' &&
+					this._revealAdding.propName
+				) {
+					const pName = this._revealAdding.propName;
+					let foundProp = nodes.find((n) => n.meta.propName === pName);
+					if (!foundProp) {
+						foundProp = {
+							id: pName,
+							label: pName,
+							count: 1,
+							depth: 0,
+							coreCls: 'tree-item-self tappable is-clickable',
+							children: [],
+							meta: { propName: pName, propType: 'text', isValueNode: false },
+						};
+						nodes.push(foundProp);
+					}
+					if (!foundProp.children || foundProp.children.length === 0) {
+						foundProp.children = [
+							{
+								id: this._revealAdding.tempId,
+								label: 'empty',
+								count: 1,
+								depth: 1,
+								coreCls: 'tree-item-self tappable is-clickable',
+								children: [],
+								meta: {
+									propName: pName,
+									propType: foundProp.meta.propType ?? 'text',
+									isValueNode: true,
+									rawValue: '',
+								},
+							},
+						];
+						foundProp.count = 1;
+					}
+				} else if (
+					this._revealAdding.stage === 'subsequent_value' &&
+					this._revealAdding.propName
+				) {
+					const targetPropName = this._revealAdding.propName;
+					nodes = nodes.map((propNode) => {
+						if (propNode.meta.propName === targetPropName) {
+							const tempChild: TreeNode<PropMeta> = {
+								id: this._revealAdding!.tempId,
+								label: '',
+								count: 1,
+								depth: 1,
+								coreCls: 'tree-item-self tappable is-clickable',
+								children: [],
+								meta: {
+									propName: targetPropName,
+									propType: propNode.meta.propType ?? 'text',
+									isValueNode: true,
+									rawValue: '',
+								},
+							};
+							const children = [...(propNode.children ?? []), tempChild];
+							return {
+								...propNode,
+								children,
+								count: children.length,
+							};
+						}
+						return propNode;
+					});
+				}
+			}
+			return nodes;
 		}
 		if (this.sortState?.filtered === true) {
 			return this._filteredProjection(snapshot);
@@ -1803,11 +1938,26 @@ export class PropsExplorerPanel extends Component {
 		event?: MouseEvent | KeyboardEvent,
 	): void {
 		const meta = node.meta;
+		// The synthetic add-property row always starts the reveal add flow,
+		// regardless of the active interaction mode.
+		if (node.meta.isAddPropertyRow === true) {
+			this._startAddPropertyInReveal();
+			return;
+		}
 		const action = resolveInteractionAction(
 			'props',
 			this.interactionMode,
 			Boolean(Keymap.isModEvent(event)),
 		);
+
+		// `input` mode: the whole row activates the inline editor — from the
+		// name cell to the right end — instead of toggling a filter.
+		// Double-click still expands/collapses parents.
+		if (action === 'input') {
+			this._editingId = node.id;
+			void this._render();
+			return;
+		}
 
 		if (action === 'content-search') {
 			if (this.onContentSearch) {
@@ -2186,7 +2336,10 @@ export class PropsExplorerPanel extends Component {
 		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
 			this._decorateNodeNotes(nodesWithIcons);
 		}
-		if (nodesWithIcons.length === 0) {
+		// In reveal the list always ends (or starts) with the synthetic
+		// "+ Add property" row, so an empty note still offers the action
+		// in place instead of an empty state plus a detached button.
+		if (nodesWithIcons.length === 0 && !this.isRevealingActiveFile()) {
 			this._renderEmptyState();
 			return;
 		}
@@ -2334,9 +2487,12 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
+		const projected = this._withAddPropertyRow(
+			this.projectedNodes(nodesWithIcons),
+		);
 		this.view.render({
 			surface: 'props',
-			nodes: this.projectedNodes(nodesWithIcons),
+			nodes: projected,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
@@ -2346,7 +2502,7 @@ export class PropsExplorerPanel extends Component {
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			onCellClick: (id, cellId) => {
-				const node = this._findNode(id, this.projectedNodes(nodesWithIcons));
+				const node = this._findNode(id, projected);
 				if (!node?.meta.isValueNode || !cellId.startsWith('cell_hover:')) return;
 				const action = cellId.slice('cell_hover:'.length);
 				if (action === 'open-daily-note') {
@@ -2460,9 +2616,42 @@ export class PropsExplorerPanel extends Component {
 			warningIds,
 			searchHighlightIds: highlightIds,
 			editingId: this._editingId,
+			getEditingValue: (node: TreeNode) => {
+				const propNode = node as TreeNode<PropMeta>;
+				if (this._revealAdding?.stage === 'prop') return '';
+				if (propNode.meta?.isValueNode) {
+					const raw = propNode.meta.rawValue ?? '';
+					return raw === '' ? '' : raw;
+				}
+				return propNode.label === 'empty' ? '' : propNode.label;
+			},
+			getEditingPlaceholder: (node: TreeNode) => {
+				const propNode = node as TreeNode<PropMeta>;
+				if (this._revealAdding?.stage === 'prop') {
+					return translate('ops.add_property');
+				}
+				if (propNode.meta?.isValueNode) {
+					return translate('prop.value.empty');
+				}
+				return '';
+			},
+			onAttachInput: (node: TreeNode, inputEl: HTMLInputElement) => {
+				this._attachSuggester(node as TreeNode<PropMeta>, inputEl);
+			},
 			onRename: (id: string, newLabel: string) => {
+				if (this.isRevealingActiveFile()) {
+					const node = this._findNode(id, projected) ?? this._findNode(id, tree);
+					if (this._revealAdding?.stage === 'prop' || id === '__reveal_new_prop__') {
+						void this._handleRevealCommitPropName(newLabel, true);
+						return;
+					}
+					if (node && node.meta.isValueNode) {
+						void this._handleRevealCommitValue(node, newLabel, true);
+						return;
+					}
+				}
 				this._editingId = undefined;
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected) ?? this._findNode(id, tree);
 				if (node && node.meta.isValueNode) {
 					// A value-node rename writes the value, not the property
 					// key, through the same queueable vault path the value
@@ -2491,8 +2680,24 @@ export class PropsExplorerPanel extends Component {
 				}
 				void this._render();
 			},
+			onBlurRename: (id: string, newLabel: string) => {
+				if (this.isRevealingActiveFile()) {
+					const node = this._findNode(id, projected) ?? this._findNode(id, tree);
+					if (this._revealAdding?.stage === 'prop' || id === '__reveal_new_prop__') {
+						void this._handleRevealCommitPropName(newLabel, false);
+						return;
+					}
+					if (node && node.meta.isValueNode) {
+						void this._handleRevealCommitValue(node, newLabel, false);
+						return;
+					}
+				}
+				this._editingId = undefined;
+				void this._render();
+			},
 			onCancelRename: () => {
 				this._editingId = undefined;
+				this._revealAdding = undefined;
 				void this._render();
 			},
 			onToggle: (id: string) => {
@@ -2511,18 +2716,24 @@ export class PropsExplorerPanel extends Component {
 				: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 		onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 			onRowClick: (id: string, event) => {
+				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {
+					this._startAddPropertyInReveal();
+					return;
+				}
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
+				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
 				if (isGroupHeader(id, this._groupIds)) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._openNodeMenu(node, e);
 			},
 			onDragStart: (id: string, event: DragEvent) => {
+				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._setPropDragPayload(node, activeFilterIds, event);
@@ -2543,7 +2754,428 @@ export class PropsExplorerPanel extends Component {
 			},
 			badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 		});
-		this._renderAddPropertyButtonIfNeeded();
+		// Tree path renders "+ Add property" as an in-list row (see
+		// _withAddPropertyRow); the fixed container button survives only for
+		// the table branch, which keeps its own call below.
+	}
+
+	private _updateRevealFrontmatter(
+		mutator: (fm: Record<string, unknown>) => void,
+	): Promise<void> {
+		const path = this._revealPath();
+		if (!path) return Promise.resolve();
+		const file = this.plugin.app.vault.getFileByPath(path);
+		if (!(file instanceof TFile)) return Promise.resolve();
+
+		const currentFm =
+			this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+		if (
+			!this._optimisticFrontmatter ||
+			this._optimisticFrontmatterPath !== file.path
+		) {
+			this._optimisticFrontmatter = JSON.parse(JSON.stringify(currentFm));
+		}
+		this._optimisticFrontmatterPath = file.path;
+		mutator(this._optimisticFrontmatter!);
+
+		return this.plugin.app.fileManager.processFrontMatter(file, (realFm) => {
+			mutator(realFm);
+		});
+	}
+
+	private _startAddPropertyInReveal(): void {
+		if (!this.isRevealingActiveFile()) return;
+		const path = this._revealPath();
+		if (!path) {
+			new Notice(translate('ops.add_property.unavailable'));
+			return;
+		}
+		const tempId = '__reveal_new_prop__';
+		this._revealAdding = {
+			stage: 'prop',
+			tempId,
+		};
+		this._editingId = tempId;
+		void this._render();
+	}
+
+	private async _handleRevealCommitPropName(
+		rawName: string,
+		isEnter: boolean,
+	): Promise<void> {
+		const name = rawName.trim();
+		if (!name) {
+			if (isEnter) {
+				// Native parity: confirming an empty name is an error that keeps
+				// the editor open; only blur dismisses silently.
+				new Notice(translate('ops.add_property.empty'));
+				void this._render();
+				return;
+			}
+			this._revealAdding = undefined;
+			this._editingId = undefined;
+			void this._render();
+			return;
+		}
+
+		await this._updateRevealFrontmatter((fm) => {
+			if (!(name in fm)) {
+				const isList = isListType(
+					this._effectivePropType({ propName: name, propType: 'text' }),
+				);
+				fm[name] = isList ? [] : null;
+			}
+		});
+
+		if (isEnter) {
+			this.expandedIds.add(name);
+			const tempId = `${name}::`;
+			this._revealAdding = {
+				stage: 'initial_value',
+				propName: name,
+				tempId,
+			};
+			this._editingId = tempId;
+		} else {
+			// Blur commits the value-less property and leaves edit mode,
+			// mirroring the native blur→update path.
+			this._revealAdding = undefined;
+			this._editingId = undefined;
+		}
+		void this._render();
+	}
+
+	private async _handleRevealCommitValue(
+		node: TreeNode<PropMeta>,
+		rawValue: string,
+		isEnter: boolean,
+	): Promise<void> {
+		const val = rawValue.trim();
+		const propName = node.meta.propName;
+
+		if (this._revealAdding?.stage === 'initial_value') {
+			if (!val) {
+				this._revealAdding = undefined;
+				this._editingId = undefined;
+				void this._render();
+				return;
+			}
+			await this._updateRevealFrontmatter((fm) => {
+				const isList = isListType(
+					this._effectivePropType({
+						propName,
+						propType: node.meta.propType ?? 'text',
+					}),
+				);
+				fm[propName] = isList ? [val] : val;
+			});
+			if (isEnter) {
+				const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
+				this._revealAdding = {
+					stage: 'subsequent_value',
+					propName,
+					tempId: nextTempId,
+				};
+				this._editingId = nextTempId;
+			} else {
+				this._revealAdding = undefined;
+				this._editingId = undefined;
+			}
+			void this._render();
+			return;
+		}
+
+		if (this._revealAdding?.stage === 'subsequent_value') {
+			if (!val) {
+				this._revealAdding = undefined;
+				this._editingId = undefined;
+				void this._render();
+				return;
+			}
+			await this._updateRevealFrontmatter((fm) => {
+				const current = fm[propName];
+				if (Array.isArray(current)) {
+					fm[propName] = [...current, val];
+				} else if (current != null && current !== '') {
+					fm[propName] = [current, val];
+				} else {
+					const isList = isListType(
+						this._effectivePropType({
+							propName,
+							propType: node.meta.propType ?? 'text',
+						}),
+					);
+					fm[propName] = isList ? [val] : val;
+				}
+			});
+			if (isEnter) {
+				const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
+				this._revealAdding = {
+					stage: 'subsequent_value',
+					propName,
+					tempId: nextTempId,
+				};
+				this._editingId = nextTempId;
+			} else {
+				this._revealAdding = undefined;
+				this._editingId = undefined;
+			}
+			void this._render();
+			return;
+		}
+
+		// Editing an existing value node in reveal mode
+		if (!val) {
+			await this._updateRevealFrontmatter((fm) => {
+				const current = fm[propName];
+				const oldRaw = node.meta.rawValue ?? '';
+				if (Array.isArray(current)) {
+					const filtered = current.filter((v) => String(v) !== oldRaw);
+					fm[propName] = filtered.length > 0 ? filtered : [];
+				} else {
+					fm[propName] = null;
+				}
+			});
+			this._editingId = undefined;
+			void this._render();
+			return;
+		}
+
+		await this._updateRevealFrontmatter((fm) => {
+			const current = fm[propName];
+			const oldRaw = node.meta.rawValue ?? '';
+			if (Array.isArray(current)) {
+				const idx = current.findIndex((v) => String(v) === oldRaw);
+				if (idx >= 0) {
+					current[idx] = val;
+				} else {
+					current.push(val);
+				}
+			} else {
+				fm[propName] = val;
+			}
+		});
+
+		if (isEnter) {
+			const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
+			this._revealAdding = {
+				stage: 'subsequent_value',
+				propName,
+				tempId: nextTempId,
+			};
+			this._editingId = nextTempId;
+		} else {
+			this._editingId = undefined;
+		}
+		void this._render();
+	}
+
+	/**
+	 * Suggester candidates sourced from the same propScene projection the
+	 * explorer renders (`logic.getTree()` + props-only by_type), so the
+	 * popover can never show a "handful" while the panel shows them all.
+	 * Icons match the rows via `_effectivePropIcon`; the note's own props
+	 * (and `position`) are excluded case-insensitively like the native
+	 * duplicate check.
+	 */
+	private _propSceneNameItems(): PropertySuggestItem[] {
+		const tree = this._filterByTypes(this.logic.getTree(), ['props-only']);
+		const existing = new Set(
+			Object.keys(this._revealFrontmatter() ?? {}).map((key) =>
+				key.toLowerCase(),
+			),
+		);
+		existing.add('position');
+		const items: PropertySuggestItem[] = [];
+		for (const propNode of tree) {
+			const name = propNode.meta.propName || propNode.label;
+			if (!name || existing.has(name.toLowerCase())) continue;
+			items.push({
+				value: name,
+				icon: this._effectivePropIcon(propNode.meta),
+			});
+		}
+		return items;
+	}
+
+	/**
+	 * Values for one property taken from the propScene projection children,
+	 * minus what the revealed note already holds (except the value currently
+	 * being edited, which stays selectable).
+	 */
+	private _propSceneValueItems(
+		propName: string,
+		excludeCurrent?: string,
+	): string[] {
+		const tree = this.logic.getTree();
+		const found =
+			tree.find((n) => n.meta.propName === propName) ??
+			tree.find(
+				(n) => n.meta.propName.toLowerCase() === propName.toLowerCase(),
+			);
+		const sceneValues = (found?.children ?? [])
+			.filter((c) => c.meta.isValueNode)
+			.map((c) => c.meta.rawValue ?? c.label);
+		const existing = new Set(this._revealNoteValues(propName));
+		if (excludeCurrent !== undefined) existing.delete(excludeCurrent);
+		return sceneValues.filter((v) => !existing.has(v));
+	}
+
+	private _revealNoteValues(propName: string): Set<string> {
+		const fm = this._revealFrontmatter();
+		if (!fm) return new Set();
+		const key = Object.keys(fm).find(
+			(k) => k.toLowerCase() === propName.toLowerCase(),
+		);
+		if (key === undefined) return new Set();
+		return new Set(normalizeFrontmatterValues(fm[key]));
+	}
+
+	private _attachSuggester(
+		node: TreeNode<PropMeta>,
+		inputEl: HTMLInputElement,
+	): void {
+		let enterPressed = false;
+		inputEl.addEventListener(
+			'keydown',
+			(e) => {
+				if (e.key === 'Enter') {
+					enterPressed = true;
+				}
+			},
+			{ capture: true },
+		);
+
+		if (
+			this._revealAdding?.stage === 'prop' &&
+			node.id === this._revealAdding.tempId
+		) {
+			// Native parity: Obsidian injects `position` into frontmatter and
+			// never offers it as a property name. The index path already
+			// excludes it; only this fallback can leak it.
+			const fallbackProps = Object.keys(
+				(this.plugin.app.metadataCache as any).getAllPropertyInfos?.() ?? {},
+			).filter((key) => key !== 'position');
+			// The primary source is the propScene projection itself
+			// (props-only by_type): whatever the panel lists, the popover
+			// offers — minus the note's own props so nothing duplicates.
+			// `metadataTypeManager` and the index only fill gaps the
+			// projection missed, never shrink it.
+			const sceneItems = this._propSceneNameItems();
+			const nativeItems = nativePropertyItems(this.plugin.app).filter(
+				(item) => item.value !== 'position',
+			);
+			const indexedNames =
+				this.plugin.propertyIndex?.getPropertyNames() ?? fallbackProps;
+			const existingLower = new Set(
+				Object.keys(this._revealFrontmatter() ?? {}).map((key) =>
+					key.toLowerCase(),
+				),
+			);
+			existingLower.add('position');
+			const allProps = excludeSuggestItems(
+				dedupeSuggestItems([...sceneItems, ...nativeItems, ...indexedNames]),
+				existingLower,
+			);
+			const nameSuggest = new PropertySuggest(
+				this.plugin.app,
+				inputEl,
+				allProps,
+				(selectedName) => {
+					(inputEl as any)._vaultmanCommitted = true;
+					inputEl.value = selectedName;
+					void this._handleRevealCommitPropName(selectedName, true);
+				},
+			);
+			// Native parity: the core value/name popovers carry
+			// `mod-property-value` for theming.
+			nameSuggest.popoverEl.addClass('mod-property-value');
+			setTimeout(() => {
+				inputEl.focus();
+				inputEl.dispatchEvent(new Event('input'));
+			}, 10);
+		} else if (node.meta?.isValueNode) {
+			const propName = node.meta.propName;
+			// Same propScene-first rule as names: the projection's value
+			// children lead, the index only fills gaps. Values the note
+			// already holds are excluded (except the one being edited) so
+			// multi-value adds cannot duplicate.
+			const sceneValues = this._propSceneValueItems(
+				propName,
+				node.meta.rawValue,
+			);
+			const indexedValues =
+				this.plugin.propertyIndex?.getPropertyValues(propName) ?? [];
+			const allValues = dedupeSuggestItems(
+				[...sceneValues, ...indexedValues],
+				false,
+			).map((item) => item.value);
+			const valueSuggest = new PropertySuggest(
+				this.plugin.app,
+				inputEl,
+				allValues,
+				(selectedValue) => {
+					(inputEl as any)._vaultmanCommitted = true;
+					inputEl.value = selectedValue;
+					void this._handleRevealCommitValue(node, selectedValue, enterPressed);
+				},
+			);
+			// Native parity (`LN`): the core value popover carries
+			// `mod-property-value` and the lowercase key for theming.
+			valueSuggest.popoverEl.addClass('mod-property-value');
+			valueSuggest.popoverEl.setAttr(
+				'data-property-key',
+				propName.toLowerCase(),
+			);
+			setTimeout(() => {
+				inputEl.focus();
+				inputEl.select();
+				inputEl.dispatchEvent(new Event('input'));
+			}, 10);
+		} else {
+			setTimeout(() => {
+				inputEl.focus();
+				inputEl.select();
+			}, 10);
+		}
+	}
+
+	/**
+	 * The "+ Add property" affordance lives INSIDE the panel list as a
+	 * synthetic row (never a real property), pinned last by default or first
+	 * when the `addPropertyFirst` view toggle is on. Injected post-sort so no
+	 * ordering ever moves it; filters, menus, drag and counts skip it via
+	 * `meta.isAddPropertyRow`.
+	 */
+	private static readonly ADD_PROPERTY_ROW_ID = '__add_property__';
+
+	private _addPropertyRowNode(): TreeNode<PropMeta> {
+		return {
+			id: PropsExplorerPanel.ADD_PROPERTY_ROW_ID,
+			label: translate('ops.add_property'),
+			count: 0,
+			depth: 0,
+			icon: 'lucide-plus',
+			coreCls:
+				'tree-item-self tappable is-clickable vaultman-add-property-row',
+			children: [],
+			meta: {
+				propName: '',
+				propType: 'text',
+				isValueNode: false,
+				isAddPropertyRow: true,
+			},
+		};
+	}
+
+	private _withAddPropertyRow(
+		nodes: TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		if (!this.isRevealingActiveFile()) return nodes;
+		const row = this._addPropertyRowNode();
+		return this.sortState?.addPropertyFirst === true
+			? [row, ...nodes]
+			: [...nodes, row];
 	}
 
 	private _renderAddPropertyButtonIfNeeded(): void {
@@ -2552,11 +3184,14 @@ export class PropsExplorerPanel extends Component {
 		// another copy behind, and the copies outlived reveal itself: turning the
 		// mode off stopped new ones being made but never removed the old ones.
 		for (const stale of Array.from(
-			this.containerEl.querySelectorAll(':scope > .metadata-add-button'),
+			this.containerEl.querySelectorAll(
+				':scope > .metadata-add-button, :scope > .metadata-add-button-divider',
+			),
 		)) {
 			stale.remove();
 		}
 		if (!this.isRevealingActiveFile()) return;
+		this.containerEl.createDiv({ cls: 'metadata-add-button-divider' });
 		const addButton = this.containerEl.createDiv({
 			cls: 'metadata-add-button text-icon-button',
 			attr: { tabIndex: 0 },
@@ -2573,14 +3208,8 @@ export class PropsExplorerPanel extends Component {
 			cls: 'text-button-label',
 			text: translate('ops.add_property'),
 		});
-		// Core drives this from `addProperty()` on its metadata editor — an
-		// internal method, not a command — so there is no id to invoke and the
-		// previous `executeObsidianCommand` call could never fire. Matching Core
-		// means adding an unnamed property row and focusing its key input, which
-		// is the value-entry input shard 9.4 owns and has not landed yet. Until
-		// then the button reports rather than pretending.
 		addButton.onclick = () => {
-			new Notice(translate('ops.add_property.unavailable'));
+			this._startAddPropertyInReveal();
 		};
 		addButton.onkeydown = (e) => {
 			if (e.key === 'Enter' || e.key === ' ') {

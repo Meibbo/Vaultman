@@ -163,6 +163,28 @@ export function prepareSimpleSearch(query: string): (text: string) => { score: n
 		text.toLowerCase().includes(normalized) ? { score: 1 } : null;
 }
 
+/**
+ * Stub approximation of Obsidian's fuzzy matcher: ordered-subsequence match
+ * scored by gap count with a prefix bonus (lower is better). It only needs to
+ * preserve the contract production code depends on — null on no-match,
+ * numeric score ordering — not the exact desktop scoring.
+ */
+export function prepareFuzzySearch(query: string): (text: string) => { score: number } | null {
+	const normalized = query.toLowerCase();
+	return (text: string) => {
+		const lower = text.toLowerCase();
+		let qi = 0;
+		let gaps = 0;
+		for (let ti = 0; ti < lower.length && qi < normalized.length; ti += 1) {
+			if (lower[ti] === normalized[qi]) qi += 1;
+			else if (qi > 0) gaps += 1;
+		}
+		if (qi < normalized.length) return null;
+		const prefixBonus = lower.startsWith(normalized) ? lower.length : 0;
+		return { score: gaps - prefixBonus };
+	};
+}
+
 export function setTooltip(
 	_el: HTMLElement,
 	_text: string,

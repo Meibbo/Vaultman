@@ -283,6 +283,14 @@
 		emitFilterChange();
 	}
 
+	function toggleAddPropertyFirst() {
+		sortState = {
+			...sortState,
+			addPropertyFirst: !(sortState.addPropertyFirst ?? false),
+		};
+		emitSortChange();
+	}
+
 	function selectRevealAnchor(id: 'reveal-current-file' | 'reveal-drill') {
 		if (id === 'reveal-drill') {
 			// The pick itself happens outside the popup: the surface switches to
@@ -309,6 +317,7 @@
 			return;
 		}
 		if (item.id === 'filtered') toggleFiltered();
+		if (item.id === 'addPropertyFirst') toggleAddPropertyFirst();
 	}
 
 	function toggleGroupDrawer() {
