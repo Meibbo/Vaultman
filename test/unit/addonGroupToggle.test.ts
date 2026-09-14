@@ -22,6 +22,7 @@ import type {
 	TreeNodeCell,
 } from '../../src/types/typeTree';
 import type { ExplorerSortState } from '../../src/types/typeUI';
+import type { GroupPreset } from '../../src/types/typeGroupPreset';
 
 function groupsScope(tab: 'plugins' | 'snippets'): ExplorerSortState {
 	return normalizeExplorerSortState(tab, {
@@ -31,11 +32,15 @@ function groupsScope(tab: 'plugins' | 'snippets'): ExplorerSortState {
 	});
 }
 
+/** Spec 08 §3.1.bis: what actually turns the projection on. */
+const PRESET_CUSTOM: GroupPreset = { kind: 'custom', direction: 'asc' };
+
 type PluginsHarness = {
 	_groupIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	searchTerm: string;
 	cellStyle: string;
@@ -66,6 +71,7 @@ type SnippetsHarness = {
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	searchTerm: string;
 	cellStyle: string;
@@ -190,6 +196,7 @@ function makePluginPanel() {
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('plugins');
+	panel.groupPreset = PRESET_CUSTOM;
 	panel.activeLayoutName = 'layout-plugins';
 	panel.searchTerm = '';
 	panel.cellStyle = 'native';
@@ -246,6 +253,7 @@ function makeSnippetPanel() {
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('snippets');
+	panel.groupPreset = PRESET_CUSTOM;
 	panel.activeLayoutName = 'layout-snippets';
 	panel.searchTerm = '';
 	panel.cellStyle = 'native';

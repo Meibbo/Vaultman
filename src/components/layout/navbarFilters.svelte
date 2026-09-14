@@ -90,6 +90,7 @@
 		type SceneConfigPort,
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
+	import type { GroupPreset } from '../../types/typeGroupPreset';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExplorerPort,
@@ -502,9 +503,9 @@
 				defaultVisibleCells(activeTab, viewModeByTab[activeTab]),
 			// U130-t33 (L-PNODE): un grupo es un p-node plegable aunque la
 			// anidacion este apagada — sin este flag el toggle queda muerto en
-			// ese caso exacto, el que el dev senalo.
-			(sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab])
-				?.activeScope === 'groups',
+			// ese caso exacto, el que el dev senalo. Spec 08 §3.1.bis: la
+			// agrupacion es el preset seleccionado, no el scope de orden.
+			configByTab[activeTab].groupPreset.kind !== 'none',
 		),
 	);
 	/**
@@ -1072,6 +1073,7 @@
 			interactionMode?: InteractionMode;
 			stickyRows?: boolean;
 			compactFolders?: boolean;
+			groupPreset?: GroupPreset;
 		},
 	) {
 		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
@@ -1103,6 +1105,7 @@
 					...(config.compactFolders !== undefined
 						? { compactFolders: config.compactFolders }
 						: {}),
+					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1113,6 +1116,7 @@
 				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
+				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			}
 			return;
 		}
@@ -1129,6 +1133,7 @@
 					...(config.stickyRows !== undefined
 						? { stickyRows: config.stickyRows }
 						: {}),
+					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1137,6 +1142,7 @@
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
 				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			}
 			return;
 		}
@@ -1153,6 +1159,7 @@
 					...(config.stickyRows !== undefined
 						? { stickyRows: config.stickyRows }
 						: {}),
+					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1161,6 +1168,7 @@
 				if (config.interactionMode)
 					applyInteractionMode(tab, config.interactionMode);
 				if (config.stickyRows !== undefined) applyStickyRows(tab, config.stickyRows);
+				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			}
 			return;
 		}
@@ -1169,6 +1177,7 @@
 			applyViewMode(tab, config.viewMode);
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
+			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			return;
 		}
 
@@ -1176,6 +1185,7 @@
 			applyViewMode(tab, config.viewMode);
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
+			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			return;
 		}
 	}
@@ -1811,6 +1821,15 @@
 		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
 	}
 
+	/** Spec 08 §3.2: the preset selection is per instance and reaches every scene. */
+	function applyGroupPreset(tab: FiltersTab, preset: GroupPreset) {
+		if (tab === 'files') fileList?.setGroupPreset?.(preset);
+		if (tab === 'props') propExplorer?.setGroupPreset?.(preset);
+		if (tab === 'tags') tagsExplorer?.setGroupPreset?.(preset);
+		if (tab === 'snippets') snippetsExplorer?.setGroupPreset?.(preset);
+		if (tab === 'plugins') pluginsExplorer?.setGroupPreset?.(preset);
+	}
+
 	function toggleStickyRowsFor(tab: FiltersTab) {
 		const next = !stickyRowsEnabledFor(tab);
 		commitConfig(tab, { stickyRows: next });
@@ -2168,6 +2187,7 @@
 		);
 		const stickyRows = configByTab[tab].stickyRows;
 		const compactFolders = configByTab[tab].compactFolders;
+		const groupPreset = configByTab[tab].groupPreset;
 		applyTabProjection(tab, {
 			viewMode,
 			visibleCells: cells,
@@ -2175,6 +2195,7 @@
 			interactionMode,
 			stickyRows,
 			compactFolders,
+			groupPreset,
 		});
 		if (tab === 'files' && fileList) {
 			fileList.setInteractionModeChangeHandler?.((mode) => {

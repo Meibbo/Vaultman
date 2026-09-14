@@ -46,7 +46,7 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		},
 	);
 
-	it('el navbar pasa groupingActive (activeScope === groups) a expansionActionAvailable', () => {
+	it('el navbar pasa groupingActive (groupPreset distinto de none) a expansionActionAvailable', () => {
 		// Guarda negativa a nivel de fuente: si alguien vuelve a llamar a
 		// expansionActionAvailable con solo (tab, visibleCells), el defecto
 		// `false` del parametro deja muerto el toggle exactamente en el caso
@@ -57,7 +57,10 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		expect(callStart).toBeGreaterThanOrEqual(0);
 		const callEnd = navbarSource.indexOf(');', callStart);
 		const callSource = navbarSource.slice(callStart, callEnd);
-		expect(callSource).toContain("?.activeScope === 'groups'");
+		// Spec 08 §3.1.bis: el interruptor es el preset seleccionado, no el
+		// scope de orden; el scope `groups` no puede volver a serlo.
+		expect(callSource).toContain(".groupPreset.kind !== 'none'");
+		expect(callSource).not.toContain("activeScope === 'groups'");
 	});
 
 	it('keeps reveal in the generic Tools projection while gating only expansion', () => {

@@ -81,6 +81,8 @@ export interface PanelWidgetExplorerPort {
 	): void;
 	setStickyRowsEnabled?(enabled: boolean): void;
 	setCompactFoldersEnabled?(enabled: boolean): void;
+	/** Spec 08 §3.2: the grouping switch, per instance. */
+	setGroupPreset?(preset: GroupPreset): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;

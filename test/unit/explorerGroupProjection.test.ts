@@ -10,6 +10,7 @@ import { TagsExplorerPanel } from '../../src/components/containers/explorerTags'
 import { isGroupHeader, NO_GROUP_ID, PRESET_GROUP_PREFIX } from '../../src/logic/logicTreeGroupProjection';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import type { ExplorerTabId, ExplorerSortState } from '../../src/types/typeUI';
+import type { GroupPreset } from '../../src/types/typeGroupPreset';
 import type { FileMeta, PluginMeta, PropMeta, SnippetMeta, TagMeta, TreeNode } from '../../src/types/typeTree';
 
 type SavedLayoutStub = {
@@ -26,7 +27,12 @@ type PluginStub = {
 	};
 };
 
-/** L-CABLE: el interruptor es el scope `groups`, no un estado paralelo. */
+/**
+ * Spec 08 §3.1.bis: el interruptor es el group preset seleccionado (`none` =
+ * apagado), NUNCA el scope de orden. El scope `groups` que L-CABLE usaba como
+ * interruptor sigue siendo un scope valido hasta el paso 6, pero ya no
+ * enciende nada: estos tests lo dejan puesto a proposito para probarlo.
+ */
 function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups'): ExplorerSortState {
 	return normalizeExplorerSortState(tab, {
 		sorts: {},
@@ -35,11 +41,16 @@ function sortStateWithScope(tab: ExplorerTabId, activeScope: 'all' | 'groups'): 
 	});
 }
 
+const PRESET_OFF: GroupPreset = { kind: 'none', direction: 'asc' };
+const PRESET_CUSTOM: GroupPreset = { kind: 'custom', direction: 'asc' };
+const PRESET_LETTER: GroupPreset = { kind: 'letter', direction: 'asc' };
+
 type SnippetsHarness = {
 	_groupIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: PluginStub;
 	nodes: TreeNode<SnippetMeta>[];
@@ -51,6 +62,7 @@ type PluginsHarness = {
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: PluginStub;
 	nodes: TreeNode<PluginMeta>[];
@@ -60,6 +72,7 @@ type PluginsHarness = {
 type TagsHarness = {
 	_groupIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: PluginStub;
 	projectedNodes: (nodes: TreeNode<TagMeta>[]) => TreeNode<TagMeta>[];
@@ -68,6 +81,7 @@ type TagsHarness = {
 type PropsHarness = {
 	_groupIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: PluginStub;
 	projectedNodes: (nodes: TreeNode<PropMeta>[]) => TreeNode<PropMeta>[];
@@ -76,6 +90,7 @@ type PropsHarness = {
 type FilesHarness = {
 	_groupIds: Set<string>;
 	sortState: ExplorerSortState;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: PluginStub;
 	projectedNodes: (nodes: TreeNode<FileMeta>[]) => TreeNode<FileMeta>[];
@@ -114,6 +129,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
+		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-snippets';
 		panel.plugin = {
 			settings: {
@@ -150,7 +166,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(raw.some((n: TreeNode<SnippetMeta>) => isGroupHeader(n.id))).toBe(false);
 
 		// Con el scope `groups` activo, proyecta grupos custom y puebla _groupIds
+		// Spec 08 §3.1.bis: el scope `groups` SOLO ya no enciende nada...
 		panel.sortState = sortStateWithScope('snippets', 'groups');
+		expect(panel.projectedNodes()).toBe(panel.nodes);
+		// ...lo enciende el preset `custom`.
+		panel.groupPreset = PRESET_CUSTOM;
 		const projected = panel.projectedNodes();
 		expect(panel._groupIds.has('custom-snips')).toBe(true);
 		expect(projected.length).toBeGreaterThan(0);
@@ -177,6 +197,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('plugins', 'all');
+		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-plugins';
 		panel.plugin = {
 			settings: {
@@ -225,7 +246,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(raw.some((n: TreeNode<PluginMeta>) => isGroupHeader(n.id))).toBe(false);
 
 		// Enabled -> proyectado
+		// Spec 08 §3.1.bis: el scope `groups` SOLO ya no enciende nada...
 		panel.sortState = sortStateWithScope('plugins', 'groups');
+		expect(panel.projectedNodes()).toBe(panel.nodes);
+		// ...lo enciende el preset `custom`.
+		panel.groupPreset = PRESET_CUSTOM;
 		const projected = panel.projectedNodes();
 		expect(panel._groupIds.has('custom-plugs')).toBe(true);
 
@@ -245,6 +270,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createTagsHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('tags', 'all');
+		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-tags';
 		panel.plugin = {
 			settings: {
@@ -277,7 +303,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
+		// Spec 08 §3.1.bis: el scope `groups` SOLO ya no enciende nada...
 		panel.sortState = sortStateWithScope('tags', 'groups');
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+		// ...lo enciende el preset `custom`.
+		panel.groupPreset = PRESET_CUSTOM;
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-tags')).toBe(true);
 
@@ -296,6 +326,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createPropsHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('props', 'all');
+		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-props';
 		panel.plugin = {
 			settings: {
@@ -335,7 +366,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
+		// Spec 08 §3.1.bis: el scope `groups` SOLO ya no enciende nada...
 		panel.sortState = sortStateWithScope('props', 'groups');
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+		// ...lo enciende el preset `custom`.
+		panel.groupPreset = PRESET_CUSTOM;
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-prop')).toBe(true);
 		expect(panel._groupIds.has('grp-val')).toBe(true);
@@ -360,6 +395,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createFilesHarness();
 		panel._groupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('files', 'all');
+		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-files';
 		panel.plugin = {
 			settings: {
@@ -413,7 +449,11 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 
 		expect(panel.projectedNodes(nodes)).toBe(nodes);
 
+		// Spec 08 §3.1.bis: el scope `groups` SOLO ya no enciende nada...
 		panel.sortState = sortStateWithScope('files', 'groups');
+		expect(panel.projectedNodes(nodes)).toBe(nodes);
+		// ...lo enciende el preset `custom`.
+		panel.groupPreset = PRESET_CUSTOM;
 		const projected = panel.projectedNodes(nodes);
 		expect(panel._groupIds.has('grp-files')).toBe(true);
 
@@ -429,12 +469,13 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(noGroup.children?.map((c) => c.label)).toEqual(['other.md']);
 	});
 
-	it('Preset grouping fallback: si el scope groups esta activo sin layout, agrupa por primera letra', () => {
+	it('Preset `letter` sin layout agrupa por primera letra con el scope en `all`', () => {
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
-		panel.sortState = sortStateWithScope('snippets', 'groups');
+		panel.sortState = sortStateWithScope('snippets', 'all');
+		panel.groupPreset = PRESET_LETTER;
 		panel.activeLayoutName = null;
 		panel.plugin = { settings: {} };
 		panel.nodes = [
@@ -515,5 +556,9 @@ describe('L-CABLE guarda negativa: el estado paralelo no puede reaparecer', () =
 
 	it('private groupingEnabled no existe en ningun fichero de src/', () => {
 		expect(srcFilesContaining('private groupingEnabled')).toEqual([]);
+	});
+
+	it("spec 08 §3.1.bis: `activeScope === 'groups'` ya no es interruptor en src/", () => {
+		expect(srcFilesContaining("activeScope === 'groups'")).toEqual([]);
 	});
 });

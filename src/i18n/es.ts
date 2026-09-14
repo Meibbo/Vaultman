@@ -674,6 +674,12 @@ export const es: Record<string, string> = {
 	'explorer.toggle': 'Explorador',
 	// Task 3.3: consume esta clave para etiquetar el grupo vacio.
 	'explorer.group.no_group': 'Sin grupo',
+	// Spec 08 §3.2.1: etiquetas de rango de los presets de contadores y fechas.
+	'explorer.group.range.span': '{lo}–{hi}',
+	'explorer.group.range.today': 'Hoy',
+	'explorer.group.range.last_days': 'Últimos {n} días',
+	'explorer.group.range.days_ago': 'Hace {lo}–{hi} días',
+	'explorer.group.range.day_ago': 'Hace {n} días',
 
 	// Explorer nav buttons
 	'explorer.btn.search': 'Buscar',

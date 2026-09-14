@@ -58,6 +58,12 @@ import {
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	NO_GROUP_PRESET,
+	sameGroupPreset,
+	type GroupPreset,
+} from '../../types/typeGroupPreset';
+import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -80,6 +86,8 @@ export class PluginsExplorerPanel
 	private selectedNodeIds = new Set<string>();
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
+	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
+	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	private _expandedGroupIds = new Set<string>();
 	private activeLayoutName: string | null = null;
 
@@ -213,6 +221,22 @@ export class PluginsExplorerPanel
 		if (sameExplorerSortState(this.sortState, normalized)) return;
 		this.sortState = normalized;
 		this.rebuildNodes();
+	}
+
+	setGroupPreset(preset: GroupPreset): void {
+		if (sameGroupPreset(this.groupPreset, preset)) return;
+		this.groupPreset = { ...preset };
+		this.rebuildNodes();
+	}
+
+	/** Spec 08 §3.2: add-ons expose their install/update times as the date presets. */
+	private _groupPresetValue(
+		node: TreeNode<PluginMeta>,
+		kind: GroupPreset['kind'],
+	): string | number | null {
+		if (kind === 'modified') return node.meta.updatedTime ?? null;
+		if (kind === 'created') return node.meta.installedTime ?? null;
+		return null;
 	}
 
 	setVisibleCells(cells: Set<string>): void {
@@ -378,7 +402,12 @@ export class PluginsExplorerPanel
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
-			enabled: this.sortState?.activeScope === 'groups',
+			// Spec 08 §3.1.bis: the preset selection is the switch, never the
+			// sort scope.
+			enabled: this.groupPreset.kind !== 'none',
+			preset: this.groupPreset,
+			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
+			rangeLabels: translatedRangeLabels(),
 			// U130-t33 (L-PNODE): meta y core classes propias de la cabecera,
 			// mismo camino que files/tags/props — sin esto se colaba el
 			// prestamo historico de `nodes[0]?.meta` y la fila no entraba por
@@ -451,7 +480,7 @@ export class PluginsExplorerPanel
 			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un
 			// grupo activo si crea un nivel (cabecera -> miembros) que
 			// necesita la guia igual que el resto de p-nodes con hijos.
-			indentGuides: this.sortState?.activeScope === 'groups',
+			indentGuides: this.groupPreset.kind !== 'none',
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({

@@ -107,6 +107,12 @@ import {
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
 import {
+	NO_GROUP_PRESET,
+	sameGroupPreset,
+	type GroupPreset,
+} from '../../types/typeGroupPreset';
+import { translatedRangeLabels } from '../../utils/groupPresetLabels';
+import {
 	activeScopeSort,
 	normalizeExplorerSortState,
 	sameExplorerSortState,
@@ -195,6 +201,8 @@ export class TagsExplorerPanel extends Component {
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	/** Spec 08 §2: override per_instance sobre `plugin.settings.stickyParentRows`. */
 	private stickyRowsOverride: boolean | undefined;
+	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
+	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	private hasConnectedSortStateHandler = false;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
@@ -444,7 +452,12 @@ export class TagsExplorerPanel extends Component {
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
-			enabled: this.sortState?.activeScope === 'groups',
+			// Spec 08 §3.1.bis: the preset selection is the switch, never the
+			// sort scope.
+			enabled: this.groupPreset.kind !== 'none',
+			preset: this.groupPreset,
+			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
+			rangeLabels: translatedRangeLabels(),
 			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
 			// de tags: clases nativas y meta propia en vez de la prestada
 			// del primer hijo.
@@ -579,13 +592,17 @@ export class TagsExplorerPanel extends Component {
 		const stickyChanged =
 			config.stickyRows !== undefined &&
 			this.stickyRowsOverride !== config.stickyRows;
+		const presetChanged =
+			config.groupPreset !== undefined &&
+			!sameGroupPreset(this.groupPreset, config.groupPreset);
 
 		if (
 			!viewChanged &&
 			!cellsChanged &&
 			!sortChanged &&
 			!interactionChanged &&
-			!stickyChanged
+			!stickyChanged &&
+			!presetChanged
 		) {
 			return;
 		}
@@ -618,7 +635,16 @@ export class TagsExplorerPanel extends Component {
 		if (stickyChanged) {
 			this.stickyRowsOverride = config.stickyRows;
 		}
+		if (presetChanged && config.groupPreset) {
+			this.groupPreset = { ...config.groupPreset };
+		}
 
+		this._render();
+	}
+
+	setGroupPreset(preset: GroupPreset): void {
+		if (sameGroupPreset(this.groupPreset, preset)) return;
+		this.groupPreset = { ...preset };
 		this._render();
 	}
 
@@ -2279,7 +2305,15 @@ export class TagsExplorerPanel extends Component {
 	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
 	 */
 	private _groupingActive(): boolean {
-		return this.sortState?.activeScope === 'groups';
+		return this.groupPreset.kind !== 'none';
+	}
+
+	/** Spec 08 §3.2: tags offer no value presets (letter/name read the label). */
+	private _groupPresetValue(
+		_node: TreeNode<TagMeta>,
+		_kind: GroupPreset['kind'],
+	): string | number | null {
+		return null;
 	}
 
 	/**

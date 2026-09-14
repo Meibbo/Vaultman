@@ -41,6 +41,12 @@ import {
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	NO_GROUP_PRESET,
+	sameGroupPreset,
+	type GroupPreset,
+} from '../../types/typeGroupPreset';
+import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -278,7 +284,12 @@ export class FilesExplorerPanel extends Component {
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
-			enabled: this.sortState?.activeScope === 'groups',
+			// Spec 08 §3.1.bis: the preset selection is the switch, never the
+			// sort scope.
+			enabled: this.groupPreset.kind !== 'none',
+			preset: this.groupPreset,
+			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
+			rangeLabels: translatedRangeLabels(),
 			// L-PNODE: la cabecera entra por el camino comun de los p-nodes
 			// contenedor (carpeta): clases nativas y meta propia en vez de la
 			// prestada del primer hijo.
@@ -349,6 +360,8 @@ export class FilesExplorerPanel extends Component {
 	 * todavia -- no improvisar, hay que ir a mirar como lo hace VS Code primero.
 	 */
 	private compactFoldersOverride: boolean | undefined;
+	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
+	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 
 	constructor(
 		containerEl: HTMLElement,
@@ -916,7 +929,14 @@ export class FilesExplorerPanel extends Component {
 			if (config.compactFolders !== undefined) {
 				this.setCompactFoldersEnabled(config.compactFolders);
 			}
+			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 		});
+	}
+
+	setGroupPreset(preset: GroupPreset): void {
+		if (sameGroupPreset(this.groupPreset, preset)) return;
+		this.groupPreset = { ...preset };
+		this._render();
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -3307,7 +3327,34 @@ export class FilesExplorerPanel extends Component {
 	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
 	 */
 	private _groupingActive(): boolean {
-		return this.sortState?.activeScope === 'groups';
+		return this.groupPreset.kind !== 'none';
+	}
+
+	/** Spec 08 §3.2: what each value preset reads off a Files node. */
+	private _groupPresetValue(
+		node: TreeNode<FileMeta>,
+		kind: GroupPreset['kind'],
+	): string | number | null {
+		const file = node.meta?.file ?? null;
+		if (!file) return null;
+		switch (kind) {
+			case 'type':
+				return file.extension || null;
+			case 'words':
+				return this.plugin.statisticsCache.getFileWordCount(file) ?? 0;
+			case 'tasks':
+				return this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0;
+			case 'props':
+				return this._propCountForFile(file);
+			case 'modified':
+				return this.plugin.statisticsCache.getFileTimes(file).mtime;
+			case 'created':
+				return this.plugin.statisticsCache.getFileTimes(file).ctime;
+			case 'opened':
+				return this.plugin.lastOpenedService.getLastOpened(file) ?? null;
+			default:
+				return null;
+		}
 	}
 
 	/**

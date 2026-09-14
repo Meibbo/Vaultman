@@ -4,6 +4,7 @@ import { PropsExplorerPanel } from '../../src/components/containers/explorerProp
 import { buildTransactionBarState } from '../../src/logic/logicTransactionBarState';
 import type { BarNode } from '../../src/logic/logicTransactionBar';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
+import type { GroupPreset } from '../../src/types/typeGroupPreset';
 import type { ExplorerTabId } from '../../src/types/typeUI';
 import type { PropMeta, TreeNode } from '../../src/types/typeTree';
 
@@ -34,6 +35,7 @@ const nodes: TreeNode<PropMeta>[] = [
 type PropsPanelTestDouble = {
 	_groupIds: Set<string>;
 	sortState: ReturnType<typeof sortStateWithScope>;
+	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
 	plugin: {
 		settings: {
@@ -56,6 +58,12 @@ function propsPanelWith(
 	const panel = Object.create(PropsExplorerPanel.prototype) as PropsPanelTestDouble;
 	panel._groupIds = new Set<string>();
 	panel.sortState = sortStateWithScope('props', scope);
+	// Spec 08 §3.1.bis: the projection switch is the preset; the scope arg of
+	// this helper now stands for "grouping on/off" and maps onto it.
+	panel.groupPreset = {
+		kind: scope === 'groups' ? 'custom' : 'none',
+		direction: 'asc',
+	};
 	panel.activeLayoutName = 'layout-props';
 	panel.plugin = {
 		settings: {
