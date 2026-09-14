@@ -39,6 +39,9 @@ export interface WorkspaceInstanceRecord {
 	id: WorkspaceInstanceId;
 	/** epoch ms de creación; solo para orden estable y depuración. */
 	createdAt: number;
+	/** epoch ms del último toque de actividad; la reconciliación usa esto para LRU.
+	 * Migración: si falta (registro persisted de antes de esta fecha), se usa `createdAt`. */
+	lastActiveAt: number;
 	/** sube en cada commit; la reconciliación la usa para detectar escrituras interrumpidas. */
 	revision: number;
 	tombstoned: boolean;

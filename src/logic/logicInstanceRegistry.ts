@@ -13,6 +13,7 @@ export function createInstanceRecord(id: WorkspaceInstanceId): WorkspaceInstance
 	return {
 		id,
 		createdAt: Date.now(),
+		lastActiveAt: Date.now(),
 		revision: 1,
 		tombstoned: false,
 		self: {},
@@ -56,11 +57,19 @@ export function ensureInstance(
 ): EnsureResult {
 	const existing = registry.instances[id];
 	if (existing && !existing.tombstoned) {
-		return { registry, record: existing, created: false };
+		// Instancia viva: toca → actualiza lastActiveAt.
+		const now = Date.now();
+		if (existing.lastActiveAt === now) return { registry, record: existing, created: false };
+		const touched: WorkspaceInstanceRecord = { ...existing, lastActiveAt: now };
+		return {
+			registry: { ...registry, instances: { ...registry.instances, [id]: touched } },
+			record: touched,
+			created: false,
+		};
 	}
 	if (existing) {
-		// Revivir, no duplicar: el tombstone es reversible hasta que lo pode `reconcileRegistry` (cupo `TOMBSTONE_CAP`).
-		const revived: WorkspaceInstanceRecord = { ...existing, tombstoned: false, revision: existing.revision + 1 };
+		// Revivir, no duplicar: el tombstone es reversible hasta que lo poda `reconcileRegistry` (cupo `TOMBSTONE_CAP`).
+		const revived: WorkspaceInstanceRecord = { ...existing, tombstoned: false, lastActiveAt: Date.now(), revision: existing.revision + 1 };
 		return {
 			registry: { ...registry, instances: { ...registry.instances, [id]: revived } },
 			record: revived,
@@ -133,9 +142,10 @@ function writeSceneLayer(
 	layer: SceneConfig,
 ): InstanceRegistryData {
 	const record = registry.instances[id];
-	if (!record) return registry;
+ 	if (!record) return registry;
 	const nextRecord: WorkspaceInstanceRecord = {
 		...record,
+		lastActiveAt: Date.now(),
 		revision: record.revision + 1,
 		scenes: { ...record.scenes, [scene]: cloneSceneConfig(layer) },
 	};
@@ -150,14 +160,29 @@ function writeSceneLayer(
 export const TOMBSTONE_CAP = 20;
 
 /**
+ * U130: ventana de gracia para tombstones. Un tombstone cuyo `lastActiveAt`
+ * cae dentro de esta ventana (7 días) NUNCA se poda por cupo, incluso si
+ * se supera `TOMBSTONE_CAP`. Solo se poda tombstones fuera de la ventana,
+ * por `lastActiveAt` ascendente (LRU). Si TODOS están dentro de la ventana,
+ * no se poda nada — es preferible exceder el cupo antes que destruir un
+ * workspace activo.
+ */
+export const TOMBSTONE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
  * Se corre UNA vez al arrancar, con la lista de anclas vivas leídas del workspace.
- * Es idempotente. Marcar tombstone conserva el payload, que es lo que permite que reabrir un
- * panel cerrado recupere su configuración en vez de empezar de cero; pero solo se conservan los
- * `TOMBSTONE_CAP` tombstones más recientes por `createdAt`: los demás se podan.
+ * Es idempotente. Marcar tombstone conserva el payload; solo se conservan los
+ * `TOMBSTONE_CAP` tombstones más recientes por `lastActiveAt` (LRU): los demás se podan.
+ * Un tombstone cuyo `lastActiveAt` cae dentro de `TOMBSTONE_GRACE_MS` NUNCA se poda,
+ * aunque se supere el cupo. Si todos los tombstones están dentro de la ventana,
+ * no se poda nada — es preferible exceder `TOMBSTONE_CAP` antes que destruir un workspace.
+ *
+ * @param now reloj inyectable para tests; por defecto `Date.now()`.
  */
 export function reconcileRegistry(
 	raw: InstanceRegistryData | undefined,
 	liveAnchors: readonly WorkspaceInstanceId[],
+	now: number = Date.now(),
 ): InstanceRegistryData {
 	if (!raw || raw.schema !== 1 || typeof raw.instances !== 'object' || raw.instances === null) {
 		return EMPTY_REGISTRY;
@@ -167,20 +192,23 @@ export function reconcileRegistry(
 	const tombstones: WorkspaceInstanceRecord[] = [];
 	for (const [id, record] of Object.entries(raw.instances)) {
 		if (!record || typeof record !== 'object' || record.id !== id) continue;
-		const next: WorkspaceInstanceRecord = { ...record, tombstoned: !live.has(id) };
+		// Migración: si `lastActiveAt` falta o no es finito, usar `createdAt`.
+		const lastActiveAt = Number.isFinite(record.lastActiveAt) ? record.lastActiveAt : (Number.isFinite(record.createdAt) ? record.createdAt : 0);
+		const next: WorkspaceInstanceRecord = { ...record, lastActiveAt, tombstoned: !live.has(id) };
 		instances[id] = next;
 		if (next.tombstoned) tombstones.push(next);
 	}
 	if (tombstones.length > TOMBSTONE_CAP) {
-		// Los más antiguos se van primero; a igual `createdAt` decide el id para que la poda
-		// sea determinista entre arranques.
-		// Un `createdAt` ausente o no finito (registro migrado/corrupto) devolvería NaN al
-		// comparador y V8 dejaría de ordenar de forma estable: se trata como 0 (el más viejo).
+		// Solo podar tombstones FUERA de la ventana de gracia, por LRU (`lastActiveAt` ascendente).
 		const stamp = (r: WorkspaceInstanceRecord): number =>
-			Number.isFinite(r.createdAt) ? r.createdAt : 0;
-		tombstones.sort((a, b) => stamp(a) - stamp(b) || (a.id < b.id ? -1 : 1));
-		for (const stale of tombstones.slice(0, tombstones.length - TOMBSTONE_CAP)) {
-			delete instances[stale.id];
+			Number.isFinite(r.lastActiveAt) ? r.lastActiveAt : 0;
+		const outsideGrace = tombstones.filter((r) => now - stamp(r) > TOMBSTONE_GRACE_MS);
+		if (outsideGrace.length > 0) {
+			outsideGrace.sort((a, b) => stamp(a) - stamp(b) || (a.id < b.id ? -1 : 1));
+			const pruneCount = Math.min(tombstones.length - TOMBSTONE_CAP, outsideGrace.length);
+			for (const stale of outsideGrace.slice(0, pruneCount)) {
+				delete instances[stale.id];
+			}
 		}
 	}
 	return { schema: 1, instances };
@@ -196,6 +224,7 @@ export function setActiveScene(
 	if (!record || record.activeScene === activeScene) return registry;
 	const nextRecord: WorkspaceInstanceRecord = {
 		...record,
+		lastActiveAt: Date.now(),
 		revision: record.revision + 1,
 		activeScene,
 	};
@@ -221,6 +250,7 @@ export function setInstanceFloatingToc(
 	}
 	const nextRecord: WorkspaceInstanceRecord = {
 		...record,
+		lastActiveAt: Date.now(),
 		revision: record.revision + 1,
 		floatingToc: { ...floatingToc },
 	};

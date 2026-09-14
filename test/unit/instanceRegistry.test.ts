@@ -6,7 +6,7 @@ import {
 	setActiveScene,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
-import { reconcileRegistry, TOMBSTONE_CAP } from '../../src/logic/logicInstanceRegistry';
+import { reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
 	it('mints a record with an opaque id and revision 1', () => {
@@ -35,7 +35,9 @@ describe('ensureInstance', () => {
 
 		const second = ensureInstance(registry, 'vm-1');
 		expect(second.created).toBe(false);
-		expect(second.record).toBe(registry.instances['vm-1']);
+		// After touch, lastActiveAt may have updated → check value equality, not identity.
+		expect(second.record.id).toBe('vm-1');
+		expect(second.record.tombstoned).toBe(false);
 	});
 
 	it('revives a tombstoned record instead of minting a second one', () => {
@@ -127,62 +129,152 @@ describe('reconcileRegistry', () => {
 		expect(reconciled.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
 	});
 
-	it('keeps at most TOMBSTONE_CAP tombstones, pruning the oldest by createdAt (A01)', () => {
+	it('keeps at most TOMBSTONE_CAP tombstones, pruning the oldest by lastActiveAt (LRU)', () => {
+		const now = Date.now();
 		let registry: InstanceRegistryData = { schema: 1, instances: {} };
-		// 25 dead anchors, created in order: the 5 oldest must go.
-		for (let i = 0; i < 25; i += 1) {
+		// 25 tombstones: 20 recent (inside grace) + 5 old (outside grace)
+		for (let i = 0; i < 20; i += 1) {
 			const id = `vm-dead-${String(i).padStart(2, '0')}`;
 			registry = {
 				...registry,
 				instances: {
 					...registry.instances,
-					[id]: { ...createInstanceRecord(id), createdAt: 1000 + i },
+					[id]: { ...createInstanceRecord(id), lastActiveAt: now - 1000 * (i + 1) },
 				},
 			};
 		}
-		// One live anchor, older than every tombstone: never pruned.
+		for (let i = 20; i < 25; i += 1) {
+			const id = `vm-dead-${String(i).padStart(2, '0')}`;
+			registry = {
+				...registry,
+				instances: {
+					...registry.instances,
+					[id]: { ...createInstanceRecord(id), lastActiveAt: now - TOMBSTONE_GRACE_MS - 1000 * (i + 1) },
+				},
+			};
+		}
+		// One live anchor.
 		registry = {
 			...registry,
 			instances: {
 				...registry.instances,
-				'vm-live': { ...createInstanceRecord('vm-live'), createdAt: 1 },
+				'vm-live': { ...createInstanceRecord('vm-live'), lastActiveAt: now - 3600 * 1000 },
 			},
 		};
-		const reconciled = reconcileRegistry(registry, ['vm-live']);
+		const reconciled = reconcileRegistry(registry, ['vm-live'], now);
 		const tombstones = Object.values(reconciled.instances).filter((r) => r.tombstoned);
 		expect(tombstones).toHaveLength(TOMBSTONE_CAP);
 		expect(reconciled.instances['vm-live']?.tombstoned).toBe(false);
-		for (let i = 0; i < 5; i += 1) {
-			expect(reconciled.instances[`vm-dead-0${i}`]).toBeUndefined();
+		// The 5 out-of-grace tombstones are pruned: dead-20..24.
+		for (let i = 20; i < 25; i += 1) {
+			expect(reconciled.instances[`vm-dead-${String(i).padStart(2, '0')}`]).toBeUndefined();
 		}
-		expect(reconciled.instances['vm-dead-05']).toBeDefined();
-		expect(reconciled.instances['vm-dead-24']).toBeDefined();
+		expect(reconciled.instances['vm-dead-00']).toBeDefined();
+		expect(reconciled.instances['vm-dead-19']).toBeDefined();
 	});
 
-	it('treats a missing or non-finite createdAt as the oldest instead of poisoning the sort', () => {
+	it('treats a missing or non-finite lastActiveAt as the oldest instead of poisoning the sort', () => {
+		const now = Date.now();
 		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 21 tombstones outside grace window (dead-00 is the newest among them).
 		for (let i = 0; i < 21; i += 1) {
 			const id = `vm-dead-${String(i).padStart(2, '0')}`;
-			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), createdAt: 100 + i } } };
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - TOMBSTONE_GRACE_MS - 100 - i } } };
 		}
-		const corrupt = { ...createInstanceRecord('vm-corrupt'), createdAt: undefined as unknown as number };
+		// Corrupt: lastActiveAt missing, createdAt also old → migrates to stamp=0 (oldest of all).
+		const corrupt = { ...createInstanceRecord('vm-corrupt'), createdAt: 1, lastActiveAt: undefined as unknown as number };
 		registry = { ...registry, instances: { ...registry.instances, 'vm-corrupt': corrupt } };
-		const reconciled = reconcileRegistry(registry, []);
+		const reconciled = reconcileRegistry(registry, [], now);
+		// 22 tombstones, all outside grace → prune 2 oldest: corrupt (stamp=1) + dead-20 (oldest dead).
 		expect(Object.keys(reconciled.instances)).toHaveLength(TOMBSTONE_CAP);
 		expect(reconciled.instances['vm-corrupt']).toBeUndefined();
-		expect(reconciled.instances['vm-dead-00']).toBeUndefined();
+		expect(reconciled.instances['vm-dead-20']).toBeUndefined();
+		expect(reconciled.instances['vm-dead-00']).toBeDefined();
 		expect(reconciled.instances['vm-dead-01']).toBeDefined();
 	});
 
 	it('is idempotent once under the cap: a second reconcile changes nothing', () => {
+		const now = Date.now();
 		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 30 tombstones all outside grace window.
 		for (let i = 0; i < 30; i += 1) {
 			const id = `vm-dead-${i}`;
-			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), createdAt: i } } };
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), createdAt: i, lastActiveAt: now - TOMBSTONE_GRACE_MS - 1000 * (i + 1) } } };
 		}
-		const once = reconcileRegistry(registry, []);
-		expect(reconcileRegistry(once, [])).toEqual(once);
+		const once = reconcileRegistry(registry, [], now);
+		expect(reconcileRegistry(once, [], now)).toEqual(once);
 		expect(Object.keys(once.instances)).toHaveLength(TOMBSTONE_CAP);
+	});
+
+	it('LRU: un maestro antiguo pero activo ayer sobrevive; una efímera cae', () => {
+		const now = Date.now();
+		const yesterday = now - 24 * 60 * 60 * 1000;
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 20 efímeras recientes (lastActiveAt = now - 1000..now - 20000) — dentro de grace window
+		for (let i = 0; i < 20; i += 1) {
+			const id = `vm-efimera-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - 1000 * (i + 1) } } };
+		}
+		// 5 viejas fuera de grace window
+		for (let i = 0; i < 5; i += 1) {
+			const id = `vm-old-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - TOMBSTONE_GRACE_MS - 1000 } } };
+		}
+		// Un maestro vivo con lastActiveAt de ayer (dentro de grace window) — nunca tombstone
+		registry = { ...registry, instances: { ...registry.instances, 'vm-maestro': { ...createInstanceRecord('vm-maestro'), createdAt: 1, lastActiveAt: yesterday } } };
+		// Total: 25 tombstones + 1 live = 26 records; debe podar 5 viejas
+		const reconciled = reconcileRegistry(registry, ['vm-maestro'], now);
+		expect(reconciled.instances['vm-maestro']?.tombstoned).toBe(false);
+		expect(reconciled.instances['vm-maestro']?.lastActiveAt).toBe(yesterday);
+		// Las 5 viejas son las que caen (LRU por lastActiveAt)
+		for (let i = 0; i < 5; i += 1) {
+			expect(reconciled.instances[`vm-old-${String(i).padStart(2, '0')}`]).toBeUndefined();
+		}
+		// Las 20 efímeras sobreviven (dentro de grace window)
+		for (let i = 0; i < 20; i += 1) {
+			expect(reconciled.instances[`vm-efimera-${String(i).padStart(2, '0')}`]).toBeDefined();
+		}
+		const tombstones = Object.values(reconciled.instances).filter((r) => r.tombstoned);
+		expect(tombstones.length).toBe(TOMBSTONE_CAP);
+	});
+
+	it('grace window: tombstones dentro de TOMBSTONE_GRACE_MS nunca se podan, aunque se supere el cupo', () => {
+		const now = Date.now();
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 25 tombstones todos dentro de la ventana de gracia (activos hace 1 hora)
+		for (let i = 0; i < 25; i += 1) {
+			const id = `vm-grace-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - 3600 * 1000 } } };
+		}
+		const reconciled = reconcileRegistry(registry, [], now);
+		// Ninguno podado: el registro pasa de 20 temporalmente
+		expect(Object.keys(reconciled.instances)).toHaveLength(25);
+		for (let i = 0; i < 25; i += 1) {
+			expect(reconciled.instances[`vm-grace-${String(i).padStart(2, '0')}`]?.tombstoned).toBe(true);
+		}
+	});
+
+	it('grace window: tombstone JUSTO fuera de la ventana sí se poda', () => {
+		const now = Date.now();
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 20 dentro de la ventana + 5 fuera = 25 tombstones
+		for (let i = 0; i < 20; i += 1) {
+			const id = `vm-in-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - 3600 * 1000 } } };
+		}
+		for (let i = 0; i < 5; i += 1) {
+			const id = `vm-out-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), lastActiveAt: now - TOMBSTONE_GRACE_MS - 1000 } } };
+		}
+		const reconciled = reconcileRegistry(registry, [], now);
+		// Los 5 fuera de la ventana son los LRU y deben podarse
+		for (let i = 0; i < 5; i += 1) {
+			expect(reconciled.instances[`vm-out-${String(i).padStart(2, '0')}`]).toBeUndefined();
+		}
+		// Los 20 dentro de la ventana sobreviven
+		for (let i = 0; i < 20; i += 1) {
+			expect(reconciled.instances[`vm-in-${String(i).padStart(2, '0')}`]).toBeDefined();
+		}
 	});
 });
 
