@@ -47,6 +47,29 @@ import {
 
 export type { CoreMetadataTreeAnatomy } from './viewCoreMetadataTree';
 
+/**
+ * A13: a dblclick that starts inside an editable descendant (the filter/value
+ * `input` in props/tags rows, the rename box, a textarea, a contenteditable
+ * region) only drives the caret/text selection there. It must never
+ * expand/collapse the row.
+ */
+function isEditableDblClickTarget(target: EventTarget | null): boolean {
+	if (!target || typeof target !== 'object') return false;
+	const el = target as Partial<Element> & {
+		isContentEditable?: boolean;
+		tagName?: string;
+	};
+	if (typeof el.closest === 'function') {
+		const hit = el.closest(
+			'input, textarea, [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]',
+		);
+		if (hit) return true;
+	}
+	if (el.isContentEditable === true) return true;
+	const tag = typeof el.tagName === 'string' ? el.tagName.toUpperCase() : '';
+	return tag === 'INPUT' || tag === 'TEXTAREA';
+}
+
 export interface TreeViewOptions {
 	/** Provider context used only to resolve localized per-cell names. */
 	surface?: ExplorerTabId;
@@ -227,6 +250,13 @@ export class UnifiedTreeView {
 
 	render(opts: TreeViewOptions): void {
 		this._recursiveExpandGesture.cancel();
+		// A14: capture the pinned-before state ahead of the render below, so
+		// a scene toggle that collapses exactly one pinned row can be parked
+		// under the sticky stack once the window is repainted.
+		const collapsingPinnedId = this._soleCollapsingPinnedRow(
+			opts,
+			opts.expandedIds,
+		);
 		if (opts.activeFilterIds) {
 			// BT5-038: exact filters keep the decoration; a collapsed ancestor
 			// that only hides one gets a dot, so it no longer looks like a filter.
@@ -328,6 +358,10 @@ export class UnifiedTreeView {
 		const renderStarted = performance.now();
 		this._renderWindow();
 		this._flushPendingScroll();
+		// A14: the shared fileScene jump. Runs after the repaint so the stack
+		// it parks under is the new one; a no-op (second window render) when
+		// no pinned row collapsed.
+		if (collapsingPinnedId) this.scrollRowUnderStickyStack(collapsingPinnedId);
 		vaultmanPerfMonitor.record(
 			'tree.render',
 			performance.now() - renderStarted,
@@ -463,6 +497,32 @@ export class UnifiedTreeView {
 	 */
 	isStickyRow(id: string): boolean {
 		return this._stickyTwinIds.has(id);
+	}
+
+	/**
+	 * A14: the single pinned row whose collapse this render performs, if
+	 * exactly one. Collapsing a row that is PINNED above the viewport destroys
+	 * the content the scroll offset points into, so the browser clamps
+	 * wherever the shortened document ends and the collapsed row hides behind
+	 * its own still-pinned ancestors. Parking it under the surviving headers
+	 * is what fileScene already does per toggle; doing it here shares the
+	 * jump with every scene that renders through this view, without touching
+	 * any of them. Zero (nothing to anchor) or several (collapse-all and
+	 * other structural rewrites) → leave the scroll alone.
+	 */
+	private _soleCollapsingPinnedRow(
+		opts: TreeViewOptions,
+		nextExpanded: Set<string>,
+	): string | null {
+		if (!opts.stickyParentRows || !this._opts) return null;
+		const prevExpanded = this._opts.expandedIds;
+		let found: string | null = null;
+		for (const id of this._stickyTwinIds) {
+			if (!prevExpanded.has(id) || nextExpanded.has(id)) continue;
+			if (found !== null) return null;
+			found = id;
+		}
+		return found;
 	}
 
 	/**
@@ -1189,6 +1249,8 @@ export class UnifiedTreeView {
 						event.stopPropagation();
 						return;
 					}
+					// A13: dblclick in an editable field only moves the caret.
+					if (isEditableDblClickTarget(event.target)) return;
 					if (!hasChildren) return;
 					opts.onRowDoubleClick?.(node.id, event);
 				}
