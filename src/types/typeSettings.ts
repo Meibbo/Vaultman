@@ -65,7 +65,35 @@ export type AddonCellStyle = 'native' | 'badge';
 export const PROP_CONFLICT_WARNINGS = ['off', 'badge', 'full'] as const;
 export type PropConflictWarnings = (typeof PROP_CONFLICT_WARNINGS)[number];
 
+export interface HoverSurfaceSwitches {
+	/** Sin hover en esta superficie, pero sigue oculta (accion de ocultar). */
+	hide: boolean;
+	/** Reveal flotante al acercar el puntero (requiere hide). */
+	hover: boolean;
+	/** Fijar la superficie revelada al interactuar. */
+	pin: boolean;
+}
+
 export interface VaultmanSettings {
+	/**
+	 * Hover/pin/lock de las cuatro superficies de chrome. DOS NIVELES a proposito
+	 * (orden del dev): `enabled` apaga el modulo entero -- nadie debe verse
+	 * obligado a desactivar el plugin entero por una funcion que no le gusta --
+	 * y dentro, cada superficie lleva su propio conmutador fino.
+	 */
+	hoverSurfaces: {
+		/** Nivel 1: el modulo entero. Apagado => revert() y cero residuo. */
+		enabled: boolean;
+		/** Nivel 2: por superficie. hide oculta; hover/pin solo actuan con hide. */
+		sidebars: HoverSurfaceSwitches;
+		ribbons: HoverSurfaceSwitches;
+		tabbar: HoverSurfaceSwitches;
+		statusbar: HoverSurfaceSwitches;
+		/** Modo global: sin hover en ninguna, pero las cuatro siguen ocultas. */
+		lock: boolean;
+		/** Ribbon oculto: el ribbon se revela desde el borde y empuja la sidebar. */
+		nestedRibbon: boolean;
+	};
 	language: Language;
 	defaultPropertyType: string;
 	filterTemplates: FilterTemplate[];
@@ -400,6 +428,14 @@ export interface iVaultmanPlugin extends Plugin {
 	};
 	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
 	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
+	/** U130-?: el publicador de comandos SASI vive en el plugin; el inspector lo usa para toggle por entry. */
+	sasiCommandPublisher: import('../logic/logicSasiCommands').SasiCommandPublisher;
+	/** U130 chrome-hover: aplica los switches de hoverSurfaces al adapter en caliente. */
+	applyHoverSurfacesSettings(): void;
+	/** U130 chrome-hover: registro de adapters fragiles (ADR 0004). */
+	platformAdapterRegistry: import('../platform/fragilityRegistry').PlatformAdapterRegistry;
+	/** U130 chrome-hover: adapter de hover/pin/lock de las cuatro superficies. */
+	hoverSurfacesAdapter: import('../services/serviceHoverSurfaces').HoverSurfacesAdapter;
 	/** BT5-018/036: the live action catalog each menu sub-page configures. */
 	nodeBindingService?: import('../services/serviceNodeBinding').NodeBindingService;
 	contextMenuService: {
@@ -416,6 +452,15 @@ export interface iVaultmanPlugin extends Plugin {
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
+	hoverSurfaces: {
+		enabled: false,
+		sidebars: { hide: false, hover: false, pin: true },
+		ribbons: { hide: false, hover: false, pin: false },
+		tabbar: { hide: false, hover: false, pin: false },
+		statusbar: { hide: false, hover: false, pin: false },
+		lock: false,
+		nestedRibbon: false,
+	},
 	nativeSurfaceClickPrimary: 'reveal-in-vaultman',
 	nativeSurfaceClickAlt: 'open-node-note-same-tab',
 	nativeSurfaceClickMod: 'open-node-note-new-tab',

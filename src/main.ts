@@ -79,7 +79,18 @@ import { reconcileRegistry } from './logic/logicInstanceRegistry';
 import { createVaultmanSasi } from './logic/logicSasiBootstrap';
 import type { SasiRegistry } from './logic/logicSasiRegistry';
 import type { SasiProvider } from './services/serviceSasiProvider';
+import {
+	createSasiCommandPublisher,
+	type SasiCommandPublisher,
+} from './logic/logicSasiCommands';
+import {
+	HOVER_LOCK_ID,
+	HOVER_NESTED_RIBBON_ID,
+	HOVER_SURFACE_IDS,
+	hoverActionId,
+} from './logic/logicSasiHoverActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
+import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
 import { formatPerfTimeline } from './utils/perfTimeline';
 import {
@@ -114,11 +125,20 @@ export class VaultmanPlugin extends Plugin {
 	sasiRegistry!: SasiRegistry;
 	sasiProvider!: SasiProvider;
 
+	/**
+	 * U130-? unico punto por el que el plugin publica o retira un comando
+	 * de Obsidian. Cualquier `addCommand`/`removeCommand` que aparezca en
+	 * otro sitio rompe la guarda negativa del SASI bridge.
+	 */
+	sasiCommandPublisher!: SasiCommandPublisher;
+
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
 	/** ADR 0004: registro de zonas frágiles. El revert de cada adapter es el
 	 * contrato serviceUnload (ADR 0011) que da el apagado por función. */
 	platformAdapterRegistry!: PlatformAdapterRegistry;
+	/** Hover/pin/lock de las cuatro superficies. Vive tras el registry. */
+	hoverSurfacesAdapter!: ReturnType<typeof createHoverSurfacesAdapter>;
 
 	
 	async revealNodeInVaultman(node: import('./services/serviceNodeBinding').BindingNodeInput): Promise<boolean> {
@@ -180,6 +200,7 @@ export class VaultmanPlugin extends Plugin {
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
 		this.sasiProvider = sasi.provider;
+		this.sasiCommandPublisher = createSasiCommandPublisher(this);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -227,7 +248,15 @@ export class VaultmanPlugin extends Plugin {
 		});
 		this.addChild(this.breadcrumbFileSceneService);
 
+		// El adapter de hover solo se registra si el modulo esta encendido: el
+		// nivel 1 de los ajustes. Apagado, ni siquiera se instala, asi que no
+		// hay listeners ni clases que revertir despues.
+		this.hoverSurfacesAdapter = createHoverSurfacesAdapter();
 		this.platformAdapterRegistry = new PlatformAdapterRegistry();
+		if (this.settings.hoverSurfaces.enabled) {
+			this.applyHoverSurfacesSettings();
+			this.platformAdapterRegistry.add(this.hoverSurfacesAdapter);
+		}
 		this.addChild(this.platformAdapterRegistry);
 		await this.platformAdapterRegistry.activate({
 			app: this.app,
@@ -310,47 +339,82 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.app.workspace.onLayoutReady(() => this.showUpdatesIfNeeded());
 
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'apply-queue',
 			name: translate('command.apply_queue'),
-			checkCallback: (checking) => {
+			handler: (checking) => {
 				if (this.queueService.isEmpty) return false;
 				if (!checking) {
 					void this.queueService.execute();
 				}
 				return true;
 			},
+			checkable: true,
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'open',
 			name: translate('plugin.open'),
-			callback: () => {
+			handler: () => {
 				void this.activateView();
 			},
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'open-updates',
 			name: translate('command.open_updates'),
-			callback: () => this.openUpdates(),
+			handler: () => this.openUpdates(),
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'focus-content-search',
 			name: translate('command.focus_content_search'),
-			callback: () => {
+			handler: () => {
 				void this.focusVaultmanContentSearch();
 			},
 		});
-
-		this.addCommand({
+		this.sasiCommandPublisher.register({
 			id: 'focus-active-explorer-search',
 			name: translate('command.focus_active_explorer_search'),
-			callback: () => {
+			handler: () => {
 				void this.focusVaultmanExplorerSearch();
 			},
 		});
+
+		for (const surface of HOVER_SURFACE_IDS) {
+			for (const kind of ['hide', 'hover', 'pin'] as const) {
+				this.sasiCommandPublisher.register({
+					id: hoverActionId({ surface, kind }),
+					name: translate(
+						kind === 'hide'
+							? `sasi.hover.${surface}.hide`
+							: kind === 'hover'
+								? `sasi.hover.${surface}.hover`
+								: `sasi.hover.${surface}.pin`,
+					),
+					handler: () => {
+						this.toggleHoverSurfaceSwitch(surface, kind);
+					},
+				});
+			}
+		}
+		this.sasiCommandPublisher.register({
+			id: HOVER_LOCK_ID,
+			name: translate('sasi.hover.lock'),
+			handler: () => {
+				this.toggleHoverSurfaceLock();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: HOVER_NESTED_RIBBON_ID,
+			name: translate('sasi.hover.nested-ribbon'),
+			handler: () => {
+				this.toggleHoverSurfaceNestedRibbon();
+			},
+		});
+
+		this.sasiCommandPublisher.setPublished('apply-queue', true);
+		this.sasiCommandPublisher.setPublished('open', true);
+		this.sasiCommandPublisher.setPublished('open-updates', true);
+		this.sasiCommandPublisher.setPublished('focus-content-search', true);
+		this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -705,6 +769,54 @@ export class VaultmanPlugin extends Plugin {
 		// background (the in-memory settings are already the source of truth).
 		this.notifySettingsChanged();
 		await this.saveData(this.settings);
+	}
+
+	/**
+	 * U130 chrome-hover: puente SASI -> adapter. Cada comando de hover/pin/
+	 * hide/lock/nested conmuta su switch en los settings, lo persiste y lo
+	 * aplica al adapter en caliente via updateConfig (que re-sincroniza las
+	 * clases mb-hide, mb-nested-hover-ribbon y mb-hover-locked del body).
+	 * Sin este puente, publicar el comando crea una entrada de paleta que no
+	 * llama a nada (fallo verificado en sesion 2026-09-06).
+	 */
+	applyHoverSurfacesSettings(): void {
+		const s = this.settings.hoverSurfaces;
+		this.hoverSurfacesAdapter.updateConfig({
+			sidebars: { ...s.sidebars },
+			ribbons: { ...s.ribbons },
+			tabbar: { ...s.tabbar },
+			statusbar: { ...s.statusbar },
+			lock: s.lock,
+			nestedRibbon: s.nestedRibbon,
+		});
+	}
+
+	private toggleHoverSurfaceSwitch(
+		surface: (typeof HOVER_SURFACE_IDS)[number],
+		kind: 'hide' | 'hover' | 'pin',
+	): void {
+		const s = this.settings.hoverSurfaces;
+		s[surface] = { ...s[surface], [kind]: !s[surface][kind] };
+		if (kind === 'hide' && !s[surface].hide) {
+			// Al mostrar de nuevo la superficie, el hover heredado dejaria de
+			// tener sentido: se apaga para no tocar superficies abiertas.
+			s[surface] = { ...s[surface], hover: false };
+		}
+		this.applyHoverSurfacesSettings();
+		void this.saveSettings();
+	}
+
+	private toggleHoverSurfaceLock(): void {
+		this.settings.hoverSurfaces.lock = !this.settings.hoverSurfaces.lock;
+		this.applyHoverSurfacesSettings();
+		void this.saveSettings();
+	}
+
+	private toggleHoverSurfaceNestedRibbon(): void {
+		this.settings.hoverSurfaces.nestedRibbon =
+			!this.settings.hoverSurfaces.nestedRibbon;
+		this.applyHoverSurfacesSettings();
+		void this.saveSettings();
 	}
 
 	private showUpdatesIfNeeded(): void {

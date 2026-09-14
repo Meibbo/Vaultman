@@ -457,6 +457,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 		items.push({
 			type: 'page',
+			name: translate('settings.chrome_hover'),
+			desc: translate('settings.chrome_hover.desc'),
+			items: this.getChromeHoverPageItems(),
+		});
+
+		items.push({
+			type: 'page',
 			name: translate('settings.floating_toc'),
 			desc: translate('settings.floating_toc.desc'),
 			items: this.getFloatingTocPageItems(),
@@ -866,7 +873,11 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					button
 						.setButtonText(translate('settings.sasi_inspector.open'))
 						.onClick(() => {
-							new SasiInspectorModal(this.app, this.plugin.sasiRegistry).open();
+							new SasiInspectorModal(
+								this.app,
+								this.plugin.sasiRegistry,
+								this.plugin.sasiCommandPublisher,
+							).open();
 						}),
 				);
 			},
@@ -935,6 +946,125 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								},
 							}).open();
 						}),
+				);
+			},
+		});
+
+		return items;
+	}
+
+	/**
+	 * U130 chrome-hover: pagina de ajustes de dos niveles (orden del dev).
+	 * Nivel 1 `enabled`: el modulo entero (apagado = revert, cero residuo).
+	 * Nivel 2: por superficie hide/hover/pin + lock global + nested-ribbon.
+	 * hide oculta via la accion explicita; hover/pin solo revelan superficies
+	 * ocultas; con paneles abiertos no pasa nada.
+	 */
+	private getChromeHoverPageItems(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = [];
+		const hs = () => this.plugin.settings.hoverSurfaces;
+		const apply = async (): Promise<void> => {
+			this.plugin.applyHoverSurfacesSettings();
+			await this.plugin.saveSettings();
+		};
+
+		items.push({
+			name: translate('settings.chrome_hover'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+
+		items.push({
+			name: translate('settings.chrome_hover.enable'),
+			desc: translate('settings.chrome_hover.enable.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle.setValue(hs().enabled).onChange(async (value) => {
+						hs().enabled = value;
+						if (value) {
+							this.plugin.applyHoverSurfacesSettings();
+							if (
+								!this.plugin.platformAdapterRegistry
+									.status()
+									.some((s) => s.id === 'hover-surfaces')
+							) {
+								this.plugin.platformAdapterRegistry.add(
+									this.plugin.hoverSurfacesAdapter,
+								);
+								await this.plugin.platformAdapterRegistry.activate({
+									app: this.plugin.app,
+									plugin: this.plugin,
+									// biome-ignore lint/suspicious/noExplicitAny: el tab de ajustes no expone document
+									doc: document as any,
+								});
+							}
+						} else {
+							this.plugin.hoverSurfacesAdapter.revert();
+						}
+						await this.plugin.saveSettings();
+						this.update();
+					}),
+				);
+			},
+		});
+
+		const surfaces = [
+			'sidebars',
+			'ribbons',
+			'tabbar',
+			'statusbar',
+		] as const;
+		for (const surface of surfaces) {
+			items.push({
+				name: translate(`settings.chrome_hover.${surface}`),
+				render: (setting: Setting) => {
+					setting.setHeading();
+				},
+			});
+			for (const kind of ['hide', 'hover', 'pin'] as const) {
+				items.push({
+					name: translate(`settings.chrome_hover.${surface}.${kind}`),
+					desc: translate(`settings.chrome_hover.${surface}.${kind}.desc`),
+					render: (setting: Setting) => {
+						setting.addToggle((toggle) =>
+							toggle
+								.setValue(hs()[surface][kind])
+								.onChange(async (value) => {
+									hs()[surface] = { ...hs()[surface], [kind]: value };
+									if (kind === 'hide' && !value) {
+										hs()[surface] = { ...hs()[surface], hover: false };
+									}
+									await apply();
+								}),
+						);
+					},
+				});
+			}
+		}
+
+		items.push({
+			name: translate('settings.chrome_hover.lock'),
+			desc: translate('settings.chrome_hover.lock.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle.setValue(hs().lock).onChange(async (value) => {
+						hs().lock = value;
+						await apply();
+					}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.chrome_hover.nested_ribbon'),
+			desc: translate('settings.chrome_hover.nested_ribbon.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle.setValue(hs().nestedRibbon).onChange(async (value) => {
+						hs().nestedRibbon = value;
+						await apply();
+					}),
 				);
 			},
 		});
