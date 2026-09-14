@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createGenerator } from 'unocss';
 import * as sass from 'sass';
 import createJiti from 'jiti';
@@ -34,6 +34,7 @@ async function buildStyles() {
 		.replace(/\[data-type=vaultman-frame\]/g, '[data-type="vaultman-frame"]')
 		.replace(/\[data-type=vaultman-view\]/g, '[data-type="vaultman-view"]');
 
+	await mkdir('./dist/build', { recursive: true });
 	await writeFile('./dist/build/styles.css', finalCss, 'utf8');
 	console.log(`✅ styles.css generated successfully (${Buffer.byteLength(finalCss, 'utf8')} bytes)`);
 }
