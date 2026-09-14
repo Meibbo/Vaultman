@@ -1078,9 +1078,22 @@ input.metadata-input-checkbox.vaultman-selection-checkbox {
 //   position: static;
 // }
 
-.vaultman-tree-row > .vaultman-selection-checkbox--start {
-  position: static;
+.vaultman-tree-row > .vaultman-selection-checkbox {
+  // A04: el check nativo ancla su glifo al ancestro posicionado mas cercano.
+  // Con `static` ese es el row (su `translateZ(0)` lo vuelve containing
+  // block) y el check deriva ~10px a la izquierda de su caja; con el `inset`
+  // de cards/tabla la caja entera se desplaza. `relative` sigue en flujo (el
+  // plan del 2026-08-02 se mantiene: sin `absolute`, antes del caret en
+  // `=start` via `order`) y a la vez le devuelve al input su propio contexto,
+  // asi que glifo y caja viajan juntos en `start` y en `end`.
+  position: relative;
+  inset-inline-start: auto;
+  inset-inline-end: auto;
   margin-inline-start: 0;
+  margin-inline-end: 0;
+}
+
+.vaultman-tree-row > .vaultman-selection-checkbox--start {
   order: -1;
 }
 
