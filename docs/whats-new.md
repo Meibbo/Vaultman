@@ -20,6 +20,21 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-6"></a>
+
+## 1.3.0-beta.6 — Native-feeling properties and calmer trees
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.6 makes property capture feel native and large trees easier to scan, from inline editing to group presets.
+
+- **Edit rows in place:** A new Input mode for Props turns any row click into the inline editor, and revealing a file ends with an in-list "+ Add property" row that walks through name and value entry.
+- **Suggestions that match the panel:** Property and value suggesters draw from the same projection the panel renders, with type icons, fuzzy matching and duplicates excluded.
+- **Sort and shape your lists:** Tag-count and compact-folders options for Files, an indent toggle for trees, and folders that aggregate the stats of everything inside them.
+- **Group with intent:** Group presets with a dedicated submenu, custom groups from the selection, and headers that open on first sight while bubbling counts like folders.
+
+[Full changelog](../CHANGELOG.md#130-beta6---2026-09-14)
+
 <a id="v1-3-0-beta-5"></a>
 
 ## 1.3.0-beta.5 — Grouped explorers and safer movement
