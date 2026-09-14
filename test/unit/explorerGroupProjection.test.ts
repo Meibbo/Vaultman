@@ -47,6 +47,7 @@ const PRESET_LETTER: GroupPreset = { kind: 'letter', direction: 'asc' };
 
 type SnippetsHarness = {
 	_groupIds: Set<string>;
+	hiddenGroupIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -59,6 +60,7 @@ type SnippetsHarness = {
 
 type PluginsHarness = {
 	_groupIds: Set<string>;
+	hiddenGroupIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -71,6 +73,7 @@ type PluginsHarness = {
 
 type TagsHarness = {
 	_groupIds: Set<string>;
+	hiddenGroupIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -80,6 +83,7 @@ type TagsHarness = {
 
 type PropsHarness = {
 	_groupIds: Set<string>;
+	hiddenGroupIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -89,6 +93,7 @@ type PropsHarness = {
 
 type FilesHarness = {
 	_groupIds: Set<string>;
+	hiddenGroupIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -126,6 +131,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('SnippetsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
@@ -194,6 +200,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('PluginsExplorerPanel: proyecta grupos custom y presets, poblando _groupIds', () => {
 		const panel = createPluginsHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('plugins', 'all');
@@ -269,6 +276,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('TagsExplorerPanel: proyecta grupos custom con kind tag y tagPath', () => {
 		const panel = createTagsHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('tags', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-tags';
@@ -325,6 +333,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('PropsExplorerPanel: proyecta tanto props como values', () => {
 		const panel = createPropsHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('props', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-props';
@@ -394,6 +403,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 	it('FilesExplorerPanel: proyecta files y folders con su URN respectiva', () => {
 		const panel = createFilesHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel.sortState = sortStateWithScope('files', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-files';
@@ -469,9 +479,43 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(noGroup.children?.map((c) => c.label)).toEqual(['other.md']);
 	});
 
+	it('Spec 08 §4: un custom group OCULTO no se proyecta; sus miembros caen en "no group"', () => {
+		const panel = createSnippetsHarness();
+		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>(['custom-snips']);
+		panel._expandedGroupIds = new Set<string>();
+		panel.pendingToggleIds = new Set<string>();
+		panel.sortState = sortStateWithScope('snippets', 'all');
+		panel.groupPreset = PRESET_CUSTOM;
+		panel.activeLayoutName = 'layout-snippets';
+		panel.plugin = {
+			settings: {
+				savedLayouts: [
+					{
+						name: 'layout-snippets',
+						summary: 'test',
+						config: {},
+						groupMemberships: {
+							'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
+							'other': [],
+						},
+					},
+				],
+			},
+		};
+		panel.nodes = [
+			{ id: 's1', label: 'Alpha Snippet', depth: 0, meta: { name: 'alpha-snippet', enabled: true } },
+		];
+		const projected = panel.projectedNodes();
+		expect(projected.find((g) => g.id === 'custom-snips')).toBeUndefined();
+		expect(panel._groupIds.has('custom-snips')).toBe(false);
+		expect(projected.find((g) => g.id === NO_GROUP_ID)?.children?.[0]?.label).toBe('Alpha Snippet');
+	});
+
 	it('Preset `letter` sin layout agrupa por primera letra con el scope en `all`', () => {
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
+		panel.hiddenGroupIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');

@@ -66,6 +66,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						stickyRows: true,
 						compactFolders: false,
 						groupPreset: { kind: 'none', direction: 'asc' },
+						hiddenGroupIds: [],
 					}),
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',

@@ -1189,6 +1189,12 @@ export const en: Record<string, string> = {
 	'group.new.needs_layout': 'New group (activate a layout first)',
 	'group.new.prompt': 'Group name',
 	'group.create_with_selected': 'Create group with selected',
+	// Spec 08 §4: the hide/delete row pattern.
+	'group.row.confirm': 'Want to hide this preset?',
+	'group.row.hide': 'hide',
+	'group.row.unhide': 'show',
+	'group.row.delete': 'delete',
+	'group.row.cancel': 'cancel',
 	'sort.level.pick_hint': 'Click a row to choose its level as the sort scope',
 	'sort.vertcol.node_level': 'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',

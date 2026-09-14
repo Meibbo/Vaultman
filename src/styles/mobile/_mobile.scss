@@ -146,6 +146,22 @@
   border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 
+/* Spec 08 §4: a hidden custom group stays listed, faint, so it can be shown again. */
+.vaultman-sort-drawer-item.is-hidden {
+  opacity: 0.45;
+}
+
+/* Spec 08 §4: the row that is asking "Want to hide this preset?" spans the
+   drawer and holds hide / delete / cancel until answered or 4 s pass. */
+.vaultman-sort-drawer-confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
 .vaultman-sort-drawer-item svg {
   width: 13px;
   height: 13px;

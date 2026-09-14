@@ -25,6 +25,8 @@ export interface SceneConfig {
 	compactFolders?: boolean;
 	/** Spec 08 §3.2: el group preset seleccionado, per_instance. `none` por defecto. */
 	groupPreset?: GroupPreset;
+	/** Spec 08 §4: custom groups ocultos (no borrados) en esta instancia. */
+	hiddenGroupIds?: string[];
 }
 
 export interface WorkspaceInstanceRecord {

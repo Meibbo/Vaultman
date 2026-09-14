@@ -35,6 +35,7 @@
 		type GroupPreset,
 		type GroupPresetKind,
 	} from '../../types/typeGroupPreset';
+	import { createConfirmRow } from '../../logic/logicConfirmRow';
 
 	type FiltersTab = ExplorerTabId;
 
@@ -54,8 +55,9 @@
 		customGroups = [],
 		canCreateGroup = false,
 		onGroupPresetChange,
-		onSelectCustomGroups,
 		onNewGroup,
+		onHideGroup,
+		onDeleteGroup,
 		icon,
 	}: {
 		activeTab: FiltersTab;
@@ -71,11 +73,13 @@
 		treeCapable?: boolean;
 		/** Spec 08 §3.2: the groups submenu, per instance. */
 		groupPreset?: GroupPreset;
-		customGroups?: readonly { id: string; label: string }[];
+		customGroups?: readonly { id: string; label: string; hidden?: boolean }[];
 		canCreateGroup?: boolean;
 		onGroupPresetChange?: (kind: GroupPresetKind) => void;
-		onSelectCustomGroups?: () => void;
 		onNewGroup?: () => void;
+		/** Spec 08 §4: the hide/delete row pattern of the custom groups. */
+		onHideGroup?: (id: string, hidden: boolean) => void;
+		onDeleteGroup?: (id: string) => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
@@ -89,6 +93,18 @@
 	let groupDrawerOpen = $state(false);
 	const groupModel = $derived(
 		groupMenuModel(activeTab, groupPreset, customGroups, canCreateGroup),
+	);
+	// Spec 08 §4: the custom-group row that is asking "Want to hide this
+	// preset?"; it answers itself with cancel after 4 s.
+	let confirmingGroupId = $state<string | null>(null);
+	const confirmRow = createConfirmRow(
+		{
+			set: (callback, ms) => window.setTimeout(callback, ms),
+			clear: (handle) => window.clearTimeout(handle as number),
+		},
+		(armed) => {
+			confirmingGroupId = armed;
+		},
 	);
 	let nodeTypeFilters = $state<string[]>(
 		untrack(() =>
@@ -109,6 +125,7 @@
 		drawerOpen = false;
 		levelDrawerOpen = false;
 		groupDrawerOpen = false;
+		confirmRow.disarm();
 	});
 
 	// Keep an open popup in sync with native menus and restored layouts.
@@ -251,7 +268,15 @@
 		if (item.kind === 'preset') onGroupPresetChange?.(item.id);
 		else if (item.kind === 'new-group') {
 			if (!item.disabled) onNewGroup?.();
-		} else onSelectCustomGroups?.();
+		} else confirmRow.arm(item.id);
+	}
+
+	function answerConfirmRow(id: string, answer: 'hide' | 'delete' | 'cancel') {
+		const group = customGroups.find((entry) => entry.id === id);
+		confirmRow.disarm();
+		if (!group) return;
+		if (answer === 'hide') onHideGroup?.(id, !(group.hidden ?? false));
+		else if (answer === 'delete') onDeleteGroup?.(id);
 	}
 
 	function groupItemLabel(item: GroupMenuItem): string {
@@ -339,10 +364,46 @@
 								class="vaultman-sort-drawer-separator"
 								role="separator"
 							></div>
+						{:else if opt.kind === 'custom-group' && confirmingGroupId === opt.id}
+							<!-- Spec 08 §4 (plan D7): in this icon-only drawer the row's
+							     content becomes the three answers; the question is the
+							     accessible name of the group. -->
+							<div
+								class="vaultman-sort-drawer-confirm"
+								role="group"
+								aria-label={translate('group.row.confirm')}
+							>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate(
+										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+									)}
+									title={translate(
+										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+									)}
+									onclick={() => answerConfirmRow(opt.id, 'hide')}
+									use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
+								></button>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate('group.row.delete')}
+									title={translate('group.row.delete')}
+									onclick={() => answerConfirmRow(opt.id, 'delete')}
+									use:icon={'lucide-trash-2'}
+								></button>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate('group.row.cancel')}
+									title={translate('group.row.cancel')}
+									onclick={() => answerConfirmRow(opt.id, 'cancel')}
+									use:icon={'lucide-x'}
+								></button>
+							</div>
 						{:else}
 							<button
 								class="vaultman-sort-drawer-item"
-								class:is-active={opt.kind !== 'new-group' && opt.checked}
+								class:is-active={opt.kind === 'preset' && opt.checked}
+								class:is-hidden={opt.kind === 'custom-group' && opt.hidden}
 								disabled={opt.kind === 'new-group' && opt.disabled}
 								aria-label={groupItemLabel(opt)}
 								title={groupItemLabel(opt)}

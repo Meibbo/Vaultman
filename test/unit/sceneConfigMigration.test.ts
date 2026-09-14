@@ -18,6 +18,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			stickyRows: true,
 			compactFolders: false,
 			groupPreset: { kind: 'none', direction: 'asc' },
+			hiddenGroupIds: [],
 		}),
 		propose: async (scene, next) => {
 			calls.push([scene, next]);

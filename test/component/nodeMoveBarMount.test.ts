@@ -48,6 +48,7 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				stickyRows: true,
 				compactFolders: false,
 				groupPreset: { kind: 'none' as const, direction: 'asc' as const },
+				hiddenGroupIds: [],
 			}),
 			propose: () => Promise.resolve(),
 			readActiveScene: () => 'files',

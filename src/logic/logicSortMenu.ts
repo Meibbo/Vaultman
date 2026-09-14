@@ -392,7 +392,8 @@ export interface GroupMenuCustomGroupItem {
 	id: string;
 	icon: string;
 	label: string;
-	checked: boolean;
+	/** Spec 08 §4: hidden in this instance (not deleted). */
+	hidden: boolean;
 }
 
 export interface GroupMenuSeparatorItem {
@@ -412,19 +413,18 @@ export interface GroupMenuModel {
 
 /**
  * The groups submenu, in the spec's order: `none` first and checked by
- * default, the presets of the tab, a divider, `New group`, the custom groups.
- * `custom` is not listed as a preset row: choosing any custom group row is
- * what selects it, mirroring how the presets are the selection.
+ * default, the presets of the tab (`custom` among them: it is what projects
+ * the custom groups), a divider, `New group`, then the custom groups as
+ * rows of the §4 hide/delete pattern — they are not selectors.
  */
 export function groupMenuModel(
 	tab: ExplorerTabId,
 	preset: GroupPreset,
-	customGroups: readonly { id: string; label: string }[],
+	customGroups: readonly { id: string; label: string; hidden?: boolean }[],
 	canCreateGroup: boolean,
 ): GroupMenuModel {
 	const items: GroupMenuItem[] = [];
 	for (const kind of GROUP_PRESETS_BY_TAB[tab]) {
-		if (kind === 'custom') continue;
 		const checked = preset.kind === kind;
 		items.push({
 			kind: 'preset',
@@ -446,9 +446,9 @@ export function groupMenuModel(
 		items.push({
 			kind: 'custom-group',
 			id: group.id,
-			icon: GROUP_PRESET_META.custom.icon,
+			icon: group.hidden ? 'lucide-eye-off' : 'lucide-box',
 			label: group.label,
-			checked: preset.kind === 'custom',
+			hidden: group.hidden === true,
 		});
 	}
 	return { items };

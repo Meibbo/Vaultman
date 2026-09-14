@@ -14,6 +14,7 @@ const defaults = {
 	stickyRows: true,
 	compactFolders: false,
 	groupPreset: { kind: 'none' as const, direction: 'asc' as const },
+	hiddenGroupIds: [],
 };
 
 function harness() {

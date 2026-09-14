@@ -88,6 +88,7 @@ export async function applyLayoutToPort(
 			stickyRows: current.stickyRows,
 			compactFolders: current.compactFolders,
 			groupPreset: current.groupPreset,
+			hiddenGroupIds: current.hiddenGroupIds,
 		};
 	}
 	if (port.proposeScenes) {

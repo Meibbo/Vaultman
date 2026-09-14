@@ -34,6 +34,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		stickyRows: input.defaults.stickyRows,
 		compactFolders: input.defaults.compactFolders,
 		groupPreset: { ...input.defaults.groupPreset },
+		hiddenGroupIds: cloneCells(input.defaults.hiddenGroupIds),
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -45,6 +46,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.stickyRows !== undefined) out.stickyRows = layer.stickyRows;
 		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
 		if (layer.groupPreset !== undefined) out.groupPreset = { ...layer.groupPreset };
+		if (layer.hiddenGroupIds !== undefined) {
+			out.hiddenGroupIds = cloneCells(layer.hiddenGroupIds);
+		}
 	}
 	return out;
 }
@@ -78,6 +82,12 @@ export function diffSceneConfig(
 	}
 	if (!sameGroupPreset(next.groupPreset, baseline.groupPreset)) {
 		patch.groupPreset = { ...next.groupPreset };
+	}
+	if (
+		next.hiddenGroupIds.length !== baseline.hiddenGroupIds.length ||
+		next.hiddenGroupIds.some((id, i) => id !== baseline.hiddenGroupIds[i])
+	) {
+		patch.hiddenGroupIds = cloneCells(next.hiddenGroupIds);
 	}
 	return patch;
 }

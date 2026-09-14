@@ -250,6 +250,8 @@ export class PropsExplorerPanel extends Component {
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	private createGroupHandler?: (urns: readonly string[]) => void;
+	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
+	private hiddenGroupIds: ReadonlySet<string> = new Set();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
@@ -650,7 +652,9 @@ export class PropsExplorerPanel extends Component {
 			(candidate) => candidate.name === activeName,
 		);
 		const memberships = layout?.groupMemberships ?? {};
-		const groups = resolveCustomGroups(memberships);
+		const groups = resolveCustomGroups(memberships).filter(
+			(group) => !this.hiddenGroupIds.has(group.id),
+		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
 		return projectGroupedTree<PropMeta>({
@@ -914,6 +918,7 @@ export class PropsExplorerPanel extends Component {
 		if (presetChanged && config.groupPreset) {
 			this.groupPreset = { ...config.groupPreset };
 		}
+		if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 
 		this._render();
 	}
@@ -921,6 +926,18 @@ export class PropsExplorerPanel extends Component {
 	setGroupPreset(preset: GroupPreset): void {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
 		this.groupPreset = { ...preset };
+		this._render();
+	}
+
+	setHiddenGroupIds(ids: readonly string[]): void {
+		const next = new Set(ids);
+		if (
+			next.size === this.hiddenGroupIds.size &&
+			[...next].every((id) => this.hiddenGroupIds.has(id))
+		) {
+			return;
+		}
+		this.hiddenGroupIds = next;
 		this._render();
 	}
 

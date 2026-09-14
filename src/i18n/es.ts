@@ -1083,6 +1083,12 @@ export const es: Record<string, string> = {
 	'group.new.needs_layout': 'Nuevo grupo (activa un layout primero)',
 	'group.new.prompt': 'Nombre del grupo',
 	'group.create_with_selected': 'Crear grupo con la selección',
+	// Spec 08 §4: el patrón de fila ocultar/borrar.
+	'group.row.confirm': '¿Ocultar este preset?',
+	'group.row.hide': 'ocultar',
+	'group.row.unhide': 'mostrar',
+	'group.row.delete': 'borrar',
+	'group.row.cancel': 'cancelar',
 	'sort.level.pick_hint': 'Mantén pulsada una fila para elegir el scope drill',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',
 	'sort.vertcol.direct_toggle': 'Alternar dirección',

@@ -244,6 +244,7 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		stickyRows: true,
 		compactFolders: false,
 		groupPreset: { kind: 'none', direction: 'asc' },
+		hiddenGroupIds: [],
 	};
 
 	it('defaults to `none` and lets the scene layer override it', () => {

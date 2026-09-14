@@ -14,6 +14,7 @@ const defaults: Required<SceneConfig> = {
 	stickyRows: true,
 	compactFolders: false,
 	groupPreset: { kind: 'none', direction: 'asc' },
+	hiddenGroupIds: [],
 };
 
 describe('resolveSceneConfig', () => {

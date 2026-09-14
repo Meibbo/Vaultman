@@ -13,26 +13,38 @@ describe('spec 08 §3.2 — the groups submenu model', () => {
 		expect(first.direction).toBeNull();
 	});
 
-	it('offers exactly the presets of the tab, never `custom` as a row', () => {
+	it('offers exactly the presets of the tab, `custom` among them', () => {
 		for (const tab of ['files', 'props', 'tags', 'snippets', 'plugins'] as const) {
 			const model = groupMenuModel(tab, { kind: 'none', direction: 'asc' }, [], false);
 			const presets = model.items.filter((i) => i.kind === 'preset').map((i) => i.id);
-			expect(presets).toEqual(GROUP_PRESETS_BY_TAB[tab].filter((k) => k !== 'custom'));
+			expect(presets).toEqual(GROUP_PRESETS_BY_TAB[tab]);
 		}
 	});
 
-	it('ends with divider, New group and the custom groups, checked when custom is active', () => {
+	it('ends with divider, New group and the custom groups as hide/delete rows', () => {
 		const model = groupMenuModel(
 			'files',
 			{ kind: 'custom', direction: 'asc' },
-			[{ id: 'Work', label: 'Work' }],
+			[
+				{ id: 'Work', label: 'Work' },
+				{ id: 'Old', label: 'Old', hidden: true },
+			],
 			true,
 		);
-		const tail = model.items.slice(-3);
-		expect(tail.map((i) => i.kind)).toEqual(['separator', 'new-group', 'custom-group']);
-		const custom = tail[2];
-		if (custom?.kind !== 'custom-group') throw new Error('custom-group expected');
-		expect(custom.checked).toBe(true);
+		const tail = model.items.slice(-4);
+		expect(tail.map((i) => i.kind)).toEqual([
+			'separator',
+			'new-group',
+			'custom-group',
+			'custom-group',
+		]);
+		const [work, old] = tail.slice(2);
+		if (work?.kind !== 'custom-group' || old?.kind !== 'custom-group') {
+			throw new Error('custom-group expected');
+		}
+		expect(work.hidden).toBe(false);
+		expect(old.hidden).toBe(true);
+		expect(old.icon).toBe('lucide-eye-off');
 	});
 
 	it('disables New group when there is no layout to hold the group', () => {

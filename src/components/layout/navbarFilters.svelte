@@ -445,9 +445,35 @@
 		return savedLayouts.find((layout) => layout.name === name) ?? null;
 	}
 	/** Spec 08 §3.2.2: the custom groups are the membership keys of the active layout. */
-	function customGroupsForMenu(): { id: string; label: string }[] {
+	function customGroupsForMenu(
+		tab: FiltersTab,
+	): { id: string; label: string; hidden: boolean }[] {
 		const memberships = activeLayout()?.groupMemberships ?? {};
-		return Object.keys(memberships).map((id) => ({ id, label: id }));
+		const hidden = new Set(configByTab[tab].hiddenGroupIds);
+		return Object.keys(memberships).map((id) => ({
+			id,
+			label: id,
+			hidden: hidden.has(id),
+		}));
+	}
+	/** Spec 08 §4 `hide`: per instance, reversible; the group survives in the layout. */
+	function setGroupHidden(tab: FiltersTab, id: string, hidden: boolean) {
+		const current = configByTab[tab].hiddenGroupIds;
+		const next = hidden
+			? current.includes(id)
+				? current
+				: [...current, id]
+			: current.filter((entry) => entry !== id);
+		commitConfig(tab, { hiddenGroupIds: next });
+		applyHiddenGroupIds(tab, next);
+	}
+	/** Spec 08 §4 `delete`: removes the group from the layout, for every instance. */
+	function deleteCustomGroup(tab: FiltersTab, id: string) {
+		const layout = activeLayout();
+		if (!layout || !onGroupMembershipsChange) return;
+		const { [id]: _removed, ...rest } = layout.groupMemberships ?? {};
+		onGroupMembershipsChange(layout.name, rest);
+		setGroupHidden(tab, id, false);
 	}
 	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
 		commitConfig(tab, { groupPreset: next });
@@ -481,7 +507,7 @@
 		const model = groupMenuModel(
 			tab,
 			configByTab[tab].groupPreset,
-			customGroupsForMenu(),
+			customGroupsForMenu(tab),
 			activeLayout() !== null && Boolean(onGroupMembershipsChange),
 		);
 		menu.addItem((item) => {
@@ -518,13 +544,35 @@
 							.setDisabled(entry.disabled)
 							.onClick(() => void createCustomGroup(tab));
 					} else {
-						row
-							.setTitle(entry.label)
-							.setIcon(entry.icon)
-							.setChecked(entry.checked)
-							.onClick(() =>
-								setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' }),
-							);
+						// Spec 08 §4 in a native Menu (plan D3): a painted item cannot
+						// swap its content, so the question and its three answers
+						// live in the row's submenu.
+						row.setTitle(entry.label).setIcon(entry.icon);
+						const confirm = (
+							row as typeof row & { setSubmenu: () => Menu }
+						).setSubmenu();
+						confirm.addItem((q) =>
+							q.setTitle(translate('group.row.confirm')).setDisabled(true),
+						);
+						confirm.addItem((h) =>
+							h
+								.setTitle(
+									translate(
+										entry.hidden ? 'group.row.unhide' : 'group.row.hide',
+									),
+								)
+								.setIcon(entry.hidden ? 'lucide-eye' : 'lucide-eye-off')
+								.onClick(() => setGroupHidden(tab, entry.id, !entry.hidden)),
+						);
+						confirm.addItem((d) =>
+							d
+								.setTitle(translate('group.row.delete'))
+								.setIcon('lucide-trash-2')
+								.onClick(() => deleteCustomGroup(tab, entry.id)),
+						);
+						confirm.addItem((c) =>
+							c.setTitle(translate('group.row.cancel')).setIcon('lucide-x'),
+						);
 					}
 				});
 			}
@@ -1173,6 +1221,7 @@
 			stickyRows?: boolean;
 			compactFolders?: boolean;
 			groupPreset?: GroupPreset;
+			hiddenGroupIds?: readonly string[];
 		},
 	) {
 		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
@@ -1205,6 +1254,9 @@
 						? { compactFolders: config.compactFolders }
 						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
+					...(config.hiddenGroupIds
+						? { hiddenGroupIds: config.hiddenGroupIds }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1217,6 +1269,8 @@
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
+				if (config.hiddenGroupIds)
+					applyHiddenGroupIds(tab, config.hiddenGroupIds);
 			}
 			return;
 		}
@@ -1234,6 +1288,9 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
+					...(config.hiddenGroupIds
+						? { hiddenGroupIds: config.hiddenGroupIds }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1244,6 +1301,8 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
+				if (config.hiddenGroupIds)
+					applyHiddenGroupIds(tab, config.hiddenGroupIds);
 			}
 			return;
 		}
@@ -1261,6 +1320,9 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
+					...(config.hiddenGroupIds
+						? { hiddenGroupIds: config.hiddenGroupIds }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1271,6 +1333,8 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
+				if (config.hiddenGroupIds)
+					applyHiddenGroupIds(tab, config.hiddenGroupIds);
 			}
 			return;
 		}
@@ -1280,6 +1344,8 @@
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
+			if (config.hiddenGroupIds)
+				applyHiddenGroupIds(tab, config.hiddenGroupIds);
 			return;
 		}
 
@@ -1288,6 +1354,8 @@
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
+			if (config.hiddenGroupIds)
+				applyHiddenGroupIds(tab, config.hiddenGroupIds);
 			return;
 		}
 	}
@@ -1923,6 +1991,10 @@
 		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
 	}
 
+	function applyHiddenGroupIds(tab: FiltersTab, ids: readonly string[]) {
+		explorerPortForTab(tab)?.setHiddenGroupIds?.(ids);
+	}
+
 	/** Spec 08 §3.2: the preset selection is per instance and reaches every scene. */
 	function applyGroupPreset(tab: FiltersTab, preset: GroupPreset) {
 		if (tab === 'files') fileList?.setGroupPreset?.(preset);
@@ -2296,6 +2368,7 @@
 		const stickyRows = configByTab[tab].stickyRows;
 		const compactFolders = configByTab[tab].compactFolders;
 		const groupPreset = configByTab[tab].groupPreset;
+		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
 		applyTabProjection(tab, {
 			viewMode,
 			visibleCells: cells,
@@ -2304,6 +2377,7 @@
 			stickyRows,
 			compactFolders,
 			groupPreset,
+			hiddenGroupIds,
 		});
 		if (tab === 'files' && fileList) {
 			fileList.setInteractionModeChangeHandler?.((mode) => {
@@ -2750,13 +2824,13 @@
 					onRequestRevealPick={() => void beginRevealPick(activeTab)}
 					treeCapable={treeCapableFor(activeTab)}
 					groupPreset={configByTab[activeTab].groupPreset}
-					customGroups={customGroupsForMenu()}
+					customGroups={customGroupsForMenu(activeTab)}
 					canCreateGroup={activeLayout() !== null &&
 						Boolean(onGroupMembershipsChange)}
 					onGroupPresetChange={(kind) => selectGroupPreset(activeTab, kind)}
-					onSelectCustomGroups={() =>
-						setGroupPresetFor(activeTab, { kind: 'custom', direction: 'asc' })}
 					onNewGroup={() => void createCustomGroup(activeTab)}
+					onHideGroup={(id, hidden) => setGroupHidden(activeTab, id, hidden)}
+					onDeleteGroup={(id) => deleteCustomGroup(activeTab, id)}
 					{icon}
 				/>
 			</div>

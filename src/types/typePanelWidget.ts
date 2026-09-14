@@ -69,6 +69,8 @@ export interface PanelWidgetExplorerProjectionConfig {
 	compactFolders?: boolean;
 	/** Spec 08 §3.2: group preset seleccionado, per_instance. */
 	groupPreset?: GroupPreset;
+	/** Spec 08 §4: custom groups ocultos en esta instancia. */
+	hiddenGroupIds?: readonly string[];
 }
 
 export interface PanelWidgetExplorerPort {
@@ -83,6 +85,8 @@ export interface PanelWidgetExplorerPort {
 	setCompactFoldersEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
+	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */
+	setHiddenGroupIds?(ids: readonly string[]): void;
 	/** Spec 08 §3.3: receives the selection's membership URNs to create a custom group. */
 	setCreateGroupHandler?(handler?: (urns: readonly string[]) => void): void;
 	configurePanelWidgetProjection?(
