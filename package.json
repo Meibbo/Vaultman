@@ -20,7 +20,7 @@
 		"check": "tsc -noEmit -skipLibCheck && svelte-check --tsconfig ./tsconfig.json",
 		"format": "prettier --write \"**/*.svelte\"",
 		"format:check": "prettier --check \"**/*.svelte\"",
-		"stylelint": "stylelint styles.css",
+		"stylelint": "pnpm run build:styles && stylelint styles.css",
 		"verify": "pnpm run lint && pnpm run check && pnpm run format:check && pnpm run stylelint && pnpm run build:plugin && pnpm run test:unit && pnpm run test:component && pnpm run test:scorecard",
 		"test:unit": "vitest run --config vitest.unit.config.mts",
 		"test:component": "vitest run --config vitest.component.config.mts",
