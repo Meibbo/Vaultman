@@ -1,4 +1,4 @@
-import { type App } from 'obsidian';
+import { type App, Keymap } from 'obsidian';
 
 import {
 	LIST_WIDGETS,
@@ -113,7 +113,10 @@ export function renderEditableText(
 		link.addEventListener('click', (event) => {
 			event.preventDefault();
 			event.stopPropagation();
-			if (!preview) void app.workspace.openLinkText(target, '', false);
+			if (!preview) {
+				const newLeaf = Keymap.isModEvent(event);
+				void app.workspace.openLinkText(target, '', newLeaf);
+			}
 		});
 		return link;
 	}
@@ -136,7 +139,10 @@ export function renderEditableText(
 			link.addEventListener('click', (event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				if (!preview) void app.workspace.openLinkText(target, '', false);
+				if (!preview) {
+					const newLeaf = Keymap.isModEvent(event);
+					void app.workspace.openLinkText(target, '', newLeaf);
+				}
 			});
 			return link;
 		}
@@ -163,6 +169,10 @@ export function renderEditableText(
 		link.addEventListener('click', (event) => {
 			event.stopPropagation();
 			if (preview) event.preventDefault();
+			else {
+				const newLeaf = Keymap.isModEvent(event);
+				void app.workspace.openLinkText(trimmed, '', newLeaf);
+			}
 		});
 		return link;
 	}
