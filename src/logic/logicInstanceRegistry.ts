@@ -170,6 +170,13 @@ export const TOMBSTONE_CAP = 20;
 export const TOMBSTONE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
+ * Cota absoluta de emergencia (dictamen adversarial 11 §2.2): dentro de la ventana de gracia
+ * el cupo de 20 no actúa, y una ráfaga (50 pestañas/día × 7 días = 350) inflaría `data.json`
+ * sin freno. Por encima de este número se poda por LRU AUNQUE el tombstone esté en gracia.
+ */
+export const TOMBSTONE_HARD_CAP = 100;
+
+/**
  * Se corre UNA vez al arrancar, con la lista de anclas vivas leídas del workspace.
  * Es idempotente. Marcar tombstone conserva el payload; solo se conservan los
  * `TOMBSTONE_CAP` tombstones más recientes por `lastActiveAt` (LRU): los demás se podan.
@@ -207,6 +214,15 @@ export function reconcileRegistry(
 			outsideGrace.sort((a, b) => stamp(a) - stamp(b) || (a.id < b.id ? -1 : 1));
 			const pruneCount = Math.min(tombstones.length - TOMBSTONE_CAP, outsideGrace.length);
 			for (const stale of outsideGrace.slice(0, pruneCount)) {
+				delete instances[stale.id];
+			}
+		}
+		// Cota dura: lo que la gracia haya dejado por encima de TOMBSTONE_HARD_CAP se poda
+		// igualmente, del menos activo al más activo.
+		const remaining = tombstones.filter((r) => r.id in instances);
+		if (remaining.length > TOMBSTONE_HARD_CAP) {
+			remaining.sort((a, b) => stamp(a) - stamp(b) || (a.id < b.id ? -1 : 1));
+			for (const stale of remaining.slice(0, remaining.length - TOMBSTONE_HARD_CAP)) {
 				delete instances[stale.id];
 			}
 		}

@@ -6,7 +6,7 @@ import {
 	setActiveScene,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
-import { reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS } from '../../src/logic/logicInstanceRegistry';
+import { reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS, TOMBSTONE_HARD_CAP } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
 	it('mints a record with an opaque id and revision 1', () => {
@@ -275,6 +275,28 @@ describe('reconcileRegistry', () => {
 		for (let i = 0; i < 20; i += 1) {
 			expect(reconciled.instances[`vm-in-${String(i).padStart(2, '0')}`]).toBeDefined();
 		}
+	});
+});
+
+describe('reconcileRegistry hard cap', () => {
+	it('never keeps more than TOMBSTONE_HARD_CAP tombstones, even inside the grace window', () => {
+		const now = 1_000_000_000;
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		for (let i = 0; i < TOMBSTONE_HARD_CAP + 30; i += 1) {
+			const id = `vm-burst-${String(i).padStart(3, '0')}`;
+			registry = {
+				...registry,
+				instances: {
+					...registry.instances,
+					[id]: { ...createInstanceRecord(id), createdAt: now - i, lastActiveAt: now - i },
+				},
+			};
+		}
+		const reconciled = reconcileRegistry(registry, [], now);
+		expect(Object.keys(reconciled.instances)).toHaveLength(TOMBSTONE_HARD_CAP);
+		// The least recently active go first.
+		expect(reconciled.instances['vm-burst-129']).toBeUndefined();
+		expect(reconciled.instances['vm-burst-000']).toBeDefined();
 	});
 });
 
