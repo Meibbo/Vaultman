@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { createGenerator } from 'unocss';
 import * as sass from 'sass';
 import createJiti from 'jiti';
@@ -36,6 +37,12 @@ async function buildStyles() {
 
 	await mkdir('./dist/build', { recursive: true });
 	await writeFile('./dist/build/styles.css', finalCss, 'utf8');
+	// The repo root styles.css is an untracked convenience symlink that fresh
+	// checkouts (and CI) lack; recreate it so stylelint, scorecard and the
+	// release asset step all resolve the just-built file.
+	if (!existsSync('./styles.css')) {
+		await symlink('dist/build/styles.css', './styles.css');
+	}
 	console.log(`✅ styles.css generated successfully (${Buffer.byteLength(finalCss, 'utf8')} bytes)`);
 }
 
