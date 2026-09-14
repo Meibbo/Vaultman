@@ -174,7 +174,11 @@ export function reconcileRegistry(
 	if (tombstones.length > TOMBSTONE_CAP) {
 		// Los más antiguos se van primero; a igual `createdAt` decide el id para que la poda
 		// sea determinista entre arranques.
-		tombstones.sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
+		// Un `createdAt` ausente o no finito (registro migrado/corrupto) devolvería NaN al
+		// comparador y V8 dejaría de ordenar de forma estable: se trata como 0 (el más viejo).
+		const stamp = (r: WorkspaceInstanceRecord): number =>
+			Number.isFinite(r.createdAt) ? r.createdAt : 0;
+		tombstones.sort((a, b) => stamp(a) - stamp(b) || (a.id < b.id ? -1 : 1));
 		for (const stale of tombstones.slice(0, tombstones.length - TOMBSTONE_CAP)) {
 			delete instances[stale.id];
 		}

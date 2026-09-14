@@ -159,6 +159,21 @@ describe('reconcileRegistry', () => {
 		expect(reconciled.instances['vm-dead-24']).toBeDefined();
 	});
 
+	it('treats a missing or non-finite createdAt as the oldest instead of poisoning the sort', () => {
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		for (let i = 0; i < 21; i += 1) {
+			const id = `vm-dead-${String(i).padStart(2, '0')}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), createdAt: 100 + i } } };
+		}
+		const corrupt = { ...createInstanceRecord('vm-corrupt'), createdAt: undefined as unknown as number };
+		registry = { ...registry, instances: { ...registry.instances, 'vm-corrupt': corrupt } };
+		const reconciled = reconcileRegistry(registry, []);
+		expect(Object.keys(reconciled.instances)).toHaveLength(TOMBSTONE_CAP);
+		expect(reconciled.instances['vm-corrupt']).toBeUndefined();
+		expect(reconciled.instances['vm-dead-00']).toBeUndefined();
+		expect(reconciled.instances['vm-dead-01']).toBeDefined();
+	});
+
 	it('is idempotent once under the cap: a second reconcile changes nothing', () => {
 		let registry: InstanceRegistryData = { schema: 1, instances: {} };
 		for (let i = 0; i < 30; i += 1) {
