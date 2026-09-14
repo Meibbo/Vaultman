@@ -57,7 +57,7 @@ export function resolveCellCapabilities(
 	availableFilterTypeIds.add('folder');
 	if (ctx.providerId === 'files') availableCellIds.add('tags');
 
-	// Cell: count (file-count) is available for Files + Tree + nested + folders,
+	// Cell: count (file-count) for Files + Tree + nested + folders,
 	// and never inside reveal, where there is only one file to count.
 	if (
 		!ctx.reveal &&
@@ -70,6 +70,21 @@ export function resolveCellCapabilities(
 		if (!ctx.fixedFolders) {
 			availableSortIds.add('count');
 		}
+	}
+
+	// A16: count cell for Props and Tags
+	// - Props reveal: each node_value has a single semantic occurrence → no count
+	// - Props non-reveal: count makes sense (property can appear on multiple files)
+	// - Tags reveal: count makes sense (frontmatter + inline occurrences)
+	if (ctx.providerId === 'props') {
+		if (!ctx.reveal) {
+			availableCellIds.add('count');
+			availableSortIds.add('count');
+		}
+	} else if (ctx.providerId === 'tags') {
+		// Tags always have count (frontmatter + inline)
+		availableCellIds.add('count');
+		availableSortIds.add('count');
 	}
 
 	// Cell: checkbox is available when selectionMode is true

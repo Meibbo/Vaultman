@@ -101,3 +101,55 @@ describe('reveal narrows capability to one file', () => {
 		expect(resolution.availableCellIds.has('count')).toBe(true);
 	});
 });
+
+describe('A16: props reveal hides count, tags reveal keeps count', () => {
+	const propsBase: CellCapabilityContext = {
+		providerId: 'props',
+		engine: 'tree',
+		nested: true,
+		fixedFolders: false,
+		selectionMode: false,
+		nodeKinds: new Set(['prop', 'value']),
+	};
+
+	const tagsBase: CellCapabilityContext = {
+		providerId: 'tags',
+		engine: 'tree',
+		nested: true,
+		fixedFolders: false,
+		selectionMode: false,
+		nodeKinds: new Set(['tag', 'value']),
+	};
+
+	it('withdraws count cell in props reveal', () => {
+		const resolution = resolveCellCapabilities({ ...propsBase, reveal: true }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(false);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(false);
+	});
+
+	it('offers count cell in props non-reveal', () => {
+		const resolution = resolveCellCapabilities({ ...propsBase, reveal: false }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(true);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(true);
+	});
+
+	it('keeps count cell in tags reveal', () => {
+		const resolution = resolveCellCapabilities({ ...tagsBase, reveal: true }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(true);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(true);
+	});
+
+	it('keeps count cell in tags non-reveal', () => {
+		const resolution = resolveCellCapabilities({ ...tagsBase, reveal: false }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(true);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(true);
+	});
+});
