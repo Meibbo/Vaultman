@@ -1863,6 +1863,8 @@
 			}
 
 			if (invocation.actionId === 'toggle-expansion') {
+				// A07: los explorers de addons ya exponen la misma maquinaria
+				// de expansion (cabeceras de grupo) que files/props/tags.
 				const panel =
 					explorerActiveTab === 'files'
 						? fileList
@@ -1870,7 +1872,11 @@
 							? propExplorer
 							: explorerActiveTab === 'tags'
 								? tagsExplorer
-								: undefined;
+								: explorerActiveTab === 'snippets'
+									? snippetsExplorer
+									: explorerActiveTab === 'plugins'
+										? pluginsExplorer
+										: undefined;
 				if (!panel) return false;
 				const expanded = panel.hasExpandedNodes();
 				measureSceneSync(

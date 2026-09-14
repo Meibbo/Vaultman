@@ -87,6 +87,11 @@ export class SnippetsExplorerPanel
 	private readonly _groupIds = new Set<string>();
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
+	/** Spec 08: view_option `indent` per_instance. `false` flattens row padding
+	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
+	 *  indented geometry of today. */
+	private indentOverride: boolean | undefined;
+	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -305,6 +310,45 @@ export class SnippetsExplorerPanel
 		this.rebuildNodes();
 	}
 
+	setIndentEnabled(enabled: boolean): void {
+		if (this.indentOverride === enabled) return;
+		this.indentOverride = enabled;
+		this.render();
+	}
+
+	/**
+	 * A07: la unica expansibilidad de un explorer plano son sus cabeceras de
+	 * grupo. Sin preset no hay nada que plegar.
+	 */
+	private _expansionEnabled(): boolean {
+		return this.groupPreset.kind !== 'none';
+	}
+
+	hasExpandedNodes(): boolean {
+		return this._expansionEnabled() && this._expandedGroupIds.size > 0;
+	}
+
+	setExpansionChangeHandler(handler?: () => void): void {
+		this.onExpansionChange = handler;
+	}
+
+	expandAll(): void {
+		if (!this._expansionEnabled()) return;
+		for (const row of this.projectedNodes()) {
+			if (isGroupHeader(row.id, this._groupIds)) {
+				this._expandedGroupIds.add(row.id);
+			}
+		}
+		this.onExpansionChange?.();
+		this.render();
+	}
+
+	collapseAll(): void {
+		this._expandedGroupIds.clear();
+		this.onExpansionChange?.();
+		this.render();
+	}
+
 	private renameBadges(name: string) {
 		const badges = [];
 		const rename = queuedRenameBadgeForPath(
@@ -513,6 +557,7 @@ export class SnippetsExplorerPanel
 			// grupo activo si crea un nivel (cabecera -> miembros) que
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
+			indent: this.indentOverride ?? true,
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
@@ -553,6 +598,7 @@ export class SnippetsExplorerPanel
 				// Solo las cabeceras se pliegan aqui: los snippets son hojas.
 				if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
 				else this._expandedGroupIds.add(id);
+				this.onExpansionChange?.();
 				this.render();
 			},
 			onRowClick: (id) => {
