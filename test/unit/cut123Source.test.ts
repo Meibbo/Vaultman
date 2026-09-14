@@ -28,8 +28,11 @@ describe('cuts 1-3 source guards', () => {
 		expect(frameSource).toContain('handleLauncherClick');
 		expect(frameSource).toContain('clearActiveFilters');
 		expect(frameSource).toContain('clearQueueQuick');
-		expect(navbarPillFabSource).toContain('triggerFabDoubleClick');
-		expect(navbarPillFabSource).toContain('e.preventDefault();');
+		// Double-click clears through the Frame burst grammar, which fires
+		// exactly one secondary per burst; PillFab must not add a native
+		// dblclick shadow (see recursiveGestureWiring).
+		expect(navbarPillFabSource).not.toContain('ondblclick');
+		expect(navbarPillFabSource).not.toContain('triggerFabDoubleClick');
 	});
 
 	it('hides locked DnD but keeps selectable Cards in the minimal native view menu', () => {

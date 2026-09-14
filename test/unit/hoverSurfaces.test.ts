@@ -40,6 +40,18 @@ class MockClassList {
 	}
 }
 
+function closestAncestor(
+	el: MockElement | null,
+	selector: string,
+): MockElement | null {
+	let current = el;
+	while (current) {
+		if (matchSelector(current, selector)) return current;
+		current = current.parent;
+	}
+	return null;
+}
+
 class MockElement {
 	classList = new MockClassList();
 	parent: MockElement | null = null;
@@ -92,12 +104,7 @@ class MockElement {
 	}
 
 	closest(selector: string): MockElement | null {
-		let cur: MockElement | null = this;
-		while (cur) {
-			if (matchSelector(cur, selector)) return cur;
-			cur = cur.parent;
-		}
-		return null;
+		return closestAncestor(this, selector);
 	}
 
 	contains(other: MockElement | null): boolean {
@@ -318,8 +325,7 @@ function buildAdapterFixture() {
 	const originalDoc = globalAny.document;
 	const originalMutationObserver = globalAny.MutationObserver;
 	globalAny.document = undefined;
-	globalAny.MutationObserver =
-		MockMutationObserverCtor as unknown as typeof MockMutationObserverCtor;
+	globalAny.MutationObserver = MockMutationObserverCtor;
 	const doc = new MockDocument();
 	const workspace = makeWorkspace();
 	const app = { workspace } as unknown as import('obsidian').App;
@@ -362,7 +368,7 @@ describe('HoverSurfacesAdapter — contract', () => {
 		fixture.restore();
 		const bad = {} as unknown as import('../../src/platform/platformAdapter').PlatformAdapterContext;
 		expect(() => fixture.adapter.probe(bad)).not.toThrow();
-		expect(fixture.adapter.probe(bad)).toEqual({ ok: false, reason: expect.any(String) });
+		expect(fixture.adapter.probe(bad)).toEqual({ ok: false, reason: expect.any(String) as unknown });
 	});
 
 	it('probe marca mobile:no-pointer cuando el body tiene is-phone / is-mobile / mod-mobile / is-tablet', () => {

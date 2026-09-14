@@ -919,6 +919,14 @@ body.vaultman-resizing {
   right: 0;
 }
 
+/* Spec 08 `indent` off: rows with no caret collapse to the flat 4px gutter,
+   zeroing their per-depth offset (a class instead of inline custom
+   properties, so rows stay themeable). */
+.vaultman-tree-row--flat-indent {
+  --vaultman-tree-row-padding-start: var(--size-4-1);
+  --vaultman-tree-indent-unit: 0px;
+}
+
 .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
   transition:
     top 100ms ease-in-out,

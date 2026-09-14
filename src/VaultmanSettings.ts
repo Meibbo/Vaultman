@@ -587,16 +587,16 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 		items.push({
 			type: 'page',
-			name: translate('settings.saved_view_config'),
-			desc: translate('settings.saved_view_config.desc'),
-			items: this.getSavedLayoutItems(),
+			name: translate('queue.template.templates'),
+			desc: translate('settings.queue.template.templates.desc'),
+			items: this.getQueueTemplateItems(),
 		});
 
 		items.push({
 			type: 'page',
-			name: translate('settings.queue.template.templates'),
-			desc: translate('settings.queue.template.templates.desc'),
-			items: this.getQueueTemplateItems(),
+			name: translate('settings.saved_view_config'),
+			desc: translate('settings.saved_view_config.desc'),
+			items: this.getSavedLayoutItems(),
 		});
 
 		items.push({
@@ -651,12 +651,34 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			items: this.getDeveloperPageItems(),
 		});
 
+		items.push({
+			name: translate('settings.text_search_intercepts'),
+			desc: translate('settings.text_search_intercepts.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
+						.onChange(async (value) => {
+							this.plugin.settings.textSearchInterceptsCoreSearch = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		return items;
 	}
 
 	/** Saved filter templates: preview the payload or drop the template. */
 	private getFilterTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.templates'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
 
 		const templates = this.plugin.settings.filterTemplates;
 		if (templates.length === 0) {
@@ -711,6 +733,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	/** Saved compositions of the explorer view. */
 	private getSavedLayoutItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('settings.saved_view_config'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
 
 		const layouts = this.plugin.settings.savedLayouts ?? [];
 		if (layouts.length === 0) {
@@ -781,6 +810,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	/** Operation sets and their queue-warning toggles. */
 	private getQueueTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+
+		items.push({
+			name: translate('queue.template.templates'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
 
 		items.push({
 			name: translate('settings.bulk_operation_warning'),
@@ -995,8 +1031,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								await this.plugin.platformAdapterRegistry.activate({
 									app: this.plugin.app,
 									plugin: this.plugin,
-									// biome-ignore lint/suspicious/noExplicitAny: el tab de ajustes no expone document
-									doc: document as any,
+								// biome-ignore lint/suspicious/noExplicitAny: el tab de ajustes no expone document
+								doc: document,
 								});
 							}
 						} else {
@@ -1934,21 +1970,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
     });
-
-		items.push({
-			name: translate('settings.text_search_intercepts'),
-			desc: translate('settings.text_search_intercepts.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
-						.onChange(async (value) => {
-							this.plugin.settings.textSearchInterceptsCoreSearch = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
 
 		return items;
 	}

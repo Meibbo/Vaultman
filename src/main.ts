@@ -897,7 +897,7 @@ export class VaultmanPlugin extends Plugin {
 	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
 		const mode = normalizeOpenMode(this.settings.openMode);
-		let leaf: WorkspaceLeaf | null = null;
+		let leaf: WorkspaceLeaf | null;
 		if (mode === 'left_sidebar') {
 			leaf = workspace.getLeftLeaf(false);
 		} else if (mode === 'right_sidebar') {

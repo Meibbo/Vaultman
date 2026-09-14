@@ -31,6 +31,8 @@ describe('Files word count cell source guards', () => {
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
 			'name',
 			'ext',
+			// acee5d3c enables format by default; words itself stays opt-in.
+			'format',
 			'nested',
 		]);
 	});

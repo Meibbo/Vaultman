@@ -54,7 +54,7 @@ describe('spec 08 §4 — "Want to hide this preset?" row', () => {
 		const row = createConfirmRow(t.timer, onChange);
 		row.arm('A');
 		row.arm('B');
-		expect(onChange.mock.calls.map((c) => c[0])).toEqual(['A', 'B']);
+		expect(onChange.mock.calls.map((c: unknown[]) => c[0])).toEqual(['A', 'B']);
 	});
 });
 

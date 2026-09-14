@@ -2790,13 +2790,15 @@ export class PropsExplorerPanel extends Component {
 			!this._optimisticFrontmatter ||
 			this._optimisticFrontmatterPath !== file.path
 		) {
-			this._optimisticFrontmatter = JSON.parse(JSON.stringify(currentFm));
+			this._optimisticFrontmatter = JSON.parse(
+				JSON.stringify(currentFm),
+			) as Record<string, unknown>;
 		}
 		this._optimisticFrontmatterPath = file.path;
-		mutator(this._optimisticFrontmatter!);
+		mutator(this._optimisticFrontmatter);
 
 		return this.plugin.app.fileManager.processFrontMatter(file, (realFm) => {
-			mutator(realFm);
+			mutator(realFm as Record<string, unknown>);
 		});
 	}
 
@@ -2912,7 +2914,7 @@ export class PropsExplorerPanel extends Component {
 			await this._updateRevealFrontmatter((fm) => {
 				const current = fm[propName];
 				if (Array.isArray(current)) {
-					fm[propName] = [...current, val];
+					fm[propName] = [...(current as unknown[]), val];
 				} else if (current != null && current !== '') {
 					fm[propName] = [current, val];
 				} else {
@@ -3071,7 +3073,11 @@ export class PropsExplorerPanel extends Component {
 			// never offers it as a property name. The index path already
 			// excludes it; only this fallback can leak it.
 			const fallbackProps = Object.keys(
-				(this.plugin.app.metadataCache as any).getAllPropertyInfos?.() ?? {},
+				(
+					this.plugin.app.metadataCache as unknown as {
+						getAllPropertyInfos?: () => Record<string, unknown>;
+					}
+				).getAllPropertyInfos?.() ?? {},
 			).filter((key) => key !== 'position');
 			// The primary source is the propScene projection itself
 			// (props-only by_type): whatever the panel lists, the popover
@@ -3099,7 +3105,11 @@ export class PropsExplorerPanel extends Component {
 				inputEl,
 				allProps,
 				(selectedName) => {
-					(inputEl as any)._vaultmanCommitted = true;
+					(
+						inputEl as HTMLInputElement & {
+							_vaultmanCommitted?: boolean;
+						}
+					)._vaultmanCommitted = true;
 					inputEl.value = selectedName;
 					void this._handleRevealCommitPropName(selectedName, true);
 				},
@@ -3132,7 +3142,11 @@ export class PropsExplorerPanel extends Component {
 				inputEl,
 				allValues,
 				(selectedValue) => {
-					(inputEl as any)._vaultmanCommitted = true;
+					(
+						inputEl as HTMLInputElement & {
+							_vaultmanCommitted?: boolean;
+						}
+					)._vaultmanCommitted = true;
 					inputEl.value = selectedValue;
 					void this._handleRevealCommitValue(node, selectedValue, enterPressed);
 				},

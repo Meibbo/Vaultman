@@ -99,7 +99,9 @@
 			query: string,
 			modifiers?: { caseSensitive: boolean; isRegex: boolean },
 		): void;
-		revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
+		revealCurrentFileProperty?(
+			request: FrontmatterPropertyRevealRequest,
+		): boolean;
 		isPropRevealActive?(): boolean;
 	};
 
@@ -153,6 +155,19 @@
 		void settingsRevision;
 		return plugin.settings.showDock;
 	});
+	function toggleFloatingToc() {
+		const decision = resolveFloatingTocToggle(
+			floatingTocEnabled,
+			activeFloatingTocPanel()?.isIndexableSort() === true,
+		);
+		if (decision.rejection === 'incompatible-sort') {
+			new Notice(translate('floating_toc.incompatible_sort'));
+			return;
+		}
+		hasExplicitFloatingToc = true;
+		floatingTocEnabled = decision.nextEnabled;
+		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
+	}
 	const floatingTocNiagara = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.floatingTocNiagara === true;
@@ -383,20 +398,6 @@
 		floatingTocEnabled = state.enabled === true;
 		tocKind = state.kind === 'files' ? 'files' : 'folders';
 		tocRootId = state.rootId || null;
-		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
-	}
-
-	function toggleFloatingToc() {
-		const decision = resolveFloatingTocToggle(
-			floatingTocEnabled,
-			activeFloatingTocPanel()?.isIndexableSort() === true,
-		);
-		if (decision.rejection === 'incompatible-sort') {
-			new Notice(translate('floating_toc.incompatible_sort'));
-			return;
-		}
-		hasExplicitFloatingToc = true;
-		floatingTocEnabled = decision.nextEnabled;
 		void sceneConfigPort.proposeFloatingToc(getFloatingTocState());
 	}
 

@@ -86,7 +86,7 @@ describe('Vaultman current-file property fan-out', () => {
 
 	it('no usar document.querySelector para revelar filas virtualizadas de Vaultman', () => {
 		const docSpy = vi.fn();
-		// eslint-disable-next-line obsidianmd/no-global-this
+		// eslint-disable-next-line obsidianmd/no-global-this -- the test installs a document mock on globalThis
 		const g = globalThis as { document?: unknown };
 		const prev = g.document;
 		g.document = { querySelector: docSpy };

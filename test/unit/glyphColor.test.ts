@@ -229,6 +229,6 @@ describe('BT5-025 shared glyph color palette', () => {
 		// formato del generador y no la intencion del estilo. Se comprueba la
 		// mezcla en si, sin depender de saltos ni tabulaciones.
 		const flat = stylesSource.replace(/\s+/g, ' ');
-		expect(flat).toContain('color-mix(in srgb, var(--vaultman-glyph-color), transparent 80%)');
+		expect(flat).toContain('color-mix(in srgb, var(--vaultman-glyph-color), var(--vaultman-row-bg-base, transparent) 80%)');
 	});
 });

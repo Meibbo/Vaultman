@@ -36,6 +36,7 @@ export const en: Record<string, string> = {
 	'settings.action.none': 'None (Obsidian default)',
 	'context_menu.node_note': 'Open Node-Note',
 	'settings.Vaultman_sets': 'Custom Sets',
+	'settings.vaultman_sets': 'Your Sets',
 	'settings.queue.template.templates': 'Operation Batches',
 	'settings.queue.template.templates.desc': 'Review your common operations',
 	// General
@@ -46,7 +47,7 @@ export const en: Record<string, string> = {
 	'plugin.description': 'Bulk property editor and vault management tool',
 	'plugin.open': 'Open Vaultman',
 	'common.cancel': 'Cancel',
-	'icon.not_found': '???', //add tooltip that says 'not found'
+	'icon.not_found': 'not found',
 	'iconic.change_icon': 'Change icon',
 
 	// Sections
