@@ -59,7 +59,7 @@ export function ensureInstance(
 		return { registry, record: existing, created: false };
 	}
 	if (existing) {
-		// Revivir, no duplicar: el tombstone es reversible hasta que pase el GC.
+		// Revivir, no duplicar: el tombstone es reversible hasta que lo pode `reconcileRegistry` (cupo `TOMBSTONE_CAP`).
 		const revived: WorkspaceInstanceRecord = { ...existing, tombstoned: false, revision: existing.revision + 1 };
 		return {
 			registry: { ...registry, instances: { ...registry.instances, [id]: revived } },
@@ -143,9 +143,17 @@ function writeSceneLayer(
 }
 
 /**
+ * Cupo de tombstones que sobreviven a la reconciliación (decisión del dev, 2026-09-14, A01).
+ * Sin cupo el registro crecía sin límite: cada panel cerrado dejaba su tombstone para siempre
+ * porque el GC que prometía `ensureInstance` nunca existió. Los vivos no cuentan para el cupo.
+ */
+export const TOMBSTONE_CAP = 20;
+
+/**
  * Se corre UNA vez al arrancar, con la lista de anclas vivas leídas del workspace.
- * Es idempotente y no borra nada: marcar tombstone conserva el payload, que es lo que permite
- * que reabrir un panel cerrado recupere su configuración en vez de empezar de cero.
+ * Es idempotente. Marcar tombstone conserva el payload, que es lo que permite que reabrir un
+ * panel cerrado recupere su configuración en vez de empezar de cero; pero solo se conservan los
+ * `TOMBSTONE_CAP` tombstones más recientes por `createdAt`: los demás se podan.
  */
 export function reconcileRegistry(
 	raw: InstanceRegistryData | undefined,
@@ -156,9 +164,20 @@ export function reconcileRegistry(
 	}
 	const live = new Set(liveAnchors);
 	const instances: Record<WorkspaceInstanceId, WorkspaceInstanceRecord> = {};
+	const tombstones: WorkspaceInstanceRecord[] = [];
 	for (const [id, record] of Object.entries(raw.instances)) {
 		if (!record || typeof record !== 'object' || record.id !== id) continue;
-		instances[id] = { ...record, tombstoned: !live.has(id) };
+		const next: WorkspaceInstanceRecord = { ...record, tombstoned: !live.has(id) };
+		instances[id] = next;
+		if (next.tombstoned) tombstones.push(next);
+	}
+	if (tombstones.length > TOMBSTONE_CAP) {
+		// Los más antiguos se van primero; a igual `createdAt` decide el id para que la poda
+		// sea determinista entre arranques.
+		tombstones.sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
+		for (const stale of tombstones.slice(0, tombstones.length - TOMBSTONE_CAP)) {
+			delete instances[stale.id];
+		}
 	}
 	return { schema: 1, instances };
 }

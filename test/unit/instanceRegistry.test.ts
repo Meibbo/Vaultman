@@ -6,7 +6,7 @@ import {
 	setActiveScene,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
-import { reconcileRegistry } from '../../src/logic/logicInstanceRegistry';
+import { reconcileRegistry, TOMBSTONE_CAP } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
 	it('mints a record with an opaque id and revision 1', () => {
@@ -125,6 +125,49 @@ describe('reconcileRegistry', () => {
 		registry = setSceneConfig(registry, 'vm-1', 'files', { viewMode: 'table' });
 		const reconciled = reconcileRegistry(registry, []);
 		expect(reconciled.instances['vm-1'].scenes.files).toEqual({ viewMode: 'table' });
+	});
+
+	it('keeps at most TOMBSTONE_CAP tombstones, pruning the oldest by createdAt (A01)', () => {
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		// 25 dead anchors, created in order: the 5 oldest must go.
+		for (let i = 0; i < 25; i += 1) {
+			const id = `vm-dead-${String(i).padStart(2, '0')}`;
+			registry = {
+				...registry,
+				instances: {
+					...registry.instances,
+					[id]: { ...createInstanceRecord(id), createdAt: 1000 + i },
+				},
+			};
+		}
+		// One live anchor, older than every tombstone: never pruned.
+		registry = {
+			...registry,
+			instances: {
+				...registry.instances,
+				'vm-live': { ...createInstanceRecord('vm-live'), createdAt: 1 },
+			},
+		};
+		const reconciled = reconcileRegistry(registry, ['vm-live']);
+		const tombstones = Object.values(reconciled.instances).filter((r) => r.tombstoned);
+		expect(tombstones).toHaveLength(TOMBSTONE_CAP);
+		expect(reconciled.instances['vm-live']?.tombstoned).toBe(false);
+		for (let i = 0; i < 5; i += 1) {
+			expect(reconciled.instances[`vm-dead-0${i}`]).toBeUndefined();
+		}
+		expect(reconciled.instances['vm-dead-05']).toBeDefined();
+		expect(reconciled.instances['vm-dead-24']).toBeDefined();
+	});
+
+	it('is idempotent once under the cap: a second reconcile changes nothing', () => {
+		let registry: InstanceRegistryData = { schema: 1, instances: {} };
+		for (let i = 0; i < 30; i += 1) {
+			const id = `vm-dead-${i}`;
+			registry = { ...registry, instances: { ...registry.instances, [id]: { ...createInstanceRecord(id), createdAt: i } } };
+		}
+		const once = reconcileRegistry(registry, []);
+		expect(reconcileRegistry(once, [])).toEqual(once);
+		expect(Object.keys(once.instances)).toHaveLength(TOMBSTONE_CAP);
 	});
 });
 
