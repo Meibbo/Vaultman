@@ -38,6 +38,8 @@ const PRESET_CUSTOM: GroupPreset = { kind: 'custom', direction: 'asc' };
 type PluginsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -70,6 +72,8 @@ type PluginsHarness = {
 type SnippetsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -196,6 +200,8 @@ function makePluginPanel() {
 	const panel = createPluginsHarness();
 	panel._groupIds = new Set<string>();
 	panel.hiddenGroupIds = new Set<string>();
+	panel._seenGroupHeaderIds = new Set<string>();
+	panel.expandedIds = new Set<string>();
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('plugins');
@@ -254,6 +260,8 @@ function makeSnippetPanel() {
 	const panel = createSnippetsHarness();
 	panel._groupIds = new Set<string>();
 	panel.hiddenGroupIds = new Set<string>();
+	panel._seenGroupHeaderIds = new Set<string>();
+	panel.expandedIds = new Set<string>();
 	panel._expandedGroupIds = new Set<string>();
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('snippets');

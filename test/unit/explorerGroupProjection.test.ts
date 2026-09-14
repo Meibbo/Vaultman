@@ -48,6 +48,8 @@ const PRESET_LETTER: GroupPreset = { kind: 'letter', direction: 'asc' };
 type SnippetsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -61,6 +63,8 @@ type SnippetsHarness = {
 type PluginsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	_expandedGroupIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
@@ -74,6 +78,8 @@ type PluginsHarness = {
 type TagsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -84,6 +90,8 @@ type TagsHarness = {
 type PropsHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -94,6 +102,8 @@ type PropsHarness = {
 type FilesHarness = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -132,6 +142,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
@@ -201,6 +213,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createPluginsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('plugins', 'all');
@@ -277,6 +291,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createTagsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('tags', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-tags';
@@ -334,6 +350,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createPropsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('props', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-props';
@@ -404,6 +422,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createFilesHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('files', 'all');
 		panel.groupPreset = PRESET_OFF;
 		panel.activeLayoutName = 'layout-files';
@@ -483,6 +503,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>(['custom-snips']);
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
@@ -516,6 +538,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		const panel = createSnippetsHarness();
 		panel._groupIds = new Set<string>();
 		panel.hiddenGroupIds = new Set<string>();
+		panel._seenGroupHeaderIds = new Set<string>();
+		panel.expandedIds = new Set<string>();
 		panel._expandedGroupIds = new Set<string>();
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');

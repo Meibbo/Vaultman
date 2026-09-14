@@ -35,6 +35,8 @@ const nodes: TreeNode<PropMeta>[] = [
 type PropsPanelTestDouble = {
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
+	_seenGroupHeaderIds: Set<string>;
+	expandedIds: Set<string>;
 	sortState: ReturnType<typeof sortStateWithScope>;
 	groupPreset: GroupPreset;
 	activeLayoutName: string | null;
@@ -59,6 +61,8 @@ function propsPanelWith(
 	const panel = Object.create(PropsExplorerPanel.prototype) as PropsPanelTestDouble;
 	panel._groupIds = new Set<string>();
 	panel.hiddenGroupIds = new Set<string>();
+	panel._seenGroupHeaderIds = new Set<string>();
+	panel.expandedIds = new Set<string>();
 	panel.sortState = sortStateWithScope('props', scope);
 	// Spec 08 §3.1.bis: the projection switch is the preset; the scope arg of
 	// this helper now stands for "grouping on/off" and maps onto it.

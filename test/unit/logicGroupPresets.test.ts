@@ -6,6 +6,7 @@ import {
 	sectionCount,
 } from '../../src/logic/logicGroupPresets';
 import {
+	expandNewGroupHeaders,
 	NO_GROUP_ID,
 	PRESET_GROUP_PREFIX,
 	projectGroupedTree,
@@ -289,5 +290,28 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 			kind: 'none',
 			direction: 'asc',
 		});
+	});
+});
+
+describe('SOTR pass F1 — group headers open on first sight, collapses are respected', () => {
+	it('expands a header the first time it appears and never re-opens one the user closed', () => {
+		const seen = new Set<string>();
+		const expanded = new Set<string>();
+		const headers = [
+			{ id: `${PRESET_GROUP_PREFIX}A`, label: 'A', depth: 0, meta: null },
+			{ id: NO_GROUP_ID, label: 'No group', depth: 0, meta: null },
+			{ id: '0:alpha', label: 'alpha', depth: 1, meta: null },
+		];
+		expandNewGroupHeaders(headers, seen, expanded);
+		expect([...expanded]).toEqual([`${PRESET_GROUP_PREFIX}A`, NO_GROUP_ID]);
+		// The user collapses A; the next projection must leave it collapsed.
+		expanded.delete(`${PRESET_GROUP_PREFIX}A`);
+		expandNewGroupHeaders(headers, seen, expanded);
+		expect(expanded.has(`${PRESET_GROUP_PREFIX}A`)).toBe(false);
+		// A custom group id counts as a header only when declared as such.
+		expandNewGroupHeaders([{ id: 'Work', label: 'Work', depth: 0, meta: null }], seen, expanded);
+		expect(expanded.has('Work')).toBe(false);
+		expandNewGroupHeaders([{ id: 'Work', label: 'Work', depth: 0, meta: null }], seen, expanded, new Set(['Work']));
+		expect(expanded.has('Work')).toBe(true);
 	});
 });

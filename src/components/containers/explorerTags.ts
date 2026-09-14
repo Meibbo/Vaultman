@@ -104,6 +104,7 @@ import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
 	collectSelectedMembershipUrns,
+	expandNewGroupHeaders,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -210,6 +211,8 @@ export class TagsExplorerPanel extends Component {
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** Group headers this explorer has already shown once (they open on first sight). */
+	private readonly _seenGroupHeaderIds = new Set<string>();
 	private hasConnectedSortStateHandler = false;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
@@ -444,7 +447,7 @@ export class TagsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		return projectGroupedTree<TagMeta>({
+		const projected = projectGroupedTree<TagMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -467,6 +470,8 @@ export class TagsExplorerPanel extends Component {
 			headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
 			headerMeta: { tagPath: '' },
 		}) as TreeNode<TagMeta>[];
+		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
+		return projected;
 	}
 
 	setInteractionMode(

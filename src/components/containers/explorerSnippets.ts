@@ -52,6 +52,7 @@ import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
 	collectSelectedMembershipUrns,
+	expandNewGroupHeaders,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -90,6 +91,8 @@ export class SnippetsExplorerPanel
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** Group headers this explorer has already shown once (they open on first sight). */
+	private readonly _seenGroupHeaderIds = new Set<string>();
 	private _expandedGroupIds = new Set<string>();
 	private activeLayoutName: string | null = null;
 
@@ -447,6 +450,7 @@ export class SnippetsExplorerPanel
 			headerMeta: { name: '', enabled: false },
 			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<SnippetMeta>[];
+		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this._expandedGroupIds, this._groupIds);
 		return this.withGroupToggleCells(projected);
 	}
 

@@ -92,6 +92,7 @@ import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
 	collectSelectedMembershipUrns,
+	expandNewGroupHeaders,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -254,6 +255,8 @@ export class PropsExplorerPanel extends Component {
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** Group headers this explorer has already shown once (they open on first sight). */
+	private readonly _seenGroupHeaderIds = new Set<string>();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
@@ -659,7 +662,7 @@ export class PropsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		return projectGroupedTree<PropMeta>({
+		const projected = projectGroupedTree<PropMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -682,6 +685,8 @@ export class PropsExplorerPanel extends Component {
 			headerCoreCls: 'tree-item-self tappable is-clickable',
 			headerMeta: { propName: '', propType: '', isValueNode: false },
 		}) as TreeNode<PropMeta>[];
+		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
+		return projected;
 	}
 
 	/**

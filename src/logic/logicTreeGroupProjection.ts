@@ -210,6 +210,25 @@ export function collectSelectedMembershipUrns<TMeta>(
 	return out;
 }
 
+/**
+ * Spec 08 §3.2 (F1 of the SOTR pass): a group header shows its members the
+ * first time it appears — a file manager opens groups, it does not hand the
+ * user a list of closed folders. A header the user collapsed stays collapsed:
+ * only ids never seen by this explorer get expanded.
+ */
+export function expandNewGroupHeaders<TMeta>(
+	projected: readonly TreeNode<TMeta>[],
+	seen: Set<string>,
+	expanded: Set<string>,
+	customGroupIds?: ReadonlySet<string>,
+): void {
+	for (const node of projected) {
+		if (!isGroupHeader(node.id, customGroupIds) || seen.has(node.id)) continue;
+		seen.add(node.id);
+		expanded.add(node.id);
+	}
+}
+
 export function projectGroupedTree<TMeta>(
 	input: GroupProjectionInput<TMeta>,
 ): readonly TreeNode<TMeta>[] {

@@ -39,6 +39,7 @@ import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import {
 	isGroupHeader,
 	collectSelectedMembershipUrns,
+	expandNewGroupHeaders,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -272,7 +273,7 @@ export class FilesExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		return projectGroupedTree<FileMeta>({
+		const projected = projectGroupedTree<FileMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -295,6 +296,8 @@ export class FilesExplorerPanel extends Component {
 			headerCoreCls: 'tree-item-self nav-folder-title is-clickable',
 			headerMeta: { file: null, folder: null, isFolder: true, folderPath: '' },
 		}) as TreeNode<FileMeta>[];
+		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
+		return projected;
 	}
 
 	private selectionAnchorPath: string | null = null;
@@ -365,6 +368,8 @@ export class FilesExplorerPanel extends Component {
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** Group headers this explorer has already shown once (they open on first sight). */
+	private readonly _seenGroupHeaderIds = new Set<string>();
 
 	constructor(
 		containerEl: HTMLElement,
