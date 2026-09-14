@@ -1082,6 +1082,7 @@ export const es: Record<string, string> = {
 	'group.new': 'Nuevo grupo',
 	'group.new.needs_layout': 'Nuevo grupo (activa un layout primero)',
 	'group.new.prompt': 'Nombre del grupo',
+	'group.create_with_selected': 'Crear grupo con la selección',
 	'sort.level.pick_hint': 'Mantén pulsada una fila para elegir el scope drill',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',
 	'sort.vertcol.direct_toggle': 'Alternar dirección',

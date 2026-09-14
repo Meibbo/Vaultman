@@ -40,6 +40,7 @@ import { NodeBindingService, prefixesFromSettings } from './services/serviceNode
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { BreadcrumbFileSceneService } from './services/serviceBreadcrumbFileScene';
 import { registerNodeBindingActions } from './logic/logicNodeBindingContextMenu';
+import { registerGroupActions } from './logic/logicGroupContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
@@ -238,6 +239,7 @@ export class VaultmanPlugin extends Plugin {
 		registerSnippetActions(this);
 		registerPluginActions(this);
 		registerNodeBindingActions(this);
+		registerGroupActions(this);
 
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),

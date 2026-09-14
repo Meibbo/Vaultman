@@ -178,6 +178,38 @@ function shiftDepth<TMeta>(
 	}));
 }
 
+/**
+ * Spec 08 §3.3: the membership URNs of the selected rows, in tree order.
+ * Rows under a group header keep their entity id (only multi-group
+ * occurrences are suffixed `id@group`), so the suffix is stripped before
+ * matching the selection.
+ */
+export function collectSelectedMembershipUrns<TMeta>(
+	tree: readonly TreeNode<TMeta>[],
+	selectedIds: ReadonlySet<string>,
+	urnOf: (node: TreeNode<TMeta>) => string,
+	customGroupIds?: ReadonlySet<string>,
+): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const walk = (nodes: readonly TreeNode<TMeta>[]) => {
+		for (const node of nodes) {
+			const entityId = node.id.split('@')[0] ?? node.id;
+			if (
+				!isGroupHeader(node.id, customGroupIds) &&
+				(selectedIds.has(node.id) || selectedIds.has(entityId)) &&
+				!seen.has(entityId)
+			) {
+				seen.add(entityId);
+				out.push(urnOf(node));
+			}
+			if (node.children?.length) walk(node.children);
+		}
+	};
+	walk(tree);
+	return out;
+}
+
 export function projectGroupedTree<TMeta>(
 	input: GroupProjectionInput<TMeta>,
 ): readonly TreeNode<TMeta>[] {

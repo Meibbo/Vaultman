@@ -28,6 +28,11 @@ export interface MenuCtx {
 	hasViewFilters?: () => boolean;
 	clearViewFilters?: () => void;
 	invokeRename?: (id: string) => void;
+	/**
+	 * Spec 08 §3.3: present only while the panel is in select mode with one
+	 * or more nodes selected. Creates a custom group holding the selection.
+	 */
+	createGroupWithSelected?: () => void;
 }
 
 export interface ActionDef {

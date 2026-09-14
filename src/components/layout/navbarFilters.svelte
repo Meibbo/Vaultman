@@ -2312,6 +2312,11 @@
 				}
 			});
 		}
+		// Spec 08 §3.3: the cmenu's `Create group with selected` lands here,
+		// where the active layout and the per-instance preset live.
+		explorerPortForTab(tab)?.setCreateGroupHandler?.(
+			(urns) => void createCustomGroup(tab, urns),
+		);
 		if (tab === 'props' && propExplorer) {
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
 				if (interactionModeByTab['props'] !== mode) {

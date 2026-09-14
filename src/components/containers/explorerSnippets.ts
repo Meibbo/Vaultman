@@ -51,6 +51,7 @@ import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
+	collectSelectedMembershipUrns,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -60,6 +61,7 @@ import {
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
+import type { MenuCtx } from '../../types/typeCMenu';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -84,6 +86,8 @@ export class SnippetsExplorerPanel
 	private readonly _groupIds = new Set<string>();
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
+	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
+	private createGroupHandler?: (urns: readonly string[]) => void;
 	private _expandedGroupIds = new Set<string>();
 	private activeLayoutName: string | null = null;
 
@@ -204,6 +208,44 @@ export class SnippetsExplorerPanel
 		if (sameGroupPreset(this.groupPreset, preset)) return;
 		this.groupPreset = { ...preset };
 		this.rebuildNodes();
+	}
+
+	setCreateGroupHandler(
+		handler?: (urns: readonly string[]) => void,
+	): void {
+		this.createGroupHandler = handler;
+	}
+
+	private _membershipUrnOf(node: TreeNode<SnippetMeta>): string {
+		return formatMembershipUrn({
+			providerId: 'snippets',
+			kind: 'snippet',
+			canonicalId: node.meta.name,
+			displayLabel: node.label,
+		});
+	}
+
+	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
+	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
+		const handler = this.createGroupHandler;
+		if (
+			!handler ||
+			this.interactionMode !== 'select' ||
+			this.selectedNodeIds.size === 0
+		) {
+			return {};
+		}
+		return {
+			createGroupWithSelected: () =>
+				handler(
+					collectSelectedMembershipUrns(
+						this.nodes,
+						this.selectedNodeIds,
+						(node) => this._membershipUrnOf(node),
+						this._groupIds,
+					),
+				),
+		};
 	}
 
 	/** Spec 08 §3.2: add-ons expose their install/update times as the date presets. */
@@ -372,13 +414,7 @@ export class SnippetsExplorerPanel
 			providerId: 'snippets',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
-			urnOf: (node) =>
-				formatMembershipUrn({
-					providerId: 'snippets',
-					kind: 'snippet',
-					canonicalId: node.meta.name,
-					displayLabel: node.label,
-				}),
+			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
@@ -612,6 +648,7 @@ export class SnippetsExplorerPanel
 				),
 				orderedIds: this.nodes.map((node) => node.meta.name),
 				surface: 'panel',
+				...this._groupCreationMenuCtx(),
 			},
 			event,
 		);

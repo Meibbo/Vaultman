@@ -103,6 +103,7 @@ import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	isGroupHeader,
+	collectSelectedMembershipUrns,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -203,6 +204,8 @@ export class TagsExplorerPanel extends Component {
 	private stickyRowsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
+	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
+	private createGroupHandler?: (urns: readonly string[]) => void;
 	private hasConnectedSortStateHandler = false;
 	private readonly deferredRender = new DeferredExplorerRender();
 	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
@@ -442,13 +445,7 @@ export class TagsExplorerPanel extends Component {
 			providerId: 'tags',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
-			urnOf: (node) =>
-				formatMembershipUrn({
-					providerId: 'tags',
-					kind: 'tag',
-					canonicalId: node.meta.tagPath,
-					displayLabel: node.label,
-				}),
+			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
@@ -646,6 +643,44 @@ export class TagsExplorerPanel extends Component {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
 		this.groupPreset = { ...preset };
 		this._render();
+	}
+
+	setCreateGroupHandler(
+		handler?: (urns: readonly string[]) => void,
+	): void {
+		this.createGroupHandler = handler;
+	}
+
+	private _membershipUrnOf(node: TreeNode<TagMeta>): string {
+		return formatMembershipUrn({
+			providerId: 'tags',
+			kind: 'tag',
+			canonicalId: node.meta.tagPath,
+			displayLabel: node.label,
+		});
+	}
+
+	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
+	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
+		const handler = this.createGroupHandler;
+		if (
+			!handler ||
+			this.interactionMode !== 'select' ||
+			this.selectedNodeIds.size === 0
+		) {
+			return {};
+		}
+		return {
+			createGroupWithSelected: () =>
+				handler(
+					collectSelectedMembershipUrns(
+						this._lastRenderTree,
+						this.selectedNodeIds,
+						(node) => this._membershipUrnOf(node),
+						this._groupIds,
+					),
+				),
+		};
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -1527,6 +1562,7 @@ export class TagsExplorerPanel extends Component {
 							nodeType: 'tag',
 							node,
 							surface: 'panel',
+							...this._groupCreationMenuCtx(),
 							invokeRename: (targetId: string) => {
 								this.editingId = targetId;
 								void this._render();
@@ -1676,6 +1712,7 @@ export class TagsExplorerPanel extends Component {
 						nodeType: 'tag',
 						node,
 						surface: 'panel',
+						...this._groupCreationMenuCtx(),
 						invokeRename: (targetId: string) => {
 							this.editingId = targetId;
 							void this._render();
@@ -1903,7 +1940,12 @@ export class TagsExplorerPanel extends Component {
 			card.addEventListener('contextmenu', (event) => {
 				event.preventDefault();
 				this.plugin.contextMenuService.openPanelMenu(
-					{ nodeType: 'tag', node, surface: 'panel' },
+					{
+						nodeType: 'tag',
+						node,
+						surface: 'panel',
+						...this._groupCreationMenuCtx(),
+					},
 					event,
 				);
 			});

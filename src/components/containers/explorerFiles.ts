@@ -38,6 +38,7 @@ import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import {
 	isGroupHeader,
+	collectSelectedMembershipUrns,
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../logic/logicTreeGroupProjection';
@@ -274,13 +275,7 @@ export class FilesExplorerPanel extends Component {
 			providerId: 'files',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
-			urnOf: (node) =>
-				formatMembershipUrn({
-					providerId: 'files',
-					kind: node.meta?.isFolder ? 'folder' : 'file',
-					canonicalId: node.meta?.file?.path ?? node.meta?.folderPath ?? node.id,
-					displayLabel: node.label,
-				}),
+			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
 			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
@@ -362,6 +357,8 @@ export class FilesExplorerPanel extends Component {
 	private compactFoldersOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
+	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
+	private createGroupHandler?: (urns: readonly string[]) => void;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -939,6 +936,44 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	setCreateGroupHandler(
+		handler?: (urns: readonly string[]) => void,
+	): void {
+		this.createGroupHandler = handler;
+	}
+
+	private _membershipUrnOf(node: TreeNode<FileMeta>): string {
+		return formatMembershipUrn({
+			providerId: 'files',
+			kind: node.meta?.isFolder ? 'folder' : 'file',
+			canonicalId: node.meta?.file?.path ?? node.meta?.folderPath ?? node.id,
+			displayLabel: node.label,
+		});
+	}
+
+	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
+	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
+		const handler = this.createGroupHandler;
+		if (
+			!handler ||
+			this.interactionMode !== 'select' ||
+			this.selectedFilePaths.size === 0
+		) {
+			return {};
+		}
+		return {
+			createGroupWithSelected: () =>
+				handler(
+					collectSelectedMembershipUrns(
+						this._lastRenderTree,
+						this.selectedFilePaths,
+						(node) => this._membershipUrnOf(node),
+						this._groupIds,
+					),
+				),
+		};
+	}
+
 	setStickyRowsEnabled(enabled: boolean): void {
 		if (this.stickyRowsOverride === enabled) return;
 		this.stickyRowsOverride = enabled;
@@ -1503,6 +1538,7 @@ export class FilesExplorerPanel extends Component {
 				nodeType: 'file',
 				node: syntheticNode,
 				surface: 'panel',
+				...this._groupCreationMenuCtx(),
 				file,
 				...this._viewFilterMenuActions(),
 			},
@@ -2593,6 +2629,7 @@ export class FilesExplorerPanel extends Component {
 								nodeType: 'folder',
 								node,
 								surface: 'panel',
+								...this._groupCreationMenuCtx(),
 								...this._viewFilterMenuActions(),
 							},
 							e,
@@ -2605,6 +2642,7 @@ export class FilesExplorerPanel extends Component {
 							nodeType: 'file',
 							node,
 							surface: 'panel',
+							...this._groupCreationMenuCtx(),
 							file: meta.file,
 							...this._viewFilterMenuActions(),
 							invokeRename: (targetId: string) => {

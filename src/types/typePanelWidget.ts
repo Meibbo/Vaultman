@@ -83,6 +83,8 @@ export interface PanelWidgetExplorerPort {
 	setCompactFoldersEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
+	/** Spec 08 §3.3: receives the selection's membership URNs to create a custom group. */
+	setCreateGroupHandler?(handler?: (urns: readonly string[]) => void): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;

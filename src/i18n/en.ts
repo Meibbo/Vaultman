@@ -1188,6 +1188,7 @@ export const en: Record<string, string> = {
 	'group.new': 'New group',
 	'group.new.needs_layout': 'New group (activate a layout first)',
 	'group.new.prompt': 'Group name',
+	'group.create_with_selected': 'Create group with selected',
 	'sort.level.pick_hint': 'Click a row to choose its level as the sort scope',
 	'sort.vertcol.node_level': 'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',
