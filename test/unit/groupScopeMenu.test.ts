@@ -25,9 +25,9 @@ describe('U130-03: el scope groups esta en los TRES sitios', () => {
 		}
 	});
 
-	it('groups sale en las cinco tabs', () => {
+	it('spec 08 §3.1.bis: `groups` no es un scope con nombre en ninguna tab', () => {
 		for (const tab of TABS) {
-			expect(sortScopeOptions(tab).map((o) => o.scope)).toContain('groups');
+			expect(sortScopeOptions(tab).map((o) => o.scope)).not.toContain('groups');
 		}
 	});
 
@@ -48,10 +48,13 @@ describe('U130-03: el scope groups esta en los TRES sitios', () => {
 		}
 	});
 
-	it('snippets y plugins ofrecen el selector de scope', () => {
+	it('snippets y plugins son listas planas: sin selector de scope, pero con el de grupos', () => {
+		// Spec 08 §3.2: la agrupacion es un preset, no un scope; el drawer de
+		// grupos del popup no depende de supportsByLevel (ver el guard de abajo).
 		for (const tab of ['snippets', 'plugins'] as const) {
-			expect(supportsByLevel(tab)).toBe(true);
+			expect(supportsByLevel(tab)).toBe(false);
 		}
+		expect(popupSortSource).toContain("use:icon={'lucide-group'}");
 	});
 
 	it('la condicion del popup para By-level coincide con supportsByLevel para las cinco tabs', () => {

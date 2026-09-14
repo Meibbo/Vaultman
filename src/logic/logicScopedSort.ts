@@ -8,22 +8,74 @@ import type {
 
 const DEFAULT_SORT: ScopeSort = { sortBy: 'name', direction: 'asc' };
 
+// --- Spec 08 §3.1.bis: scopes are levels -------------------------------------
+
+export function levelScope(level: number): SortScopeKey {
+	return `level:${level}`;
+}
+
+export function parentScope(id: string): SortScopeKey {
+	return `parent:${id}`;
+}
+
+export function isLevelScope(scope: string): scope is `level:${number}` {
+	return /^level:\d+$/.test(scope);
+}
+
+export function isParentScope(scope: string): scope is `parent:${string}` {
+	return scope.startsWith('parent:') && scope.length > 'parent:'.length;
+}
+
+export function levelOfScope(scope: string): number | null {
+	return isLevelScope(scope) ? Number(scope.slice('level:'.length)) : null;
+}
+
+export function parentOfScope(scope: string): string | null {
+	return isParentScope(scope) ? scope.slice('parent:'.length) : null;
+}
+
+/**
+ * The NAMED scopes each tab offers; `level:*` and `parent:*` are accepted on
+ * top wherever the tab has levels to pick from (`supportsLevelScopes`).
+ * U121-079: `all` is on every tab so "sort the whole tree" is always sayable.
+ */
 const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
-	// U121-079: `all` faltaba aqui. Sin el, propScene no tenia forma de decir
-	// "ordena el arbol entero": elegir un preset escribia en `properties` y los
-	// values se quedaban con su defecto alfabetico, sin que nada en la interfaz
-	// lo dijera. fileScene siempre lo tuvo.
-	props: ['all', 'properties', 'values', 'groups'],
-	files: ['drill', 'all', 'groups'],
-	tags: ['drill', 'all', 'groups'],
-	snippets: ['all', 'groups'],
-	plugins: ['all', 'groups'],
+	props: ['all', 'drill'],
+	files: ['all', 'drill'],
+	tags: ['all', 'drill'],
+	snippets: ['all'],
+	plugins: ['all'],
 };
 
-/** U130-03: los scopes validos de una tab. El menu los necesita para no ofrecer
- *  `groups` donde no significa nada, que es la mitad del fallo de U121-079. */
+/** U130-03: the named scopes of a tab. Menus derive from this, never from a copy. */
 export function scopesForTab(tab: ExplorerTabId): readonly SortScopeKey[] {
 	return SCOPES_BY_TAB[tab];
+}
+
+/** Flat add-on lists have one level: nothing to pick a parent or level from. */
+export function supportsLevelScopes(tab: ExplorerTabId): boolean {
+	return SCOPES_BY_TAB[tab].includes('drill');
+}
+
+export function isScopeAllowed(tab: ExplorerTabId, scope: string): scope is SortScopeKey {
+	if ((SCOPES_BY_TAB[tab] as readonly string[]).includes(scope)) return true;
+	// Level 0 is the group headers, and groups exist on every tab (§3.2).
+	if (scope === 'level:0') return true;
+	return supportsLevelScopes(tab) && (isLevelScope(scope) || isParentScope(scope));
+}
+
+/**
+ * Migration of the named scopes spec 08 §3.1.bis retires. `groups` was never
+ * the grouping switch (plan D4): it maps to level 0 and turns no preset on.
+ */
+const LEGACY_SCOPES: Record<string, SortScopeKey> = {
+	properties: 'level:1',
+	values: 'level:2',
+	groups: 'level:0',
+};
+
+export function migrateLegacyScopeKey(scope: string): string {
+	return LEGACY_SCOPES[scope] ?? scope;
 }
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
@@ -35,7 +87,7 @@ const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
 };
 
 function isHierarchicalTab(tab: ExplorerTabId): boolean {
-	return tab === 'files' || tab === 'tags';
+	return supportsLevelScopes(tab);
 }
 
 /** The surfaces that project properties or tags, and so can be narrowed. */
@@ -167,44 +219,61 @@ export function normalizeExplorerSortState(
 	}
 
 	if (!isRecord(value.sorts)) return fallback;
-	const allowedScopes = SCOPES_BY_TAB[tab];
-	if (
-		typeof value.activeScope !== 'string' ||
-		!allowedScopes.includes(value.activeScope as SortScopeKey)
-	) {
-		return fallback;
-	}
+	if (typeof value.activeScope !== 'string') return fallback;
+	const rawSorts = value.sorts;
 
-	const sorts: Partial<Record<SortScopeKey, ScopeSort>> = {};
-	for (const scope of allowedScopes) {
-		const sort = normalizeScopeSort(value.sorts[scope]);
-		if (
-			sort &&
-			!(tab === 'props' && scope === 'values' && sort.sortBy === 'type')
-		) {
-			sorts[scope] = sort;
-		}
-	}
+	// U121-079 (pre-migration shape): before `all` existed, propScene's only
+	// reachable scope was `properties`, so that entry WAS the tree-wide sort.
+	// Move it to `all` for anyone who never opened the scope drawer. The
+	// proof is the RAW input: `values: type` is stripped below, so reading
+	// the sanitized copy would call a deliberate two-scope setup an accident.
+	const legacyPropsOnly =
+		tab === 'props' &&
+		rawSorts.properties !== undefined &&
+		rawSorts.values === undefined &&
+		rawSorts['level:1'] === undefined;
 
-	// U121-079: before `all` existed, propScene's only reachable scope was
-	// `properties`, so that entry WAS the tree-wide sort. Move it to `all` for
-	// anyone who never opened the scope drawer. The proof is the RAW input, not
-	// the sanitized `sorts`: `values: type` is stripped above, so reading the
-	// sanitized copy would call a deliberate two-scope setup an accident.
-	const declaredValuesScope = value.sorts.values !== undefined;
-	if (tab === 'props' && sorts.properties && !declaredValuesScope) {
-		sorts.all = sorts.properties;
-		delete sorts.properties;
-	}
-
-	let activeScope = value.activeScope as SortScopeKey;
-	if (tab === 'props' && activeScope === 'properties' && !sorts.properties) {
-		activeScope = 'all';
-	}
-	let drillNodeId =
+	const rawDrillNodeId =
 		typeof value.drillNodeId === 'string' && value.drillNodeId
 			? value.drillNodeId
 			: null;
+	const sorts: Partial<Record<SortScopeKey, ScopeSort>> = {};
+	for (const rawScope of Object.keys(rawSorts)) {
+		// `sorts.drill` was the picked parent's sort: it now lives with that
+		// parent (`parent:<id>`); with no parent picked it had nothing to order.
+		if (rawScope === 'drill') {
+			if (!rawDrillNodeId) continue;
+			const sort = normalizeScopeSort(rawSorts.drill);
+			const key = parentScope(rawDrillNodeId);
+			if (sort && isScopeAllowed(tab, key) && !sorts[key]) sorts[key] = sort;
+			continue;
+		}
+		const scope =
+			legacyPropsOnly && rawScope === 'properties'
+				? 'all'
+				: migrateLegacyScopeKey(rawScope);
+		if (!isScopeAllowed(tab, scope)) continue;
+		const sort = normalizeScopeSort(rawSorts[rawScope]);
+		if (!sort) continue;
+		// Values have no type of their own: `type` there sorted nothing.
+		if (tab === 'props' && scope === 'level:2' && sort.sortBy === 'type') continue;
+		// A level:1 entry beats the migrated `properties` when both exist.
+		if (sorts[scope] && rawScope in LEGACY_SCOPES) continue;
+		sorts[scope] = sort;
+	}
+
+	const migratedScope =
+		legacyPropsOnly && value.activeScope === 'properties'
+			? 'all'
+			: migrateLegacyScopeKey(value.activeScope);
+	if (!isScopeAllowed(tab, migratedScope)) return fallback;
+	let activeScope: SortScopeKey = migratedScope;
+	const hiddenScopes = Array.isArray(value.hiddenScopes)
+		? value.hiddenScopes
+				.map((entry) => (typeof entry === 'string' ? migrateLegacyScopeKey(entry) : ''))
+				.filter((entry): entry is SortScopeKey => isScopeAllowed(tab, entry))
+		: [];
+	let drillNodeId = rawDrillNodeId;
 	if (
 		activeScope === 'drill' &&
 		(!drillNodeId ||
@@ -213,10 +282,20 @@ export function normalizeExplorerSortState(
 		activeScope = 'all';
 		drillNodeId = null;
 	}
+	// A parent scope whose node is gone has nothing to act on.
+	const activeParent = parentOfScope(activeScope);
+	if (
+		activeParent &&
+		options.isValidDrillNode &&
+		!options.isValidDrillNode(activeParent)
+	) {
+		activeScope = 'all';
+	}
 
 	return {
 		sorts,
 		activeScope,
+		...(hiddenScopes.length > 0 ? { hiddenScopes } : {}),
 		...(isHierarchicalTab(tab) ? { drillNodeId } : {}),
 		...nodeFilters,
 		...normalizeNarrowingState(tab, value),
@@ -232,34 +311,64 @@ export function normalizeExplorerSortState(
 }
 
 /**
+ * Where a scope's sort is stored. `drill` is the parent currently picked, so
+ * its sort lives with that parent (`parent:<drillNodeId>`): the list of
+ * parents with their own sort (§3.1.5) is just the `parent:*` keys.
+ */
+export function storageScope(
+	state: ExplorerSortState,
+	scope: SortScopeKey,
+): SortScopeKey {
+	if (scope === 'drill') {
+		return state.drillNodeId ? parentScope(state.drillNodeId) : 'all';
+	}
+	return scope;
+}
+
+function isHiddenScope(state: ExplorerSortState, scope: SortScopeKey): boolean {
+	return state.hiddenScopes?.includes(scope) === true;
+}
+
+/**
  * U121-079: a scope the user never set follows the tab's `all`, instead of
- * silently reverting to name/asc.
- *
- * `sorts` is partial and starts empty, so every scope the user has not opened
- * is absent. Without this the new `all` scope would be write-only: choosing
- * `note` there would leave `properties` and `values` on their own defaults
- * and change nothing on screen.
+ * silently reverting to name/asc. Level 0 (the old `groups`) does NOT inherit:
+ * turning grouping on must not reorder the headers with the nodes' criterion.
  */
 export function activeScopeSort(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
 	scope: SortScopeKey = state.activeScope,
 ): ScopeSort {
-	const allowedScope = SCOPES_BY_TAB[tab].includes(scope)
-		? scope
-		: DEFAULT_SCOPE_BY_TAB[tab];
-	const own = state.sorts[allowedScope];
-	if (own) return own;
-	// U130-03: `groups` NO hereda el sort de otro scope. Heredar el de `all`
-	// haria que activar la agrupacion reordenara los grupos con el criterio de
-	// los nodos, en silencio -- el fallo de U121-079 otra vez. Sin sort propio,
-	// los grupos van en el orden por defecto y el usuario decide si lo cambia.
-	if (allowedScope === 'groups') return state.sorts.groups ?? DEFAULT_SORT;
-	const fallbackScope = DEFAULT_SCOPE_BY_TAB[tab];
-	if (fallbackScope !== allowedScope) {
-		return state.sorts[fallbackScope] ?? DEFAULT_SORT;
-	}
+	const allowed = isScopeAllowed(tab, scope) ? scope : DEFAULT_SCOPE_BY_TAB[tab];
+	const key = storageScope(state, allowed);
+	const own = state.sorts[key];
+	if (own && !isHiddenScope(state, key)) return own;
+	if (key === 'level:0') return DEFAULT_SORT;
+	if (key !== 'all') return state.sorts.all ?? DEFAULT_SORT;
 	return DEFAULT_SORT;
+}
+
+/**
+ * The sort that orders the siblings under `parentId` at `level` (1 = root):
+ * the parent's own sort wins, then the level's, then `all`. This is the
+ * single resolver every scene sorts with; `drill` is just the parent whose
+ * `parent:*` entry the pick wrote.
+ */
+export function siblingScopeSort(
+	tab: ExplorerTabId,
+	state: ExplorerSortState,
+	parentId: string | null,
+	level: number,
+): ScopeSort {
+	if (parentId !== null) {
+		const byParent = parentScope(parentId);
+		const own = state.sorts[byParent];
+		if (own && !isHiddenScope(state, byParent)) return own;
+	}
+	const byLevel = levelScope(level);
+	const levelSort = state.sorts[byLevel];
+	if (levelSort && !isHiddenScope(state, byLevel)) return levelSort;
+	return activeScopeSort(tab, state, 'all');
 }
 
 export function replaceActiveScopeSort(
@@ -267,12 +376,17 @@ export function replaceActiveScopeSort(
 	state: ExplorerSortState,
 	sort: ScopeSort,
 ): ExplorerSortState {
-	const scope = SCOPES_BY_TAB[tab].includes(state.activeScope)
+	const scope = isScopeAllowed(tab, state.activeScope)
 		? state.activeScope
 		: DEFAULT_SCOPE_BY_TAB[tab];
+	const key = storageScope(state, scope);
 	return {
 		...state,
-		sorts: { ...state.sorts, [scope]: { ...sort } },
+		sorts: { ...state.sorts, [key]: { ...sort } },
+		// Writing a sort to a hidden scope is the user un-hiding it.
+		...(state.hiddenScopes?.includes(key)
+			? { hiddenScopes: state.hiddenScopes.filter((entry) => entry !== key) }
+			: {}),
 	};
 }
 
@@ -295,6 +409,7 @@ export function sameExplorerSortState(
 		sameSortProjection(a, b) &&
 		a.activeScope === b.activeScope &&
 		a.drillNodeId === b.drillNodeId &&
+		JSON.stringify(a.hiddenScopes ?? []) === JSON.stringify(b.hiddenScopes ?? []) &&
 		a.nodeTypeFilter === b.nodeTypeFilter &&
 		a.filtered === b.filtered &&
 		a.revealAnchor === b.revealAnchor &&
@@ -319,6 +434,41 @@ export function sortTwoLevel<T extends { children?: T[] }>(
 				}
 			: node,
 	);
+}
+
+/**
+ * Spec 08 §3.1: sort every level with the resolver of `siblingScopeSort`.
+ * `compareWith(sort)` builds the comparator for one ScopeSort; it is called
+ * once per distinct sort, so scenes can cache their indexes per sort.
+ */
+export function sortWithScopes<T extends SortableTreeNode<T>>(
+	nodes: readonly T[],
+	resolveSort: (parentId: string | null, level: number) => ScopeSort,
+	compareWith: (sort: ScopeSort) => (a: T, b: T) => number,
+): T[] {
+	const comparators = new Map<string, (a: T, b: T) => number>();
+	const comparatorFor = (sort: ScopeSort) => {
+		const key = `${sort.sortBy}|${sort.direction}`;
+		let compare = comparators.get(key);
+		if (!compare) {
+			compare = compareWith(sort);
+			comparators.set(key, compare);
+		}
+		return compare;
+	};
+	const sortLevel = (
+		siblings: readonly T[],
+		parentId: string | null,
+		level: number,
+	): T[] =>
+		[...siblings]
+			.sort(comparatorFor(resolveSort(parentId, level)))
+			.map((node) =>
+				node.children?.length
+					? { ...node, children: sortLevel(node.children, node.id, level + 1) }
+					: node,
+			);
+	return sortLevel(nodes, null, 1);
 }
 
 export function sortAllWithDrill<T extends SortableTreeNode<T>>(
@@ -367,7 +517,7 @@ export function isSortOptionVisible(
 	if (
 		(optionId === 'sub' || optionId === 'type') &&
 		context.tab === 'props' &&
-		context.activeScope === 'values'
+		context.activeScope === 'level:2'
 	) {
 		return false;
 	}

@@ -117,10 +117,12 @@ import {
 	activeScopeSort,
 	normalizeExplorerSortState,
 	sameExplorerSortState,
-	sortAllWithDrill,
+	siblingScopeSort,
+	sortWithScopes,
 } from '../../logic/logicScopedSort';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
+	findNodeLevel,
 	findParentId,
 	indexLevel,
 	type FloatingTocExpansionChange,
@@ -1181,26 +1183,27 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
-		const allSort = activeScopeSort('tags', this.sortState, 'all');
-		const drillSort = activeScopeSort('tags', this.sortState, 'drill');
-		const allSortBy = normalizeExplorerSortBy(allSort.sortBy);
-		const drillSortBy = normalizeExplorerSortBy(drillSort.sortBy);
-		const allTimeIndex =
-			allSortBy === 'mtime' || allSortBy === 'ctime'
-				? this._buildTagTimeIndex(allSortBy)
-				: null;
-		const drillTimeIndex =
-			drillSortBy === 'mtime' || drillSortBy === 'ctime'
-				? allSortBy === drillSortBy && allTimeIndex
-					? allTimeIndex
-					: this._buildTagTimeIndex(drillSortBy)
-				: null;
-
-		return sortAllWithDrill(
+		// Spec 08 §3.1: every level resolves parent → level → all. The time
+		// index is built once per distinct date sort, whichever scopes share it.
+		const timeIndexes = new Map<DateSortId, Map<string, number>>();
+		const timeIndexFor = (sort: ScopeSort) => {
+			const sortBy = normalizeExplorerSortBy(sort.sortBy);
+			if (sortBy !== 'mtime' && sortBy !== 'ctime') return null;
+			let index = timeIndexes.get(sortBy);
+			if (!index) {
+				index = this._buildTagTimeIndex(sortBy);
+				timeIndexes.set(sortBy, index);
+			}
+			return index;
+		};
+		return sortWithScopes(
 			nodes,
-			(a, b) => this._compareNodes(a, b, allSort, allTimeIndex),
-			(a, b) => this._compareNodes(a, b, drillSort, drillTimeIndex),
-			this.sortState.drillNodeId,
+			(parentId, level) =>
+				siblingScopeSort('tags', this.sortState, parentId, level),
+			(sort) => {
+				const timeIndex = timeIndexFor(sort);
+				return (a, b) => this._compareNodes(a, b, sort, timeIndex);
+			},
 		);
 	}
 
@@ -1310,6 +1313,11 @@ export class TagsExplorerPanel extends Component {
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
+	}
+
+	scopeLevelForNode(id: string): number | null {
+		if (this.viewMode !== 'tree') return null;
+		return findNodeLevel(this._lastRenderTree, id);
 	}
 
 	/** Re-measure the cached virtual window after a hidden pane becomes visible. */

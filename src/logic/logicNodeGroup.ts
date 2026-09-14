@@ -52,14 +52,16 @@ export function canNest(
 }
 
 /**
- * Un grupo con `scope: 'properties'` no admite `node_value`s. Sin esta puerta,
- * el arrastre crea grupos incoherentes que luego no se pueden proyectar.
+ * Un grupo de nivel 1 (las propiedades) no admite `node_value`s, y uno de
+ * nivel 2 (los valores) no admite `node_prop`s. Sin esta puerta, el arrastre
+ * crea grupos incoherentes que luego no se pueden proyectar. Spec 08
+ * §3.1.bis: los scopes `properties`/`values` son ahora `level:1`/`level:2`.
  */
 export function canAddMember(
 	group: NodeGroupDef,
 	node: { kind: string },
 ): boolean {
-	if (group.scope === 'properties') return node.kind === 'prop';
-	if (group.scope === 'values') return node.kind === 'value';
+	if (group.scope === 'level:1') return node.kind === 'prop';
+	if (group.scope === 'level:2') return node.kind === 'value';
 	return true;
 }

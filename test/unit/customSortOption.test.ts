@@ -36,7 +36,7 @@ describe('U121-029 Note sort option', () => {
 		const context = {
 			tab: 'props' as const,
 			nestedActive: true,
-			activeScope: 'properties' as const,
+			activeScope: 'level:1' as const,
 		};
 		expect(isSortOptionVisible('note', context)).toBe(false);
 		expect(

@@ -25,10 +25,13 @@
 		byLevelModel,
 		groupMenuModel,
 		NODE_TYPE_MENU_OPTIONS,
+		scopeMenuModel,
 		supportsByLevel,
 		visibleSortOptions,
 		type ByLevelMenuItem,
 		type GroupMenuItem,
+		type ScopeMenuItem,
+		type ScopeMenuScene,
 	} from '../../logic/logicSortMenu';
 	import {
 		NO_GROUP_PRESET,
@@ -46,6 +49,11 @@
 		onFilterChange,
 		onScopeChange,
 		onRequestDrillPick,
+		onRequestLevelPick,
+		onActivateScope,
+		onHideScope,
+		onDeleteScope,
+		scopeScene,
 		onRequestRevealPick,
 		initialSortState,
 		nestedActive = false,
@@ -66,6 +74,12 @@
 		onFilterChange?: (state: ExplorerSortState) => void;
 		onScopeChange?: (state: ExplorerSortState) => void;
 		onRequestDrillPick?: () => void;
+		/** Spec 08 §3.1: `Select a level` pick, and the rows of parents/levels with a sort. */
+		onRequestLevelPick?: () => void;
+		onActivateScope?: (key: SortScopeKey) => void;
+		onHideScope?: (key: SortScopeKey, hidden: boolean) => void;
+		onDeleteScope?: (key: SortScopeKey) => void;
+		scopeScene?: ScopeMenuScene;
 		onRequestRevealPick?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
@@ -115,6 +129,51 @@
 	const levelModel = $derived(
 		byLevelModel(activeTab, sortState, treeCapable, revealActive),
 	);
+	const scopeModel = $derived(
+		treeCapable && scopeScene
+			? scopeMenuModel(activeTab, sortState, scopeScene)
+			: null,
+	);
+	// Spec 08 §4 on a scope row: the row asking hide / delete / cancel.
+	let confirmingScopeId = $state<string | null>(null);
+	const scopeConfirmRow = createConfirmRow(
+		{
+			set: (callback, ms) => window.setTimeout(callback, ms),
+			clear: (handle) => window.clearTimeout(handle as number),
+		},
+		(armed) => {
+			confirmingScopeId = armed;
+		},
+	);
+
+	function activateScopeItem(item: ScopeMenuItem) {
+		if (item.kind === 'separator') return;
+		if (item.kind === 'pick') {
+			levelDrawerOpen = false;
+			if (item.id === 'drill') onRequestDrillPick?.();
+			else if (item.id === 'level') onRequestLevelPick?.();
+			else selectScope('all');
+			return;
+		}
+		scopeConfirmRow.arm(item.id);
+	}
+
+	function answerScopeRow(
+		key: SortScopeKey,
+		answer: 'select' | 'hide' | 'delete' | 'cancel',
+	) {
+		const hidden = sortState.hiddenScopes?.includes(key) === true;
+		scopeConfirmRow.disarm();
+		if (answer === 'select') onActivateScope?.(key);
+		else if (answer === 'hide') onHideScope?.(key, !hidden);
+		else if (answer === 'delete') onDeleteScope?.(key);
+	}
+
+	function scopeItemLabel(item: ScopeMenuItem): string {
+		if (item.kind === 'separator') return '';
+		if (item.kind === 'pick') return translate(item.labelKey);
+		return `${item.label} · ${item.sortLabel}`;
+	}
 	const visibleSortOptionsForActiveTab = $derived(
 		visibleSortOptions(activeTab, sortState, nestedActive, revealActive),
 	);
@@ -126,6 +185,7 @@
 		levelDrawerOpen = false;
 		groupDrawerOpen = false;
 		confirmRow.disarm();
+		scopeConfirmRow.disarm();
 	});
 
 	// Keep an open popup in sync with native menus and restored layouts.
@@ -244,10 +304,6 @@
 
 	function activateByLevelItem(item: ByLevelMenuItem) {
 		if (item.kind === 'separator') return;
-		if (item.kind === 'scope') {
-			selectScope(item.scope);
-			return;
-		}
 		if (item.kind === 'reveal') {
 			selectRevealAnchor(item.id);
 			return;
@@ -306,8 +362,11 @@
 	<!-- Vert-col: absolute, floats left over tab content -->
 	<!-- U121-079 / U130-003: la lista a mano aqui era el quinto sitio de U121-079;
 	     ahora deriva de supportsByLevel para incluir snippets y plugins. -->
-	{#if supportsByLevel(activeTab)}
-		<div class="vaultman-sort-vertcol">
+	<!-- Spec 08 §3.1-3.2: the groups drawer is on every tab; the level drawer
+	     only where the tab has levels (supportsByLevel), the node-type drawer
+	     only where there are node types. -->
+	<div class="vaultman-sort-vertcol">
+		{#if supportsByLevel(activeTab)}
 			<div
 				class="vaultman-sort-vertcol-btn"
 				class:is-active={levelDrawerOpen}
@@ -321,9 +380,74 @@
 				tabindex="0"
 				use:icon={vertTopIcon}
 			></div>
-			{#if levelDrawerOpen && levelModel}
+			{#if levelDrawerOpen && (levelModel || scopeModel)}
 				<div class="vaultman-sort-vertcol-drawer">
-					{#each levelModel.items as opt (opt.id)}
+					<!-- Spec 08 §3.1: `Scope: <variable>` — All levels / Select a parent /
+					     Select a level, then the parents and levels with their own sort. -->
+					{#each scopeModel?.items ?? [] as opt (opt.id)}
+						{#if opt.kind === 'separator'}
+							<div
+								class="vaultman-sort-drawer-separator"
+								role="separator"
+							></div>
+						{:else if opt.kind === 'scope-row' && confirmingScopeId === opt.id}
+							<div
+								class="vaultman-sort-drawer-confirm"
+								role="group"
+								aria-label={translate('group.row.confirm')}
+							>
+								<button
+									class="vaultman-sort-drawer-item"
+									class:is-active={opt.checked}
+									aria-label={opt.label}
+									title={opt.label}
+									onclick={() => answerScopeRow(opt.id, 'select')}
+									use:icon={opt.icon}
+								></button>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate(
+										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+									)}
+									title={translate(
+										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+									)}
+									onclick={() => answerScopeRow(opt.id, 'hide')}
+									use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
+								></button>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate('group.row.delete')}
+									title={translate('group.row.delete')}
+									onclick={() => answerScopeRow(opt.id, 'delete')}
+									use:icon={'lucide-trash-2'}
+								></button>
+								<button
+									class="vaultman-sort-drawer-item"
+									aria-label={translate('group.row.cancel')}
+									title={translate('group.row.cancel')}
+									onclick={() => answerScopeRow(opt.id, 'cancel')}
+									use:icon={'lucide-x'}
+								></button>
+							</div>
+						{:else}
+							<button
+								class="vaultman-sort-drawer-item"
+								class:is-active={opt.checked}
+								class:is-hidden={opt.kind === 'scope-row' && opt.hidden}
+								aria-label={scopeItemLabel(opt)}
+								title={scopeItemLabel(opt)}
+								onclick={() => activateScopeItem(opt)}
+								use:icon={opt.kind === 'scope-row' && opt.hidden
+									? 'lucide-eye-off'
+									: opt.icon}
+							></button>
+						{/if}
+					{/each}
+					{#if scopeModel && levelModel && levelModel.items.length > 0}
+						<div class="vaultman-sort-drawer-separator" role="separator"></div>
+					{/if}
+					{#each levelModel?.items ?? [] as opt (opt.id)}
 						{#if opt.kind === 'separator'}
 							<div
 								class="vaultman-sort-drawer-separator"
@@ -342,78 +466,77 @@
 					{/each}
 				</div>
 			{/if}
-			<!-- Spec 08 §3.2: the groups submenu. `none` is a value of the selection. -->
-			<div
-				class="vaultman-sort-vertcol-btn"
-				class:is-active={groupDrawerOpen || groupPreset.kind !== 'none'}
-				aria-label={translate('group.menu.title')}
-				title={translate('group.menu.title')}
-				onclick={toggleGroupDrawer}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') toggleGroupDrawer();
-				}}
-				role="button"
-				tabindex="0"
-				use:icon={'lucide-group'}
-			></div>
-			{#if groupDrawerOpen}
-				<div class="vaultman-sort-vertcol-drawer">
-					{#each groupModel.items as opt (opt.id)}
-						{#if opt.kind === 'separator'}
-							<div
-								class="vaultman-sort-drawer-separator"
-								role="separator"
-							></div>
-						{:else if opt.kind === 'custom-group' && confirmingGroupId === opt.id}
-							<!-- Spec 08 §4 (plan D7): in this icon-only drawer the row's
+		{/if}
+		<!-- Spec 08 §3.2: the groups submenu. `none` is a value of the selection. -->
+		<div
+			class="vaultman-sort-vertcol-btn"
+			class:is-active={groupDrawerOpen || groupPreset.kind !== 'none'}
+			aria-label={translate('group.menu.title')}
+			title={translate('group.menu.title')}
+			onclick={toggleGroupDrawer}
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.key === 'Enter' || e.key === ' ') toggleGroupDrawer();
+			}}
+			role="button"
+			tabindex="0"
+			use:icon={'lucide-group'}
+		></div>
+		{#if groupDrawerOpen}
+			<div class="vaultman-sort-vertcol-drawer">
+				{#each groupModel.items as opt (opt.id)}
+					{#if opt.kind === 'separator'}
+						<div class="vaultman-sort-drawer-separator" role="separator"></div>
+					{:else if opt.kind === 'custom-group' && confirmingGroupId === opt.id}
+						<!-- Spec 08 §4 (plan D7): in this icon-only drawer the row's
 							     content becomes the three answers; the question is the
 							     accessible name of the group. -->
-							<div
-								class="vaultman-sort-drawer-confirm"
-								role="group"
-								aria-label={translate('group.row.confirm')}
-							>
-								<button
-									class="vaultman-sort-drawer-item"
-									aria-label={translate(
-										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
-									)}
-									title={translate(
-										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
-									)}
-									onclick={() => answerConfirmRow(opt.id, 'hide')}
-									use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
-								></button>
-								<button
-									class="vaultman-sort-drawer-item"
-									aria-label={translate('group.row.delete')}
-									title={translate('group.row.delete')}
-									onclick={() => answerConfirmRow(opt.id, 'delete')}
-									use:icon={'lucide-trash-2'}
-								></button>
-								<button
-									class="vaultman-sort-drawer-item"
-									aria-label={translate('group.row.cancel')}
-									title={translate('group.row.cancel')}
-									onclick={() => answerConfirmRow(opt.id, 'cancel')}
-									use:icon={'lucide-x'}
-								></button>
-							</div>
-						{:else}
+						<div
+							class="vaultman-sort-drawer-confirm"
+							role="group"
+							aria-label={translate('group.row.confirm')}
+						>
 							<button
 								class="vaultman-sort-drawer-item"
-								class:is-active={opt.kind === 'preset' && opt.checked}
-								class:is-hidden={opt.kind === 'custom-group' && opt.hidden}
-								disabled={opt.kind === 'new-group' && opt.disabled}
-								aria-label={groupItemLabel(opt)}
-								title={groupItemLabel(opt)}
-								onclick={() => activateGroupItem(opt)}
-								use:icon={opt.icon}
+								aria-label={translate(
+									opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+								)}
+								title={translate(
+									opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+								)}
+								onclick={() => answerConfirmRow(opt.id, 'hide')}
+								use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
 							></button>
-						{/if}
-					{/each}
-				</div>
-			{/if}
+							<button
+								class="vaultman-sort-drawer-item"
+								aria-label={translate('group.row.delete')}
+								title={translate('group.row.delete')}
+								onclick={() => answerConfirmRow(opt.id, 'delete')}
+								use:icon={'lucide-trash-2'}
+							></button>
+							<button
+								class="vaultman-sort-drawer-item"
+								aria-label={translate('group.row.cancel')}
+								title={translate('group.row.cancel')}
+								onclick={() => answerConfirmRow(opt.id, 'cancel')}
+								use:icon={'lucide-x'}
+							></button>
+						</div>
+					{:else}
+						<button
+							class="vaultman-sort-drawer-item"
+							class:is-active={opt.kind === 'preset' && opt.checked}
+							class:is-hidden={opt.kind === 'custom-group' && opt.hidden}
+							disabled={opt.kind === 'new-group' && opt.disabled}
+							aria-label={groupItemLabel(opt)}
+							title={groupItemLabel(opt)}
+							onclick={() => activateGroupItem(opt)}
+							use:icon={opt.icon}
+						></button>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+		{#if activeTab === 'files' || activeTab === 'props' || activeTab === 'tags'}
 			<div
 				class="vaultman-sort-vertcol-btn"
 				class:is-active={activeTab === 'files'
@@ -445,8 +568,8 @@
 					{/each}
 				</div>
 			{/if}
-		</div>
-	{/if}
+		{/if}
+	</div>
 
 	<!-- Main content panel: row 1 + row 2 -->
 	<div

@@ -6,6 +6,8 @@ import {
 } from './logicNodeTypeFilters';
 import {
 	activeScopeSort,
+	isScopeAllowed,
+	migrateLegacyScopeKey,
 	normalizeExplorerSortState,
 	scopesForTab,
 } from './logicScopedSort';
@@ -535,7 +537,14 @@ function layoutSortRows(
 
 	// Derivado de scopesForTab para mantener la fuente unica de verdad:
 	// una lista de scopes escrita a mano en un cuarto sitio fue U130-007, y antes U121-079 y U130-003.
-	for (const scope of scopesForTab(tab)) {
+	// Spec 08 §3.1.bis: los `level:*`/`parent:*` guardados se suman a los nombrados.
+	const scopes = [
+		...scopesForTab(tab),
+		...(Object.keys(normalized.sorts) as SortScopeKey[]).filter(
+			(scope) => !scopesForTab(tab).includes(scope),
+		),
+	];
+	for (const scope of scopes) {
 		const savedSort = normalized.sorts[scope];
 		const effective = activeScopeSort(tab, normalized, scope);
 		const rawScopeSort =
@@ -554,7 +563,7 @@ function layoutSortRows(
 					(id) =>
 						!(
 							tab === 'props' &&
-							scope === 'values' &&
+							scope === 'level:2' &&
 							(id === 'type' || id === 'sub')
 						),
 				),
@@ -636,7 +645,7 @@ function layoutSortRows(
 		for (const scope of Object.keys(raw.sorts).sort((a, b) =>
 			a.localeCompare(b),
 		)) {
-			if (!scopesForTab(tab).includes(scope as SortScopeKey)) {
+			if (!isScopeAllowed(tab, migrateLegacyScopeKey(scope))) {
 				rows.push(
 					row(`sortState.sorts.${scope}`, raw.sorts[scope], {
 						status: 'warning',

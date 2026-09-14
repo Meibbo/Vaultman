@@ -6,6 +6,7 @@ import propsSource from '../../src/components/containers/explorerProps.ts?raw';
 import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
 import {
 	byLevelModel,
+	scopeMenuModel,
 	NODE_TYPE_MENU_OPTIONS,
 	SORT_MENU_OPTIONS,
 	visibleSortOptions,
@@ -30,79 +31,93 @@ describe('BT5-007 shared sort menu model', () => {
 		// Spec 08 §3.4: `filtered` ya no vive aquí -- se movió a su propio
 		// lugar en `openNativeSortMenu`, cerca de `By type` (ver
 		// `sortUiSource.test.ts` para ese guard).
-		expect(enabled?.items.map((item) => item.id)).toEqual([
-			'scope-separator',
-			'drill',
-			'all',
-			'groups',
-		]);
+		// Spec 08 §3.1: the scope items moved to `scopeMenuModel`.
+		expect(enabled?.items.map((item) => item.id)).toEqual([]);
 
 		const foldersMixed = byLevelModel(
 			'files',
 			stateFor('files', { parentsFirst: false, fixedFolders: true }),
 		);
-		// U121-079: groups llega al final de los scopes de By-level.
-		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
-			'scope-separator',
-			'drill',
-			'all',
-			'groups',
-		]);
+		// Spec 08 §3.1: the scope items live in the `Scope: <variable>`
+		// submenu now (`scopeMenuModel`); By-level keeps only the reveal block.
+		expect(foldersMixed?.items.map((item) => item.id)).toEqual([]);
 	});
 
 	it('drops the folder options when nesting is off or the view is flat', () => {
-		// Scopes are always in the sort menu (guard removed per spec 08).
+		// Scopes are always in the sort menu (guard removed per spec 08), in
+		// their own submenu since spec 08 §3.1.
 		expect(
 			byLevelModel('files', stateFor('files'))?.items.map((i) => i.id),
-		).toEqual(['scope-separator', 'drill', 'all', 'groups']);
+		).toEqual([]);
 		expect(
 			byLevelModel('tags', stateFor('tags'))?.items.map((i) => i.id),
-		).toEqual(['scope-separator', 'drill', 'all', 'groups']);
+		).toEqual([]);
 		// A flat view (table/cards) has no By-level group at all.
 		expect(byLevelModel('files', stateFor('files'), false)).toBeNull();
 		expect(byLevelModel('tags', stateFor('tags'), false)).toBeNull();
 	});
 
-	it('projects the same contextual scope order for Props and Tags', () => {
-		const props = byLevelModel(
-			'props',
-			stateFor('props', { activeScope: 'values' }),
+	it('spec 08 §3.1: the Scope submenu offers All levels / Select a parent / Select a level', () => {
+		const scene = {
+			parentLabel: (id: string) => (id === 'folder:Projects' ? 'Projects' : null),
+			parentLevel: (id: string) => (id === 'folder:Projects' ? 1 : null),
+			sortLabel: (sort: { sortBy: string; direction: string }) =>
+				`${sort.sortBy} ${sort.direction}`,
+			levelLabel: (level: number) => `Level ${level}`,
+		};
+		const all = scopeMenuModel('files', stateFor('files'), scene);
+		expect(all?.titleKind).toBe('all');
+		expect(all?.items.map((item) => item.id)).toEqual(['all', 'drill', 'level']);
+		expect(all?.items.find((item) => item.id === 'all')).toMatchObject({ checked: true });
+
+		// A picked parent titles the submenu after it and lists it as a row.
+		const picked = scopeMenuModel(
+			'files',
+			stateFor('files', {
+				activeScope: 'drill',
+				drillNodeId: 'folder:Projects',
+				sorts: {
+					all: { sortBy: 'name', direction: 'asc' },
+					'parent:folder:Projects': { sortBy: 'modified', direction: 'desc' },
+				},
+			}),
+			scene,
 		);
-		// U121-079: groups llega al final de los scopes de By-level.
-		expect(props?.items.map((item) => item.id)).toEqual([
-			'scope-separator',
+		expect(picked?.titleKind).toBe('parent');
+		expect(picked?.titleArg).toBe('Projects');
+		expect(picked?.items.map((item) => item.id)).toEqual([
 			'all',
-			'properties',
-			'values',
-			'groups',
+			'drill',
+			'level',
+			'scope-rows-separator',
+			'parent:folder:Projects',
 		]);
-		expect(props?.items.find((item) => item.id === 'values')).toMatchObject({
+		expect(picked?.items.at(-1)).toMatchObject({
+			kind: 'scope-row',
+			label: '1: Projects',
+			sortLabel: 'modified desc',
 			checked: true,
+			hidden: false,
 		});
 
-		const tags = byLevelModel(
-			'tags',
-			stateFor('tags', { activeScope: 'all' }),
+		// A level scope titles it `Level N`; a hidden row says so.
+		const level = scopeMenuModel(
+			'props',
+			stateFor('props', {
+				activeScope: 'level:2',
+				hiddenScopes: ['level:2'],
+				sorts: { 'level:2': { sortBy: 'count', direction: 'asc' } },
+			}),
+			scene,
 		);
-		// U121-079: groups llega al final de los scopes de By-level.
-		expect(tags?.items.map((item) => item.id)).toEqual([
-			'scope-separator',
-			'drill',
-			'all',
-			'groups',
-		]);
-		// U121-079: groups llega a snippets y habilita By-level with all and groups.
-		expect(
-			byLevelModel('snippets', stateFor('snippets'))?.items.map(
-				(item) => item.id,
-			),
-		).toEqual(['scope-separator', 'all', 'groups']);
-		// U121-079: groups llega a plugins y habilita By-level with all and groups.
-		expect(
-			byLevelModel('plugins', stateFor('plugins'))?.items.map(
-				(item) => item.id,
-			),
-		).toEqual(['scope-separator', 'all', 'groups']);
+		expect(level?.titleKind).toBe('level');
+		expect(level?.titleArg).toBe('Level 2');
+		expect(level?.items.at(-1)).toMatchObject({ id: 'level:2', hidden: true });
+
+		// Flat add-on lists have no levels to pick from.
+		expect(scopeMenuModel('snippets', stateFor('snippets'), scene)).toBeNull();
+		expect(byLevelModel('snippets', stateFor('snippets'))).toBeNull();
+		expect(byLevelModel('plugins', stateFor('plugins'))).toBeNull();
 	});
 
 	it('pins the add-property toggle to the reveal drawer, last by default', () => {
@@ -186,14 +201,14 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(
 			visibleSortOptions(
 				'props',
-				stateFor('props', { activeScope: 'values' }),
+				stateFor('props', { activeScope: 'level:2' }),
 				true,
 			).map((option) => option.id),
 		).not.toContain('sub');
 		expect(
 			visibleSortOptions(
 				'props',
-				stateFor('props', { activeScope: 'values' }),
+				stateFor('props', { activeScope: 'level:2' }),
 				true,
 			).map((option) => option.id),
 		).not.toContain('type');
@@ -250,7 +265,9 @@ describe('BT5-007 shared sort menu model', () => {
 		// of the type can slot between it and the label tie break. It is still
 		// the semantic comparator, not a label compare wearing its name.
 		expect(tagsSource).toContain('tagStructureRank(a) - tagStructureRank(b)');
-		expect(tagsSource).toContain('sortAllWithDrill(');
+		// Spec 08 §3.1: every level resolves parent -> level -> all.
+		expect(tagsSource).toContain('sortWithScopes(');
+		expect(tagsSource).toContain("siblingScopeSort('tags'");
 	});
 
 	// U121-029: while a note is anchored the drawer leads with the two modes
@@ -259,7 +276,7 @@ describe('BT5-007 shared sort menu model', () => {
 	it('leads with the reveal anchor modes only while a note is anchored', () => {
 		const withReveal = byLevelModel(
 			'props',
-			stateFor('props', { activeScope: 'properties' }),
+			stateFor('props', { activeScope: 'level:1' }),
 			true,
 			true,
 		);
@@ -269,11 +286,6 @@ describe('BT5-007 shared sort menu model', () => {
 			'reveal-drill',
 			'reveal-separator',
 			'addPropertyFirst',
-			'scope-separator',
-			'all',
-			'properties',
-			'values',
-			'groups',
 		]);
 		// Current File is the resting mode; pinning is what the user opts into.
 		expect(

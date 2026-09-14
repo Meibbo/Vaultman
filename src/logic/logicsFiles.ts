@@ -44,6 +44,12 @@ export interface BuildFileTreeOptions {
 	sorts?: Partial<Record<'all' | 'drill', ScopeSort>>;
 	drillNodeId?: string | null;
 	/**
+	 * Spec 08 §3.1: the sort of the siblings under `parentId` at `level`
+	 * (1 = root). When given it replaces the `sorts`/`drillNodeId` pair: the
+	 * scene resolves parent → level → all (`siblingScopeSort`).
+	 */
+	scopeSortFor?: (parentId: string | null, level: number) => ScopeSort;
+	/**
 	 * BT5-012: which projection the flat label carries. `path` replaces the
 	 * label instead of adding a column, so a duplicated filename in another
 	 * folder stays distinguishable without a second textual cell.
@@ -282,12 +288,14 @@ export class FilesLogic {
 		const sortTree = (
 			subtree: TreeNode<FileMeta>[],
 			parentId: string | null = null,
+			level = 1,
 		): void => {
 			// A null parentId (the root level) must never match a null/absent
 			// drill target — that let a lingering drill sort capture L1 while
 			// every other level followed the all-scope sort (BT4-009).
-			const scopeSort =
-				parentId !== null && parentId === options.drillNodeId
+			const scopeSort = options.scopeSortFor
+				? options.scopeSortFor(parentId, level)
+				: parentId !== null && parentId === options.drillNodeId
 					? (options.sorts?.drill ?? options.sorts?.all)
 					: options.sorts?.all;
 			if (options.compareNodes && scopeSort) {
@@ -310,7 +318,7 @@ export class FilesLogic {
 			}
 
 			for (const node of subtree) {
-				if (node.children?.length) sortTree(node.children, node.id);
+				if (node.children?.length) sortTree(node.children, node.id, level + 1);
 			}
 		};
 

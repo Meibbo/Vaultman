@@ -59,7 +59,8 @@ describe('explorer setter source guards', () => {
 		expect(tagsSource).toContain(
 			'setSortState(state: ExplorerSortState): void',
 		);
-		expect(tagsSource).toContain('sortAllWithDrill(');
+		// Spec 08 §3.1: the sort resolves per level (`sortWithScopes`).
+		expect(tagsSource).toContain('sortWithScopes(');
 		expect(tagsSource).toContain(
 			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
 		);

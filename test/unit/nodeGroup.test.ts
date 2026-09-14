@@ -43,7 +43,7 @@ describe('U130-03 anidacion de grupos', () => {
 
 describe('U130-03 canAddMember', () => {
 	it('un grupo de properties no admite un value', () => {
-		const g = { ...custom('g'), scope: 'properties' as const };
+		const g = { ...custom('g'), scope: 'level:1' as const };
 		expect(canAddMember(g, { kind: 'value' })).toBe(false);
 		expect(canAddMember(g, { kind: 'prop' })).toBe(true);
 	});

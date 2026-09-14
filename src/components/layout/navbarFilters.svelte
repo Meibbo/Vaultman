@@ -33,9 +33,12 @@
 	} from '../../logic/logicSort';
 	import {
 		activeScopeSort,
+		levelScope,
 		normalizeExplorerSortState,
+		parentOfScope,
 		replaceActiveScopeSort,
 		sameExplorerSortState,
+		storageScope,
 	} from '../../logic/logicScopedSort';
 	import {
 		isHierarchicalViewMode,
@@ -68,9 +71,12 @@
 		groupMenuModel,
 		nextGroupPreset,
 		NODE_TYPE_MENU_OPTIONS,
+		scopeMenuModel,
+		SORT_MENU_OPTIONS,
 		supportsByLevel,
 		visibleSortOptions,
 		type NodeTypeMenuOption,
+		type ScopeMenuScene,
 	} from '../../logic/logicSortMenu';
 	import type { GroupPresetKind } from '../../types/typeGroupPreset';
 	import {
@@ -1790,7 +1796,16 @@
 	}
 
 	function beginDrillPick(tab: FiltersTab) {
-		if (tab !== 'files' && tab !== 'tags') return;
+		beginScopePick(tab, 'parent');
+	}
+
+	/** Spec 08 §3.1 item 3: same capture-by-click as the parent pick, but it takes the row's LEVEL. */
+	function beginLevelPick(tab: FiltersTab) {
+		beginScopePick(tab, 'level');
+	}
+
+	function beginScopePick(tab: FiltersTab, mode: 'parent' | 'level') {
+		if (!supportsByLevel(tab)) return;
 		stopDrillPick();
 		const pane =
 			navbarEl?.closest<HTMLElement>('.vaultman-filters-tab-pane.is-active') ??
@@ -1814,12 +1829,23 @@
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;
 			suppressEvent(event);
-			const panel = tab === 'files' ? fileList : tagsExplorer;
-			const parentId = panel?.scopeRootForNode(nodeId) ?? null;
+			const panel = treePanelForTab(tab);
 			const current = normalizeSortState(
 				tab,
 				untrack(() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]),
 			);
+			if (mode === 'level') {
+				const level = panel?.scopeLevelForNode?.(nodeId) ?? null;
+				handleScopeChangeForTab(
+					tab,
+					level !== null
+						? { ...current, activeScope: levelScope(level) }
+						: { ...current, activeScope: 'all' },
+				);
+				stopDrillPick();
+				return;
+			}
+			const parentId = panel?.scopeRootForNode(nodeId) ?? null;
 			handleScopeChangeForTab(
 				tab,
 				parentId
@@ -1841,7 +1867,190 @@
 				400,
 			);
 		};
-		new Notice(translate('sort.level.pick_hint'));
+		new Notice(
+			translate(
+				mode === 'level'
+					? 'sort.level.pick_level_hint'
+					: 'sort.level.pick_hint',
+			),
+		);
+	}
+
+	function treePanelForTab(tab: FiltersTab) {
+		if (tab === 'files') return fileList ?? null;
+		if (tab === 'tags') return tagsExplorer ?? null;
+		if (tab === 'props') return propExplorer ?? null;
+		return null;
+	}
+
+	/** Spec 08 §3.1: what the scope submenu needs from the scene to name its rows. */
+	function scopeSceneFor(tab: FiltersTab): ScopeMenuScene {
+		const panel = treePanelForTab(tab);
+		return {
+			parentLabel: (id) => panel?.sortNodeLabel?.(id) ?? null,
+			parentLevel: (id) => panel?.scopeLevelForNode?.(id) ?? null,
+			sortLabel: (sort) =>
+				`${translate(sortOptionLabelKey(tab, sort.sortBy))} ${sortDirectionGlyph(sort.direction)}`,
+			levelLabel: (level) => translate('sort.scope.level_n', { n: level }),
+		};
+	}
+
+	function sortOptionLabelKey(tab: FiltersTab, sortBy: string): string {
+		return (
+			SORT_MENU_OPTIONS[tab].find((option) => option.id === sortBy)?.labelKey ??
+			sortBy
+		);
+	}
+
+	/** §3.1.bis: the submenu is titled after what is active. */
+	function scopeMenuTitle(model: {
+		titleKind: 'all' | 'parent' | 'level';
+		titleArg: string;
+	}): string {
+		const scope =
+			model.titleKind === 'all'
+				? translate('sort.level.all')
+				: model.titleKind === 'level'
+					? model.titleArg
+					: shortLabel(model.titleArg);
+		return translate('sort.scope.title', { scope });
+	}
+
+	function shortLabel(label: string): string {
+		const chars = [...label];
+		return chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
+	}
+
+	function activateScopeRow(tab: FiltersTab, key: string) {
+		const current = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const parentId = parentOfScope(key);
+		stopDrillPick();
+		handleScopeChangeForTab(
+			tab,
+			parentId
+				? { ...current, activeScope: 'drill', drillNodeId: parentId }
+				: { ...current, activeScope: key as ExplorerSortState['activeScope'] },
+		);
+	}
+
+	/** Spec 08 §4 on a scope row: `hide` keeps the sort but stops resolving it. */
+	function setScopeHidden(tab: FiltersTab, key: string, hidden: boolean) {
+		const current = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeKey = key as ExplorerSortState['activeScope'];
+		const hiddenScopes = (current.hiddenScopes ?? []).filter(
+			(entry) => entry !== scopeKey,
+		);
+		if (hidden) hiddenScopes.push(scopeKey);
+		handleScopeChangeForTab(tab, {
+			...current,
+			hiddenScopes,
+			...(hidden && storageScope(current, current.activeScope) === scopeKey
+				? { activeScope: 'all', drillNodeId: null }
+				: {}),
+		});
+	}
+
+	function deleteScope(tab: FiltersTab, key: string) {
+		const current = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeKey = key as ExplorerSortState['activeScope'];
+		const { [scopeKey]: _removed, ...sorts } = current.sorts;
+		handleScopeChangeForTab(tab, {
+			...current,
+			sorts,
+			hiddenScopes: (current.hiddenScopes ?? []).filter(
+				(entry) => entry !== scopeKey,
+			),
+			...(storageScope(current, current.activeScope) === scopeKey
+				? { activeScope: 'all', drillNodeId: null }
+				: {}),
+		});
+	}
+
+	function addScopeSubmenu(
+		menu: Menu,
+		tab: FiltersTab,
+		current: ExplorerSortState,
+	) {
+		const model = scopeMenuModel(tab, current, scopeSceneFor(tab));
+		if (!model) return;
+		menu.addItem((item) => {
+			item.setTitle(scopeMenuTitle(model)).setIcon('lucide-layers');
+			const sub = (
+				item as typeof item & { setSubmenu: () => Menu }
+			).setSubmenu();
+			for (const entry of model.items) {
+				if (entry.kind === 'separator') {
+					sub.addSeparator();
+					continue;
+				}
+				sub.addItem((row) => {
+					if (entry.kind === 'pick') {
+						row
+							.setTitle(translate(entry.labelKey))
+							.setIcon(entry.icon)
+							.setChecked(entry.checked)
+							.onClick(() => {
+								if (entry.id === 'drill') beginDrillPick(tab);
+								else if (entry.id === 'level') beginLevelPick(tab);
+								else {
+									stopDrillPick();
+									handleScopeChangeForTab(tab, {
+										...current,
+										activeScope: 'all',
+										drillNodeId: null,
+									});
+								}
+							});
+						return;
+					}
+					// §3.1.5 + §4: a parent/level with its own sort. Click selects
+					// it; the row's submenu carries hide / delete / cancel (D3).
+					row
+						.setTitle(`${entry.label} · ${entry.sortLabel}`)
+						.setIcon(entry.hidden ? 'lucide-eye-off' : entry.icon)
+						.setChecked(entry.checked);
+					const confirm = (
+						row as typeof row & { setSubmenu: () => Menu }
+					).setSubmenu();
+					confirm.addItem((q) =>
+						q.setTitle(translate('group.row.confirm')).setDisabled(true),
+					);
+					confirm.addItem((sel) =>
+						sel
+							.setTitle(entry.label)
+							.setIcon(entry.icon)
+							.setChecked(entry.checked)
+							.onClick(() => activateScopeRow(tab, entry.id)),
+					);
+					confirm.addItem((h) =>
+						h
+							.setTitle(
+								translate(entry.hidden ? 'group.row.unhide' : 'group.row.hide'),
+							)
+							.setIcon(entry.hidden ? 'lucide-eye' : 'lucide-eye-off')
+							.onClick(() => setScopeHidden(tab, entry.id, !entry.hidden)),
+					);
+					confirm.addItem((d) =>
+						d
+							.setTitle(translate('group.row.delete'))
+							.setIcon('lucide-trash-2')
+							.onClick(() => deleteScope(tab, entry.id)),
+					);
+					confirm.addItem((c) =>
+						c.setTitle(translate('group.row.cancel')).setIcon('lucide-x'),
+					);
+				});
+			}
+		});
 	}
 
 	function stopRevealPick() {
@@ -2027,24 +2236,6 @@
 		applyCompactFolders(tab, next);
 	}
 
-	function drillScopeTitle(
-		tab: FiltersTab,
-		current: ExplorerSortState,
-	): string {
-		const base = translate('sort.level.drill');
-		if (current.activeScope !== 'drill' || !current.drillNodeId) return base;
-		const panel =
-			tab === 'files' ? fileList : tab === 'tags' ? tagsExplorer : null;
-		const label = panel?.sortNodeLabel?.(current.drillNodeId) ?? '';
-		if (!label) return base;
-		const chars = [...label];
-		const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
-		// Spec 08 §5: the label is now "Select a parent", which has no
-		// trailing word to regex-replace the way the old "Scope: drill" did.
-		// Append the picked node's short name instead.
-		return `${base}: ${short}`;
-	}
-
 	function addByLevelItems(
 		menu: Menu,
 		tab: FiltersTab,
@@ -2060,11 +2251,7 @@
 			}
 			menu.addItem((item) =>
 				item
-					.setTitle(
-						option.kind === 'scope' && option.scope === 'drill'
-							? drillScopeTitle(tab, current)
-							: translate(option.labelKey),
-					)
+					.setTitle(translate(option.labelKey))
 					.setIcon(option.icon)
 					.setChecked(option.checked)
 					.onClick(() => {
@@ -2089,18 +2276,7 @@
 								revealAnchor: 'current-file',
 								revealAnchorPath: null,
 							});
-							return;
 						}
-						if (option.scope === 'drill') {
-							beginDrillPick(tab);
-							return;
-						}
-						stopDrillPick();
-						handleScopeChange({
-							...current,
-							activeScope: option.scope,
-							...(tab === 'props' ? {} : { drillNodeId: null }),
-						});
 					}),
 			);
 		}
@@ -2131,9 +2307,9 @@
 		);
 		const activeSort = activeScopeSort(activeTab, current);
 
-		// Spec 08 §3.2: the groups submenu goes right after the scope submenu
-		// (step 6 of plan U130-08 moves the scope items up here) and before
-		// the sort presets.
+		// Spec 08 §3.1-3.2: `Scope: <variable>` first, the groups submenu
+		// second, then the sort presets.
+		addScopeSubmenu(menu, activeTab, current);
 		addGroupsSubmenu(menu, activeTab);
 		menu.addSeparator();
 
@@ -2818,6 +2994,11 @@
 					onFilterChange={handleFilterChange}
 					onScopeChange={handleScopeChange}
 					onRequestDrillPick={() => beginDrillPick(activeTab)}
+					onRequestLevelPick={() => beginLevelPick(activeTab)}
+					onActivateScope={(key) => activateScopeRow(activeTab, key)}
+					onHideScope={(key, hidden) => setScopeHidden(activeTab, key, hidden)}
+					onDeleteScope={(key) => deleteScope(activeTab, key)}
+					scopeScene={scopeSceneFor(activeTab)}
 					initialSortState={sortStateByTab[activeTab]}
 					nestedActive={nestedActiveFor(activeTab)}
 					{revealActive}

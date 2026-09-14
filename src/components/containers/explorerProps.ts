@@ -106,10 +106,12 @@ import {
 	activeScopeSort,
 	normalizeExplorerSortState,
 	sameExplorerSortState,
+	siblingScopeSort,
 	sortTwoLevel,
 } from '../../logic/logicScopedSort';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
+	findNodeLevel,
 	findParentId,
 	indexLevel,
 	type FloatingTocExpansionChange,
@@ -2036,6 +2038,11 @@ export class PropsExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
+	scopeLevelForNode(id: string): number | null {
+		if (this.viewMode !== 'tree') return null;
+		return findNodeLevel(this._lastRenderTree, id);
+	}
+
 	expandNodeById(id: string): void {
 		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
 		this.expandedIds.add(id);
@@ -2946,31 +2953,29 @@ export class PropsExplorerPanel extends Component {
 	 * values across properties, Parent restores the grouping deliberately.
 	 */
 	private _sortFlat(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
-		const sort = activeScopeSort('props', this.sortState, 'values');
+		const sort = activeScopeSort('props', this.sortState, 'level:2');
 		const sortBy = normalizeExplorerSortBy(sort.sortBy);
 		if (sortBy !== 'name' && sortBy !== 'parent') return nodes;
 		return sortFlatProjection(nodes, sortBy, sort.direction);
 	}
 
 	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
-		const propertiesSort = activeScopeSort(
-			'props',
-			this.sortState,
-			'properties',
-		);
-		const valuesSort = activeScopeSort('props', this.sortState, 'values');
+		// Spec 08 §3.1.bis: properties are level 1 and values level 2; a
+		// parent (one property) may carry its own sort for its values.
+		const propertiesSort = siblingScopeSort('props', this.sortState, null, 1);
 		const propertiesSortBy = normalizeExplorerSortBy(propertiesSort.sortBy);
-		const valuesSortBy = normalizeExplorerSortBy(valuesSort.sortBy);
-		const propertiesTimeIndex =
-			propertiesSortBy === 'mtime' || propertiesSortBy === 'ctime'
-				? this._buildPropTimeIndex(propertiesSortBy)
-				: null;
-		const valuesTimeIndex =
-			valuesSortBy === 'mtime' || valuesSortBy === 'ctime'
-				? propertiesSortBy === valuesSortBy && propertiesTimeIndex
-					? propertiesTimeIndex
-					: this._buildPropTimeIndex(valuesSortBy)
-				: null;
+		const timeIndexes = new Map<DateSortId, PropTimeIndex>();
+		const timeIndexFor = (sort: ScopeSort) => {
+			const sortBy = normalizeExplorerSortBy(sort.sortBy);
+			if (sortBy !== 'mtime' && sortBy !== 'ctime') return null;
+			let index = timeIndexes.get(sortBy);
+			if (!index) {
+				index = this._buildPropTimeIndex(sortBy);
+				timeIndexes.set(sortBy, index);
+			}
+			return index;
+		};
+		const propertiesTimeIndex = timeIndexFor(propertiesSort);
 		const propertiesTypeIndex =
 			propertiesSortBy === 'type'
 				? new Map(
@@ -2988,7 +2993,10 @@ export class PropsExplorerPanel extends Component {
 					propertiesTimeIndex,
 					propertiesTypeIndex,
 				),
-			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
+			(a, b, parent) => {
+				const valuesSort = siblingScopeSort('props', this.sortState, parent.id, 2);
+				return this._compareNodes(a, b, valuesSort, timeIndexFor(valuesSort));
+			},
 		);
 	}
 

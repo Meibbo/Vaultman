@@ -2,6 +2,7 @@ import type {
 	ExplorerSortDirection,
 	ExplorerSortState,
 	ExplorerTabId,
+	ScopeSort,
 	SortScopeKey,
 } from '../types/typeUI';
 import {
@@ -9,7 +10,14 @@ import {
 	type GroupPreset,
 	type GroupPresetKind,
 } from '../types/typeGroupPreset';
-import { isSortOptionVisible, scopesForTab } from './logicScopedSort';
+import {
+	isSortOptionVisible,
+	levelOfScope,
+	parentOfScope,
+	scopesForTab,
+	storageScope,
+	supportsLevelScopes,
+} from './logicScopedSort';
 import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
 import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
 import { TAG_SOURCE_ORDER } from './logicTagSource';
@@ -193,20 +201,13 @@ export interface ByLevelRevealItem extends ByLevelBaseItem {
 	id: 'reveal-current-file' | 'reveal-drill';
 }
 
-export interface ByLevelScopeItem extends ByLevelBaseItem {
-	kind: 'scope';
-	id: SortScopeKey;
-	scope: SortScopeKey;
-}
-
 export interface ByLevelSeparatorItem {
 	kind: 'separator';
-	id: 'scope-separator' | 'reveal-separator';
+	id: 'reveal-separator';
 }
 
 export type ByLevelMenuItem =
 	| ByLevelToggleItem
-	| ByLevelScopeItem
 	| ByLevelRevealItem
 	| ByLevelSeparatorItem;
 
@@ -226,7 +227,7 @@ interface SortScopeMenuOption {
  * resolutor vuelvan a desincronizarse (U121-079: un nivel de scope a medias
  * ordena mal y sin que nada en la interfaz lo diga).
  */
-const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
+const SCOPE_META: Record<'all' | 'drill', { icon: string; labelKey: string }> = {
 	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
 	// Spec 08 §5: renamed to "Select a parent" in the UI; the symbol
 	// (`SortScopeKey = 'drill'`) and this labelKey are NOT reimplemented,
@@ -235,10 +236,13 @@ const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
 		icon: 'lucide-crosshair',
 		labelKey: 'sort.level.drill',
 	},
-	properties: { icon: 'lucide-list-tree', labelKey: 'sort.level.properties' },
-	values: { icon: 'lucide-list-collapse', labelKey: 'sort.level.values' },
-	groups: { icon: 'lucide-group', labelKey: 'sort.level.groups' },
 };
+
+/** Spec 08 §3.1 item 3: the level pick is a drill that captures the row's LEVEL. */
+const LEVEL_PICK_META = {
+	icon: 'lucide-list-tree',
+	labelKey: 'sort.level.select_level',
+} as const;
 
 /**
  * U130-03: una tab soporta el selector de scope cuando DECLARA mas de un
@@ -246,13 +250,141 @@ const SCOPE_META: Record<SortScopeKey, { icon: string; labelKey: string }> = {
  * verdad y la que dejaba fuera a Snippets y Plugins (U130-003).
  */
 export function supportsByLevel(tab: ExplorerTabId): boolean {
-	return scopesForTab(tab).length > 1;
+	return supportsLevelScopes(tab);
 }
 
 export function sortScopeOptions(
 	tab: ExplorerTabId,
 ): readonly SortScopeMenuOption[] {
-	return scopesForTab(tab).map((scope) => ({ scope, ...SCOPE_META[scope] }));
+	return scopesForTab(tab).map((scope) => ({
+		scope,
+		...SCOPE_META[scope as 'all' | 'drill'],
+	}));
+}
+
+// --- Spec 08 §3.1: the `Scope: <variable>` submenu ---------------------------
+
+export interface ScopePickItem {
+	kind: 'pick';
+	id: 'all' | 'drill' | 'level';
+	icon: string;
+	labelKey: string;
+	checked: boolean;
+}
+
+/** §3.1.5: a parent or level that has its own sort; a §4 hide/delete row. */
+export interface ScopeSortRowItem {
+	kind: 'scope-row';
+	id: SortScopeKey;
+	icon: string;
+	label: string;
+	/** `name ↑`-style summary of the row's own sort. */
+	sortLabel: string;
+	checked: boolean;
+	hidden: boolean;
+}
+
+export interface ScopeSeparatorItem {
+	kind: 'separator';
+	id: 'scope-rows-separator';
+}
+
+export type ScopeMenuItem = ScopePickItem | ScopeSortRowItem | ScopeSeparatorItem;
+
+export interface ScopeMenuModel {
+	/** `Scope: All levels` / `Scope: <node>` / `Scope: Level N` (§3.1.bis). */
+	titleKind: 'all' | 'parent' | 'level';
+	/** The node label (parent) or the level number; empty for `all`. */
+	titleArg: string;
+	items: ScopeMenuItem[];
+}
+
+export interface ScopeMenuScene {
+	/** Label of a parent node, null when the node is gone. */
+	parentLabel: (id: string) => string | null;
+	/** 1-based level of a parent node, null when unknown. */
+	parentLevel: (id: string) => number | null;
+	/** `name ↑` for a sort. */
+	sortLabel: (sort: ScopeSort) => string;
+	/** `Level N` for a level. */
+	levelLabel: (level: number) => string;
+}
+
+export function scopeMenuModel(
+	tab: ExplorerTabId,
+	state: ExplorerSortState,
+	scene: ScopeMenuScene,
+): ScopeMenuModel | null {
+	if (!supportsLevelScopes(tab)) return null;
+	const active = storageScope(state, state.activeScope);
+	const activeParent = parentOfScope(active);
+	const activeLevel = levelOfScope(active);
+	const titleKind =
+		activeParent !== null ? 'parent' : activeLevel !== null ? 'level' : 'all';
+	const titleArg =
+		activeParent !== null
+			? (scene.parentLabel(activeParent) ?? '')
+			: activeLevel !== null
+				? scene.levelLabel(activeLevel)
+				: '';
+
+	const items: ScopeMenuItem[] = [
+		{
+			kind: 'pick',
+			id: 'all',
+			...SCOPE_META.all,
+			checked: active === 'all',
+		},
+		{
+			kind: 'pick',
+			id: 'drill',
+			...SCOPE_META.drill,
+			checked: activeParent !== null,
+		},
+		{
+			kind: 'pick',
+			id: 'level',
+			...LEVEL_PICK_META,
+			checked: activeLevel !== null,
+		},
+	];
+	const rows: ScopeSortRowItem[] = [];
+	const hidden = new Set(state.hiddenScopes ?? []);
+	for (const key of Object.keys(state.sorts) as SortScopeKey[]) {
+		const sort = state.sorts[key];
+		if (!sort) continue;
+		const parentId = parentOfScope(key);
+		const level = levelOfScope(key);
+		if (parentId !== null) {
+			const label = scene.parentLabel(parentId);
+			if (label === null) continue;
+			const parentLevel = scene.parentLevel(parentId);
+			rows.push({
+				kind: 'scope-row',
+				id: key,
+				icon: SCOPE_META.drill.icon,
+				label: parentLevel !== null ? `${parentLevel}: ${label}` : label,
+				sortLabel: scene.sortLabel(sort),
+				checked: key === active,
+				hidden: hidden.has(key),
+			});
+		} else if (level !== null && level > 0) {
+			rows.push({
+				kind: 'scope-row',
+				id: key,
+				icon: LEVEL_PICK_META.icon,
+				label: scene.levelLabel(level),
+				sortLabel: scene.sortLabel(sort),
+				checked: key === active,
+				hidden: hidden.has(key),
+			});
+		}
+	}
+	if (rows.length > 0) {
+		items.push({ kind: 'separator', id: 'scope-rows-separator' });
+		items.push(...rows);
+	}
+	return { titleKind, titleArg, items };
 }
 
 export function byLevelModel(
@@ -310,18 +442,9 @@ export function byLevelModel(
 		});
 	}
 
-	items.push({ kind: 'separator', id: 'scope-separator' });
-	for (const option of sortScopeOptions(tab)) {
-		items.push({
-			kind: 'scope',
-			id: option.scope,
-			scope: option.scope,
-			icon: option.icon,
-			labelKey: option.labelKey,
-			checked: state.activeScope === option.scope,
-		});
-	}
-
+	// Spec 08 §3.1: the scope items moved into the `Scope: <variable>`
+	// submenu (`scopeMenuModel`); this block keeps only the reveal radios
+	// and the props pin toggle.
 	return { items };
 }
 

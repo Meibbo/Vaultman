@@ -42,7 +42,7 @@ describe('scoped explorer sort state', () => {
 				nodeTypeFilter: 'property',
 			});
 			expect(state).not.toHaveProperty('childLevel');
-			expect(activeScopeSort('props', state, 'values')).toEqual({
+			expect(activeScopeSort('props', state, 'level:2')).toEqual({
 				sortBy: 'count',
 				direction: 'desc',
 			});
@@ -147,11 +147,11 @@ describe('scoped explorer sort state', () => {
 			nodeTypeFilter: null,
 		});
 
-		expect(activeScopeSort('props', state, 'properties')).toEqual({
+		expect(activeScopeSort('props', state, 'level:1')).toEqual({
 			sortBy: 'note',
 			direction: 'asc',
 		});
-		expect(activeScopeSort('props', state, 'values')).toEqual({
+		expect(activeScopeSort('props', state, 'level:2')).toEqual({
 			sortBy: 'note',
 			direction: 'asc',
 		});
@@ -168,11 +168,11 @@ describe('scoped explorer sort state', () => {
 			nodeTypeFilter: null,
 		});
 
-		expect(activeScopeSort('props', state, 'values')).toEqual({
+		expect(activeScopeSort('props', state, 'level:2')).toEqual({
 			sortBy: 'count',
 			direction: 'desc',
 		});
-		expect(activeScopeSort('props', state, 'properties')).toEqual({
+		expect(activeScopeSort('props', state, 'level:1')).toEqual({
 			sortBy: 'note',
 			direction: 'asc',
 		});
@@ -203,12 +203,12 @@ describe('scoped explorer sort state', () => {
 			sortBy: 'state',
 			direction: 'desc',
 		});
-		expect(properties.sorts.properties).toEqual({
+		expect(properties.sorts['level:1']).toEqual({
 			sortBy: 'type',
 			direction: 'asc',
 		});
-		expect(properties.sorts.values).toBeUndefined();
-		expect(activeScopeSort('props', properties, 'values')).toEqual({
+		expect(properties.sorts['level:2']).toBeUndefined();
+		expect(activeScopeSort('props', properties, 'level:2')).toEqual({
 			sortBy: 'name',
 			direction: 'asc',
 		});
@@ -240,7 +240,20 @@ describe('scoped explorer sort state', () => {
 
 		expect(sameSortProjection(base, selected)).toBe(true);
 		expect(changed.sorts.all).toEqual(base.sorts.all);
-		expect(changed.sorts.drill).toEqual({ sortBy: 'name', direction: 'desc' });
+		// Spec 08 §3.1.5: the drill sort lives with the picked parent, so the
+		// first parent keeps its own entry and the new pick gets another.
+		expect(changed.sorts['parent:tag:#parent']).toEqual({
+			sortBy: 'count',
+			direction: 'desc',
+		});
+		expect(changed.sorts['parent:tag:#other-parent']).toEqual({
+			sortBy: 'name',
+			direction: 'desc',
+		});
+		expect(activeScopeSort('tags', changed, 'drill')).toEqual({
+			sortBy: 'name',
+			direction: 'desc',
+		});
 		expect(sameSortProjection(selected, changed)).toBe(false);
 	});
 });
@@ -338,21 +351,21 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 			isSortOptionVisible('sub', {
 				tab: 'props',
 				nestedActive: true,
-				activeScope: 'values',
+				activeScope: 'level:2',
 			}),
 		).toBe(false);
 		expect(
 			isSortOptionVisible('sub', {
 				tab: 'props',
 				nestedActive: true,
-				activeScope: 'properties',
+				activeScope: 'level:1',
 			}),
 		).toBe(true);
 		expect(
 			isSortOptionVisible('type', {
 				tab: 'props',
 				nestedActive: true,
-				activeScope: 'values',
+				activeScope: 'level:2',
 			}),
 		).toBe(false);
 		expect(

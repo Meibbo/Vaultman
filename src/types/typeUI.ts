@@ -78,7 +78,18 @@ export interface FabDef {
 export type ExplorerTabId = 'props' | 'files' | 'tags' | 'snippets' | 'plugins';
 export type ExplorerViewMode = 'tree' | 'table' | 'dnd' | 'grid' | 'cards';
 export type ExplorerSortDirection = 'asc' | 'desc';
-export type SortScopeKey = 'all' | 'drill' | 'properties' | 'values' | 'groups';
+/**
+ * Spec 08 §3.1.bis: scopes are LEVELS, not names. `all` = every level;
+ * `drill` = the parent picked with "Select a parent" (`drillNodeId`), whose
+ * sort is stored under `parent:<id>`; `level:N` = every parent of level N
+ * (1 = root siblings; the old `properties`/`values` were levels 1 and 2 and
+ * `groups` level 0); `parent:<id>` = one parent's own sort.
+ */
+export type SortScopeKey =
+	| 'all'
+	| 'drill'
+	| `level:${number}`
+	| `parent:${string}`;
 
 export interface ScopeSort {
 	sortBy: string;
@@ -89,6 +100,8 @@ export interface ExplorerSortState {
 	sorts: Partial<Record<SortScopeKey, ScopeSort>>;
 	activeScope: SortScopeKey;
 	drillNodeId?: string | null;
+	/** Spec 08 §4 `hide` on a scope row: kept in `sorts`, ignored when resolving. */
+	hiddenScopes?: SortScopeKey[];
 	/** Legacy single selection; retained when exactly one type is selected. */
 	nodeTypeFilter: string | null;
 	/** Multi-selection form. Missing means load nodeTypeFilter for compatibility. */

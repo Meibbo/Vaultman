@@ -119,10 +119,12 @@ import { bubbleMaxToFolders } from '../../logic/logicLastOpened';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
+	siblingScopeSort,
 	replaceActiveScopeSort,
 	sameExplorerSortState,
 } from '../../logic/logicScopedSort';
 import {
+	findNodeLevel,
 	findParentId,
 	indexLevel,
 	type FloatingTocExpansionChange,
@@ -1682,6 +1684,11 @@ export class FilesExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
+	scopeLevelForNode(id: string): number | null {
+		if (this.viewMode !== 'tree') return null;
+		return findNodeLevel(this._lastRenderTree, id);
+	}
+
 	getNodeMoveMode(): NodeMoveModeState | null {
 		return this.nodeMoveRuntime.get(this.nodeMoveInstanceId, 'files');
 	}
@@ -2150,6 +2157,9 @@ export class FilesExplorerPanel extends Component {
 				drill: activeScopeSort('files', this.sortState, 'drill'),
 			},
 			drillNodeId: this.sortState.drillNodeId,
+			// Spec 08 §3.1: parent → level → all, for every parent with a sort.
+			scopeSortFor: (parentId, level) =>
+				siblingScopeSort('files', this.sortState, parentId, level),
 			compareNodes: (a, b, sort) => this._compareFileTreeNodes(a, b, sort),
 		};
 	}

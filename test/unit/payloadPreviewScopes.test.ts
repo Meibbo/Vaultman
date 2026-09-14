@@ -70,7 +70,7 @@ describe('U130-007 payload preview scopes', () => {
 		}
 	});
 
-	it('preserves groups sort across all tabs without dropping or rejecting it', () => {
+	it('migrates a persisted groups sort to level 0 on every tab without rejecting it (spec 08 §3.1.bis)', () => {
 		for (const tab of ALL_TABS) {
 			const expectedSortBy =
 				tab === 'snippets' || tab === 'plugins' ? 'updated' : 'mtime';
@@ -91,20 +91,20 @@ describe('U130-007 payload preview scopes', () => {
 			const tabSection = section(preview, `layout:${tab}`);
 
 			const sortByRow = tabSection.rows.find(
-				(r) => r.key === 'sortState.sorts.groups.sortBy',
+				(r) => r.key === 'sortState.sorts.level:0.sortBy',
 			);
 			expect(
 				sortByRow,
-				`tab ${tab} should have sortState.sorts.groups.sortBy`,
+				`tab ${tab} should have sortState.sorts.level:0.sortBy`,
 			).toBeDefined();
 			expect(sortByRow?.value).toBe(expectedSortBy);
 
 			const directionRow = tabSection.rows.find(
-				(r) => r.key === 'sortState.sorts.groups.direction',
+				(r) => r.key === 'sortState.sorts.level:0.direction',
 			);
 			expect(
 				directionRow,
-				`tab ${tab} should have sortState.sorts.groups.direction`,
+				`tab ${tab} should have sortState.sorts.level:0.direction`,
 			).toBeDefined();
 			expect(directionRow?.value).toBe('desc');
 

@@ -93,6 +93,25 @@ export function findParentId<T extends IndexTreeNode>(
 }
 
 /**
+ * Spec 08 §3.1 item 3 ("Select a level"): the 1-based level of a node in the
+ * rendered tree — root rows are level 1 — or null when it is not there.
+ */
+export function findNodeLevel<T extends IndexTreeNode>(
+	roots: readonly T[] | null | undefined,
+	id: string,
+	level = 1,
+): number | null {
+	for (const node of roots ?? []) {
+		if (node.id === id) return level;
+		const hit = node.children
+			? findNodeLevel(node.children as T[], id, level + 1)
+			: null;
+		if (hit !== null) return hit;
+	}
+	return null;
+}
+
+/**
  * Reconcile a scoped floating index with an explicit explorer collapse.
  * Unrelated collapses preserve the scope; collapsing the scope or one of its
  * ancestors moves the index to the level immediately above that collapsed node.

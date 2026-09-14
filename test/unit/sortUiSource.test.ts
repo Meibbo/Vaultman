@@ -43,27 +43,17 @@ describe('explorer sort UI source', () => {
 				'props',
 				normalizeExplorerSortState('props', null),
 			)?.items.map((item) => item.id),
-		).toEqual([
-			'scope-separator',
-			'all',
-			'properties',
-			'values',
-			// U121-079: `groups` entra como scope valido
-			'groups',
-		]);
+		).toEqual([]);
 		expect(
 			byLevelModel(
 				'files',
 				normalizeExplorerSortState('files', null),
 			)?.items.map((item) => item.id),
-		).toEqual([
-			// Spec 08 §3.4: `filtered` ya no vive aqui.
-			'scope-separator',
-			'drill',
-			'all',
-			// U121-079: `groups` entra como scope valido
-			'groups',
-		]);
+		).toEqual([]);
+		// Spec 08 §3.1: the scope picks live in the `Scope: <variable>` model,
+		// wired into the popup drawer and the native submenu.
+		expect(popupSource).toContain('scopeMenuModel(');
+		expect(navbarSource).toContain('addScopeSubmenu(menu, activeTab, current)');
 		expect(popupSource).toContain('activeScope');
 		expect(popupSource).toContain('selectScope(');
 		expect(popupSource).toContain("translate('sort.level.title')");
@@ -221,13 +211,7 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 			}),
 		);
 		// Spec 08 §3.4: `filtered` moved out of this block entirely.
-		expect(enabled?.items.map((item) => item.id)).toEqual([
-			'scope-separator',
-			'drill',
-			'all',
-			// U121-079: `groups` entra como scope valido
-			'groups',
-		]);
+		expect(enabled?.items.map((item) => item.id)).toEqual([]);
 		const disabled = byLevelModel(
 			'files',
 			{
@@ -263,8 +247,11 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 			).map((option) => option.id),
 		).not.toContain('path');
 		expect(navbarSource).toContain('visibleSortOptions(');
-		expect(navbarSource).toContain('drillScopeTitle(tab, current)');
+		// Spec 08 §3.1.bis: the variable title is the SUBMENU's (`Scope: <node>`),
+		// six-char short label, replacing `drillScopeTitle`.
+		expect(navbarSource).toContain('scopeMenuTitle(model)');
 		expect(navbarSource).toContain('chars.slice(0, 6)');
+		expect(navbarSource).not.toContain('drillScopeTitle(');
 	});
 
 	it('lets the floating index drill drive the sort scope behind its setting', () => {

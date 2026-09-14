@@ -1064,6 +1064,11 @@ export const es: Record<string, string> = {
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',
+	// Spec 08 §3.1: el submenú `Scope: <variable>`.
+	'sort.level.select_level': 'Elegir un nivel',
+	'sort.level.pick_level_hint': 'Pulsa una fila para ordenar todos los parents de su nivel',
+	'sort.scope.title': 'Scope: {scope}',
+	'sort.scope.level_n': 'Nivel {n}',
 	'sort.level.drill': 'Seleccionar un padre',
 	'sort.level.groups': 'Grupos',
 	// Spec 08 §3.2: el submenú de grupos del sort_menu.

@@ -97,18 +97,18 @@ describe('propScene values sort scope on all property types', () => {
 
 	it('resolves activeScopeSort correctly for values scope in props tab', () => {
 		const state = normalizeExplorerSortState('props', {
-			activeScope: 'values',
+			activeScope: 'level:2',
 			sorts: {
 				all: { sortBy: 'name', direction: 'asc' },
 				values: { sortBy: 'count', direction: 'desc' },
 			},
 		});
 
-		expect(activeScopeSort('props', state, 'values')).toEqual({
+		expect(activeScopeSort('props', state, 'level:2')).toEqual({
 			sortBy: 'count',
 			direction: 'desc',
 		});
-		expect(activeScopeSort('props', state, 'properties')).toEqual({
+		expect(activeScopeSort('props', state, 'level:1')).toEqual({
 			sortBy: 'name',
 			direction: 'asc',
 		});

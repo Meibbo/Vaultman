@@ -113,6 +113,8 @@ export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplo
 	getFileTypeOptions(): Array<{ id: string; icon: string; label: string }>;
 	hasSortNode(id: string): boolean;
 	scopeRootForNode(id: string): string | null;
+	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
+	scopeLevelForNode?(id: string): number | null;
 	sortNodeLabel(id: string): string | null;
 	setInteractionMode(mode: InteractionMode): void;
 	setSortStateChangeHandler(handler?: (state: ExplorerSortState) => void): void;
@@ -129,6 +131,8 @@ export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplor
 	createFromSearch(term: string, category?: number): void | Promise<void>;
 	hasSortNode?(id: string): boolean;
 	scopeRootForNode(id: string): string | null;
+	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
+	scopeLevelForNode?(id: string): number | null;
 	sortNodeLabel?(id: string): string | null;
 	setInteractionMode(
 		mode: InteractionMode,
