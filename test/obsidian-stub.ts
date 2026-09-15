@@ -216,3 +216,10 @@ export function getAllTags(cache: { tags?: Array<{ tag: string }>; frontmatter?:
 	}
 	return [...tags];
 }
+
+/** A20: `Keymap.isModEvent` decides new-tab vs same-leaf on link clicks. */
+export const Keymap = {
+	isModEvent(evt: { ctrlKey?: boolean; metaKey?: boolean } | null | undefined): boolean | 'tab' {
+		return evt?.ctrlKey === true || evt?.metaKey === true;
+	},
+};
