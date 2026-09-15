@@ -42,8 +42,17 @@ export function expansionActionAvailable(
 	 */
 	groupingActive = false,
 ): boolean {
+	// A07b-1: B-groups2 doto a los explorers de addons de la misma
+	// maquinaria de expansion que files/props/tags (las cabeceras de grupo
+	// son sus unicos nodos expandibles y `preset !== 'none'` el
+	// interruptor), asi que la lista ya no puede excluirlos: con grupos
+	// activos el boton aparece en las cinco scenes.
 	return (
-		(tab === 'files' || tab === 'props' || tab === 'tags') &&
+		(tab === 'files' ||
+			tab === 'props' ||
+			tab === 'tags' ||
+			tab === 'snippets' ||
+			tab === 'plugins') &&
 		(visibleCells?.includes('nested') === true || groupingActive)
 	);
 }

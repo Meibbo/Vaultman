@@ -76,6 +76,10 @@ export class PluginsExplorerPanel
 	private readonly plugin: VaultmanPlugin;
 	private treeView: UnifiedTreeView | null = null;
 	private nodes: TreeNode<PluginMeta>[] = [];
+	/** A07b-2: el ultimo arbol PROYECTADO (cabeceras + ocurrencias `id@grupo`),
+	 *  como el `_lastRenderTree` de files. La seleccion guarda ids de fila
+	 *  proyectada y solo este arbol los empareja todos. */
+	private _lastProjectedTree: TreeNode<PluginMeta>[] = [];
 	private entries: PluginMeta[] = [];
 	private searchTerm = '';
 	private sortState = normalizeExplorerSortState('plugins', null);
@@ -284,7 +288,13 @@ export class PluginsExplorerPanel
 			createGroupWithSelected: () =>
 				handler(
 					collectSelectedMembershipUrns(
-						this.nodes,
+						// A07b-2: el proyectado, como files (`_lastRenderTree`):
+						// la seleccion trae ids de fila (`id@grupo` en
+						// ocurrencias multi-grupo) y el arbol sin proyectar
+						// los pierde en silencio.
+						this._lastProjectedTree.length > 0
+							? this._lastProjectedTree
+							: this.nodes,
 						this.selectedNodeIds,
 						(node) => this._membershipUrnOf(node),
 						this._groupIds,
@@ -575,9 +585,11 @@ export class PluginsExplorerPanel
 		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
+		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
+		this._lastProjectedTree = this.projectedNodes();
 		this.treeView.render({
 			surface: 'plugins',
-			nodes: this.projectedNodes(),
+			nodes: this._lastProjectedTree,
 			visibleCells: this.visibleCells,
 			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un
 			// grupo activo si crea un nivel (cabecera -> miembros) que

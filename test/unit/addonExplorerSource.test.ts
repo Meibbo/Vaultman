@@ -66,7 +66,7 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		}
 	});
 
-	it('offers add-on-specific sorts and configurable cells without expand-all', () => {
+	it('offers add-on-specific sorts and configurable cells with expand-all on groups', () => {
 		for (const tab of ['snippets', 'plugins'] as const) {
 			expect(SORT_MENU_OPTIONS[tab]).toEqual(
 				expect.arrayContaining([
@@ -75,7 +75,11 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 					expect.objectContaining({ labelKey: 'sort.by.updated' }),
 				]),
 			);
-			expect(expansionActionAvailable(tab, ['nested'])).toBe(false);
+			// A07b-1: con la maquinaria de expansion de B-groups2, los
+			// addons ofrecen expandir/colapsar (antes pineaba `false`).
+			expect(expansionActionAvailable(tab, ['nested'])).toBe(true);
+			expect(expansionActionAvailable(tab, [], true)).toBe(true);
+			expect(expansionActionAvailable(tab, [], false)).toBe(false);
 		}
 		// BT5-010: the configurable cells moved from popupView's local map to
 		// the shared registry, so the guard asks the registry itself.

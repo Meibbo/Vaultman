@@ -11,8 +11,12 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		['files', ['name'], false],
 		['props', ['icon'], false],
 		['tags', ['count'], false],
-		['snippets', ['nested'], false],
-		['plugins', ['nested'], false],
+		// A07b-1: B-groups2 doto a los explorers de addons de la misma
+		// maquinaria de expansion que files/props/tags (cabeceras de grupo
+		// como unicos nodos expandibles), asi que con `nested` visible
+		// tambien ofrecen la accion. Antes pineaba el comportamiento viejo.
+		['snippets', ['nested'], true],
+		['plugins', ['nested'], true],
 	] as const)('tab=%s cells=%j => %s', (tab, cells, expected) => {
 		expect(expansionActionAvailable(tab, cells)).toBe(expected);
 	});
@@ -33,10 +37,13 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		['files', [], false, false],
 		['props', [], false, false],
 		['tags', [], false, false],
-		// La agrupacion no crea el toggle en surfaces sin maquinaria de
-		// expansion: snippets/plugins siguen fuera aunque groupingActive.
-		['snippets', [], true, false],
-		['plugins', [], true, false],
+		// A07b-1: la agrupacion SI crea el toggle en addons desde que
+		// exponen `hasExpandedNodes`/`expandAll`/`collapseAll` (B-groups2):
+		// sin preset no hay nada que plegar, con preset el boton aparece.
+		['snippets', [], true, true],
+		['plugins', [], true, true],
+		['snippets', [], false, false],
+		['plugins', [], false, false],
 	] as const)(
 		'tab=%s cells=%j groupingActive=%s => %s',
 		(tab, cells, groupingActive, expected) => {

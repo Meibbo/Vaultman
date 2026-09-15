@@ -102,6 +102,7 @@
 	import type { GroupPreset } from '../../types/typeGroupPreset';
 	import type {
 		NavbarPanelWidgetState,
+		PanelWidgetExpandableExplorerPort,
 		PanelWidgetExplorerPort,
 		PanelWidgetFilesExplorerPort,
 		PanelWidgetHeaderMenuAction,
@@ -387,6 +388,29 @@
 		return null;
 	}
 
+	/**
+	 * A07b-1: puerto de expansion de los explorers de addons. Los panels
+	 * implementan `hasExpandedNodes`/`expandAll`/`collapseAll`/
+	 * `setExpansionChangeHandler` (B-groups2), pero el puerto base declarado
+	 * en el estado aun no los incluye; la guarda runtime evita un crash si un
+	 * puerto no los trae, en vez de suprimir el tipo.
+	 */
+	function addonExpansionPort(
+		tab: 'snippets' | 'plugins',
+	): PanelWidgetExpandableExplorerPort | null {
+		const port: unknown =
+			tab === 'snippets' ? snippetsExplorer : pluginsExplorer;
+		if (
+			!!port &&
+			typeof port === 'object' &&
+			'hasExpandedNodes' in port &&
+			'setExpansionChangeHandler' in port
+		) {
+			return port as PanelWidgetExpandableExplorerPort;
+		}
+		return null;
+	}
+
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
@@ -647,6 +671,14 @@
 		if (activeTab === 'files') return fileList?.hasExpandedNodes() ?? false;
 		if (activeTab === 'props') return propExplorer?.hasExpandedNodes() ?? false;
 		if (activeTab === 'tags') return tagsExplorer?.hasExpandedNodes() ?? false;
+		// A07b-1: los explorers de addons exponen la maquinaria de expansion
+		// (B-groups2), pero el puerto base aun no la declara: guarda runtime
+		// en vez de estrechar el tipo (el integrador debe ensanchar
+		// `NavbarPanelWidgetState` a `PanelWidgetExpandableExplorerPort`).
+		if (activeTab === 'snippets')
+			return addonExpansionPort('snippets')?.hasExpandedNodes() ?? false;
+		if (activeTab === 'plugins')
+			return addonExpansionPort('plugins')?.hasExpandedNodes() ?? false;
 		return false;
 	});
 	const expansionActionAvailableForActiveTab = $derived(
@@ -1356,6 +1388,13 @@
 			applyViewMode(tab, config.viewMode);
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
+			// A07b-2: sin interactionMode el modo `select` persistido no
+			// llega al explorer en el re-montaje y la creacion de grupos
+			// queda inalcanzable hasta re-conmutar a mano. Sin indent se
+			// pierde la paridad de B-groups2 en el mismo camino.
+			if (config.interactionMode)
+				applyInteractionMode(tab, config.interactionMode);
+			if (config.indent !== undefined) applyIndent(tab, config.indent);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1366,6 +1405,10 @@
 			applyViewMode(tab, config.viewMode);
 			applyVisibleCells(tab, config.visibleCells);
 			applySortState(tab, config.sortState);
+			// A07b-2: igual que snippets (ver arriba).
+			if (config.interactionMode)
+				applyInteractionMode(tab, config.interactionMode);
+			if (config.indent !== undefined) applyIndent(tab, config.indent);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2230,6 +2273,8 @@
 		if (tab === 'files') fileList?.setIndentEnabled?.(enabled);
 		if (tab === 'props') propExplorer?.setIndentEnabled?.(enabled);
 		if (tab === 'tags') tagsExplorer?.setIndentEnabled?.(enabled);
+		if (tab === 'snippets') snippetsExplorer?.setIndentEnabled?.(enabled);
+		if (tab === 'plugins') pluginsExplorer?.setIndentEnabled?.(enabled);
 	}
 
 	function applyHiddenGroupIds(tab: FiltersTab, ids: readonly string[]) {
@@ -2529,6 +2574,14 @@
 		fileList?.setExpansionChangeHandler(refreshExpansionState);
 		propExplorer?.setExpansionChangeHandler(refreshExpansionState);
 		tagsExplorer?.setExpansionChangeHandler(refreshExpansionState);
+		// A07b-1: sin esto el icono expandir/colapsar no se refresca en
+		// addons (misma unidad funcional que `hasExpandedNodes` de arriba).
+		addonExpansionPort('snippets')?.setExpansionChangeHandler(
+			refreshExpansionState,
+		);
+		addonExpansionPort('plugins')?.setExpansionChangeHandler(
+			refreshExpansionState,
+		);
 		const frame = window.requestAnimationFrame(refreshExpansionState);
 
 		return () => {
@@ -2536,6 +2589,8 @@
 			fileList?.setExpansionChangeHandler(undefined);
 			propExplorer?.setExpansionChangeHandler(undefined);
 			tagsExplorer?.setExpansionChangeHandler(undefined);
+			addonExpansionPort('snippets')?.setExpansionChangeHandler(undefined);
+			addonExpansionPort('plugins')?.setExpansionChangeHandler(undefined);
 		};
 	});
 
