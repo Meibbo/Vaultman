@@ -2171,12 +2171,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		items.push({
 			name: '',
 			render: (setting: Setting) => {
+				const getLayout = (): FilesMenuItem[] => {
+					return (
+						this.plugin.settings.filesContextMenuLayout ??
+						defaultFilesMenuLayout(catalog.map((entry) => entry.id))
+					);
+				};
 				setting
 					.addButton((button) =>
 						button
 							.setIcon('lucide-minus')
 							.setTooltip(translate('settings.files_context_menu.add_divider'))
-							.onClick(() => void persist(addFilesMenuDivider(layout))),
+							.onClick(() => void persist(addFilesMenuDivider(getLayout()))),
 					)
 					.addButton((button) =>
 						button
@@ -2186,7 +2192,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								() =>
 									void persist(
 										addFilesMenuSubmenu(
-											layout,
+											getLayout(),
 											translate('settings.files_context_menu.submenu_name'),
 										),
 									),
