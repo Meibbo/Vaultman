@@ -72,6 +72,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						autoRevealMode: 'auto',
 						hiddenToolbarNodes: [],
 						toolbarNodeIcons: {},
+						groupMemberships: {},
 					}),
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',

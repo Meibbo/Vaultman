@@ -3,7 +3,7 @@ import type { ExplorerSortDirection, ExplorerTabId } from './typeUI';
 /**
  * Spec 08 §3.2: grouping is a preset SELECTION, not a toggle. `none` is a
  * value of that selection and the default; `custom` projects the custom
- * groups of the active layout (`SavedLayout.groupMemberships`).
+ * groups of the scene (`SceneConfig.groupMemberships`, U130-09).
  */
 export type GroupPresetKind =
 	| 'none'

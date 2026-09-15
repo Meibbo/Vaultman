@@ -20,6 +20,7 @@ const defaults = {
 	autoRevealMode: 'auto' as const,
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
+	groupMemberships: {},
 };
 
 function harness() {
@@ -86,6 +87,23 @@ describe('createSceneConfigPort', () => {
 		});
 		expect(h.port.read('props').viewMode).toBe('tree');
 		expect(h.port.read('props').visibleCells).toEqual(['name', 'ext']);
+	});
+
+	// U130-09: un grupo creado en Tags es de la scene Tags de esta instancia.
+	it('stores groupMemberships per scene, so a Tags group never reaches Files', async () => {
+		const h = harness();
+		await h.port.propose('tags', {
+			...defaults,
+			groupMemberships: { Work: ['tags:tag:work|work'] },
+		});
+		expect(h.registry.instances['vm-1'].scenes.tags).toEqual({
+			groupMemberships: { Work: ['tags:tag:work|work'] },
+		});
+		expect(h.port.read('tags').groupMemberships).toEqual({
+			Work: ['tags:tag:work|work'],
+		});
+		expect(h.port.read('files').groupMemberships).toEqual({});
+		expect(h.registry.instances['vm-1'].scenes.files).toBeUndefined();
 	});
 
 	it('keeps two scenes of the same instance independent', async () => {

@@ -19,6 +19,19 @@ function cloneCells(cells: readonly string[]): string[] {
 	return [...cells];
 }
 
+/**
+ * U130-09: el mapa de grupos se copia entero, clave a clave, por la misma
+ * razon que los arrays: la capa almacenada no puede salir por referencia, y
+ * un consumidor que anade una URN a un grupo no puede tocar el registro.
+ */
+function cloneMemberships(
+	memberships: Readonly<Record<string, readonly string[]>>,
+): Record<string, readonly string[]> {
+	return Object.fromEntries(
+		Object.entries(memberships).map(([id, urns]) => [id, [...urns]]),
+	);
+}
+
 export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 	const layers: readonly (SceneConfig | undefined)[] = [
 		input.global,
@@ -40,6 +53,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		autoRevealMode: input.defaults.autoRevealMode,
 		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
 		toolbarNodeIcons: { ...input.defaults.toolbarNodeIcons },
+		groupMemberships: cloneMemberships(input.defaults.groupMemberships),
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -64,6 +78,11 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		}
 		if (layer.toolbarNodeIcons !== undefined) {
 			out.toolbarNodeIcons = { ...layer.toolbarNodeIcons };
+		}
+		// U130-09: como los arrays, el mapa NO se fusiona: la capa que lo
+		// declara decide los grupos enteros de esa scene.
+		if (layer.groupMemberships !== undefined) {
+			out.groupMemberships = cloneMemberships(layer.groupMemberships);
 		}
 	}
 	return out;
@@ -125,6 +144,14 @@ export function diffSceneConfig(
 		JSON.stringify(baseline.toolbarNodeIcons)
 	) {
 		patch.toolbarNodeIcons = { ...next.toolbarNodeIcons };
+	}
+	// U130-09: el orden de las claves es el orden de las cabeceras, asi que
+	// una reordenacion cuenta como cambio, igual que en `visibleCells`.
+	if (
+		JSON.stringify(next.groupMemberships) !==
+		JSON.stringify(baseline.groupMemberships)
+	) {
+		patch.groupMemberships = cloneMemberships(next.groupMemberships);
 	}
 	return patch;
 }

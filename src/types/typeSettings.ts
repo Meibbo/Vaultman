@@ -13,6 +13,7 @@ import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 import type { InstanceRegistryData } from './typeInstance';
 import type { InteractionMode } from '../logic/logicInteractionMode';
+import type { GroupPreset } from './typeGroupPreset';
 import {
 	DEFAULT_FILES_HOVER_INFO,
 	type FileHoverInfoId,
@@ -27,12 +28,27 @@ import type {
 
 export type Language = 'auto' | 'en' | 'es';
 
-/** A saved per-tab explorer view config (view options + sort). */
+/**
+ * A saved per-tab explorer view config (view options + sort).
+ *
+ * U130-09 (dev 2026-09-15): the layout is a PHOTO of the live `SceneConfig`,
+ * not the owner of any of it. Every facet below is captured on save and
+ * copied into the instance on activation; a facet the photo does not carry
+ * leaves the current value alone (`applyLayoutToPort`). Older layouts simply
+ * lack the newer keys.
+ */
 export interface SavedViewConfig {
 	viewMode: string;
 	visibleCells: string[];
 	sortState: ExplorerSortState;
 	interactionMode?: InteractionMode;
+	/** U130-09: the custom groups of that scene, groupId -> member URNs. */
+	groupMemberships?: Record<string, readonly string[]>;
+	groupPreset?: GroupPreset;
+	hiddenGroupIds?: string[];
+	stickyRows?: boolean;
+	compactFolders?: boolean;
+	indent?: boolean;
 }
 
 /** Floating index state captured with a layout (D40). */
@@ -49,12 +65,12 @@ export interface SavedLayout {
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
 	/**
-	 * U130-03: groupId -> URNs de sus miembros. SOLO los grupos custom: los
-	 * presets se computan por predicado en memoria y no tocan settings, asi que
-	 * anadir un preset nuevo no es una migracion de datos.
-	 *
-	 * Las URNs no se borran nunca en silencio: una entidad que desaparece pasa a
-	 * Ghost Slot o Tombstone (logicMembershipUrn), no se limpia del mapa.
+	 * @deprecated U130-09 (dev 2026-09-15): the flat, per-layout map is being
+	 * retired. Groups live in `SceneConfig.groupMemberships` and the layout
+	 * photographs them per tab in `SavedViewConfig.groupMemberships`. No
+	 * migration: the feature never left the lab, so whatever an old
+	 * `data.json` still carries here is ignored. The key leaves the type with
+	 * its last reader (U130-09 paso 3).
 	 */
 	groupMemberships?: Record<string, readonly string[]>;
 }

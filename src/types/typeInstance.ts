@@ -59,6 +59,16 @@ export interface SceneConfig {
 	 * icono de serie del nodo.
 	 */
 	toolbarNodeIcons?: Record<string, string>;
+	/**
+	 * U130-09 (dev 2026-09-15): custom groups de ESTA scene de ESTA instancia.
+	 * groupId -> URNs de sus miembros. Solo los custom: los presets son
+	 * predicado en memoria. Las URNs ya llevan `providerId:kind:`
+	 * (logicMembershipUrn), asi que un grupo de Tags nunca casa un nodo de
+	 * Files. Antes vivian en `SavedLayout` (plano, por layout) y por eso no se
+	 * podian crear sin layout activo y cruzaban de una scene a otra; el layout
+	 * ahora solo los fotografia (`SavedViewConfig.groupMemberships`).
+	 */
+	groupMemberships?: Record<string, readonly string[]>;
 }
 
 export interface WorkspaceInstanceRecord {

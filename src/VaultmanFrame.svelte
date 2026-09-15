@@ -375,6 +375,9 @@
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
 			toolbarNodeIcons: {},
+			// U130-09: una scene nace sin grupos custom; los crea el usuario en
+			// esta instancia o los copia un layout al activarse.
+			groupMemberships: {},
 		}),
 	});
 

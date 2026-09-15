@@ -20,6 +20,7 @@ const defaults: Required<SceneConfig> = {
 	autoRevealMode: 'auto',
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
+	groupMemberships: {},
 };
 
 describe('resolveSceneConfig', () => {
@@ -70,6 +71,26 @@ describe('resolveSceneConfig', () => {
 		});
 		expect(resolved.viewMode).toBe('cards');
 	});
+
+	// U130-09: los custom groups son una faceta mas de la scene, por la cascada.
+	it('replaces groupMemberships wholesale: the scene layer decides the whole map', () => {
+		const resolved = resolveSceneConfig({
+			defaults,
+			instanceSelf: { groupMemberships: { A: ['files:file:a.md|a'] } },
+			scene: { groupMemberships: { B: ['files:file:b.md|b'] } },
+		});
+		expect(resolved.groupMemberships).toEqual({ B: ['files:file:b.md|b'] });
+	});
+
+	it('copies groupMemberships so a consumer cannot mutate the stored layer', () => {
+		const scene: SceneConfig = {
+			groupMemberships: { A: ['files:file:a.md|a'] },
+		};
+		const resolved = resolveSceneConfig({ defaults, scene });
+		(resolved.groupMemberships.A as string[]).push('files:file:x.md|x');
+		resolved.groupMemberships.B = [];
+		expect(scene.groupMemberships).toEqual({ A: ['files:file:a.md|a'] });
+	});
 });
 
 describe('diffSceneConfig', () => {
@@ -88,5 +109,15 @@ describe('diffSceneConfig', () => {
 		const { diffSceneConfig } = await import('../../src/logic/logicSettingsCascade');
 		const patch = diffSceneConfig(defaults, { ...defaults, visibleCells: ['count', 'name'] });
 		expect(patch).toEqual({ visibleCells: ['count', 'name'] });
+	});
+
+	it('U130-09: emits groupMemberships only when the map changed', async () => {
+		const { diffSceneConfig } = await import('../../src/logic/logicSettingsCascade');
+		expect(diffSceneConfig(defaults, { ...defaults, groupMemberships: {} })).toEqual({});
+		const patch = diffSceneConfig(defaults, {
+			...defaults,
+			groupMemberships: { Work: ['tags:tag:work|work'] },
+		});
+		expect(patch).toEqual({ groupMemberships: { Work: ['tags:tag:work|work'] } });
 	});
 });

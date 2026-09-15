@@ -54,6 +54,7 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				autoRevealMode: 'auto' as const,
 				hiddenToolbarNodes: [],
 				toolbarNodeIcons: {},
+				groupMemberships: {},
 			}),
 			propose: () => Promise.resolve(),
 			readActiveScene: () => 'files',
