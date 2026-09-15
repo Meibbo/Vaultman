@@ -563,14 +563,15 @@ describe('B-groupbody: helpers puros de miembros (compartidos por las 5 scenes)'
 
 	it('collectGroupMemberIds recorre descendientes y deduplica entidades', () => {
 		const rows: TreeNode<unknown>[] = [
-			{ id: 'x.md@g1', label: 'x', depth: 1 },
+			{ id: 'x.md@g1', label: 'x', depth: 1, meta: null },
 			{
 				id: 'folder:f',
 				label: 'f',
 				depth: 1,
+				meta: null,
 				children: [
-					{ id: 'y.md', label: 'y', depth: 2 },
-					{ id: 'x.md@g1', label: 'x', depth: 2 },
+					{ id: 'y.md', label: 'y', depth: 2, meta: null },
+					{ id: 'x.md@g1', label: 'x', depth: 2, meta: null },
 				],
 			},
 		];
