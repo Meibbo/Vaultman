@@ -1,5 +1,6 @@
 import type { SceneConfig } from '../types/typeInstance';
 import { sameGroupPreset } from '../types/typeGroupPreset';
+import { cloneGroupMemberships } from './logicMembershipUrn';
 
 /**
  * Las capas de la cascada, en el orden EXACTO del diseño aprobado:
@@ -17,19 +18,6 @@ export interface CascadeInput {
 /** Copia defensiva: los arrays de una capa almacenada nunca salen por referencia. */
 function cloneCells(cells: readonly string[]): string[] {
 	return [...cells];
-}
-
-/**
- * U130-09: el mapa de grupos se copia entero, clave a clave, por la misma
- * razon que los arrays: la capa almacenada no puede salir por referencia, y
- * un consumidor que anade una URN a un grupo no puede tocar el registro.
- */
-function cloneMemberships(
-	memberships: Readonly<Record<string, readonly string[]>>,
-): Record<string, readonly string[]> {
-	return Object.fromEntries(
-		Object.entries(memberships).map(([id, urns]) => [id, [...urns]]),
-	);
 }
 
 export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
@@ -53,7 +41,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		autoRevealMode: input.defaults.autoRevealMode,
 		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
 		toolbarNodeIcons: { ...input.defaults.toolbarNodeIcons },
-		groupMemberships: cloneMemberships(input.defaults.groupMemberships),
+		groupMemberships: cloneGroupMemberships(input.defaults.groupMemberships),
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -82,7 +70,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		// U130-09: como los arrays, el mapa NO se fusiona: la capa que lo
 		// declara decide los grupos enteros de esa scene.
 		if (layer.groupMemberships !== undefined) {
-			out.groupMemberships = cloneMemberships(layer.groupMemberships);
+			out.groupMemberships = cloneGroupMemberships(layer.groupMemberships);
 		}
 	}
 	return out;
@@ -151,7 +139,7 @@ export function diffSceneConfig(
 		JSON.stringify(next.groupMemberships) !==
 		JSON.stringify(baseline.groupMemberships)
 	) {
-		patch.groupMemberships = cloneMemberships(next.groupMemberships);
+		patch.groupMemberships = cloneGroupMemberships(next.groupMemberships);
 	}
 	return patch;
 }

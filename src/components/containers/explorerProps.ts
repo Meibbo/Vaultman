@@ -104,7 +104,11 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
-import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	cloneGroupMemberships,
+	formatMembershipUrn,
+	sameGroupMemberships,
+} from '../../logic/logicMembershipUrn';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
@@ -113,8 +117,6 @@ import {
 	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
-	cloneGroupMemberships,
-	sameGroupMemberships,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {

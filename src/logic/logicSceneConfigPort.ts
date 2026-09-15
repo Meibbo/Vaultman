@@ -16,7 +16,11 @@ import type {
 	ExplorerViewMode,
 } from '../types/typeUI';
 import type { InteractionMode } from './logicInteractionMode';
-import type { SavedFloatingTocState } from '../types/typeSettings';
+import type {
+	SavedFloatingTocState,
+	SavedViewConfig,
+} from '../types/typeSettings';
+import { cloneGroupMemberships } from './logicMembershipUrn';
 
 export interface SceneConfigPortDeps {
 	instanceId: WorkspaceInstanceId;
@@ -57,11 +61,59 @@ export interface SceneConfigPort {
 	) => Promise<void>;
 }
 
+/**
+ * U130-09 (dev 2026-09-15): las facetas de la scene que llegaron con spec 08
+ * y que el layout fotografia ademas de vista/celdas/orden/interaccion. Viajan
+ * juntas y cada una es opcional: una foto anterior a U130-09 no las trae, y
+ * lo que la foto no trae se preserva (misma regla que las cuatro historicas).
+ */
+export type SceneFacets = Pick<
+	SceneConfig,
+	| 'groupMemberships'
+	| 'groupPreset'
+	| 'hiddenGroupIds'
+	| 'stickyRows'
+	| 'compactFolders'
+	| 'indent'
+>;
+
+/** La foto de una scene: copias, nunca referencias al estado vivo. */
+export function captureSceneFacets(
+	config: Required<SceneConfig>,
+): Required<SceneFacets> {
+	return {
+		groupMemberships: cloneGroupMemberships(config.groupMemberships),
+		groupPreset: { ...config.groupPreset },
+		hiddenGroupIds: [...config.hiddenGroupIds],
+		stickyRows: config.stickyRows,
+		compactFolders: config.compactFolders,
+		indent: config.indent,
+	};
+}
+
+/** La foto de vuelta a terminos de scene: solo lo que trae, copiado. */
+export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
+	const out: SceneFacets = {};
+	if (saved.groupMemberships) {
+		out.groupMemberships = cloneGroupMemberships(saved.groupMemberships);
+	}
+	if (saved.groupPreset) out.groupPreset = { ...saved.groupPreset };
+	if (saved.hiddenGroupIds) out.hiddenGroupIds = [...saved.hiddenGroupIds];
+	if (saved.stickyRows !== undefined) out.stickyRows = saved.stickyRows;
+	if (saved.compactFolders !== undefined) {
+		out.compactFolders = saved.compactFolders;
+	}
+	if (saved.indent !== undefined) out.indent = saved.indent;
+	return out;
+}
+
 export interface SavedLayoutConfig {
 	viewModeByTab: Partial<Record<ExplorerTabId, ExplorerViewMode>>;
 	interactionModeByTab: Partial<Record<ExplorerTabId, InteractionMode>>;
 	visibleCellsByTab: Partial<Record<ExplorerTabId, string[]>>;
 	sortStateByTab: Partial<Record<ExplorerTabId, ExplorerSortState>>;
+	/** U130-09: el resto de la foto por tab (`sceneFacetsOf`). */
+	sceneFacetsByTab?: Partial<Record<ExplorerTabId, SceneFacets>>;
 }
 
 export async function applyLayoutToPort(
@@ -73,29 +125,30 @@ export async function applyLayoutToPort(
 		...(Object.keys(layout.interactionModeByTab) as ExplorerTabId[]),
 		...(Object.keys(layout.visibleCellsByTab) as ExplorerTabId[]),
 		...(Object.keys(layout.sortStateByTab) as ExplorerTabId[]),
+		...(Object.keys(layout.sceneFacetsByTab ?? {}) as ExplorerTabId[]),
 	]);
 	const updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>> = {};
 	for (const tab of tabs) {
 		const current = port.read(tab);
+		// Lo que la foto no trae se preserva, faceta a faceta.
+		const facets = layout.sceneFacetsByTab?.[tab] ?? {};
 		updates[tab] = {
 			viewMode: layout.viewModeByTab[tab] ?? current.viewMode,
 			interactionMode:
 				layout.interactionModeByTab[tab] ?? current.interactionMode,
 			visibleCells: layout.visibleCellsByTab[tab] ?? current.visibleCells,
 			sortState: layout.sortStateByTab[tab] ?? current.sortState,
-			// Los layouts guardados todavia no cargan stickyRows/compactFolders/indent
-			// (spec 08 §2 es posterior a `SavedLayoutConfig`): se preservan.
-			stickyRows: current.stickyRows,
-			compactFolders: current.compactFolders,
-			indent: current.indent,
-			groupPreset: current.groupPreset,
-			hiddenGroupIds: current.hiddenGroupIds,
+			stickyRows: facets.stickyRows ?? current.stickyRows,
+			compactFolders: facets.compactFolders ?? current.compactFolders,
+			indent: facets.indent ?? current.indent,
+			groupPreset: facets.groupPreset ?? current.groupPreset,
+			hiddenGroupIds: facets.hiddenGroupIds ?? current.hiddenGroupIds,
 			// U130 toolbar alt-cmenu: posterior a `SavedLayoutConfig`, se preserva.
 			sceneLabelMode: current.sceneLabelMode,
 			autoRevealMode: current.autoRevealMode,
 			hiddenToolbarNodes: current.hiddenToolbarNodes,
 			toolbarNodeIcons: current.toolbarNodeIcons,
-			groupMemberships: current.groupMemberships,
+			groupMemberships: facets.groupMemberships ?? current.groupMemberships,
 		};
 	}
 	if (port.proposeScenes) {

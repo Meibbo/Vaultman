@@ -105,7 +105,10 @@
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import {
 		applyLayoutToPort,
+		captureSceneFacets,
+		sceneFacetsOf,
 		type SceneConfigPort,
+		type SceneFacets,
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
 	import type { GroupPreset } from '../../types/typeGroupPreset';
@@ -448,6 +451,13 @@
 			return `${tab} ${viewModeByTab[tab]}·${activeSort.sortBy}${arrow}`;
 		}).join(' · ');
 	}
+	/**
+	 * U130-09 (dev 2026-09-15): «el layout-config deberia servir para
+	 * inmortalizar un layout-state del cual forman parte los grupos». The
+	 * photo per tab carries the WHOLE `SceneConfig` of the scene (copies), so
+	 * saving twice under the same name replaces the entry with a photo that
+	 * still carries the groups instead of dropping them (U130-09 census, row 9).
+	 */
 	function saveLayout(name: string) {
 		const trimmed = name.trim();
 		if (!trimmed) return;
@@ -468,6 +478,7 @@
 						? { nodeTypeFilters: [...sortState.nodeTypeFilters] }
 						: {}),
 				},
+				...captureSceneFacets(configByTab[tab]),
 			};
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
@@ -504,11 +515,17 @@
 		return null;
 	}
 
+	/**
+	 * U130-09: activating a layout COPIES its photo into this instance's
+	 * scenes (groups included); the layout stays a photo, never a live
+	 * reference. What the photo does not carry keeps its current value.
+	 */
 	function loadLayout(layout: SavedLayout) {
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
 		const nextSort = { ...sortStateByTab };
 		const nextInteraction = { ...interactionModeByTab };
+		const nextFacets: Partial<Record<FiltersTab, SceneFacets>> = {};
 		const nextConfigByTab = { ...configByTab };
 		for (const tab of LAYOUT_TABS) {
 			const saved = layout.config[tab];
@@ -525,12 +542,14 @@
 				tab,
 				saved.interactionMode,
 			);
+			nextFacets[tab] = sceneFacetsOf(saved);
 			nextConfigByTab[tab] = {
 				...nextConfigByTab[tab],
 				viewMode: nextView[tab],
 				interactionMode: nextInteraction[tab],
 				visibleCells: nextCells[tab],
 				sortState: nextSort[tab],
+				...nextFacets[tab],
 			};
 		}
 		configByTab = nextConfigByTab;
@@ -539,6 +558,7 @@
 			interactionModeByTab: nextInteraction,
 			visibleCellsByTab: nextCells,
 			sortStateByTab: nextSort,
+			sceneFacetsByTab: nextFacets,
 		});
 		for (const tab of LAYOUT_TABS) {
 			applyTabProjection(tab, {
@@ -546,6 +566,7 @@
 				visibleCells: nextCells[tab],
 				sortState: nextSort[tab],
 				interactionMode: nextInteraction[tab],
+				...nextFacets[tab],
 			});
 		}
 		onLayoutLoaded?.(layout);

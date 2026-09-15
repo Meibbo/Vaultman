@@ -38,7 +38,11 @@ import {
 	type FolderAggregate,
 } from '../../logic/logicFolderAggregates';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
-import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
+import {
+	cloneGroupMemberships,
+	formatMembershipUrn,
+	sameGroupMemberships,
+} from '../../logic/logicMembershipUrn';
 import {
 	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
@@ -46,8 +50,6 @@ import {
 	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
-	cloneGroupMemberships,
-	sameGroupMemberships,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {

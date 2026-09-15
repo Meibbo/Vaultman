@@ -49,6 +49,43 @@ export function rewriteCanonicalId(
 	return formatMembershipUrn({ ...ref, canonicalId: nextCanonicalId });
 }
 
+/**
+ * U130-09: igualdad estructural de dos mapas de grupos (groupId -> URNs). El
+ * orden de las claves cuenta: es el orden de las cabeceras. Los explorers la
+ * usan para no re-renderizar cuando el navbar les vuelve a aplicar el mismo
+ * mapa.
+ */
+export function sameGroupMemberships(
+	a: Readonly<Record<string, readonly string[]>>,
+	b: Readonly<Record<string, readonly string[]>>,
+): boolean {
+	const aKeys = Object.keys(a);
+	const bKeys = Object.keys(b);
+	if (aKeys.length !== bKeys.length) return false;
+	return aKeys.every((id, i) => {
+		if (bKeys[i] !== id) return false;
+		const aUrns = a[id] ?? [];
+		const bUrns = b[id] ?? [];
+		return (
+			aUrns.length === bUrns.length &&
+			aUrns.every((urn, j) => urn === bUrns[j])
+		);
+	});
+}
+
+/**
+ * U130-09: copia clave a clave. Ni el explorer ni un layout guardan la
+ * referencia de la capa almacenada, y una capa almacenada nunca sale por
+ * referencia (la misma regla que `cloneCells` en la cascada).
+ */
+export function cloneGroupMemberships(
+	memberships: Readonly<Record<string, readonly string[]>>,
+): Record<string, readonly string[]> {
+	return Object.fromEntries(
+		Object.entries(memberships).map(([id, urns]) => [id, [...urns]]),
+	);
+}
+
 export type MembershipState = 'live' | 'ghost' | 'tombstone';
 
 export interface ResolvedMembership {
