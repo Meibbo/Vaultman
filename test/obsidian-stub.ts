@@ -29,12 +29,20 @@ export const Platform = {
 };
 
 export class Component {
+	private _disposers: Array<() => void> = [];
 	load(): void {}
-	unload(): void {}
+	/** Mirrors Obsidian: `unload` runs `onunload` and then every `register`ed disposer. */
+	unload(): void {
+		this.onunload();
+		for (const dispose of this._disposers.splice(0)) dispose();
+	}
 	onload(): void {}
 	onunload(): void {}
 	addChild(): void {}
 	registerEvent(): void {}
+	register(dispose: () => void): void {
+		this._disposers.push(dispose);
+	}
 }
 
 export class Events {

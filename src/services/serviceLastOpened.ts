@@ -1,4 +1,4 @@
-import { Component, TFile, type App } from 'obsidian';
+import { Component, Events, TFile, type App } from 'obsidian';
 
 import {
 	buildFolderRecency,
@@ -24,14 +24,20 @@ const FLUSH_DELAY_MS = 2000;
  * the settings, so opening a file never rewrites the whole settings payload.
  * Writes are coalesced into one trailing flush per burst, and a final flush
  * runs on unload so the last open of a session is never lost.
+ *
+ * The service emits a 'change' event (via Obsidian's Events) when:
+ *  - loadStore() finishes loading the persisted record
+ *  - withFileOpened() updates the record (debounced with the flush)
  */
 export class LastOpenedService extends Component {
 	private record: LastOpenedRecord = {};
 	private loaded = false;
 	private dirty = false;
-	private flushTimer: number | null = null;
+	private flushTimer: ReturnType<typeof setTimeout> | null = null;
 	/** BT5-090: folder recency, rebuilt lazily after the record changes. */
 	private folderRecency: ReadonlyMap<string, number> | null = null;
+	private readonly events = new Events();
+	private loadPromise: Promise<void> | null = null;
 
 	constructor(
 		private readonly app: App,
@@ -42,13 +48,28 @@ export class LastOpenedService extends Component {
 	}
 
 	onload(): void {
-		void this.loadStore();
+		this.loadPromise = this.loadStore();
+		this._setupMobileFlushListeners();
 	}
 
-	onunload(): void {
+	onunload(): Promise<void> {
 		this._cancelFlush();
-		// Fire-and-forget: unload cannot await, but the write is already queued.
-		if (this.dirty) void this._write();
+		// Await the pending write so Android doesn't cut it off.
+		return this.flush();
+	}
+
+	/** Subscribe to store changes. Returns an unsubscribe function. */
+	onChange(callback: (record: LastOpenedRecord) => void): () => void {
+		this.events.on(
+			'change',
+			callback as unknown as (...data: unknown[]) => unknown,
+		);
+		return () => this.events.off('change', callback as unknown as (...data: unknown[]) => unknown);
+	}
+
+	/** Wait for the initial load to complete. */
+	async whenLoaded(): Promise<void> {
+		if (this.loadPromise) await this.loadPromise;
 	}
 
 	private _storePath(): string {
@@ -66,6 +87,8 @@ export class LastOpenedService extends Component {
 		this.loaded = true;
 		this.folderRecency = null;
 		this._pruneAgainstVault();
+		// Notify listeners that the store is loaded.
+		this.events.trigger('change', this.record);
 	}
 
 	/** Entries whose file vanished while the plugin was off are dead weight. */
@@ -108,33 +131,37 @@ export class LastOpenedService extends Component {
 		const next = withFileOpened(this.record, file.path, at);
 		if (next === this.record) return;
 		this.record = next;
+		this.folderRecency = null;
 		this._markDirty();
+		this.events.trigger('change', this.record);
 	}
 
 	handleRename(newPath: string, oldPath: string): void {
 		const next = withRenamedPath(this.record, oldPath, newPath);
 		if (next === this.record) return;
 		this.record = next;
+		this.folderRecency = null;
 		this._markDirty();
+		this.events.trigger('change', this.record);
 	}
 
 	handleDelete(path: string): void {
 		const next = withDeletedPath(this.record, path);
 		if (Object.keys(next).length === Object.keys(this.record).length) return;
 		this.record = next;
+		this.folderRecency = null;
 		this._markDirty();
+		this.events.trigger('change', this.record);
 	}
 
 	private _markDirty(): void {
 		this.dirty = true;
-		// The record changed, so the derived folder map is stale.
-		this.folderRecency = null;
 		this._scheduleFlush();
 	}
 
 	private _scheduleFlush(): void {
 		if (this.flushTimer !== null) return;
-		this.flushTimer = window.setTimeout(() => {
+		this.flushTimer = setTimeout(() => {
 			this.flushTimer = null;
 			void this._write();
 		}, this.flushDelayMs);
@@ -142,7 +169,7 @@ export class LastOpenedService extends Component {
 
 	private _cancelFlush(): void {
 		if (this.flushTimer === null) return;
-		window.clearTimeout(this.flushTimer);
+		clearTimeout(this.flushTimer);
 		this.flushTimer = null;
 	}
 
@@ -162,6 +189,28 @@ export class LastOpenedService extends Component {
 		} catch (error) {
 			this.dirty = true;
 			console.warn('Vaultman could not persist the last-opened store', error);
+		}
+	}
+
+	/** Listen for quit/visibilitychange to flush on mobile where unload is unreliable. */
+	private _setupMobileFlushListeners(): void {
+		const flushOnSignal = () => {
+			void this.flush();
+		};
+		// Desktop quit event
+		this.registerEvent(this.app.workspace.on('quit', flushOnSignal));
+		// Android/iOS: `visibilitychange` → hidden is the only signal that the app
+		// is being backgrounded (and possibly killed) before `onunload` runs.
+		if (typeof document !== 'undefined') {
+			const onVisibilityChange = () => {
+				if (document.visibilityState === 'hidden') {
+					void this.flush();
+				}
+			};
+			document.addEventListener('visibilitychange', onVisibilityChange, { passive: true });
+			this.register(() => {
+				document.removeEventListener('visibilitychange', onVisibilityChange);
+			});
 		}
 	}
 }
