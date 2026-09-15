@@ -319,6 +319,7 @@ export function projectGroupedTree<TMeta>(
 		nodes,
 		groups,
 		memberships,
+		providerId,
 		noGroupLabel,
 		filtered,
 		urnOf,
@@ -345,7 +346,20 @@ export function projectGroupedTree<TMeta>(
 	// aun no migrados) se conserva "custom si los hay".
 	const wantsCustom = preset ? preset.kind === 'custom' : groups.length > 0;
 	if (wantsCustom) {
-		if (groups.length === 0) return nodes;
+		// U130-09: guarda de provider, defensa y no logica de negocio. El mapa
+		// es el de esta scene, pero una URN de otro provider (datos corruptos,
+		// una foto aplicada a la tab equivocada) no puede casar ni contar; y
+		// un grupo cuyas URNs son TODAS ajenas no es de esta scene: sin
+		// cabecera, no un «Foo (3)» con 0 hijos. Un grupo propio vacio sigue
+		// siendo un p-node (regla del grupo vacio, mas abajo).
+		const ownGroups = groups.filter((group) => {
+			const urns = memberships[group.id] ?? [];
+			if (urns.length === 0) return true;
+			return urns.some(
+				(urn) => parseMembershipUrn(urn)?.providerId === providerId,
+			);
+		});
+		if (ownGroups.length === 0) return nodes;
 		if (!urnOf) {
 			throw new Error(
 				'projectGroupedTree: hay grupos custom y falta urnOf. Sin ella no ' +
@@ -353,13 +367,15 @@ export function projectGroupedTree<TMeta>(
 					'tapar un hueco de diseno con una heuristica.',
 			);
 		}
-		const membersPerGroup = groups.map((group) => {
+		const membersPerGroup = ownGroups.map((group) => {
 			const urns = new Set(memberships[group.id] ?? []);
 			const identities = new Set(
 				[...urns]
 					.map((urn) => {
 						const ref = parseMembershipUrn(urn);
-						return ref ? identityKey(ref) : null;
+						return ref && ref.providerId === providerId
+							? identityKey(ref)
+							: null;
 					})
 					.filter((id): id is string => Boolean(id)),
 			);
@@ -383,7 +399,7 @@ export function projectGroupedTree<TMeta>(
 		);
 		const claimed = new Set<string>();
 		const out: TreeNode<TMeta>[] = [];
-		groups.forEach((group, index) => {
+		ownGroups.forEach((group, index) => {
 			const members = membersPerGroup[index] ?? [];
 			for (const member of members) claimed.add(member.id);
 			// Poda normal del pipeline, no inmunidad.

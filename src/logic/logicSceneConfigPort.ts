@@ -35,7 +35,10 @@ export interface SceneConfigPortDeps {
 
 export interface SceneConfigPort {
 	read: (scene: SceneDefinitionId) => Required<SceneConfig>;
-	propose: (scene: SceneDefinitionId, next: Required<SceneConfig>) => Promise<void>;
+	propose: (
+		scene: SceneDefinitionId,
+		next: Required<SceneConfig>,
+	) => Promise<void>;
 	/** La scene en la que estaba la instancia, o `null` si nunca se guardo. */
 	readActiveScene: () => string | null;
 	proposeActiveScene: (scene: string) => Promise<void>;
@@ -88,6 +91,30 @@ export function captureSceneFacets(
 		stickyRows: config.stickyRows,
 		compactFolders: config.compactFolders,
 		indent: config.indent,
+	};
+}
+
+/**
+ * U130-09: take the complete per-tab layout photo from the same live
+ * `SceneConfig` that owns the groups. Keeping this in production code makes
+ * the save/restore round-trip test exercise the real capture contract instead
+ * of reimplementing navbar's object literal.
+ */
+export function captureSavedViewConfig(
+	config: Required<SceneConfig>,
+): SavedViewConfig {
+	return {
+		viewMode: config.viewMode,
+		visibleCells: [...config.visibleCells],
+		interactionMode: config.interactionMode,
+		sortState: {
+			...config.sortState,
+			sorts: { ...config.sortState.sorts },
+			...(config.sortState.nodeTypeFilters
+				? { nodeTypeFilters: [...config.sortState.nodeTypeFilters] }
+				: {}),
+		},
+		...captureSceneFacets(config),
 	};
 }
 
@@ -163,7 +190,9 @@ export async function applyLayoutToPort(
 	}
 }
 
-export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPort {
+export function createSceneConfigPort(
+	deps: SceneConfigPortDeps,
+): SceneConfigPort {
 	// U121-109: la identidad es tardia, asi que vive en una variable y no en `deps`.
 	let currentId: WorkspaceInstanceId = deps.instanceId;
 	const listeners = new Set<() => void>();
@@ -187,7 +216,10 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 		});
 	};
 
-	const propose = async (scene: SceneDefinitionId, next: Required<SceneConfig>): Promise<void> => {
+	const propose = async (
+		scene: SceneDefinitionId,
+		next: Required<SceneConfig>,
+	): Promise<void> => {
 		const registry = deps.readRegistry();
 		const record = registry.instances[currentId];
 		if (!record) return; // instancia desconocida: no acuñamos aquí, eso es del shard 01
@@ -201,9 +233,7 @@ export function createSceneConfigPort(deps: SceneConfigPortDeps): SceneConfigPor
 		const stored = record.scenes[scene] ?? {};
 		if (JSON.stringify(patch) === JSON.stringify(stored)) return;
 		// U121-101: `patch` ES la capa entera, no un retoque: sustituye, no fusiona.
-		deps.writeRegistry(
-			replaceSceneConfig(registry, currentId, scene, patch),
-		);
+		deps.writeRegistry(replaceSceneConfig(registry, currentId, scene, patch));
 		await deps.persist();
 	};
 

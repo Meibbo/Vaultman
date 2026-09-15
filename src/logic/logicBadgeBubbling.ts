@@ -306,6 +306,12 @@ export interface GroupMemberCountInput {
 	groups: readonly { id: string; parentId: string | null }[];
 	/** Raw membership URNs per group id (`SceneConfig.groupMemberships`, U130-09). */
 	memberships: Readonly<Record<string, readonly string[]>>;
+	/**
+	 * U130-09: the scene's provider. When given, a URN of another provider is
+	 * not counted — the same guard `projectGroupedTree` applies when matching,
+	 * so a header never shows a total its scene cannot contain.
+	 */
+	providerId?: string;
 }
 
 /**
@@ -336,6 +342,9 @@ export function bubbleMemberCountsToGroups(
 		for (const urn of urns) {
 			const ref = parseMembershipUrn(urn);
 			if (!ref) continue;
+			if (input.providerId !== undefined && ref.providerId !== input.providerId) {
+				continue;
+			}
 			set.add(`${ref.providerId}:${ref.kind}:${ref.canonicalId}`);
 		}
 	}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
+import sceneConfigPortSource from '../../src/logic/logicSceneConfigPort.ts?raw';
 
 describe('minimal filters header source guards', () => {
 	it('uses the tab-label setting for every active minimal Tabs button', () => {
@@ -31,7 +32,9 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('keeps minimal search as a toggle and gives phone mode its own top layer', () => {
-		expect(navbarFiltersSource).toContain('{#if minimalStyle && showSearchInput}');
+		expect(navbarFiltersSource).toContain(
+			'{#if minimalStyle && showSearchInput}',
+		);
 		expect(navbarFiltersSource).toContain('function toggleSearch()');
 		expect(navbarFiltersSource).toContain('function focusVisibleSearchInput()');
 		expect(navbarFiltersSource).not.toContain('function handleSearchFocusOut');
@@ -119,7 +122,10 @@ describe('minimal filters header source guards', () => {
 			'normalizeExplorerSortState(tab, state',
 		);
 		expect(navbarFiltersSource).toContain('activeScopeSort(tab, sort)');
-		expect(navbarFiltersSource).toContain('sorts: { ...sortState.sorts }');
+		expect(navbarFiltersSource).toContain('captureSavedViewConfig({');
+		expect(sceneConfigPortSource).toContain(
+			'sorts: { ...config.sortState.sorts }',
+		);
 		expect(navbarFiltersSource).not.toContain('childLevel');
 	});
 
@@ -179,6 +185,8 @@ describe('minimal filters header source guards', () => {
 		expect(nodesSource.indexOf("'reveal-active-file'")).toBeLessThan(
 			nodesSource.indexOf("'toggle-expansion'"),
 		);
-		expect(menuSource).toContain('for (const node of panelWidgetProjection.nodes)');
+		expect(menuSource).toContain(
+			'for (const node of panelWidgetProjection.nodes)',
+		);
 	});
 });

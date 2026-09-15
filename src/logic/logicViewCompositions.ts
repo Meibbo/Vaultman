@@ -1,9 +1,6 @@
 import type { ExplorerTabId } from '../types/typeUI';
 import type { SavedLayout, SavedViewConfig } from '../types/typeSettings';
-import {
-	cellsForExplorer,
-	defaultVisibleCells,
-} from './logicCellRegistry';
+import { cellsForExplorer, defaultVisibleCells } from './logicCellRegistry';
 import { normalizeExplorerSortState } from './logicScopedSort';
 
 /**
@@ -86,4 +83,12 @@ export function seedDefaultViewCompositions(
 		(layout) => !present.has(layout.name),
 	);
 	return [...(existing ?? []), ...seeded];
+}
+
+/** Replace a named layout with its new complete photo, or append it. */
+export function replaceSavedLayout(
+	existing: readonly SavedLayout[],
+	layout: SavedLayout,
+): SavedLayout[] {
+	return [...existing.filter((entry) => entry.name !== layout.name), layout];
 }

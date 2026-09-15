@@ -105,7 +105,7 @@
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import {
 		applyLayoutToPort,
-		captureSceneFacets,
+		captureSavedViewConfig,
 		sceneFacetsOf,
 		type SceneConfigPort,
 		type SceneFacets,
@@ -467,19 +467,13 @@
 				tab,
 				sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 			);
-			config[tab] = {
+			config[tab] = captureSavedViewConfig({
+				...configByTab[tab],
 				viewMode: viewModeByTab[tab],
 				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
 				interactionMode: interactionModeByTab[tab],
-				sortState: {
-					...sortState,
-					sorts: { ...sortState.sorts },
-					...(sortState.nodeTypeFilters
-						? { nodeTypeFilters: [...sortState.nodeTypeFilters] }
-						: {}),
-				},
-				...captureSceneFacets(configByTab[tab]),
-			};
+				sortState,
+			});
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
 	}

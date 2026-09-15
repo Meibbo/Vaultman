@@ -71,6 +71,7 @@
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
+	import { replaceSavedLayout } from '../../logic/logicViewCompositions';
 	import type { FrontmatterPropertyRevealRequest } from '../../services/serviceFrontmatterPropertyReveal';
 	import type {
 		NavbarPanelWidgetState,
@@ -455,10 +456,7 @@
 	});
 	function saveLayout(layout: SavedLayout) {
 		layout.floatingToc = getFloatingTocState?.();
-		const next = [
-			...savedLayouts.filter((entry) => entry.name !== layout.name),
-			layout,
-		];
+		const next = replaceSavedLayout(savedLayouts, layout);
 		plugin.settings.savedLayouts = next;
 		savedLayouts = next;
 		void plugin.saveData(plugin.settings);

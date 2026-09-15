@@ -717,7 +717,11 @@ export class PropsExplorerPanel extends Component {
 			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
-			groupTotals: bubbleMemberCountsToGroups({ groups, memberships }),
+			groupTotals: bubbleMemberCountsToGroups({
+				groups,
+				memberships,
+				providerId: 'props',
+			}),
 			// Spec 08 §3.1.bis: the preset selection is the switch, never the
 			// sort scope.
 			enabled: this.groupPreset.kind !== 'none',

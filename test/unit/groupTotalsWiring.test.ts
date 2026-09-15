@@ -10,12 +10,14 @@ import explorerTagsSource from '../../src/components/containers/explorerTags.ts?
 import explorerSnippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
 import explorerPluginsSource from '../../src/components/containers/explorerPlugins.ts?raw';
 
-const EXPLORER_SOURCES: Readonly<Record<string, string>> = {
-	explorerFiles: explorerFilesSource,
-	explorerProps: explorerPropsSource,
-	explorerTags: explorerTagsSource,
-	explorerSnippets: explorerSnippetsSource,
-	explorerPlugins: explorerPluginsSource,
+const EXPLORER_SOURCES: Readonly<
+	Record<string, { source: string; providerId: string }>
+> = {
+	explorerFiles: { source: explorerFilesSource, providerId: 'files' },
+	explorerProps: { source: explorerPropsSource, providerId: 'props' },
+	explorerTags: { source: explorerTagsSource, providerId: 'tags' },
+	explorerSnippets: { source: explorerSnippetsSource, providerId: 'snippets' },
+	explorerPlugins: { source: explorerPluginsSource, providerId: 'plugins' },
 };
 
 const node = (id: string): TreeNode<null> => ({
@@ -28,7 +30,9 @@ const node = (id: string): TreeNode<null> => ({
 describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales', () => {
 	it('los cinco explorers pasan groupTotals (simbolo exacto) a projectGroupedTree', () => {
 		expect(Object.keys(EXPLORER_SOURCES)).toHaveLength(5);
-		for (const [name, source] of Object.entries(EXPLORER_SOURCES)) {
+		for (const [name, { source, providerId }] of Object.entries(
+			EXPLORER_SOURCES,
+		)) {
 			expect(
 				source.includes('projectGroupedTree'),
 				`${name} ya no proyecta grupos`,
@@ -39,11 +43,12 @@ describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales'
 				source.includes('groupTotals'),
 				`${name} proyecta sin groupTotals`,
 			).toBe(true);
+			const compactSource = source.replace(/\s+/g, ' ');
 			expect(
-				source.includes(
-					'groupTotals: bubbleMemberCountsToGroups({ groups, memberships })',
+				compactSource.includes(
+					`groupTotals: bubbleMemberCountsToGroups({ groups, memberships, providerId: '${providerId}', })`,
 				),
-				`${name} no cablea los totales burbujeados a la proyeccion`,
+				`${name} no cablea los totales burbujeados con el provider de su scene`,
 			).toBe(true);
 		}
 	});
@@ -51,13 +56,29 @@ describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales'
 
 describe('L-07AW: la cabecera muestra el agregado burbujeado, no children.length', () => {
 	const groups = [
-		{ id: 'P', flavor: 'custom' as const, label: 'Padre', parentId: null, scope: 'all' as const },
-		{ id: 'H', flavor: 'custom' as const, label: 'Hijo', parentId: 'P', scope: 'all' as const },
+		{
+			id: 'P',
+			flavor: 'custom' as const,
+			label: 'Padre',
+			parentId: null,
+			scope: 'all' as const,
+		},
+		{
+			id: 'H',
+			flavor: 'custom' as const,
+			label: 'Hijo',
+			parentId: 'P',
+			scope: 'all' as const,
+		},
 	];
 	// x pertenece al padre Y al hijo: es UNA identidad en DOS grupos.
 	const memberships = {
 		P: ['files:file:x|x'] as readonly string[],
-		H: ['files:file:x|x', 'files:file:y|y', 'files:file:z|z'] as readonly string[],
+		H: [
+			'files:file:x|x',
+			'files:file:y|y',
+			'files:file:z|z',
+		] as readonly string[],
 	};
 	const nodes = [node('x'), node('y'), node('z')];
 	const base = {

@@ -3,13 +3,24 @@ import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import {
 	applyLayoutToPort,
 	captureSceneFacets,
+	captureSavedViewConfig,
 	createSceneConfigPort,
 	sceneFacetsOf,
 	type SavedLayoutConfig,
 } from '../../src/logic/logicSceneConfigPort';
-import { EMPTY_REGISTRY, ensureInstance } from '../../src/logic/logicInstanceRegistry';
-import type { InstanceRegistryData, SceneConfig } from '../../src/types/typeInstance';
+import {
+	EMPTY_REGISTRY,
+	ensureInstance,
+} from '../../src/logic/logicInstanceRegistry';
+import { replaceSavedLayout } from '../../src/logic/logicViewCompositions';
+import type {
+	InstanceRegistryData,
+	SceneConfig,
+} from '../../src/types/typeInstance';
 import type { SavedViewConfig } from '../../src/types/typeSettings';
+
+import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import pageFiltersSource from '../../src/components/pages/pageFilters.svelte?raw';
 
 /**
  * U130-09 (dev 2026-09-15): «el layout-config deberia servir para
@@ -36,7 +47,10 @@ const defaults: Required<SceneConfig> = {
 };
 
 function instance(id: string) {
-	let registry: InstanceRegistryData = ensureInstance(EMPTY_REGISTRY, id).registry;
+	let registry: InstanceRegistryData = ensureInstance(
+		EMPTY_REGISTRY,
+		id,
+	).registry;
 	const port = createSceneConfigPort({
 		instanceId: id,
 		readRegistry: () => registry,
@@ -59,19 +73,11 @@ const TAGS_GROUPS = {
 	Home: ['tags:tag:home|home'],
 };
 
-/** What navbar `saveLayout` stores per tab: the four historical facets plus the photo. */
-function photoOf(config: Required<SceneConfig>): SavedViewConfig {
-	return {
-		viewMode: config.viewMode,
-		visibleCells: [...config.visibleCells],
-		interactionMode: config.interactionMode,
-		sortState: config.sortState,
-		...captureSceneFacets(config),
-	};
-}
-
 /** What navbar `loadLayout` hands to the port for one tab. */
-function layoutFor(tab: 'tags' | 'files', saved: SavedViewConfig): SavedLayoutConfig {
+function layoutFor(
+	tab: 'tags' | 'files',
+	saved: SavedViewConfig,
+): SavedLayoutConfig {
 	return {
 		viewModeByTab: {},
 		interactionModeByTab: {},
@@ -82,6 +88,15 @@ function layoutFor(tab: 'tags' | 'files', saved: SavedViewConfig): SavedLayoutCo
 }
 
 describe('U130-09 — the layout photographs the scene; it does not own it', () => {
+	it('navbar saves through the tested capture and pageFilters replaces through the tested helper', () => {
+		expect(navbarFiltersSource).toContain(
+			'config[tab] = captureSavedViewConfig({',
+		);
+		expect(pageFiltersSource).toContain(
+			'replaceSavedLayout(savedLayouts, layout)',
+		);
+	});
+
 	it('captureSceneFacets returns copies: mutating the photo leaves the scene alone', () => {
 		const scene: Required<SceneConfig> = {
 			...defaults,
@@ -108,7 +123,7 @@ describe('U130-09 — the layout photographs the scene; it does not own it', () 
 			hiddenGroupIds: ['Home'],
 			indent: false,
 		});
-		const saved = photoOf(a.port.read('tags'));
+		const saved = captureSavedViewConfig(a.port.read('tags'));
 
 		const b = instance('vm-b');
 		await applyLayoutToPort(b.port, layoutFor('tags', saved));
@@ -132,15 +147,32 @@ describe('U130-09 — the layout photographs the scene; it does not own it', () 
 		// replaced the entry, so re-saving dropped them. Now the second photo
 		// of the same scene equals the first, groups included.
 		const a = instance('vm-a');
-		await a.port.propose('tags', { ...defaults, groupMemberships: TAGS_GROUPS });
-		const first = photoOf(a.port.read('tags'));
-		const second = photoOf(a.port.read('tags'));
-		expect(second).toEqual(first);
-		expect(second.groupMemberships).toEqual(TAGS_GROUPS);
+		await a.port.propose('tags', {
+			...defaults,
+			groupMemberships: TAGS_GROUPS,
+		});
+		const first = {
+			name: 'My layout',
+			summary: 'first photo',
+			config: { tags: captureSavedViewConfig(a.port.read('tags')) },
+		};
+		const afterFirstSave = replaceSavedLayout([], first);
+		const afterSecondSave = replaceSavedLayout(afterFirstSave, {
+			...first,
+			summary: 'second photo',
+			config: { tags: captureSavedViewConfig(a.port.read('tags')) },
+		});
+		expect(afterSecondSave).toHaveLength(1);
+		expect(afterSecondSave[0]?.summary).toBe('second photo');
+		expect(afterSecondSave[0]?.config.tags?.groupMemberships).toEqual(
+			TAGS_GROUPS,
+		);
 		// Round trip through another instance and back: still the same photo.
 		const b = instance('vm-b');
-		await applyLayoutToPort(b.port, layoutFor('tags', first));
-		expect(photoOf(b.port.read('tags'))).toEqual(first);
+		const secondPhoto = afterSecondSave[0]?.config.tags;
+		if (!secondPhoto) throw new Error('second photo missing');
+		await applyLayoutToPort(b.port, layoutFor('tags', secondPhoto));
+		expect(captureSavedViewConfig(b.port.read('tags'))).toEqual(secondPhoto);
 	});
 
 	it('a photo taken before U130-09 preserves the current groups of the scene', async () => {
@@ -172,9 +204,14 @@ describe('U130-09 — the layout photographs the scene; it does not own it', () 
 			stickyRows: false,
 		};
 		const facets = sceneFacetsOf(saved);
-		expect(Object.keys(facets).sort()).toEqual(['groupMemberships', 'stickyRows']);
+		expect(Object.keys(facets).sort()).toEqual([
+			'groupMemberships',
+			'stickyRows',
+		]);
 		expect(facets.groupMemberships).toEqual(saved.groupMemberships);
 		expect(facets.groupMemberships).not.toBe(saved.groupMemberships);
-		expect(facets.groupMemberships?.Work).not.toBe(saved.groupMemberships?.Work);
+		expect(facets.groupMemberships?.Work).not.toBe(
+			saved.groupMemberships?.Work,
+		);
 	});
 });

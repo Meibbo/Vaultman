@@ -6,6 +6,7 @@ import {
 	projectGroupedTree,
 	resolveCustomGroups,
 } from '../../src/logic/logicTreeGroupProjection';
+import { bubbleMemberCountsToGroups } from '../../src/logic/logicBadgeBubbling';
 import type { TreeNode } from '../../src/types/typeTree';
 
 const node = (id: string, label: string): TreeNode<null> => ({
@@ -279,6 +280,86 @@ describe('U130-03: cabeceras de grupo en el arbol', () => {
 		expect(header.children?.[0].depth).toBe(1);
 		expect(header.children?.[0].children?.[0].depth).toBe(2);
 		expect(header.children?.[0].children?.[0].children?.[0].depth).toBe(3);
+	});
+});
+
+describe('U130-09: guarda de provider — un grupo de Tags no existe en Files', () => {
+	// Defensa, no logica de negocio: el mapa ya es el de la scene. Pero una
+	// URN de otro provider (datos corruptos, una foto en la tab equivocada) no
+	// puede casar ni contar, y un grupo cuyas URNs son TODAS ajenas no
+	// produce cabecera: antes salia «Foo (3)» con 0 hijos.
+	const foreign = { Foo: ['tags:tag:alfa|alfa', 'tags:tag:beta|beta'] };
+	const files = [node('f1', 'alfa'), node('f2', 'beta')];
+	const urnOfFile = (n: TreeNode<null>) => `files:file:${n.label}|${n.label}`;
+
+	it('un mapa con URNs `tags:` proyectado en `files` no produce cabecera', () => {
+		const out = projectGroupedTree({
+			nodes: files,
+			groups: resolveCustomGroups(foreign),
+			memberships: foreign,
+			providerId: 'files',
+			preset: { kind: 'custom', direction: 'asc' },
+			urnOf: urnOfFile,
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		expect(out.map((group) => group.label)).not.toContain('Foo');
+		// Sin ningun grupo propio la lista vuelve TAL CUAL, por identidad.
+		expect(out).toBe(files);
+	});
+
+	it('ni count: bubbleMemberCountsToGroups ignora las URNs de otro provider', () => {
+		const totals = bubbleMemberCountsToGroups({
+			groups: resolveCustomGroups(foreign),
+			memberships: foreign,
+			providerId: 'files',
+		});
+		expect(totals.get('Foo')).toBeUndefined();
+		// Sin providerId se conserva el contrato anterior (cuenta todo).
+		expect(
+			bubbleMemberCountsToGroups({
+				groups: resolveCustomGroups(foreign),
+				memberships: foreign,
+			}).get('Foo'),
+		).toBe(2);
+	});
+
+	it('URNs mixtas: las propias casan y cuentan, las ajenas se ignoran', () => {
+		const mixed = { Foo: ['tags:tag:alfa|alfa', 'files:file:beta|beta'] };
+		const out = projectGroupedTree({
+			nodes: files,
+			groups: resolveCustomGroups(mixed),
+			memberships: mixed,
+			providerId: 'files',
+			preset: { kind: 'custom', direction: 'asc' },
+			urnOf: urnOfFile,
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		const foo = out.find((group) => group.label === 'Foo');
+		expect(foo?.children?.map((child) => child.id)).toEqual(['f2']);
+		expect(
+			bubbleMemberCountsToGroups({
+				groups: resolveCustomGroups(mixed),
+				memberships: mixed,
+				providerId: 'files',
+			}).get('Foo'),
+		).toBe(1);
+	});
+
+	it('un grupo propio pero vacio sigue siendo un p-node: la guarda no lo toca', () => {
+		const own = { Nuevo: [] as string[] };
+		const out = projectGroupedTree({
+			nodes: files,
+			groups: resolveCustomGroups(own),
+			memberships: own,
+			providerId: 'files',
+			preset: { kind: 'custom', direction: 'asc' },
+			urnOf: urnOfFile,
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+		});
+		expect(out.map((group) => group.label)).toEqual(['Nuevo', NO_GROUP]);
 	});
 });
 
