@@ -163,12 +163,14 @@ export class VaultmanPlugin extends Plugin {
 		file: TFile,
 		propertyName: string,
 		source: FrontmatterSourceLocation,
+		propertyValue?: string,
 	): Promise<boolean> {
 		const nativeRevealed = await revealNativeFrontmatterProperty(
 			this.app,
 			file,
 			propertyName,
 			source,
+			propertyValue,
 		);
 		const sceneCount = routeVaultmanCurrentFileProperty(
 			this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE),

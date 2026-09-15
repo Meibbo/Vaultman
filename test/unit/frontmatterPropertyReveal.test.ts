@@ -255,3 +255,194 @@ describe('native Show properties in document reveal', () => {
 		).resolves.toBe(false);
 	});
 });
+
+describe('A10 — plan de reveal expande antes de resaltar', () => {
+	it('expande is-collapsed y luego resalta la fila', async () => {
+		let collapsed = true;
+		const containerRemove = vi.fn();
+		const rowAdd = vi.fn();
+		const rowRemove = vi.fn();
+
+		const row = {
+			scrollIntoView: vi.fn(),
+			classList: { add: rowAdd, remove: rowRemove },
+			ownerDocument: { defaultView: { setTimeout: (fn: () => void) => (fn(), 1) } },
+		};
+
+		const container = {
+			classList: {
+				contains: (cls: string) => cls === 'is-collapsed' && collapsed,
+				remove: (cls: string) => {
+					if (cls === 'is-collapsed') collapsed = false;
+					containerRemove(cls);
+				},
+			},
+			querySelector: vi.fn(() => ({ click: vi.fn() })),
+		};
+
+		const querySelector = vi.fn((selector: string) => {
+			if (selector === '.metadata-container') return container;
+			if (selector === '.metadata-property[data-property-key="tags"]') {
+				return collapsed ? null : row;
+			}
+			return null;
+		});
+
+		const root = { querySelector };
+		const leaf = { view: { containerEl: root, file: { path: 'notes/current.md' } } };
+		const app = {
+			vault: { getConfig: () => 'visible' },
+			workspace: {
+				getLeavesOfType: () => [leaf],
+				getActiveViewOfType: () => leaf.view,
+			},
+		};
+
+		const result = await revealNativeFrontmatterProperty(
+			app as never,
+			{ path: 'notes/current.md' } as never,
+			'tags',
+		);
+
+		expect(result).toBe(true);
+		expect(containerRemove).toHaveBeenCalledWith('is-collapsed');
+		expect(rowAdd).toHaveBeenCalledWith('is-flashing');
+	});
+
+	it('no toca el toggle si el bloque ya está expandido', async () => {
+		const containerRemove = vi.fn();
+		const rowAdd = vi.fn();
+
+		const row = {
+			scrollIntoView: vi.fn(),
+			classList: { add: rowAdd, remove: vi.fn() },
+			ownerDocument: { defaultView: { setTimeout: (fn: () => void) => (fn(), 1) } },
+		};
+
+		const container = {
+			classList: { contains: () => false, remove: containerRemove },
+			querySelector: vi.fn(() => ({ click: vi.fn() })),
+		};
+
+		const querySelector = vi.fn((selector: string) => {
+			if (selector === '.metadata-container') return container;
+			if (selector === '.metadata-property[data-property-key="tags"]') return row;
+			return null;
+		});
+
+		const root = { querySelector };
+		const leaf = { view: { containerEl: root, file: { path: 'notes/current.md' } } };
+		const app = {
+			vault: { getConfig: () => 'visible' },
+			workspace: {
+				getLeavesOfType: () => [leaf],
+				getActiveViewOfType: () => leaf.view,
+			},
+		};
+
+		const result = await revealNativeFrontmatterProperty(
+			app as never,
+			{ path: 'notes/current.md' } as never,
+			'tags',
+		);
+
+		expect(result).toBe(true);
+		expect(containerRemove).not.toHaveBeenCalled();
+		expect(rowAdd).toHaveBeenCalledWith('is-flashing');
+	});
+});
+
+describe('A11 — Visible resalta la pill del valor', () => {
+	it('flashea SOLO la pill que coincide con el valor', async () => {
+		const pillAAdd = vi.fn();
+		const pillBAdd = vi.fn();
+		const pillCAdd = vi.fn();
+		const rowAdd = vi.fn();
+
+		const pillA = {
+			classList: { add: pillAAdd, remove: vi.fn() },
+			querySelector: vi.fn(() => ({ textContent: 'a' })),
+		};
+		const pillB = {
+			classList: { add: pillBAdd, remove: vi.fn() },
+			querySelector: vi.fn(() => ({ textContent: 'b' })),
+		};
+		const pillC = {
+			classList: { add: pillCAdd, remove: vi.fn() },
+			querySelector: vi.fn(() => ({ textContent: 'c' })),
+		};
+
+		const row = {
+			scrollIntoView: vi.fn(),
+			classList: { add: rowAdd, remove: vi.fn() },
+			ownerDocument: { defaultView: { setTimeout: (fn: () => void) => (fn(), 1) } },
+			querySelectorAll: vi.fn(() => [pillA, pillB, pillC]),
+		};
+
+		const querySelector = vi.fn((selector: string) => {
+			if (selector === '.metadata-container') return null;
+			if (selector === '.metadata-property[data-property-key="tags"]') return row;
+			return null;
+		});
+
+		const root = { querySelector };
+		const leaf = { view: { containerEl: root, file: { path: 'notes/current.md' } } };
+		const app = {
+			vault: { getConfig: () => 'visible' },
+			workspace: {
+				getLeavesOfType: () => [leaf],
+				getActiveViewOfType: () => leaf.view,
+			},
+		};
+
+		const result = await revealNativeFrontmatterProperty(
+			app as never,
+			{ path: 'notes/current.md' } as never,
+			'tags',
+			undefined,
+			'b',
+		);
+
+		expect(result).toBe(true);
+		expect(pillAAdd).not.toHaveBeenCalled();
+		expect(pillBAdd).toHaveBeenCalledWith('is-flashing');
+		expect(pillCAdd).not.toHaveBeenCalled();
+		expect(rowAdd).not.toHaveBeenCalled();
+	});
+
+	it('sin valor flashea la fila (comportamiento por defecto)', async () => {
+		const rowAdd = vi.fn();
+
+		const row = {
+			scrollIntoView: vi.fn(),
+			classList: { add: rowAdd, remove: vi.fn() },
+			ownerDocument: { defaultView: { setTimeout: (fn: () => void) => (fn(), 1) } },
+			querySelectorAll: vi.fn(() => []),
+		};
+
+		const querySelector = vi.fn((selector: string) => {
+			if (selector === '.metadata-container') return null;
+			if (selector === '.metadata-property[data-property-key="tags"]') return row;
+			return null;
+		});
+
+		const root = { querySelector };
+		const leaf = { view: { containerEl: root, file: { path: 'notes/current.md' } } };
+		const app = {
+			vault: { getConfig: () => 'visible' },
+			workspace: {
+				getLeavesOfType: () => [leaf],
+				getActiveViewOfType: () => leaf.view,
+			},
+		};
+
+		const result = await revealNativeFrontmatterProperty(
+			app as never,
+			{ path: 'notes/current.md' } as never,
+			'tags',
+		);
+
+		expect(result).toBe(true);
+		expect(rowAdd).toHaveBeenCalledWith('is-flashing');
+	});
+});

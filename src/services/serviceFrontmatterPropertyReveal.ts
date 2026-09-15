@@ -15,6 +15,7 @@ export interface CurrentFilePropertyRevealState {
 export interface FrontmatterPropertyRevealRequest {
 	filePath: string;
 	propertyName: string;
+	propertyValue?: string;
 }
 
 export interface FrontmatterSourceLocation {
@@ -150,16 +151,63 @@ function flashNativePropertyRow(row: NativePropertyRow): boolean {
 	}
 }
 
+type CollapsibleContainer = {
+	classList?: {
+		contains: (cls: string) => boolean;
+		remove: (cls: string) => void;
+	};
+	querySelector?: (selector: string) => { click?: () => void } | null;
+};
+
+/**
+ * A10: a collapsed properties block (`.metadata-container.is-collapsed`) hides
+ * every `.metadata-property`, so there is nothing to flash until it opens.
+ * Prefer the native toggle -- a click on `.metadata-properties-heading`, which
+ * is what the user does and what the editor tracks -- and only strip the
+ * class if the heading is not there. Returns true when it had to expand.
+ * Waits one frame so the rows exist before the caller queries them.
+ */
+async function expandMetadataContainer(root: {
+	querySelector?: (selector: string) => unknown;
+}): Promise<boolean> {
+	try {
+		if (typeof root.querySelector !== 'function') return false;
+		const container = root.querySelector('.metadata-container') as
+			| CollapsibleContainer
+			| null;
+		const cls = container?.classList;
+		if (!cls?.contains?.('is-collapsed')) return false;
+		const heading = container?.querySelector?.('.metadata-properties-heading');
+		if (typeof heading?.click === 'function') heading.click();
+		if (cls.contains('is-collapsed')) cls.remove('is-collapsed');
+		await new Promise<void>((resolve) => {
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(() => resolve());
+			} else {
+				resolve();
+			}
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Reveal Core's own property row when "Show properties in document" is
  * Visible. In explicit Source mode, reuse the editor match-state path. Hidden
  * or unavailable native surfaces reject quietly.
+ *
+ * `propertyValue` — when provided, the flash targets the `.multi-select-pill`
+ * inside the row whose `.multi-select-pill-content` text matches this value
+ * instead of the whole row (A11).
  */
 export async function revealNativeFrontmatterProperty(
 	app: App,
 	file: TFile,
 	propertyName: string,
 	source?: FrontmatterSourceLocation,
+	propertyValue?: string,
 ): Promise<boolean> {
 	const workspace = app.workspace as unknown as {
 		activeLeaf?: unknown;
@@ -192,11 +240,33 @@ export async function revealNativeFrontmatterProperty(
 
 	const root = leaf.view?.containerEl ?? leaf.view?.contentEl;
 	if (!root || typeof root.querySelector !== 'function') return false;
+
+	// A10: a collapsed block has no rows to flash; open it first.
+	await expandMetadataContainer(root);
+
 	let row: unknown;
 	try {
 		row = root.querySelector(propertySelector(propertyName));
 	} catch {
 		return false;
 	}
-	return row ? flashNativePropertyRow(row) : false;
+	if (!row) return false;
+
+	// A11: with a value, flash the matching pill (`.multi-select-pill-content`)
+	// instead of the whole row; `.is-flashing` is generic in core's sheet, so
+	// a pill lights up the same way a row does.
+	const pillHost = row as {
+		querySelectorAll?: (s: string) => Iterable<{
+			querySelector?: (s: string) => { textContent?: string } | null;
+		}>;
+	};
+	if (propertyValue && typeof pillHost.querySelectorAll === 'function') {
+		for (const pill of pillHost.querySelectorAll('.multi-select-pill')) {
+			const content = pill.querySelector?.('.multi-select-pill-content');
+			if (content?.textContent?.trim() === propertyValue) {
+				return flashNativePropertyRow(pill as NativePropertyRow);
+			}
+		}
+	}
+	return flashNativePropertyRow(row);
 }

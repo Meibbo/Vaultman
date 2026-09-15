@@ -94,6 +94,7 @@ export interface PanelPluginCtx {
 			content: string;
 			range: readonly [number, number];
 		},
+		propertyValue?: string,
 	) => Promise<boolean>;
 }
 import { UnifiedTreeView } from '../layout/viewTree';
@@ -977,11 +978,13 @@ export class TagsExplorerPanel extends Component {
 		const opened =
 			occurrence.source === 'frontmatter' &&
 			typeof this.plugin.revealFrontmatterProperty === 'function'
-				? await this.plugin.revealFrontmatterProperty(file, 'tags', {
-						offset: range[0],
-						content,
-						range,
-					})
+				? await this.plugin.revealFrontmatterProperty(
+						file,
+						'tags',
+						{ offset: range[0], content, range },
+						// A11: the pill to flash in Visible mode, not the whole row.
+						tagPath,
+					)
 				: await openFileAtOffset(this.plugin.app, file, range[0], {
 						match: { content, range },
 						source: occurrence.source,
