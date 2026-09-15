@@ -216,11 +216,11 @@
 <!-- Find row: input + Aa + .* toggles -->
 <div class="vaultman-content-find-row">
 	<div class="search-input-container vaultman-content-search-container">
-		<span
-			class="vaultman-content-input-icon"
-			aria-hidden="true"
-			use:iconAction={'lucide-search'}
-		></span>
+		<!-- A19: the glyph is PART of the placeholder, so both go away together
+		     and the input keeps one padding: the caret starts where the text
+		     will, and nothing shifts on the first keystroke. The native
+		     placeholder is a lone space so `:placeholder-shown` still tracks
+		     emptiness; the visible one is the overlay below. -->
 		<input
 			class="vaultman-search-input vaultman-content-input"
 			type="search"
@@ -228,9 +228,16 @@
 			autocorrect="off"
 			autocapitalize="off"
 			spellcheck="false"
-			placeholder={translate('content.find_placeholder')}
+			placeholder=" "
+			aria-label={translate('content.find_placeholder')}
 			bind:value={contentFind}
 		/>
+		<span class="vaultman-content-input-placeholder" aria-hidden="true">
+			<span class="vaultman-content-input-icon" use:iconAction={'lucide-search'}></span>
+			<span class="vaultman-content-input-placeholder-text"
+				>{translate('content.find_placeholder')}</span
+			>
+		</span>
 		{#if contentFind}
 			<button
 				type="button"
@@ -284,11 +291,6 @@
 		<div
 			class="search-input-container vaultman-content-search-container vaultman-content-replace-container"
 		>
-			<span
-				class="vaultman-content-input-icon"
-				aria-hidden="true"
-				use:iconAction={'lucide-replace'}
-			></span>
 			<input
 				class="vaultman-search-input vaultman-content-input"
 				type="text"
@@ -296,9 +298,16 @@
 				autocorrect="off"
 				autocapitalize="off"
 				spellcheck="false"
-				placeholder={translate('content.replace_placeholder')}
+				placeholder=" "
+				aria-label={translate('content.replace_placeholder')}
 				bind:value={contentReplace}
 			/>
+			<span class="vaultman-content-input-placeholder" aria-hidden="true">
+				<span class="vaultman-content-input-icon" use:iconAction={'lucide-replace'}></span>
+				<span class="vaultman-content-input-placeholder-text"
+					>{translate('content.replace_placeholder')}</span
+				>
+			</span>
 			{#if contentReplace}
 				<button
 					type="button"

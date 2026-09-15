@@ -401,13 +401,13 @@
 }
 
 .vaultman-content-search-container {
-  /* U121-069: el glifo se comporta como parte del placeholder. Mientras el
-     input esta vacio reserva su hueco al principio; en cuanto hay texto el
-     glifo desaparece y el hueco se cierra, asi que lo escrito ocupa la linea
-     entera desde el borde. Un solo sitio decide ese ancho -- el padding del
-     input y el arranque del subrayado lo leen de aqui, para que no puedan
-     desincronizarse como ya paso con las cuatro reglas de este mismo issue. */
-  --vaultman-content-input-gutter: 30px;
+  /* A19 (supersedes U121-069): the glyph is part of the PLACEHOLDER, not a
+     gutter the input has to make room for. One padding for the input, empty
+     or not, so the caret starts at the text origin and the first keystroke
+     moves nothing; the placeholder overlay (glyph + text) sits over that same
+     origin and goes away with `:placeholder-shown`. The underline spans the
+     whole box always. */
+  --vaultman-content-input-inset: var(--size-4-2);
 
   flex: 1;
   min-width: 0;
@@ -415,28 +415,39 @@
   position: relative;
 }
 
-.vaultman-content-search-container:has(
-    .vaultman-content-input:not(:placeholder-shown)
-  ) {
-  --vaultman-content-input-gutter: var(--size-4-2);
-}
-
 .vaultman-content-search-container.search-input-container::before {
   display: none;
 }
 
-.vaultman-content-input-icon {
+/* Visual placeholder: same origin as the text, never catches the pointer. */
+.vaultman-content-input-placeholder {
   position: absolute;
-  inset-inline-start: 8px;
+  inset-inline-start: var(--vaultman-content-input-inset);
+  inset-inline-end: 34px;
   top: 50%;
   display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+  font: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.vaultman-content-input-placeholder-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-content-input-icon {
+  display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
-  color: var(--text-faint);
-  pointer-events: none;
-  transform: translateY(-50%);
 }
 
 .vaultman-content-input-icon svg {
@@ -444,13 +455,14 @@
   height: 14px;
 }
 
-/* Se va con el placeholder y vuelve al vaciar el input. `:has()` porque el
-   glifo es el hermano ANTERIOR del input y no hay combinador hacia atras. */
+/* Goes with the (native, blank) placeholder and comes back on clearing.
+   `:has()` because the overlay is the NEXT sibling and the state lives on the
+   input. */
 .vaultman-content-search-container:has(
     .vaultman-content-input:not(:placeholder-shown)
   )
-  .vaultman-content-input-icon {
-  opacity: 0;
+  .vaultman-content-input-placeholder {
+  display: none;
 }
 
 .vaultman-content-search-container .vaultman-content-input {
@@ -460,7 +472,7 @@
   border: none;
   box-shadow: none;
   background: transparent;
-  padding-inline-start: var(--vaultman-content-input-gutter);
+  padding-inline-start: var(--vaultman-content-input-inset);
   padding-inline-end: 34px;
 }
 
@@ -468,14 +480,12 @@
   box-shadow: none;
 }
 
-/* Bottom underline for find + replace inputs. Starts where the text starts, so
-   nunca tapa el glifo mientras este visible y abarca la linea entera en cuanto
-   el input tiene contenido. Lee el mismo gutter que el padding del input. */
+/* Bottom underline for find + replace inputs: the whole box, empty or not. */
 .vaultman-content-search-container::after {
   content: '';
   position: absolute;
   bottom: 0;
-  inset-inline-start: var(--vaultman-content-input-gutter);
+  inset-inline-start: 0;
   inset-inline-end: 0;
   height: 1px;
   background: var(--background-modifier-border);
