@@ -264,18 +264,93 @@ body.mb-hide-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed:hov
   pointer-events: none;
 }
 
-/* Screen-edge compensation when the ribbon is docked. With the ribbon visible
- * the collapsed sidebar is pushed further off-screen so the ribbon is not
- * covered by the reveal; the hit-zone follows because it is a child of the
- * sidebar, so its viewport box still sits at the extreme left/right edge. */
-body.mb-hide-sidebars:has(.workspace-ribbon.mod-left:not(.is-collapsed)):not(.mb-nested-hover-ribbon)
-  .workspace-split.mod-left-split.is-sidedock-collapsed {
-  left: calc(-1 * var(--ribbon-width, 44px));
+/* ----------------------------------------------------
+ * NATIVE COLLAPSED (C3) — port directo de .ref/Mb-sidebars.css.
+ * Cualquier sidebar colapsada por Obsidian (.is-sidedock-collapsed) flota
+ * con hover sin exigir body.mb-hide-sidebars: sidebars.hide viene apagado
+ * (false) por defecto y el original flotaba sin ocultamiento forzado.
+ * Gated por body.mb-hover-sidebars (sidebars.hover con el modulo encendido):
+ * con el modulo apagado la hoja no toca la sidebar nativa (cero residuo).
+ * Sin compensacion de ribbon: la hit-zone queda en [0,8px] (izquierda) y
+ * [vw-8px,vw] (derecha). NO reintroducir left/right negativos: desplazan la
+ * hit-zone fuera del viewport y el puntero en clientX=0 jamas la alcanza.
+ * ---------------------------------------------------- */
+
+/* Base flotante nativa: la colapsada sale de pantalla pero sigue viva. */
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: 90vw;
+  z-index: 1000;
+  overflow: visible;
+  transition:
+    transform 0.25s cubic-bezier(0.1, 0, 0.1, 1),
+    box-shadow 0.25s ease;
 }
 
-body.mb-hide-sidebars:has(.workspace-ribbon.mod-right:not(.is-collapsed)):not(.mb-nested-hover-ribbon)
-  .workspace-split.mod-right-split.is-sidedock-collapsed {
-  right: calc(-1 * var(--ribbon-width, 44px));
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed {
+  left: 0;
+  width: var(--sidebar-left-width, 250px);
+  transform: translateX(calc(-100% - 1px));
+}
+
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed {
+  right: 0;
+  width: var(--sidebar-right-width, 280px);
+  transform: translateX(calc(100% + 1px));
+}
+
+/* Reveal nativo: :hover, clase JS o pin flotan sobre el workspace. */
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed:hover,
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed:hover,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned {
+  transform: translateX(0);
+  box-shadow: -10px 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Hit-zones nativas: 8px en el borde visible ([0,8px] y [vw-8px,vw]). */
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* Sin zona cuando ya esta revelada: no roba clics al contenido. */
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-hovered::after,
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed.mb-sidebar-pinned::after,
+body.mb-hover-sidebars .workspace-split.mod-left-split.is-sidedock-collapsed:hover::after,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-hovered::before,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed.mb-sidebar-pinned::before,
+body.mb-hover-sidebars .workspace-split.mod-right-split.is-sidedock-collapsed:hover::before {
+  display: none;
+  pointer-events: none;
 }
 
 /* TABBAR: 16px hit-zone on the top edge of the tab header container, gated by

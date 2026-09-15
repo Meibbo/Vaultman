@@ -98,6 +98,13 @@ const LAYOUT_CONTAINER_SELECTOR =
 const BODY_CLASS_LOCK = 'mb-hover-locked';
 const BODY_CLASS_NESTED_RIBBON = 'mb-nested-hover-ribbon';
 const BODY_CLASS_HIDE_SIDEBARS = 'mb-hide-sidebars';
+/**
+ * U130 C3: gates the native-collapsed float rules in _hover-surfaces.scss.
+ * Without it the stylesheet would turn every natively collapsed sidebar into
+ * a floating hover surface even with the module off -- and "off" must mean
+ * zero residue.
+ */
+const BODY_CLASS_HOVER_SIDEBARS = 'mb-hover-sidebars';
 const BODY_CLASS_HIDE_RIBBONS = 'mb-hide-ribbons';
 const BODY_CLASS_HIDE_TABBAR = 'mb-hide-tabbar';
 const BODY_CLASS_HIDE_STATUSBAR = 'mb-hide-statusbar';
@@ -195,7 +202,9 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 			'mb-statusbar-hovered on the status bar; mb-hide-{sidebars,ribbons,tabbar,statusbar} ' +
 			'on body collapse each surface (hide action), mb-nested-hover-ribbon makes a hidden ' +
 			'ribbon the trigger that reveals the sidebar, and mb-hover-locked on body when lock is on. ' +
-			'Hover/pin/nested only act on hidden surfaces: expanded surfaces are never touched. ' +
+			'Hover/pin act on hidden (hide action) or natively collapsed (.is-sidedock-collapsed) ' +
+			'surfaces: expanded surfaces are never touched. Hovering the left ribbon wakes the ' +
+			'left floating sidebar whenever sidebars hover is on (no ribbons.hide / nested gate). ' +
 			'Owns the overlay/persistent guards and the layout drift reset from the legacy Mb-sidebars hover script.',
 			privateSymbols: ['app.workspace.leftSplit.size', 'app.workspace.rightSplit.size'],
 			selectorSources: [
@@ -287,6 +296,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 			BODY_CLASS_LOCK,
 			BODY_CLASS_NESTED_RIBBON,
 			BODY_CLASS_HIDE_SIDEBARS,
+			BODY_CLASS_HOVER_SIDEBARS,
 			BODY_CLASS_HIDE_RIBBONS,
 			BODY_CLASS_HIDE_TABBAR,
 			BODY_CLASS_HIDE_STATUSBAR,
@@ -296,6 +306,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (config.lock) body.classList.add(BODY_CLASS_LOCK);
 		if (config.nestedRibbon) body.classList.add(BODY_CLASS_NESTED_RIBBON);
 		if (config.sidebars.hide) body.classList.add(BODY_CLASS_HIDE_SIDEBARS);
+		if (config.sidebars.hover) body.classList.add(BODY_CLASS_HOVER_SIDEBARS);
 		if (config.ribbons.hide) body.classList.add(BODY_CLASS_HIDE_RIBBONS);
 		if (config.tabbar.hide) body.classList.add(BODY_CLASS_HIDE_TABBAR);
 		if (config.statusbar.hide) body.classList.add(BODY_CLASS_HIDE_STATUSBAR);
@@ -574,28 +585,31 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		this.lastPointer = { x: pe.clientX, y: pe.clientY };
 		const overlay = closest(pe.target, OVERLAY_SELECTOR);
 		if (overlay) {
-			if (config.sidebars.hide && config.sidebars.hover && this.activeSurface) {
+			if (config.sidebars.hover && this.activeSurface) {
 				this.activeSurface.classList.add(SIDEBAR_HOVERED_CLASS);
 			}
 			return;
 		}
-		// Ribbon oculto + nested: el ribbon es el disparador de la sidebar
-		// (Mb-sidebars.css 305-324): hover sobre el ribbon oculto lo revela y
-		// empuja la sidebar hacia dentro. Sin nested, el ribbon oculto no revela.
-		if (config.ribbons.hide && config.nestedRibbon) {
-			const ribbon = closest(pe.target, RIBBON_SELECTOR);
-			if (ribbon) {
-				this.setRibbonHovered(ribbon);
-				const leftSidebar = this.leftFloatingSidebar();
-				if (leftSidebar && config.sidebars.hide && config.sidebars.hover) {
-					this.setSidebarHovered(leftSidebar);
-				}
-				return;
+		// U130 C2 (port de mb-sidebar-hover.js:72): el hover sobre el ribbon
+		// izquierdo despierta la sidebar flotante. Comportamiento basico: solo
+		// exige sidebars.hover + sidebar colapsada/flotante, SIN condicionar a
+		// ribbons.hide ni a nestedRibbon. El reveal del propio ribbon sigue en
+		// el bloque generico de abajo (hide+hover); aqui solo se despierta la
+		// sidebar y se deja pasar para que el ribbon tambien se marque.
+		const leftRibbon = closest(pe.target, '.workspace-ribbon.mod-left');
+		if (leftRibbon && config.sidebars.hover) {
+			if (config.ribbons.hide && config.ribbons.hover) {
+				this.setRibbonHovered(leftRibbon);
 			}
+			const leftSidebar = this.leftFloatingSidebar();
+			if (leftSidebar && this.isSidebarRevealable(leftSidebar)) {
+				this.setSidebarHovered(leftSidebar);
+			}
+			return;
 		}
-		if (config.sidebars.hide && config.sidebars.hover) {
+		if (config.sidebars.hover) {
 			const sidebar = closest(pe.target, SIDEBAR_SELECTOR);
-			if (sidebar) {
+			if (sidebar && this.isSidebarRevealable(sidebar)) {
 				this.setSidebarHovered(sidebar);
 				return;
 			}
@@ -622,12 +636,12 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 			}
 		}
 		if (this.hasActiveOverlay()) {
-			if (config.sidebars.hide && config.sidebars.hover && this.activeSurface) {
+			if (config.sidebars.hover && this.activeSurface) {
 				this.activeSurface.classList.add(SIDEBAR_HOVERED_CLASS);
 			}
 			return;
 		}
-		if (config.sidebars.hide && config.sidebars.hover) this.clearSidebarHoverExceptPinned();
+		if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
 		if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
 		if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
 		if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();
@@ -644,6 +658,17 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		return null;
 	}
 
+	/**
+	 * U130 C3: una sidebar es revelable con hover cuando la accion hide esta
+	 * activa (comportamiento historico) O cuando esta colapsada de forma
+	 * nativa por Obsidian (.is-sidedock-collapsed, como en Mb-sidebars.css).
+	 * Asi sidebars.hover funciona con sidebars.hide apagado (su defecto).
+	 */
+	private isSidebarRevealable(sidebar: Element): boolean {
+		if (this.state.config.sidebars.hide) return true;
+		return sidebar.classList.contains('is-sidedock-collapsed');
+	}
+
 	private onPointerDown(event: Event): void {
 		const config = this.state.config;
 		if (config.lock) return;
@@ -651,8 +676,8 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
 		if (
 			sidebar &&
-			config.sidebars.hide &&
 			config.sidebars.pin &&
+			this.isSidebarRevealable(sidebar) &&
 			closest(event.target, PERSISTENT_SELECTOR)
 		) {
 			this.pinSidebar(sidebar);
@@ -665,7 +690,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (config.lock) return;
 		if (closest(event.target, OVERLAY_SELECTOR)) return;
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
-		if (sidebar && config.sidebars.hide && config.sidebars.pin && closest(event.target, QUICK_ACTION_SELECTOR)) {
+		if (sidebar && config.sidebars.pin && closest(event.target, QUICK_ACTION_SELECTOR)) {
 			this.unpinSidebar(sidebar);
 		}
 		this.releaseOutside(event.target);
@@ -678,8 +703,8 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		const sidebar = closest(event.target, SIDEBAR_SELECTOR);
 		if (
 			sidebar &&
-			config.sidebars.hide &&
 			config.sidebars.pin &&
+			this.isSidebarRevealable(sidebar) &&
 			closest(event.target, PERSISTENT_SELECTOR)
 		) {
 			this.pinSidebar(sidebar);
@@ -697,7 +722,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (!active) return;
 		if (this.pinnedSidebars.has(active)) return;
 		if (!this.hasActiveOverlay() && !this.isPointerOverElement(active)) {
-			if (config.sidebars.hide && config.sidebars.hover) this.clearSidebarHoverExceptPinned();
+			if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
 			if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
 			if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
 			if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();

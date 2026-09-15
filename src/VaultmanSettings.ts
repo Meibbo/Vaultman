@@ -990,6 +990,22 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	}
 
 	/**
+	 * U130 C4: entorno tactil para la pagina de Chrome Hover. Se comprueba la
+	 * clase del body (is-mobile, is-phone, mod-mobile); Platform.isMobile se
+	 * mira en getChromeHoverPageItems.
+	 */
+	private isChromeHoverMobileEnv(): boolean {
+		if (typeof document === 'undefined') return false;
+		const cls = document.body?.classList;
+		if (!cls) return false;
+		return (
+			cls.contains('is-mobile') ||
+			cls.contains('is-phone') ||
+			cls.contains('mod-mobile')
+		);
+	}
+
+	/**
 	 * U130 chrome-hover: pagina de ajustes de dos niveles (orden del dev).
 	 * Nivel 1 `enabled`: el modulo entero (apagado = revert, cero residuo).
 	 * Nivel 2: por superficie hide/hover/pin + lock global + nested-ribbon.
@@ -998,6 +1014,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 */
 	private getChromeHoverPageItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
+		// U130 C4: el hover de cromo requiere puntero y probe() lo rechaza en
+		// movil (mobile:no-pointer). No se insertan los controles: se muestra
+		// un aviso informativo simple en is-mobile / is-phone / mod-mobile o
+		// Platform.isMobile.
+		if (Platform.isMobile || this.isChromeHoverMobileEnv()) {
+			items.push({
+				name: translate('settings.chrome_hover'),
+				desc: translate('settings.chrome_hover.mobile_notice'),
+				render: () => {},
+			});
+			return items;
+		}
 		const hs = () => this.plugin.settings.hoverSurfaces;
 		const apply = async (): Promise<void> => {
 			this.plugin.applyHoverSurfacesSettings();

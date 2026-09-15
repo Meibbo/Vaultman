@@ -752,6 +752,8 @@ export const es: Record<string, string> = {
 	'settings.chrome_hover.desc':
 		'Oculta las cuatro superficies del chrome de Obsidian y las revela al pasar el cursor. Nada se oculta sin su accion de ocultar; con paneles abiertos no pasa nada.',
 	'settings.chrome_hover.enable': 'Activar el modulo de hover del chrome',
+	'settings.chrome_hover.mobile_notice':
+		'El hover del chrome necesita puntero y no está disponible en dispositivos táctiles.',
 	'settings.chrome_hover.enable.desc':
 		'Interruptor maestro. Apagado ni siquiera se registra el adapter: sin listeners, sin clases, nada que revertir.',
 	'settings.chrome_hover.sidebars': 'Sidebars',

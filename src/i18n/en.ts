@@ -737,6 +737,8 @@ export const en: Record<string, string> = {
 	'settings.chrome_hover': 'Chrome hover',
 	'settings.chrome_hover.desc':
 		'Hide the four Obsidian chrome surfaces and reveal them on hover. Nothing hides without its hide action; with panels open nothing happens.',
+	'settings.chrome_hover.mobile_notice':
+		'Chrome hover needs a pointer and is not available on touch devices.',
 	'settings.chrome_hover.enable': 'Enable chrome hover module',
 	'settings.chrome_hover.enable.desc':
 		'Master switch. Off means the adapter is not even registered: no listeners, no classes, nothing to revert.',

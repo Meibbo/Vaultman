@@ -567,6 +567,21 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		expect(fixture.doc.body.classList.contains('mb-hide-sidebars')).toBe(false);
 	});
 
+	it('C3: sidebars.hover pone mb-hover-sidebars en body y apagarlo lo retira', () => {
+		setUpSurfaces();
+		fixture.adapter.apply(ctxOf(fixture));
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: true, pin: true },
+		});
+		expect(fixture.doc.body.classList.contains('mb-hover-sidebars')).toBe(true);
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: false, pin: true },
+		});
+		expect(fixture.doc.body.classList.contains('mb-hover-sidebars')).toBe(false);
+	});
+
 	it('nested-ribbon pone mb-nested-hover-ribbon en body solo con el switch', () => {
 		setUpSurfaces();
 		fixture.adapter.apply(ctxOf(fixture));
@@ -591,7 +606,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 	});
 
-	it('SIN nested: hover sobre ribbon oculto revela ribbon pero NO la sidebar', () => {
+	it('U130 C2: SIN nested el hover sobre ribbon TAMBIEN despierta la sidebar (mb-sidebar-hover.js:72)', () => {
 		const { leftSidebar, leftRibbon } = setUpSurfaces();
 		fixture.adapter.apply(ctxOf(fixture));
 		fixture.adapter.updateConfig({
@@ -602,7 +617,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		});
 		dispatch(fixture.doc, 'pointermove', makeEvent(leftRibbon, { clientX: 5, clientY: 5 }));
 		expect(leftRibbon.classList.contains('mb-ribbon-hovered')).toBe(true);
-		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(false);
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 	});
 
 	it('selector persistente (input dentro de sidebar) pinea en focusin', () => {
@@ -821,5 +836,72 @@ describe('HoverSurfacesAdapter — creación helper', () => {
 	it('createHoverSurfacesAdapter() devuelve una instancia concreta', () => {
 		const a = createHoverSurfacesAdapter();
 		expect(a).toBeInstanceOf(HoverSurfacesAdapter);
+	});
+});
+
+describe('HoverSurfacesAdapter — U130 C2/C3 (red-first)', () => {
+	let fixture: ReturnType<typeof buildAdapterFixture>;
+	beforeEach(() => {
+		fixture = buildAdapterFixture();
+	});
+	afterEach(() => {
+		fixture.restore();
+	});
+
+	function ctxOfLocal(): import('../../src/platform/platformAdapter').PlatformAdapterContext {
+		return { app: fixture.app, plugin: fixture.plugin, doc: fixture.doc as unknown as Document };
+	}
+
+	function localDispatch(type: string, event: Event): void {
+		for (const listener of [...fixture.doc.listeners]) {
+			if (listener.type !== type) continue;
+			try {
+				listener.originalFn(event);
+			} catch {
+				// defensive
+			}
+		}
+	}
+
+	function localEvent(target: MockElement | null, opts: { clientX?: number; clientY?: number } = {}): FakeEvent {
+		return {
+			clientX: opts.clientX ?? 0,
+			clientY: opts.clientY ?? 0,
+			target,
+		} as unknown as FakeEvent;
+	}
+
+	it('C2: hover sobre .workspace-ribbon.mod-left despierta la sidebar sin ribbons.hide ni nested', () => {
+		const leftSidebar = new MockElement(fixture.doc, 'div', {
+			classes: ['workspace-split', 'mod-left-split', 'is-sidedock-collapsed'],
+		});
+		const leftRibbon = new MockElement(fixture.doc, 'div', {
+			classes: ['workspace-ribbon', 'mod-left'],
+		});
+		fixture.doc.body.appendChild(leftSidebar);
+		fixture.doc.body.appendChild(leftRibbon);
+		fixture.adapter.apply(ctxOfLocal());
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: true, pin: true },
+			ribbons: { hide: false, hover: false, pin: false },
+			nestedRibbon: false,
+		});
+		localDispatch('pointermove', localEvent(leftRibbon, { clientX: 5, clientY: 5 }));
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
+	});
+
+	it('C3: sidebar colapsada nativa flota con hover aunque sidebars.hide este apagado', () => {
+		const leftSidebar = new MockElement(fixture.doc, 'div', {
+			classes: ['workspace-split', 'mod-left-split', 'is-sidedock-collapsed'],
+		});
+		fixture.doc.body.appendChild(leftSidebar);
+		fixture.adapter.apply(ctxOfLocal());
+		fixture.adapter.updateConfig({
+			...DEFAULT_HOVER_SURFACES_CONFIG,
+			sidebars: { hide: false, hover: true, pin: true },
+		});
+		localDispatch('pointermove', localEvent(leftSidebar, { clientX: 2, clientY: 5 }));
+		expect(leftSidebar.classList.contains('mb-sidebar-hovered')).toBe(true);
 	});
 });

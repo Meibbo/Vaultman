@@ -6,6 +6,10 @@ const SCSS_PATH = fileURLToPath(
 	new URL('../../src/styles/components/_hover-surfaces.scss', import.meta.url),
 );
 const SRC = readFileSync(SCSS_PATH, 'utf8');
+const SETTINGS_SRC = readFileSync(
+	fileURLToPath(new URL('../../src/VaultmanSettings.ts', import.meta.url)),
+	'utf8',
+);
 
 /**
  * Strip SCSS comments so a regex over selectors cannot be satisfied by a
@@ -266,6 +270,65 @@ describe('hover-surfaces SCSS — cubre las cuatro superficies del servicio', ()
 
 	it('declara la clase de nested-ribbon en body', () => {
 		expect(cleaned.includes('body.mb-hide-ribbons.mb-nested-hover-ribbon')).toBe(true);
+	});
+
+	it('C1: sin compensacion negativa de hit-zone (nada de left/right calc(-1 * ribbon-width))', () => {
+		// La compensacion con :has(ribbon) desplazaba la sidebar colapsada a
+		// x negativas y la hit-zone ::after/::before quedaba fuera del viewport
+		// ([-36px,-44px]): un puntero en clientX=0 jamas la alcanza. El push
+		// anidado legitimo usa transform, nunca left/right negativos.
+		expect(cleaned).not.toMatch(/left\s*:\s*calc\(\s*-1\s*\*\s*var\(--ribbon-width/);
+		expect(cleaned).not.toMatch(/right\s*:\s*calc\(\s*-1\s*\*\s*var\(--ribbon-width/);
+	});
+
+	it('C3: la sidebar colapsada nativa flota con hover sin exigir body.mb-hide-sidebars', () => {
+		// Mb-sidebars.css flotaba cualquier .is-sidedock-collapsed con :hover;
+		// exigir hide rompe el defecto (sidebars.hide=false). Debe existir una
+		// regla de reveal colapsada SIN mb-hide-sidebars y con translateX(0).
+		const nativeReveal = rules.filter((r) => {
+			const sel = r.selector;
+			if (!sel.includes('.is-sidedock-collapsed')) return false;
+			if (sel.includes('mb-hide-sidebars')) return false;
+			if (sel.includes('mb-hover-locked')) return false;
+			const tokens = [':hover', '.mb-sidebar-hovered', '.mb-sidebar-pinned'];
+			if (!tokens.some((t) => sel.includes(t))) return false;
+			return /translateX\(\s*0\s*\)/.test(r.body);
+		});
+		expect(nativeReveal.length > 0, JSON.stringify(nativeReveal)).toBe(true);
+	});
+
+	it('C3 guard: toda regla sobre la sidebar colapsada nativa va tras body.mb-hover-sidebars (modulo apagado = cero residuo)', () => {
+		// Sin la puerta, la hoja del plugin convertiria CUALQUIER sidebar
+		// colapsada por Obsidian en superficie flotante aunque el modulo este
+		// apagado o sidebars.hover en off.
+		const native = rules.filter((r) => {
+			const sel = r.selector;
+			return (
+				sel.includes('.is-sidedock-collapsed') &&
+				!sel.includes('mb-hide-sidebars') &&
+				!sel.includes('mb-hover-locked')
+			);
+		});
+		expect(native.length > 0).toBe(true);
+		for (const r of native) {
+			expect(r.selector, r.selector).toContain('body.mb-hover-sidebars');
+		}
+	});
+
+	it('C4: getChromeHoverPageItems oculta la pagina en movil (is-mobile/is-phone/mod-mobile/Platform.isMobile)', () => {
+		// probe() rechaza movil con mobile:no-pointer, pero los ajustes
+		// mostraban todos los controles igual. La pagina debe ramificarse en
+		// movil: sin items o con aviso de "requiere puntero".
+		const start = SETTINGS_SRC.indexOf('private getChromeHoverPageItems');
+		expect(start).toBeGreaterThan(-1);
+		const nextPrivate = SETTINGS_SRC.indexOf('\n\tprivate ', start + 10);
+		const tail = SETTINGS_SRC.slice(start, nextPrivate > start ? nextPrivate : start + 12000);
+		const hasMobileGuard =
+			tail.includes('is-mobile') ||
+			tail.includes('is-phone') ||
+			tail.includes('mod-mobile') ||
+			tail.includes('isMobile');
+		expect(hasMobileGuard).toBe(true);
 	});
 
 	it('NINGUNA regla de ocultamiento toca superficies expandidas/abiertas: hide/reveal exigen estado colapsado o clase mb-hide-*', () => {
