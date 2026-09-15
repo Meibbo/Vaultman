@@ -64,15 +64,11 @@ export interface SavedLayout {
 	summary: string;
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
-	/**
-	 * @deprecated U130-09 (dev 2026-09-15): the flat, per-layout map is being
-	 * retired. Groups live in `SceneConfig.groupMemberships` and the layout
-	 * photographs them per tab in `SavedViewConfig.groupMemberships`. No
-	 * migration: the feature never left the lab, so whatever an old
-	 * `data.json` still carries here is ignored. The key leaves the type with
-	 * its last reader (U130-09 paso 3).
-	 */
-	groupMemberships?: Record<string, readonly string[]>;
+	// U130-09 (dev 2026-09-15): the flat, per-layout `groupMemberships` map is
+	// gone. Groups live in `SceneConfig.groupMemberships` and the layout
+	// photographs them per tab in `SavedViewConfig.groupMemberships`. No
+	// migration: the feature never left the lab, so whatever an old
+	// `data.json` still carries here is ignored.
 }
 
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
@@ -359,10 +355,9 @@ export interface VaultmanSettings {
 	/** Named saved explorer layouts (view options + sorts per tab) */
 	savedLayouts?: SavedLayout[];
 	/**
-	 * U130-05: el nombre del layout globalmente activado desde Settings.
-	 * Afecta a todas las instancias presentes y futuras: cada explorer
-	 * lo lee como fallback cuando su activeLayoutName per-instance es null.
-	 * La activacion per-instance (view menu) lo sobreescribe localmente.
+	 * U130-05: el nombre del layout globalmente activado desde Settings
+	 * (spec 08 §1.1). U130-09: los explorers ya no lo leen para resolver
+	 * grupos (viven en `SceneConfig`); hoy solo lo escribe Settings.
 	 */
 	activeLayoutName?: string;
 	/**

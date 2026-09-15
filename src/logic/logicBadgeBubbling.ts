@@ -304,7 +304,7 @@ export function resolveCollapsedBubbleDots<TMeta = unknown>(
 export interface GroupMemberCountInput {
 	/** Groups to total. Nesting rides `parentId` (`NodeGroupDef` chain). */
 	groups: readonly { id: string; parentId: string | null }[];
-	/** Raw membership URNs per group id (`SavedLayout.groupMemberships`). */
+	/** Raw membership URNs per group id (`SceneConfig.groupMemberships`, U130-09). */
 	memberships: Readonly<Record<string, readonly string[]>>;
 }
 

@@ -47,11 +47,19 @@ describe('spec 08 §3.2 — the groups submenu model', () => {
 		expect(old.icon).toBe('lucide-eye-off');
 	});
 
-	it('disables New group when there is no layout to hold the group', () => {
-		const model = groupMenuModel('tags', { kind: 'none', direction: 'asc' }, [], false);
-		const row = model.items.find((i) => i.kind === 'new-group');
+	// U130-09 (dev 2026-09-15): a custom group lives in the scene, so `New
+	// group` needs no layout. The only thing that can disable the row is a
+	// host that cannot open the name prompt.
+	it('always offers New group; only a host without a prompt disables it', () => {
+		const offered = groupMenuModel('tags', { kind: 'none', direction: 'asc' }, [], true);
+		const row = offered.items.find((i) => i.kind === 'new-group');
 		if (row?.kind !== 'new-group') throw new Error('new-group expected');
-		expect(row.disabled).toBe(true);
+		expect(row.disabled).toBe(false);
+		expect(row.labelKey).toBe('group.new');
+		const noHost = groupMenuModel('tags', { kind: 'none', direction: 'asc' }, [], false);
+		const noHostRow = noHost.items.find((i) => i.kind === 'new-group');
+		if (noHostRow?.kind !== 'new-group') throw new Error('new-group expected');
+		expect(noHostRow.disabled).toBe(true);
 	});
 
 	it('shows the direction only on the checked, non-none preset', () => {

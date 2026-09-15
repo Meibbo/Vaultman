@@ -303,13 +303,6 @@ export interface NavbarPanelWidgetState {
 	savedLayouts?: SavedLayout[];
 	onSaveLayout?: (layout: SavedLayout) => void;
 	onLayoutLoaded?: (layout: SavedLayout) => void;
-	/** U130-05 global activation; the navbar's per-instance load overrides it. */
-	activeLayoutName?: string | null;
-	/** Spec 08 §3.2.2/§3.3: custom groups are `SavedLayout.groupMemberships`. */
-	onGroupMembershipsChange?: (
-		layoutName: string,
-		memberships: Record<string, readonly string[]>,
-	) => void;
 	app?: App;
 	showTabLabels?: boolean;
 	sortLevelInline?: boolean;

@@ -1200,7 +1200,6 @@ export const es: Record<string, string> = {
 	'group.preset.created': 'Creado',
 	'group.preset.custom': 'Grupos personalizados',
 	'group.new': 'Nuevo grupo',
-	'group.new.needs_layout': 'Nuevo grupo (activa un layout primero)',
 	'group.new.prompt': 'Nombre del grupo',
 	'group.create_with_selected': 'Crear grupo con la selección',
 	// Spec 08 §4: el patrón de fila ocultar/borrar.

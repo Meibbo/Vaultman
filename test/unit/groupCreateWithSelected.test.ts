@@ -79,6 +79,7 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 			selectedNodeIds: Set<string>;
 			nodes: TreeNode<SnippetMeta>[];
 			_groupIds: Set<string>;
+			_lastProjectedTree: TreeNode<SnippetMeta>[];
 			setCreateGroupHandler: (h?: (urns: readonly string[]) => void) => void;
 			_groupCreationMenuCtx: () => Pick<MenuCtx, 'createGroupWithSelected'>;
 		};
@@ -87,6 +88,9 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		// tree its empty default so the A07b-2 fallback to `nodes` applies.
 		(panel as unknown as { _lastProjectedTree: unknown[] })._lastProjectedTree = [];
 		panel._groupIds = new Set();
+		// A07b-2 walks the last projected tree; the prototype harness never
+		// rendered, so it starts empty and the walk falls back to `nodes`.
+		panel._lastProjectedTree = [];
 		panel.nodes = [
 			{ id: 'snippet:alpha', label: 'alpha', depth: 0, meta: { name: 'alpha', enabled: true } },
 			{ id: 'snippet:beta', label: 'beta', depth: 0, meta: { name: 'beta', enabled: true } },

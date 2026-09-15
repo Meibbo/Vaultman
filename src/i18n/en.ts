@@ -1305,7 +1305,6 @@ export const en: Record<string, string> = {
 	'group.preset.created': 'Created',
 	'group.preset.custom': 'Custom groups',
 	'group.new': 'New group',
-	'group.new.needs_layout': 'New group (activate a layout first)',
 	'group.new.prompt': 'Group name',
 	'group.create_with_selected': 'Create group with selected',
 	// Spec 08 §4: the hide/delete row pattern.

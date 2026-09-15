@@ -43,4 +43,11 @@ describe('U130-09 groupMemberships en SceneConfig', () => {
 		const layout: SavedLayout = { name: 'x', summary: '', config: {} };
 		expect(layout.config['tags']?.groupMemberships).toBeUndefined();
 	});
+
+	it('el layout ya no lleva el mapa plano: solo la foto por tab', () => {
+		const layout: SavedLayout = { name: 'x', summary: '', config: {} };
+		// Guarda de tipo: `pnpm run check` falla si la clave vuelve al tipo.
+		// @ts-expect-error U130-09: `SavedLayout.groupMemberships` se retiro (decision 3 del dev).
+		expect(layout.groupMemberships).toBeUndefined();
+	});
 });

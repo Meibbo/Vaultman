@@ -263,8 +263,6 @@
 		savedLayouts = [],
 		onSaveLayout,
 		onLayoutLoaded,
-		activeLayoutName = null,
-		onGroupMembershipsChange,
 		app,
 		showTabLabels = true,
 		sortLevelInline = true,
@@ -550,21 +548,17 @@
 				interactionMode: nextInteraction[tab],
 			});
 		}
-		loadedLayoutName = layout.name;
 		onLayoutLoaded?.(layout);
 	}
-	/** U130-05: the layout this instance loaded; falls back to the global activation. */
-	let loadedLayoutName = $state<string | null>(null);
-	function activeLayout(): SavedLayout | null {
-		const name = loadedLayoutName ?? activeLayoutName;
-		if (!name) return null;
-		return savedLayouts.find((layout) => layout.name === name) ?? null;
-	}
-	/** Spec 08 §3.2.2: the custom groups are the membership keys of the active layout. */
+	/**
+	 * Spec 08 §3.2.2 / U130-09: the custom groups of this scene are the keys of
+	 * `configByTab[tab].groupMemberships`. No layout is consulted: the layout
+	 * is a photo that `loadLayout` copied into the scene, not the owner.
+	 */
 	function customGroupsForMenu(
 		tab: FiltersTab,
 	): { id: string; label: string; hidden: boolean }[] {
-		const memberships = activeLayout()?.groupMemberships ?? {};
+		const memberships = configByTab[tab].groupMemberships;
 		const hidden = new Set(configByTab[tab].hiddenGroupIds);
 		return Object.keys(memberships).map((id) => ({
 			id,
@@ -583,12 +577,15 @@
 		commitConfig(tab, { hiddenGroupIds: next });
 		applyHiddenGroupIds(tab, next);
 	}
-	/** Spec 08 §4 `delete`: removes the group from the layout, for every instance. */
+	/**
+	 * Spec 08 §4 `delete` (D6 as amended by the dev on 2026-09-15): removes the
+	 * group from THIS scene of THIS instance. A layout that photographed it
+	 * keeps its copy; other instances keep theirs.
+	 */
 	function deleteCustomGroup(tab: FiltersTab, id: string) {
-		const layout = activeLayout();
-		if (!layout || !onGroupMembershipsChange) return;
-		const { [id]: _removed, ...rest } = layout.groupMemberships ?? {};
-		onGroupMembershipsChange(layout.name, rest);
+		const { [id]: _removed, ...rest } = configByTab[tab].groupMemberships;
+		commitConfig(tab, { groupMemberships: rest });
+		applyGroupMemberships(tab, rest);
 		setGroupHidden(tab, id, false);
 	}
 	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
@@ -599,25 +596,33 @@
 		setGroupPresetFor(tab, nextGroupPreset(configByTab[tab].groupPreset, kind));
 	}
 	/**
-	 * Spec 08 §3.2.2 `New group` / §3.3 `Create group with selected`: a custom
-	 * group is a membership key of the active layout, so it needs one. The
-	 * created group is selected right away (`kind: 'custom'`), which is what
-	 * makes it visible.
+	 * Spec 08 §3.2.2 `New group` / §3.3 `Create group with selected`. U130-09
+	 * (dev 2026-09-15, revoking plan 08 D5): a custom group is a key of THIS
+	 * scene's `groupMemberships`, so it needs no layout — the layout is what
+	 * later immortalises the state the group is part of. The id is the name
+	 * and is unique per scene, not per instance: `Foo` in Tags does not block
+	 * `Foo` in Files. The created group is selected right away
+	 * (`kind: 'custom'`), which is what makes it visible.
 	 */
 	async function createCustomGroup(
 		tab: FiltersTab,
 		urns: readonly string[] = [],
 	): Promise<void> {
-		const layout = activeLayout();
-		if (!layout || !app || !onGroupMembershipsChange) return;
+		if (!app) return;
 		const name = (
 			await showInputModal(app, translate('group.new.prompt'))
 		)?.trim();
 		if (!name) return;
-		const memberships = layout.groupMemberships ?? {};
+		const memberships = configByTab[tab].groupMemberships;
 		if (name in memberships) return;
-		onGroupMembershipsChange(layout.name, { ...memberships, [name]: urns });
+		const next = { ...memberships, [name]: [...urns] };
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
 		setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+	}
+	/** U130-09: `New group` only needs a host that can open the name prompt. */
+	function canCreateGroup(): boolean {
+		return Boolean(app);
 	}
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
@@ -2606,7 +2611,7 @@
 			activeTab,
 			configByTab[activeTab].groupPreset,
 			customGroupsForMenu(activeTab),
-			activeLayout() !== null && Boolean(onGroupMembershipsChange),
+			canCreateGroup(),
 		);
 		const groupChildren: NativeMenuNode[] = [];
 		for (const entry of groupModel.items) {
@@ -3017,7 +3022,7 @@
 			});
 		}
 		// Spec 08 §3.3: the cmenu's `Create group with selected` lands here,
-		// where the active layout and the per-instance preset live.
+		// where the scene's groups and the per-instance preset live (U130-09).
 		explorerPortForTab(tab)?.setCreateGroupHandler?.(
 			(urns) => void createCustomGroup(tab, urns),
 		);
@@ -3519,8 +3524,7 @@
 					treeCapable={treeCapableFor(activeTab)}
 					groupPreset={configByTab[activeTab].groupPreset}
 					customGroups={customGroupsForMenu(activeTab)}
-					canCreateGroup={activeLayout() !== null &&
-						Boolean(onGroupMembershipsChange)}
+					canCreateGroup={canCreateGroup()}
 					onGroupPresetChange={(kind) => selectGroupPreset(activeTab, kind)}
 					onNewGroup={() => void createCustomGroup(activeTab)}
 					onHideGroup={(id, hidden) => setGroupHidden(activeTab, id, hidden)}

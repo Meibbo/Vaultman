@@ -347,11 +347,7 @@
 	function groupItemLabel(item: GroupMenuItem): string {
 		if (item.kind === 'separator') return '';
 		if (item.kind === 'custom-group') return item.label;
-		if (item.kind === 'new-group') {
-			return translate(
-				item.disabled ? 'group.new.needs_layout' : item.labelKey,
-			);
-		}
+		if (item.kind === 'new-group') return translate(item.labelKey);
 		return (
 			translate(item.labelKey) +
 			(item.direction ? ` ${sortDirectionGlyph(item.direction)}` : '')

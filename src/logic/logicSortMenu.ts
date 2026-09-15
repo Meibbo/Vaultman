@@ -514,7 +514,10 @@ export interface GroupMenuNewGroupItem {
 	id: 'new-group';
 	icon: string;
 	labelKey: string;
-	/** Custom groups live in a layout (U130-05): without one there is nowhere to put it. */
+	/**
+	 * U130-09 (dev 2026-09-15): a custom group lives in the scene, so no layout
+	 * is needed. Only a host that cannot open the name prompt disables the row.
+	 */
 	disabled: boolean;
 }
 
