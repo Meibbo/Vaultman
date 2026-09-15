@@ -6,6 +6,7 @@ import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
 	EMPTY_REGISTRY,
+	dropPristineInstance,
 	ensureInstance,
 	mintInstanceId,
 } from './logic/logicInstanceRegistry';
@@ -82,12 +83,13 @@ export class VaultmanFrame extends ItemView {
 			const previous = this.workspaceInstanceId;
 			this.workspaceInstanceId = anchored;
 			if (previous !== anchored) {
-				const ensured = ensureInstance(
-					this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY,
-					anchored,
-				);
+				const before = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
+				// El id acuñado en `onOpen()` no se usó para nada: fuera, o queda un
+				// tombstone por cada apertura (A01, smoke 2026-09-14: 27 aperturas → +14).
+				const trimmed = previous ? dropPristineInstance(before, previous) : before;
+				const ensured = ensureInstance(trimmed, anchored);
 				this.plugin.settings.instanceRegistry = ensured.registry;
-				if (ensured.created) await this.plugin.saveSettings();
+				if (ensured.created || trimmed !== before) await this.plugin.saveSettings();
 				this.svelteApp?.reanchorInstance?.(anchored);
 			}
 		}

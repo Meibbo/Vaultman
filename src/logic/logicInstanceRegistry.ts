@@ -230,6 +230,28 @@ export function reconcileRegistry(
 	return { schema: 1, instances };
 }
 
+/**
+ * U121-109, fuga de anclas provisionales: `onOpen()` acuña un id ANTES de que `setState()`
+ * traiga el ancla real, y al adoptarla el registro provisional quedaba huérfano para siempre
+ * (cada apertura de una hoja anclada dejaba un tombstone). Un registro es «prístino» si nadie
+ * lo configuró (revisión inicial y sin scenes); solo esos se retiran, y sin dejar tombstone.
+ */
+export function dropPristineInstance(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record) return registry;
+	const pristine =
+		record.revision === 1 &&
+		Object.keys(record.scenes).length === 0 &&
+		record.activeScene === undefined &&
+		record.floatingToc === undefined;
+	if (!pristine) return registry;
+	const { [id]: _dropped, ...rest } = registry.instances;
+	return { ...registry, instances: rest };
+}
+
 /** Recuerda en que scene estaba la instancia. Sin efecto si el id no existe. */
 export function setActiveScene(
 	registry: InstanceRegistryData,

@@ -6,7 +6,7 @@ import {
 	setActiveScene,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
-import { reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS, TOMBSTONE_HARD_CAP } from '../../src/logic/logicInstanceRegistry';
+import { dropPristineInstance, reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS, TOMBSTONE_HARD_CAP } from '../../src/logic/logicInstanceRegistry';
 
 describe('createInstanceRecord', () => {
 	it('mints a record with an opaque id and revision 1', () => {
@@ -297,6 +297,24 @@ describe('reconcileRegistry hard cap', () => {
 		// The least recently active go first.
 		expect(reconciled.instances['vm-burst-129']).toBeUndefined();
 		expect(reconciled.instances['vm-burst-000']).toBeDefined();
+	});
+});
+
+describe('dropPristineInstance (U121-109 provisional anchor leak)', () => {
+	it('removes a record that was only minted and never configured', () => {
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-provisional').registry;
+		const next = dropPristineInstance(registry, 'vm-provisional');
+		expect(next.instances['vm-provisional']).toBeUndefined();
+	});
+
+	it('keeps a record that carries configuration or a bumped revision', () => {
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-used').registry;
+		registry = setSceneConfig(registry, 'vm-used', 'files', { viewMode: 'table' });
+		expect(dropPristineInstance(registry, 'vm-used')).toBe(registry);
+	});
+
+	it('is a no-op for an unknown id', () => {
+		expect(dropPristineInstance(EMPTY_REGISTRY, 'nope')).toBe(EMPTY_REGISTRY);
 	});
 });
 
