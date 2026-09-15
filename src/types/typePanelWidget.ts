@@ -116,6 +116,9 @@ export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPo
 
 export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplorerPort {
 	autoRevealActiveFile(): void;
+	/** U130 toolbar alt-cmenu: override per-instance del "always reveal"
+	 * (`undefined` = setting global). Lo empuja el navbar. */
+	setAutoRevealOverride?(value: boolean | undefined): void;
 	createFromSearch(category: number, term: string): void | Promise<void>;
 	getFileTypeOptions(): Array<{ id: string; icon: string; label: string }>;
 	hasSortNode(id: string): boolean;
@@ -283,6 +286,9 @@ export interface NavbarPanelWidgetState {
 	frameWidth?: number;
 	onToggleToolbar?: () => void;
 	toolbarShown?: boolean;
+	/** U130 toolbar alt-cmenu: global `autoRevealActiveFile` para pintar el
+	 * toggle per-instance (el override vive en SceneConfig.autoReveal). */
+	autoRevealGlobal?: boolean;
 	savedLayouts?: SavedLayout[];
 	onSaveLayout?: (layout: SavedLayout) => void;
 	onLayoutLoaded?: (layout: SavedLayout) => void;

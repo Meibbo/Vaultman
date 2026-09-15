@@ -10,9 +10,12 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain('showTabLabels !== false');
 		expect(navbarFiltersSource).toContain('TODO(refactor)');
 		expect(navbarFiltersSource).toContain('vaultman-header-action-label');
+		// U130 toolbar alt-cmenu: el label del scene_menu lleva override
+		// per-instance con fallback al derivado.
 		expect(navbarFiltersSource).toContain(
-			'{#if showTabsButtonLabel && currentTabsOption}',
+			'{#if tabsButtonLabelEffective && currentTabsOption}',
 		);
+		expect(navbarFiltersSource).toContain('sceneLabelMode');
 		expect(navbarFiltersSource).toContain('{currentTabsOption.label}');
 	});
 

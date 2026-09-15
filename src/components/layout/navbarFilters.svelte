@@ -88,7 +88,10 @@
 		isIdentityCell,
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
-	import { resolvePanelWidgetProjection } from '../../logic/logicPanelWidgetProjection';
+	import {
+		resolvePanelWidgetProjection,
+		resolveToolbarHiddenIds,
+	} from '../../logic/logicPanelWidgetProjection';
 	import {
 		resolveCondensedPanelWidgetOverflow,
 		searchNeedsOwnRow,
@@ -166,6 +169,7 @@
 		frameWidth = 0,
 		onToggleToolbar,
 		toolbarShown = true,
+		autoRevealGlobal = false,
 		savedLayouts = [],
 		onSaveLayout,
 		onLayoutLoaded,
@@ -763,6 +767,17 @@
 	const showTabsButtonLabel = $derived(
 		tabLabelIntended && !tabLabelYieldsToSearch,
 	);
+	// U130 toolbar alt-cmenu: override per-instance del label del scene_menu
+	// (nodo `tabs`), leído de la scene activa. Solo afecta al pintado; la
+	// heurística de layout (tabLabelIntended/tabLabelYieldsToSearch) sigue
+	// derivada del espacio real.
+	const tabsButtonLabelEffective = $derived(
+		configByTab[activeTab]?.sceneLabelMode === 'on'
+			? true
+			: configByTab[activeTab]?.sceneLabelMode === 'off'
+				? false
+				: showTabsButtonLabel,
+	);
 	const panelWidgetNodeId = (localId: string): string =>
 		`${providerId}:${localId}`;
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
@@ -886,11 +901,23 @@
 		}
 		return nodes.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 	});
+	// U130 toolbar alt-cmenu: los nodos ocultos per-instance de la scene se
+	// suman a los globales de pvpui ANTES de la proyección, así el orden, la
+	// medición y el overflow condensed los ignoran igual que a los ocultos
+	// por el usuario. Sin esto, un nodo oculto seguiría ocupando medida.
+	const effectivePvpuiConfig = $derived({
+		...pvpuiConfig,
+		hiddenNodeIds: resolveToolbarHiddenIds(
+			pvpuiConfig.hiddenNodeIds,
+			configByTab[activeTab]?.hiddenToolbarNodes,
+			providerId,
+		),
+	});
 	const panelWidgetProjection = $derived(
 		resolvePanelWidgetProjection({
 			providerId,
 			nodes: panelWidgetNodes,
-			config: pvpuiConfig,
+			config: effectivePvpuiConfig,
 		}),
 	);
 	const forcedOverflowIds = $derived.by(() => {
@@ -1064,7 +1091,7 @@
 
 	$effect(() => {
 		void panelWidgetProjection;
-		void showTabsButtonLabel;
+		void tabsButtonLabelEffective;
 		void searchExpanded;
 		void showSearchInput;
 		void toolbarOverflowStrategy;
@@ -1772,6 +1799,105 @@
 				});
 			}
 		});
+		menu.showAtMouseEvent(event);
+	}
+
+	// U130 toolbar alt-cmenus (right-click): overrides per-instance. Los
+	// globales no se tocan — cada toggle escribe el config de la scene activa
+	// por commitConfig, así cada scene recuerda su propio toolbar.
+	function toggleToolbarNodeVisibility(localId: string): void {
+		const current = configByTab[activeTab]?.hiddenToolbarNodes ?? [];
+		const next = current.includes(localId)
+			? current.filter((id) => id !== localId)
+			: [...current, localId];
+		commitConfig(activeTab, { hiddenToolbarNodes: next });
+	}
+
+	function addToolbarNodeVisibilityItem(
+		menu: Menu,
+		localId: string,
+		label?: string,
+	): void {
+		menu.addItem((item) => {
+			item
+				.setTitle(label ?? translate('toolbar.alt.show_in_toolbar'))
+				.setIcon('lucide-eye')
+				.setChecked(toolbarNodeVisible(localId))
+				.onClick(() => toggleToolbarNodeVisibility(localId));
+		});
+	}
+
+	function openNodeAltMenu(localId: string, event: MouseEvent): void {
+		const menu = new Menu();
+		if (localId === 'tabs') {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.scene_label'))
+					.setIcon('lucide-tag')
+					.setChecked(tabsButtonLabelEffective)
+					.onClick(() =>
+						commitConfig(activeTab, {
+							sceneLabelMode: tabsButtonLabelEffective ? 'off' : 'on',
+						}),
+					);
+			});
+			menu.addSeparator();
+		}
+		if (localId === 'reveal-active-file') {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.reveal_now'))
+					.setIcon('lucide-gallery-vertical')
+					.onClick(() => revealActiveExplorerFile('menu', event));
+			});
+			const revealMode = configByTab.files?.autoRevealMode ?? 'auto';
+			const alwaysReveal =
+				revealMode === 'auto' ? autoRevealGlobal : revealMode === 'on';
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.always_reveal'))
+					.setIcon('lucide-pin')
+					.setChecked(alwaysReveal)
+					.onClick(() => {
+						commitConfig('files', {
+							autoRevealMode: alwaysReveal ? 'off' : 'on',
+						});
+						fileList?.setAutoRevealOverride?.(!alwaysReveal);
+					});
+			});
+			menu.addSeparator();
+		}
+		addToolbarNodeVisibilityItem(menu, localId);
+		menu.showAtMouseEvent(event);
+	}
+
+	function openToolbarEmptyMenu(event: MouseEvent): void {
+		const menu = new Menu();
+		if (onToggleToolbar) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+			menu.addSeparator();
+		}
+		// Solo nodos provided: los `command:*` los gestiona el usuario donde
+		// los agregó, no desde aquí.
+		for (const node of panelWidgetNodes) {
+			const prefix = `${providerId}:`;
+			if (!node.id.startsWith(prefix)) continue;
+			const localId = node.id.slice(prefix.length);
+			if (localId.startsWith('command:')) continue;
+			menu.addItem((item) => {
+				item
+					.setTitle(node.label)
+					.setIcon(node.icon)
+					.setChecked(toolbarNodeVisible(localId))
+					.onClick(() => toggleToolbarNodeVisibility(localId));
+			});
+		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -2644,6 +2770,17 @@
 		}),
 	);
 
+	// U130 toolbar alt-cmenu: empuja el override per-instance del "always
+	// reveal" al panel de Files. Lee config y ref: se re-ejecuta cuando cambia
+	// cualquiera de los dos (p. ej. al montar files tarde). `auto` devuelve al
+	// setting global pasando undefined.
+	$effect(() => {
+		const mode = configByTab.files?.autoRevealMode ?? 'auto';
+		fileList?.setAutoRevealOverride?.(
+			mode === 'auto' ? undefined : mode === 'on',
+		);
+	});
+
 	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
@@ -2733,7 +2870,16 @@
 			{@render searchControl('phone')}
 		</div>
 	{/if}
-	<div class="vaultman-filters-header-wrap">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="vaultman-filters-header-wrap"
+		oncontextmenu={(e: MouseEvent) => {
+			const target = e.target as HTMLElement | null;
+			if (target?.closest?.('[data-panel-widget-node-id]')) return;
+			e.preventDefault();
+			openToolbarEmptyMenu(e);
+		}}
+	>
 		{#if headerMode === 'header'}
 			<div
 				class="vaultman-filters-header"
@@ -2750,7 +2896,7 @@
 					{#if minimalStyle && tabOptions.length > 0 && toolbarNodeVisible('tabs')}
 						<div
 							class={headerActionClass}
-							class:vaultman-header-action-with-label={showTabsButtonLabel}
+							class:vaultman-header-action-with-label={tabsButtonLabelEffective}
 							data-panel-widget-node-id={panelWidgetNodeId('tabs')}
 							style:order={panelWidgetNodeOrder('tabs')}
 							role="button"
@@ -2758,6 +2904,11 @@
 							aria-label={currentTabsLabel}
 							title={minimalStyle ? undefined : currentTabsLabel}
 							onclick={(event: MouseEvent) => openScenePopup(event)}
+							oncontextmenu={(e: MouseEvent) => {
+								e.preventDefault();
+								e.stopPropagation();
+								openNodeAltMenu('tabs', e);
+							}}
 							onkeydown={(e: KeyboardEvent) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
@@ -2772,7 +2923,7 @@
 								aria-hidden="true"
 								use:icon={currentTabsIcon}
 							></span>
-							{#if showTabsButtonLabel && currentTabsOption}
+							{#if tabsButtonLabelEffective && currentTabsOption}
 								<span class="vaultman-header-action-label">
 									{currentTabsOption.label}
 								</span>
@@ -2800,6 +2951,11 @@
 								onclick={(event: MouseEvent) => {
 									if (action.disabled) return;
 									invokeSceneAction(`header:${action.id}`, 'pointer', event);
+								}}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu(`header:${action.id}`, e);
 								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (action.disabled) return;
@@ -2829,6 +2985,11 @@
 									? undefined
 									: translate('filter.viewmode_btn')}
 								onclick={(event: MouseEvent) => openViewModePopup(event)}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu('view', e);
+								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
@@ -2852,6 +3013,11 @@
 								aria-label={translate('filter.sort_btn')}
 								title={minimalStyle ? undefined : translate('filter.sort_btn')}
 								onclick={(event: MouseEvent) => openSortPopup(event)}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu('sort', e);
+								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
@@ -2880,6 +3046,11 @@
 									? undefined
 									: translate('explorer.btn.search')}
 								onclick={toggleSearch}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu('search', e);
+								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
@@ -2925,6 +3096,11 @@
 									? undefined
 									: translate('filter.auto_reveal')}
 								onclick={(event) => revealActiveExplorerFile('pointer', event)}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu('reveal-active-file', e);
+								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
@@ -2949,6 +3125,11 @@
 								aria-label={expansionLabel}
 								title={minimalStyle ? undefined : expansionLabel}
 								onclick={(event) => toggleExplorerExpansion('pointer', event)}
+								oncontextmenu={(e: MouseEvent) => {
+									e.preventDefault();
+									e.stopPropagation();
+									openNodeAltMenu('toggle-expansion', e);
+								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
@@ -2976,6 +3157,11 @@
 										: translate('folder.ctx.new_note')}
 									onclick={(event) =>
 										invokeSceneAction('create-file', 'pointer', event)}
+									oncontextmenu={(e: MouseEvent) => {
+										e.preventDefault();
+										e.stopPropagation();
+										openNodeAltMenu('create-file', e);
+									}}
 									onkeydown={(e: KeyboardEvent) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
@@ -3002,6 +3188,11 @@
 										: translate('folder.ctx.new_folder')}
 									onclick={(event) =>
 										invokeSceneAction('create-folder', 'pointer', event)}
+									oncontextmenu={(e: MouseEvent) => {
+										e.preventDefault();
+										e.stopPropagation();
+										openNodeAltMenu('create-folder', e);
+									}}
 									onkeydown={(e: KeyboardEvent) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
@@ -3039,6 +3230,11 @@
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');
 										}
+									}}
+									oncontextmenu={(e: MouseEvent) => {
+										e.preventDefault();
+										e.stopPropagation();
+										openNodeAltMenu(`command:${command.id}`, e);
 									}}
 									onkeydown={(e: KeyboardEvent) => {
 										if (

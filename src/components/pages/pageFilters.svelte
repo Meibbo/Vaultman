@@ -1918,6 +1918,8 @@
 				sceneConfigPort,
 				actionPort: panelWidgetActionPort,
 				activeTab: explorerActiveTab,
+				autoRevealGlobal:
+					plugin.settings.autoRevealActiveFile === true,
 				filtersSearch,
 				filtersSearchCategory,
 				searchExpanded: panelWidgetSearchExpanded,

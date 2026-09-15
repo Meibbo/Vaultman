@@ -369,6 +369,11 @@
 			// Spec 08 §3.2: la agrupacion es una seleccion de preset y `none` es el defecto.
 			groupPreset: { ...NO_GROUP_PRESET },
 			hiddenGroupIds: [],
+			// U130 toolbar alt-cmenu: sin override nace automático (label
+			// derivado, global de autoReveal) y sin nodos ocultos.
+			sceneLabelMode: 'auto',
+			autoRevealMode: 'auto',
+			hiddenToolbarNodes: [],
 		}),
 	});
 

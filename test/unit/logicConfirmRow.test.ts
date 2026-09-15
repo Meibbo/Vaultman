@@ -69,6 +69,9 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		indent: true,
 		groupPreset: { kind: 'none', direction: 'asc' },
 		hiddenGroupIds: [],
+		sceneLabelMode: 'auto',
+		autoRevealMode: 'auto',
+		hiddenToolbarNodes: [],
 	};
 
 	it('replaces the list wholesale and diffs only when it changed', () => {

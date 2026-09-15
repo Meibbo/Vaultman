@@ -316,6 +316,10 @@ export class FilesExplorerPanel extends Component {
 	private refreshTimer: number | null = null;
 	private metadataRefreshTimer: number | null = null;
 	private statsRefreshTimer: number | null = null;
+	/** U130 toolbar alt-cmenu: override per-instance del "always reveal".
+	 * `undefined` = el setting global `autoRevealActiveFile`. Lo empuja el
+	 * navbar, que es quien posee el config de la scene. */
+	private autoRevealOverride: boolean | undefined = undefined;
 	private pendingMetadataPaths = new Set<string>();
 	private pendingStatsPaths = new Set<string>();
 	private propertyCountCache = new Map<string, number>();
@@ -1240,6 +1244,15 @@ export class FilesExplorerPanel extends Component {
 		this.expandedIds.clear();
 		this._notifyExpansionChanged({ type: 'collapse-all' });
 		this._refreshCompleteTreeExpansion(changedFolderIds);
+	}
+
+	/**
+	 * U130 toolbar alt-cmenu: fija el override per-instance del "always
+	 * reveal". `undefined` devuelve al setting global. Lo llama el navbar,
+	 * que posee el config de la scene.
+	 */
+	setAutoRevealOverride(value: boolean | undefined): void {
+		this.autoRevealOverride = value;
 	}
 
 	autoRevealActiveFile(): void {
@@ -4392,7 +4405,10 @@ export class FilesExplorerPanel extends Component {
 		// click per note. On, the explorer follows every focus change until it
 		// is switched back off. It runs before the Last-opened paths below
 		// because those return early under every other sort.
-		if (file && this.plugin.settings.autoRevealActiveFile === true) {
+		const alwaysReveal =
+			this.autoRevealOverride ??
+			(this.plugin.settings.autoRevealActiveFile === true);
+		if (file && alwaysReveal) {
 			this.autoRevealActiveFile();
 		}
 		// BT5-013: Last opened is a recency order, so opening a file changes it

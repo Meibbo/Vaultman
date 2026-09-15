@@ -36,6 +36,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		indent: input.defaults.indent,
 		groupPreset: { ...input.defaults.groupPreset },
 		hiddenGroupIds: cloneCells(input.defaults.hiddenGroupIds),
+		sceneLabelMode: input.defaults.sceneLabelMode,
+		autoRevealMode: input.defaults.autoRevealMode,
+		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -50,6 +53,13 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.groupPreset !== undefined) out.groupPreset = { ...layer.groupPreset };
 		if (layer.hiddenGroupIds !== undefined) {
 			out.hiddenGroupIds = cloneCells(layer.hiddenGroupIds);
+		}
+		if (layer.sceneLabelMode !== undefined)
+			out.sceneLabelMode = layer.sceneLabelMode;
+		if (layer.autoRevealMode !== undefined)
+			out.autoRevealMode = layer.autoRevealMode;
+		if (layer.hiddenToolbarNodes !== undefined) {
+			out.hiddenToolbarNodes = cloneCells(layer.hiddenToolbarNodes);
 		}
 	}
 	return out;
@@ -91,6 +101,20 @@ export function diffSceneConfig(
 		next.hiddenGroupIds.some((id, i) => id !== baseline.hiddenGroupIds[i])
 	) {
 		patch.hiddenGroupIds = cloneCells(next.hiddenGroupIds);
+	}
+	if (next.sceneLabelMode !== baseline.sceneLabelMode) {
+		patch.sceneLabelMode = next.sceneLabelMode;
+	}
+	if (next.autoRevealMode !== baseline.autoRevealMode) {
+		patch.autoRevealMode = next.autoRevealMode;
+	}
+	if (
+		next.hiddenToolbarNodes.length !== baseline.hiddenToolbarNodes.length ||
+		next.hiddenToolbarNodes.some(
+			(id, i) => id !== baseline.hiddenToolbarNodes[i],
+		)
+	) {
+		patch.hiddenToolbarNodes = cloneCells(next.hiddenToolbarNodes);
 	}
 	return patch;
 }

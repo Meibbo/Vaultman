@@ -16,6 +16,9 @@ const defaults: Required<SceneConfig> = {
 	indent: true,
 	groupPreset: { kind: 'none', direction: 'asc' },
 	hiddenGroupIds: [],
+	sceneLabelMode: 'auto',
+	autoRevealMode: 'auto',
+	hiddenToolbarNodes: [],
 };
 
 describe('resolveSceneConfig', () => {

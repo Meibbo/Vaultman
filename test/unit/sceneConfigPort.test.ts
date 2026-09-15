@@ -16,6 +16,9 @@ const defaults = {
 	indent: true,
 	groupPreset: { kind: 'none' as const, direction: 'asc' as const },
 	hiddenGroupIds: [],
+	sceneLabelMode: 'auto' as const,
+	autoRevealMode: 'auto' as const,
+	hiddenToolbarNodes: [],
 };
 
 function harness() {

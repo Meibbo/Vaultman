@@ -20,6 +20,9 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			indent: true,
 			groupPreset: { kind: 'none', direction: 'asc' },
 			hiddenGroupIds: [],
+			sceneLabelMode: 'auto',
+			autoRevealMode: 'auto',
+			hiddenToolbarNodes: [],
 		}),
 		propose: async (scene, next) => {
 			calls.push([scene, next]);

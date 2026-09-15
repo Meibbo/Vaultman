@@ -33,6 +33,26 @@ export interface SceneConfig {
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos (no borrados) en esta instancia. */
 	hiddenGroupIds?: string[];
+	/**
+	 * U130 toolbar alt-cmenu: label del scene_menu (nodo `tabs`), per-instance.
+	 * `auto` = derivado del layout. Tri-estado concreto (no `boolean | undefined`:
+	 * `Required<>` pela el undefined hasta del explícito, así que la ausencia
+	 * se expresa con `auto`).
+	 */
+	sceneLabelMode?: 'auto' | 'on' | 'off';
+	/**
+	 * U130 toolbar alt-cmenu: "always reveal" de Files (nodo
+	 * `reveal-active-file`), per-instance. `auto` = el setting global
+	 * `autoRevealActiveFile`. Mismo tri-estado concreto por la misma razón.
+	 */
+	autoRevealMode?: 'auto' | 'on' | 'off';
+	/**
+	 * U130 toolbar alt-cmenu: ids LOCALES de nodos (`tabs`, `view`, `sort`,
+	 * `reveal-active-file`, `header:*`, ...) ocultos en esta scene. Se suman a
+	 * los globales de pvpui antes de la proyección, así el overflow condensed
+	 * los ignora igual que a los ocultos por el usuario.
+	 */
+	hiddenToolbarNodes?: string[];
 }
 
 export interface WorkspaceInstanceRecord {

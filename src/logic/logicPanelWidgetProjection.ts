@@ -31,6 +31,24 @@ export function resolveExclusiveSlotNodes({
 	return Object.freeze(idleNode ? [idleNode] : []);
 }
 
+/**
+ * U130 toolbar alt-cmenu: mezcla los nodos ocultos globales (pvpui, ids
+ * completos `provider:local`) con los ocultos per-instance de la scene (ids
+ * locales). El resultado alimenta la proyección, así los nodos ocultos
+ * desaparecen antes del ordenamiento, la medición y el overflow condensed.
+ */
+export function resolveToolbarHiddenIds(
+	globalHidden: readonly string[] | undefined,
+	instanceHiddenLocalIds: readonly string[] | undefined,
+	providerId: string,
+): string[] {
+	const merged = new Set(globalHidden ?? []);
+	for (const localId of instanceHiddenLocalIds ?? []) {
+		merged.add(`${providerId}:${localId}`);
+	}
+	return [...merged];
+}
+
 export function resolvePanelWidgetProjection({
 	providerId,
 	nodes,

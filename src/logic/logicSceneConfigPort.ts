@@ -90,6 +90,10 @@ export async function applyLayoutToPort(
 			indent: current.indent,
 			groupPreset: current.groupPreset,
 			hiddenGroupIds: current.hiddenGroupIds,
+			// U130 toolbar alt-cmenu: posterior a `SavedLayoutConfig`, se preserva.
+			sceneLabelMode: current.sceneLabelMode,
+			autoRevealMode: current.autoRevealMode,
+			hiddenToolbarNodes: current.hiddenToolbarNodes,
 		};
 	}
 	if (port.proposeScenes) {
