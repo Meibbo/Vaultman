@@ -17,7 +17,7 @@ interface AddonHarness extends Record<string, unknown> {
 	selectedNodeIds: Set<string>;
 	pendingToggleIds: Set<string>;
 	hiddenGroupIds: Set<string>;
-	activeLayoutName: string | null;
+	groupMemberships: Record<string, string[]>;
 	sortState: { filtered: boolean };
 	cellStyle: string;
 	plugin: Record<string, unknown>;
@@ -46,7 +46,7 @@ function makeHarness(Ctor: PanelCtor): AddonHarness {
 	harness.selectedNodeIds = new Set();
 	harness.pendingToggleIds = new Set();
 	harness.hiddenGroupIds = new Set();
-	harness.activeLayoutName = null;
+	harness.groupMemberships = {};
 	harness.sortState = { filtered: false };
 	harness.cellStyle = 'toggle';
 	harness.plugin = {

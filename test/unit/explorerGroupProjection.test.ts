@@ -13,19 +13,8 @@ import type { ExplorerTabId, ExplorerSortState } from '../../src/types/typeUI';
 import type { GroupPreset } from '../../src/types/typeGroupPreset';
 import type { FileMeta, PluginMeta, PropMeta, SnippetMeta, TagMeta, TreeNode } from '../../src/types/typeTree';
 
-type SavedLayoutStub = {
-	name: string;
-	summary: string;
-	config: Record<string, unknown>;
-	groupMemberships?: Record<string, readonly string[]>;
-};
-
-type PluginStub = {
-	settings: {
-		savedLayouts?: SavedLayoutStub[];
-		activeLayoutName?: string | null;
-	};
-};
+/** U130-09: el mapa de grupos es de la scene y llega por `setGroupMemberships`, no por un layout. */
+type GroupMemberships = Readonly<Record<string, readonly string[]>>;
 
 /**
  * Spec 08 §3.1.bis: el interruptor es el group preset seleccionado (`none` =
@@ -54,8 +43,7 @@ type SnippetsHarness = {
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: PluginStub;
+	groupMemberships: GroupMemberships;
 	nodes: TreeNode<SnippetMeta>[];
 	projectedNodes: () => TreeNode<SnippetMeta>[];
 };
@@ -69,8 +57,7 @@ type PluginsHarness = {
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: PluginStub;
+	groupMemberships: GroupMemberships;
 	nodes: TreeNode<PluginMeta>[];
 	projectedNodes: () => TreeNode<PluginMeta>[];
 };
@@ -82,8 +69,7 @@ type TagsHarness = {
 	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: PluginStub;
+	groupMemberships: GroupMemberships;
 	projectedNodes: (nodes: TreeNode<TagMeta>[]) => TreeNode<TagMeta>[];
 };
 
@@ -94,21 +80,21 @@ type PropsHarness = {
 	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: PluginStub;
+	groupMemberships: GroupMemberships;
 	projectedNodes: (nodes: TreeNode<PropMeta>[]) => TreeNode<PropMeta>[];
 };
 
 type FilesHarness = {
 	visibleCells: Set<string>;
+	/** `_decorateGroupHeader` reads the folder-aggregate switches from settings. */
+	plugin: { settings: Record<string, unknown> };
 	_groupIds: Set<string>;
 	hiddenGroupIds: Set<string>;
 	_seenGroupHeaderIds: Set<string>;
 	expandedIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: PluginStub;
+	groupMemberships: GroupMemberships;
 	projectedNodes: (nodes: TreeNode<FileMeta>[]) => TreeNode<FileMeta>[];
 };
 
@@ -149,20 +135,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
 		panel.groupPreset = PRESET_OFF;
-		panel.activeLayoutName = 'layout-snippets';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-snippets',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
-						},
-					},
-				],
-			},
+		panel.groupMemberships = {
+			'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
 		};
 		panel.nodes = [
 			{
@@ -220,20 +194,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('plugins', 'all');
 		panel.groupPreset = PRESET_OFF;
-		panel.activeLayoutName = 'layout-plugins';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-plugins',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'custom-plugs': ['plugins:plugin:obsidian-git|Obsidian Git'],
-						},
-					},
-				],
-			},
+		panel.groupMemberships = {
+			'custom-plugs': ['plugins:plugin:obsidian-git|Obsidian Git'],
 		};
 		panel.nodes = [
 			{
@@ -296,20 +258,8 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('tags', 'all');
 		panel.groupPreset = PRESET_OFF;
-		panel.activeLayoutName = 'layout-tags';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-tags',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'grp-tags': ['tags:tag:proyectos/activo|activo'],
-						},
-					},
-				],
-			},
+		panel.groupMemberships = {
+			'grp-tags': ['tags:tag:proyectos/activo|activo'],
 		};
 		const nodes: TreeNode<TagMeta>[] = [
 			{
@@ -355,21 +305,9 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('props', 'all');
 		panel.groupPreset = PRESET_OFF;
-		panel.activeLayoutName = 'layout-props';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-props',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'grp-prop': ['props:prop:status|status'],
-							'grp-val': ['props:value:status:done|done'],
-						},
-					},
-				],
-			},
+		panel.groupMemberships = {
+			'grp-prop': ['props:prop:status|status'],
+			'grp-val': ['props:value:status:done|done'],
 		};
 		const nodes: TreeNode<PropMeta>[] = [
 			{
@@ -429,23 +367,12 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.expandedIds = new Set<string>();
 		panel.sortState = sortStateWithScope('files', 'all');
 		panel.groupPreset = PRESET_OFF;
-		panel.activeLayoutName = 'layout-files';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-files',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'grp-files': [
-								'files:file:notes/todo.md|todo.md',
-								'files:folder:projects|projects',
-							],
-						},
-					},
-				],
-			},
+		panel.plugin = { settings: {} };
+		panel.groupMemberships = {
+			'grp-files': [
+				'files:file:notes/todo.md|todo.md',
+				'files:folder:projects|projects',
+			],
 		};
 		const nodes: TreeNode<FileMeta>[] = [
 			{
@@ -512,21 +439,9 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
 		panel.groupPreset = PRESET_CUSTOM;
-		panel.activeLayoutName = 'layout-snippets';
-		panel.plugin = {
-			settings: {
-				savedLayouts: [
-					{
-						name: 'layout-snippets',
-						summary: 'test',
-						config: {},
-						groupMemberships: {
-							'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
-							'other': [],
-						},
-					},
-				],
-			},
+		panel.groupMemberships = {
+			'custom-snips': ['snippets:snippet:alpha-snippet|Alpha Snippet'],
+			'other': [],
 		};
 		panel.nodes = [
 			{ id: 's1', label: 'Alpha Snippet', depth: 0, meta: { name: 'alpha-snippet', enabled: true } },
@@ -547,8 +462,7 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		panel.pendingToggleIds = new Set<string>();
 		panel.sortState = sortStateWithScope('snippets', 'all');
 		panel.groupPreset = PRESET_LETTER;
-		panel.activeLayoutName = null;
-		panel.plugin = { settings: {} };
+		panel.groupMemberships = {};
 		panel.nodes = [
 			{ id: '1', label: 'alpha', depth: 0, meta: { name: 'alpha', enabled: true } },
 			{ id: '2', label: 'beta', depth: 0, meta: { name: 'beta', enabled: true } },
@@ -581,9 +495,9 @@ function srcFilesContaining(symbol: string): string[] {
 	);
 }
 
-describe('L-CABLE guarda negativa: setActiveLayoutName tiene llamador en src/', () => {
-	it('setActiveLayoutName es llamado desde src/ (loadLayout en navbarFilters.svelte)', () => {
-		const files = srcFilesContaining('setActiveLayoutName');
+describe('U130-09 guarda de cableado: setGroupMemberships tiene llamador en src/', () => {
+	it('setGroupMemberships es llamado desde src/ (navbarFilters.svelte)', () => {
+		const files = srcFilesContaining('setGroupMemberships');
 		const srcCallers = files.filter(
 			(f) =>
 				!f.includes('explorer') &&
@@ -593,28 +507,16 @@ describe('L-CABLE guarda negativa: setActiveLayoutName tiene llamador en src/', 
 		expect(srcCallers.length).toBeGreaterThan(0);
 	});
 
-	it('loadLayout CABLEA la activacion: llama a setActiveLayoutName', () => {
-		// Guarda de cableado. La version anterior exigia ademas que la cadena
-		// "groupMemberships" apareciera en el cuerpo de loadLayout, y eso lo
-		// satisfacia un `void layout.groupMemberships;` --una sentencia muerta
-		// puesta solo para pasar el test--. El mecanismo real es que loadLayout
-		// LLAME a setActiveLayoutName y que sea el explorer quien resuelva las
-		// pertenencias por nombre; las pruebas de comportamiento de este mismo
-		// fichero ya cubren esa resolucion con fixtures de groupMemberships.
-		const navbarPath = join(
-			fileURLToPath(new URL('../../src', import.meta.url)),
-			'components/layout/navbarFilters.svelte',
-		);
-		const content = readFileSync(navbarPath, 'utf8');
-		const loadLayoutIdx = content.indexOf('function loadLayout');
-		const nextFuncIdx = content.indexOf('function ', loadLayoutIdx + 1);
-		const loadLayoutBody =
-			nextFuncIdx > 0
-				? content.slice(loadLayoutIdx, nextFuncIdx)
-				: content.slice(loadLayoutIdx);
-		expect(loadLayoutBody).toContain('setActiveLayoutName');
-		// Y que no vuelva la sentencia muerta.
-		expect(loadLayoutBody).not.toContain('void layout.groupMemberships');
+	it('la activacion por nombre de layout (U130-05) no vuelve a src/', () => {
+		// Dev 2026-09-15: el explorer proyecta lo que tiene su scene; un layout
+		// solo copia su foto en la scene. Buscar un layout por nombre desde el
+		// explorer era lo que hacia a los grupos transversales a las scenes.
+		expect(srcFilesContaining('setActiveLayoutName')).toEqual([]);
+		expect(
+			srcFilesContaining('savedLayouts').filter((f) =>
+				f.includes('components/containers/'),
+			),
+		).toEqual([]);
 	});
 });
 

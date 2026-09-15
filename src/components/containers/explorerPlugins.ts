@@ -60,6 +60,8 @@ import {
 	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	cloneGroupMemberships,
+	sameGroupMemberships,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
@@ -106,10 +108,11 @@ export class PluginsExplorerPanel
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
+	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
 	private readonly _seenGroupHeaderIds = new Set<string>();
 	private _expandedGroupIds = new Set<string>();
-	private activeLayoutName: string | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -258,6 +261,14 @@ export class PluginsExplorerPanel
 			return;
 		}
 		this.hiddenGroupIds = next;
+		this.rebuildNodes();
+	}
+
+	setGroupMemberships(
+		memberships: Readonly<Record<string, readonly string[]>>,
+	): void {
+		if (sameGroupMemberships(this.groupMemberships, memberships)) return;
+		this.groupMemberships = cloneGroupMemberships(memberships);
 		this.rebuildNodes();
 	}
 
@@ -484,19 +495,11 @@ export class PluginsExplorerPanel
 		}
 	}
 
-	setActiveLayoutName(name: string | null): void {
-		if (this.activeLayoutName === name) return;
-		this.activeLayoutName = name;
-		this.render();
-	}
-
 	private projectedNodes(): TreeNode<PluginMeta>[] {
-		const activeName =
-			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
-		const layout = this.plugin.settings.savedLayouts?.find(
-			(candidate) => candidate.name === activeName,
-		);
-		const memberships = layout?.groupMemberships ?? {};
+		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
+		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
+		// un layout por nombre: el layout solo copia su foto en la scene.
+		const memberships = this.groupMemberships;
 		const groups = resolveCustomGroups(memberships).filter(
 			(group) => !this.hiddenGroupIds.has(group.id),
 		);

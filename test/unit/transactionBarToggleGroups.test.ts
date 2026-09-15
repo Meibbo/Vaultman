@@ -39,17 +39,7 @@ type PropsPanelTestDouble = {
 	expandedIds: Set<string>;
 	sortState: ReturnType<typeof sortStateWithScope>;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
-	plugin: {
-		settings: {
-			savedLayouts: Array<{
-				name: string;
-				summary: string;
-				config: Record<string, unknown>;
-				groupMemberships: Record<string, string[]>;
-			}>;
-		};
-	};
+	groupMemberships: Record<string, string[]>;
 	projectedNodes: (nodes: readonly TreeNode<PropMeta>[]) => TreeNode<PropMeta>[];
 	hasProjectedGroups: () => boolean;
 };
@@ -70,19 +60,8 @@ function propsPanelWith(
 		kind: scope === 'groups' ? 'custom' : 'none',
 		direction: 'asc',
 	};
-	panel.activeLayoutName = 'layout-props';
-	panel.plugin = {
-		settings: {
-			savedLayouts: [
-				{
-					name: 'layout-props',
-					summary: 'test',
-					config: {},
-					groupMemberships: memberships,
-				},
-			],
-		},
-	};
+	// U130-09: the scene's map, as `setGroupMemberships` would leave it.
+	panel.groupMemberships = memberships;
 	return panel;
 }
 

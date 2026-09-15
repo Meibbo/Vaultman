@@ -57,9 +57,6 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
-		savedLayouts?: import('../../types/typeSettings').SavedLayout[];
-		/** U130-05: global layout fallback when per-instance activeLayoutName is null. */
-		activeLayoutName?: string;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -116,6 +113,8 @@ import {
 	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	cloneGroupMemberships,
+	sameGroupMemberships,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
@@ -279,6 +278,8 @@ export class PropsExplorerPanel extends Component {
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
+	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
 	private readonly _seenGroupHeaderIds = new Set<string>();
 	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
@@ -690,24 +691,15 @@ export class PropsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
-	private activeLayoutName: string | null = null;
 	private onContentSearch?: (query: string) => void;
-
-	setActiveLayoutName(name: string | null): void {
-		if (this.activeLayoutName === name) return;
-		this.activeLayoutName = name;
-		void this._render();
-	}
 
 	private projectedNodes(
 		nodes: readonly TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
-		const activeName =
-			this.activeLayoutName ?? this.plugin.settings?.activeLayoutName;
-		const layout = this.plugin.settings?.savedLayouts?.find(
-			(candidate) => candidate.name === activeName,
-		);
-		const memberships = layout?.groupMemberships ?? {};
+		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
+		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
+		// un layout por nombre: el layout solo copia su foto en la scene.
+		const memberships = this.groupMemberships;
 		const groups = resolveCustomGroups(memberships).filter(
 			(group) => !this.hiddenGroupIds.has(group.id),
 		);
@@ -974,6 +966,11 @@ export class PropsExplorerPanel extends Component {
 		const presetChanged =
 			config.groupPreset !== undefined &&
 			!sameGroupPreset(this.groupPreset, config.groupPreset);
+		// U130-09: el mapa entra en la comparacion, no solo en la aplicacion:
+		// un layout que solo cambia los grupos de esta scene tiene que llegar.
+		const membershipsChanged =
+			config.groupMemberships !== undefined &&
+			!sameGroupMemberships(this.groupMemberships, config.groupMemberships);
 
 		if (
 			!viewChanged &&
@@ -982,7 +979,8 @@ export class PropsExplorerPanel extends Component {
 			!interactionChanged &&
 			!stickyChanged &&
 			!indentChanged &&
-			!presetChanged
+			!presetChanged &&
+			!membershipsChanged
 		) {
 			return;
 		}
@@ -1021,6 +1019,9 @@ export class PropsExplorerPanel extends Component {
 			this.groupPreset = { ...config.groupPreset };
 		}
 		if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
+		if (membershipsChanged && config.groupMemberships) {
+			this.groupMemberships = cloneGroupMemberships(config.groupMemberships);
+		}
 
 		this._render();
 	}
@@ -1040,6 +1041,14 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 		this.hiddenGroupIds = next;
+		this._render();
+	}
+
+	setGroupMemberships(
+		memberships: Readonly<Record<string, readonly string[]>>,
+	): void {
+		if (sameGroupMemberships(this.groupMemberships, memberships)) return;
+		this.groupMemberships = cloneGroupMemberships(memberships);
 		this._render();
 	}
 

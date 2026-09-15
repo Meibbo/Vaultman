@@ -550,15 +550,6 @@
 				interactionMode: nextInteraction[tab],
 			});
 		}
-		// U130-05: activacion PER-INSTANCE. `groupMemberships` es una propiedad
-		// del layout, no de la pestana: llamar a setActiveLayoutName en cada
-		// explorer hace que su projectedNodes la busque por nombre, y las
-		// cabeceras de grupo custom pasan a ser alcanzables en vez de caer
-		// siempre a la rama preset alfabetica. Antes loadLayout aplicaba
-		// vista/sort/celdas e ignoraba groupMemberships por completo.
-		for (const tab of LAYOUT_TABS) {
-			explorerPortForTab(tab)?.setActiveLayoutName?.(layout.name);
-		}
 		loadedLayoutName = layout.name;
 		onLayoutLoaded?.(layout);
 	}
@@ -1308,6 +1299,8 @@
 			indent?: boolean;
 			groupPreset?: GroupPreset;
 			hiddenGroupIds?: readonly string[];
+			/** U130-09: the custom groups of this scene (`SceneConfig.groupMemberships`). */
+			groupMemberships?: Readonly<Record<string, readonly string[]>>;
 		},
 	) {
 		const effectiveMode = panelViewModeForDataSurface(tab, config.viewMode);
@@ -1344,6 +1337,9 @@
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
 						: {}),
+					...(config.groupMemberships
+						? { groupMemberships: config.groupMemberships }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1359,6 +1355,8 @@
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
+				if (config.groupMemberships)
+					applyGroupMemberships(tab, config.groupMemberships);
 			}
 			return;
 		}
@@ -1380,6 +1378,9 @@
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
 						: {}),
+					...(config.groupMemberships
+						? { groupMemberships: config.groupMemberships }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1393,6 +1394,8 @@
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
+				if (config.groupMemberships)
+					applyGroupMemberships(tab, config.groupMemberships);
 			}
 			return;
 		}
@@ -1414,6 +1417,9 @@
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
 						: {}),
+					...(config.groupMemberships
+						? { groupMemberships: config.groupMemberships }
+						: {}),
 				});
 			} else {
 				applyViewMode(tab, config.viewMode);
@@ -1427,6 +1433,8 @@
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
+				if (config.groupMemberships)
+					applyGroupMemberships(tab, config.groupMemberships);
 			}
 			return;
 		}
@@ -1445,6 +1453,8 @@
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
+			if (config.groupMemberships)
+				applyGroupMemberships(tab, config.groupMemberships);
 			return;
 		}
 
@@ -1459,6 +1469,8 @@
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
+			if (config.groupMemberships)
+				applyGroupMemberships(tab, config.groupMemberships);
 			return;
 		}
 	}
@@ -2430,6 +2442,14 @@
 		explorerPortForTab(tab)?.setHiddenGroupIds?.(ids);
 	}
 
+	/** U130-09: the scene's custom groups reach the explorer like `hiddenGroupIds` do. */
+	function applyGroupMemberships(
+		tab: FiltersTab,
+		memberships: Readonly<Record<string, readonly string[]>>,
+	) {
+		explorerPortForTab(tab)?.setGroupMemberships?.(memberships);
+	}
+
 	/** Spec 08 §3.2: the preset selection is per instance and reaches every scene. */
 	function applyGroupPreset(tab: FiltersTab, preset: GroupPreset) {
 		if (tab === 'files') fileList?.setGroupPreset?.(preset);
@@ -2976,6 +2996,7 @@
 		const indent = configByTab[tab].indent;
 		const groupPreset = configByTab[tab].groupPreset;
 		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
+		const groupMemberships = configByTab[tab].groupMemberships;
 		applyTabProjection(tab, {
 			viewMode,
 			visibleCells: cells,
@@ -2986,6 +3007,7 @@
 			indent,
 			groupPreset,
 			hiddenGroupIds,
+			groupMemberships,
 		});
 		if (tab === 'files' && fileList) {
 			fileList.setInteractionModeChangeHandler?.((mode) => {

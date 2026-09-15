@@ -79,6 +79,12 @@ export interface PanelWidgetExplorerProjectionConfig {
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos en esta instancia. */
 	hiddenGroupIds?: readonly string[];
+	/**
+	 * U130-09: custom groups de esta scene de esta instancia
+	 * (`SceneConfig.groupMemberships`). El explorer ya no busca un layout por
+	 * nombre: recibe el mapa de su scene como recibe `hiddenGroupIds`.
+	 */
+	groupMemberships?: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface PanelWidgetExplorerPort {
@@ -96,17 +102,20 @@ export interface PanelWidgetExplorerPort {
 	setGroupPreset?(preset: GroupPreset): void;
 	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */
 	setHiddenGroupIds?(ids: readonly string[]): void;
+	/**
+	 * U130-09: the custom groups of this scene, groupId -> member URNs. The
+	 * U130-05 per-instance layout activation setter is gone with it: the
+	 * explorer projects what the scene holds, and a layout only copies its
+	 * photo into the scene.
+	 */
+	setGroupMemberships?(
+		memberships: Readonly<Record<string, readonly string[]>>,
+	): void;
 	/** Spec 08 §3.3: receives the selection's membership URNs to create a custom group. */
 	setCreateGroupHandler?(handler?: (urns: readonly string[]) => void): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
-	/**
-	 * U130-05: per-instance layout activation. Sets the layout name the
-	 * explorer resolves in projectedNodes to pick up groupMemberships from
-	 * the saved layout, making custom group headers reachable.
-	 */
-	setActiveLayoutName?(name: string | null): void;
 }
 
 export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPort {

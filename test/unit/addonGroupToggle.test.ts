@@ -44,7 +44,7 @@ type PluginsHarness = {
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
+	groupMemberships: Record<string, string[]>;
 	searchTerm: string;
 	cellStyle: string;
 	destroyed: boolean;
@@ -52,14 +52,6 @@ type PluginsHarness = {
 	selectedNodeIds: Set<string>;
 	plugin: {
 		app: { plugins: { enablePlugin: (id: string) => Promise<void>; disablePlugin: (id: string) => Promise<void> } };
-		settings: {
-			savedLayouts: Array<{
-				name: string;
-				summary: string;
-				config: Record<string, unknown>;
-				groupMemberships: Record<string, string[]>;
-			}>;
-		};
 		queueService: { queue: unknown[]; on: () => void; off: () => void };
 	};
 	entries: PluginMeta[];
@@ -78,7 +70,7 @@ type SnippetsHarness = {
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
-	activeLayoutName: string | null;
+	groupMemberships: Record<string, string[]>;
 	searchTerm: string;
 	cellStyle: string;
 	destroyed: boolean;
@@ -91,14 +83,6 @@ type SnippetsHarness = {
 				setCssEnabledStatus: (name: string, on: boolean) => Promise<void>;
 				requestLoadSnippets: () => Promise<void>;
 			};
-		};
-		settings: {
-			savedLayouts: Array<{
-				name: string;
-				summary: string;
-				config: Record<string, unknown>;
-				groupMemberships: Record<string, string[]>;
-			}>;
 		};
 		queueService: { queue: unknown[]; on: () => void; off: () => void };
 	};
@@ -206,7 +190,10 @@ function makePluginPanel() {
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('plugins');
 	panel.groupPreset = PRESET_CUSTOM;
-	panel.activeLayoutName = 'layout-plugins';
+	// U130-09: the scene's map, as `setGroupMemberships` would leave it.
+	panel.groupMemberships = {
+		'grp-addons': ['plugins:plugin:alpha|Alpha', 'plugins:plugin:beta|Beta'],
+	};
 	panel.searchTerm = '';
 	panel.cellStyle = 'native';
 	panel.destroyed = false;
@@ -215,21 +202,6 @@ function makePluginPanel() {
 	const queue: unknown[] = [];
 	panel.plugin = {
 		app: { plugins: { enablePlugin, disablePlugin } },
-		settings: {
-			savedLayouts: [
-				{
-					name: 'layout-plugins',
-					summary: 'test',
-					config: {},
-					groupMemberships: {
-						'grp-addons': [
-							'plugins:plugin:alpha|Alpha',
-							'plugins:plugin:beta|Beta',
-						],
-					},
-				},
-			],
-		},
 		queueService: { queue, on() {}, off() {} },
 	};
 	panel.entries = [
@@ -266,7 +238,9 @@ function makeSnippetPanel() {
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('snippets');
 	panel.groupPreset = PRESET_CUSTOM;
-	panel.activeLayoutName = 'layout-snippets';
+	panel.groupMemberships = {
+		'grp-snips': ['snippets:snippet:uno|uno', 'snippets:snippet:dos|dos'],
+	};
 	panel.searchTerm = '';
 	panel.cellStyle = 'native';
 	panel.destroyed = false;
@@ -281,21 +255,6 @@ function makeSnippetPanel() {
 				setCssEnabledStatus,
 				requestLoadSnippets: vi.fn(async () => {}),
 			},
-		},
-		settings: {
-			savedLayouts: [
-				{
-					name: 'layout-snippets',
-					summary: 'test',
-					config: {},
-					groupMemberships: {
-						'grp-snips': [
-							'snippets:snippet:uno|uno',
-							'snippets:snippet:dos|dos',
-						],
-					},
-				},
-			],
 		},
 		queueService: { queue, on() {}, off() {} },
 	};

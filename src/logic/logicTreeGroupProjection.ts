@@ -32,8 +32,42 @@ export function isGroupHeader(
 export const _isGroupHeader = isGroupHeader;
 
 /**
+ * U130-09: igualdad estructural de dos mapas de grupos. El orden de las
+ * claves cuenta: es el orden de las cabeceras. Los explorers la usan para no
+ * re-renderizar cuando el navbar les vuelve a aplicar el mismo mapa.
+ */
+export function sameGroupMemberships(
+	a: Readonly<Record<string, readonly string[]>>,
+	b: Readonly<Record<string, readonly string[]>>,
+): boolean {
+	const aKeys = Object.keys(a);
+	const bKeys = Object.keys(b);
+	if (aKeys.length !== bKeys.length) return false;
+	return aKeys.every((id, i) => {
+		if (bKeys[i] !== id) return false;
+		const aUrns = a[id] ?? [];
+		const bUrns = b[id] ?? [];
+		return (
+			aUrns.length === bUrns.length &&
+			aUrns.every((urn, j) => urn === bUrns[j])
+		);
+	});
+}
+
+/** U130-09: copia clave a clave, para que el explorer nunca guarde la referencia de la scene. */
+export function cloneGroupMemberships(
+	memberships: Readonly<Record<string, readonly string[]>>,
+): Record<string, readonly string[]> {
+	return Object.fromEntries(
+		Object.entries(memberships).map(([id, urns]) => [id, [...urns]]),
+	);
+}
+
+/**
  * U130-03: deriva los NodeGroupDef custom de las claves de groupMemberships.
- * Si SavedLayout no guarda label ni orden de grupo, el label del grupo es su id.
+ * U130-09: el mapa es el de UNA scene (`SceneConfig.groupMemberships`), asi
+ * que todas sus claves son grupos de esta scene y no hay nada que filtrar.
+ * Sin label ni orden guardados, el label del grupo es su id.
  */
 export function resolveCustomGroups(
 	memberships?: Readonly<Record<string, readonly string[]>>,

@@ -46,6 +46,8 @@ import {
 	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	cloneGroupMemberships,
+	sameGroupMemberships,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
@@ -263,23 +265,14 @@ export class FilesExplorerPanel extends Component {
 	private selectedFilePaths = new Set<string>();
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
-	private activeLayoutName: string | null = null;
-
-	setActiveLayoutName(name: string | null): void {
-		if (this.activeLayoutName === name) return;
-		this.activeLayoutName = name;
-		this._render();
-	}
 
 	private projectedNodes(
 		nodes: readonly TreeNode<FileMeta>[] = this._lastRenderTree,
 	): TreeNode<FileMeta>[] {
-		const activeName =
-			this.activeLayoutName ?? this.plugin.settings.activeLayoutName;
-		const layout = this.plugin.settings.savedLayouts?.find(
-			(candidate) => candidate.name === activeName,
-		);
-		const memberships = layout?.groupMemberships ?? {};
+		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
+		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
+		// un layout por nombre: el layout solo copia su foto en la scene.
+		const memberships = this.groupMemberships;
 		const groups = resolveCustomGroups(memberships).filter(
 			(group) => !this.hiddenGroupIds.has(group.id),
 		);
@@ -403,6 +396,8 @@ export class FilesExplorerPanel extends Component {
 	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
+	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
 	private readonly _seenGroupHeaderIds = new Set<string>();
 
@@ -1009,6 +1004,9 @@ export class FilesExplorerPanel extends Component {
 			}
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
+			if (config.groupMemberships) {
+				this.setGroupMemberships(config.groupMemberships);
+			}
 		});
 	}
 
@@ -1027,6 +1025,14 @@ export class FilesExplorerPanel extends Component {
 			return;
 		}
 		this.hiddenGroupIds = next;
+		this._render();
+	}
+
+	setGroupMemberships(
+		memberships: Readonly<Record<string, readonly string[]>>,
+	): void {
+		if (sameGroupMemberships(this.groupMemberships, memberships)) return;
+		this.groupMemberships = cloneGroupMemberships(memberships);
 		this._render();
 	}
 
