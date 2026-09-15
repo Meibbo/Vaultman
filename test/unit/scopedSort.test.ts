@@ -376,4 +376,30 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 			}),
 		).toBe(true);
 	});
+
+	it('gates the anchor sort option on an anchored note', () => {
+		expect(
+			isSortOptionVisible('anchor', {
+				tab: 'props',
+				nestedActive: false,
+				activeScope: 'all',
+			}),
+		).toBe(false);
+		expect(
+			isSortOptionVisible('anchor', {
+				tab: 'props',
+				nestedActive: false,
+				activeScope: 'all',
+				revealActive: true,
+			}),
+		).toBe(true);
+		expect(
+			isSortOptionVisible('anchor', {
+				tab: 'tags',
+				nestedActive: true,
+				activeScope: 'all',
+				revealActive: true,
+			}),
+		).toBe(true);
+	});
 });

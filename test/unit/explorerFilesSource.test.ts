@@ -233,7 +233,7 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(patchCellsBlock).toContain(
 			"cls: 'vaultman-tree-words nav-file-tag'",
 		);
-		expect(patchCellsBlock).toContain('getFileRemainingTasks(file)');
+		expect(patchCellsBlock).toContain('getFileTaskStats(file)');
 		expect(patchCellsBlock).toContain('this._patchCachedStatisticsNodes(');
 		expect(patchCellsBlock).toContain('node.tasksText =');
 		expect(patchCellsBlock).toContain('node.wordCountText =');

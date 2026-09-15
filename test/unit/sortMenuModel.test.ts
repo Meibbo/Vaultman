@@ -312,4 +312,30 @@ describe('BT5-007 shared sort menu model', () => {
 			),
 		).not.toContain('reveal-current-file');
 	});
+
+	// U130 (#101/#90): the anchored note as an explicit sort scope. Same
+	// reveal-gated, last-slot rule as `note`: it projects the revealAnchor
+	// state into the sort menu so the scope the reveal applies is selectable.
+	it('projects the reveal anchor as a last-slot anchor sort option', () => {
+		for (const tab of ['props', 'tags'] as const) {
+			const ids = SORT_MENU_OPTIONS[tab].map((option) => option.id);
+			expect(ids.at(-1)).toBe('anchor');
+			expect(
+				SORT_MENU_OPTIONS[tab].find((option) => option.id === 'anchor'),
+			).toMatchObject({
+				icon: 'lucide-anchor',
+				labelKey: 'sort.by.anchor',
+			});
+			const state = stateFor(tab);
+			expect(
+				visibleSortOptions(tab, state, false, false).map((o) => o.id),
+			).not.toContain('anchor');
+			expect(
+				visibleSortOptions(tab, state, false, true).map((o) => o.id),
+			).toContain('anchor');
+		}
+		// The comparators keep the anchored note's own order, like `note`.
+		expect(propsSource).toContain("normalizedSortBy === 'anchor'");
+		expect(tagsSource).toContain("normalizedSortBy === 'anchor'");
+	});
 });

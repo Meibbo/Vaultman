@@ -63,6 +63,11 @@ export const SORT_MENU_OPTIONS: Record<
 		// Last on purpose: it only appears while a note is anchored, and a
 		// leading slot would shift every other option each time reveal toggles.
 		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
+		// U130 (#101/#90): the anchored note as an explicit sort scope. Same
+		// reveal-gated, last-slot rule as `note`: it projects the revealAnchor
+		// state (current-file/pinned + path) into the sort menu so the scope
+		// the reveal already applies becomes selectable per scene.
+		{ id: 'anchor', icon: 'lucide-anchor', labelKey: 'sort.by.anchor' },
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
@@ -81,6 +86,9 @@ export const SORT_MENU_OPTIONS: Record<
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
 		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
+		// U130 (#101/#90): same reveal-gated last-slot rule as props — the
+		// anchored note selectable as an explicit sort scope per scene.
+		{ id: 'anchor', icon: 'lucide-anchor', labelKey: 'sort.by.anchor' },
 	],
 	files: [
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },

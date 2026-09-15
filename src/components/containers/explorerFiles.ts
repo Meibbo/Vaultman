@@ -69,6 +69,7 @@ import {
 } from '../../logic/logicNodeTypeFilters';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
+import { formatTaskStats } from '../../services/serviceStatisticsCache';
 import {
 	buildFileRenameChange,
 	FileRenameModal,
@@ -3705,9 +3706,11 @@ export class FilesExplorerPanel extends Component {
 				wordCount === null ? undefined : this._formatWordCountCell(wordCount);
 		}
 		if (this.visibleCells.has('tasks')) {
-			const tasks = this.plugin.statisticsCache.getFileRemainingTasks(file);
+			const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
 			node.tasksText =
-				tasks === null || tasks === 0 ? undefined : String(tasks);
+				taskStats === null || taskStats.total === 0
+					? undefined
+					: formatTaskStats(taskStats);
 		}
 		if (this.visibleCells.has('tags')) {
 			const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
@@ -4162,37 +4165,36 @@ export class FilesExplorerPanel extends Component {
 				}
 			}
 
-			if (!patchTasks) continue;
-			const remainingTasks =
-				this.plugin.statisticsCache.getFileRemainingTasks(file);
-			if (remainingTasks === null) continue;
-			let taskCell = row.querySelector<HTMLElement>('.vaultman-tree-tasks');
-			if (remainingTasks === 0) {
-				taskCell?.remove();
-				const badgeZone = row.querySelector<HTMLElement>(
-					'.vaultman-tree-badge-zone',
-				);
-				if (badgeZone?.childElementCount === 0) badgeZone.remove();
-				continue;
-			}
-
-			let badgeZone = row.querySelector<HTMLElement>(
+		if (!patchTasks) continue;
+		const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
+		if (taskStats === null) continue;
+		let taskCell = row.querySelector<HTMLElement>('.vaultman-tree-tasks');
+		if (taskStats.total === 0) {
+			taskCell?.remove();
+			const badgeZone = row.querySelector<HTMLElement>(
 				'.vaultman-tree-badge-zone',
 			);
-			if (!badgeZone) {
-				badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
-			}
-			if (!taskCell) {
-				taskCell = badgeZone.createSpan({
-					cls: 'vaultman-tree-tasks nav-file-tag',
-				});
-				const laterCell = badgeZone.querySelector<HTMLElement>(
-					'.vaultman-addon-cell, .vaultman-addon-toggle-cell, .vaultman-badge, .vaultman-tree-count',
-				);
-				if (laterCell) badgeZone.insertBefore(taskCell, laterCell);
-			}
-			const text = String(remainingTasks);
-			if (taskCell.textContent !== text) taskCell.textContent = text;
+			if (badgeZone?.childElementCount === 0) badgeZone.remove();
+			continue;
+		}
+
+		let badgeZone = row.querySelector<HTMLElement>(
+			'.vaultman-tree-badge-zone',
+		);
+		if (!badgeZone) {
+			badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+		}
+		if (!taskCell) {
+			taskCell = badgeZone.createSpan({
+				cls: 'vaultman-tree-tasks nav-file-tag',
+			});
+			const laterCell = badgeZone.querySelector<HTMLElement>(
+				'.vaultman-addon-cell, .vaultman-addon-toggle-cell, .vaultman-badge, .vaultman-tree-count',
+			);
+			if (laterCell) badgeZone.insertBefore(taskCell, laterCell);
+		}
+		const text = formatTaskStats(taskStats);
+		if (taskCell.textContent !== text) taskCell.textContent = text;
 		}
 	}
 
@@ -4216,11 +4218,10 @@ export class FilesExplorerPanel extends Component {
 				if (tagCount !== null) node.tagsText = String(tagCount);
 			}
 			if (patchTasks) {
-				const remainingTasks =
-					this.plugin.statisticsCache.getFileRemainingTasks(file);
-				if (remainingTasks !== null) {
+				const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
+				if (taskStats !== null) {
 					node.tasksText =
-						remainingTasks === 0 ? undefined : String(remainingTasks);
+						taskStats.total === 0 ? undefined : formatTaskStats(taskStats);
 				}
 			}
 		};
@@ -4528,25 +4529,36 @@ export class FilesExplorerPanel extends Component {
 	): Map<string, FolderAggregate> {
 		return aggregateFolderCells(
 			nodes,
-			(node) => ({
-				files: node.meta.file ? 1 : 0,
-				count: node.meta.file && flags.count ? (node.count ?? 0) : 0,
-				words:
-					node.meta.file && flags.words
-						? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ??
-							0)
-						: 0,
-				tags:
-					node.meta.file && flags.tags
-						? (this.plugin.statisticsCache.getFileTagCount(node.meta.file) ?? 0)
-						: 0,
-				tasks:
+			(node) => {
+				const taskStats =
 					node.meta.file && flags.tasks
-						? (this.plugin.statisticsCache.getFileRemainingTasks(
-								node.meta.file,
-							) ?? 0)
-						: 0,
-			}),
+						? this.plugin.statisticsCache.getFileTaskStats(node.meta.file)
+						: null;
+				return {
+					files: node.meta.file ? 1 : 0,
+					count: node.meta.file && flags.count ? (node.count ?? 0) : 0,
+					words:
+						node.meta.file && flags.words
+							? (this.plugin.statisticsCache.getFileWordCount(
+									node.meta.file,
+								) ?? 0)
+							: 0,
+					tags:
+						node.meta.file && flags.tags
+							? (this.plugin.statisticsCache.getFileTagCount(
+									node.meta.file,
+								) ?? 0)
+							: 0,
+					tasks:
+						node.meta.file && flags.tasks
+							? (this.plugin.statisticsCache.getFileRemainingTasks(
+									node.meta.file,
+								) ?? 0)
+							: 0,
+					tasksCompleted: taskStats?.completed ?? 0,
+					tasksTotal: taskStats?.total ?? 0,
+				};
+			},
 			(node) => node.meta.isFolder,
 		);
 	}
@@ -4561,7 +4573,13 @@ export class FilesExplorerPanel extends Component {
 		node.wordCountText =
 			total.words > 0 ? this._formatWordCountCell(total.words) : undefined;
 		node.tagsText = flags.tags ? String(total.tags) : undefined;
-		node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
+		node.tasksText =
+			total.tasksTotal > 0
+				? formatTaskStats({
+						completed: total.tasksCompleted,
+						total: total.tasksTotal,
+					})
+				: undefined;
 	}
 
 	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
@@ -4660,6 +4678,7 @@ export class FilesExplorerPanel extends Component {
 		const labels = Object.fromEntries(
 			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
 		) as Record<FileHoverInfoId, string>;
+		const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
 		return buildFileHoverInfo(
 			fields,
 			{
@@ -4674,7 +4693,10 @@ export class FilesExplorerPanel extends Component {
 				ext: file.extension,
 				words: this.plugin.statisticsCache.getFileWordCount(file),
 				characters: this.plugin.statisticsCache.getFileCharacterCount(file),
-				tasks: this.plugin.statisticsCache.getFileRemainingTasks(file),
+				tasks:
+					taskStats === null || taskStats.total === 0
+						? null
+						: formatTaskStats(taskStats),
 				count: this._propCountForFile(file),
 			},
 			labels,
@@ -4703,7 +4725,7 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.statisticsCache.getFileCharacterCount(file) === null;
 		const missingTasks =
 			fields.includes('tasks') &&
-			this.plugin.statisticsCache.getFileRemainingTasks(file) === null;
+			this.plugin.statisticsCache.getFileTaskStats(file) === null;
 		if (!missingWords && !missingCharacters && !missingTasks) return;
 
 		const waitingElements = this.pendingHoverStats.get(file.path);

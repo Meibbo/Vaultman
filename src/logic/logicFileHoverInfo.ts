@@ -13,7 +13,7 @@ export interface FileHoverInfoData {
 	ext: string;
 	words: number | null;
 	characters: number | null;
-	tasks: number | null;
+	tasks: number | string | null;
 	count: number | null;
 }
 

@@ -11,6 +11,8 @@ interface M {
 	words?: number;
 	tasks?: number;
 	tags?: number;
+	tasksCompleted?: number;
+	tasksTotal?: number;
 }
 
 function file(
@@ -19,12 +21,14 @@ function file(
 	words: number,
 	tags: number,
 	tasks: number,
+	tasksCompleted = 0,
+	tasksTotal = 0,
 ): TreeNode<M> {
 	return {
 		id,
 		label: id,
 		depth: 1,
-		meta: { isFolder: false, count, words, tags, tasks },
+		meta: { isFolder: false, count, words, tags, tasks, tasksCompleted, tasksTotal },
 	};
 }
 function folder(id: string, children: TreeNode<M>[]): TreeNode<M> {
@@ -37,6 +41,8 @@ const read = (node: TreeNode<M>) => ({
 	words: node.meta.words ?? 0,
 	tags: node.meta.tags ?? 0,
 	tasks: node.meta.tasks ?? 0,
+	tasksCompleted: node.meta.tasksCompleted ?? 0,
+	tasksTotal: node.meta.tasksTotal ?? 0,
 });
 const isFolder = (node: TreeNode<M>) => node.meta.isFolder;
 
@@ -52,6 +58,8 @@ describe('BT5-040 folder aggregate cells', () => {
 			words: 30,
 			tags: 6,
 			tasks: 1,
+			tasksCompleted: 0,
+			tasksTotal: 0,
 		});
 	});
 
@@ -64,14 +72,26 @@ describe('BT5-040 folder aggregate cells', () => {
 		];
 		const totals = aggregateFolderCells(tree, read, isFolder);
 		// sub = 2+0 props, 10+4 words, 3+1 tasks
-		expect(totals.get('sub')).toEqual({ files: 2, count: 2, words: 14, tags: 4, tasks: 4 });
+		expect(totals.get('sub')).toEqual({ files: 2, count: 2, words: 14, tags: 4, tasks: 4, tasksCompleted: 0, tasksTotal: 0 });
 		// root = its file (1,5,0) plus sub's total (2,14,4)
-		expect(totals.get('root')).toEqual({ files: 3, count: 3, words: 19, tags: 6, tasks: 4 });
+		expect(totals.get('root')).toEqual({ files: 3, count: 3, words: 19, tags: 6, tasks: 4, tasksCompleted: 0, tasksTotal: 0 });
+	});
+
+	it('sums completed and total tasks separately through subfolders', () => {
+		const tree = [
+			folder('root', [
+				file('r.md', 0, 0, 0, 1, 2, 3),
+				folder('sub', [file('s1.md', 0, 0, 0, 0, 1, 1)]),
+			]),
+		];
+		const totals = aggregateFolderCells(tree, read, isFolder);
+		expect(totals.get('sub')).toMatchObject({ tasks: 0, tasksCompleted: 1, tasksTotal: 1 });
+		expect(totals.get('root')).toMatchObject({ tasks: 1, tasksCompleted: 3, tasksTotal: 4 });
 	});
 
 	it('gives an empty folder a zero total', () => {
 		const totals = aggregateFolderCells([folder('empty', [])], read, isFolder);
-		expect(totals.get('empty')).toEqual({ files: 0, count: 0, words: 0, tags: 0, tasks: 0 });
+		expect(totals.get('empty')).toEqual({ files: 0, count: 0, words: 0, tags: 0, tasks: 0, tasksCompleted: 0, tasksTotal: 0 });
 	});
 
 	it('is opt-in and wired into the Files decorate step', () => {

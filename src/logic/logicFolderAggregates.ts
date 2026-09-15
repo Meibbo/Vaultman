@@ -13,6 +13,10 @@ export interface FolderAggregate {
 	words: number;
 	tags: number;
 	tasks: number;
+	/** Completed inline tasks below the folder (U130). */
+	tasksCompleted: number;
+	/** All inline tasks below the folder (U130). */
+	tasksTotal: number;
 }
 
 const ZERO: FolderAggregate = {
@@ -21,6 +25,8 @@ const ZERO: FolderAggregate = {
 	words: 0,
 	tags: 0,
 	tasks: 0,
+	tasksCompleted: 0,
+	tasksTotal: 0,
 };
 
 export type FileAggregateReader<TMeta> = (
@@ -50,6 +56,8 @@ export function aggregateFolderCells<TMeta>(
 					words: sum.words + childTotal.words,
 					tags: sum.tags + childTotal.tags,
 					tasks: sum.tasks + childTotal.tasks,
+					tasksCompleted: sum.tasksCompleted + childTotal.tasksCompleted,
+					tasksTotal: sum.tasksTotal + childTotal.tasksTotal,
 			};
 		}
 		totals.set(node.id, sum);

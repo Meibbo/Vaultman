@@ -2,6 +2,7 @@ import type { App, CachedMetadata, TFile, TFolder, Vault } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
 import {
+	formatTaskStats,
 	StatisticsCacheService,
 	type StatisticsCacheChange,
 } from '../../src/services/serviceStatisticsCache';
@@ -198,6 +199,49 @@ describe('StatisticsCacheService', () => {
 		expect(service.getFileWordCount(file)).toBe(6);
 		expect(service.getFileCharacterCount(file)).toBe(20);
 		expect(service.getFileRemainingTasks(file)).toBe(1);
+	});
+
+	it('counts completed/total task stats alongside remaining', async () => {
+		// Given
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/tasks.md');
+		const content =
+			'- [ ] first\n- [x] done\n* [X] also done\n+ [ ] second';
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, { [file.path]: content }),
+		);
+
+		// When
+		await service.ensureFileStats([file]);
+
+		// Then
+		expect(service.getFileTaskStats(file)).toEqual({
+			completed: 2,
+			total: 4,
+		});
+		expect(service.getFileRemainingTasks(file)).toBe(2);
+		expect(
+			formatTaskStats(service.getFileTaskStats(file)!),
+		).toBe('2/4');
+	});
+
+	it('reports zero-total task stats for files without tasks', async () => {
+		// Given
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/plain.md');
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, { [file.path]: 'just words' }),
+		);
+
+		// When
+		await service.ensureFileStats([file]);
+
+		// Then
+		expect(service.getFileTaskStats(file)).toEqual({
+			completed: 0,
+			total: 0,
+		});
+		expect(service.getFileRemainingTasks(file)).toBe(0);
 	});
 
 	it('recomputes cached words when frontmatter counting changes', async () => {

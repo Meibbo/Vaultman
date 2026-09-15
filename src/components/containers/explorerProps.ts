@@ -3627,7 +3627,10 @@ export class PropsExplorerPanel extends Component {
 		// out in that order, so the comparator's job is to leave it alone: the
 		// sort is stable, and returning 0 preserves the frontmatter sequence for
 		// properties and, one level down, for each property's values.
-		if (normalizedSortBy === 'note') return 0;
+		// 'anchor' (U130 #101/#90) is the same anchored scope as an explicit
+		// sort option, so it shares the keep-order semantics.
+		if (normalizedSortBy === 'note' || normalizedSortBy === 'anchor')
+			return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex

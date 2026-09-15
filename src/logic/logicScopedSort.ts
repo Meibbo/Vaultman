@@ -515,7 +515,10 @@ export function isSortOptionVisible(
 	// 'note' is the anchored note's own order — the order its frontmatter
 	// declares. With no note anchored there is no order to read, so the option
 	// does not exist rather than silently falling back to another sort.
-	if (optionId === 'note' && !context.revealActive) return false;
+	// 'anchor' (U130 #101/#90) is the same anchored scope as an explicit,
+	// selectable sort option: same gate, same reveal-only existence.
+	if ((optionId === 'note' || optionId === 'anchor') && !context.revealActive)
+		return false;
 	if ((optionId === 'path' || optionId === 'parent') && context.nestedActive) {
 		return false;
 	}

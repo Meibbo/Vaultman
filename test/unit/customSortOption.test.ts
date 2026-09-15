@@ -24,12 +24,20 @@ describe('U121-029 Note sort option', () => {
 	it('is offered by the node providers, last in the row', () => {
 		for (const tab of ['props', 'tags'] as const) {
 			const options = SORT_MENU_OPTIONS[tab];
-			const note = options.at(-1);
+			// U130 (#101/#90): `anchor` projects the same anchored scope as an
+			// explicit option, so it takes the last slot and `note` sits next.
+			const anchor = options.at(-1);
+			expect(anchor?.id).toBe('anchor');
+			expect(anchor?.labelKey).toBe('sort.by.anchor');
+			const note = options.at(-2);
 			expect(note?.id).toBe('note');
 			expect(note?.labelKey).toBe('sort.by.note');
 		}
 		// Not offered where there is no note to take an order from.
 		expect(SORT_MENU_OPTIONS.files.some((o) => o.id === 'note')).toBe(false);
+		expect(SORT_MENU_OPTIONS.files.some((o) => o.id === 'anchor')).toBe(
+			false,
+		);
 	});
 
 	it('exists only while a note is anchored', () => {
@@ -80,8 +88,12 @@ describe('U121-029 Note sort option', () => {
 		// The projection already arrives in the note's order, so the comparator's
 		// job is to not re-sort it. The sort is stable, so returning 0 preserves
 		// the sequence exactly — for properties and for each property's values.
+		// U130 (#101/#90): `anchor` shares the keep-order semantics.
 		for (const source of [propsExplorerSource, tagsExplorerSource]) {
-			expect(source).toMatch(/normalizedSortBy === 'note'\) return 0;/);
+			expect(source).toMatch(
+				/normalizedSortBy === 'note' \|\| normalizedSortBy === 'anchor'\)/,
+			);
+			expect(source).toContain("normalizedSortBy === 'anchor'");
 		}
 	});
 
@@ -96,5 +108,9 @@ describe('U121-029 Note sort option', () => {
 		expect(en['sort.by.note']).toBeTruthy();
 		expect(es['sort.by.note']).toBeTruthy();
 		expect(es['sort.by.note']).not.toBe(en['sort.by.note']);
+		// U130 (#101/#90): the anchor scope ships with both locales too.
+		expect(en['sort.by.anchor']).toBeTruthy();
+		expect(es['sort.by.anchor']).toBeTruthy();
+		expect(es['sort.by.anchor']).not.toBe(en['sort.by.anchor']);
 	});
 });

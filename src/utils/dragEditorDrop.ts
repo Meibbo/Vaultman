@@ -46,6 +46,21 @@ export function tagSeparatorBeforeCaret(
 	return /\s/.test(previous) ? '' : ' ';
 }
 
+/**
+ * Separator a anteponer DESPUES del tag soltado: lee el caracter bajo el
+ * caret y solo pide un espacio si ahi hay algo que no sea ya un espacio o
+ * salto de linea. Al final de linea (sin caracter siguiente) tambien pide
+ * uno, para no pegarse a la palabra o el tag que se escriba despues. U130.
+ */
+export function tagSeparatorAfterCaret(
+	lineText: string,
+	caretOffset: number,
+): string {
+	const next = caretOffset < lineText.length ? lineText[caretOffset] : undefined;
+	if (next === undefined) return ' ';
+	return /\s/.test(next) ? '' : ' ';
+}
+
 export function isMarkdownDropTarget(target: EventTarget | null): boolean {
 	if (typeof HTMLElement === 'undefined') return false;
 	if (!(target instanceof HTMLElement)) return false;

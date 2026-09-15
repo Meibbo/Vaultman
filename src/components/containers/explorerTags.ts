@@ -1181,7 +1181,10 @@ export class TagsExplorerPanel extends Component {
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
 		// 'note' is the anchored note's own order; the projection already
 		// carries it, so the comparator leaves the sequence untouched.
-		if (normalizedSortBy === 'note') return 0;
+		// 'anchor' (U130 #101/#90) is the same anchored scope as an explicit
+		// sort option, so it shares the keep-order semantics.
+		if (normalizedSortBy === 'note' || normalizedSortBy === 'anchor')
+			return 0;
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex

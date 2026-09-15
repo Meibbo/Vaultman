@@ -9,6 +9,17 @@ import {
 
 export type StatisticsScope = 'vault' | 'filtered' | 'selected';
 
+/** Completed vs total inline tasks for one file (U130). */
+export interface FileTaskStats {
+	completed: number;
+	total: number;
+}
+
+/** Render completed/total as the tasks cell text, e.g. `3/10`. */
+export function formatTaskStats(stats: FileTaskStats): string {
+	return `${stats.completed}/${stats.total}`;
+}
+
 export interface CachedFileStats {
 	path: string;
 	ctime: number;
@@ -21,6 +32,10 @@ export interface CachedFileStats {
 	characters: number;
 	/** Unchecked inline tasks (- [ ]) in the Markdown body (BT4-012). */
 	tasks?: number;
+	/** Completed inline tasks (- [x]) in the Markdown body (U130). */
+	tasksCompleted?: number;
+	/** All inline tasks (checked + unchecked) in the Markdown body (U130). */
+	tasksTotal?: number;
 	props: string[];
 	values: string[];
 	tags: string[];
@@ -182,6 +197,8 @@ export class StatisticsCacheService extends Component {
 							? content
 							: this.withoutFrontmatter(content),
 					);
+		const taskStats =
+			body !== null ? this.countTaskStats(body) : { completed: 0, total: 0 };
 		return {
 			path: file.path,
 			ctime: file.stat.ctime,
@@ -191,6 +208,8 @@ export class StatisticsCacheService extends Component {
 			includesFrontmatterWords: this.countFrontmatterWords,
 			characters: body !== null ? this.countCharacters(body) : 0,
 			tasks: body !== null ? this.countRemainingTasks(body) : 0,
+			tasksCompleted: taskStats.completed,
+			tasksTotal: taskStats.total,
 			...this.collectFileMetadata(file),
 		};
 	}
@@ -338,6 +357,28 @@ export class StatisticsCacheService extends Component {
 		}
 		const stale = this.staleFileStatsCache.get(file.path);
 		return this.isValidNonNegativeNumber(stale?.tasks) ? stale.tasks : null;
+	}
+
+	/** Completed/total task stats for the tasks cell (U130). Null before
+	 * warmup, like the other file-level getters. */
+	getFileTaskStats(file: TFile): FileTaskStats | null {
+		if (file.extension !== 'md') return null;
+		const cached = this.fileStatsCache.get(file.path);
+		if (
+			this.isFreshCachedStats(file, cached) &&
+			this.isValidNonNegativeNumber(cached.tasksCompleted) &&
+			this.isValidNonNegativeNumber(cached.tasksTotal)
+		) {
+			return {
+				completed: cached.tasksCompleted,
+				total: cached.tasksTotal,
+			};
+		}
+		const stale = this.staleFileStatsCache.get(file.path);
+		return this.isValidNonNegativeNumber(stale?.tasksCompleted) &&
+			this.isValidNonNegativeNumber(stale?.tasksTotal)
+			? { completed: stale.tasksCompleted, total: stale.tasksTotal }
+			: null;
 	}
 
 	getFileWordCount(file: TFile): number | null {
@@ -620,6 +661,14 @@ export class StatisticsCacheService extends Component {
 		return (content.match(/^\s*[-*+]\s+\[ \]/gm) ?? []).length;
 	}
 
+	/** Completed vs total task list items (- [x] counts as completed). Same
+	 * fenced-code limitation as countRemainingTasks. U130. */
+	private countTaskStats(content: string): FileTaskStats {
+		const total = (content.match(/^\s*[-*+]\s+\[[ xX]\]/gm) ?? []).length;
+		const completed = (content.match(/^\s*[-*+]\s+\[[xX]\]/gm) ?? []).length;
+		return { completed, total };
+	}
+
 	private countCharacters(content: string): number {
 		let characters = 0;
 		for (let index = 0; index < content.length; characters += 1) {
@@ -701,11 +750,17 @@ export class StatisticsCacheService extends Component {
 	private isCompleteFreshCachedStats(
 		file: TFile,
 		cached: CachedFileStats | undefined,
-	): cached is CachedFileStats & { tasks: number } {
+	): cached is CachedFileStats & {
+		tasks: number;
+		tasksCompleted: number;
+		tasksTotal: number;
+	} {
 		return (
 			this.isFreshCachedStats(file, cached) &&
 			this.isValidNonNegativeNumber(cached.characters) &&
 			this.isValidNonNegativeNumber(cached.tasks) &&
+			this.isValidNonNegativeNumber(cached.tasksCompleted) &&
+			this.isValidNonNegativeNumber(cached.tasksTotal) &&
 			Array.isArray(cached.tags)
 		);
 	}

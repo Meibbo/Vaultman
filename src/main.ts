@@ -61,6 +61,7 @@ import {
 	isMarkdownDropTarget,
 	shouldAppendTagDrop,
 	tagDragNodes,
+	tagSeparatorAfterCaret,
 	tagSeparatorBeforeCaret,
 	tagTextForDrop,
 } from './utils/dragEditorDrop';
@@ -649,7 +650,8 @@ export class VaultmanPlugin extends Plugin {
 			const cursor = editor.getCursor();
 			const lineText = editor.getLine(cursor.line);
 			const separator = tagSeparatorBeforeCaret(lineText, cursor.ch);
-			editor.replaceRange(separator + tagText, cursor);
+			const trailing = tagSeparatorAfterCaret(lineText, cursor.ch);
+			editor.replaceRange(separator + tagText + trailing, cursor);
 		}
 		this.clearDragActionGuide();
 	};
