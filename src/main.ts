@@ -231,15 +231,12 @@ export class VaultmanPlugin extends Plugin {
 			app: this.app,
 			bindingService: this.nodeBindingService,
 			revealInVaultman: (node) => this.revealNodeInVaultman(node),
-			searchInVaultman: async (token: string) => {
-				await this.revealNodeInVaultman({ kind: 'tag', label: token });
-				void this.filterService.addNode({
-					type: 'rule',
-					filterType: 'specific_value',
-					property: 'tag',
-					values: [token.replace(/^#/, '')],
-				});
-			},
+			// A15: a native "search selection" is a TEXT search, the same
+			// transaction the editor menu runs -- not a reveal plus a synthetic
+			// tag filter, which minted a fake chip for folders and every other
+			// kind.
+			searchInVaultman: (query: string) =>
+				this.openContentSearchWithQuery(query),
 		});
 		this.addChild(this.nativeSurfaceBindingService);
 		this.breadcrumbFileSceneService = new BreadcrumbFileSceneService({

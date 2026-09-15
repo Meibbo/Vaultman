@@ -1,4 +1,5 @@
 import { Component, type App, type Plugin, type TFile } from "obsidian";
+import { nativeSurfaceSearchQuery } from "../logic/logicNativeSurfaceSearch";
 import type { BindingNodeInput, NodeBindingService } from "./serviceNodeBinding";
 import {
 	computeAliasToken,
@@ -244,9 +245,14 @@ export async function handleNativeBindingClick(
 			await deps.bindingService.bindOrCreate(target.node, { newLeaf: true });
 			return true;
 
-		case "search-selection":
-			deps.searchInVaultman?.(target.node.label);
+		case "search-selection": {
+			// A15: same text contract as the editor's "search selection";
+			// the query is derived per kind, never a synthesised filter.
+			const query = nativeSurfaceSearchQuery(target.node);
+			if (!query) return false;
+			deps.searchInVaultman?.(query);
 			return true;
+		}
 	}
 
 	return false;

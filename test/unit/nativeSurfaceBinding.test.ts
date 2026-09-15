@@ -277,6 +277,37 @@ describe("handleNativeBindingClick with WIR routing", () => {
 		expect(mockSearch).toHaveBeenCalledWith("research");
 		expect(event.preventDefault).toHaveBeenCalled();
 	});
+
+	it("A15: search-selection on a folder searches its name as text (no synthetic tag)", async () => {
+		const folder = mockElement({
+			classes: ["nav-folder-title"],
+			attributes: { "data-path": "Inbox/2026" },
+			textContent: "2026",
+		});
+		const mockSearch = vi.fn();
+		const event = {
+			target: folder,
+			ctrlKey: false,
+			metaKey: false,
+			altKey: true,
+			button: 0,
+			preventDefault: vi.fn(),
+			stopImmediatePropagation: vi.fn(),
+		} as unknown as MouseEvent;
+
+		const handled = await handleNativeBindingClick(event, {
+			bindingService: { bindOrCreate: vi.fn() },
+			settings: {
+				nativeSurfaceClickPrimary: "reveal-in-vaultman",
+				nativeSurfaceClickAlt: "search-selection",
+				nativeSurfaceClickMod: "open-node-note-new-tab",
+			},
+			searchInVaultman: mockSearch,
+		});
+
+		expect(handled).toBe(true);
+		expect(mockSearch).toHaveBeenCalledWith("2026");
+	});
 });
 
 describe("task_108 surface-guard negativos (primario llano nunca suprime)", () => {
