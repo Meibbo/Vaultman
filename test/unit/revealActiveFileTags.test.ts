@@ -281,6 +281,49 @@ describe('inline and frontmatter are the other half of a tag type', () => {
 		).toEqual([content.indexOf('obra'), content.indexOf('obra') + 4]);
 	});
 
+	describe('A11 — tagOccurrenceRange points at the exact value, not the tags key', () => {
+		function assertExactValue(
+			content: string,
+			frontmatterEndOffset: number,
+			tagValue: string,
+		) {
+			const occurrence = {
+				tagPath: tagValue,
+				source: 'frontmatter' as const,
+				order: 0,
+			};
+			const range = tagOccurrenceRange(occurrence, content, {
+				frontmatterStartOffset: 0,
+				frontmatterEndOffset,
+				occurrenceIndex: 0,
+			});
+			expect(range).toBeDefined();
+			expect(content.slice(range![0], range![1])).toBe(tagValue);
+			// Negative: the range of the value must never coincide with the `tags` key
+			const tagsKeyRange = [content.indexOf('tags'), content.indexOf('tags') + 4];
+			expect(range![0]).not.toBe(tagsKeyRange[0]);
+			expect(range![1]).not.toBe(tagsKeyRange[1]);
+		}
+
+		it('frontmatter array: tags: [a, b, c] → b is exact', () => {
+			const content = '---\ntags: [a, b, c]\n---\nbody';
+			const fmEnd = content.indexOf('---', 4);
+			assertExactValue(content, fmEnd, 'b');
+		});
+
+		it('frontmatter inline: tags: a, b → b is exact', () => {
+			const content = '---\ntags: a, b\n---\nbody';
+			const fmEnd = content.indexOf('---', 4);
+			assertExactValue(content, fmEnd, 'b');
+		});
+
+		it('frontmatter yaml list: - b → b is exact', () => {
+			const content = '---\ntags:\n  - a\n  - b\n---\nbody';
+			const fmEnd = content.indexOf('---', 4);
+			assertExactValue(content, fmEnd, 'b');
+		});
+	});
+
 	it('labels only the source still visible under a source filter', () => {
 		const both = new Set<TagSource>(['frontmatter', 'inline']);
 		expect(visibleTagSources(both, ['inline'])).toEqual(new Set(['inline']));
