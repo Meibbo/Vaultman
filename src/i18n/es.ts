@@ -473,6 +473,9 @@ export const es: Record<string, string> = {
 	'settings.folder_aggregate_cells': 'Totales de cell por folder',
 	'settings.folder_aggregate_cells.desc':
 		'Los folders del árbol de Files muestran la suma recursiva de los cells de conteo de sus files (propiedades, palabras, tareas), incluyendo los totales de sus subfolders.',
+	'settings.cell_words_include_frontmatter': 'Contar palabras del frontmatter',
+	'settings.cell_words_include_frontmatter.desc':
+		'Cuando está activo, la celda de palabras también cuenta el frontmatter YAML para coincidir con el contador de Obsidian.',
 	'settings.sticky_parent_rows': 'Filas padre fijas',
 	'settings.sticky_parent_rows.desc':
 		'Mantiene visibles los nodos padre expandidos al recorrer su árbol.',

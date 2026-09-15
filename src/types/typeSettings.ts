@@ -300,6 +300,8 @@ export interface VaultmanSettings {
 	autoRevealActiveFile: boolean;
 	/** BT5-040: folders show the recursive sum of countable cells of their files */
 	folderAggregateCells: boolean;
+	/** Include YAML frontmatter in the Files explorer word-count cell. */
+	countFrontmatterWords: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
@@ -425,6 +427,10 @@ export interface iVaultmanPlugin extends Plugin {
 	};
 	iconicService?: {
 		setEnabled(enabled: boolean): void;
+	};
+	/** Cell words: live word-count cache; the frontmatter toggle refreshes it. */
+	statisticsCache?: {
+		setCountFrontmatterWords(enabled: boolean): void;
 	};
 	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
 	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
@@ -553,6 +559,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	autoRevealActiveFile: false,
 	sparseAutoExpandTopLevel: true,
 	folderAggregateCells: false,
+	countFrontmatterWords: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',
 	createFileCommand: '',

@@ -9,12 +9,14 @@ function functionSlice(source: string, name: string): string {
 }
 
 // L-VMFIX — guard: nested / parentsFirst / fixedFolders only exist INSIDE
-// the `engines` submenu, never at the top level of the view_menu; `engines`
-// and the `Toolbar` toggle share one section (a divider ahead of `engines`,
-// none between `engines` and `Toolbar` -- order dev, 2026-09-13); with
-// `nested` off, parentsFirst / fixedFolders do not appear inside the submenu.
+// the `engines` submenu, never at the top level of the view_menu; the
+// interaction submenu goes first, and the `Toolbar` toggle sits ABOVE
+// `engines` with a divider between them — the second divider reserves the
+// slot for the stream proto_design dimension control (orden dev,
+// 2026-09-15); with `nested` off, parentsFirst / fixedFolders do not appear
+// inside the submenu.
 //
-// Reasoning kept short on purpose: the dev's spec 08 §2 (and the 2026-09-13
+// Reasoning kept short on purpose: the dev's spec 08 §2 (and the 2026-09-15
 // reorder on top of it) is the contract, and these assertions are its
 // negative form.
 describe('L-VMFIX view_menu guard', () => {
@@ -33,25 +35,38 @@ describe('L-VMFIX view_menu guard', () => {
 		);
 	});
 
-	it('puts engines before Toolbar, with a divider ahead of engines and none between them', () => {
+	it('puts the interaction submenu first in the view_menu', () => {
+		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
+		const interactionIdx = menu.indexOf("translate('viewmenu.interaction')");
+		const layoutsIdx = menu.indexOf("translate('viewmenu.layouts')");
+		const presetsIdx = menu.indexOf('cellMenuOrder(');
+		expect(interactionIdx).toBeGreaterThan(-1);
+		expect(presetsIdx).toBeGreaterThan(interactionIdx);
+		if (layoutsIdx > -1) expect(layoutsIdx).toBeGreaterThan(interactionIdx);
+	});
+
+	it('puts Toolbar above engines, with a divider between them', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const enginesIdx = menu.indexOf("translate('viewmenu.engines')");
 		const toolbarIdx = menu.indexOf("translate('viewmenu.toolbar')");
 		expect(enginesIdx).toBeGreaterThan(-1);
-		expect(toolbarIdx).toBeGreaterThan(enginesIdx);
+		expect(toolbarIdx).toBeGreaterThan(-1);
+		expect(toolbarIdx).toBeLessThan(enginesIdx);
 
 		// A top-level divider (on `menu`, not the `engines` submenu) sits
-		// ahead of the engines section, separating it from the cell presets
-		// above (order dev, 2026-09-13).
-		const beforeEngines = menu.slice(0, enginesIdx);
-		expect(beforeEngines).toMatch(/\tmenu\.addSeparator\(/);
+		// ahead of the Toolbar section, separating it from the cell presets
+		// above (orden dev, 2026-09-15).
+		const beforeToolbar = menu.slice(0, toolbarIdx);
+		expect(beforeToolbar).toMatch(/\tmenu\.addSeparator\(/);
 
-		// No TOP-LEVEL divider between engines and Toolbar. The tab right
-		// before `menu.addSeparator(` distinguishes it from the submenu's own
-		// `submenu.addSeparator()` calls, which are expected inside this span
-		// (e.g. before `nested`) and are not a top-level divider.
-		const between = menu.slice(enginesIdx, toolbarIdx);
-		expect(between).not.toMatch(/\tmenu\.addSeparator\(/);
+		// A second TOP-LEVEL divider sits between Toolbar and engines. The
+		// tab right before `menu.addSeparator(` distinguishes it from the
+		// submenu's own `submenu.addSeparator()` calls, which are expected
+		// inside the engines span (e.g. before `nested`) and live after
+		// enginesIdx, not in this span. This divider reserves the slot for
+		// the stream proto_design dimension control.
+		const between = menu.slice(toolbarIdx, enginesIdx);
+		expect(between).toMatch(/\tmenu\.addSeparator\(/);
 	});
 
 	it('keeps the nested -> parentsFirst -> fixedFolders projection chain inside engines', () => {

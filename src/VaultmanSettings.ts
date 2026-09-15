@@ -457,13 +457,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 		items.push({
 			type: 'page',
-			name: translate('settings.chrome_hover'),
-			desc: translate('settings.chrome_hover.desc'),
-			items: this.getChromeHoverPageItems(),
-		});
-
-		items.push({
-			type: 'page',
 			name: translate('settings.floating_toc'),
 			desc: translate('settings.floating_toc.desc'),
 			items: this.getFloatingTocPageItems(),
@@ -511,6 +504,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.setHeading();
 			},
     });
+
+		items.push({
+			type: 'page',
+			name: translate('settings.chrome_hover'),
+			desc: translate('settings.chrome_hover.desc'),
+			items: this.getChromeHoverPageItems(),
+		});
 
 		items.push({    //Future Workspace Profiles
 			name: translate('settings.style_preset'),
@@ -1033,13 +1033,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		};
 
 		items.push({
-			name: translate('settings.chrome_hover'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
-		items.push({
 			name: translate('settings.chrome_hover.enable'),
 			desc: translate('settings.chrome_hover.enable.desc'),
 			render: (setting: Setting) => {
@@ -1443,6 +1436,24 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.folderAggregateCells === true)
 						.onChange(async (value) => {
 							this.plugin.settings.folderAggregateCells = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		// Cell words: include YAML frontmatter in the word count so it stays
+		// in line with Obsidian's own counter when switched on.
+		items.push({
+			name: translate('settings.cell_words_include_frontmatter'),
+			desc: translate('settings.cell_words_include_frontmatter.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.countFrontmatterWords === true)
+						.onChange(async (value) => {
+							this.plugin.settings.countFrontmatterWords = value;
+							this.plugin.statisticsCache?.setCountFrontmatterWords(value);
 							await this.plugin.saveSettings();
 						}),
 				);

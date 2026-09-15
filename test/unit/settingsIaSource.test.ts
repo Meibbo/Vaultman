@@ -94,10 +94,11 @@ describe('BT3 settings information architecture source guards', () => {
 
 	it('keeps Props available and enables format by default for new Files layouts', () => {
 		// BT5-010: Files defaults come from the shared registry.
+		// Orden dev 2026-09-15: format < path < name.
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			'format',
 			'name',
 			'ext',
-			'format',
 			'nested',
 		]);
 		expect(

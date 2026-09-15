@@ -5,6 +5,7 @@ import {
 	StatisticsCacheService,
 	type StatisticsCacheChange,
 } from '../../src/services/serviceStatisticsCache';
+import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import { vaultmanPerfMonitor } from '../../src/utils/performanceMonitor';
 
 const vault = {} as Vault;
@@ -161,6 +162,62 @@ describe('StatisticsCacheService', () => {
 
 		await service.ensureFileStats([file]);
 		expect(readCounter.count).toBe(1);
+	});
+
+	it('excludes frontmatter words by default', async () => {
+		// Given
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/frontmatter.md');
+		const content = '---\ntitle: Alpha Beta\n---\nBody word\n- [ ] task';
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, { [file.path]: content }),
+		);
+
+		// When
+		await service.ensureFileStats([file]);
+
+		// Then
+		expect(DEFAULT_SETTINGS.countFrontmatterWords).toBe(false);
+		expect(service.getFileWordCount(file)).toBe(3);
+	});
+
+	it('includes frontmatter only in word counts when enabled', async () => {
+		// Given
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/frontmatter.md');
+		const content = '---\ntitle: Alpha Beta\n---\nBody word\n- [ ] task';
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, { [file.path]: content }),
+			{ countFrontmatterWords: true },
+		);
+
+		// When
+		await service.ensureFileStats([file]);
+
+		// Then
+		expect(service.getFileWordCount(file)).toBe(6);
+		expect(service.getFileCharacterCount(file)).toBe(20);
+		expect(service.getFileRemainingTasks(file)).toBe(1);
+	});
+
+	it('recomputes cached words when frontmatter counting changes', async () => {
+		// Given
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/frontmatter.md');
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				[file.path]: '---\ntitle: Alpha Beta\n---\nBody word',
+			}),
+		);
+		await service.ensureFileStats([file]);
+
+		// When
+		service.setCountFrontmatterWords(true);
+		await service.ensureFileStats([file]);
+
+		// Then
+		expect(service.getFileWordCount(file)).toBe(5);
+		expect(readCounter.count).toBe(2);
 	});
 
 	it('counts distinct frontmatter and inline tags after file warmup', async () => {

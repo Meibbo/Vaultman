@@ -16,6 +16,7 @@ export interface CachedFileStats {
 	size: number;
 	links: number;
 	words: number;
+	includesFrontmatterWords: boolean;
 	/** Unicode code points in the Markdown body, excluding YAML frontmatter. */
 	characters: number;
 	/** Unchecked inline tasks (- [ ]) in the Markdown body (BT4-012). */
@@ -51,6 +52,7 @@ export interface StatisticsComputeOptions {
 export interface StatisticsCacheServiceOptions {
 	storage?: StatisticsStorageOption;
 	storageKey?: string;
+	countFrontmatterWords?: boolean;
 }
 
 export interface EnsureFileStatsOptions {
@@ -76,10 +78,12 @@ export class StatisticsCacheService extends Component {
 	private storageInitialized = false;
 	private storageInitPromise: Promise<void> | null = null;
 	private readonly fileStatsRefreshTimers = new Map<string, number>();
+	private countFrontmatterWords: boolean;
 
 	constructor(app: App, options: StatisticsCacheServiceOptions = {}) {
 		super();
 		this.app = app;
+		this.countFrontmatterWords = options.countFrontmatterWords ?? false;
 		this.storage = createStatisticsCacheStorage(
 			options.storageKey ?? this.defaultStorageKey(app),
 			options.storage,
@@ -170,12 +174,21 @@ export class StatisticsCacheService extends Component {
 		const content =
 			file.extension === 'md' ? await this.app.vault.cachedRead(file) : null;
 		const body = content === null ? null : this.withoutFrontmatter(content);
+		const words =
+			content === null
+				? 0
+				: this.countWords(
+						this.countFrontmatterWords
+							? content
+							: this.withoutFrontmatter(content),
+					);
 		return {
 			path: file.path,
 			ctime: file.stat.ctime,
 			mtime: file.stat.mtime,
 			size: file.stat.size,
-			words: body !== null ? this.countWords(body) : 0,
+			words,
+			includesFrontmatterWords: this.countFrontmatterWords,
 			characters: body !== null ? this.countCharacters(body) : 0,
 			tasks: body !== null ? this.countRemainingTasks(body) : 0,
 			...this.collectFileMetadata(file),
@@ -211,7 +224,13 @@ export class StatisticsCacheService extends Component {
 	}
 
 	snapshotSignatureFor(files: TFile[], folders: number): string {
-		return `${this.signatureFor(files)}:folders=${folders}`;
+		return `${this.signatureFor(files)}:folders=${folders}:frontmatter=${this.countFrontmatterWords}`;
+	}
+
+	setCountFrontmatterWords(enabled: boolean): void {
+		if (enabled === this.countFrontmatterWords) return;
+		this.countFrontmatterWords = enabled;
+		this.clear();
 	}
 
 	invalidateFile(file: TFile): void {
@@ -618,7 +637,13 @@ export class StatisticsCacheService extends Component {
 		file: TFile,
 	): Omit<
 		CachedFileStats,
-		'path' | 'ctime' | 'mtime' | 'size' | 'words' | 'characters'
+		| 'path'
+		| 'ctime'
+		| 'mtime'
+		| 'size'
+		| 'words'
+		| 'includesFrontmatterWords'
+		| 'characters'
 	> {
 		const props = new Set<string>();
 		const values = new Set<string>();
@@ -665,6 +690,8 @@ export class StatisticsCacheService extends Component {
 	): cached is CachedFileStats {
 		return (
 			!!cached &&
+			(cached.includesFrontmatterWords ?? false) ===
+				this.countFrontmatterWords &&
 			cached.ctime === file.stat.ctime &&
 			cached.mtime === file.stat.mtime &&
 			cached.size === file.stat.size
@@ -697,12 +724,14 @@ export class StatisticsCacheService extends Component {
 	}
 
 	private scopeSnapshotKey(scope: StatisticsScope): string {
-		return `scope:${scope}`;
+		return `scope:${scope}:frontmatter=${this.countFrontmatterWords}`;
 	}
 
 	private scopeFromSnapshotKey(key: string): StatisticsScope | null {
 		if (!key.startsWith('scope:')) return null;
-		const scope = key.slice('scope:'.length);
+		const [scope, mode] = key.slice('scope:'.length).split(':frontmatter=');
+		const includesFrontmatterWords = mode === undefined ? false : mode === 'true';
+		if (includesFrontmatterWords !== this.countFrontmatterWords) return null;
 		return scope === 'vault' || scope === 'filtered' || scope === 'selected'
 			? scope
 			: null;

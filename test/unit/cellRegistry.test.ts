@@ -26,44 +26,44 @@ describe('shared explorer cell registry', () => {
 	// flat projection exactly as it was and leaves hiding the ancestry opt-in.
 	it('preserves the current visible-cell defaults exactly', () => {
 		expect(defaultVisibleCells('props', 'tree')).toEqual([
-			'checkbox',
 			'icon',
+			'format',
 			'text',
 			'parent',
-			'format',
 			'count',
 			'cell_hover',
+			'checkbox',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
-			'checkbox',
 			'icon',
+			'format',
 			'text',
 			'parent',
-			'format',
 			'count',
+			'checkbox',
 			'nested',
 		]);
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			'format',
 			'name',
 			'ext',
-			'format',
 			'nested',
 		]);
 		expect(defaultVisibleCells('snippets', 'tree')).toEqual([
-			'checkbox',
 			'icon',
+			'format',
 			'text',
 			'state',
-			'format',
+			'checkbox',
 		]);
 		expect(defaultVisibleCells('plugins', 'tree')).toEqual([
-			'checkbox',
 			'icon',
+			'format',
 			'text',
 			'state',
-			'format',
 			'config',
+			'checkbox',
 		]);
 	});
 
@@ -77,14 +77,13 @@ describe('shared explorer cell registry', () => {
 			cellsForExplorer('files', 'tree').map((definition) => definition.id),
 		).toEqual([
 			// U121-081: `files` was the only explorer without the selection
-			// checkbox, which is why fileScene never offered the option. It ranks
-			// first like everywhere else, and ships off by default.
-			'checkbox',
+			// checkbox, which is why fileScene never offered the option. It ships
+			// off by default and ranks last among view-menu cells.
 			'icon',
-			'name',
-			'path',
-			'ext',
 			'format',
+			'path',
+			'name',
+			'ext',
 			'mtime',
 			'ctime',
 			'opened',
@@ -93,33 +92,33 @@ describe('shared explorer cell registry', () => {
 			'tags',
 			'file-count',
 			'count',
+			'checkbox',
 			'nested',
 		]);
 		expect(
 			cellsForExplorer('files', 'table').map((definition) => definition.id),
 		).toEqual([
-			'checkbox',
 			'icon',
+			'format',
+			'path',
 			'name',
 			'count',
-			'format',
 			'words',
 			'tags',
 			'ext',
 			'mtime',
 			'ctime',
 			'opened',
-			'path',
+			'checkbox',
 			'nested',
 		]);
 		expect(
 			viewMenuCells('files', 'tree').map((definition) => definition.id),
 		).toEqual([
-			'checkbox',
 			'icon',
+			'format',
 			'name',
 			'ext',
-			'format',
 			'mtime',
 			'ctime',
 			'opened',
@@ -128,6 +127,7 @@ describe('shared explorer cell registry', () => {
 			'tags',
 			'file-count',
 			'count',
+			'checkbox',
 		]);
 	});
 

@@ -29,10 +29,10 @@ describe('Files word count cell source guards', () => {
 		expect(navbarFiltersSource).toContain('logicCellRegistry');
 		expect(cellIcon(words!, 'files', 'tree')).toBe('lucide-text');
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			// Orden dev 2026-09-15: format < path < name; words stays opt-in.
+			'format',
 			'name',
 			'ext',
-			// acee5d3c enables format by default; words itself stays opt-in.
-			'format',
 			'nested',
 		]);
 	});

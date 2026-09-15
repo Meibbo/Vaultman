@@ -29,7 +29,8 @@ describe('U121-003 select-mode checkbox cell', () => {
 	it('exposes a toggleable checkbox cell in the cell registry', () => {
 		expect(registrySource).toContain("id: 'checkbox'");
 		expect(registrySource).toContain("labelKey: 'viewmode.pill.checkbox'");
-		expect(registrySource).toContain('fixedRank: 1, defaultOn: true');
+		// Orden dev 2026-09-15: el checkbox cierra la lista del view_menu.
+		expect(registrySource).toContain('fixedRank: 999, defaultOn: true');
 	});
 
 	it('hides the checkbox when its cell is off or the edge is hidden', () => {

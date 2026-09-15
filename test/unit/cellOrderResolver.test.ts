@@ -84,6 +84,36 @@ describe('BT5-011 render order follows activation only when asked', () => {
 });
 
 describe('BT5-011 menus project the same order as the render', () => {
+	it('keeps Format before Path before Name and Checkbox last in every explorer view mode', () => {
+		// Given: every explorer/view mode with no active cells hiding Path.
+		const viewModes = ['tree', 'table', 'cards', 'grid', 'dnd'] as const;
+
+		for (const viewMode of viewModes) {
+			// When: the menu projects the canonical fixed order.
+			const orderedIds = cellMenuOrder('files', [], {
+				byActivation: false,
+				viewMode,
+			}).map(({ id }) => id);
+
+			// Then: the four shared cells keep the canonical relative order.
+			expect(
+				orderedIds.filter((id) =>
+					['format', 'path', 'name', 'checkbox'].includes(id),
+				),
+			).toEqual(['format', 'path', 'name', 'checkbox']);
+		}
+
+		for (const explorer of ['props', 'tags', 'snippets', 'plugins'] as const) {
+			for (const viewMode of viewModes) {
+				const orderedIds = cellMenuOrder(explorer, [], {
+					byActivation: false,
+					viewMode,
+				}).map(({ id }) => id);
+				expect(orderedIds.at(-1)).toBe('checkbox');
+			}
+		}
+	});
+
 	it('lists active cells first in render order, then inactive by fixed rank', () => {
 		const activated = ['words', 'icon'];
 		const menu = cellMenuOrder('files', activated, {

@@ -81,11 +81,11 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		supports: [
 			// U121-081: `files` was the only explorer left out, which is the whole
 			// reason fileScene never offered the option.
-			{ explorer: 'files', fixedRank: 1, defaultOn: false },
-			{ explorer: 'props', fixedRank: 1, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 1, defaultOn: true },
-			{ explorer: 'snippets', fixedRank: 1, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 1, defaultOn: true },
+			{ explorer: 'files', fixedRank: 999, defaultOn: false },
+			{ explorer: 'props', fixedRank: 999, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 999, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 999, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 999, defaultOn: true },
 		],
 	},
 	{
@@ -171,19 +171,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 25,
+				fixedRank: 17,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 80,
+				fixedRank: 17,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 25,
+				fixedRank: 17,
 				defaultOn: false,
 			},
 		],
@@ -244,13 +244,13 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.format',
 		icon: 'lucide-braces',
 		supports: [
-			{ explorer: 'props', fixedRank: 35, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 35, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 35, defaultOn: true },
-			{ explorer: 'snippets', fixedRank: 35, defaultOn: true },
-			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 35, defaultOn: true },
-			{ explorer: 'files', viewModes: ['table'], fixedRank: 35, defaultOn: true },
-			{ explorer: 'files', viewModes: FILE_CARD_MODES, fixedRank: 35, defaultOn: true },
+			{ explorer: 'props', fixedRank: 15, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 15, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 15, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 15, defaultOn: true },
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 15, defaultOn: true },
+			{ explorer: 'files', viewModes: ['table'], fixedRank: 15, defaultOn: true },
+			{ explorer: 'files', viewModes: FILE_CARD_MODES, fixedRank: 15, defaultOn: true },
 		],
 	},
 	{

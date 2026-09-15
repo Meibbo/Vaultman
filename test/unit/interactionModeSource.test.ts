@@ -34,19 +34,22 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		}
 	});
 
-	it('orders View as Layouts, In mode, Cells, then engines', () => {
+	it('orders View as In mode, Layouts, Cells, then Toolbar above engines', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const layouts = menu.indexOf("translate('viewmenu.layouts')");
 		const inMode = menu.indexOf("translate('viewmenu.interaction')");
 		const cells = menu.indexOf('cellMenuOrder(');
+		const toolbar = menu.indexOf("translate('viewmenu.toolbar')");
 		const engines = menu.indexOf(
 			'for (const option of minimalNativeViewModes)',
 		);
 
-		expect(layouts).toBeGreaterThan(-1);
-		expect(inMode).toBeGreaterThan(layouts);
-		expect(cells).toBeGreaterThan(inMode);
-		expect(engines).toBeGreaterThan(cells);
+		// Orden dev 2026-09-15: el submenú de interacción (input) primero.
+		expect(inMode).toBeGreaterThan(-1);
+		expect(layouts).toBeGreaterThan(inMode);
+		expect(cells).toBeGreaterThan(layouts);
+		expect(toolbar).toBeGreaterThan(cells);
+		expect(engines).toBeGreaterThan(toolbar);
 		expect(menu.indexOf('for (const layout of savedLayouts)')).toBeLessThan(
 			menu.indexOf("translate('viewmenu.save_layout')"),
 		);

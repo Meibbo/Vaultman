@@ -196,7 +196,9 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.propertyTypeService = new PropertyTypeService(this.app);
 		this.contextMenuService = new ContextMenuService(this);
-		this.statisticsCache = new StatisticsCacheService(this.app);
+		this.statisticsCache = new StatisticsCacheService(this.app, {
+			countFrontmatterWords: this.settings.countFrontmatterWords === true,
+		});
 		this.lastOpenedService = new LastOpenedService(this.app, this.manifest.id);
 
 		const sasi = createVaultmanSasi();

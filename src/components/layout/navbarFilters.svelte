@@ -1549,36 +1549,7 @@
 				)
 			: viewModesForDataSurface(activeTab);
 
-		// Saved layouts first; the creation action is deliberately last.
-		if (onSaveLayout) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.layouts'))
-					.setIcon('lucide-layout-template');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				if (savedLayouts.length > 0) {
-					for (const layout of savedLayouts) {
-						sub.addItem((s) =>
-							s
-								.setTitle(layout.name)
-								.setIcon('lucide-layout-template')
-								.onClick(() => loadLayout(layout)),
-						);
-					}
-					sub.addSeparator();
-				}
-				sub.addItem((s) =>
-					s
-						.setTitle(translate('viewmenu.save_layout'))
-						.setIcon('lucide-save')
-						.onClick(() => void promptSaveLayout()),
-				);
-			});
-		}
-
-		if (onSaveLayout) menu.addSeparator();
+		// Interaction first: the mode submenu (open/filter/add/input/select).
 		menu.addItem((item) => {
 			item
 				.setTitle(
@@ -1609,6 +1580,36 @@
 			}
 		});
 
+		// Saved layouts; the creation action is deliberately last.
+		if (onSaveLayout) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.layouts'))
+					.setIcon('lucide-layout-template');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				if (savedLayouts.length > 0) {
+					for (const layout of savedLayouts) {
+						sub.addItem((s) =>
+							s
+								.setTitle(layout.name)
+								.setIcon('lucide-layout-template')
+								.onClick(() => loadLayout(layout)),
+						);
+					}
+					sub.addSeparator();
+				}
+				sub.addItem((s) =>
+					s
+						.setTitle(translate('viewmenu.save_layout'))
+						.setIcon('lucide-save')
+						.onClick(() => void promptSaveLayout()),
+				);
+			});
+		}
+
 		menu.addSeparator();
 		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
@@ -1633,9 +1634,21 @@
 			});
 		}
 
-		// Orden (dev, 2026-09-13): un divider tras los cell presets, luego el
-		// submenu `engines`, y despues el toggle `Toolbar` -- en ese orden.
+		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
+		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
+		// El segundo divider reserva el sitio del control de dimensiones
+		// del stream proto_design.
 		menu.addSeparator();
+		if (onToggleToolbar) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(toolbarShown)
+					.onClick(() => onToggleToolbar?.());
+			});
+			menu.addSeparator();
+		}
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
 		// fixed-folders, sticky rows, compact folders). Those options are modes
@@ -1743,17 +1756,6 @@
 				});
 			}
 		});
-		// Toolbar toggle sits in the same section as engines, right after it,
-		// with NO divider between the two (spec 08 §2; orden dev 2026-09-13).
-		if (onToggleToolbar) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-		}
 		menu.showAtMouseEvent(event);
 	}
 
