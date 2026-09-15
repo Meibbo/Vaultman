@@ -194,26 +194,27 @@ describe('mobile CSS source guards', () => {
 				/^\.vaultman-content-input-icon\s*\{[\s\S]*?\n\}/m,
 			)?.[0] ?? '';
 		expect(iconRule).not.toBe('');
-		// Es un glifo dentro del input, no una superficie pintada.
-		expect(iconRule).toContain('position: absolute');
-		expect(iconRule).toContain('color: var(--text-faint)');
+		// A19: el glifo va EN FLUJO dentro del overlay del placeholder (que es
+		// quien lleva el color y la posicion); no es una superficie pintada ni
+		// un hueco absoluto sobre el input.
+		expect(iconRule).not.toContain('position: absolute');
+		expect(iconRule).toContain('display: flex');
 		expect(iconRule).not.toContain('background:');
 		expect(iconRule).not.toContain('border-top:');
 	});
 
 	it('hides the Content input glyph with its placeholder', () => {
-		// El glifo se comporta como parte del placeholder: visible con el input
-		// vacio, y fuera en cuanto hay texto para que lo escrito ocupe la linea
-		// desde el borde. El hueco lo decide UNA variable que leen el padding
-		// del input y el arranque del subrayado, para que no se desincronicen.
-		expect(stylesSource).toContain(
-			'.vaultman-content-search-container:has(.vaultman-content-input:not(:placeholder-shown))',
+		// A19 (sustituye a U121-069): el glifo y el texto del placeholder son
+		// UN overlay que se va con `:placeholder-shown`; el input conserva un
+		// solo padding, asi que el primer caracter no mueve nada, y el
+		// subrayado abarca la caja entera. La variable del hueco murio con el
+		// hueco. El contrato completo vive en contentSearchboxLayout.test.ts.
+		expect(stylesSource).toMatch(
+			/\.vaultman-content-search-container:has\(\.vaultman-content-input:not\(:placeholder-shown\)\)\s*\.vaultman-content-input-placeholder\s*\{\s*display:\s*none/,
 		);
+		expect(stylesSource).not.toContain('--vaultman-content-input-gutter');
 		expect(stylesSource).toContain(
-			'padding-inline-start: var(--vaultman-content-input-gutter)',
-		);
-		expect(stylesSource).toContain(
-			'inset-inline-start: var(--vaultman-content-input-gutter)',
+			'padding-inline-start: var(--vaultman-content-input-inset)',
 		);
 	});
 

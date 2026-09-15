@@ -83,6 +83,9 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 			_groupCreationMenuCtx: () => Pick<MenuCtx, 'createGroupWithSelected'>;
 		};
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as Harness;
+		// Field initialisers never ran (no constructor): give the projected
+		// tree its empty default so the A07b-2 fallback to `nodes` applies.
+		(panel as unknown as { _lastProjectedTree: unknown[] })._lastProjectedTree = [];
 		panel._groupIds = new Set();
 		panel.nodes = [
 			{ id: 'snippet:alpha', label: 'alpha', depth: 0, meta: { name: 'alpha', enabled: true } },

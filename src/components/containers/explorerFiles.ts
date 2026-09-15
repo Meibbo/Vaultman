@@ -3332,7 +3332,7 @@ export class FilesExplorerPanel extends Component {
 		if (!node?.meta.isFolder) return;
 		// La cabecera de grupo lleva meta de carpeta pero su icono lo gobierna
 		// `_prepareTreeNodeIcon`, no este refresco.
-		if (isGroupHeader(node.id, this._groupIds)) return;
+		if (isGroupHeader(id, this._groupIds)) return;
 		const defaultIcon = this.expandedIds.has(id)
 			? 'lucide-folder-open'
 			: 'lucide-folder';

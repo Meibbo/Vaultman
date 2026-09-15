@@ -295,13 +295,15 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain(
 			'this.treeView?.scrollRowUnderStickyStack(id)',
 		);
-		// Caret (onToggle) and body in open mode (onRowClick) must share the
-		// single owner: two inline copies drifted and collapsed differently.
+		// Caret (onToggle), body in open mode (onRowClick) and, since
+		// B-groupbody, the group-row body fallback (_activateGroupRow) must
+		// share the single owner: inline copies drifted and collapsed
+		// differently.
 		const calls =
 			explorerFilesSource.match(
 				/this\._toggleFolderWithStickyAnchor\(id\)/g,
 			) ?? [];
-		expect(calls).toHaveLength(2);
+		expect(calls).toHaveLength(3);
 	});
 
 	it('offers an option to keep sparse top-level folders collapsed', () => {
