@@ -1491,9 +1491,25 @@
 	}
 
 	function handleViewModeChange(mode: ExplorerViewMode) {
-		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
-		commitConfig(activeTab, { viewMode: mode });
-		applyViewMode(activeTab, mode);
+		setSceneEngine(activeTab, mode);
+	}
+
+	/**
+	 * U130: comando SASI — cambia el engine de una instancia de escena a una
+	 * de sus opciones disponibles. Es el mismo camino que el submenu `engines`
+	 * (commit por el port + aplicacion inmediata), pero con tab explicito en
+	 * vez del tab activo. Devuelve false si la opcion no es seleccionable en
+	 * esa superficie; true si queda aplicada o ya estaba activa.
+	 */
+	export function setSceneEngine(
+		tab: FiltersTab,
+		mode: ExplorerViewMode,
+	): boolean {
+		if (!isViewModeSelectableForDataSurface(tab, mode)) return false;
+		if ((configByTab[tab]?.viewMode ?? 'tree') === mode) return true;
+		commitConfig(tab, { viewMode: mode });
+		applyViewMode(tab, mode);
+		return true;
 	}
 
 	function handlePillsChange(cells: string[]) {

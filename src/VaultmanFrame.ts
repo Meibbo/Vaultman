@@ -15,6 +15,9 @@ import {
 	measureSceneSync,
 } from './logic/logicScenePerformance';
 import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
+import type { SceneEngineSurface } from './logic/logicSasiSceneActions';
+import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
+import type { ExplorerViewMode } from './types/typeUI';
 
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
@@ -30,6 +33,8 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	setShowToolbar?(value: boolean): void;
 	revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
 	isPropRevealActive?(): boolean;
+	setSceneEngine?(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean;
+	switchScene?(tab: StatisticsDataTab): boolean;
 };
 
 /**
@@ -217,6 +222,14 @@ export class VaultmanFrame extends ItemView {
 
 	revealCurrentFileProperty(request: FrontmatterPropertyRevealRequest): boolean {
 		return this.svelteApp?.revealCurrentFileProperty?.(request) ?? false;
+	}
+
+	setSceneEngine(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean {
+		return this.svelteApp?.setSceneEngine?.(surface, mode) ?? false;
+	}
+
+	switchScene(tab: StatisticsDataTab): boolean {
+		return this.svelteApp?.switchScene?.(tab) ?? false;
 	}
 
 	onResize(): void {

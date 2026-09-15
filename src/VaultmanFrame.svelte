@@ -33,6 +33,11 @@
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
+	import type { ExplorerViewMode } from './types/typeUI';
+	import {
+		SCENE_GOTO_TABS,
+		type SceneEngineSurface,
+	} from './logic/logicSasiSceneActions';
 	import type {
 		ScenePanelWidgetEnvelope,
 		ScenePanelWidgetPublication,
@@ -113,6 +118,36 @@
 
 	export function isPropRevealActive(): boolean {
 		return filtersPageRef?.isPropRevealActive?.() ?? false;
+	}
+
+	type PanelWidgetHostApi = {
+		setSceneEngine?: (
+			surface: SceneEngineSurface,
+			mode: ExplorerViewMode,
+		) => boolean;
+	};
+
+	let panelWidgetHostRef = $state<PanelWidgetHostApi | null>(null);
+
+	/**
+	 * U130: comando SASI — cambia el engine de una instancia de escena a una
+	 * de sus opciones disponibles. Sin host montado no hay instancia: false.
+	 */
+	export function setSceneEngine(
+		surface: SceneEngineSurface,
+		mode: ExplorerViewMode,
+	): boolean {
+		return panelWidgetHostRef?.setSceneEngine?.(surface, mode) ?? false;
+	}
+
+	/**
+	 * U130: comando SASI — lleva la instancia de escena activa a uno de los
+	 * tabs disponibles. Es el mismo camino que el menu de escenas.
+	 */
+	export function switchScene(tab: StatisticsDataTab): boolean {
+		if (!SCENE_GOTO_TABS.includes(tab)) return false;
+		navigateToDataTab(tab);
+		return true;
 	}
 
 	// ─── Page navigation ──────────────────────────────────────────────────────
@@ -1453,6 +1488,7 @@
 	use:bindViewRoot
 >
 	<NavbarPanelWidgetHost
+		bind:this={panelWidgetHostRef}
 		providerState={activePanelWidgetState}
 		{sceneConfigPort}
 		visible={panelWidgetVisible}

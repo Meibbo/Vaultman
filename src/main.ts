@@ -24,6 +24,8 @@
 //...----------—————————————(   IMPORTS   )————————————------------...\\
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
+import type { ExplorerViewMode } from './types/typeUI';
+import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
 import { PropertyIndexService } from './services/servicePropertyIndex';
 import { installCoreBookmarkBridge } from './services/serviceCoreBookmarks';
@@ -89,6 +91,16 @@ import {
 	HOVER_SURFACE_IDS,
 	hoverActionId,
 } from './logic/logicSasiHoverActions';
+import {
+	SCENE_ENGINE_SURFACES,
+	SCENE_GOTO_TABS,
+	sceneEngineActionId,
+	sceneEngineLabelKey,
+	sceneEngineModes,
+	sceneGotoActionId,
+	sceneGotoLabelKey,
+	type SceneEngineSurface,
+} from './logic/logicSasiSceneActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -410,6 +422,32 @@ export class VaultmanPlugin extends Plugin {
 				this.toggleHoverSurfaceNestedRibbon();
 			},
 		});
+		// U130: instancia de escena — un comando por engine seleccionable y
+		// uno por salto de escena. Se registran para que el inspector SASI los
+		// pueda publicar; nacen ocultos (sin setPublished) para no inundar el
+		// palette: el usuario publica los que use.
+		for (const surface of SCENE_ENGINE_SURFACES) {
+			for (const mode of sceneEngineModes(surface)) {
+				const id = sceneEngineActionId(surface, mode);
+				this.sasiCommandPublisher.register({
+					id,
+					name: translate(sceneEngineLabelKey(surface, mode)),
+					handler: () => {
+						void this.setSceneEngineCommand(surface, mode);
+					},
+				});
+			}
+		}
+		for (const tab of SCENE_GOTO_TABS) {
+			const id = sceneGotoActionId(tab);
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(sceneGotoLabelKey(tab)),
+				handler: () => {
+					void this.switchSceneCommand(tab);
+				},
+			});
+		}
 
 		this.sasiCommandPublisher.setPublished('apply-queue', true);
 		this.sasiCommandPublisher.setPublished('open', true);
@@ -507,6 +545,23 @@ export class VaultmanPlugin extends Plugin {
 	private async focusVaultmanExplorerSearch(): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		if (view) await view.focusActiveExplorerSearch();
+	}
+
+	/**
+	 * U130: comandos SASI de instancia de escena. Llegan al frame vivo por la
+	 * ruta idempotente BT5-067 (revela o abre, nunca cierra).
+	 */
+	private async setSceneEngineCommand(
+		surface: SceneEngineSurface,
+		mode: ExplorerViewMode,
+	): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.setSceneEngine(surface, mode);
+	}
+
+	private async switchSceneCommand(tab: StatisticsDataTab): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.switchScene(tab);
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

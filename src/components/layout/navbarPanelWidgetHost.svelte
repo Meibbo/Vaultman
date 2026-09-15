@@ -2,7 +2,9 @@
 	import NavbarFilters from './navbarFilters.svelte';
 	import { PANEL_WIDGET_HOST_ID } from '../../logic/logicPanelWidgetProjection';
 	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
+	import type { SceneEngineSurface } from '../../logic/logicSasiSceneActions';
 	import type { NavbarPanelWidgetState } from '../../types/typePanelWidget';
+	import type { ExplorerViewMode } from '../../types/typeUI';
 
 	let {
 		providerState,
@@ -19,6 +21,24 @@
 	} = $props();
 
 	const mountedState = $derived(providerState);
+
+	/**
+	 * U130: comando SASI — passthrough al `setSceneEngine` del navbar. Sin
+	 * host montado no hay instancia que cambiar: false.
+	 */
+	let navbarRef: {
+		setSceneEngine?: (
+			tab: SceneEngineSurface,
+			mode: ExplorerViewMode,
+		) => boolean;
+	} | null = $state(null);
+
+	export function setSceneEngine(
+		surface: SceneEngineSurface,
+		mode: ExplorerViewMode,
+	): boolean {
+		return navbarRef?.setSceneEngine?.(surface, mode) ?? false;
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -30,6 +50,6 @@
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}
-		<NavbarFilters {...mountedState} {sceneConfigPort} />
+		<NavbarFilters bind:this={navbarRef} {...mountedState} {sceneConfigPort} />
 	{/if}
 </div>
