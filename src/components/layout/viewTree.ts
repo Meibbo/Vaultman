@@ -76,6 +76,14 @@ export interface TreeViewOptions {
 	nodes: TreeNode[];
 	expandedIds: Set<string>;
 	onToggle: (id: string) => void;
+	/**
+	 * B-groupbody: activacion del CUERPO de un row de grupo. El motor decide
+	 * el CAMINO (un grupo nunca entra por `onRowClick`); la escena decide el
+	 * MODO dentro de este callback (open/select/filter viven en la escena).
+	 * Ausente: el cuerpo cae a `onToggle` (fallback open). El chevron siempre
+	 * entra por `onToggle` puro, como en una carpeta.
+	 */
+	onGroupActivate?: (id: string) => void;
 	onRecursiveExpand?: (id: string) => void;
 	onRowClick: (id: string, event?: MouseEvent) => void;
 	onRowDoubleClick?: (id: string, event: MouseEvent) => void;
@@ -1139,6 +1147,17 @@ export class UnifiedTreeView {
 		this._pendingScroll = null;
 	}
 
+	/**
+	 * B-groupbody: el cuerpo del row de grupo responde como una carpeta, EN
+	 * EL MOTOR. La capa sticky reutiliza `_renderRow`, asi que la copia
+	 * fijada pasa por este mismo camino sin codigo propio. Sin `if (tab)`:
+	 * el motor no conoce tabs ni modos; solo el camino.
+	 */
+	private _activateGroupRow(node: TreeNode, opts: TreeViewOptions): void {
+		if (opts.onGroupActivate) opts.onGroupActivate(node.id);
+		else opts.onToggle(node.id);
+	}
+
 	private _renderRow(
 		node: TreeNode,
 		parent: HTMLElement,
@@ -1234,12 +1253,20 @@ export class UnifiedTreeView {
 				event.stopPropagation();
 				return;
 			}
+			if (node.isGroupHeader === true) {
+				this._activateGroupRow(node, opts);
+				return;
+			}
 			opts.onRowClick(node.id, event);
 		};
 		row.onkeydown = (event) => {
 			if (event.target !== row) return;
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
+			if (node.isGroupHeader === true) {
+				this._activateGroupRow(node, opts);
+				return;
+			}
 			opts.onRowClick(node.id, event as unknown as MouseEvent);
 		};
 		row.ondblclick = opts.onRowDoubleClick

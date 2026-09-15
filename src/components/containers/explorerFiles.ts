@@ -40,11 +40,13 @@ import {
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import {
-	isGroupHeader,
+	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
 	expandNewGroupHeaders,
+	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	NO_GROUP_PRESET,
@@ -2666,18 +2668,29 @@ export class FilesExplorerPanel extends Component {
 				onToggle: (id: string) => {
 					this._toggleFolderWithStickyAnchor(id);
 				},
-			onRecursiveExpand: (id: string) =>
-				resolveRecursiveInteractionAction(this.interactionMode) ===
-				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(renderTree)),
-			onRowDoubleClick: (id: string) =>
-				resolveRecursiveInteractionAction(this.interactionMode) ===
-				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(renderTree)),
+				// B-groupbody: el cuerpo del row de grupo entra por el motor.
+				// El chevron queda en `onToggle` puro; el cuerpo (con modo)
+				// en `_activateGroupRow`.
+				onGroupActivate: (id: string) => {
+					this._activateGroupRow(id);
+				},
+				onRecursiveExpand: (id: string) =>
+					resolveRecursiveInteractionAction(this.interactionMode) ===
+					'select-descendants'
+						? this._toggleDescendantSelection(id)
+						: this._expandSubtree(id, this.projectedNodes(renderTree)),
+				onRowDoubleClick: (id: string) =>
+					resolveRecursiveInteractionAction(this.interactionMode) ===
+					'select-descendants'
+						? this._toggleDescendantSelection(id)
+						: this._expandSubtree(id, this.projectedNodes(renderTree)),
 				onRowClick: (id: string, event?: MouseEvent) => {
-					if (isGroupHeader(id, this._groupIds)) return;
+					if (isGroupHeader(id, this._groupIds)) {
+						// B-groupbody: el motor ya no trae el cuerpo por aqui
+						// (va a `onGroupActivate`); el auxclick si. Mismo camino.
+						this._activateGroupRow(id);
+						return;
+					}
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -2736,7 +2749,12 @@ export class FilesExplorerPanel extends Component {
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
-					if (isGroupHeader(id, this._groupIds)) return;
+					if (isGroupHeader(id, this._groupIds)) {
+						// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
+						// de grupo en logicGroupContextMenu no hay menu que
+						// abrir; no caer al menu de folder '' (ver informe).
+						return;
+					}
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
@@ -3176,6 +3194,38 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	/**
+	 * B-groupbody: accion del CUERPO del row de grupo segun el modo, gemela
+	 * de la rama de carpeta de `onRowClick` pero sobre los MIEMBROS:
+	 * - `select`: conmuta la seleccion de todos los descendientes (ids de
+	 *   entidad, sin el sufijo `@grupo` de las filas multi-grupo), nunca el
+	 *   id del grupo, que no es un path y no significa nada en la seleccion.
+	 * - `filter`/`add`/`open`: colapsa/expande. Un grupo no puede ser
+	 *   criterio de filtro (`serviceFilter.getFilterState` solo acepta
+	 *   folder/tag/prop/value), asi que el fallback es open, nunca el veto.
+	 */
+	private _activateGroupRow(id: string): void {
+		if (this.interactionMode === 'select') {
+			const node = this._findNode(
+				id,
+				this.projectedNodes(this._lastRenderTree),
+			);
+			if (!node?.children?.length) return;
+			const members = collectGroupMemberIds(node.children);
+			if (members.length === 0) return;
+			const { next, anySelected } = toggleGroupMembers(
+				this.selectedFilePaths,
+				members,
+			);
+			this._applyFileSelection({
+				selectedPaths: next,
+				anchorPath: anySelected ? this.selectionAnchorPath : id,
+			});
+			return;
+		}
+		this._toggleFolderWithStickyAnchor(id);
+	}
+
+	/**
 	 * Shared folder collapse/expand path for the caret (onToggle) and the row
 	 * body in open mode (onRowClick). Both must anchor a collapsed pinned row
 	 * under the sticky stack (U121-080 jump): two inline copies drifted and the
@@ -3271,13 +3321,18 @@ export class FilesExplorerPanel extends Component {
 		};
 		this.treeView.render({
 			...this._treeRenderOpts,
-			nodes: this.projectedNodes(this._treeRenderOpts.nodes as TreeNode<FileMeta>[]),
+			nodes: this.projectedNodes(
+				this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
+			),
 		});
 	}
 
 	private _refreshFolderIcon(id: string): void {
 		const node = this.bubbleIndex?.nodesById.get(id);
-		if (!node?.meta.isFolder || isGroupHeader(id, this._groupIds)) return;
+		if (!node?.meta.isFolder) return;
+		// La cabecera de grupo lleva meta de carpeta pero su icono lo gobierna
+		// `_prepareTreeNodeIcon`, no este refresco.
+		if (isGroupHeader(node.id, this._groupIds)) return;
 		const defaultIcon = this.expandedIds.has(id)
 			? 'lucide-folder-open'
 			: 'lucide-folder';

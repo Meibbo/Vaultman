@@ -110,11 +110,13 @@ import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
-	isGroupHeader,
+	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
 	expandNewGroupHeaders,
+	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	NO_GROUP_PRESET,
@@ -2387,24 +2389,25 @@ export class PropsExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					void this._render();
 				},
-			onRecursiveExpand: (id: string) =>
-				resolveRecursiveInteractionAction(this.interactionMode) ===
-				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, nodesWithIcons),
-			onRowDoubleClick: (id: string) =>
-				resolveRecursiveInteractionAction(this.interactionMode) ===
-				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, nodesWithIcons),
+				onRecursiveExpand: (id: string) =>
+					resolveRecursiveInteractionAction(this.interactionMode) ===
+					'select-descendants'
+						? this._toggleDescendantSelection(id)
+						: this._expandSubtree(id, nodesWithIcons),
+				onRowDoubleClick: (id: string) =>
+					resolveRecursiveInteractionAction(this.interactionMode) ===
+					'select-descendants'
+						? this._toggleDescendantSelection(id)
+						: this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
-					if (isGroupHeader(id, this._groupIds)) return;
+					// B-groupbody: la tabla no proyecta cabeceras; este veto era
+					// codigo muerto. Fuera.
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
-					if (isGroupHeader(id, this._groupIds)) return;
+					// B-groupbody: idem (la tabla no proyecta cabeceras).
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					this._openNodeMenu(node, event);
@@ -2721,30 +2724,45 @@ export class PropsExplorerPanel extends Component {
 				this._toggleExpanded(id);
 				void this._render();
 			},
-		onRecursiveExpand: (id: string) =>
-			resolveRecursiveInteractionAction(this.interactionMode) ===
-			'select-descendants'
-				? this._toggleDescendantSelection(id)
-				: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-		onRowDoubleClick: (id: string) =>
-			resolveRecursiveInteractionAction(this.interactionMode) ===
-			'select-descendants'
-				? this._toggleDescendantSelection(id)
-				: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-		onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
+			// B-groupbody: el cuerpo del row de grupo entra por el motor; el
+			// chevron queda en `onToggle` puro.
+			onGroupActivate: (id: string) => {
+				this._activateGroupRow(id);
+			},
+			onRecursiveExpand: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+			onRowDoubleClick: (id: string) =>
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id)
+					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 			onRowClick: (id: string, event) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {
 					this._startAddPropertyInReveal();
 					return;
 				}
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// B-groupbody: el motor ya no trae el cuerpo por aqui
+					// (va a `onGroupActivate`); el auxclick si. Mismo camino.
+					this._activateGroupRow(id);
+					return;
+				}
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
+					// de grupo en logicGroupContextMenu no hay menu que
+					// abrir; no caer al menu del item (ver informe).
+					return;
+				}
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._openNodeMenu(node, e);
@@ -3468,7 +3486,35 @@ export class PropsExplorerPanel extends Component {
 	private _toggleDescendantSelection(id: string): void {
 		const node = this._findNode(id, this._lastRenderTree);
 		if (!node?.children?.length) return;
-		this.selectedNodeIds = toggleDescendantSelection(node, this.selectedNodeIds);
+		this.selectedNodeIds = toggleDescendantSelection(
+			node,
+			this.selectedNodeIds,
+		);
+		void this._render();
+	}
+
+	/**
+	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
+	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
+	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
+	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value):
+	 * fallback a open, nunca el veto.
+	 */
+	private _activateGroupRow(id: string): void {
+		if (this.interactionMode === 'select') {
+			const node = this._findNode(
+				id,
+				this.projectedNodes(this._lastRenderTree),
+			);
+			if (!node?.children?.length) return;
+			const members = collectGroupMemberIds(node.children);
+			if (members.length === 0) return;
+			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
+			this.selectedNodeIds = next;
+			void this._render();
+			return;
+		}
+		this._toggleExpanded(id);
 		void this._render();
 	}
 

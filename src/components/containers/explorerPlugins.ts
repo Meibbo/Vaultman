@@ -54,11 +54,13 @@ import {
 import { formatMembershipUrn } from '../../logic/logicMembershipUrn';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
-	isGroupHeader,
+	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
 	expandNewGroupHeaders,
+	isGroupHeader,
 	projectGroupedTree,
 	resolveCustomGroups,
+	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	NO_GROUP_PRESET,
@@ -633,13 +635,20 @@ export class PluginsExplorerPanel
 					}
 				: {}),
 			onToggle: (id: string) => {
-				if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
-				else this._expandedGroupIds.add(id);
-				this.onExpansionChange?.();
-				this.render();
+				this._toggleExpandedGroup(id);
+			},
+			// B-groupbody: el cuerpo del row de grupo entra por el motor; el
+			// chevron queda en `onToggle` puro.
+			onGroupActivate: (id: string) => {
+				this._activateGroupRow(id);
 			},
 			onRowClick: (id) => {
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// B-groupbody: el motor ya no trae el cuerpo por aqui
+					// (va a `onGroupActivate`); el auxclick si. Mismo camino.
+					this._activateGroupRow(id);
+					return;
+				}
 				if (this.interactionMode !== 'select') return;
 				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
 				else this.selectedNodeIds.add(id);
@@ -665,7 +674,12 @@ export class PluginsExplorerPanel
 				if (node) setTooltip(row, this.tooltip(node.meta));
 			},
 			onContextMenu: (id, event) => {
-				if (isGroupHeader(id, this._groupIds)) return;
+				if (isGroupHeader(id, this._groupIds)) {
+					// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
+					// de grupo en logicGroupContextMenu no hay menu que
+					// abrir; no caer al menu del item (ver informe).
+					return;
+				}
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},
@@ -682,6 +696,38 @@ export class PluginsExplorerPanel
 	private findNode(id: string): TreeNode<PluginMeta> | undefined {
 		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		return this.nodes.find((node) => node.id === baseId || node.id === id);
+	}
+
+	/** B-groupbody: el chevron y el fallback open del cuerpo. Puro toggle. */
+	private _toggleExpandedGroup(id: string): void {
+		if (this._expandedGroupIds.has(id)) this._expandedGroupIds.delete(id);
+		else this._expandedGroupIds.add(id);
+		this.onExpansionChange?.();
+		this.render();
+	}
+
+	/**
+	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
+	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`
+	 * de las filas multi-grupo), nunca el id del grupo; en el resto
+	 * colapsa/expande como una carpeta.
+	 */
+	private _activateGroupRow(id: string): void {
+		if (this.interactionMode === 'select') {
+			const tree =
+				this._lastProjectedTree.length > 0
+					? this._lastProjectedTree
+					: this.nodes;
+			const header = findProjectedNode(tree, id);
+			if (!header?.children?.length) return;
+			const members = collectGroupMemberIds(header.children);
+			if (members.length === 0) return;
+			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
+			this.selectedNodeIds = next;
+			this.render();
+			return;
+		}
+		this._toggleExpandedGroup(id);
 	}
 
 	private tooltip(meta: PluginMeta): string {
@@ -838,4 +884,22 @@ export class PluginsExplorerPanel
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
 		}
 	}
+}
+
+/**
+ * B-groupbody: busca una cabecera en el arbol PROYECTADO (el base `nodes` no
+ * trae cabeceras).
+ */
+function findProjectedNode(
+	rows: readonly TreeNode<PluginMeta>[],
+	id: string,
+): TreeNode<PluginMeta> | undefined {
+	for (const row of rows) {
+		if (row.id === id) return row;
+		const found = row.children?.length
+			? findProjectedNode(row.children, id)
+			: undefined;
+		if (found) return found;
+	}
+	return undefined;
 }

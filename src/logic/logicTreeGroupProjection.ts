@@ -139,6 +139,10 @@ function headerNode<TMeta>(
 		id,
 		label,
 		depth: 0,
+		// B-groupbody: el motor reconoce a la cabecera por esta marca, sin
+		// `_groupIds`. `reparent`/`shiftDepth` la conservan por spread en los
+		// miembros que no la llevan; `withGroupToggleCells` tambien.
+		isGroupHeader: true,
 		// `viewTree.ts:1161` aplica `cls` como clases extra de la fila, y el
 		// colapso ya lo gobierna `expandedIds`. Una cabecera no necesita un
 		// renderizador nuevo: necesita ser un TreeNode bien formado.
@@ -203,6 +207,56 @@ function shiftDepth<TMeta>(
 		depth: child.depth + shift,
 		children: shiftDepth(child.children, shift),
 	}));
+}
+
+/**
+ * B-groupbody: the entity id behind a projected row id. Multi-group rows are
+ * suffixed `id@groupId` by `reparent`; single occurrences keep the raw id.
+ */
+export function groupMemberEntityId(rowId: string): string {
+	const at = rowId.lastIndexOf('@');
+	return at < 0 ? rowId : rowId.slice(0, at);
+}
+
+/**
+ * B-groupbody: entity ids of every descendant of a group header, deduped, so
+ * a scene in `select` mode can toggle the MEMBERS instead of the header id
+ * (which is not a path and means nothing to the selection).
+ */
+export function collectGroupMemberIds<TMeta>(
+	children: readonly TreeNode<TMeta>[] | undefined,
+): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const walk = (rows: readonly TreeNode<TMeta>[] | undefined): void => {
+		for (const row of rows ?? []) {
+			const entityId = groupMemberEntityId(row.id);
+			if (!seen.has(entityId)) {
+				seen.add(entityId);
+				out.push(entityId);
+			}
+			walk(row.children);
+		}
+	};
+	walk(children);
+	return out;
+}
+
+/**
+ * B-groupbody: toggle a member block as one unit. Any member selected → the
+ * whole block is dropped; none selected → the whole block is added.
+ */
+export function toggleGroupMembers(
+	selected: ReadonlySet<string>,
+	members: readonly string[],
+): { next: Set<string>; anySelected: boolean } {
+	const next = new Set(selected);
+	const anySelected = members.some((memberId) => next.has(memberId));
+	for (const memberId of members) {
+		if (anySelected) next.delete(memberId);
+		else next.add(memberId);
+	}
+	return { next, anySelected };
 }
 
 /**

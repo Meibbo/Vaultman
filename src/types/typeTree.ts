@@ -98,6 +98,13 @@ export interface TreeNode<TMeta = unknown> {
 	folderColor?: string;
 	count?: number;
 	/**
+	 * B-groupbody: marca puesta SOLO por `headerNode` de
+	 * `logicTreeGroupProjection`. El motor (`UnifiedTreeView`) reconoce por
+	 * ella a la cabecera sin conocer `_groupIds`; las scenes ya no vetan por
+	 * id. Ausente en cualquier otro nodo.
+	 */
+	isGroupHeader?: boolean;
+	/**
 	 * U121-003: set only by the flat projections. Flattening rewrites `label` to
 	 * carry the ancestry (`lugar: cocina`, `parent/child`), which made every
 	 * label comparison an ancestry comparison — a Name sort that silently
