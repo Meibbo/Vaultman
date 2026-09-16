@@ -5163,6 +5163,15 @@ export class FilesExplorerPanel extends Component {
 					);
 				}
 			}
+			const firstCreatedPath = report.succeeded[0]?.createdPath;
+			if (firstCreatedPath && this.viewMode === 'tree') {
+				// A12: fileScene follows the native explorer flow: reveal the
+				// first created file and focus its inline rename input. The
+				// remaining destinations stay created without opening N leaves.
+				this._editingId = firstCreatedPath;
+				this._render();
+				this.treeView?.scrollToId(firstCreatedPath, 'nearest');
+			}
 		}
 		this._reportMultiCreate(actionId, report, 'files');
 		return report;

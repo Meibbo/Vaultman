@@ -399,6 +399,7 @@ describe('U130 A12 folder.new_* source wiring', () => {
 			expect(explorerFilesSource).toContain(`id: '${actionId}'`);
 		}
 		expect(explorerFilesSource).toContain('this._resolveFolderTargets(ctx)');
+		expect(explorerFilesSource).toContain('this._editingId = firstCreatedPath');
 		expect(explorerFilesSource).toContain('this._createFilesInFolders(');
 		expect(explorerFilesSource).toContain('this._createFoldersInFolders(');
 		expect(explorerFilesSource).toContain("'Untitled.md'");
