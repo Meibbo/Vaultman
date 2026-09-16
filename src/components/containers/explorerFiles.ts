@@ -446,9 +446,14 @@ export class FilesExplorerPanel extends Component {
 			when: () => this.plugin.iconicService?.canChangeFileIcon() === true,
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
-				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
-				for (const file of targets) {
-					this.plugin.iconicService?.openFileIconPicker(file.path, ctx.event);
+				const targetPaths =
+					ctx.nodeType === 'folder'
+						? this._resolveFolderTargets(ctx).map((folder) => folder.path)
+						: (this._resolveSelectionTargets(ctx, true) as TFile[]).map(
+								(file) => file.path,
+							);
+				for (const path of targetPaths) {
+					this.plugin.iconicService?.openFileIconPicker(path, ctx.event);
 				}
 			},
 		});

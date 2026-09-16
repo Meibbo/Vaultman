@@ -12,15 +12,18 @@ describe('Iconic Props/Tags context-menu parity source guards', () => {
 		expect(propsSource).toContain('ctx.event,');
 		expect(tagsSource).toContain("id: 'tag.iconic-change'");
 		expect(tagsSource).toContain('canChangeTagIcon()');
-		expect(tagsSource).toContain('openTagIconPicker(meta.tagPath, ctx.event)');
+		expect(tagsSource).toContain('this._resolveSelectionTargets(ctx)');
+		expect(tagsSource).toContain('openTagIconPicker(node.meta.tagPath, ctx.event)');
 	});
 
 	it('keeps the Vaultman fallback available for file and folder nodes', () => {
 		expect(filesSource).toContain("nodeTypes: ['file', 'folder']");
 		expect(filesSource).toContain('canChangeFileIcon()');
 		expect(filesSource).toContain(
-			'meta.file?.path ?? meta.folder?.path ?? meta.folderPath',
+			'this._resolveSelectionTargets(ctx, true)',
 		);
+		expect(filesSource).toContain('this._resolveFolderTargets(ctx)');
+		expect(filesSource).toContain('openFileIconPicker(path, ctx.event)');
 	});
 
 	it('subscribes both panels to Iconic runtime changes with cleanup and coalescing (BT4-002)', () => {
