@@ -27,6 +27,7 @@
 	} from '../../types/typeUI';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
+	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -780,6 +781,10 @@
 	);
 	const panelWidgetNodeId = (localId: string): string =>
 		`${providerId}:${localId}`;
+	// U130 change-icon: override per-instance del icono de un nodo (alt-cmenu
+	// "Change icon"). Ausencia de clave = icono de serie.
+	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
+		configByTab[activeTab]?.toolbarNodeIcons?.[localId] ?? fallback;
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
 		const nodes: PanelWidgetNode[] = [];
 		const append = (
@@ -797,7 +802,7 @@
 				cellKind: 'action',
 				presentation,
 				label,
-				icon: iconName,
+				icon: panelWidgetNodeIcon(localId, iconName),
 				order: order ?? nodes.length,
 				available,
 				condensable,
@@ -815,7 +820,7 @@
 				cellKind: 'action',
 				presentation: 'button',
 				label: action.label,
-				icon: action.icon,
+				icon: panelWidgetNodeIcon(`header:${action.id}`, action.icon),
 				order: action.order ?? 0,
 				available: !action.disabled,
 				checked: action.checked,
@@ -1868,6 +1873,33 @@
 			menu.addSeparator();
 		}
 		addToolbarNodeVisibilityItem(menu, localId);
+		const nodeDef = panelWidgetNodes.find(
+			(node) => node.id === panelWidgetNodeId(localId),
+		);
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.alt.change_icon'))
+				.setIcon('lucide-palette')
+				.onClick(() => {
+					if (!app) return;
+					const icons = configByTab[activeTab]?.toolbarNodeIcons ?? {};
+					openAddonIconPicker({
+						app,
+						name: nodeDef?.label ?? localId,
+						hasOverride: icons[localId] !== undefined,
+						onPick: (icon) => {
+							commitConfig(activeTab, {
+								toolbarNodeIcons: { ...icons, [localId]: icon },
+							});
+						},
+						onReset: () => {
+							const next = { ...icons };
+							delete next[localId];
+							commitConfig(activeTab, { toolbarNodeIcons: next });
+						},
+					});
+				});
+		});
 		menu.showAtMouseEvent(event);
 	}
 

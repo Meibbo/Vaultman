@@ -39,6 +39,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		sceneLabelMode: input.defaults.sceneLabelMode,
 		autoRevealMode: input.defaults.autoRevealMode,
 		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
+		toolbarNodeIcons: { ...input.defaults.toolbarNodeIcons },
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -60,6 +61,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 			out.autoRevealMode = layer.autoRevealMode;
 		if (layer.hiddenToolbarNodes !== undefined) {
 			out.hiddenToolbarNodes = cloneCells(layer.hiddenToolbarNodes);
+		}
+		if (layer.toolbarNodeIcons !== undefined) {
+			out.toolbarNodeIcons = { ...layer.toolbarNodeIcons };
 		}
 	}
 	return out;
@@ -115,6 +119,12 @@ export function diffSceneConfig(
 		)
 	) {
 		patch.hiddenToolbarNodes = cloneCells(next.hiddenToolbarNodes);
+	}
+	if (
+		JSON.stringify(next.toolbarNodeIcons) !==
+		JSON.stringify(baseline.toolbarNodeIcons)
+	) {
+		patch.toolbarNodeIcons = { ...next.toolbarNodeIcons };
 	}
 	return patch;
 }

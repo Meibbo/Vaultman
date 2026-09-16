@@ -19,6 +19,7 @@ const defaults: Required<SceneConfig> = {
 	sceneLabelMode: 'auto',
 	autoRevealMode: 'auto',
 	hiddenToolbarNodes: [],
+	toolbarNodeIcons: {},
 };
 
 describe('resolveSceneConfig', () => {

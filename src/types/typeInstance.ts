@@ -53,6 +53,12 @@ export interface SceneConfig {
 	 * los ignora igual que a los ocultos por el usuario.
 	 */
 	hiddenToolbarNodes?: string[];
+	/**
+	 * U130 toolbar alt-cmenu "change icon": overrides per-instance del icono
+	 * de nodos (ids LOCALES → id de icono lucide). La ausencia de clave es el
+	 * icono de serie del nodo.
+	 */
+	toolbarNodeIcons?: Record<string, string>;
 }
 
 export interface WorkspaceInstanceRecord {

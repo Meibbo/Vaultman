@@ -80,12 +80,20 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(explorerFilesSource).toContain('autoRevealOverride');
 	});
 
+	it('los nodos ofrecen change icon con picker y reset per-instance', () => {
+		expect(navbarSource).toContain("translate('toolbar.alt.change_icon')");
+		expect(navbarSource).toContain('openAddonIconPicker(');
+		expect(navbarSource).toContain('toolbarNodeIcons');
+		expect(typeInstanceSource).toContain('toolbarNodeIcons?: Record<string, string>');
+	});
+
 	it('las cadenas del alt-cmenu existen en en.ts y en es.ts', () => {
 		for (const key of [
 			'toolbar.alt.scene_label',
 			'toolbar.alt.show_in_toolbar',
 			'toolbar.alt.reveal_now',
 			'toolbar.alt.always_reveal',
+			'toolbar.alt.change_icon',
 		]) {
 			expect(en[key], `en: ${key}`).toBeTruthy();
 			expect(es[key], `es: ${key}`).toBeTruthy();

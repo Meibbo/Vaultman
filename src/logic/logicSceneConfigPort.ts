@@ -94,6 +94,7 @@ export async function applyLayoutToPort(
 			sceneLabelMode: current.sceneLabelMode,
 			autoRevealMode: current.autoRevealMode,
 			hiddenToolbarNodes: current.hiddenToolbarNodes,
+			toolbarNodeIcons: current.toolbarNodeIcons,
 		};
 	}
 	if (port.proposeScenes) {

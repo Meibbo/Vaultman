@@ -568,6 +568,10 @@ export const en: Record<string, string> = {
 	'toolbar.alt.show_in_toolbar': 'Show in toolbar',
 	'toolbar.alt.reveal_now': 'Reveal now',
 	'toolbar.alt.always_reveal': 'Always reveal here',
+	'toolbar.alt.change_icon': 'Change icon',
+	'settings.tree_indent_unit': 'Tree indent step',
+	'settings.tree_indent_unit.desc':
+		'Indentation per tree level in pixels. Applies live to every explorer tree.',
 	'viewmenu.layouts': 'Layout',
 	'viewmenu.save_layout': 'Save layout',
 	'viewmenu.saved_config_notice': 'View composition saved',

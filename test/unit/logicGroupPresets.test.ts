@@ -250,6 +250,7 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		sceneLabelMode: 'auto',
 		autoRevealMode: 'auto',
 		hiddenToolbarNodes: [],
+		toolbarNodeIcons: {},
 	};
 
 	it('defaults to `none` and lets the scene layer override it', () => {

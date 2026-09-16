@@ -574,6 +574,10 @@ export const es: Record<string, string> = {
 	'toolbar.alt.show_in_toolbar': 'Mostrar en el toolbar',
 	'toolbar.alt.reveal_now': 'Revelar ahora',
 	'toolbar.alt.always_reveal': 'Revelar siempre aquí',
+	'toolbar.alt.change_icon': 'Cambiar icono',
+	'settings.tree_indent_unit': 'Paso de sangría del árbol',
+	'settings.tree_indent_unit.desc':
+		'Sangría por nivel del árbol en píxeles. Se aplica en vivo a todos los explorers.',
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',

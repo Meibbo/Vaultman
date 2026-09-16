@@ -374,6 +374,7 @@
 			sceneLabelMode: 'auto',
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
+			toolbarNodeIcons: {},
 		}),
 	});
 

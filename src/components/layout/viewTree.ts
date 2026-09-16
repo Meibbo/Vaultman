@@ -1228,13 +1228,13 @@ export class UnifiedTreeView {
 		// doesn't — collapses to the flat 4px gutter. A p-node keeps the real
 		// formula unconditionally, at any depth, so its caret still marks the
 		// level it actually sits at.
-		// view_option `indent` off: only a row with no caret gets the flat
-		// 4px gutter (a class, not inline styles, so rows stay themeable).
-		// A p-node keeps the real formula unconditionally, at any depth.
-		row.toggleClass(
-			'vaultman-tree-row--flat-indent',
-			opts.indent === false && !showCaret,
-		);
+		if (opts.indent === false && !showCaret) {
+			row.style.setProperty('--vaultman-tree-row-padding-start', 'var(--size-4-1)');
+			row.style.setProperty('--vaultman-tree-indent-unit', '0px');
+		} else {
+			row.style.removeProperty('--vaultman-tree-row-padding-start');
+			row.style.removeProperty('--vaultman-tree-indent-unit');
+		}
 		if (node.folderColor) {
 			row.style.setProperty('--folder-color', node.folderColor);
 		} else {
