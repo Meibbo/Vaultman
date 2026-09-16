@@ -2627,6 +2627,7 @@
 			configByTab[activeTab].groupPreset,
 			customGroupsForMenu(activeTab),
 			canCreateGroup(),
+			revealActive,
 		);
 		const groupChildren: NativeMenuNode[] = [];
 		for (const entry of groupModel.items) {

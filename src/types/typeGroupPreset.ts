@@ -16,7 +16,8 @@ export type GroupPresetKind =
 	| 'modified'
 	| 'opened'
 	| 'created'
-	| 'custom';
+	| 'custom'
+	| 'note';
 
 export interface GroupPreset {
 	kind: GroupPresetKind;
@@ -70,22 +71,32 @@ export const GROUP_PRESETS_BY_TAB: Record<
 	plugins: ['none', 'letter', 'name', 'modified', 'created', 'custom'],
 };
 
+export const ALL_GROUP_PRESET_KINDS: readonly GroupPresetKind[] = [
+	...GROUP_PRESETS_BY_TAB.files,
+	'note',
+];
+
 export function isGroupPresetKind(value: unknown): value is GroupPresetKind {
 	return (
 		typeof value === 'string' &&
-		(GROUP_PRESETS_BY_TAB.files as readonly string[]).includes(value)
+		(ALL_GROUP_PRESET_KINDS as readonly string[]).includes(value)
 	);
 }
 
 export function normalizeGroupPreset(
 	tab: ExplorerTabId,
 	value: unknown,
+	revealActive = false,
 ): GroupPreset {
 	if (typeof value !== 'object' || value === null)
 		return { ...NO_GROUP_PRESET };
 	const raw = value as { kind?: unknown; direction?: unknown };
+	const noteAllowed =
+		(tab === 'props' || tab === 'tags') && (revealActive || raw.kind === 'note');
 	const kind =
-		isGroupPresetKind(raw.kind) && GROUP_PRESETS_BY_TAB[tab].includes(raw.kind)
+		isGroupPresetKind(raw.kind) &&
+		(GROUP_PRESETS_BY_TAB[tab].includes(raw.kind) ||
+			(noteAllowed && raw.kind === 'note'))
 			? raw.kind
 			: 'none';
 	const direction: ExplorerSortDirection =

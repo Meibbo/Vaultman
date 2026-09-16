@@ -117,6 +117,11 @@ import {
 	sameGroupPreset,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	parseFrontmatterNoteGroups,
+	scopeToNoteGroupTarget,
+	updateNoteGroupMembersOnRename,
+} from '../../logic/logicNoteGroups';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import {
 	activeScopeSort,
@@ -454,6 +459,47 @@ export class TagsExplorerPanel extends Component {
 	private projectedNodes(
 		nodes: readonly TreeNode<TagMeta>[],
 	): TreeNode<TagMeta>[] {
+		if (this.groupPreset.kind === 'note') {
+			if (!this.isRevealingActiveFile()) return nodes as TreeNode<TagMeta>[];
+			const cache = this._revealCache();
+			const frontmatter = (cache?.frontmatter ?? {}) as Record<string, unknown>;
+			const activeScope = this.sortState?.activeScope ?? 'all';
+			const target = scopeToNoteGroupTarget(activeScope) ?? { kind: 'level', level: 1 };
+			const noteRes = parseFrontmatterNoteGroups(frontmatter, 'tag', target);
+			if (noteRes.collisions.length > 0) {
+				new Notice(
+					`Note group collision: key "${noteRes.collisions[0].key}" exists with non-list value.`,
+				);
+			}
+			const groups = noteRes.groups.filter(
+				(group) => !this.hiddenGroupIds.has(group.id),
+			);
+			this._groupIds.clear();
+			for (const group of groups) this._groupIds.add(group.id);
+			const currentSort = activeScopeSort('tags', this.sortState);
+			const sortByNote = currentSort.sortBy === 'note';
+			const projected = projectGroupedTree<TagMeta>({
+				nodes,
+				groups,
+				memberships: noteRes.memberships,
+				providerId: 'tags',
+				noGroupLabel: translate('explorer.group.no_group'),
+				filtered: this.sortState?.filtered === true,
+				enabled: true,
+				preset: this.groupPreset,
+				sortByNote,
+				memberKeyOf: (node) => {
+					const p = node.meta?.tagPath ?? node.label;
+					return p.startsWith('#') ? p.slice(1) : p;
+				},
+				expandedIds: this.expandedIds,
+				headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
+				headerMeta: { tagPath: '' },
+			}) as TreeNode<TagMeta>[];
+			expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
+			return projected;
+		}
+
 		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
 		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
 		// un layout por nombre: el layout solo copia su foto en la scene.
@@ -2331,7 +2377,8 @@ export class TagsExplorerPanel extends Component {
 			files: this._getFilesWithTag(tagPath),
 			customLogic: true,
 			logicFunc: (_file, fm) => {
-				if (!fm.tags) return null;
+				const noteGroupsChanged = updateNoteGroupMembersOnRename(fm, 'tag', tagPath, newName);
+				if (!fm.tags) return noteGroupsChanged ? fm : null;
 				const raw: unknown = fm.tags;
 				const tags: string[] = Array.isArray(raw)
 					? (raw as unknown[]).map((v) => String(v))

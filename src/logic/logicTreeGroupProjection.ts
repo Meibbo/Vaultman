@@ -112,6 +112,10 @@ export interface GroupProjectionInput<TMeta> {
 	 * el camino comun: temas, densidad movil y geometria nativa la ignoran.
 	 */
 	headerCoreCls?: string;
+	/** U130-09: Note groups uses list order when active sort is 'note'. */
+	sortByNote?: boolean;
+	/** U130-09: Note groups extractor of member key from node. */
+	memberKeyOf?: (node: TreeNode<TMeta>) => string;
 }
 
 /** What a folder gets, a group header gets: the collapsed-activity dot and the scene's aggregates. */
@@ -423,6 +427,120 @@ export function projectGroupedTree<TMeta>(
 		});
 		// `no group` es el COMPLEMENTO, no un grupo mas: no se borra ni se
 		// renombra, y por eso no lleva id de grupo custom.
+		const orphans = nodes.filter((node) => !claimed.has(node.id));
+		if (orphans.length > 0 || !filtered) {
+			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed);
+			out.push(
+				finishHeader(
+					headerNode(
+						NO_GROUP_ID,
+						noGroupLabel,
+						reparented,
+						ownMeta,
+						undefined,
+						headerCoreCls,
+					),
+					reparented,
+					expandedIds,
+					decorateHeader,
+				),
+			);
+		}
+		return out;
+	}
+
+	// --- Grupos NOTE: definidos en frontmatter de la nota reveal ------------
+	const wantsNote = preset?.kind === 'note';
+	if (wantsNote) {
+		const ownGroups =
+			preset.direction === 'desc' ? [...groups].reverse() : groups;
+		const getKey =
+			input.memberKeyOf ??
+			((node: TreeNode<TMeta>) => {
+				const meta = node.meta as { propName?: string; isValueNode?: boolean; rawValue?: unknown; tagPath?: string } | null;
+				if (meta) {
+					if ('propName' in meta && meta.propName !== undefined) {
+						return String(
+							meta.isValueNode ? (meta.rawValue ?? node.label) : meta.propName,
+						);
+					}
+					if ('tagPath' in meta && meta.tagPath !== undefined) {
+						const p = String(meta.tagPath ?? node.label);
+						return p.startsWith('#') ? p.slice(1) : p;
+					}
+				}
+				return node.label ?? node.id;
+			});
+
+		const membersPerGroup = ownGroups.map((group) => {
+			const rawList = memberships[group.id] ?? [];
+			const dedupedList: string[] = [];
+			const seenInGroup = new Set<string>();
+			for (const m of rawList) {
+				const clean = m.startsWith('#') ? m.slice(1) : m;
+				if (!seenInGroup.has(clean)) {
+					seenInGroup.add(clean);
+					dedupedList.push(clean);
+				}
+			}
+
+			if (input.sortByNote) {
+				const members: TreeNode<TMeta>[] = [];
+				for (const memberKey of dedupedList) {
+					for (const node of nodes) {
+						const k = getKey(node);
+						const cleanK = k.startsWith('#') ? k.slice(1) : k;
+						if (cleanK === memberKey) {
+							members.push(node);
+							break;
+						}
+					}
+				}
+				return members;
+			} else {
+				return nodes.filter((node) => {
+					const k = getKey(node);
+					const cleanK = k.startsWith('#') ? k.slice(1) : k;
+					return seenInGroup.has(cleanK);
+				});
+			}
+		});
+
+		const occurrences = new Map<string, number>();
+		for (const members of membersPerGroup) {
+			for (const member of members) {
+				occurrences.set(member.id, (occurrences.get(member.id) ?? 0) + 1);
+			}
+		}
+		const suffixed = new Set(
+			[...occurrences]
+				.filter(([, count]) => count > 1)
+				.map(([id]) => id),
+		);
+		const claimed = new Set<string>();
+		const out: TreeNode<TMeta>[] = [];
+		ownGroups.forEach((group, index) => {
+			const members = membersPerGroup[index] ?? [];
+			for (const member of members) claimed.add(member.id);
+			if (members.length === 0 && filtered) return;
+			const reparented = reparent(members, group.id, 1, suffixed);
+			out.push(
+				finishHeader(
+					headerNode(
+						group.id,
+						group.label,
+						reparented,
+						ownMeta,
+						groupTotals?.get(group.id),
+						headerCoreCls,
+					),
+					reparented,
+					expandedIds,
+					decorateHeader,
+				),
+			);
+		});
+
 		const orphans = nodes.filter((node) => !claimed.has(node.id));
 		if (orphans.length > 0 || !filtered) {
 			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed);

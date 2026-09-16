@@ -124,6 +124,11 @@ import {
 	sameGroupPreset,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	parseFrontmatterNoteGroups,
+	scopeToNoteGroupTarget,
+	updateNoteGroupMembersOnRename,
+} from '../../logic/logicNoteGroups';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import {
@@ -698,6 +703,46 @@ export class PropsExplorerPanel extends Component {
 	private projectedNodes(
 		nodes: readonly TreeNode<PropMeta>[],
 	): TreeNode<PropMeta>[] {
+		if (this.groupPreset.kind === 'note') {
+			if (!this.isRevealingActiveFile()) return nodes as TreeNode<PropMeta>[];
+			const frontmatter = this._revealFrontmatter();
+			const activeScope = this.sortState?.activeScope ?? 'all';
+			const target = scopeToNoteGroupTarget(activeScope) ?? { kind: 'level', level: 1 };
+			const noteRes = parseFrontmatterNoteGroups(frontmatter, 'prop', target);
+			if (noteRes.collisions.length > 0) {
+				new Notice(
+					`Note group collision: key "${noteRes.collisions[0].key}" exists with non-list value.`,
+				);
+			}
+			const groups = noteRes.groups.filter(
+				(group) => !this.hiddenGroupIds.has(group.id),
+			);
+			this._groupIds.clear();
+			for (const group of groups) this._groupIds.add(group.id);
+			const currentSort = activeScopeSort('props', this.sortState);
+			const sortByNote = currentSort.sortBy === 'note';
+			const projected = projectGroupedTree<PropMeta>({
+				nodes,
+				groups,
+				memberships: noteRes.memberships,
+				providerId: 'props',
+				noGroupLabel: translate('explorer.group.no_group'),
+				filtered: this.sortState?.filtered === true,
+				enabled: true,
+				preset: this.groupPreset,
+				sortByNote,
+				memberKeyOf: (node) =>
+					node.meta?.isValueNode
+						? String(node.meta.rawValue ?? node.label)
+						: (node.meta?.propName ?? node.label),
+				expandedIds: this.expandedIds,
+				headerCoreCls: 'tree-item-self tappable is-clickable',
+				headerMeta: { propName: '', propType: '', isValueNode: false },
+			}) as TreeNode<PropMeta>[];
+			expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
+			return projected;
+		}
+
 		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
 		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
 		// un layout por nombre: el layout solo copia su foto en la scene.
@@ -4295,6 +4340,7 @@ export class PropsExplorerPanel extends Component {
 				if (!(propName in fm)) return null;
 				fm[newName] = fm[propName];
 				delete fm[propName];
+				updateNoteGroupMembersOnRename(fm, 'prop', propName, newName);
 				return fm;
 			},
 		});
@@ -4484,6 +4530,7 @@ export class PropsExplorerPanel extends Component {
 				);
 				if (!replacement.changed) return null;
 				fm[propName] = replacement.value;
+				updateNoteGroupMembersOnRename(fm, 'prop', oldValue, String(newValue), { kind: 'parent', path: propName });
 				return fm;
 			},
 		});

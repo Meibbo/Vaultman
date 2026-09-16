@@ -1,6 +1,6 @@
 import type { SortScopeKey } from '../types/typeUI';
 
-export type NodeGroupFlavor = 'preset' | 'custom';
+export type NodeGroupFlavor = 'preset' | 'custom' | 'note';
 
 export interface NodeGroupDef {
 	/** Id propio y estable. NO es el label: el label es editable. */

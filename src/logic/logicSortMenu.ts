@@ -497,6 +497,7 @@ export const GROUP_PRESET_META: Record<
 	opened: { icon: 'lucide-eye', labelKey: 'group.preset.opened' },
 	created: { icon: 'lucide-calendar-plus', labelKey: 'group.preset.created' },
 	custom: { icon: 'lucide-boxes', labelKey: 'group.preset.custom' },
+	note: { icon: 'lucide-file-cog', labelKey: 'group.preset.note' },
 };
 
 export interface GroupMenuPresetItem {
@@ -550,15 +551,24 @@ export interface GroupMenuModel {
  * default, the presets of the tab (`custom` among them: it is what projects
  * the custom groups), a divider, `New group`, then the custom groups as
  * rows of the §4 hide/delete pattern — they are not selectors.
+ *
+ * U130-09 (dev 2026-09-16): `note groups` only appears when the scene is in
+ * reveal mode (props or tags), because outside reveal there is no note to govern
+ * the grouping.
  */
 export function groupMenuModel(
 	tab: ExplorerTabId,
 	preset: GroupPreset,
 	customGroups: readonly { id: string; label: string; hidden?: boolean }[],
 	canCreateGroup: boolean,
+	revealActive = false,
 ): GroupMenuModel {
 	const items: GroupMenuItem[] = [];
-	for (const kind of GROUP_PRESETS_BY_TAB[tab]) {
+	const kinds: GroupPresetKind[] = [...GROUP_PRESETS_BY_TAB[tab]];
+	if (revealActive && (tab === 'props' || tab === 'tags')) {
+		kinds.push('note');
+	}
+	for (const kind of kinds) {
 		const checked = preset.kind === kind;
 		items.push({
 			kind: 'preset',

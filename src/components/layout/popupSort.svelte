@@ -106,7 +106,13 @@
 	let levelDrawerOpen = $state(false);
 	let groupDrawerOpen = $state(false);
 	const groupModel = $derived(
-		groupMenuModel(activeTab, groupPreset, customGroups, canCreateGroup),
+		groupMenuModel(
+			activeTab,
+			groupPreset,
+			customGroups,
+			canCreateGroup,
+			revealActive,
+		),
 	);
 	// Spec 08 §4: the custom-group row that is asking "Want to hide this
 	// preset?"; it answers itself with cancel after 4 s.

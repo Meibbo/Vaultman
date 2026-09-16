@@ -1304,6 +1304,7 @@ export const en: Record<string, string> = {
 	'group.preset.opened': 'Opened',
 	'group.preset.created': 'Created',
 	'group.preset.custom': 'Custom groups',
+	'group.preset.note': 'Note groups',
 	'group.new': 'New group',
 	'group.new.prompt': 'Group name',
 	'group.create_with_selected': 'Create group with selected',
