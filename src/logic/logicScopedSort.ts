@@ -523,6 +523,13 @@ export function isSortOptionVisible(
 		return false;
 	}
 	if (
+		optionId === 'count' &&
+		context.tab === 'props' &&
+		context.revealActive
+	) {
+		return false;
+	}
+	if (
 		(optionId === 'sub' || optionId === 'type') &&
 		context.tab === 'props' &&
 		context.activeScope === 'level:2'

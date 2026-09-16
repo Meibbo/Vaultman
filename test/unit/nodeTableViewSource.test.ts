@@ -58,4 +58,13 @@ describe('NodeTableView source guards', () => {
 			'opts = { ...opts, activeFilterIds: presentedActiveFilterIds }',
 		);
 	});
+
+	it('does not expand a row when dblclick starts in an editable child', () => {
+		expect(nodeTableSource).toContain(
+			'import { isEditableDblClickTarget } from \'./viewTree\';',
+		);
+		expect(nodeTableSource).toContain(
+			'if (isEditableDblClickTarget(event.target)) return;',
+		);
+	});
 });

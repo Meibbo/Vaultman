@@ -377,6 +377,23 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 		).toBe(true);
 	});
 
+	it('hides property count from the reveal sort menu', () => {
+		expect(
+			isSortOptionVisible('count', {
+				tab: 'props',
+				nestedActive: false,
+				activeScope: 'all',
+				revealActive: true,
+			}),
+		).toBe(false);
+		expect(
+			isSortOptionVisible('count', {
+				tab: 'props',
+				nestedActive: false,
+				activeScope: 'all',
+			}),
+		).toBe(true);
+	});
 	it('gates the anchor sort option on an anchored note', () => {
 		expect(
 			isSortOptionVisible('anchor', {

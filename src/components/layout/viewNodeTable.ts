@@ -30,6 +30,7 @@ import {
 	normalizeBadgeCancelClickMode,
 	type BadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
+import { isEditableDblClickTarget } from './viewTree';
 import {
 	bindLongPressGesture,
 	LongPressGesture,
@@ -496,6 +497,7 @@ export class NodeTableView<TMeta = unknown> {
 						event.stopPropagation();
 						return;
 					}
+					if (isEditableDblClickTarget(event.target)) return;
 					if (!node.children?.length) return;
 					opts.onRowDoubleClick?.(node.id, event);
 				}

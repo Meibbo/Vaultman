@@ -53,7 +53,7 @@ export type { CoreMetadataTreeAnatomy } from './viewCoreMetadataTree';
  * region) only drives the caret/text selection there. It must never
  * expand/collapse the row.
  */
-function isEditableDblClickTarget(target: EventTarget | null): boolean {
+export function isEditableDblClickTarget(target: EventTarget | null): boolean {
 	if (!target || typeof target !== 'object') return false;
 	const el = target as Partial<Element> & {
 		isContentEditable?: boolean;
