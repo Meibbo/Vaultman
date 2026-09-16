@@ -179,8 +179,9 @@ describe('U121-003 Add to files: how the providers offer it', () => {
 	});
 
 	it('builds its target set from the shared operation target contract', () => {
-		expect(propsExplorerSource).toContain('buildOperationTargetSet');
-		expect(tagsExplorerSource).toContain('buildOperationTargetSet');
+		// U130-p2: the canonical selection rule is resolveSelectionTargets.
+		expect(propsExplorerSource).toContain('resolveSelectionTargets');
+		expect(tagsExplorerSource).toContain('resolveSelectionTargets');
 	});
 
 	// The menu path is added beside the gesture, not instead of it.

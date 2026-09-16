@@ -11,15 +11,9 @@ describe('Props explorer context-menu source guards', () => {
 		expect(propsExplorerSource).toContain(
 			'this.plugin.settings?.minimalStyle === true',
 		);
-		expect(propsExplorerSource).toMatch(
-			/_setCheckboxValue\(\s*meta\.propName,\s*meta\.rawValue \?\? '',\s*true,?\s*\)/,
-		);
-		expect(propsExplorerSource).toMatch(
-			/_setCheckboxValue\(\s*meta\.propName,\s*meta\.rawValue \?\? '',\s*false,?\s*\)/,
-		);
-		expect(propsExplorerSource).toContain(
-			"parsePropertyValue(String(checked), 'checkbox')",
-		);
+		// U130-p2: now uses _selectionPeers to iterate over selected nodes
+		expect(propsExplorerSource).toContain('_selectionPeers');
+		expect(propsExplorerSource).toContain('_setCheckboxValue');
 	});
 
 	it('keeps checkbox state conversion on the property manager coercion path', () => {

@@ -32,10 +32,6 @@ import {
 	applyAddToFile,
 	type AddToFilesTarget,
 } from '../../logic/logicAddToFiles';
-import {
-	buildOperationTargetSet,
-	type OperationTarget,
-} from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
 import { applyCellTooltip } from '../../logic/logicCellTooltip';
 import { openFileAtOffset } from '../../utils/openFileAtOffset';
@@ -159,12 +155,14 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
+import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
 	type VaultmanDragNodePayload,
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
+import { flattenVisibleTree } from '../../utils/treeVirtualization';
 
 type DateSortId = 'mtime' | 'ctime';
 
@@ -336,8 +334,15 @@ export class TagsExplorerPanel extends Component {
 			section: 'Icon',
 			when: () => this.plugin.iconicService?.canChangeTagIcon() === true,
 			run: (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as TagMeta;
-				this.plugin.iconicService?.openTagIconPicker(meta.tagPath, ctx.event);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targetIds = this._resolveSelectionTargets(ctx);
+				const tree = this.logic.getTree();
+				for (const id of targetIds) {
+					const node = this._findNode(id, tree);
+					if (node?.meta) {
+						this.plugin.iconicService?.openTagIconPicker(node.meta.tagPath, ctx.event);
+					}
+				}
 			},
 		});
 
@@ -363,8 +368,14 @@ export class TagsExplorerPanel extends Component {
 			label: 'Delete',
 			icon: 'lucide-trash-2',
 			run: (ctx: MenuCtx) => {
-				for (const tagPath of this._selectionTagPaths(ctx)) {
-					void this._deleteTag(tagPath);
+				// U130-p2: usa la regla canónica resolveSelectionTargets
+				const targetIds = this._resolveSelectionTargets(ctx);
+				const tree = this.logic.getTree();
+				for (const id of targetIds) {
+					const node = this._findNode(id, tree);
+					if (node?.meta) {
+						void this._deleteTag(node.meta.tagPath);
+					}
 				}
 			},
 		});
@@ -513,6 +524,15 @@ export class TagsExplorerPanel extends Component {
 			} as const;
 		}
 		return {};
+	}
+
+	/**
+	 * U130-p2: visible tree node IDs in render order for selection resolution.
+	 */
+	private _orderedVisibleTreeIds(): string[] {
+		const tree = this.logic.getTree();
+		if (!tree) return [];
+		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
 	}
 
 	private _renderCardSelectionCheckbox(
@@ -1390,40 +1410,28 @@ export class TagsExplorerPanel extends Component {
 		this.deferredRender.activate(() => this._render());
 	}
 
-	/** U121-062: see `_selectionPeers` in the Props panel for the rule. */
-	private _selectionTagPaths(ctx: MenuCtx): string[] {
-		const node = ctx.node as TreeNode<TagMeta>;
-		if (!this.selectedNodeIds.has(node.id)) return [node.meta.tagPath];
-		const tree = this.logic.getTree();
-		const paths: string[] = [];
-		for (const id of this.selectedNodeIds) {
-			const found = this._findNode(id, tree);
-			if (found?.meta) paths.push(found.meta.tagPath);
-		}
-		return paths.length > 0 ? paths : [node.meta.tagPath];
+	/**
+	 * U130-p2: resuelve los targets de la selección usando la regla
+	 * canónica `resolveSelectionTargets` para tags.
+	 */
+	private _resolveSelectionTargets(ctx: MenuCtx): string[] {
+		const selectedIds = ctx.selectedIds ?? this.selectedNodeIds;
+		const orderedIds = ctx.orderedIds ?? this._orderedVisibleTreeIds();
+		return resolveSelectionTargets(ctx.node.id, selectedIds, orderedIds);
 	}
 
 	private _addToFilesTargets(ctx: MenuCtx): AddToFilesTarget[] {
+		// U130-p2: usa la regla canónica resolveSelectionTargets
+		const targetIds = this._resolveSelectionTargets(ctx);
 		const tree = this.logic.getTree();
-		const toTarget = (
-			node: TreeNode<TagMeta> | null,
-		): AddToFilesTarget | null =>
-			node?.meta ? { id: node.id, kind: 'tag', tag: node.meta.tagPath } : null;
-		const wrap = (
-			target: AddToFilesTarget | null,
-		): OperationTarget<AddToFilesTarget> | null =>
-			target ? { id: target.id, kind: target.kind, node: target } : null;
-
-		const selectedNodes: OperationTarget<AddToFilesTarget>[] = [];
-		for (const id of this.selectedNodeIds) {
-			const wrapped = wrap(toTarget(this._findNode(id, tree)));
-			if (wrapped) selectedNodes.push(wrapped);
+		const targets: AddToFilesTarget[] = [];
+		for (const id of targetIds) {
+			const node = this._findNode(id, tree);
+			if (node?.meta) {
+				targets.push({ id: node.id, kind: 'tag', tag: node.meta.tagPath });
+			}
 		}
-
-		return buildOperationTargetSet<AddToFilesTarget>({
-			selectedNodes,
-			invokedNode: wrap(toTarget(ctx.node as TreeNode<TagMeta>)),
-		}).targets.map((target) => target.node);
+		return targets;
 	}
 
 	private _addToFiles(ctx: MenuCtx): void {
@@ -1651,6 +1659,8 @@ export class TagsExplorerPanel extends Component {
 							nodeType: 'tag',
 							node,
 							surface: 'panel',
+							selectedIds: this.selectedNodeIds,
+							orderedIds: this._orderedVisibleTreeIds(),
 							...this._groupCreationMenuCtx(),
 							invokeRename: (targetId: string) => {
 								this.editingId = targetId;
@@ -1817,6 +1827,8 @@ export class TagsExplorerPanel extends Component {
 						nodeType: 'tag',
 						node,
 						surface: 'panel',
+						selectedIds: this.selectedNodeIds,
+						orderedIds: this._orderedVisibleTreeIds(),
 						...this._groupCreationMenuCtx(),
 						invokeRename: (targetId: string) => {
 							this.editingId = targetId;
@@ -2049,6 +2061,8 @@ export class TagsExplorerPanel extends Component {
 						nodeType: 'tag',
 						node,
 						surface: 'panel',
+						selectedIds: this.selectedNodeIds,
+						orderedIds: this._orderedVisibleTreeIds(),
 						...this._groupCreationMenuCtx(),
 					},
 					event,

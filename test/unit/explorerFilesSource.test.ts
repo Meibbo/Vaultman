@@ -70,7 +70,10 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain("id: 'folder.new_canvas'");
 		expect(explorerFilesSource).toContain("id: 'folder.new_base'");
 		expect(explorerFilesSource).toContain("id: 'folder.make_copy'");
-		expect(explorerFilesSource).toContain('this._createFileInFolder');
+		// U130 A12: one file/folder per selected folder via the canonical rule.
+		expect(explorerFilesSource).toContain('this._createFilesInFolders');
+		expect(explorerFilesSource).toContain('this._createFoldersInFolders');
+		expect(explorerFilesSource).toContain('this._resolveFolderTargets');
 		expect(explorerFilesSource).toContain('this._copyFolder');
 		expect(explorerFilesSource).toContain('separatorBefore: true');
 	});
@@ -81,7 +84,8 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain(
 			"label: translate('file.ctx.make_copy')",
 		);
-		expect(explorerFilesSource).toContain('await this._copyFile(meta.file);');
+		// U130-p2: copy acts on the selection via the canonical rule.
+		expect(explorerFilesSource).toContain('await this._copyFile(file);');
 		expect(explorerFilesSource).toContain("id: 'folder.make_copy'");
 		expect(explorerFilesSource).toContain('await this._copyFolder(folder);');
 	});

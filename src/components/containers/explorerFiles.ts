@@ -165,6 +165,12 @@ import {
 	toggleDescendantSelection,
 	updateFileSelection,
 } from '../../logic/logicNodeSelection';
+import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
+import {
+	runMultiCreate,
+	toErrorMessage,
+	type MultiCreateReport,
+} from '../../logic/logicMultiCreate';
 import {
 	isFileExcluded,
 	migrateExcludedPathsToFilter,
@@ -310,6 +316,12 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private selectionAnchorPath: string | null = null;
+	/**
+	 * U130 A12: last multi-create report, kept so a partial run cannot look
+	 * like a full success. Public for deterministic unit tests.
+	 */
+	lastMultiCreateResult: (MultiCreateReport & { actionId: string }) | null =
+		null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
 	private searchFolder = '';
@@ -433,10 +445,11 @@ export class FilesExplorerPanel extends Component {
 			section: 'Icon',
 			when: () => this.plugin.iconicService?.canChangeFileIcon() === true,
 			run: (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as FileMeta;
-				const path = meta.file?.path ?? meta.folder?.path ?? meta.folderPath;
-				if (!path) return;
-				this.plugin.iconicService?.openFileIconPicker(path, ctx.event);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
+				for (const file of targets) {
+					this.plugin.iconicService?.openFileIconPicker(file.path, ctx.event);
+				}
 			},
 		});
 
@@ -447,21 +460,23 @@ export class FilesExplorerPanel extends Component {
 			label: translate('file.ctx.exclude'),
 			icon: 'lucide-eye-off',
 			run: (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as FileMeta;
-				const path = meta.file?.path;
-				if (!path) return;
-				// BT5-009: exclusion is a filter node now, so it hides through the
-				// pipeline and shows again by removing its chip — coherent with
-				// exclude-folder — instead of a parallel list applied in render.
-				if (isFileExcluded(this.plugin.filterService.activeFilter, path)) {
-					return;
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
+				for (const file of targets) {
+					const path = file.path;
+					// BT5-009: exclusion is a filter node now, so it hides through the
+					// pipeline and shows again by removing its chip — coherent with
+					// exclude-folder — instead of a parallel list applied in render.
+					if (isFileExcluded(this.plugin.filterService.activeFilter, path)) {
+						continue;
+					}
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'file_exclude',
+						property: '',
+						values: [path],
+					});
 				}
-				this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'file_exclude',
-					property: '',
-					values: [path],
-				});
 			},
 		});
 
@@ -472,10 +487,12 @@ export class FilesExplorerPanel extends Component {
 			label: translate('file.ctx.open_tab'),
 			icon: 'lucide-panel-top',
 			run: async (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as FileMeta;
-				if (!meta.file) return;
-				const leaf = this.plugin.app.workspace.getLeaf('tab');
-				await leaf.openFile(meta.file, { active: true });
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
+				for (const file of targets) {
+					const leaf = this.plugin.app.workspace.getLeaf('tab');
+					await leaf.openFile(file, { active: true });
+				}
 			},
 		});
 		svc.registerAction({
@@ -582,9 +599,11 @@ export class FilesExplorerPanel extends Component {
 			label: translate('file.ctx.make_copy'),
 			icon: 'lucide-copy',
 			run: async (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as FileMeta;
-				if (!meta.file) return;
-				await this._copyFile(meta.file);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
+				for (const file of targets) {
+					await this._copyFile(file);
+				}
 			},
 		});
 
@@ -595,9 +614,17 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.new_note'),
 			icon: 'lucide-file-plus',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				await this._createFileInFolder(folder, 'Untitled.md', '', true);
+				// U130 A12: invoked inside the selection reaches every selected
+				// folder; outside it, only the invoked folder.
+				const folders = this._resolveFolderTargets(ctx);
+				if (folders.length === 0) return;
+				await this._createFilesInFolders(
+					'folder.new_note',
+					folders,
+					'Untitled.md',
+					'',
+					true,
+				);
 			},
 		});
 
@@ -608,9 +635,10 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.new_folder'),
 			icon: 'lucide-folder-plus',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				await this._createFolderInFolder(folder);
+				// U130 A12: same selection rule as folder.new_note.
+				const folders = this._resolveFolderTargets(ctx);
+				if (folders.length === 0) return;
+				await this._createFoldersInFolders('folder.new_folder', folders);
 			},
 		});
 
@@ -621,10 +649,12 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.new_canvas'),
 			icon: 'lucide-layout-dashboard',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				await this._createFileInFolder(
-					folder,
+				// U130 A12: same selection rule as folder.new_note.
+				const folders = this._resolveFolderTargets(ctx);
+				if (folders.length === 0) return;
+				await this._createFilesInFolders(
+					'folder.new_canvas',
+					folders,
 					'Untitled.canvas',
 					JSON.stringify({ nodes: [], edges: [] }, null, '\t'),
 					true,
@@ -639,10 +669,12 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.new_base'),
 			icon: 'lucide-database',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				await this._createFileInFolder(
-					folder,
+				// U130 A12: same selection rule as folder.new_note.
+				const folders = this._resolveFolderTargets(ctx);
+				if (folders.length === 0) return;
+				await this._createFilesInFolders(
+					'folder.new_base',
+					folders,
 					'Untitled.base',
 					'views:\n  - type: table\n    name: Table\n',
 					true,
@@ -657,9 +689,11 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.make_copy'),
 			icon: 'lucide-copy',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				await this._copyFolder(folder);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
+				for (const folder of targets) {
+					await this._copyFolder(folder);
+				}
 			},
 		});
 
@@ -692,14 +726,16 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.filter_include'),
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'folder',
-					property: '',
-					values: [folder.path],
-				});
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
+				for (const folder of targets) {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'folder',
+						property: '',
+						values: [folder.path],
+					});
+				}
 			},
 		});
 
@@ -711,14 +747,16 @@ export class FilesExplorerPanel extends Component {
 			icon: 'lucide-filter-x',
 			separatorBefore: true,
 			run: (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'folder_exclude',
-					property: '',
-					values: [folder.path],
-				});
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
+				for (const folder of targets) {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'folder_exclude',
+						property: '',
+						values: [folder.path],
+					});
+				}
 			},
 		});
 
@@ -756,10 +794,12 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.move'),
 			icon: 'lucide-folder-input',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
 
 				if (this.plugin.settings.explorerFileMoveMode === 'inline') {
+					// En modo inline, delegamos al modo de movimiento existente
+					// que ya maneja selección múltiple
 					this._enterNodeMoveMode(ctx);
 				} else {
 					const target = await showInputModal(
@@ -768,15 +808,17 @@ export class FilesExplorerPanel extends Component {
 					);
 					if (target === null) return;
 					const targetFolder = target.trim().replace(/^\/|\/$/g, '');
-					const newPath = targetFolder
-						? `${targetFolder}/${folder.name}`
-						: folder.name;
-					if (newPath === folder.path) return;
-					this._queueFolderMove(
-						folder,
-						newPath,
-						`Move folder "${folder.path}" to "${newPath}"`,
-					);
+					for (const folder of targets) {
+						const newPath = targetFolder
+							? `${targetFolder}/${folder.name}`
+							: folder.name;
+						if (newPath === folder.path) continue;
+						this._queueFolderMove(
+							folder,
+							newPath,
+							`Move folder "${folder.path}" to "${newPath}"`,
+						);
+					}
 				}
 			},
 		});
@@ -788,17 +830,12 @@ export class FilesExplorerPanel extends Component {
 			label: translate('folder.ctx.delete'),
 			icon: 'lucide-trash-2',
 			run: async (ctx: MenuCtx) => {
-				const folder = this._folderFromCtx(ctx);
-				if (!folder) return;
-				// U121-104: misma regla que `file.delete` (U121-062): pulsar DENTRO
-				// de la seleccion actua sobre la seleccion entera; fuera de ella,
-				// solo sobre este nodo. Antes encolaba siempre el del cmenu, asi
-				// que seleccionar tres folders borraba uno.
-				if (this.selectedFilePaths.has(ctx.node.id)) {
-					this._queueDeleteTargets(this._selectedTargets());
-					return;
+				// U130-p2: usa la regla canónica resolveSelectionTargets
+				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
+				if (targets.length === 0) return;
+				for (const folder of targets) {
+					this._queueFolderDelete(folder);
 				}
-				this._queueFolderDelete(folder);
 			},
 		});
 
@@ -2778,6 +2815,8 @@ export class FilesExplorerPanel extends Component {
 								nodeType: 'folder',
 								node,
 								surface: 'panel',
+								selectedIds: this.selectedFilePaths,
+								orderedIds: this._orderedVisibleTreeIds(),
 								...this._groupCreationMenuCtx(),
 								...this._viewFilterMenuActions(),
 							},
@@ -2791,6 +2830,8 @@ export class FilesExplorerPanel extends Component {
 							nodeType: 'file',
 							node,
 							surface: 'panel',
+							selectedIds: this.selectedFilePaths,
+							orderedIds: this._orderedVisibleTreeIds(),
 							...this._groupCreationMenuCtx(),
 							file: meta.file,
 							...this._viewFilterMenuActions(),
@@ -4863,6 +4904,44 @@ export class FilesExplorerPanel extends Component {
 		return { files, folders };
 	}
 
+	/**
+	 * U130-p2: resuelve los targets de la seleccion usando la regla
+	 * canónica `resolveSelectionTargets` (invocado ∈ selección → todos los
+	 * seleccionados del MISMO nodeType, en orden visible; invocado ∉ selección
+	 * → solo él). Devuelve solo files o solo folders según `wantFiles`.
+	 */
+	private _resolveSelectionTargets(
+		ctx: MenuCtx,
+		wantFiles: boolean,
+	): TFile[] | TFolder[] {
+		const selectedIds = ctx.selectedIds ?? this.selectedFilePaths;
+		const orderedIds = ctx.orderedIds ?? this._orderedVisibleTreeIds();
+		const targetIds = resolveSelectionTargets(
+			ctx.node.id,
+			selectedIds,
+			orderedIds,
+		);
+
+		const visible = flattenVisibleTree(
+			this._lastRenderTree,
+			this.expandedIds,
+		) as TreeNode<FileMeta>[];
+		const idToNode = new Map(visible.map((n) => [n.id, n]));
+
+		const results: (TFile | TFolder)[] = [];
+		for (const id of targetIds) {
+			const node = idToNode.get(id);
+			if (!node) continue;
+			const meta = node.meta as Partial<FileMeta> | undefined;
+			if (wantFiles) {
+				if (meta?.file instanceof TFile) results.push(meta.file);
+			} else {
+				if (meta?.folder instanceof TFolder) results.push(meta.folder);
+			}
+		}
+		return results as TFile[] | TFolder[];
+	}
+
 	/** U121-104: encola una seleccion entera, respetando el orden visible. */
 	private _queueDeleteTargets(targets: {
 		files: TFile[];
@@ -4984,33 +5063,170 @@ export class FilesExplorerPanel extends Component {
 		new Notice(`Created ${path}`);
 	}
 
-	private async _createFileInFolder(
-		folder: TFolder,
-		name: string,
-		content: string,
-		openFile: boolean,
-	): Promise<void> {
-		const path = this._uniquePath(this._joinPath(folder.path, name));
-		const file = await this.plugin.app.vault.create(path, content);
-		this.plugin.filterService.applyFilters();
-		for (const id of this.logic.getAncestorFolderIds([file])) {
-			this.expandedIds.add(id);
+	/**
+	 * U130 A12: folder destinations for the `folder.new_*` actions, using the
+	 * canonical `resolveSelectionTargets` rule in visible order. Invoked inside
+	 * the selection reaches every selected folder; outside it, only the
+	 * invoked folder. Only folder ids become destinations, so a mixed
+	 * file+folder selection still creates in the folders alone.
+	 */
+	private _resolveFolderTargets(ctx: MenuCtx): TFolder[] {
+		const selectedIds = ctx.selectedIds ?? this.selectedFilePaths;
+		const orderedIds = ctx.orderedIds ?? this._orderedVisibleTreeIds();
+		const targetIds = resolveSelectionTargets(
+			ctx.node.id,
+			selectedIds,
+			orderedIds,
+		);
+		const visible = flattenVisibleTree(
+			this._lastRenderTree,
+			this.expandedIds,
+		) as TreeNode<FileMeta>[];
+		const idToNode = new Map(visible.map((node) => [node.id, node]));
+		const folders: TFolder[] = [];
+		for (const id of targetIds) {
+			const node = idToNode.get(id);
+			const fromNode = (node?.meta as Partial<FileMeta> | undefined)
+				?.folder;
+			if (fromNode instanceof TFolder) {
+				folders.push(fromNode);
+				continue;
+			}
+			if (!id.startsWith('folder:')) continue;
+			const rawPath = id.slice('folder:'.length).replace(/^\/|\/$/g, '');
+			try {
+				const found = rawPath
+					? this.plugin.app.vault.getAbstractFileByPath(rawPath)
+					: this.plugin.app.vault.getRoot?.();
+				if (found instanceof TFolder) {
+					folders.push(found);
+					continue;
+				}
+			} catch {
+				// Fall through to the invoked-node fallback below.
+			}
+			if (id === ctx.node.id) {
+				const invoked = this._folderFromCtx(ctx);
+				if (invoked) folders.push(invoked);
+			}
 		}
-		this._notifyExpansionChanged();
-		this._refreshFromFilterService();
-		if (openFile) await this.plugin.app.workspace.openLinkText(path, '', false);
-		new Notice(`Created ${path}`);
+		return folders;
 	}
 
-	private async _createFolderInFolder(folder: TFolder): Promise<void> {
-		const path = this._uniquePath(this._joinPath(folder.path, 'New folder'));
-		await this.plugin.app.vault.createFolder(path);
-		for (const id of this.logic.getAncestorFolderIdsFromPaths([path])) {
-			this.expandedIds.add(id);
+	/**
+	 * U130 A12: create one file per destination folder, independently and in
+	 * order. Successful creations survive a later failure. Only the first
+	 * success opens, so N destinations never open N leaves. The report is
+	 * recorded on `lastMultiCreateResult` and surfaced via Notice so a
+	 * partial run never reads as a full success.
+	 */
+	private async _createFilesInFolders(
+		actionId: string,
+		folders: readonly TFolder[],
+		fileName: string,
+		content: string,
+		openFirst: boolean,
+	): Promise<MultiCreateReport> {
+		const report = await runMultiCreate(
+			folders.map((folder) => folder.path),
+			async (_destinationPath, index) => {
+				const folder = folders[index];
+				const path = this._uniquePath(this._joinPath(folder.path, fileName));
+				const file = await this.plugin.app.vault.create(path, content);
+				return file?.path ?? path;
+			},
+		);
+		if (report.succeeded.length > 0) {
+			this.plugin.filterService.applyFilters();
+			for (const id of this.logic.getAncestorFolderIdsFromPaths(
+				report.succeeded.map((entry) => entry.createdPath),
+			)) {
+				this.expandedIds.add(id);
+			}
+			this._notifyExpansionChanged();
+			this._refreshFromFilterService();
+			if (openFirst) {
+				try {
+					await this.plugin.app.workspace.openLinkText(
+						report.succeeded[0].createdPath,
+						'',
+						false,
+					);
+				} catch (error) {
+					new Notice(
+						`Created ${report.succeeded[0].createdPath} but failed to open: ${toErrorMessage(error)}`,
+					);
+				}
+			}
 		}
-		this._notifyExpansionChanged();
-		this._refreshFromFilterService();
-		new Notice(`Created ${path}`);
+		this._reportMultiCreate(actionId, report, 'files');
+		return report;
+	}
+
+	/**
+	 * U130 A12: folder version of `_createFilesInFolders`. No leaf opens;
+	 * per-destination independence, preservation, and reporting are identical.
+	 */
+	private async _createFoldersInFolders(
+		actionId: string,
+		folders: readonly TFolder[],
+	): Promise<MultiCreateReport> {
+		const report = await runMultiCreate(
+			folders.map((folder) => folder.path),
+			async (_destinationPath, index) => {
+				const folder = folders[index];
+				const path = this._uniquePath(
+					this._joinPath(folder.path, 'New folder'),
+				);
+				await this.plugin.app.vault.createFolder(path);
+				return path;
+			},
+		);
+		if (report.succeeded.length > 0) {
+			for (const id of this.logic.getAncestorFolderIdsFromPaths(
+				report.succeeded.map((entry) => entry.createdPath),
+			)) {
+				this.expandedIds.add(id);
+			}
+			this._notifyExpansionChanged();
+			this._refreshFromFilterService();
+		}
+		this._reportMultiCreate(actionId, report, 'folders');
+		return report;
+	}
+
+	private _reportMultiCreate(
+		actionId: string,
+		report: MultiCreateReport,
+		kind: 'files' | 'folders',
+	): void {
+		this.lastMultiCreateResult = { actionId, ...report };
+		const total = report.succeeded.length + report.failed.length;
+		if (total <= 1) {
+			if (report.succeeded.length === 1) {
+				new Notice(`Created ${report.succeeded[0].createdPath}`);
+			} else if (report.failed.length === 1) {
+				new Notice(
+					`Failed to create in ${report.failed[0].destinationPath}: ${report.failed[0].error}`,
+				);
+			}
+			return;
+		}
+		if (report.failed.length === 0) {
+			new Notice(
+				`Created ${report.succeeded.length} ${kind} in ${total} folders`,
+			);
+			return;
+		}
+		if (report.succeeded.length === 0) {
+			new Notice(
+				`Failed to create in ${total} folders: ${report.failed.map((entry) => `${entry.destinationPath}: ${entry.error}`).join('; ')}`,
+			);
+			return;
+		}
+		new Notice(
+			`Created ${report.succeeded.length} of ${total} ${kind}, failed in ${report.failed.map((entry) => entry.destinationPath).join(', ')}: ${report.failed.map((entry) => entry.error).join('; ')}`,
+		);
 	}
 
 	private async _copyFile(file: TFile): Promise<void> {

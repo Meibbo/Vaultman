@@ -161,15 +161,13 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
+import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
 import {
 	addToFilesAvailability,
 	applyAddToFile,
 	type AddToFilesTarget,
 } from '../../logic/logicAddToFiles';
-import {
-	buildOperationTargetSet,
-	type OperationTarget,
-} from '../../logic/logicOperationTargetSet';
+import { flattenVisibleTree } from '../../utils/treeVirtualization';
 import {
 	buildValueMoveOperations,
 	enterValueMoveMode,
@@ -416,10 +414,16 @@ export class PropsExplorerPanel extends Component {
 				!(ctx.node.meta as PropMeta).isValueNode &&
 				this.plugin.iconicService?.canChangePropertyIcon() === true,
 			run: (ctx) => {
-				this.plugin.iconicService?.openPropertyIconPicker(
-					(ctx.node.meta as PropMeta).propName,
-					ctx.event,
-				);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const peers = this._selectionPeers(ctx);
+				for (const node of peers) {
+					if (!node.meta.isValueNode) {
+						this.plugin.iconicService?.openPropertyIconPicker(
+							node.meta.propName,
+							ctx.event,
+						);
+					}
+				}
 			},
 		});
 
@@ -540,8 +544,13 @@ export class PropsExplorerPanel extends Component {
 				);
 			},
 			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._setCheckboxValue(meta.propName, meta.rawValue ?? '', true);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const peers = this._selectionPeers(ctx);
+				for (const node of peers) {
+					if (node.meta.isValueNode) {
+						this._setCheckboxValue(node.meta.propName, node.meta.rawValue ?? '', true);
+					}
+				}
 			},
 		});
 
@@ -563,12 +572,17 @@ export class PropsExplorerPanel extends Component {
 				);
 			},
 			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._setCheckboxValue(
-					meta.propName,
-					meta.rawValue ?? '',
-					false,
-				);
+				// U130-p2: actúa sobre la selección si el invocado está en ella
+				const peers = this._selectionPeers(ctx);
+				for (const node of peers) {
+					if (node.meta.isValueNode) {
+						this._setCheckboxValue(
+							node.meta.propName,
+							node.meta.rawValue ?? '',
+							false,
+						);
+					}
+				}
 			},
 		});
 
@@ -772,6 +786,25 @@ export class PropsExplorerPanel extends Component {
 			} as const;
 		}
 		return {};
+	}
+
+	/**
+	 * U130-p2: visible tree node IDs in render order for selection resolution.
+	 */
+	private _orderedVisibleTreeIds(): string[] {
+		const tree = this.logic.getTree();
+		if (!tree) return [];
+		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
+	}
+
+	/**
+	 * U130-p2: resuelve los targets de la selección usando la regla
+	 * canónica `resolveSelectionTargets` para props/values.
+	 */
+	private _resolveSelectionTargets(ctx: MenuCtx): string[] {
+		const selectedIds = ctx.selectedIds ?? this.selectedNodeIds;
+		const orderedIds = ctx.orderedIds ?? this._orderedVisibleTreeIds();
+		return resolveSelectionTargets(ctx.node.id, selectedIds, orderedIds);
 	}
 
 	private _renderCardSelectionCheckbox(
@@ -1507,47 +1540,40 @@ export class PropsExplorerPanel extends Component {
 	private _selectionPeers(ctx: {
 		node: { id: string; meta?: unknown };
 	}): TreeNode<PropMeta>[] {
-		const node = ctx.node as TreeNode<PropMeta>;
-		if (!this.selectedNodeIds.has(node.id)) return [node];
+		// U130-p2: usa la regla canónica resolveSelectionTargets
+		const targetIds = this._resolveSelectionTargets(ctx as MenuCtx);
 		const tree = this.logic.getTree();
 		const peers: TreeNode<PropMeta>[] = [];
-		for (const id of this.selectedNodeIds) {
+		for (const id of targetIds) {
 			const found = this._findNode(id, tree);
 			if (found) peers.push(found);
 		}
-		return peers.length > 0 ? peers : [node];
+		return peers.length > 0 ? peers : [ctx.node as TreeNode<PropMeta>];
 	}
 
 	private _valueMoveOrigins(ctx: {
 		node: { id: string; label: string; meta?: unknown };
 	}): ValueMoveOrigin[] {
+		// U130-p2: usa la regla canónica resolveSelectionTargets
+		const targetIds = this._resolveSelectionTargets(ctx as MenuCtx);
 		const tree = this.logic.getTree();
-		const toOrigin = (
-			node: TreeNode<PropMeta> | null,
-		): ValueMoveOrigin | null => {
+		const origins: ValueMoveOrigin[] = [];
+		for (const id of targetIds) {
+			const node = this._findNode(id, tree);
 			const meta = node?.meta;
-			if (!node || !meta?.isValueNode) return null;
-			return {
-				id: node.id,
-				kind: 'value',
-				node: {
-					property: meta.propName,
-					rawValue: meta.rawValue ?? node.label,
-					propType: meta.propType,
-				},
-			};
-		};
-
-		const selectedNodes: ValueMoveOrigin[] = [];
-		for (const id of this.selectedNodeIds) {
-			const origin = toOrigin(this._findNode(id, tree));
-			if (origin) selectedNodes.push(origin);
+			if (node && meta?.isValueNode) {
+				origins.push({
+					id: node.id,
+					kind: 'value',
+					node: {
+						property: meta.propName,
+						rawValue: meta.rawValue ?? node.label,
+						propType: meta.propType,
+					},
+				});
+			}
 		}
-
-		return buildOperationTargetSet<ValueMoveOrigin['node']>({
-			selectedNodes,
-			invokedNode: toOrigin(ctx.node as TreeNode<PropMeta>),
-		}).targets as ValueMoveOrigin[];
+		return origins;
 	}
 
 	private _enterValueMoveMode(ctx: {
@@ -1828,37 +1854,27 @@ export class PropsExplorerPanel extends Component {
 	private _addToFilesTargets(ctx: {
 		node: { id: string; label: string; meta?: unknown };
 	}): AddToFilesTarget[] {
+		// U130-p2: usa la regla canónica resolveSelectionTargets
+		const targetIds = this._resolveSelectionTargets(ctx as MenuCtx);
 		const tree = this.logic.getTree();
-		const toTarget = (
-			node: TreeNode<PropMeta> | null,
-		): AddToFilesTarget | null => {
+		const targets: AddToFilesTarget[] = [];
+		for (const id of targetIds) {
+			const node = this._findNode(id, tree);
 			const meta = node?.meta;
-			if (!node || !meta) return null;
-			return meta.isValueNode
-				? {
-						id: node.id,
-						kind: 'value',
-						property: meta.propName,
-						rawValue: meta.rawValue ?? node.label,
-						propType: meta.propType,
-					}
-				: { id: node.id, kind: 'prop', property: meta.propName };
-		};
-		const wrap = (
-			target: AddToFilesTarget | null,
-		): OperationTarget<AddToFilesTarget> | null =>
-			target ? { id: target.id, kind: target.kind, node: target } : null;
-
-		const selectedNodes: OperationTarget<AddToFilesTarget>[] = [];
-		for (const id of this.selectedNodeIds) {
-			const wrapped = wrap(toTarget(this._findNode(id, tree)));
-			if (wrapped) selectedNodes.push(wrapped);
+			if (!node || !meta) continue;
+			if (meta.isValueNode) {
+				targets.push({
+					id: node.id,
+					kind: 'value',
+					property: meta.propName,
+					rawValue: meta.rawValue ?? node.label,
+					propType: meta.propType,
+				});
+			} else {
+				targets.push({ id: node.id, kind: 'prop', property: meta.propName });
+			}
 		}
-
-		return buildOperationTargetSet<AddToFilesTarget>({
-			selectedNodes,
-			invokedNode: wrap(toTarget(ctx.node as TreeNode<PropMeta>)),
-		}).targets.map((target) => target.node);
+		return targets;
 	}
 
 	private _addToFiles(ctx: {
@@ -2081,6 +2097,8 @@ export class PropsExplorerPanel extends Component {
 				nodeType,
 				node,
 				surface: 'panel',
+				selectedIds: this.selectedNodeIds,
+				orderedIds: this._orderedVisibleTreeIds(),
 				...this._groupCreationMenuCtx(),
 				invokeRename: (targetId: string) => {
 					this._editingId = targetId;
