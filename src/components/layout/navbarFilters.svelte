@@ -3197,7 +3197,7 @@
 							<span
 								class="vaultman-header-action-icon"
 								aria-hidden="true"
-								use:icon={currentTabsIcon}
+								use:icon={panelWidgetNodeIcon('tabs', currentTabsIcon)}
 							></span>
 							{#if tabsButtonLabelEffective && currentTabsOption}
 								<span class="vaultman-header-action-label">
@@ -3244,7 +3244,7 @@
 										);
 									}
 								}}
-								use:icon={action.icon}
+								use:icon={panelWidgetNodeIcon(`header:${action.id}`, action.icon)}
 							></div>
 						{/if}
 					{/each}
@@ -3276,7 +3276,7 @@
 										);
 									}
 								}}
-								use:icon={'lucide-layout-list'}
+								use:icon={panelWidgetNodeIcon('view', 'lucide-layout-list')}
 							></div>
 						{/if}
 						{#if toolbarNodeVisible('sort')}
@@ -3304,7 +3304,7 @@
 										);
 									}
 								}}
-								use:icon={'lucide-arrow-up-down'}
+								use:icon={panelWidgetNodeIcon('sort', 'lucide-arrow-up-down')}
 							></div>
 						{/if}
 						{#if minimalStyle && toolbarNodeVisible('search')}
@@ -3333,7 +3333,7 @@
 										toggleSearch();
 									}
 								}}
-								use:icon={'lucide-search'}
+								use:icon={panelWidgetNodeIcon('search', 'lucide-search')}
 							></div>
 						{/if}
 						{#if showSearchInput && !searchOwnsRow}
@@ -3386,7 +3386,10 @@
 										);
 									}
 								}}
-								use:icon={'lucide-gallery-vertical'}
+								use:icon={panelWidgetNodeIcon(
+									'reveal-active-file',
+									'lucide-gallery-vertical',
+								)}
 							></div>
 						{/if}
 						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible('toggle-expansion')}
@@ -3415,7 +3418,7 @@
 										);
 									}
 								}}
-								use:icon={expansionIcon}
+									use:icon={panelWidgetNodeIcon('toggle-expansion', expansionIcon)}
 							></div>
 						{/if}
 						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
@@ -3448,7 +3451,7 @@
 											);
 										}
 									}}
-									use:icon={'lucide-file-plus'}
+									use:icon={panelWidgetNodeIcon('create-file', 'lucide-file-plus')}
 								></div>
 							{/if}
 							{#if toolbarNodeVisible('create-folder')}
@@ -3479,7 +3482,7 @@
 											);
 										}
 									}}
-									use:icon={'lucide-folder-plus'}
+									use:icon={panelWidgetNodeIcon('create-folder', 'lucide-folder-plus')}
 								></div>
 							{/if}
 						{/if}
@@ -3521,7 +3524,10 @@
 											invokeSceneAction(`command:${command.id}`, 'keyboard');
 										}
 									}}
-									use:icon={command.icon ?? 'lucide-terminal'}
+									use:icon={panelWidgetNodeIcon(
+										`command:${command.id}`,
+										command.icon ?? 'lucide-terminal',
+									)}
 								></div>
 							{/if}
 						{/each}

@@ -87,6 +87,25 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(typeInstanceSource).toContain('toolbarNodeIcons?: Record<string, string>');
 	});
 
+	it('pinta cada nodo con el mismo override que edita el alt-cmenu', () => {
+		const source = navbarSource.replace(/\s+/g, ' ');
+		const renderedIcons = [
+			"panelWidgetNodeIcon('tabs', currentTabsIcon)",
+			"panelWidgetNodeIcon(`header:${action.id}`, action.icon)",
+			"panelWidgetNodeIcon('view', 'lucide-layout-list')",
+			"panelWidgetNodeIcon('sort', 'lucide-arrow-up-down')",
+			"panelWidgetNodeIcon('search', 'lucide-search')",
+			"panelWidgetNodeIcon( 'reveal-active-file',",
+			"panelWidgetNodeIcon('toggle-expansion', expansionIcon)",
+			"panelWidgetNodeIcon('create-file', 'lucide-file-plus')",
+			"panelWidgetNodeIcon('create-folder', 'lucide-folder-plus')",
+			"panelWidgetNodeIcon( `command:${command.id}`",
+		];
+		for (const iconExpression of renderedIcons) {
+			expect(source).toContain(iconExpression);
+		}
+	});
+
 	it('las cadenas del alt-cmenu existen en en.ts y en es.ts', () => {
 		for (const key of [
 			'toolbar.alt.scene_label',
