@@ -420,7 +420,17 @@ export const es: Record<string, string> = {
 	'settings.context_menu_kind.content': 'Menú de nodos de Texto',
 	'settings.context_menu_kind.snippets': 'Menú de nodos Snippets',
 	'settings.context_menu_kind.plugins': 'Menú de nodos Plugins',
+	'settings.context_menu_kind.scene_menu': 'Valores del menú de escena',
+	'settings.context_menu_kind.scene_menu.desc':
+		'Configura las acciones, el orden, la visibilidad, los separadores y los submenús predeterminados del menú de escena.',
+	'settings.context_menu_kind.view_menu': 'Valores del menú de vista',
+	'settings.context_menu_kind.view_menu.desc':
+		'Configura las acciones, el orden, la visibilidad, los separadores y los submenús predeterminados del menú de vista.',
+	'settings.context_menu_kind.sort_menu': 'Valores del menú de ordenación',
+	'settings.context_menu_kind.sort_menu.desc':
+		'Configura las acciones, el orden, la visibilidad, los separadores y los submenús predeterminados del menú de ordenación.',
 	'settings.context_menu.experimental': 'Experimental',
+	'settings.context_menu.toolbar': 'Menús de la barra de herramientas',
 	'settings.files_context_menu': 'Menú contextual de Files',
 	'settings.files_context_menu.desc':
 		'Elige qué acciones muestra el menú contextual de los nodos de Files, en qué orden, y agrúpalas con separadores y submenús.',

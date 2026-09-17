@@ -416,7 +416,17 @@ export const en: Record<string, string> = {
 	'settings.context_menu_kind.content': 'Text node menu',
 	'settings.context_menu_kind.snippets': 'Snippets node menu',
 	'settings.context_menu_kind.plugins': 'Plugins node menu',
+	'settings.context_menu_kind.scene_menu': 'Scene menu defaults',
+	'settings.context_menu_kind.scene_menu.desc':
+		'Configure the global default actions, order, visibility, dividers, and submenus for the Scene menu.',
+	'settings.context_menu_kind.view_menu': 'View menu defaults',
+	'settings.context_menu_kind.view_menu.desc':
+		'Configure the global default actions, order, visibility, dividers, and submenus for the View menu.',
+	'settings.context_menu_kind.sort_menu': 'Sort menu defaults',
+	'settings.context_menu_kind.sort_menu.desc':
+		'Configure the global default actions, order, visibility, dividers, and submenus for the Sort menu.',
 	'settings.context_menu.experimental': 'Experimental',
+	'settings.context_menu.toolbar': 'Toolbar menus',
 	'settings.files_context_menu': 'Files context menu',
 	'settings.files_context_menu.desc':
 		'Choose which actions the Files node context menu shows, in which order, and group them with dividers and submenus.',

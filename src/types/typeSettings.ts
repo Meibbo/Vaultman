@@ -19,6 +19,7 @@ import {
 } from '../logic/logicCellRegistry';
 import type { AddonIconOverrides } from '../logic/logicAddonIcons';
 import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
+import type { ToolbarMenuKind } from '../logic/logicToolbarMenuCatalog';
 import type {
 	RelativeTimeCutoffs,
 	TimestampRelativeWindow,
@@ -335,6 +336,8 @@ export interface VaultmanSettings {
 			FilesMenuItem[]
 		>
 	>;
+	/** U130-11: global layouts for the catalog-backed toolbar menus. */
+	toolbarMenuLayouts?: Partial<Record<ToolbarMenuKind, FilesMenuItem[]>>;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */

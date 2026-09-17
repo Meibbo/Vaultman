@@ -16,6 +16,7 @@ import {
 	setFilesMenuVisibility,
 	type FilesMenuItem,
 } from '../../src/logic/logicFilesContextMenu';
+import { TOOLBAR_MENU_CANONICAL_ORDER } from '../../src/logic/logicToolbarMenuCatalog';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import contextMenuSource from '../../src/services/serviceContextMenu.ts?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
@@ -99,6 +100,16 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(merged.find((item) => item.id === 'file.open_tab')).toMatchObject({
 			visible: false,
 		});
+	});
+
+	it('supports a catalog-specific canonical order for toolbar layouts', () => {
+		const order = TOOLBAR_MENU_CANONICAL_ORDER.scene_menu;
+		const merged = mergeFilesMenuLayout(
+			[{ kind: 'action', id: order[2], visible: true }],
+			order.slice(0, 3),
+			order,
+		);
+		expect(actionIds(merged)).toEqual(order.slice(0, 3));
 	});
 
 	it('loads a config whose ids were retired without breaking', () => {

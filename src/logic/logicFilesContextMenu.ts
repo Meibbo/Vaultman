@@ -152,11 +152,12 @@ function nextGeneratedId(
 
 export function defaultFilesMenuLayout(
 	catalogIds: readonly string[],
+	defaultOrder: readonly string[] = FILES_MENU_DEFAULT_ORDER,
 ): FilesMenuItem[] {
 	const known = new Set(catalogIds);
 	const items: FilesMenuItem[] = [];
 	let dividers = 0;
-	for (const entry of FILES_MENU_DEFAULT_ORDER) {
+	for (const entry of defaultOrder) {
 		if (entry === DIVIDER_MARK) {
 			dividers += 1;
 			items.push({ kind: 'divider', id: dividerId(dividers) });
@@ -175,7 +176,7 @@ export function defaultFilesMenuLayout(
 	);
 	// Anything else the registry offers that the default order never named.
 	for (const id of catalogIds) {
-		if (FILES_MENU_DEFAULT_ORDER.includes(id) || isNativePanelActionId(id)) {
+		if (defaultOrder.includes(id) || isNativePanelActionId(id)) {
 			continue;
 		}
 		items.push({ kind: 'action', id, visible: isVisibleByDefault(id) });
@@ -215,8 +216,9 @@ function readSavedItem(value: unknown): FilesMenuItem | null {
 export function mergeFilesMenuLayout(
 	saved: unknown,
 	catalogIds: readonly string[],
+	defaultOrder: readonly string[] = FILES_MENU_DEFAULT_ORDER,
 ): FilesMenuItem[] {
-	if (!Array.isArray(saved)) return defaultFilesMenuLayout(catalogIds);
+	if (!Array.isArray(saved)) return defaultFilesMenuLayout(catalogIds, defaultOrder);
 	const known = new Set(catalogIds);
 	const seen = new Set<string>();
 	const merged: FilesMenuItem[] = [];
@@ -243,11 +245,11 @@ export function mergeFilesMenuLayout(
 			nativeInsertAt += 1;
 			continue;
 		}
-		const rank = FILES_MENU_DEFAULT_ORDER.indexOf(id);
+		const rank = defaultOrder.indexOf(id);
 		const insertAt =
 			rank < 0
 				? merged.length
-				: findInsertionIndex(merged, rank, FILES_MENU_DEFAULT_ORDER);
+				: findInsertionIndex(merged, rank, defaultOrder);
 		merged.splice(insertAt, 0, {
 			kind: 'action',
 			id,

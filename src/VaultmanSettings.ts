@@ -40,6 +40,12 @@ import {
 	type FilesMenuItem,
 } from './logic/logicFilesContextMenu';
 import {
+	TOOLBAR_MENU_CANONICAL_ORDER,
+	TOOLBAR_MENU_KINDS,
+	toolbarMenuCatalog,
+	type ToolbarMenuKind,
+} from './logic/logicToolbarMenuCatalog';
+import {
 	addCommandId,
 	isVaultmanDefault,
 	normalizeCommandIds,
@@ -1967,6 +1973,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 
 		items.push({
+			name: translate('settings.context_menu.toolbar'),
+			render: (setting: Setting) => {
+				setting.setHeading();
+			},
+		});
+		for (const kind of TOOLBAR_MENU_KINDS) {
+			items.push({
+				type: 'page',
+				name: translate(`settings.context_menu_kind.${kind}`),
+				desc: translate(`settings.context_menu_kind.${kind}.desc`),
+				items: this.getFilesContextMenuPageItems(kind),
+			});
+		}
+
+		items.push({
 			name: translate('settings.context_menu.experimental'),
 			render: (setting: Setting) => {
 				setting.setHeading();
@@ -2189,7 +2210,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 * submenus the user can create. Everything is stored by action id.
 	 */
 	private getFilesContextMenuPageItems(
-		kind: (typeof PANEL_MENU_KINDS)[number],
+		kind: (typeof PANEL_MENU_KINDS)[number] | ToolbarMenuKind,
 	): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
 		items.push({
@@ -2200,20 +2221,43 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		const catalog = this.plugin.contextMenuService.panelActionCatalog(kind);
+		const catalog = PANEL_MENU_KINDS.includes(
+			kind as (typeof PANEL_MENU_KINDS)[number],
+		)
+			? this.plugin.contextMenuService.panelActionCatalog(
+				kind as (typeof PANEL_MENU_KINDS)[number],
+			)
+			: toolbarMenuCatalog(kind as ToolbarMenuKind).map((entry) => ({
+				id: entry.id,
+				label: translate(entry.labelKey),
+				native: false,
+			}));
 		const labels = new Map(catalog.map((entry) => [entry.id, entry.label]));
-		const savedLayout =
-			kind === 'files'
+		const isToolbar = TOOLBAR_MENU_KINDS.includes(kind as ToolbarMenuKind);
+		const savedLayout = isToolbar
+			? this.plugin.settings.toolbarMenuLayouts?.[kind as ToolbarMenuKind]
+			: kind === 'files'
 				? this.plugin.settings.filesContextMenuLayout
-				: this.plugin.settings.contextMenuLayouts?.[kind];
+				: this.plugin.settings.contextMenuLayouts?.[
+						kind as (typeof PANEL_MENU_KINDS)[number]
+					];
+		const defaultOrder = isToolbar
+			? TOOLBAR_MENU_CANONICAL_ORDER[kind as ToolbarMenuKind]
+			: undefined;
 		const layout = mergeFilesMenuLayout(
 			savedLayout,
 			catalog.map((entry) => entry.id),
+			defaultOrder,
 		);
 
 		const persist = async (next: FilesMenuItem[]): Promise<void> => {
 			const normalized = normalizeFilesMenuLayout(next);
-			if (kind === 'files') {
+			if (isToolbar) {
+				this.plugin.settings.toolbarMenuLayouts = {
+					...this.plugin.settings.toolbarMenuLayouts,
+					[kind as ToolbarMenuKind]: normalized,
+				};
+			} else if (kind === 'files') {
 				this.plugin.settings.filesContextMenuLayout = normalized;
 			} else {
 				this.plugin.settings.contextMenuLayouts = {
@@ -2229,9 +2273,17 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			name: '',
 			render: (setting: Setting) => {
 				const getLayout = (): FilesMenuItem[] => {
-					return (
-						this.plugin.settings.filesContextMenuLayout ??
-						defaultFilesMenuLayout(catalog.map((entry) => entry.id))
+					const currentSaved = isToolbar
+						? this.plugin.settings.toolbarMenuLayouts?.[kind as ToolbarMenuKind]
+						: kind === 'files'
+							? this.plugin.settings.filesContextMenuLayout
+							: this.plugin.settings.contextMenuLayouts?.[
+									kind as (typeof PANEL_MENU_KINDS)[number]
+								];
+					return mergeFilesMenuLayout(
+						currentSaved,
+						catalog.map((entry) => entry.id),
+						defaultOrder,
 					);
 				};
 				setting
@@ -2262,7 +2314,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 							.onClick(
 								() =>
 									void persist(
-										defaultFilesMenuLayout(catalog.map((entry) => entry.id)),
+										defaultFilesMenuLayout(
+											catalog.map((entry) => entry.id),
+											defaultOrder,
+										),
 									),
 							),
 					);
