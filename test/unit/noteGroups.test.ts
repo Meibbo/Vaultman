@@ -10,6 +10,7 @@ import {
 	updateNoteGroupMembersOnRename,
 	isSameTarget,
 	stablyDeduplicateMembers,
+	scopeToNoteGroupTarget,
 	type NoteGroupTarget,
 } from '../../src/logic/logicNoteGroups';
 import {
@@ -26,6 +27,7 @@ import type { TreeNode } from '../../src/types/typeTree';
 import type { SavedViewConfig } from '../../src/types/typeSettings';
 import { captureSavedViewConfig } from '../../src/logic/logicSceneConfigPort';
 import { TFile, type App } from 'obsidian';
+import { parseYaml, stringifyYaml } from '../helpers/yaml';
 
 function createTestApp(files: { path: string; frontmatter?: Record<string, unknown> }[]) {
 	const metaMap = new Map<string, Record<string, unknown>>();
@@ -142,6 +144,16 @@ describe('U130-09 Note Groups: Codec round trips, malformed keys, and collisions
 			group: 'Work',
 			target: tagParentTarget,
 		});
+	});
+
+	it('resolves the active drill scope to its parent target', () => {
+		expect(scopeToNoteGroupTarget('drill', 'status')).toEqual({
+			kind: 'parent',
+			path: 'status',
+		});
+		expect(scopeToNoteGroupTarget('drill', null)).toBeNull();
+		expect(scopeToNoteGroupTarget('level:2')).toEqual({ kind: 'level', level: 2 });
+		expect(scopeToNoteGroupTarget('level:1.5')).toBeNull();
 	});
 
 	it('rejects malformed keys as unmanaged (returns null)', () => {
@@ -356,6 +368,16 @@ describe('U130-09 Note Groups: Reveal-only menu and separate sort Note', () => {
 			kind: 'note',
 			direction: 'asc',
 		});
+		// A persisted note preset is rejected when reveal is not active; the
+		// frontmatter source is undefined outside the reveal projection.
+		expect(normalizeGroupPreset('props', { kind: 'note', direction: 'asc' }, false)).toEqual({
+			kind: 'none',
+			direction: 'asc',
+		});
+		expect(normalizeGroupPreset('tags', { kind: 'note', direction: 'asc' })).toEqual({
+			kind: 'none',
+			direction: 'asc',
+		});
 		// Rejects note preset on files
 		expect(normalizeGroupPreset('files', { kind: 'note', direction: 'asc' }, true)).toEqual({
 			kind: 'none',
@@ -528,6 +550,31 @@ describe('U130-09 Note Groups: processFrontMatter preservation, error handling, 
 		);
 	});
 
+	it('re-checks a collision inside processFrontMatter against a stale cache', async () => {
+		const { app, metaMap } = createTestApp([{ path: 'race.md', frontmatter: {} }]);
+		const file = app.vault.getFileByPath('race.md')!;
+		app.fileManager.processFrontMatter = vi.fn().mockImplementation(
+			async (target: TFile, fn: (fm: Record<string, unknown>) => void) => {
+				// A concurrent editor wins after the metadata cache was read.
+				const latest = { ...(metaMap.get(target.path) ?? {}), prop_Race_level1: 'late collision' };
+				fn(latest);
+				metaMap.set(target.path, latest);
+			},
+		);
+
+		const result = await writeNoteGroups({
+			app,
+			file,
+			scene: 'prop',
+			target: { kind: 'level', level: 1 },
+			groups: [{ name: 'Race', members: ['a'] }],
+		});
+
+		expect(result.ok).toBe(false);
+		expect(result.error).toContain('collision');
+		expect(metaMap.get('race.md')?.prop_Race_level1).toBe('late collision');
+	});
+
 	it('updates note group list members and parent target keys on property/value/tag rename', () => {
 		const fm: Record<string, unknown> = {
 			prop_Work_level1: ['status', 'priority'],
@@ -562,7 +609,7 @@ describe('U130-09 Note Groups: processFrontMatter preservation, error handling, 
 	});
 
 	it('Section 4: physical order test with processFrontMatter roundtrip', async () => {
-		const { app } = createTestApp([
+		const { app, metaMap } = createTestApp([
 			{
 				path: 'ordered.md',
 				frontmatter: {
@@ -572,6 +619,18 @@ describe('U130-09 Note Groups: processFrontMatter preservation, error handling, 
 			},
 		]);
 		const file = app.vault.getFileByPath('ordered.md')!;
+		// Exercise the same ordered-map boundary as Obsidian's YAML frontmatter
+		// writer rather than relying on an object mutation alone.  The helper
+		// uses the real YAML parser/stringifier used by the test Obsidian mocks.
+		app.fileManager.processFrontMatter = vi.fn().mockImplementation(
+			async (target: TFile, fn: (fm: Record<string, unknown>) => void) => {
+				const current = metaMap.get(target.path) ?? {};
+				const parsed = parseYaml(stringifyYaml(current)) as Record<string, unknown>;
+				fn(parsed);
+				const persisted = parseYaml(stringifyYaml(parsed)) as Record<string, unknown>;
+				metaMap.set(target.path, persisted);
+			},
+		);
 
 		// Edit GroupB members
 		const res = await writeNoteGroups({

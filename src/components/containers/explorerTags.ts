@@ -464,7 +464,9 @@ export class TagsExplorerPanel extends Component {
 			const cache = this._revealCache();
 			const frontmatter = (cache?.frontmatter ?? {}) as Record<string, unknown>;
 			const activeScope = this.sortState?.activeScope ?? 'all';
-			const target = scopeToNoteGroupTarget(activeScope) ?? { kind: 'level', level: 1 };
+			const target =
+				scopeToNoteGroupTarget(activeScope, this.sortState?.drillNodeId) ??
+				{ kind: 'level', level: 1 };
 			const noteRes = parseFrontmatterNoteGroups(frontmatter, 'tag', target);
 			if (noteRes.collisions.length > 0) {
 				new Notice(

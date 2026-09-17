@@ -91,8 +91,12 @@ export function normalizeGroupPreset(
 	if (typeof value !== 'object' || value === null)
 		return { ...NO_GROUP_PRESET };
 	const raw = value as { kind?: unknown; direction?: unknown };
+	// Note groups are meaningful only while the props/tags explorer is
+	// actually revealing a note.  Do not let a persisted `kind: note` leak
+	// into an ordinary scene (or into files/snippets/plugins) merely because
+	// the raw value happened to contain that string.
 	const noteAllowed =
-		(tab === 'props' || tab === 'tags') && (revealActive || raw.kind === 'note');
+		(tab === 'props' || tab === 'tags') && revealActive;
 	const kind =
 		isGroupPresetKind(raw.kind) &&
 		(GROUP_PRESETS_BY_TAB[tab].includes(raw.kind) ||

@@ -707,7 +707,9 @@ export class PropsExplorerPanel extends Component {
 			if (!this.isRevealingActiveFile()) return nodes as TreeNode<PropMeta>[];
 			const frontmatter = this._revealFrontmatter();
 			const activeScope = this.sortState?.activeScope ?? 'all';
-			const target = scopeToNoteGroupTarget(activeScope) ?? { kind: 'level', level: 1 };
+			const target =
+				scopeToNoteGroupTarget(activeScope, this.sortState?.drillNodeId) ??
+				{ kind: 'level', level: 1 };
 			const noteRes = parseFrontmatterNoteGroups(frontmatter, 'prop', target);
 			if (noteRes.collisions.length > 0) {
 				new Notice(

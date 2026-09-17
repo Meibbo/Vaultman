@@ -143,11 +143,17 @@ export function noteGroupTargetToScope(target: NoteGroupTarget): SortScopeKey {
 	return `parent:${target.path}`;
 }
 
-export function scopeToNoteGroupTarget(scope: SortScopeKey): NoteGroupTarget | null {
+export function scopeToNoteGroupTarget(
+	scope: SortScopeKey,
+	drillNodeId?: string | null,
+): NoteGroupTarget | null {
 	if (scope === 'all') return { kind: 'level', level: 1 };
+	if (scope === 'drill') {
+		return drillNodeId ? { kind: 'parent', path: drillNodeId } : null;
+	}
 	if (scope.startsWith('level:')) {
 		const num = Number(scope.slice('level:'.length));
-		if (!isNaN(num)) return { kind: 'level', level: num };
+		if (Number.isInteger(num) && num >= 0) return { kind: 'level', level: num };
 	}
 	if (scope.startsWith('parent:')) {
 		return { kind: 'parent', path: scope.slice('parent:'.length) };
@@ -318,9 +324,30 @@ export async function writeNoteGroups(
 			expectedEntries.set(k, stablyDeduplicateMembers(g.members));
 		}
 
-		// 4. Edit frontmatter through Obsidian FileManager.processFrontMatter
+		// 4. Edit frontmatter through Obsidian FileManager.processFrontMatter.
+		// Re-check inside the callback: metadataCache can lag another editor, while
+		// the callback receives the frontmatter Obsidian is about to persist.
+		let callbackCollision: NoteGroupCollision | undefined;
 		try {
 			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+				const currentCollisions = detectCollisions(fm, scene, target);
+				if (currentCollisions.length > 0) {
+					callbackCollision = currentCollisions[0];
+					return;
+				}
+				for (const g of groups) {
+					const k = encodeNoteGroupKey(scene, g.name, target);
+					if (k in fm && !Array.isArray(fm[k])) {
+						callbackCollision = {
+							key: k,
+							value: fm[k],
+							scene,
+							group: g.name,
+							target,
+						};
+						return;
+					}
+				}
 				// Delete all existing managed keys for this scene and target
 				for (const k of Object.keys(fm)) {
 					const parsed = parseNoteGroupKey(k);
@@ -341,6 +368,11 @@ export async function writeNoteGroups(
 				error: msg,
 				retry: () => writeNoteGroups(request),
 			};
+		}
+		if (callbackCollision) {
+			const msg = `Note group collision: key "${callbackCollision.key}" exists with non-list value.`;
+			new Notice(msg);
+			return { ok: false, error: msg, collisions: [callbackCollision] };
 		}
 
 		// 5. Re-read after write and verify
