@@ -23,7 +23,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 			'for (const option of primaryTabOptions)',
 			'launcherActions',
 			"translate('floating_toc.menu')",
-			'renderTabAction(statisticsAction)',
+			'tabActionNode(statisticsAction)',
 			'for (const option of addonTabOptions)',
 		];
 		let previous = -1;
@@ -40,9 +40,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		const inMode = menu.indexOf("translate('viewmenu.interaction')");
 		const cells = menu.indexOf('cellMenuOrder(');
 		const toolbar = menu.indexOf("translate('viewmenu.toolbar')");
-		const engines = menu.indexOf(
-			'for (const option of minimalNativeViewModes)',
-		);
+		const engines = menu.indexOf('const engineChildren: NativeMenuNode[]');
 
 		// Orden dev 2026-09-15: el submenú de interacción (input) primero.
 		expect(inMode).toBeGreaterThan(-1);

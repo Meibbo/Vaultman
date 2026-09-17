@@ -80,6 +80,11 @@
 		type ScopeMenuScene,
 	} from '../../logic/logicSortMenu';
 	import type { GroupPresetKind } from '../../types/typeGroupPreset';
+	import type { ToolbarMenuKind } from '../../logic/logicToolbarMenuCatalog';
+	import {
+		projectToolbarMenu,
+		type ToolbarMenuNode,
+	} from '../../logic/logicToolbarMenuProjection';
 	import {
 		cellIcon,
 		cellLabelKey,
@@ -110,13 +115,11 @@
 		PanelWidgetExplorerPort,
 		PanelWidgetFilesExplorerPort,
 		PanelWidgetHeaderMenuAction,
-		PanelWidgetHeaderTabOption,
 		PanelWidgetNode,
 		PanelWidgetTreeExplorerPort,
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab = ExplorerTabId;
-	type HeaderTabOption = PanelWidgetHeaderTabOption;
 	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
@@ -128,6 +131,92 @@
 	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone' | 'row';
+	type NativeMenuValue = {
+		readonly title: string;
+		readonly icon?: string;
+		readonly checked?: boolean;
+		readonly disabled?: boolean;
+		readonly onClick?: () => void;
+	};
+	type NativeMenuNode = ToolbarMenuNode<NativeMenuValue>;
+
+	function nativeMenuItem(
+		id: string,
+		value: NativeMenuValue,
+		children?: readonly NativeMenuNode[],
+		anchor?: { readonly id: string; readonly placement: 'before' | 'after' },
+	): NativeMenuNode {
+		return {
+			kind: 'item',
+			item: {
+				id,
+				value,
+				...(children ? { children } : {}),
+				...(anchor ? { anchor } : {}),
+			},
+		};
+	}
+
+	function nativeMenuDivider(id: string): NativeMenuNode {
+		return { kind: 'divider', id };
+	}
+
+	function nativeMenuNever(value: never): never {
+		throw new Error(`Unknown native menu node: ${String(value)}`);
+	}
+
+	function renderNativeMenuNodes(
+		menu: Menu,
+		nodes: readonly NativeMenuNode[],
+	): void {
+		for (const node of nodes) {
+			switch (node.kind) {
+				case 'divider':
+					menu.addSeparator();
+					break;
+				case 'item':
+					menu.addItem((item) => {
+						item.setTitle(node.item.value.title);
+						if (node.item.value.icon) item.setIcon(node.item.value.icon);
+						if (node.item.value.checked !== undefined) {
+							item.setChecked(node.item.value.checked);
+						}
+						if (node.item.value.disabled !== undefined) {
+							item.setDisabled(node.item.value.disabled);
+						}
+						if (node.item.children) {
+							const submenu = (
+								item as typeof item & { setSubmenu: () => Menu }
+							).setSubmenu();
+							renderNativeMenuNodes(submenu, node.item.children);
+						}
+						if (node.item.value.onClick) {
+							item.onClick(node.item.value.onClick);
+						}
+					});
+					break;
+				default:
+					return nativeMenuNever(node);
+			}
+		}
+	}
+
+	function projectNativeMenu(
+		kind: ToolbarMenuKind,
+		nodes: readonly NativeMenuNode[],
+		inlineGroups: readonly string[] = [],
+	): readonly NativeMenuNode[] {
+		return projectToolbarMenu(
+			kind,
+			toolbarMenuLayouts?.[kind],
+			nodes,
+			inlineGroups,
+			(_id, label) => ({
+				title: label,
+				icon: 'lucide-chevron-right',
+			}),
+		);
+	}
 	let {
 		activeTab,
 		providerId = activeTab,
@@ -180,6 +269,7 @@
 		showTabLabels = true,
 		sortLevelInline = true,
 		orderCellsByActivation = false,
+		toolbarMenuLayouts,
 		commandActions = [],
 		createActionsPlacement = 'searchbox',
 		pvpuiConfig = {},
@@ -537,81 +627,6 @@
 		if (name in memberships) return;
 		onGroupMembershipsChange(layout.name, { ...memberships, [name]: urns });
 		setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-	}
-	function addGroupsSubmenu(menu: Menu, tab: FiltersTab) {
-		const model = groupMenuModel(
-			tab,
-			configByTab[tab].groupPreset,
-			customGroupsForMenu(tab),
-			activeLayout() !== null && Boolean(onGroupMembershipsChange),
-		);
-		menu.addItem((item) => {
-			item.setTitle(translate('group.menu.title')).setIcon('lucide-group');
-			const sub = (
-				item as typeof item & { setSubmenu: () => Menu }
-			).setSubmenu();
-			for (const entry of model.items) {
-				if (entry.kind === 'separator') {
-					sub.addSeparator();
-					continue;
-				}
-				sub.addItem((row) => {
-					if (entry.kind === 'preset') {
-						row
-							.setTitle(
-								`${translate(entry.labelKey)}${
-									entry.direction
-										? ` ${sortDirectionGlyph(entry.direction)}`
-										: ''
-								}`,
-							)
-							.setIcon(entry.icon)
-							.setChecked(entry.checked)
-							.onClick(() => selectGroupPreset(tab, entry.id));
-					} else if (entry.kind === 'new-group') {
-						row
-							.setTitle(
-								translate(
-									entry.disabled ? 'group.new.needs_layout' : entry.labelKey,
-								),
-							)
-							.setIcon(entry.icon)
-							.setDisabled(entry.disabled)
-							.onClick(() => void createCustomGroup(tab));
-					} else {
-						// Spec 08 §4 in a native Menu (plan D3): a painted item cannot
-						// swap its content, so the question and its three answers
-						// live in the row's submenu.
-						row.setTitle(entry.label).setIcon(entry.icon);
-						const confirm = (
-							row as typeof row & { setSubmenu: () => Menu }
-						).setSubmenu();
-						confirm.addItem((q) =>
-							q.setTitle(translate('group.row.confirm')).setDisabled(true),
-						);
-						confirm.addItem((h) =>
-							h
-								.setTitle(
-									translate(
-										entry.hidden ? 'group.row.unhide' : 'group.row.hide',
-									),
-								)
-								.setIcon(entry.hidden ? 'lucide-eye' : 'lucide-eye-off')
-								.onClick(() => setGroupHidden(tab, entry.id, !entry.hidden)),
-						);
-						confirm.addItem((d) =>
-							d
-								.setTitle(translate('group.row.delete'))
-								.setIcon('lucide-trash-2')
-								.onClick(() => deleteCustomGroup(tab, entry.id)),
-						);
-						confirm.addItem((c) =>
-							c.setTitle(translate('group.row.cancel')).setIcon('lucide-x'),
-						);
-					}
-				});
-			}
-		});
 	}
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
@@ -1596,69 +1611,85 @@
 					(option) => option.id !== 'dnd',
 				)
 			: viewModesForDataSurface(activeTab);
+		const nodes: NativeMenuNode[] = [];
 
 		// Interaction first: the mode submenu (open/filter/add/input/select).
-		menu.addItem((item) => {
-			item
-				.setTitle(
-					`${translate('viewmenu.interaction')} ${translate(`viewmenu.interaction.${normalizeInteractionMode(activeTab, interactionModeByTab[activeTab])}`)}`,
-				)
-				.setIcon('lucide-mouse-pointer-click');
-			const sub = (
-				item as typeof item & { setSubmenu: () => Menu }
-			).setSubmenu();
-			for (const mode of interactionModesForTab(activeTab)) {
-				sub.addItem((subItem) =>
-					subItem
-						.setTitle(translate(`viewmenu.interaction.${mode}`))
-						.setIcon(
-							mode === 'open'
-								? 'lucide-folder-open'
-								: mode === 'filter'
-									? 'lucide-list-filter'
-									: mode === 'add'
-										? 'lucide-plus'
-										: mode === 'input'
-											? 'lucide-pencil'
-											: 'lucide-mouse-pointer-2',
-						)
-						.setChecked(interactionModeByTab[activeTab] === mode)
-						.onClick(() => selectInteractionMode(activeTab, mode)),
-				);
-			}
-		});
+		const interactionIcon = (mode: InteractionMode): string =>
+			mode === 'open'
+				? 'lucide-folder-open'
+				: mode === 'filter'
+					? 'lucide-list-filter'
+					: mode === 'add'
+						? 'lucide-plus'
+						: mode === 'input'
+							? 'lucide-pencil'
+							: 'lucide-mouse-pointer-2';
+		const interactionChildren = interactionModesForTab(activeTab).map(
+			(mode): NativeMenuNode =>
+				nativeMenuItem(`view_menu.interaction.${mode}`, {
+					title: translate(`viewmenu.interaction.${mode}`),
+					icon: interactionIcon(mode),
+					checked: interactionModeByTab[activeTab] === mode,
+					onClick: () => selectInteractionMode(activeTab, mode),
+				}),
+		);
+		nodes.push(
+			nativeMenuItem(
+				'view_menu.interaction',
+				{
+					title: `${translate('viewmenu.interaction')} ${translate(`viewmenu.interaction.${normalizeInteractionMode(activeTab, interactionModeByTab[activeTab])}`)}`,
+					icon: 'lucide-mouse-pointer-click',
+				},
+				interactionChildren,
+			),
+		);
 
 		// Saved layouts; the creation action is deliberately last.
 		if (onSaveLayout) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.layouts'))
-					.setIcon('lucide-layout-template');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				if (savedLayouts.length > 0) {
-					for (const layout of savedLayouts) {
-						sub.addItem((s) =>
-							s
-								.setTitle(layout.name)
-								.setIcon('lucide-layout-template')
-								.onClick(() => loadLayout(layout)),
-						);
-					}
-					sub.addSeparator();
+			const layoutChildren: NativeMenuNode[] = [];
+			if (savedLayouts.length > 0) {
+				for (const layout of savedLayouts) {
+					layoutChildren.push(
+						nativeMenuItem(
+							`view_menu.layouts.saved.${layout.name}`,
+							{
+								title: layout.name,
+								icon: 'lucide-layout-template',
+								onClick: () => loadLayout(layout),
+							},
+							undefined,
+							{
+								id: 'view_menu.layouts.save',
+								placement: 'before',
+							},
+						),
+					);
 				}
-				sub.addItem((s) =>
-					s
-						.setTitle(translate('viewmenu.save_layout'))
-						.setIcon('lucide-save')
-						.onClick(() => void promptSaveLayout()),
+				layoutChildren.push(
+					nativeMenuDivider('view_menu.layouts.divider.saved'),
 				);
-			});
+			}
+			layoutChildren.push(
+				nativeMenuItem('view_menu.layouts.save', {
+					title: translate('viewmenu.save_layout'),
+					icon: 'lucide-save',
+					onClick: () => void promptSaveLayout(),
+				}),
+			);
+			nodes.push(nativeMenuDivider('view_menu.divider.layouts'));
+			nodes.push(
+				nativeMenuItem(
+					'view_menu.layouts',
+					{
+						title: translate('viewmenu.layouts'),
+						icon: 'lucide-layout-template',
+					},
+					layoutChildren,
+				),
+			);
 		}
 
-		menu.addSeparator();
+		nodes.push(nativeMenuDivider('view_menu.divider.cells'));
 		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
 		// first, then the rest at their canonical rank.
@@ -1671,31 +1702,33 @@
 				viewMode: activeView,
 			},
 		)) {
-			menu.addItem((item) => {
-				item
-					.setTitle(
-						translate(cellLabelKey(entry.definition, activeTab, activeView)),
-					)
-					.setIcon(cellIcon(entry.definition, activeTab, activeView))
-					.setChecked(entry.active)
-					.onClick(() => toggleVisibleCell(entry.id));
-			});
+			nodes.push(
+				nativeMenuItem(`view_menu.cells.${entry.id}`, {
+					title: translate(
+						cellLabelKey(entry.definition, activeTab, activeView),
+					),
+					icon: cellIcon(entry.definition, activeTab, activeView),
+					checked: entry.active,
+					onClick: () => toggleVisibleCell(entry.id),
+				}),
+			);
 		}
 
 		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
 		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
 		// El segundo divider reserva el sitio del control de dimensiones
 		// del stream proto_design.
-		menu.addSeparator();
+		nodes.push(nativeMenuDivider('view_menu.divider.toolbar'));
 		if (onToggleToolbar) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.toolbar'))
-					.setIcon('lucide-panel-top')
-					.setChecked(toolbarShown)
-					.onClick(() => onToggleToolbar?.());
-			});
-			menu.addSeparator();
+			nodes.push(
+				nativeMenuItem('view_menu.toolbar', {
+					title: translate('viewmenu.toolbar'),
+					icon: 'lucide-panel-top',
+					checked: toolbarShown,
+					onClick: () => onToggleToolbar?.(),
+				}),
+			);
+			nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		}
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
@@ -1705,105 +1738,112 @@
 		const sortState =
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
 		const nestedAct = nestedActiveFor(activeTab);
-		menu.addItem((submenuItem) => {
-			submenuItem
-				.setTitle(translate('viewmenu.engines'))
-				.setIcon('lucide-layout');
-			const submenu =
-				(submenuItem as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
-				new Menu();
-			for (const option of minimalNativeViewModes) {
-				submenu.addItem((item) => {
-					item
-						.setTitle(translate(option.labelKey))
-						.setIcon(option.icon)
-						.setChecked(activeView === option.id)
-						.setDisabled(option.locked ?? false);
-					if (!option.locked) {
-						item.onClick(() => selectNativeViewMode(option.id));
-					}
-				});
-			}
-			// Projection rule (conserved from sort_menu, spec 08 §2):
-			// `nested` is always present (it's the toggle for the engine);
-			// parentsFirst and fixedFolders vanish when nested is off;
-			// fixedFolders also vanishes when parentsFirst is off. The chain:
-			// nested -> parentsFirst -> fixedFolders. parentsFirst /
-			// fixedFolders only exist in Files (the Files-specific sort knobs).
-			// stickyRows applies to any nested-capable tab (Files/Props/Tags);
-			// compactFolders only exists in Files -- folders live only there.
-			// `indent` is independent of the nested/grouping chain above: it is
-			// a flat padding override (4px, no per-depth sangria) that applies
-			// whether or not there is anything to nest or group, so it is gated
-			// only by the engine being `tree`, not by `nestedAct`.
-			submenu.addSeparator();
-			submenu.addItem((item) => {
-				item
-					.setTitle(translate('sort.level.nested'))
-					.setIcon('lucide-list-tree')
-					.setChecked(nestedAct)
-					.onClick(() => toggleNestedFor(activeTab));
-			});
-			if (treeCapableFor(activeTab)) {
-				submenu.addItem((item) => {
-					item
-						.setTitle(translate('sort.level.indent'))
-						.setIcon('lucide-indent')
-						.setChecked(indentEnabledFor(activeTab))
-						.onClick(() => toggleIndentFor(activeTab));
-				});
-			}
-			if (nestedAct && activeTab === 'files') {
-				const parentsFirst = sortState.parentsFirst ?? true;
-				submenu.addItem((item) => {
-					item
-						.setTitle(translate('sort.parents_first'))
-						.setIcon('lucide-folder-tree')
-						.setChecked(parentsFirst)
-						.onClick(() =>
+		const engineChildren: NativeMenuNode[] = minimalNativeViewModes.map(
+			(option): NativeMenuNode =>
+				nativeMenuItem(`view_menu.engines.${option.id}`, {
+					title: translate(option.labelKey),
+					icon: option.icon,
+					checked: activeView === option.id,
+					disabled: option.locked ?? false,
+					onClick: option.locked
+						? undefined
+						: () => selectNativeViewMode(option.id),
+				}),
+		);
+		// Projection rule (conserved from sort_menu, spec 08 §2):
+		// `nested` is always present (it's the toggle for the engine);
+		// parentsFirst and fixedFolders vanish when nested is off;
+		// fixedFolders also vanishes when parentsFirst is off. The chain:
+		// nested -> parentsFirst -> fixedFolders. parentsFirst /
+		// fixedFolders only exist in Files (the Files-specific sort knobs).
+		// stickyRows applies to any nested-capable tab (Files/Props/Tags);
+		// compactFolders only exists in Files -- folders live only there.
+		// `indent` is independent of the nested/grouping chain above: it is
+		// a flat padding override (4px, no per-depth sangria) that applies
+		// whether or not there is anything to nest or group, so it is gated
+		// only by the engine being `tree`, not by `nestedAct`.
+		engineChildren.push(nativeMenuDivider('view_menu.engines.divider.options'));
+		engineChildren.push(
+			nativeMenuItem('view_menu.engines.nested', {
+				title: translate('sort.level.nested'),
+				icon: 'lucide-list-tree',
+				checked: nestedAct,
+				onClick: () => toggleNestedFor(activeTab),
+			}),
+		);
+		if (treeCapableFor(activeTab)) {
+			engineChildren.push(
+				nativeMenuItem('view_menu.engines.indent', {
+					title: translate('sort.level.indent'),
+					icon: 'lucide-indent',
+					checked: indentEnabledFor(activeTab),
+					onClick: () => toggleIndentFor(activeTab),
+				}),
+			);
+		}
+		if (nestedAct && activeTab === 'files') {
+			const parentsFirst = sortState.parentsFirst ?? true;
+			engineChildren.push(
+				nativeMenuItem('view_menu.engines.parents_first', {
+					title: translate('sort.parents_first'),
+					icon: 'lucide-folder-tree',
+					checked: parentsFirst,
+					onClick: () =>
+						handleSortChange({
+							...sortState,
+							parentsFirst: !parentsFirst,
+						}),
+				}),
+			);
+			if (parentsFirst) {
+				engineChildren.push(
+					nativeMenuItem('view_menu.engines.fixed_folders', {
+						title: translate('sort.level.fixed_folders'),
+						icon: 'lucide-folder-lock',
+						checked: sortState.fixedFolders !== false,
+						onClick: () =>
 							handleSortChange({
 								...sortState,
-								parentsFirst: !parentsFirst,
+								fixedFolders: !(sortState.fixedFolders !== false),
 							}),
-						);
-				});
-				if (parentsFirst) {
-					submenu.addItem((item) => {
-						item
-							.setTitle(translate('sort.level.fixed_folders'))
-							.setIcon('lucide-folder-lock')
-							.setChecked(sortState.fixedFolders !== false)
-							.onClick(() =>
-								handleSortChange({
-									...sortState,
-									fixedFolders: !(sortState.fixedFolders !== false),
-								}),
-							);
-					});
-				}
+					}),
+				);
 			}
-			if (nestedAct) {
-				submenu.addItem((item) => {
-					item
-						.setTitle(translate('sort.level.sticky_rows'))
-						.setIcon('lucide-pin')
-						.setChecked(stickyRowsEnabledFor(activeTab))
-						.onClick(() => toggleStickyRowsFor(activeTab));
-				});
-			}
-			if (nestedAct && activeTab === 'files') {
-				// TODO(spec-08 §2): esto persiste el flag per_instance, pero la
-				// compactacion real de cadenas de carpetas de un solo hijo (estilo
-				// VS Code) todavia no esta implementada en el arbol.
-				submenu.addItem((item) => {
-					item
-						.setTitle(translate('sort.level.compact_folders'))
-						.setIcon('lucide-folder-minus')
-						.setChecked(compactFoldersEnabledFor(activeTab))
-						.onClick(() => toggleCompactFoldersFor(activeTab));
-				});
-			}
-		});
+		}
+		if (nestedAct) {
+			engineChildren.push(
+				nativeMenuItem('view_menu.engines.sticky_rows', {
+					title: translate('sort.level.sticky_rows'),
+					icon: 'lucide-pin',
+					checked: stickyRowsEnabledFor(activeTab),
+					onClick: () => toggleStickyRowsFor(activeTab),
+				}),
+			);
+		}
+		if (nestedAct && activeTab === 'files') {
+			// TODO(spec-08 §2): esto persiste el flag per_instance, pero la
+			// compactacion real de cadenas de carpetas de un solo hijo (estilo
+			// VS Code) todavia no esta implementada en el arbol.
+			engineChildren.push(
+				nativeMenuItem('view_menu.engines.compact_folders', {
+					title: translate('sort.level.compact_folders'),
+					icon: 'lucide-folder-minus',
+					checked: compactFoldersEnabledFor(activeTab),
+					onClick: () => toggleCompactFoldersFor(activeTab),
+				}),
+			);
+		}
+		nodes.push(
+			nativeMenuItem(
+				'view_menu.engines',
+				{
+					title: translate('viewmenu.engines'),
+					icon: 'lucide-layout',
+				},
+				engineChildren,
+			),
+		);
+		renderNativeMenuNodes(menu, projectNativeMenu('view_menu', nodes));
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1941,54 +1981,65 @@
 		const addonTabOptions = tabOptions.filter(
 			(option) => option.id === 'snippets' || option.id === 'plugins',
 		);
-		const renderTabOption = (option: HeaderTabOption) => {
-			menu.addItem((item) => {
-				item
-					.setTitle(option.label)
-					.setIcon(option.icon)
-					.setChecked(option.id === activeSectionTab)
-					.onClick(() => onSectionTabChange?.(option.id));
-			});
-		};
-		for (const option of primaryTabOptions) renderTabOption(option);
-		const renderTabAction = (action: HeaderMenuAction) => {
-			menu.addItem((item) => {
-				const isCountedLauncher =
-					action.id === 'filters' || action.id === 'queue';
-				const countLabel =
-					isCountedLauncher && action.count && action.count > 0
-						? ` (${action.count})`
-						: '';
-				const warningLabel = isCountedLauncher && action.warning ? ' !' : '';
-				item
-					.setTitle(`${action.label}${countLabel}${warningLabel}`)
-					.setIcon(action.warning ? 'lucide-alert-triangle' : action.icon)
-					.onClick(() => action.onClick());
+		const nodes: NativeMenuNode[] = [];
+		for (const option of primaryTabOptions) {
+			nodes.push(
+				nativeMenuItem(`scene_menu.tab.${option.id}`, {
+					title: option.label,
+					icon: option.icon,
+					checked: option.id === activeSectionTab,
+					onClick: () => onSectionTabChange?.(option.id),
+				}),
+			);
+		}
+		const tabActionNode = (action: HeaderMenuAction): NativeMenuNode => {
+			const isCountedLauncher =
+				action.id === 'filters' || action.id === 'queue';
+			const countLabel =
+				isCountedLauncher && action.count && action.count > 0
+					? ` (${action.count})`
+					: '';
+			const warningLabel = isCountedLauncher && action.warning ? ' !' : '';
+			return nativeMenuItem(`scene_menu.launcher.${action.id}`, {
+				title: `${action.label}${countLabel}${warningLabel}`,
+				icon: action.warning ? 'lucide-alert-triangle' : action.icon,
+				onClick: () => action.onClick(),
 			});
 		};
 		const statisticsAction = tabMenuActions.find((a) => a.id === 'statistics');
 		const launcherActions = tabMenuActions.filter((a) => a.id !== 'statistics');
 		if (!showDock && launcherActions.length > 0) {
-			menu.addSeparator();
-			for (const action of launcherActions) renderTabAction(action);
+			nodes.push(nativeMenuDivider('scene_menu.divider.launchers'));
+			for (const action of launcherActions) nodes.push(tabActionNode(action));
 		}
 		// Floating index is its own section below Filters + Queue.
 		if (onToggleFloatingToc) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('floating_toc.menu'))
-					.setIcon('lucide-a-arrow-down')
-					.setChecked(floatingTocEnabled)
-					.onClick(() => onToggleFloatingToc?.());
-			});
+			nodes.push(nativeMenuDivider('scene_menu.divider.floating_toc'));
+			nodes.push(
+				nativeMenuItem('scene_menu.floating_toc', {
+					title: translate('floating_toc.menu'),
+					icon: 'lucide-a-arrow-down',
+					checked: floatingTocEnabled,
+					onClick: () => onToggleFloatingToc?.(),
+				}),
+			);
 		}
 		// Statistics and add-on explorers share the next section.
 		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
-			menu.addSeparator();
+			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
 		}
-		if (!showDock && statisticsAction) renderTabAction(statisticsAction);
-		for (const option of addonTabOptions) renderTabOption(option);
+		if (!showDock && statisticsAction)
+			nodes.push(tabActionNode(statisticsAction));
+		for (const option of addonTabOptions) {
+			nodes.push(
+				nativeMenuItem(`scene_menu.tab.${option.id}`, {
+					title: option.label,
+					icon: option.icon,
+					onClick: () => onSectionTabChange?.(option.id),
+				}),
+			);
+		}
+		renderNativeMenuNodes(menu, projectNativeMenu('scene_menu', nodes));
 		menu.showAtMouseEvent(event);
 	}
 
@@ -2216,84 +2267,6 @@
 		});
 	}
 
-	function addScopeSubmenu(
-		menu: Menu,
-		tab: FiltersTab,
-		current: ExplorerSortState,
-	) {
-		const model = scopeMenuModel(tab, current, scopeSceneFor(tab));
-		if (!model) return;
-		menu.addItem((item) => {
-			item.setTitle(scopeMenuTitle(model)).setIcon('lucide-layers');
-			const sub = (
-				item as typeof item & { setSubmenu: () => Menu }
-			).setSubmenu();
-			for (const entry of model.items) {
-				if (entry.kind === 'separator') {
-					sub.addSeparator();
-					continue;
-				}
-				sub.addItem((row) => {
-					if (entry.kind === 'pick') {
-						row
-							.setTitle(translate(entry.labelKey))
-							.setIcon(entry.icon)
-							.setChecked(entry.checked)
-							.onClick(() => {
-								if (entry.id === 'drill') beginDrillPick(tab);
-								else if (entry.id === 'level') beginLevelPick(tab);
-								else {
-									stopDrillPick();
-									handleScopeChangeForTab(tab, {
-										...current,
-										activeScope: 'all',
-										drillNodeId: null,
-									});
-								}
-							});
-						return;
-					}
-					// §3.1.5 + §4: a parent/level with its own sort. Click selects
-					// it; the row's submenu carries hide / delete / cancel (D3).
-					row
-						.setTitle(`${entry.label} · ${entry.sortLabel}`)
-						.setIcon(entry.hidden ? 'lucide-eye-off' : entry.icon)
-						.setChecked(entry.checked);
-					const confirm = (
-						row as typeof row & { setSubmenu: () => Menu }
-					).setSubmenu();
-					confirm.addItem((q) =>
-						q.setTitle(translate('group.row.confirm')).setDisabled(true),
-					);
-					confirm.addItem((sel) =>
-						sel
-							.setTitle(entry.label)
-							.setIcon(entry.icon)
-							.setChecked(entry.checked)
-							.onClick(() => activateScopeRow(tab, entry.id)),
-					);
-					confirm.addItem((h) =>
-						h
-							.setTitle(
-								translate(entry.hidden ? 'group.row.unhide' : 'group.row.hide'),
-							)
-							.setIcon(entry.hidden ? 'lucide-eye' : 'lucide-eye-off')
-							.onClick(() => setScopeHidden(tab, entry.id, !entry.hidden)),
-					);
-					confirm.addItem((d) =>
-						d
-							.setTitle(translate('group.row.delete'))
-							.setIcon('lucide-trash-2')
-							.onClick(() => deleteScope(tab, entry.id)),
-					);
-					confirm.addItem((c) =>
-						c.setTitle(translate('group.row.cancel')).setIcon('lucide-x'),
-					);
-				});
-			}
-		});
-	}
-
 	function stopRevealPick() {
 		revealPickCleanup?.();
 		revealPickCleanup = null;
@@ -2495,52 +2468,6 @@
 		applyCompactFolders(tab, next);
 	}
 
-	function addByLevelItems(
-		menu: Menu,
-		tab: FiltersTab,
-		current: ExplorerSortState,
-	) {
-		const model = byLevelModel(tab, current, treeCapableFor(tab));
-		if (!model) return;
-
-		for (const option of model.items) {
-			if (option.kind === 'separator') {
-				menu.addSeparator();
-				continue;
-			}
-			menu.addItem((item) =>
-				item
-					.setTitle(translate(option.labelKey))
-					.setIcon(option.icon)
-					.setChecked(option.checked)
-					.onClick(() => {
-						if (option.kind === 'toggle') {
-							if (option.id === 'filtered') {
-								handleFilterChange({
-									...current,
-									filtered: !option.checked,
-								});
-							}
-							return;
-						}
-						if (option.kind === 'reveal') {
-							if (option.id === 'reveal-drill') {
-								void beginRevealPick(activeTab);
-								return;
-							}
-							// Releases the pinned note; the projection follows the
-							// workspace again from the next flush.
-							handleScopeChange({
-								...current,
-								revealAnchor: 'current-file',
-								revealAnchorPath: null,
-							});
-						}
-					}),
-			);
-		}
-	}
-
 	function nodeTypeOptionsForActiveTab(): readonly NodeTypeMenuOption[] {
 		if (activeTab === 'files') {
 			return [
@@ -2560,6 +2487,7 @@
 
 	function openNativeSortMenu(event: MouseEvent) {
 		const menu = new Menu();
+		const nodes: NativeMenuNode[] = [];
 		const current = normalizeSortState(
 			activeTab,
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
@@ -2568,9 +2496,173 @@
 
 		// Spec 08 §3.1-3.2: `Scope: <variable>` first, the groups submenu
 		// second, then the sort presets.
-		addScopeSubmenu(menu, activeTab, current);
-		addGroupsSubmenu(menu, activeTab);
-		menu.addSeparator();
+		const scopeModel = scopeMenuModel(
+			activeTab,
+			current,
+			scopeSceneFor(activeTab),
+		);
+		if (scopeModel) {
+			const scopeChildren: NativeMenuNode[] = [];
+			for (const entry of scopeModel.items) {
+				if (entry.kind === 'separator') {
+					scopeChildren.push(nativeMenuDivider('sort_menu.scope.divider.rows'));
+					continue;
+				}
+				if (entry.kind === 'pick') {
+					scopeChildren.push(
+						nativeMenuItem(`sort_menu.scope.${entry.id}`, {
+							title: translate(entry.labelKey),
+							icon: entry.icon,
+							checked: entry.checked,
+							onClick: () => {
+								if (entry.id === 'drill') beginDrillPick(activeTab);
+								else if (entry.id === 'level') beginLevelPick(activeTab);
+								else {
+									stopDrillPick();
+									handleScopeChangeForTab(activeTab, {
+										...current,
+										activeScope: 'all',
+										drillNodeId: null,
+									});
+								}
+							},
+						}),
+					);
+					continue;
+				}
+				const rowChildren: NativeMenuNode[] = [
+					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.confirm`, {
+						title: translate('group.row.confirm'),
+						disabled: true,
+					}),
+					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.select`, {
+						title: entry.label,
+						icon: entry.icon,
+						checked: entry.checked,
+						onClick: () => activateScopeRow(activeTab, entry.id),
+					}),
+					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.hide`, {
+						title: translate(
+							entry.hidden ? 'group.row.unhide' : 'group.row.hide',
+						),
+						icon: entry.hidden ? 'lucide-eye' : 'lucide-eye-off',
+						onClick: () => setScopeHidden(activeTab, entry.id, !entry.hidden),
+					}),
+					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.delete`, {
+						title: translate('group.row.delete'),
+						icon: 'lucide-trash-2',
+						onClick: () => deleteScope(activeTab, entry.id),
+					}),
+					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.cancel`, {
+						title: translate('group.row.cancel'),
+						icon: 'lucide-x',
+					}),
+				];
+				scopeChildren.push(
+					nativeMenuItem(
+						`sort_menu.scope.rows.${entry.id}`,
+						{
+							title: `${entry.label} · ${entry.sortLabel}`,
+							icon: entry.hidden ? 'lucide-eye-off' : entry.icon,
+							checked: entry.checked,
+						},
+						rowChildren,
+					),
+				);
+			}
+			nodes.push(
+				nativeMenuItem(
+					'sort_menu.scope',
+					{
+						title: scopeMenuTitle(scopeModel),
+						icon: 'lucide-layers',
+					},
+					scopeChildren,
+				),
+			);
+		}
+
+		const groupModel = groupMenuModel(
+			activeTab,
+			configByTab[activeTab].groupPreset,
+			customGroupsForMenu(activeTab),
+			activeLayout() !== null && Boolean(onGroupMembershipsChange),
+		);
+		const groupChildren: NativeMenuNode[] = [];
+		for (const entry of groupModel.items) {
+			if (entry.kind === 'separator') {
+				groupChildren.push(
+					nativeMenuDivider('sort_menu.groups.divider.custom'),
+				);
+				continue;
+			}
+			if (entry.kind === 'preset') {
+				groupChildren.push(
+					nativeMenuItem(`sort_menu.groups.${entry.id}`, {
+						title: `${translate(entry.labelKey)}${entry.direction ? ` ${sortDirectionGlyph(entry.direction)}` : ''}`,
+						icon: entry.icon,
+						checked: entry.checked,
+						onClick: () => selectGroupPreset(activeTab, entry.id),
+					}),
+				);
+				continue;
+			}
+			if (entry.kind === 'new-group') {
+				groupChildren.push(
+					nativeMenuItem('sort_menu.groups.new', {
+						title: translate(
+							entry.disabled ? 'group.new.needs_layout' : entry.labelKey,
+						),
+						icon: entry.icon,
+						disabled: entry.disabled,
+						onClick: () => void createCustomGroup(activeTab),
+					}),
+				);
+				continue;
+			}
+			groupChildren.push(
+				nativeMenuItem(
+					`sort_menu.groups.custom.${entry.id}`,
+					{
+						title: entry.label,
+						icon: entry.icon,
+					},
+					[
+						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.confirm`, {
+							title: translate('group.row.confirm'),
+							disabled: true,
+						}),
+						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.hide`, {
+							title: translate(
+								entry.hidden ? 'group.row.unhide' : 'group.row.hide',
+							),
+							icon: entry.hidden ? 'lucide-eye' : 'lucide-eye-off',
+							onClick: () => setGroupHidden(activeTab, entry.id, !entry.hidden),
+						}),
+						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.delete`, {
+							title: translate('group.row.delete'),
+							icon: 'lucide-trash-2',
+							onClick: () => deleteCustomGroup(activeTab, entry.id),
+						}),
+						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.cancel`, {
+							title: translate('group.row.cancel'),
+							icon: 'lucide-x',
+						}),
+					],
+				),
+			);
+		}
+		nodes.push(
+			nativeMenuItem(
+				'sort_menu.groups',
+				{
+					title: translate('group.menu.title'),
+					icon: 'lucide-group',
+				},
+				groupChildren,
+			),
+		);
+		nodes.push(nativeMenuDivider('sort_menu.divider.presets'));
 
 		const nestedActive = nestedActiveFor(activeTab);
 		// The native menu shows the same options as the popup, so it needs the
@@ -2582,35 +2674,78 @@
 			nestedActive,
 			revealActive,
 		)) {
-			menu.addItem((item) => {
-				const isActive = activeSort.sortBy === option.id;
-				item
-					.setTitle(
-						`${translate(option.labelKey)}${
-							isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
-						}`,
-					)
-					.setIcon(option.icon)
-					.setChecked(isActive)
-					.onClick(() => handleSortChange(nextSortState(option.id)));
-			});
+			const isActive = activeSort.sortBy === option.id;
+			nodes.push(
+				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
+					title: `${translate(option.labelKey)}${
+						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
+					}`,
+					icon: option.icon,
+					checked: isActive,
+					onClick: () => handleSortChange(nextSortState(option.id)),
+				}),
+			);
 		}
 
 		if (supportsByLevel(activeTab)) {
-			menu.addSeparator();
-			if (sortLevelInline) {
-				addByLevelItems(menu, activeTab, current);
-			} else {
-				menu.addItem((item) => {
-					item
-						.setTitle(translate('sort.level.title'))
-						.setIcon('lucide-list-tree');
-					const sub = (
-						item as typeof item & { setSubmenu: () => Menu }
-					).setSubmenu();
-					addByLevelItems(sub, activeTab, current);
-				});
+			nodes.push(nativeMenuDivider('sort_menu.divider.by_level'));
+			const byLevelModelValue = byLevelModel(
+				activeTab,
+				current,
+				treeCapableFor(activeTab),
+				revealActive,
+			);
+			const byLevelChildren: NativeMenuNode[] = [];
+			for (const option of byLevelModelValue?.items ?? []) {
+				if (option.kind === 'separator') {
+					byLevelChildren.push(
+						nativeMenuDivider(`sort_menu.by_level.divider.${option.id}`),
+					);
+					continue;
+				}
+				byLevelChildren.push(
+					nativeMenuItem(
+						`sort_menu.by_level.${option.id === 'reveal-current-file' ? 'reveal_current_file' : option.id === 'reveal-drill' ? 'reveal_drill' : option.id === 'addPropertyFirst' ? 'add_property_first' : option.id}`,
+						{
+							title: translate(option.labelKey),
+							icon: option.icon,
+							checked: option.checked,
+							onClick: () => {
+								if (option.kind === 'reveal') {
+									if (option.id === 'reveal-drill') {
+										void beginRevealPick(activeTab);
+										return;
+									}
+									handleScopeChange({
+										...current,
+										revealAnchor: 'current-file',
+										revealAnchorPath: null,
+									});
+									return;
+								}
+								if (
+									option.kind === 'toggle' &&
+									option.id === 'addPropertyFirst'
+								) {
+									handleSortChange({
+										...current,
+										addPropertyFirst: !option.checked,
+									});
+								}
+							},
+						},
+					),
+				);
 			}
+			const byLevelNode = nativeMenuItem(
+				'sort_menu.by_level',
+				{
+					title: translate('sort.level.title'),
+					icon: 'lucide-list-tree',
+				},
+				byLevelChildren,
+			);
+			nodes.push(byLevelNode);
 		}
 
 		// Spec 08 §3.4, items 10-11: `Filtered` sits on its own, right before
@@ -2620,19 +2755,19 @@
 			activeTab === 'tags' ||
 			activeTab === 'files'
 		) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('sort.level.filtered'))
-					.setIcon('lucide-filter')
-					.setChecked(current.filtered === true)
-					.onClick(() =>
+			nodes.push(nativeMenuDivider('sort_menu.divider.filtered'));
+			nodes.push(
+				nativeMenuItem('sort_menu.filtered', {
+					title: translate('sort.level.filtered'),
+					icon: 'lucide-filter',
+					checked: current.filtered === true,
+					onClick: () =>
 						handleFilterChange({
 							...current,
 							filtered: !(current.filtered === true),
 						}),
-					);
-			});
+				}),
+			);
 		}
 		// TODO(spec-08 §3.4 item 12): a `custom sorts` submenu belongs right
 		// here. Not this initiative's scope -- left as a pointer for whoever
@@ -2640,45 +2775,60 @@
 
 		const nodeTypeOptions = nodeTypeOptionsForActiveTab();
 		if (nodeTypeOptions.length > 0) {
-			menu.addSeparator();
+			nodes.push(nativeMenuDivider('sort_menu.divider.by_type'));
 			const selectedNodeTypes = nodeTypeFiltersForState(current);
-			menu.addItem((item) => {
-				item
-					.setTitle(
-						`${translate('explorer.sort.type')}${
+			const nodeTypeChildren: NativeMenuNode[] = [];
+			for (const option of nodeTypeOptions) {
+				const isAll = option.id === 'all';
+				const isActive = isAll
+					? selectedNodeTypes.length === 0
+					: selectedNodeTypes.includes(option.id);
+				nodeTypeChildren.push(
+					nativeMenuItem(`sort_menu.by_type.${activeTab}.${option.id}`, {
+						title: nodeTypeOptionTitle(option),
+						icon: option.icon,
+						checked: isActive,
+						onClick: () =>
+							handleFilterChange({
+								...current,
+								...nodeTypeFilterPatch(
+									toggleNodeTypeFilter(selectedNodeTypes, option.id),
+								),
+							}),
+					}),
+				);
+				if (option.separatorAfter) {
+					nodeTypeChildren.push(
+						nativeMenuDivider(
+							`sort_menu.by_type.${activeTab}.${option.id}.divider`,
+						),
+					);
+				}
+			}
+			nodes.push(
+				nativeMenuItem(
+					'sort_menu.by_type',
+					{
+						title: `${translate('explorer.sort.type')}${
 							selectedNodeTypes.length > 0
 								? ` (${selectedNodeTypes.length})`
 								: ''
 						}`,
-					)
-					.setIcon('lucide-list-filter');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				for (const option of nodeTypeOptions) {
-					const isAll = option.id === 'all';
-					const isActive = isAll
-						? selectedNodeTypes.length === 0
-						: selectedNodeTypes.includes(option.id);
-					sub.addItem((subItem) =>
-						subItem
-							.setTitle(nodeTypeOptionTitle(option))
-							.setIcon(option.icon)
-							.setChecked(isActive)
-							.onClick(() =>
-								handleFilterChange({
-									...current,
-									...nodeTypeFilterPatch(
-										toggleNodeTypeFilter(selectedNodeTypes, option.id),
-									),
-								}),
-							),
-					);
-					if (option.separatorAfter) sub.addSeparator();
-				}
-			});
+						icon: 'lucide-list-filter',
+					},
+					nodeTypeChildren,
+				),
+			);
 		}
 
+		renderNativeMenuNodes(
+			menu,
+			projectNativeMenu(
+				'sort_menu',
+				nodes,
+				sortLevelInline && supportsByLevel(activeTab) ? ['by-level'] : [],
+			),
+		);
 		menu.showAtMouseEvent(event);
 	}
 

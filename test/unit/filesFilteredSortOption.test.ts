@@ -37,7 +37,7 @@ describe('U121-052 files Filtered sort option', () => {
 
 	it('offers a standalone Filtered toggle in the sort menu, after the by-level block', () => {
 		const menu = functionSlice(navbarSource, 'openNativeSortMenu');
-		const byLevelIdx = menu.indexOf('addByLevelItems(');
+		const byLevelIdx = menu.indexOf('const byLevelModelValue = byLevelModel(');
 		const filteredIdx = menu.indexOf("translate('sort.level.filtered')");
 		const byTypeIdx = menu.indexOf("translate('explorer.sort.type')");
 		expect(byLevelIdx).toBeGreaterThan(-1);

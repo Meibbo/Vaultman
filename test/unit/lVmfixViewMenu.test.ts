@@ -22,7 +22,7 @@ function functionSlice(source: string, name: string): string {
 describe('L-VMFIX view_menu guard', () => {
 	it('emits nested/parentsFirst/fixedFolders only inside the engines submenu', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
-		const enginesStart = menu.indexOf("translate('viewmenu.engines')");
+		const enginesStart = menu.indexOf('const engineChildren: NativeMenuNode[]');
 		expect(enginesStart).toBeGreaterThan(-1);
 		const menuEnd = menu.indexOf('\n\tfunction ', enginesStart + 1);
 		const topLevel = menu.slice(0, enginesStart);
@@ -47,7 +47,7 @@ describe('L-VMFIX view_menu guard', () => {
 
 	it('puts Toolbar above engines, with a divider between them', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
-		const enginesIdx = menu.indexOf("translate('viewmenu.engines')");
+		const enginesIdx = menu.indexOf('const engineChildren: NativeMenuNode[]');
 		const toolbarIdx = menu.indexOf("translate('viewmenu.toolbar')");
 		expect(enginesIdx).toBeGreaterThan(-1);
 		expect(toolbarIdx).toBeGreaterThan(-1);
@@ -57,7 +57,7 @@ describe('L-VMFIX view_menu guard', () => {
 		// ahead of the Toolbar section, separating it from the cell presets
 		// above (orden dev, 2026-09-15).
 		const beforeToolbar = menu.slice(0, toolbarIdx);
-		expect(beforeToolbar).toMatch(/\tmenu\.addSeparator\(/);
+		expect(beforeToolbar).toContain("nativeMenuDivider('view_menu.divider.toolbar')");
 
 		// A second TOP-LEVEL divider sits between Toolbar and engines. The
 		// tab right before `menu.addSeparator(` distinguishes it from the
@@ -66,12 +66,12 @@ describe('L-VMFIX view_menu guard', () => {
 		// enginesIdx, not in this span. This divider reserves the slot for
 		// the stream proto_design dimension control.
 		const between = menu.slice(toolbarIdx, enginesIdx);
-		expect(between).toMatch(/\tmenu\.addSeparator\(/);
+		expect(between).toContain("nativeMenuDivider('view_menu.divider.engines')");
 	});
 
 	it('keeps the nested -> parentsFirst -> fixedFolders projection chain inside engines', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
-		const enginesIdx = menu.indexOf("translate('viewmenu.engines')");
+		const enginesIdx = menu.indexOf('const engineChildren: NativeMenuNode[]');
 		const enginesBlock = menu.slice(enginesIdx);
 
 		// `nested` is the gate: when false, parentsFirst and fixedFolders

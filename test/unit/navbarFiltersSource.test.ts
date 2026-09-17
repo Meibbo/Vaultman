@@ -111,7 +111,7 @@ describe('minimal filters header source guards', () => {
 		);
 		expect(navbarFiltersSource).toContain('sameExplorerSortState(left, right)');
 		expect(navbarFiltersSource).toContain('translate(option.labelKey)');
-		expect(navbarFiltersSource).toContain('.setIcon(option.icon)');
+		expect(navbarFiltersSource).toContain('icon: option.icon');
 	});
 
 	it('persists and applies full scoped sort state instead of the legacy child-level shape', () => {

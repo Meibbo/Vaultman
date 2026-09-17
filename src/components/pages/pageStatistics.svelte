@@ -430,6 +430,7 @@
 			},
 			showExplorerControls: false,
 			headerActions: statisticsHeaderActions,
+			toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 			toolbarShown,
 			onToggleToolbar,
 		};

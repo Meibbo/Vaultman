@@ -53,7 +53,7 @@ describe('explorer sort UI source', () => {
 		// Spec 08 §3.1: the scope picks live in the `Scope: <variable>` model,
 		// wired into the popup drawer and the native submenu.
 		expect(popupSource).toContain('scopeMenuModel(');
-		expect(navbarSource).toContain('addScopeSubmenu(menu, activeTab, current)');
+		expect(navbarSource).toContain('const scopeModel = scopeMenuModel(');
 		expect(popupSource).toContain('activeScope');
 		expect(popupSource).toContain('selectScope(');
 		expect(popupSource).toContain("translate('sort.level.title')");
@@ -234,7 +234,7 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 			'nested',
 		);
 		expect(navbarSource).toContain('sortLevelInline = true');
-		expect(navbarSource).toContain('addByLevelItems(menu, activeTab, current)');
+		expect(navbarSource).toContain('const byLevelModelValue = byLevelModel(');
 		expect(DEFAULT_SETTINGS.sortLevelInline).toBe(true);
 	});
 
@@ -249,7 +249,7 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 		expect(navbarSource).toContain('visibleSortOptions(');
 		// Spec 08 §3.1.bis: the variable title is the SUBMENU's (`Scope: <node>`),
 		// six-char short label, replacing `drillScopeTitle`.
-		expect(navbarSource).toContain('scopeMenuTitle(model)');
+		expect(navbarSource).toContain('scopeMenuTitle(scopeModel)');
 		expect(navbarSource).toContain('chars.slice(0, 6)');
 		expect(navbarSource).not.toContain('drillScopeTitle(');
 	});

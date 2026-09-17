@@ -1918,8 +1918,7 @@
 				sceneConfigPort,
 				actionPort: panelWidgetActionPort,
 				activeTab: explorerActiveTab,
-				autoRevealGlobal:
-					plugin.settings.autoRevealActiveFile === true,
+				autoRevealGlobal: plugin.settings.autoRevealActiveFile === true,
 				filtersSearch,
 				filtersSearchCategory,
 				searchExpanded: panelWidgetSearchExpanded,
@@ -1975,6 +1974,7 @@
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
 				sortLevelInline,
 				orderCellsByActivation,
+				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 				frameWidth,
 				onToggleToolbar: toggleToolbar,
 				savedLayouts,

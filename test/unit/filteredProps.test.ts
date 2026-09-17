@@ -203,7 +203,7 @@ describe('the Filtered switch reaches the projection', () => {
 		expect(sortPopupSource).toContain(
 			"if (item.id === 'filtered') toggleFiltered();",
 		);
-		expect(navbarSource).toContain("if (option.id === 'filtered') {");
+		expect(navbarSource).toContain("nativeMenuItem('sort_menu.filtered'");
 		const apply = navbarSource.slice(
 			navbarSource.indexOf('function handleFilterChange'),
 			navbarSource.indexOf('function sameSortState'),

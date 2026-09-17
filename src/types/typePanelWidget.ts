@@ -8,6 +8,8 @@ import type { GroupPreset } from './typeGroupPreset';
 import type { SasiRegistry } from '../logic/logicSasiRegistry';
 import type { SasiHandler } from '../logic/logicSasiInvoke';
 import type { TransactionBarState } from '../logic/logicTransactionBarState';
+import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
+import type { ToolbarMenuKind } from '../logic/logicToolbarMenuCatalog';
 
 
 export type PanelWidgetNodeKind = 'action' | 'data' | 'container';
@@ -303,6 +305,8 @@ export interface NavbarPanelWidgetState {
 	showTabLabels?: boolean;
 	sortLevelInline?: boolean;
 	orderCellsByActivation?: boolean;
+	/** U130-110: global layouts for the catalog-backed native toolbar menus. */
+	toolbarMenuLayouts?: Partial<Record<ToolbarMenuKind, FilesMenuItem[]>>;
 	commandActions?: ResolvedCommandAction[];
 	onRunCommand?: (id: string) => void;
 	createActionsPlacement?: 'searchbox' | 'toolbar';
