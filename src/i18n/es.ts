@@ -622,6 +622,7 @@ export const es: Record<string, string> = {
 	'command.focus_search_unavailable':
 		'No hay un campo de busqueda de Vaultman disponible.',
 	'command.open_updates': 'Abrir novedades de Vaultman',
+	'command.open_settings': 'Abrir configuración',
 	'updates.title': 'Novedades de Vaultman · {version}',
 	'updates.notice':
 		'Vaultman {version} está listo. Descubre lo más importante.',
@@ -944,7 +945,7 @@ export const es: Record<string, string> = {
 	'settings.scope.all': 'Todos los archivos',
 	'settings.open_mode': 'Vista por defecto',
 	'settings.open_mode.desc':
-		'Qué se abre al hacer click en el icono de Vaultman: barra izquierda, derecha, vista principal o nueva instancia',
+		'Dónde se abre Vaultman al hacer click en el icono de ribbon o ejecutar el comando: barra lateral izquierda, derecha o vista principal.',
 	'settings.open_mode.left_sidebar': 'Barra lateral izquierda',
 	'settings.open_mode.right_sidebar': 'Barra lateral derecha',
 	'settings.open_mode.main': 'Vista principal',

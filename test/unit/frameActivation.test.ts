@@ -29,10 +29,11 @@ describe('normalizeFramePlacement legacy migration and routing', () => {
 		expect(normalizeOpenMode('left_sidebar')).toBe('left_sidebar');
 		expect(normalizeOpenMode('right_sidebar')).toBe('right_sidebar');
 		expect(normalizeOpenMode('main')).toBe('main');
-		expect(normalizeOpenMode('new_instance')).toBe('new_instance');
-		expect(normalizeOpenMode('both')).toBe('new_instance');
-		expect(shouldToggleCloseFrame('left_sidebar', 1)).toBe(true);
-		expect(shouldToggleCloseFrame('right_sidebar', 1)).toBe(true);
+		expect(normalizeOpenMode('new_instance')).toBe('main');
+		expect(normalizeOpenMode('both')).toBe('main');
+		expect(shouldToggleCloseFrame('left_sidebar', 1)).toBe(false);
+		expect(shouldToggleCloseFrame('right_sidebar', 1)).toBe(false);
 		expect(shouldToggleCloseFrame('new_instance', 1)).toBe(false);
+		expect(shouldToggleCloseFrame('main', 1)).toBe(false);
 	});
 });

@@ -1,38 +1,34 @@
 /**
  * BT5-067: who is allowed to close a Vaultman frame.
  *
- * `Open Vaultman` is a toggle in sidebar/main mode, which is intended. The
- * regression was that every command needing a frame went through that same
- * toggle, so "focus search" on an open Vaultman detached it and then had
- * nothing left to focus. Commands that act on the frame must be idempotent;
- * only the explicit open command may toggle.
+ * Open Vaultman now always opens/reveals frames as new instances (never
+ * closes existing leaves, regardless of left_sidebar, right_sidebar, or main).
  */
 
 /**
  * Normalizes openMode to a concrete placement.
- * - `both` and `new_instance` → `new_instance`
  * - `left_sidebar` / `right_sidebar` → preserved
  * - legacy `sidebar` → `left_sidebar` (idempotent migration)
- * - anything else → `main`
+ * - `main`, legacy `new_instance`, legacy `both`, or anything else → `main`
  */
 export function normalizeOpenMode(
 	mode: string,
-): 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' {
-	if (mode === 'both' || mode === 'new_instance') return 'new_instance';
+): 'left_sidebar' | 'right_sidebar' | 'main' {
 	if (mode === 'left_sidebar' || mode === 'right_sidebar') return mode;
 	if (mode === 'sidebar') return 'left_sidebar';
 	return 'main';
 }
 
 /**
- * Whether the explicit toggle should close instead of open. `new_instance`
- * never closes, because that mode's contract is to always add one more.
+ * Whether the explicit toggle should close instead of open.
+ * Always returns false because all open modes are now new instances
+ * (open never closes or detaches existing frames).
  */
 export function shouldToggleCloseFrame(
-	mode: string,
-	existingFrameCount: number,
+	_mode: string,
+	_existingFrameCount: number,
 ): boolean {
-	return normalizeOpenMode(mode) !== 'new_instance' && existingFrameCount > 0;
+	return false;
 }
 
 export type FramePlacement = 'left_sidebar' | 'right_sidebar' | 'tab' | 'popout_window';

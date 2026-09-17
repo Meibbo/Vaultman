@@ -73,8 +73,14 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.autoRevealActiveFile).toBe(false);
 	});
 
-	it('defaults openMode to new_instance', () => {
-		expect(DEFAULT_SETTINGS.openMode).toBe('new_instance');
+	it('defaults openMode to main', () => {
+		expect(DEFAULT_SETTINGS.openMode).toBe('main');
+	});
+
+	it('does not offer new_instance option in settings UI', () => {
+		expect(settingsSource).not.toContain(
+			"settings.open_mode.new_instance",
+		);
 	});
 });
 

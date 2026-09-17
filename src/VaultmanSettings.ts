@@ -1,3 +1,4 @@
+import { normalizeOpenMode } from './logic/logicFrameActivation';
 import {
 	PluginSettingTab,
 	Setting,
@@ -355,21 +356,15 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								'settings.open_mode.right_sidebar',
 							),
 							main: translate('settings.open_mode.main'),
-							new_instance: translate(
-								'settings.open_mode.new_instance',
-							),
 						})
 						.setValue(
-							this.plugin.settings.openMode === 'both'
-								? 'new_instance'
-								: this.plugin.settings.openMode,
+							normalizeOpenMode(this.plugin.settings.openMode),
 						)
 						.onChange(async (value) => {
 							this.plugin.settings.openMode = value as
 								| 'left_sidebar'
 								| 'right_sidebar'
-								| 'main'
-								| 'new_instance';
+								| 'main';
 							await this.plugin.saveSettings();
 						}),
 				);

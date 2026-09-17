@@ -502,7 +502,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesAutoAttach: false,
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
-	openMode: 'new_instance',
+	openMode: 'main',
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',
 	timestampRelativeCutoffs: {},

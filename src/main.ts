@@ -103,6 +103,7 @@ import {
 	sceneGotoLabelKey,
 	type SceneEngineSurface,
 } from './logic/logicSasiSceneActions';
+import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -456,7 +457,16 @@ export class VaultmanPlugin extends Plugin {
 		this.sasiCommandPublisher.setPublished('open', true);
 		this.sasiCommandPublisher.setPublished('open-updates', true);
 		this.sasiCommandPublisher.setPublished('focus-content-search', true);
+		this.sasiCommandPublisher.register({
+			id: SETTINGS_OPEN_ID,
+			name: translate('command.open_settings'),
+			handler: () => {
+				this.openSettings();
+			},
+		});
+
 		this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
+		this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -889,6 +899,20 @@ export class VaultmanPlugin extends Plugin {
 		this.settings.lastSeenUpdatesVersion = currentVersion;
 		void this.saveData(this.settings);
 		this.showUpdatesNotice(currentVersion);
+	}
+
+	openSettings(): boolean {
+		const appWithSetting = this.app as unknown as {
+			setting?: {
+				open?: () => void;
+				openTabById?: (id: string) => unknown;
+			};
+		};
+		const setting = appWithSetting.setting;
+		if (!setting?.open || !setting.openTabById) return false;
+		setting.open();
+		setting.openTabById(this.manifest.id);
+		return true;
 	}
 
 	private openUpdates(): void {
