@@ -470,10 +470,18 @@ class SaveQueueTemplateModal extends Modal {
 		const template: QueueTemplate = { name, changes };
 		const templates = this.plugin.settings.queueTemplates ?? [];
 		const index = templates.findIndex((candidate) => candidate.name === name);
-		if (index === -1) templates.push(template);
+		const isUpdate = index !== -1;
+		if (!isUpdate) templates.push(template);
 		else templates[index] = template;
 		this.plugin.settings.queueTemplates = templates;
 		await this.plugin.saveSettings();
+		new Notice(
+			translate(
+				isUpdate
+					? 'queue.template.updated_notice'
+					: 'queue.template.saved_notice',
+			),
+		);
 	}
 
 	onClose(): void {

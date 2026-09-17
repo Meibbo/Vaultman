@@ -456,11 +456,18 @@
 	});
 	function saveLayout(layout: SavedLayout) {
 		layout.floatingToc = getFloatingTocState?.();
+		const isUpdate = savedLayouts.some((entry) => entry.name === layout.name);
 		const next = replaceSavedLayout(savedLayouts, layout);
 		plugin.settings.savedLayouts = next;
 		savedLayouts = next;
 		void plugin.saveData(plugin.settings);
-		new Notice(translate('viewmenu.saved_config_notice'));
+		new Notice(
+			translate(
+				isUpdate
+					? 'viewmenu.updated_config_notice'
+					: 'viewmenu.saved_config_notice',
+			),
+		);
 	}
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;

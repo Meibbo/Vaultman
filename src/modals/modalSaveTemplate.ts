@@ -1,4 +1,4 @@
-import { Modal, Setting, type App } from 'obsidian';
+import { Modal, Notice, Setting, type App } from 'obsidian';
 import type { FilterGroup, FilterTemplate } from '../types/typeFilter';
 import type { VaultmanPlugin } from '../main';
 import { translate } from '../i18n/index';
@@ -73,13 +73,21 @@ export class SaveTemplateModal extends Modal {
 		// Replace existing template with same name, or append
 		const templates = this.plugin.settings.filterTemplates;
 		const idx = templates.findIndex((t) => t.name === this.templateName);
-		if (idx !== -1) {
+		const isUpdate = idx !== -1;
+		if (isUpdate) {
 			templates[idx] = template;
 		} else {
 			templates.push(template);
 		}
 
 		await this.plugin.saveSettings();
+		new Notice(
+			translate(
+				isUpdate
+					? 'filter.template.updated_notice'
+					: 'filter.template.saved_notice',
+			),
+		);
 	}
 
 	onClose(): void {
