@@ -2,6 +2,7 @@ import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import type { SortScopeKey } from '../types/typeUI';
 import type { NodeGroupDef } from './logicNodeGroup';
+import { parseMembershipUrn } from './logicMembershipUrn';
 
 export type NoteGroupTargetKind = 'level' | 'parent';
 
@@ -178,6 +179,34 @@ export function stablyDeduplicateMembers(members: readonly string[]): string[] {
 		}
 	}
 	return out;
+}
+
+/**
+ * Converts the explorer's custom-group URNs into the stable member identity
+ * stored by a note group.  Props at level 1 use property names; value/parent
+ * targets use the value suffix from `prop:name:value`; tags use their tag path.
+ */
+export function noteGroupMemberIdsFromMemberships(
+	urns: readonly string[],
+	scene: 'prop' | 'tag',
+	target: NoteGroupTarget,
+): string[] {
+	const ids: string[] = [];
+	for (const urn of urns) {
+		const ref = parseMembershipUrn(urn);
+		if (!ref || ref.providerId !== `${scene}s`) continue;
+		if (scene === 'tag') {
+			ids.push(ref.canonicalId.replace(/^#/, ''));
+			continue;
+		}
+		if (ref.kind === 'value' && (target.kind === 'parent' || target.level !== 1)) {
+			const separator = ref.canonicalId.indexOf(':');
+			ids.push(separator >= 0 ? ref.canonicalId.slice(separator + 1) : ref.canonicalId);
+		} else {
+			ids.push(ref.canonicalId);
+		}
+	}
+	return stablyDeduplicateMembers(ids);
 }
 
 /**

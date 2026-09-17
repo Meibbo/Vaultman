@@ -1200,6 +1200,8 @@ export const es: Record<string, string> = {
 	'group.preset.created': 'Creado',
 	'group.preset.custom': 'Grupos personalizados',
 	'group.preset.note': 'Grupos de nota',
+	'group.note.no_file': 'No hay una nota reveal disponible.',
+	'group.note.duplicate': 'Ya existe un grupo de nota con ese nombre.',
 	'group.new': 'Nuevo grupo',
 	'group.new.prompt': 'Nombre del grupo',
 	'group.create_with_selected': 'Crear grupo con la selección',

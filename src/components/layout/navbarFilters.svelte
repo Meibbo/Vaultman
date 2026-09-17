@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Menu, Notice } from 'obsidian';
+	import { Menu, Notice, TFile } from 'obsidian';
 	import { onMount, tick, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { translate } from '../../i18n/index';
@@ -85,6 +85,12 @@
 		projectToolbarMenu,
 		type ToolbarMenuNode,
 	} from '../../logic/logicToolbarMenuProjection';
+	import {
+		noteGroupMemberIdsFromMemberships,
+		parseFrontmatterNoteGroups,
+		scopeToNoteGroupTarget,
+		writeNoteGroups,
+	} from '../../logic/logicNoteGroups';
 	import {
 		cellIcon,
 		cellLabelKey,
@@ -628,6 +634,51 @@
 			await showInputModal(app, translate('group.new.prompt'))
 		)?.trim();
 		if (!name) return;
+		const noteMode =
+			revealActive &&
+			(tab === 'props' || tab === 'tags') &&
+			configByTab[tab].groupPreset.kind === 'note';
+		if (noteMode) {
+			const state = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
+			const path =
+				state.revealAnchor === 'pinned'
+					? state.revealAnchorPath
+					: activeFilePath;
+			const file = path ? app.vault.getFileByPath(path) : null;
+			if (!(file instanceof TFile)) {
+				new Notice(translate('group.note.no_file'));
+				return;
+			}
+			const target =
+				scopeToNoteGroupTarget(state.activeScope, state.drillNodeId) ??
+				{ kind: 'level', level: 1 };
+			const scene = tab === 'props' ? 'prop' : 'tag';
+			const current = parseFrontmatterNoteGroups(
+				(app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as Record<string, unknown>,
+				scene,
+				target,
+			);
+			if (current.groups.some((group) => group.id === name)) {
+				new Notice(translate('group.note.duplicate'));
+				return;
+			}
+			const members = noteGroupMemberIdsFromMemberships(urns, scene, target);
+			const result = await writeNoteGroups({
+				app,
+				file,
+				scene,
+				target,
+				groups: [
+					...current.groups.map((group) => ({
+						name: group.id,
+						members: current.memberships[group.id] ?? [],
+					})),
+					{ name, members },
+				],
+			});
+			if (!result.ok) return;
+			return;
+		}
 		const memberships = configByTab[tab].groupMemberships;
 		if (name in memberships) return;
 		const next = { ...memberships, [name]: [...urns] };

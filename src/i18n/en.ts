@@ -1305,6 +1305,8 @@ export const en: Record<string, string> = {
 	'group.preset.created': 'Created',
 	'group.preset.custom': 'Custom groups',
 	'group.preset.note': 'Note groups',
+	'group.note.no_file': 'No reveal note is available.',
+	'group.note.duplicate': 'A note group with this name already exists.',
 	'group.new': 'New group',
 	'group.new.prompt': 'Group name',
 	'group.create_with_selected': 'Create group with selected',

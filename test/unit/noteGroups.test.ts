@@ -11,6 +11,7 @@ import {
 	isSameTarget,
 	stablyDeduplicateMembers,
 	scopeToNoteGroupTarget,
+	noteGroupMemberIdsFromMemberships,
 	type NoteGroupTarget,
 } from '../../src/logic/logicNoteGroups';
 import {
@@ -154,6 +155,30 @@ describe('U130-09 Note Groups: Codec round trips, malformed keys, and collisions
 		expect(scopeToNoteGroupTarget('drill', null)).toBeNull();
 		expect(scopeToNoteGroupTarget('level:2')).toEqual({ kind: 'level', level: 2 });
 		expect(scopeToNoteGroupTarget('level:1.5')).toBeNull();
+	});
+
+	it('converts selected explorer identities to note member values', () => {
+		expect(
+			noteGroupMemberIdsFromMemberships(
+				['props:prop:status|status', 'props:value:status:open|open'],
+				'prop',
+				{ kind: 'level', level: 1 },
+			),
+		).toEqual(['status', 'status:open']);
+		expect(
+			noteGroupMemberIdsFromMemberships(
+				['props:value:status:open|open', 'tags:tag:#work|#work'],
+				'prop',
+				{ kind: 'level', level: 2 },
+			),
+		).toEqual(['open']);
+		expect(
+			noteGroupMemberIdsFromMemberships(
+				['tags:tag:work/project|#work/project'],
+				'tag',
+				{ kind: 'level', level: 1 },
+			),
+		).toEqual(['work/project']);
 	});
 
 	it('rejects malformed keys as unmanaged (returns null)', () => {
