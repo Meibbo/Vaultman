@@ -2,6 +2,24 @@
 // Virtual Scroll Compat & Layout
 // ============================================================================
 
+/* @settings
+
+name: Vaultman
+id: vaultman-tree-indent
+settings:
+    -
+        id: vaultman-tree-indent-unit
+        title: Tree indent step
+        description: Indentation per tree level in pixels. Applies live to every explorer tree.
+        type: variable-number-slider
+        default: 16
+        min: 0
+        max: 32
+        step: 1
+        format: px
+
+*/
+
 :root {
 	--vaultman-tree-indent-unit: 16px;
 	--vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));

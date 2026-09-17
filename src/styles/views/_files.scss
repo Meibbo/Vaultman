@@ -373,7 +373,7 @@ body.vaultman-table-resizing {
 }
 
 .vaultman-node-table-label {
-  padding-left: calc(var(--depth, 0) * 16px);
+  padding-left: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   color: inherit;
 }
 

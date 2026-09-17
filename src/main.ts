@@ -76,7 +76,6 @@ import {
 	shouldToggleCloseFrame,
 } from './logic/logicFrameActivation';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
-import { applyTreeIndentUnit } from './logic/logicTreeIndent';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 import { reconcileRegistry } from './logic/logicInstanceRegistry';
@@ -197,7 +196,6 @@ export class VaultmanPlugin extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.updateGlassBlur();
-		this.updateTreeIndentUnit();
 
 		setLanguage(this.settings.language);
 
@@ -965,10 +963,6 @@ export class VaultmanPlugin extends Plugin {
 
 	updateGlassBlur(): void {
 		applyGlassBlurSetting(activeDocument.body.style, this.settings);
-	}
-
-	updateTreeIndentUnit(): void {
-		applyTreeIndentUnit(activeDocument.body.style, this.settings);
 	}
 
 	/** Los IDs anclados en las hojas que Obsidian acaba de restaurar. */

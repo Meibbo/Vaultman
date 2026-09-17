@@ -573,24 +573,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 
 		items.push({
-			name: translate('settings.tree_indent_unit'),
-			desc: translate('settings.tree_indent_unit.desc'),
-			render: (setting: Setting) => {
-				setting.addSlider((slider) =>
-					slider
-						.setLimits(0, 32, 1)
-						.setValue(this.plugin.settings.treeIndentUnit ?? 16)
-						.setDynamicTooltip()
-						.onChange(async (value) => {
-							this.plugin.settings.treeIndentUnit = value;
-							await this.plugin.saveSettings();
-							this.plugin.updateTreeIndentUnit();
-						}),
-				);
-			},
-		});
-
-		items.push({
 			name: translate('settings.vaultman_sets'),
 			render: (setting: Setting) => {
 				setting.setHeading();

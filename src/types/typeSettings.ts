@@ -192,8 +192,6 @@ export interface VaultmanSettings {
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
 	glassBlurIntensity: number;
-	/** Tree indent step in px (`--vaultman-tree-indent-unit`, default 16) */
-	treeIndentUnit: number;
 	/** When true, each page opens as its own Obsidian sidebar pane */
 	separatePanes: boolean;
 	/** File list view mode in the sidebar Files page */
@@ -427,7 +425,6 @@ export interface iVaultmanPlugin extends Plugin {
 	saveSettings(): Promise<void>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
-	updateTreeIndentUnit(): void;
 	queueService?: {
 		setBypassOperations(enabled: boolean): void;
 		addOrRun?(change: {
@@ -599,7 +596,6 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filtersTabLabelsMigrated: true,
 	viewCompositionsSeeded: false,
 	glassBlurIntensity: 60,
-	treeIndentUnit: 16,
 	contextMenuShowInFileMenu: true,
 	contextMenuShowInEditorMenu: true,
 	contextMenuShowInMoreOptions: true,
