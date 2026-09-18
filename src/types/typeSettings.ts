@@ -408,6 +408,14 @@ export interface VaultmanSettings {
 	contextMenuHideRules: MenuHideRule[];
 	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
 	instanceRegistry?: InstanceRegistryData;
+	/**
+	 * U130L: decisión Published de comandos SASI, separada del capability
+	 * registry. Vive en PSS/settings para sobrevivir a desactivar/reactivar
+	 * y a reinicios. Clave = command id estable, valor = publicado o no.
+	 * Los ids retirados se conservan (no se podan) para no perder elecciones
+	 * futuras si el comando vuelve.
+	 */
+	sasiPublishedCommands?: Record<string, boolean>;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
@@ -601,4 +609,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuShowInMoreOptions: true,
 	contextMenuHideRules: [],
 	instanceRegistry: { schema: 1, instances: {} },
+	sasiPublishedCommands: {},
 };
