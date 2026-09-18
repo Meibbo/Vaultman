@@ -413,9 +413,15 @@
 	position: absolute;
 	/* U121-083: 48px reserved a band the rail could never use. Dragging it in
 	   scrub already stops at the frame's 8px inset, so a static rail that stops
-	   40px lower is wasting room the gesture itself proves is available. */
+	   40px lower is wasting room the gesture itself proves is available.
+	   U121-086: the top inset is toolbar-aware -- VaultmanFrame measures the
+	   real `.vaultman-toolbar-slot` height and publishes it (plus the 8px gap)
+	   as `--vaultman-toc-rail-top-inset` on the viewport. A hidden toolbar
+	   reserves no height, so the rail falls back to its natural 8px inset.
+	   The bottom reaches the navbar cleanly: no extra gap on top of
+	   `--vaultman-nav-height`. */
 	top: var(--vaultman-toc-rail-top-inset, 8px);
-	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	bottom: var(--vaultman-nav-height, 64px);
 	right: var(--vaultman-toc-rail-edge-offset);
 	z-index: 12;
 	display: flex;
@@ -423,7 +429,7 @@
 	pointer-events: none;
 }
 .vaultman-pages-viewport--dock-off .vaultman-floating-toc-wrap {
-	bottom: 16px;
+	bottom: 8px;
 }
 .vaultman-floating-toc {
 	display: flex;
@@ -632,7 +638,9 @@
 	left: var(--vaultman-toc-rail-edge-offset);
 }
 .vaultman-floating-toc-wrap.pos-top {
-	top: 4px;
+	/* U121-086: toolbar-aware like the vertical rail; 4px fallback preserves
+	   the previous resting offset when no toolbar is measured. */
+	top: var(--vaultman-toc-rail-top-inset, 4px);
 	bottom: auto;
 	left: var(--vaultman-toc-rail-edge-offset);
 	right: var(--vaultman-toc-rail-edge-offset);
@@ -641,7 +649,8 @@
 }
 .vaultman-floating-toc-wrap.pos-bottom {
 	top: auto;
-	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	/* U121-086: no extra gap on top of the navbar. */
+	bottom: var(--vaultman-nav-height, 64px);
 	left: var(--vaultman-toc-rail-edge-offset);
 	right: var(--vaultman-toc-rail-edge-offset);
 	align-items: flex-end;
@@ -649,7 +658,7 @@
 }
 .vaultman-pages-viewport--dock-off
 	.vaultman-floating-toc-wrap.pos-bottom {
-	bottom: 16px;
+	bottom: 8px;
 }
 .vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
 .vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-actions,
@@ -736,15 +745,10 @@
 	outline-offset: 2px;
 	border-radius: 4px;
 }
-.is-mobile
-	.workspace-leaf-content[data-type='vaultman-frame']
-	.vaultman-floating-toc-wrap,
-.is-phone
-	.workspace-drawer
-	.workspace-leaf-content[data-type='vaultman-frame']
-	.vaultman-floating-toc-wrap {
-	top: 44px;
-}
+/* U121-086: no hardcoded top here -- the rail top comes from
+   `--vaultman-toc-rail-top-inset`, measured from the real toolbar height
+   (the toolbar is always on on mobile surfaces, so a static 44px would
+   go stale the moment the toolbar height changes). */
 .is-mobile
 	.workspace-leaf-content[data-type='vaultman-frame']
 	.vaultman-floating-toc-wrap.pos-bottom,

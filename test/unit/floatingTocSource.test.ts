@@ -253,11 +253,61 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?justify-content:\s*center;/,
 		);
+		// U121-086: dock-off reaches the bottom edge cleanly (8px natural
+		// inset, no residual gap).
 		expect(stylesSource).toMatch(
-			/\.vaultman-pages-viewport--dock-off\s+\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?bottom:\s*16px;/,
+			/\.vaultman-pages-viewport--dock-off\s+\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?bottom:\s*8px;/,
 		);
 		expect(stylesSource).toContain('transform-origin: center top;');
 		expect(stylesSource).toContain('transform-origin: center bottom;');
+	});
+
+	it('keeps the rail toolbar-aware on top with no residual bottom gap (U121-086)', () => {
+		// Top: the frame measures the real toolbar height and publishes it
+		// (+ gap) as --vaultman-toc-rail-top-inset on the viewport, so the
+		// rail sits just below a visible toolbar and reclaims the space when
+		// the toolbar is off / hidden (natural 8px fallback).
+		expect(frameSource).toContain('--vaultman-toc-rail-top-inset');
+		expect(frameSource).toContain('applyTocRailTopInset');
+		expect(frameSource).toContain('.vaultman-toolbar-slot');
+		expect(frameSource).toContain(
+			'vaultman-pages-viewport--toolbar-on={panelWidgetVisible}',
+		);
+		expect(stylesSource).toContain(
+			'top: var(--vaultman-toc-rail-top-inset, 8px)',
+		);
+		// No stale hardcoded mobile top: the toolbar is always on there, so a
+		// static offset would go stale the moment the toolbar height changes.
+		expect(stylesSource).not.toMatch(
+			/\.vaultman-floating-toc-wrap \{\s*top:\s*44px;/,
+		);
+		expect(stylesSource).not.toContain('top: 44px;');
+		// Bottom: the rail reaches the navbar / bottom edge cleanly, with no
+		// extra gap stacked on top of the nav height. (Scoped to the rail
+		// rules: the queue/filters islands keep their own +8px lift.)
+		const railWrapBlock =
+			stylesSource.match(
+				/\.vaultman-floating-toc-wrap \{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+		expect(railWrapBlock).toContain('bottom: var(--vaultman-nav-height, 64px)');
+		expect(railWrapBlock).not.toContain('+ 8px');
+		const railBottomBlock =
+			stylesSource.match(
+				/\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+		expect(railBottomBlock).toContain(
+			'bottom: var(--vaultman-nav-height, 64px)',
+		);
+		expect(railBottomBlock).not.toContain('+ 8px');
+		expect(stylesSource).toMatch(
+			/\.vaultman-pages-viewport--dock-off\s+\.vaultman-floating-toc-wrap \{[\s\S]*?bottom:\s*8px;/,
+		);
+		// Scrub geometry stays untouched: the inset is pure CSS/frame state,
+		// the track keeps clamping to the frame's 8px insets.
+		expect(floatingTocSource).toContain('hostRect.top) + 8');
+		expect(floatingTocSource).toContain('hostRect.bottom) - 8');
+		expect(logicNiagaraSource).not.toContain('toc-rail-top-inset');
+		expect(logicNiagaraSource).not.toContain('toolbar');
 	});
 
 	it('applies the plain surface contract to actions and indexed nodes', () => {
