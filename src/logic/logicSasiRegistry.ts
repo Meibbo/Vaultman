@@ -52,6 +52,7 @@ export interface SasiRegistry {
 	list(axis: SasiAxis): readonly SasiDef[];
 	listActions(): readonly SasiDef[];
 	listOperations(): readonly SasiDef[];
+	listCommands(): readonly SasiDef[];
 	resolve(id: string): SasiResolved;
 }
 
@@ -79,6 +80,7 @@ export function createSasiRegistry(): SasiRegistry {
 		},
 		listActions: () => ofKind('action'),
 		listOperations: () => ofKind('operation'),
+		listCommands: () => ofKind('command'),
 		resolve(id) {
 			const def = byId.get(id);
 			// Contrato de logicCommandActions.ts: retirado != inexistente.
