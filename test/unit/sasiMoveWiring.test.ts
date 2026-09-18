@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs';
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
 import { registerMoveActions } from '../../src/logic/logicSasiMoveActions';
 import { createSasiInvoker } from '../../src/logic/logicSasiInvoke';
+import {
+	searchCellFace,
+	searchCellIds,
+} from '../../src/logic/logicSearchCellProjection';
 
 describe('U130-01 wiring de las move actions', () => {
 	it('explorerProps expone sus handlers por id de SASI', () => {
@@ -108,5 +112,98 @@ describe('U130-04: el Proceed del panelWidget viaja por SASI', () => {
 		// escritura otra vez.
 		expect(pageFiltersSrc()).not.toContain('propExplorer?.proceedValueMove()');
 		expect(pageFiltersSrc()).toContain('vaultman.move.proceed');
+	});
+});
+
+describe('U130-I01: Files proyecta NodeMove y llega a handlers SASI reales', () => {
+	it('Files con toggles proyecta nodemove.* e invoca handlers sin no-handler; Props mantiene move.*', async () => {
+		const ids = searchCellIds({
+			tab: 'files',
+			categoryIndex: 0,
+			canCreate: false,
+			createIcon: 'lucide-plus',
+			moveToggles: { write: 'append', originDisposition: 'move' },
+		});
+		expect(ids).toEqual([
+			'vaultman.nodemove.toggleWrite',
+			'vaultman.nodemove.toggleOriginDisposition',
+		]);
+		// Guarda negativa (simbolo exacto): en Files NUNCA un alias move.*.
+		expect(ids).not.toContain('vaultman.move.toggleWrite');
+		expect(ids).not.toContain('vaultman.move.toggleOriginDisposition');
+
+		const filesCtx = {
+			tab: 'files' as const,
+			categoryIndex: 0,
+			canCreate: false,
+			createIcon: 'lucide-plus',
+			moveToggles: {
+				write: 'append' as const,
+				originDisposition: 'move' as const,
+			},
+		};
+		for (const id of ids) {
+			expect(searchCellFace(id, filesCtx)).not.toBeNull();
+		}
+		expect(
+			searchCellFace('vaultman.move.toggleWrite', filesCtx),
+		).toBeNull();
+		expect(
+			searchCellFace('vaultman.move.toggleOriginDisposition', filesCtx),
+		).toBeNull();
+
+		const registry = createSasiRegistry();
+		registerMoveActions(registry);
+		let writeCalls = 0;
+		let originCalls = 0;
+		const fileHandlers = {
+			'vaultman.nodemove.toggleWrite': async () => {
+				writeCalls += 1;
+			},
+			'vaultman.nodemove.toggleOriginDisposition': async () => {
+				originCalls += 1;
+			},
+		};
+		const invoke = createSasiInvoker(registry, fileHandlers);
+		for (const id of ids) {
+			try {
+				await invoke(id, {});
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : '';
+				expect(msg).not.toContain('SASI: no-handler');
+				throw e;
+			}
+		}
+		expect(writeCalls).toBe(1);
+		expect(originCalls).toBe(1);
+
+		// Guarda de no-regresion: Props sigue proyectando vaultman.move.*.
+		const propsIds = searchCellIds({
+			tab: 'props',
+			categoryIndex: 0,
+			canCreate: false,
+			createIcon: 'lucide-plus',
+			moveToggles: { write: 'append', originDisposition: 'move' },
+		});
+		expect(propsIds).toEqual([
+			'vaultman.move.toggleWrite',
+			'vaultman.move.toggleOriginDisposition',
+		]);
+	});
+
+	it('Snippets/Plugins con moveToggles null no proyectan toggles', () => {
+		for (const tab of ['snippets', 'plugins'] as const) {
+			const ids = searchCellIds({
+				tab,
+				categoryIndex: 0,
+				canCreate: false,
+				createIcon: 'lucide-plus',
+				moveToggles: null,
+			});
+			expect(ids).not.toContain('vaultman.move.toggleWrite');
+			expect(ids).not.toContain('vaultman.move.toggleOriginDisposition');
+			expect(ids).not.toContain('vaultman.nodemove.toggleWrite');
+			expect(ids).not.toContain('vaultman.nodemove.toggleOriginDisposition');
+		}
 	});
 });

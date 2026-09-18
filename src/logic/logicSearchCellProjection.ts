@@ -7,6 +7,23 @@ import {
 
 export const MOVE_TOGGLE_WRITE_ID = 'vaultman.move.toggleWrite';
 export const MOVE_TOGGLE_ORIGIN_ID = 'vaultman.move.toggleOriginDisposition';
+export const NODEMOVE_TOGGLE_WRITE_ID = 'vaultman.nodemove.toggleWrite';
+export const NODEMOVE_TOGGLE_ORIGIN_ID =
+	'vaultman.nodemove.toggleOriginDisposition';
+
+/**
+ * U130-I01: Files resuelve sus toggles por los ids NodeMove reales; el resto
+ * de tabs mantiene los ids move.* (Props, sin regresion). Decision unica:
+ * cara e invoker coinciden porque ambos leen este helper.
+ */
+export function moveToggleActionIds(
+	tab: ExplorerTabId,
+): readonly [string, string] {
+	if (tab === 'files') {
+		return [NODEMOVE_TOGGLE_WRITE_ID, NODEMOVE_TOGGLE_ORIGIN_ID];
+	}
+	return [MOVE_TOGGLE_WRITE_ID, MOVE_TOGGLE_ORIGIN_ID];
+}
 
 /**
  * U130-05b: el unico sitio donde vive "que cara lleva este control ahora".
@@ -57,7 +74,7 @@ export interface SearchCellContext {
  */
 export function searchCellIds(ctx: SearchCellContext): readonly string[] {
 	if (ctx.moveToggles) {
-		return [MOVE_TOGGLE_WRITE_ID, MOVE_TOGGLE_ORIGIN_ID];
+		return moveToggleActionIds(ctx.tab);
 	}
 	const ids: string[] = [];
 	if (SEARCH_CATEGORY_ICONS[ctx.tab].length > 1) {
@@ -79,7 +96,8 @@ export function searchCellFace(
 	ctx: SearchCellContext,
 ): SasiNode | null {
 	if (!searchCellIds(ctx).includes(id)) return null;
-	if (id === MOVE_TOGGLE_WRITE_ID) {
+	const [writeId, originId] = moveToggleActionIds(ctx.tab);
+	if (id === writeId) {
 		const appending = ctx.moveToggles!.write === 'append';
 		return {
 			id,
@@ -90,7 +108,7 @@ export function searchCellFace(
 			icon: appending ? 'lucide-list-plus' : 'lucide-replace',
 		};
 	}
-	if (id === MOVE_TOGGLE_ORIGIN_ID) {
+	if (id === originId) {
 		const moving = ctx.moveToggles!.originDisposition === 'move';
 		return {
 			id,
@@ -129,8 +147,9 @@ export function searchCellToggleState(
 	ctx: SearchCellContext,
 ): Readonly<Record<string, boolean>> {
 	if (!ctx.moveToggles) return {};
+	const [writeId, originId] = moveToggleActionIds(ctx.tab);
 	return {
-		[MOVE_TOGGLE_WRITE_ID]: ctx.moveToggles.write === 'replace',
-		[MOVE_TOGGLE_ORIGIN_ID]: ctx.moveToggles.originDisposition === 'copy',
+		[writeId]: ctx.moveToggles.write === 'replace',
+		[originId]: ctx.moveToggles.originDisposition === 'copy',
 	};
 }
