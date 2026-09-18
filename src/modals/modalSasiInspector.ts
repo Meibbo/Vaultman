@@ -21,6 +21,7 @@ import {
 } from '../logic/logicApiScene';
 import { expandNewGroupHeaders } from '../logic/logicTreeGroupProjection';
 import type { TreeNode } from '../types/typeTree';
+import type { InstanceRegistryData } from '../types/typeInstance';
 
 export interface SasiInspectorEntry {
 	id: string;
@@ -98,6 +99,7 @@ export class SasiInspectorModal extends Modal {
 	private readonly registry: SasiRegistry;
 	private readonly publisher: SasiCommandPublisher | undefined;
 	private readonly onToggle?: (id: string, published: boolean) => void;
+	private readonly instances: InstanceRegistryData | undefined;
 	private view: UnifiedTreeView | null = null;
 	private host: HTMLElement | null = null;
 	private readonly expandedIds = new Set<string>();
@@ -109,11 +111,13 @@ export class SasiInspectorModal extends Modal {
 		registry: SasiRegistry,
 		publisher?: SasiCommandPublisher,
 		onToggle?: (id: string, published: boolean) => void,
+		instances?: InstanceRegistryData,
 	) {
 		super(app);
 		this.registry = registry;
 		this.publisher = publisher;
 		this.onToggle = onToggle;
+		this.instances = instances;
 	}
 
 	onOpen(): void {
@@ -155,7 +159,11 @@ export class SasiInspectorModal extends Modal {
 	private renderScene(): void {
 		if (!this.view) return;
 		const publisherView = this.publisherView();
-		const flat = buildApiSceneNodes(this.registry, publisherView);
+		const flat = buildApiSceneNodes(
+			this.registry,
+			publisherView,
+			this.instances,
+		);
 		this.flat = flat;
 		const labeled = flat.map((node) => ({
 			...node,
@@ -218,6 +226,18 @@ export class SasiInspectorModal extends Modal {
 		const meta = node.meta as ApiSceneNodeMeta;
 		if (meta.identityKind !== 'node_apis') {
 			return translate(API_SCENE_GROUP_LABEL_KEYS[meta.group]) || node.label;
+		}
+		if (meta.group === 'instance') {
+			const parts = [meta.sasiId];
+			if (meta.tombstoned === true) parts.push('tombstoned');
+			if (meta.revision !== undefined) parts.push(`rev ${meta.revision}`);
+			if (meta.activeScene !== undefined) parts.push(meta.activeScene);
+			try {
+				parts.push(apiSceneUrnOf(node as TreeNode<ApiSceneNodeMeta>));
+			} catch {
+				// La URN nunca puede tumbar el tooltip.
+			}
+			return parts.filter(Boolean).join(' · ');
 		}
 		const parts = [meta.sasiId];
 		parts.push(meta.sasiKind ?? meta.group);

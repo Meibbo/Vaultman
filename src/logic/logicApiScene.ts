@@ -1,11 +1,11 @@
 import type { SasiFunctionKind } from './logicSasiRegistry';
 import type { SasiRegistry } from './logicSasiRegistry';
-import { SCENE_GOTO_TABS } from './logicSasiSceneActions';
-import type { StatisticsDataTab } from './logicStatisticsNavigation';
 import { formatMembershipUrn } from './logicMembershipUrn';
 import type { NodeGroupDef } from './logicNodeGroup';
 import { NO_GROUP_ID, projectGroupedTree } from './logicTreeGroupProjection';
 import type { TreeNode } from '../types/typeTree';
+import type { InstanceRegistryData } from '../types/typeInstance';
+import type { ExplorerTabId } from '../types/typeUI';
 
 /**
  * U130L apiScene: SASI proyectado como arbol compartido (TreeNode), no como
@@ -15,15 +15,22 @@ import type { TreeNode } from '../types/typeTree';
  * `labelKey` al pintar; aqui viajan crudas para que los tests las lean sin
  * montar nada.
  *
- * Taxonomia formal (spec-01 + glossary):
+ * Taxonomia formal (spec-01 + glossary + correctiva U130L):
  * - Identidades reales: `node_apis` (kind de la URN). Todo leaf del apiScene
  *   es un `node_apis` con URN estable `sasi:node_apis:<canonical>|<label>`.
  * - `node_groups` NO es kind de identidad: son los p-nodes virtuales que
- *   agrupan (las 8 cabeceras). Nunca llevan toggle ni URN propia.
+ *   agrupan (las 8 cabeceras). Nunca llevan toggle ni URN propia, y nunca se
+ *   registran como kind SASI.
+ * - Ejes `kind`/`provider`/`surface` poblados en el bootstrap: `node_apis`,
+ *   proveedores del contrato Scene e identidades chrome concretas.
+ * - Instancias: `InstanceRegistryData` de settings (ids durables con
+ *   activeScene/tombstoned/revision), NUNCA descriptores del publisher.
+ * - Scenes: `SceneDefinitionId` reales + el apiScene mismo. `content` es tab
+ *   de UI, no escena, y no sale.
  * - Cells: NO se inventa ningun kind nuevo (`counter`/`date`/`text` son
  *   types de celda del modelo, no kinds). El unico cell es el `toggle`
- *   existente de TreeNodeCell (`publish`), con tooltip, y SOLO en comandos
- *   publicables (los que tienen descriptor en el publisher).
+ *   existente de TreeNodeCell (`publish`), con tooltip, y SOLO en nodos
+ *   `command` registrados con descriptor publicable.
  */
 
 export const API_SCENE_PROVIDER_ID = 'sasi';
@@ -88,9 +95,19 @@ export interface ApiSceneNodeMeta {
 	supports: readonly string[];
 	composes: readonly string[];
 	mutatesVault: boolean;
-	/** Tiene descriptor en el publisher (puede publicarse como comando). */
+	/**
+	 * Solo `true` en nodos `command` registrados (`axis=function`,
+	 * `kind=command`) con descriptor en el publisher. Instancias, scenes,
+	 * actions, operations, providers, kinds y surfaces nunca lo son.
+	 */
 	publishable: boolean;
 	published: boolean;
+	/** Solo grupo `instance`: scene activa durable del registro. */
+	activeScene?: string;
+	/** Solo grupo `instance`: tombstone visible del registro. */
+	tombstoned?: boolean;
+	/** Solo grupo `instance`: revision durable del registro. */
+	revision?: number;
 }
 
 /** Meta propia de cada cabecera: `node_groups`, sin URN ni identidad. */
@@ -169,14 +186,23 @@ interface LeafSpec {
 	supports: readonly string[];
 	composes: readonly string[];
 	mutatesVault: boolean;
+	activeScene?: string;
+	tombstoned?: boolean;
+	revision?: number;
 }
 
 function toNode(
 	spec: LeafSpec,
 	publisher: ApiScenePublisherView | undefined,
 	snapshotIds: ReadonlySet<string>,
+	isCommand = false,
 ): TreeNode<ApiSceneNodeMeta> {
-	const publishable = resolvePublishable(publisher, spec.sasiId, snapshotIds);
+	// Puerta command-only: el toggle `cell_toggle` existe SOLO en nodos
+	// `command` registrados (axis=function, kind=command) con descriptor en
+	// el publisher (`isPublishable`). Un descriptor con el mismo id NO abre
+	// toggle en action/operation/instance/scene/provider/kind/surface.
+	const publishable =
+		isCommand && resolvePublishable(publisher, spec.sasiId, snapshotIds);
 	const published = publishable
 		? (publisher?.isPublished(spec.sasiId) ?? false)
 		: false;
@@ -216,18 +242,44 @@ function toNode(
 			mutatesVault: spec.mutatesVault,
 			publishable,
 			published,
+			...(spec.activeScene !== undefined
+				? { activeScene: spec.activeScene }
+				: {}),
+			...(spec.tombstoned !== undefined
+				? { tombstoned: spec.tombstoned }
+				: {}),
+			...(spec.revision !== undefined ? { revision: spec.revision } : {}),
 		},
 	};
 }
 
 /**
+ * Escenas reales: los `SceneDefinitionId` del contrato (`ExplorerTabId`:
+ * files, props, tags, snippets, plugins). `content` es tab de UI, no
+ * `SceneDefinitionId`, y no sale aqui. El apiScene mismo cierra la lista
+ * como identidad de escena propia.
+ */
+export const API_SCENE_TABS: readonly ExplorerTabId[] = [
+	'files',
+	'props',
+	'tags',
+	'snippets',
+	'plugins',
+];
+
+export const API_SCENE_SELF_ID = 'vaultman.scene.apiscene';
+
+/**
  * Filas planas del apiScene desde SASI real. Orden estable: el del registro
- * para functions/kinds/providers, el del snapshot para instancias, el de
- * SCENE_GOTO_TABS para scenes y alfabetico para superficies.
+ * para functions/kinds/providers/surfaces, el de `API_SCENE_TABS` (+
+ * apiScene) para scenes y alfabetico por id durable para instancias.
+ * El snapshot del publisher SOLO da estado de publicacion de comandos:
+ * nunca genera filas de instancia.
  */
 export function buildApiSceneNodes(
 	registry: SasiRegistry,
 	publisher?: ApiScenePublisherView,
+	instances?: InstanceRegistryData,
 ): readonly TreeNode<ApiSceneNodeMeta>[] {
 	const snapshot = publisher?.snapshot() ?? [];
 	const snapshotIds = new Set(snapshot.map((entry) => entry.id));
@@ -330,6 +382,7 @@ export function buildApiSceneNodes(
 				},
 				coherentPublisher ?? publisher,
 				snapshotIds,
+				true,
 			),
 		);
 	}
@@ -375,35 +428,44 @@ export function buildApiSceneNodes(
 			),
 		);
 	}
-	// Instancias = descriptores vivos del publisher (comandos registrados con
-	// su estado publicado). Es SASI real: el snapshot del bridge.
-	for (const entry of snapshot) {
-		const name = entry.descriptor?.name ?? entry.id;
+	// Instancias = el registro durable de settings (`InstanceRegistryData`),
+	// NUNCA descriptores del publisher. Sin toggle de publicacion: la fila
+	// muestra id durable, activeScene, tombstone y revision.
+	const records = Object.values(instances?.instances ?? {}).sort((a, b) =>
+		a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+	);
+	for (const record of records) {
 		out.push(
 			toNode(
 				{
 					group: 'instance',
-					rowId: `sasi:instance:${entry.id}`,
-					canonicalId: `instance:${entry.id}`,
-					sasiId: entry.id,
-					label: name,
-					labelKey: name,
-					sasiKind: 'command',
+					rowId: `sasi:instance:${record.id}`,
+					canonicalId: `instance:${record.id}`,
+					sasiId: record.id,
+					label: record.id,
+					labelKey: record.id,
+					sasiKind: null,
 					supports: [],
 					composes: [],
 					mutatesVault: false,
+					...(record.activeScene !== undefined
+						? { activeScene: record.activeScene }
+						: {}),
+					tombstoned: record.tombstoned,
+					revision: record.revision,
 				},
 				coherentPublisher ?? publisher,
 				snapshotIds,
 			),
 		);
 	}
-	// Scenes = las tabs con goto SASI real. `supports`/`icon` se heredan del
-	// def del registro cuando existe; si no, vacio honesto, no inventado.
+	// Scenes = los `SceneDefinitionId` reales con su goto SASI.
+	// `supports`/`icon` se heredan del def del registro cuando existe; si
+	// no, vacio honesto, no inventado. El apiScene cierra como identidad.
 	const byId = new Map(
 		registry.list('function').map((def) => [def.id, def] as const),
 	);
-	const sceneTab = (tab: StatisticsDataTab): void => {
+	const sceneTab = (tab: ExplorerTabId): void => {
 		const gotoId = `vaultman.scene.goto.${tab}`;
 		const def = byId.get(gotoId);
 		out.push(
@@ -426,26 +488,39 @@ export function buildApiSceneNodes(
 			),
 		);
 	};
-	for (const tab of SCENE_GOTO_TABS) sceneTab(tab);
-	// Superficies = las `supports.surface` distintas declaradas en el
-	// registro. Derivadas, no inventadas: si manana se registra una
-	// superficie nueva, aparece aqui sin tocar este modulo.
-	const surfaces = new Set<string>();
-	for (const axis of ['function', 'kind', 'provider'] as const) {
-		for (const def of registry.list(axis)) {
-			for (const support of def.supports) surfaces.add(support.surface);
-		}
-	}
-	for (const surface of [...surfaces].sort()) {
+	for (const tab of API_SCENE_TABS) sceneTab(tab);
+	out.push(
+		toNode(
+			{
+				group: 'scene',
+				rowId: 'sasi:scene:apiscene',
+				canonicalId: 'scene:apiscene',
+				sasiId: API_SCENE_SELF_ID,
+				label: 'sasi.apiscene.scene',
+				labelKey: 'sasi.apiscene.scene',
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+			},
+			coherentPublisher ?? publisher,
+			snapshotIds,
+		),
+	);
+	// Superficies = identidades del eje `surface` (chrome concretas).
+	// Derivadas del registro, no de los strings de `supports`: si manana se
+	// registra una superficie nueva, aparece aqui sin tocar este modulo.
+	for (const def of registry.list('surface')) {
 		out.push(
 			toNode(
 				{
 					group: 'surface',
-					rowId: `sasi:surface:${surface}`,
-					canonicalId: `surface:${surface}`,
-					sasiId: `sasi:surface:${surface}`,
-					label: surface,
-					labelKey: surface,
+					rowId: `sasi:surface:${def.id}`,
+					canonicalId: `surface:${def.id}`,
+					sasiId: def.id,
+					label: def.labelKey,
+					labelKey: def.labelKey,
+					...(def.icon ? { icon: def.icon } : {}),
 					sasiKind: null,
 					supports: [],
 					composes: [],

@@ -11,7 +11,7 @@
  * estable, y cada entrada declara en que superficies aplica.
  */
 
-export type SasiAxis = 'provider' | 'kind' | 'function';
+export type SasiAxis = 'provider' | 'kind' | 'function' | 'surface';
 
 /** Categoria dentro del eje FUNCTIONS. Son tres cosas distintas: */
 export type SasiFunctionKind =
@@ -27,7 +27,11 @@ export interface SasiSupport {
 }
 
 export interface SasiDef {
-	/** Estable y con namespace: `vaultman.move.proceed`. */
+	/**
+	 * Estable y con namespace: `vaultman.move.proceed`.
+	 * Superficies concretas usan el id chrome tal cual
+	 * (`chrome:left-sidebar`): ya es estable y con namespace.
+	 */
 	id: string;
 	axis: SasiAxis;
 	/** Solo cuando `axis === 'function'`. */

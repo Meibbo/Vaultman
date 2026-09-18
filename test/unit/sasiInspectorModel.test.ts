@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSasiInspectorModel } from '../../src/modals/modalSasiInspector';
 import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
+import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
 // Guarda negativa: el menu de providers del sidebar. Si el modal apareciera
 // ahi, esta fuente lo nombraria con su simbolo exacto.
 import navbarTabsSource from '../../src/components/layout/navbarTabs.svelte?raw';
@@ -22,10 +23,19 @@ describe('U130-01: el inspector de SASI', () => {
 	it('un eje vacio se proyecta VACIO, no se oculta', () => {
 		// Un eje que desaparece no le dice al agente que consulta que existe
 		// pero esta sin poblar, que es justo lo que necesita saber.
-		const model = buildSasiInspectorModel(registry);
-		const kinds = model.find((section) => section.axis === 'kind');
+		const empty = buildSasiInspectorModel(createSasiRegistry());
+		const kinds = empty.find((section) => section.axis === 'kind');
 		expect(kinds).toBeDefined();
 		expect(kinds?.entries).toEqual([]);
+		// Correctiva U130L: en el bootstrap real kind/provider ya van
+		// poblados (node_apis + providers Scene); el modelo los muestra.
+		const real = buildSasiInspectorModel(registry);
+		expect(
+			real.find((s) => s.axis === 'kind')?.entries.map((e) => e.id),
+		).toContain('vaultman.kind.node_apis');
+		expect(
+			real.find((s) => s.axis === 'provider')?.entries.length,
+		).toBeGreaterThan(0);
 	});
 
 	it('dentro de FUNCTIONS separa las tres categorias', () => {
