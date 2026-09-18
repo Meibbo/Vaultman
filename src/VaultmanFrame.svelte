@@ -657,13 +657,61 @@
 		});
 		ro.observe(el);
 		applyPageTransform(false);
+		// U121-086: the rail top follows the real toolbar height.
+		toolbarSlotEl = el.querySelector(':scope > .vaultman-toolbar-slot');
+		if (toolbarSlotEl) {
+			toolbarSlotRo = new ResizeObserver(() => {
+				applyTocRailTopInset();
+			});
+			toolbarSlotRo.observe(toolbarSlotEl);
+		}
+		applyTocRailTopInset();
 		return {
 			destroy() {
 				ro.disconnect();
+				toolbarSlotRo?.disconnect();
+				toolbarSlotRo = null;
+				toolbarSlotEl = null;
 				viewportEl = null;
 			},
 		};
 	}
+
+	// ─── U121-086: toolbar-aware floating-index rail ─────────────────────
+	// The rail is an absolute overlay inside the pages viewport, so a static
+	// `top` would slide underneath the visible toolbar (toolbar z-index 15 >
+	// rail z-index 12). The real toolbar height is measured and published as
+	// `--vaultman-toc-rail-top-inset` (height + gap) on the viewport; a hidden
+	// toolbar (`.is-hidden-mode`) reserves no height, so the rail falls back
+	// to its natural 8px inset and reclaims the freed space. The peek overlay
+	// is transient and floats above the content, so it needs no inset.
+	// Scrub geometry (logicNiagaraTrack) is untouched.
+	const TOC_RAIL_TOP_GAP_PX = 8;
+	let toolbarSlotEl: HTMLElement | null = null;
+	let toolbarSlotRo: ResizeObserver | null = null;
+
+	function applyTocRailTopInset(): void {
+		if (!viewportEl) return;
+		if (!toolbarSlotEl || !viewportEl.contains(toolbarSlotEl)) {
+			toolbarSlotEl = viewportEl.querySelector(
+				':scope > .vaultman-toolbar-slot',
+			);
+		}
+		const toolbarHeight =
+			toolbarSlotEl instanceof HTMLElement ? toolbarSlotEl.offsetHeight : 0;
+		viewportEl.style.setProperty(
+			'--vaultman-toc-rail-top-inset',
+			`${toolbarHeight + TOC_RAIL_TOP_GAP_PX}px`,
+		);
+	}
+
+	$effect(() => {
+		// Re-measure after the toolbar slot mounts, unmounts, or toggles
+		// visibility, once Svelte has flushed the DOM.
+		void panelWidgetVisible;
+		void panelWidgetPeek;
+		void tick().then(applyTocRailTopInset);
+	});
 
 	function bindContainer(el: HTMLElement) {
 		containerEl = el;
@@ -1482,6 +1530,7 @@
 <div
 	class="vaultman-pages-viewport"
 	class:vaultman-pages-viewport--dock-off={!showDock}
+	class:vaultman-pages-viewport--toolbar-on={panelWidgetVisible}
 	class:vaultman-pages-viewport--toc-gutter-right={tocLaneLayout.gutterPosition ===
 		'right'}
 	class:vaultman-pages-viewport--toc-gutter-left={tocLaneLayout.gutterPosition ===
