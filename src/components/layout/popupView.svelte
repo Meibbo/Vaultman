@@ -23,6 +23,7 @@
 	let {
 		activeTab,
 		selectionMode = false,
+		selectionCheckboxPosition = 'start',
 		onClose,
 		onViewModeChange,
 		onPillsChange,
@@ -39,6 +40,11 @@
 		 * menu that cannot do anything.
 		 */
 		selectionMode?: boolean;
+		/**
+		 * U121-108: when `hidden`, the checkbox view_option is not offered at
+		 * all — the setting is not a position then.
+		 */
+		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		onClose: () => void;
 		onViewModeChange?: (mode: ExplorerViewMode) => void;
 		onPillsChange?: (activePills: string[]) => void;
@@ -71,7 +77,9 @@
 	});
 
 	const currentPillDefs = $derived(
-		viewMenuCells(activeTab, activeView, activePills)
+		viewMenuCells(activeTab, activeView, activePills, {
+			selectionCheckboxPosition,
+		})
 			.filter(
 				(definition) => definition.id !== 'checkbox' || selectionMode === true,
 			)

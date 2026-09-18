@@ -83,9 +83,10 @@ describe('minimal filters header source guards', () => {
 		// still reads viewMenuCells directly.
 		expect(navbarFiltersSource).toContain('cellMenuOrder(');
 		// BT5-012: Path mode is now a registry-gated projection, so the popup
-		// passes its active pills into viewMenuCells.
+		// passes its active pills into viewMenuCells. U121-108 threads
+		// `selectionCheckboxPosition` as a fourth argument.
 		expect(popupViewSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills',
 		);
 		expect(navbarFiltersSource).not.toContain('const CELL_LABELS');
 		expect(navbarFiltersSource).not.toContain('const CELL_ICONS');

@@ -61,6 +61,8 @@ export interface PanelPluginCtx {
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
 	clearDragActionGuide?: () => void;
+	/** U121-108: live repaint broadcast; absent in narrow test doubles. */
+	onSettingsChange?: (listener: () => void) => () => void;
 }
 
 import { UnifiedTreeView } from '../layout/viewTree';
@@ -676,6 +678,16 @@ export class PropsExplorerPanel extends Component {
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);
 		this.plugin.queueService.on('changed', this._handleStateChange);
+
+		// U121-108: live repaint of selectionCheckboxPosition (start/end/hidden)
+		// across every mounted scene. Coalesced through the iconic renderer so
+		// a burst of settings writes still costs a single deferred render, and
+		// a focused inline input is never detached mid-keystroke.
+		if (this.plugin.onSettingsChange) {
+			this.register(
+				this.plugin.onSettingsChange(this._scheduleIconicRender),
+			);
+		}
 
 		this._render();
 	}

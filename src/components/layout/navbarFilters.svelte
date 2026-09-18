@@ -276,6 +276,7 @@
 		showTabLabels = true,
 		sortLevelInline = true,
 		orderCellsByActivation = false,
+		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
 		toolbarMenuLayouts,
 		commandActions = [],
 		createActionsPlacement = 'searchbox',
@@ -1783,6 +1784,8 @@
 			{
 				byActivation: orderCellsByActivation,
 				viewMode: activeView,
+				// U121-108: `hidden` removes the checkbox view_option entirely.
+				selectionCheckboxPosition,
 			},
 		)) {
 			nodes.push(
@@ -3627,6 +3630,7 @@
 				<ViewModePopup
 					{activeTab}
 					selectionMode={interactionModeByTab[activeTab] === 'select'}
+					{selectionCheckboxPosition}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}

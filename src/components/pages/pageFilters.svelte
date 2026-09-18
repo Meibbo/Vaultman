@@ -417,6 +417,11 @@
 		void settingsRevision;
 		return plugin.settings.sortLevelInline !== false;
 	});
+	const selectionCheckboxPosition = $derived.by(() => {
+		void settingsRevision;
+		const position = plugin.settings.selectionCheckboxPosition;
+		return position === 'end' || position === 'hidden' ? position : 'start';
+	});
 	const toolbarToolsMenu = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
@@ -1965,6 +1970,7 @@
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
 				sortLevelInline,
 				orderCellsByActivation,
+				selectionCheckboxPosition,
 				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 				frameWidth,
 				onToggleToolbar: toggleToolbar,
