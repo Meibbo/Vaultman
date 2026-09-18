@@ -2,8 +2,14 @@ export type FilterPolarity = 'none' | 'inclusive' | 'exclusive';
 
 interface PendingClick<TTarget> {
 	target: TTarget;
+	from: FilterPolarity;
+	to: FilterPolarity;
 	startedAt: number;
 	timer: unknown;
+}
+
+function oppositePolarity(polarity: FilterPolarity): FilterPolarity {
+	return polarity === 'inclusive' ? 'exclusive' : 'inclusive';
 }
 
 interface DeferredFilterClickOptions<TTarget> {
@@ -14,11 +20,14 @@ interface DeferredFilterClickOptions<TTarget> {
 }
 
 /**
- * Defers an inactive filter click until the double-click window closes.
+ * Defers every filter click until the double-click window closes.
  *
- * This prevents a fast pair from briefly writing an inclusive rule before it
- * is replaced by an exclusive rule. Active rules are removed immediately; a
- * short tombstone absorbs the browser's second click from that same gesture.
+ * A fast pair from `none` collapses into a single `exclusive` effect instead
+ * of briefly writing `inclusive` first. A fast pair on an active rule toggles
+ * its polarity atomically (`inclusive` <-> `exclusive`) with a single effect.
+ * A lone click on an active rule commits its removal (`none`) when the window
+ * closes. A short tombstone after a committed removal absorbs the browser's
+ * ghost second click from that same gesture.
  */
 export class DeferredFilterClickCoordinator<TTarget> {
 	private readonly thresholdMs: number;
@@ -48,10 +57,78 @@ export class DeferredFilterClickCoordinator<TTarget> {
 		now = Date.now(),
 	): void {
 		this.pruneRecentRemovals(now);
+
+		const prior = this.pending.get(key);
+		if (prior) {
+			if (prior.from === 'none') {
+				if (current === 'none') {
+					this.clearTimer(prior.timer);
+					this.pending.delete(key);
+					if (now - prior.startedAt <= this.thresholdMs) {
+						this.onEffect(target, 'exclusive');
+						return;
+					}
+
+					// A delayed timer may be throttled in a background window. Preserve
+					// slow-pair semantics even when it has not had a chance to run.
+					this.onEffect(prior.target, 'inclusive');
+					this.onEffect(target, 'none');
+					this.recentRemovals.set(key, now + this.thresholdMs);
+					return;
+				}
+				// The rule became active externally while activation was pending:
+				// drop the stale pending and treat this click as an active one.
+				this.clearTimer(prior.timer);
+				this.pending.delete(key);
+			} else {
+				if (current === prior.from) {
+					if (now - prior.startedAt <= this.thresholdMs) {
+						this.clearTimer(prior.timer);
+						this.pending.delete(key);
+						this.onEffect(target, oppositePolarity(prior.from));
+						return;
+					}
+					// Slow second click on the same active rule with a throttled
+					// timer: commit the pending removal, then arm a fresh one so
+					// the lone-click semantics survive without doubling effects.
+					this.clearTimer(prior.timer);
+					this.pending.delete(key);
+					this.onEffect(prior.target, 'none');
+					this.recentRemovals.set(key, now + this.thresholdMs);
+					const timer = this.setTimer(
+						() => this.flush(key),
+						this.thresholdMs,
+					);
+					this.pending.set(key, {
+						target,
+						from: current,
+						to: 'none',
+						startedAt: now,
+						timer,
+					});
+					return;
+				}
+				if (current === 'none') {
+					// Ghost second click observed while the removal is still
+					// deferred: absorb it so a single gesture stays terminal.
+					return;
+				}
+				// External polarity flip while removal was pending: drop the
+				// stale pending and re-arm for the new active polarity.
+				this.clearTimer(prior.timer);
+				this.pending.delete(key);
+			}
+		}
+
 		if (current !== 'none') {
-			this.cancel(key);
-			this.onEffect(target, 'none');
-			this.recentRemovals.set(key, now + this.thresholdMs);
+			const timer = this.setTimer(() => this.flush(key), this.thresholdMs);
+			this.pending.set(key, {
+				target,
+				from: current,
+				to: 'none',
+				startedAt: now,
+				timer,
+			});
 			return;
 		}
 
@@ -61,24 +138,14 @@ export class DeferredFilterClickCoordinator<TTarget> {
 			this.recentRemovals.delete(key);
 		}
 
-		const prior = this.pending.get(key);
-		if (prior) {
-			this.clearTimer(prior.timer);
-			this.pending.delete(key);
-			if (now - prior.startedAt <= this.thresholdMs) {
-				this.onEffect(target, 'exclusive');
-				return;
-			}
-
-			// A delayed timer may be throttled in a background window. Preserve
-			// slow-pair semantics even when it has not had a chance to run.
-			this.onEffect(prior.target, 'inclusive');
-			this.onEffect(target, 'none');
-			return;
-		}
-
 		const timer = this.setTimer(() => this.flush(key), this.thresholdMs);
-		this.pending.set(key, { target, startedAt: now, timer });
+		this.pending.set(key, {
+			target,
+			from: 'none',
+			to: 'inclusive',
+			startedAt: now,
+			timer,
+		});
 	}
 
 	private pruneRecentRemovals(now: number): void {
@@ -91,7 +158,15 @@ export class DeferredFilterClickCoordinator<TTarget> {
 		const pending = this.pending.get(key);
 		if (!pending) return;
 		this.pending.delete(key);
-		this.onEffect(pending.target, 'inclusive');
+		this.onEffect(pending.target, pending.to);
+		if (pending.to === 'none') {
+			// Deterministic tombstone anchored to the deferred window instead of
+			// the wall clock, so fake-timer harnesses share the same semantics.
+			this.recentRemovals.set(
+				key,
+				pending.startedAt + this.thresholdMs * 2,
+			);
+		}
 	}
 
 	cancel(key: string): void {

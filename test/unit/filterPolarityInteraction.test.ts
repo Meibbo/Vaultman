@@ -65,10 +65,58 @@ describe('BT5-053 deferred filter polarity interaction', () => {
 		coordinator.click('status', 'status', 'none', 0);
 		flushTimers();
 		coordinator.click('status', 'status', 'inclusive', 400);
+		expect(effects).toEqual([{ key: 'status', polarity: 'inclusive' }]);
+		flushTimers();
 		expect(effects).toEqual([
 			{ key: 'status', polarity: 'inclusive' },
 			{ key: 'status', polarity: 'none' },
 		]);
+	});
+
+	it('toggles inclusive to exclusive on a fast double click', () => {
+		const { coordinator, effects, flushTimers } = harness();
+		coordinator.click('status', 'status', 'inclusive', 0);
+		expect(effects).toEqual([]);
+		coordinator.click('status', 'status', 'inclusive', 120);
+		expect(effects).toEqual([{ key: 'status', polarity: 'exclusive' }]);
+		flushTimers();
+		expect(effects).toHaveLength(1);
+	});
+
+	it('toggles exclusive to inclusive on a fast double click', () => {
+		const { coordinator, effects, flushTimers } = harness();
+		coordinator.click('status', 'status', 'exclusive', 0);
+		expect(effects).toEqual([]);
+		coordinator.click('status', 'status', 'exclusive', 120);
+		expect(effects).toEqual([{ key: 'status', polarity: 'inclusive' }]);
+		flushTimers();
+		expect(effects).toHaveLength(1);
+	});
+
+	it('removes a lone active click after the double-click window', () => {
+		const { coordinator, effects, flushTimers } = harness();
+		coordinator.click('status', 'status', 'inclusive', 0);
+		expect(effects).toEqual([]);
+		flushTimers();
+		expect(effects).toEqual([{ key: 'status', polarity: 'none' }]);
+	});
+
+	it('removes a lone exclusive click after the double-click window', () => {
+		const { coordinator, effects, flushTimers } = harness();
+		coordinator.click('status', 'status', 'exclusive', 0);
+		expect(effects).toEqual([]);
+		flushTimers();
+		expect(effects).toEqual([{ key: 'status', polarity: 'none' }]);
+	});
+
+	it('absorbs a ghost none click after a committed removal', () => {
+		const { coordinator, effects, flushTimers } = harness();
+		coordinator.click('status', 'status', 'inclusive', 0);
+		flushTimers();
+		expect(effects).toEqual([{ key: 'status', polarity: 'none' }]);
+		coordinator.click('status', 'status', 'none', 300);
+		flushTimers();
+		expect(effects).toEqual([{ key: 'status', polarity: 'none' }]);
 	});
 
 	it('does not combine different nodes and cancels pending work on teardown', () => {
