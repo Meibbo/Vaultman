@@ -501,19 +501,30 @@ export function updateNoteGroupMembersOnRename(
 		// 2. If parent target path matches oldName, key itself needs renaming
 		if (parsed.target.kind === 'parent') {
 			const sep = scene === 'prop' ? ':' : '/';
-			const segments = parsed.target.path.split(sep);
-			let pathChanged = false;
-			const newSegments = segments.map((seg) => {
-				if (seg === oldName) {
-					pathChanged = true;
-					return newName;
+			const curPath = parsed.target.path;
+			let newPath: string | null = null;
+			if (curPath === oldName) {
+				newPath = newName;
+			} else if (curPath.startsWith(oldName + sep)) {
+				newPath = newName + curPath.slice(oldName.length);
+			} else {
+				const segments = curPath.split(sep);
+				let pathChanged = false;
+				const newSegments = segments.map((seg) => {
+					if (seg === oldName) {
+						pathChanged = true;
+						return newName;
+					}
+					return seg;
+				});
+				if (pathChanged) {
+					newPath = newSegments.join(sep);
 				}
-				return seg;
-			});
-			if (pathChanged) {
+			}
+			if (newPath !== null && newPath !== curPath) {
 				const newTarget: NoteGroupTarget = {
 					kind: 'parent',
-					path: newSegments.join(sep),
+					path: newPath,
 				};
 				const newKey = encodeNoteGroupKey(scene, parsed.group, newTarget);
 				keysToRename.push({ oldKey: key, newKey, value: fm[key] });
@@ -522,8 +533,18 @@ export function updateNoteGroupMembersOnRename(
 	}
 
 	for (const { oldKey, newKey, value } of keysToRename) {
+		if (oldKey === newKey) continue;
+		const existing = fm[newKey];
 		delete fm[oldKey];
-		fm[newKey] = value;
+		if (Array.isArray(existing) && Array.isArray(value)) {
+			fm[newKey] = Array.from(new Set([...existing, ...value]));
+		} else if (Array.isArray(existing) && !Array.isArray(value)) {
+			// Preserve preexisting members; do not overwrite an array with a collision value.
+			// Re-read the merged value if the renamed value is a list-like collision edge.
+			fm[newKey] = existing;
+		} else {
+			fm[newKey] = value;
+		}
 		changed = true;
 	}
 
