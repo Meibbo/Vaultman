@@ -676,3 +676,31 @@ describe('U130-09 Note Groups: processFrontMatter preservation, error handling, 
 		expect(fm['prop_GroupB_level1']).toEqual(['p4', 'p3']);
 	});
 });
+
+describe('U130-09 Note Groups: renameNoteGroupMember adversarial bugfix', () => {
+	it('merges members without duplicates when destination key already exists', () => {
+		const fm: Record<string, unknown> = {
+			prop_G_old: ['a', 'b'],
+			prop_G_new: ['b', 'c'],
+		};
+
+		const changed = updateNoteGroupMembersOnRename(fm, 'prop', 'old', 'new');
+
+		expect(changed).toBe(true);
+		expect(fm['prop_G_old']).toBeUndefined();
+		// Preexisting members of newKey must not be lost; no duplicates.
+		expect(fm['prop_G_new']).toEqual(['b', 'c', 'a']);
+	});
+
+	it('renames nested tag with full path parent/sub -> parent/newsub', () => {
+		const fm: Record<string, unknown> = {
+			'tag_G_parent/sub': ['x'],
+		};
+
+		const changed = updateNoteGroupMembersOnRename(fm, 'tag', 'parent/sub', 'parent/newsub');
+
+		expect(changed).toBe(true);
+		expect(fm['tag_G_parent/sub']).toBeUndefined();
+		expect(fm['tag_G_parent/newsub']).toEqual(['x']);
+	});
+});
