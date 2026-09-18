@@ -1105,7 +1105,6 @@ export const es: Record<string, string> = {
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.note': 'Nota',
-	'sort.by.anchor': 'Ancla',
 	'sort.by.columns': 'Columnas',
 	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',
@@ -1164,6 +1163,7 @@ export const es: Record<string, string> = {
 	'sort.level.add_property_first': 'Agregar propiedad primero',
 	'sort.reveal.current_file': 'Archivo actual',
 	'sort.reveal.drill': 'Anclar una nota',
+	'sort.reveal.anchor': 'Anclar a nota actual',
 	'sort.reveal.pick_hint':
 		'Haz clic en una nota para anclarla, o abre una en el editor. Esc cancela',
 	'sort.reveal.pick_needs_note':

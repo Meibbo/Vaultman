@@ -55,6 +55,7 @@
 		onDeleteScope,
 		scopeScene,
 		onRequestRevealPick,
+		activeFilePath = null,
 		initialSortState,
 		nestedActive = false,
 		revealActive = false,
@@ -81,6 +82,8 @@
 		onDeleteScope?: (key: SortScopeKey) => void;
 		scopeScene?: ScopeMenuScene;
 		onRequestRevealPick?: () => void;
+		/** Workspace active file: what the anchor toggle pins when switched on. */
+		activeFilePath?: string | null;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
 		revealActive?: boolean;
@@ -297,29 +300,44 @@
 		emitSortChange();
 	}
 
-	function selectRevealAnchor(id: 'reveal-current-file' | 'reveal-drill') {
-		if (id === 'reveal-drill') {
-			// The pick itself happens outside the popup: the surface switches to
-			// Files, takes one click, and comes back. It reports the note it got.
-			onRequestRevealPick?.();
+	/**
+	 * (#90/#101) the anchor is one toggle, never a drill: on pins the scene
+	 * to the workspace's current note, off releases it back to following the
+	 * active file. With no active note there is nothing to pin, so the pick
+	 * flow stays as the fallback for that case only.
+	 */
+	function toggleRevealAnchor() {
+		if (sortState.revealAnchor === 'pinned') {
+			// Back to following the workspace: the pinned note is released,
+			// not kept as a stale fallback.
+			sortState = {
+				...sortState,
+				revealAnchor: 'current-file',
+				revealAnchorPath: null,
+			};
 			levelDrawerOpen = false;
+			onScopeChange?.(sortState);
 			return;
 		}
-		// Back to following the workspace: the pinned note is released, not kept
-		// as a stale fallback.
-		sortState = {
-			...sortState,
-			revealAnchor: 'current-file',
-			revealAnchorPath: null,
-		};
+		if (activeFilePath) {
+			sortState = {
+				...sortState,
+				revealAnchor: 'pinned',
+				revealAnchorPath: activeFilePath,
+			};
+			levelDrawerOpen = false;
+			onScopeChange?.(sortState);
+			return;
+		}
+		// No current note to take: let the surface pick one.
+		onRequestRevealPick?.();
 		levelDrawerOpen = false;
-		onScopeChange?.(sortState);
 	}
 
 	function activateByLevelItem(item: ByLevelMenuItem) {
 		if (item.kind === 'separator') return;
 		if (item.kind === 'reveal') {
-			selectRevealAnchor(item.id);
+			toggleRevealAnchor();
 			return;
 		}
 		if (item.id === 'filtered') toggleFiltered();

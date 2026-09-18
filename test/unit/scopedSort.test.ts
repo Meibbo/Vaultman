@@ -394,16 +394,18 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 			}),
 		).toBe(true);
 	});
-	it('gates the anchor sort option on an anchored note', () => {
+	it('gates the note sort option on an anchored note', () => {
+		// (#90/#101): the anchor is a reveal toggle, never a sort option — only
+		// `note` is reveal-gated.
 		expect(
-			isSortOptionVisible('anchor', {
+			isSortOptionVisible('note', {
 				tab: 'props',
 				nestedActive: false,
 				activeScope: 'all',
 			}),
 		).toBe(false);
 		expect(
-			isSortOptionVisible('anchor', {
+			isSortOptionVisible('note', {
 				tab: 'props',
 				nestedActive: false,
 				activeScope: 'all',
@@ -411,7 +413,7 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 			}),
 		).toBe(true);
 		expect(
-			isSortOptionVisible('anchor', {
+			isSortOptionVisible('note', {
 				tab: 'tags',
 				nestedActive: true,
 				activeScope: 'all',

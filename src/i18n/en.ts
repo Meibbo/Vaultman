@@ -1213,7 +1213,6 @@ export const en: Record<string, string> = {
 	'sort.by.sub': 'Sub-elements',
 	'sort.by.subtags': 'Sub-tags',
 	'sort.by.note': 'Note',
-	'sort.by.anchor': 'Anchor',
 	'sort.by.columns': 'Columns',
 	'sort.parents_first': 'Folders first',
 	'sort.scope.label': 'Sort scope',
@@ -1271,6 +1270,7 @@ export const en: Record<string, string> = {
 	'sort.level.add_property_first': 'Add property first',
 	'sort.reveal.current_file': 'Current file',
 	'sort.reveal.drill': 'Pin a note',
+	'sort.reveal.anchor': 'Anchor to current note',
 	'sort.reveal.pick_hint':
 		'Click a note to pin it, or open one in the editor. Esc cancels',
 	'sort.reveal.pick_needs_note': 'Pick a note — a folder cannot be pinned',

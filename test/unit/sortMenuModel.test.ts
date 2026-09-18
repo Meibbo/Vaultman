@@ -270,10 +270,11 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(tagsSource).toContain("siblingScopeSort('tags'");
 	});
 
-	// U121-029: while a note is anchored the drawer leads with the two modes
-	// that decide *which* note, separated from everything below that shapes
-	// the level. Spec 08 §3.4 moved `filtered` out of this block entirely.
-	it('leads with the reveal anchor modes only while a note is anchored', () => {
+	// (#90/#101): the anchor is one toggle, never a drill pair. While a note
+	// is anchored the drawer leads with it, separated from everything below
+	// that shapes the level. Spec 08 §3.4 moved `filtered` out of this block
+	// entirely.
+	it('leads with the reveal anchor toggle only while a note is anchored', () => {
 		const withReveal = byLevelModel(
 			'props',
 			stateFor('props', { activeScope: 'level:1' }),
@@ -282,18 +283,19 @@ describe('BT5-007 shared sort menu model', () => {
 		);
 		// U121-079: groups llega al final de los scopes de By-level.
 		expect(withReveal?.items.map((item) => item.id)).toEqual([
-			'reveal-current-file',
-			'reveal-drill',
+			'reveal-anchor',
 			'reveal-separator',
 			'addPropertyFirst',
 		]);
-		// Current File is the resting mode; pinning is what the user opts into.
+		// Following the workspace is the resting mode; pinning is opt-in.
 		expect(
-			withReveal?.items.find((item) => item.id === 'reveal-current-file'),
-		).toMatchObject({ checked: true });
-		expect(
-			withReveal?.items.find((item) => item.id === 'reveal-drill'),
-		).toMatchObject({ checked: false });
+			withReveal?.items.find((item) => item.id === 'reveal-anchor'),
+		).toMatchObject({
+			kind: 'reveal',
+			icon: 'lucide-anchor',
+			labelKey: 'sort.reveal.anchor',
+			checked: false,
+		});
 
 		const pinned = byLevelModel(
 			'props',
@@ -302,7 +304,7 @@ describe('BT5-007 shared sort menu model', () => {
 			true,
 		);
 		expect(
-			pinned?.items.find((item) => item.id === 'reveal-drill'),
+			pinned?.items.find((item) => item.id === 'reveal-anchor'),
 		).toMatchObject({ checked: true });
 
 		// Files has no reveal projection of its own here.
@@ -310,32 +312,23 @@ describe('BT5-007 shared sort menu model', () => {
 			byLevelModel('files', stateFor('files'), true, true)?.items.map(
 				(item) => item.id,
 			),
-		).not.toContain('reveal-current-file');
+		).not.toContain('reveal-anchor');
 	});
 
-	// U130 (#101/#90): the anchored note as an explicit sort scope. Same
-	// reveal-gated, last-slot rule as `note`: it projects the revealAnchor
-	// state into the sort menu so the scope the reveal applies is selectable.
-	it('projects the reveal anchor as a last-slot anchor sort option', () => {
+	// (#90/#101): the anchor is a reveal toggle, never a sort preset — neither
+	// node provider offers it as a sort option, gated or not.
+	it('never offers the reveal anchor as a sort option', () => {
 		for (const tab of ['props', 'tags'] as const) {
 			const ids = SORT_MENU_OPTIONS[tab].map((option) => option.id);
-			expect(ids.at(-1)).toBe('anchor');
-			expect(
-				SORT_MENU_OPTIONS[tab].find((option) => option.id === 'anchor'),
-			).toMatchObject({
-				icon: 'lucide-anchor',
-				labelKey: 'sort.by.anchor',
-			});
+			expect(ids).not.toContain('anchor');
+			expect(ids.at(-1)).toBe('note');
 			const state = stateFor(tab);
 			expect(
 				visibleSortOptions(tab, state, false, false).map((o) => o.id),
 			).not.toContain('anchor');
 			expect(
 				visibleSortOptions(tab, state, false, true).map((o) => o.id),
-			).toContain('anchor');
+			).not.toContain('anchor');
 		}
-		// The comparators keep the anchored note's own order, like `note`.
-		expect(propsSource).toContain("normalizedSortBy === 'anchor'");
-		expect(tagsSource).toContain("normalizedSortBy === 'anchor'");
 	});
 });

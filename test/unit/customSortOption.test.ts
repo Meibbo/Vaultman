@@ -24,14 +24,12 @@ describe('U121-029 Note sort option', () => {
 	it('is offered by the node providers, last in the row', () => {
 		for (const tab of ['props', 'tags'] as const) {
 			const options = SORT_MENU_OPTIONS[tab];
-			// U130 (#101/#90): `anchor` projects the same anchored scope as an
-			// explicit option, so it takes the last slot and `note` sits next.
-			const anchor = options.at(-1);
-			expect(anchor?.id).toBe('anchor');
-			expect(anchor?.labelKey).toBe('sort.by.anchor');
-			const note = options.at(-2);
+			// (#90/#101): the anchor is a reveal toggle, never a sort option,
+			// so `note` takes the last slot and no `anchor` preset exists.
+			const note = options.at(-1);
 			expect(note?.id).toBe('note');
 			expect(note?.labelKey).toBe('sort.by.note');
+			expect(options.some((o) => o.id === 'anchor')).toBe(false);
 		}
 		// Not offered where there is no note to take an order from.
 		expect(SORT_MENU_OPTIONS.files.some((o) => o.id === 'note')).toBe(false);
@@ -78,6 +76,10 @@ describe('U121-029 Note sort option', () => {
 			expect(
 				visibleSortOptions(tab, state, true, true).map((o) => o.id),
 			).toContain('note');
+			// (#90/#101): the anchor is a reveal toggle, never a sort option.
+			expect(
+				visibleSortOptions(tab, state, true, true).map((o) => o.id),
+			).not.toContain('anchor');
 		}
 		expect(
 			visibleSortOptions('files', state, true, true).map((o) => o.id),
@@ -108,9 +110,9 @@ describe('U121-029 Note sort option', () => {
 		expect(en['sort.by.note']).toBeTruthy();
 		expect(es['sort.by.note']).toBeTruthy();
 		expect(es['sort.by.note']).not.toBe(en['sort.by.note']);
-		// U130 (#101/#90): the anchor scope ships with both locales too.
-		expect(en['sort.by.anchor']).toBeTruthy();
-		expect(es['sort.by.anchor']).toBeTruthy();
-		expect(es['sort.by.anchor']).not.toBe(en['sort.by.anchor']);
+		// (#90/#101): the anchor toggle ships with both locales.
+		expect(en['sort.reveal.anchor']).toBeTruthy();
+		expect(es['sort.reveal.anchor']).toBeTruthy();
+		expect(es['sort.reveal.anchor']).not.toBe(en['sort.reveal.anchor']);
 	});
 });

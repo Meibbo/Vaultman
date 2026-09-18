@@ -63,11 +63,6 @@ export const SORT_MENU_OPTIONS: Record<
 		// Last on purpose: it only appears while a note is anchored, and a
 		// leading slot would shift every other option each time reveal toggles.
 		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
-		// U130 (#101/#90): the anchored note as an explicit sort scope. Same
-		// reveal-gated, last-slot rule as `note`: it projects the revealAnchor
-		// state (current-file/pinned + path) into the sort menu so the scope
-		// the reveal already applies becomes selectable per scene.
-		{ id: 'anchor', icon: 'lucide-anchor', labelKey: 'sort.by.anchor' },
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
@@ -86,9 +81,6 @@ export const SORT_MENU_OPTIONS: Record<
 		},
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
 		{ id: 'note', icon: 'lucide-file-cog', labelKey: 'sort.by.note' },
-		// U130 (#101/#90): same reveal-gated last-slot rule as props — the
-		// anchored note selectable as an explicit sort scope per scene.
-		{ id: 'anchor', icon: 'lucide-anchor', labelKey: 'sort.by.anchor' },
 	],
 	files: [
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
@@ -200,13 +192,14 @@ export interface ByLevelToggleItem extends ByLevelBaseItem {
 }
 
 /**
- * Which note the reveal projection follows. Mutually exclusive, so they read as
- * radios rather than switches: picking Current File releases a pinned note, and
- * picking Scope drill starts the pick that pins one.
+ * The reveal anchor toggle (#90/#101): pinning is not a sort scope, a drill,
+ * or a mode pair — it is one switch. Checked means the scene stays on the
+ * pinned note (`revealAnchor: 'pinned'`); unchecked means it follows the
+ * workspace's active file (`revealAnchor: 'current-file'`).
  */
 export interface ByLevelRevealItem extends ByLevelBaseItem {
 	kind: 'reveal';
-	id: 'reveal-current-file' | 'reveal-drill';
+	id: 'reveal-anchor';
 }
 
 export interface ByLevelSeparatorItem {
@@ -412,20 +405,15 @@ export function byLevelModel(
 	const items: ByLevelMenuItem[] = [];
 
 	if (revealActive && (tab === 'props' || tab === 'tags')) {
+		// (#90/#101) one anchor toggle, never a drill: checked pins the scene
+		// to the current note, unchecked follows the workspace active file.
 		const pinned = state.revealAnchor === 'pinned';
 		items.push(
 			{
 				kind: 'reveal',
-				id: 'reveal-current-file',
-				icon: 'lucide-file-clock',
-				labelKey: 'sort.reveal.current_file',
-				checked: !pinned,
-			},
-			{
-				kind: 'reveal',
-				id: 'reveal-drill',
-				icon: 'lucide-pin',
-				labelKey: 'sort.reveal.drill',
+				id: 'reveal-anchor',
+				icon: 'lucide-anchor',
+				labelKey: 'sort.reveal.anchor',
 				checked: pinned,
 			},
 			{ kind: 'separator', id: 'reveal-separator' },
@@ -451,7 +439,7 @@ export function byLevelModel(
 	}
 
 	// Spec 08 §3.1: the scope items moved into the `Scope: <variable>`
-	// submenu (`scopeMenuModel`); this block keeps only the reveal radios
+	// submenu (`scopeMenuModel`); this block keeps only the reveal toggle
 	// and the props pin toggle.
 	return { items };
 }

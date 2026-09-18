@@ -2797,22 +2797,34 @@
 				}
 				byLevelChildren.push(
 					nativeMenuItem(
-						`sort_menu.by_level.${option.id === 'reveal-current-file' ? 'reveal_current_file' : option.id === 'reveal-drill' ? 'reveal_drill' : option.id === 'addPropertyFirst' ? 'add_property_first' : option.id}`,
+						`sort_menu.by_level.${option.id === 'reveal-anchor' ? 'reveal_anchor' : option.id === 'addPropertyFirst' ? 'add_property_first' : option.id}`,
 						{
 							title: translate(option.labelKey),
 							icon: option.icon,
 							checked: option.checked,
 							onClick: () => {
+								// (#90/#101) the anchor is one toggle, never a
+								// drill: on pins the scene to the workspace's
+								// current note, off follows the active file.
 								if (option.kind === 'reveal') {
-									if (option.id === 'reveal-drill') {
-										void beginRevealPick(activeTab);
+									if (current.revealAnchor === 'pinned') {
+										handleScopeChange({
+											...current,
+											revealAnchor: 'current-file',
+											revealAnchorPath: null,
+										});
 										return;
 									}
-									handleScopeChange({
-										...current,
-										revealAnchor: 'current-file',
-										revealAnchorPath: null,
-									});
+									if (activeFilePath) {
+										handleScopeChange({
+											...current,
+											revealAnchor: 'pinned',
+											revealAnchorPath: activeFilePath,
+										});
+										return;
+									}
+									// No current note to take: pick one.
+									void beginRevealPick(activeTab);
 									return;
 								}
 								if (
@@ -3594,6 +3606,7 @@
 					nestedActive={nestedActiveFor(activeTab)}
 					{revealActive}
 					onRequestRevealPick={() => void beginRevealPick(activeTab)}
+					{activeFilePath}
 					treeCapable={treeCapableFor(activeTab)}
 					groupPreset={configByTab[activeTab].groupPreset}
 					customGroups={customGroupsForMenu(activeTab)}
