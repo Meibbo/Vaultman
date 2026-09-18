@@ -83,6 +83,19 @@ settings:
 .vaultman-action-cell svg {
 	width: var(--vm-action-cell-glyph);
 	height: var(--vm-action-cell-glyph);
+	scale: 1;
+	transition: scale 0.15s ease;
+}
+
+.vaultman-action-cell:hover:not(.is-unavailable) svg {
+	scale: 1.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vaultman-action-cell,
+	.vaultman-action-cell svg {
+		transition: none;
+	}
 }
 
 /* El area tactil se agranda SIN mover el layout: pseudo-elemento, no padding. */
@@ -113,6 +126,18 @@ settings:
 /* `icon-only` es el defecto: sin caja, solo el glifo. Es el estilo de los
  * badges del explorer, que es el que el dev prefiere. */
 .vaultman-action-cell--icon-only {
+	--vm-action-cell-border: none;
+	--vm-action-cell-bg: transparent;
+}
+
+/* Placement modifiers: inline (searchbox) y badge (explorer/status).
+ * Sin reglas residuales de caja en `--inline`/`--badge`: define variables explícitas */
+.vaultman-action-cell--inline {
+	--vm-action-cell-border: none;
+	--vm-action-cell-bg: transparent;
+}
+
+.vaultman-action-cell--badge {
 	--vm-action-cell-border: none;
 	--vm-action-cell-bg: transparent;
 }
