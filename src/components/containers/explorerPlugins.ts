@@ -159,6 +159,12 @@ export class PluginsExplorerPanel
 		this.register(() =>
 			this.plugin.queueService.off('changed', this._handleQueueChange),
 		);
+		// U121-108: live repaint of selectionCheckboxPosition (start/end/hidden)
+		// across every mounted scene. Reuses the icon-rebuild coalescer (one
+		// rebuild per burst) instead of adding a second timer.
+		this.register(
+			this.plugin.onSettingsChange(this._scheduleIconRebuild),
+		);
 	}
 
 	private readonly _handleQueueChange = (): void => {

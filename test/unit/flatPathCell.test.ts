@@ -159,8 +159,10 @@ describe('BT5-012 path label projection', () => {
 		expect(explorerFilesSource).toContain(
 			"labelMode: this._pathLabelActive() ? 'path' : 'name'",
 		);
+		// U121-108: the popup threads `selectionCheckboxPosition` as a fourth
+		// argument so `hidden` drops the checkbox view_option.
 		expect(popupViewSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills',
 		);
 	});
 });

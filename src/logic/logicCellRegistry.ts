@@ -43,6 +43,31 @@ export interface FileHoverEntry {
 	rank: number;
 }
 
+/**
+ * U121-108: edge of the select-mode checkbox cell. `hidden` removes the
+ * checkbox from every scene AND from the view menu — it is not a position.
+ */
+export type SelectionCheckboxPosition = 'start' | 'end' | 'hidden';
+
+export interface ViewMenuCellOptions {
+	/**
+	 * U121-108: when `hidden`, the `checkbox` view_option is not offered.
+	 * Undefined keeps the historical behaviour (checkbox offered).
+	 */
+	selectionCheckboxPosition?: SelectionCheckboxPosition;
+}
+
+/**
+ * U121-108: single predicate for "does the view menu offer the checkbox
+ * cell?". Anything but `hidden` offers it; unknown values stay permissive
+ * so a stale persisted choice never loses the option silently.
+ */
+export function shouldOfferCheckboxViewOption(
+	position?: string,
+): boolean {
+	return position !== 'hidden';
+}
+
 export interface ExplorerCellRegistry {
 	cellDef(id: string): ExplorerCellDef | undefined;
 	cellsForExplorer(
@@ -53,6 +78,7 @@ export interface ExplorerCellRegistry {
 		explorer: ExplorerTabId,
 		viewMode?: ExplorerViewMode,
 		activeCells?: Iterable<string>,
+		options?: ViewMenuCellOptions,
 	): ExplorerCellDef[];
 	defaultVisibleCells(
 		explorer: ExplorerTabId,
@@ -747,7 +773,7 @@ export function createExplorerCellRegistry(
 				)
 				.map(({ definition }) => definition);
 		},
-		viewMenuCells(explorer, viewMode, activeCells) {
+		viewMenuCells(explorer, viewMode, activeCells, options) {
 			// Without a context the caller cannot tell whether a projection is
 			// applicable, so projections stay out — the pre-BT5-012 behaviour.
 			const active = activeCells ? new Set(activeCells) : undefined;
@@ -759,6 +785,13 @@ export function createExplorerCellRegistry(
 						(active
 							? cellAvailable(definition, active)
 							: definition.role !== 'label-projection'),
+				)
+				.filter(
+					(definition) =>
+						definition.id !== 'checkbox' ||
+						shouldOfferCheckboxViewOption(
+							options?.selectionCheckboxPosition,
+						),
 				);
 		},
 		defaultVisibleCells(explorer, viewMode) {
@@ -862,8 +895,9 @@ export function viewMenuCells(
 	explorer: ExplorerTabId,
 	viewMode?: ExplorerViewMode,
 	activeCells?: Iterable<string>,
+	options?: ViewMenuCellOptions,
 ): ExplorerCellDef[] {
-	return REGISTRY.viewMenuCells(explorer, viewMode, activeCells);
+	return REGISTRY.viewMenuCells(explorer, viewMode, activeCells, options);
 }
 
 /**
@@ -876,6 +910,12 @@ export function viewMenuCells(
 export interface CellOrderOptions {
 	byActivation: boolean;
 	viewMode?: ExplorerViewMode;
+	/**
+	 * U121-108: mirrors `ViewMenuCellOptions`. When `hidden`, the `checkbox`
+	 * entry is dropped from the menu projection (stored `visibleCells` keeps
+	 * it, so re-showing the setting restores the previous choice intact).
+	 */
+	selectionCheckboxPosition?: SelectionCheckboxPosition;
 }
 
 /** Ids that this surface can actually show, in the requested order. */
@@ -930,6 +970,7 @@ export function cellMenuOrder(
 		explorer,
 		options.viewMode,
 		REGISTRY.normalizeVisibleCellIds(explorer, visibleCells, options.viewMode),
+		{ selectionCheckboxPosition: options.selectionCheckboxPosition },
 	);
 	const byId = new Map(
 		menuCells.map((definition) => [definition.id, definition]),

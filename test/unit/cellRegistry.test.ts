@@ -273,8 +273,10 @@ describe('shared registry consumer guards', () => {
 		expect(navbarSource).toContain('cellMenuOrder(');
 		expect(navbarSource).not.toContain('const CELL_LABELS');
 		expect(navbarSource).not.toContain('const CELL_ICONS');
+		// U121-108: the popup threads `selectionCheckboxPosition` as a fourth
+		// argument so `hidden` drops the checkbox view_option.
 		expect(popupSource).toContain(
-			'viewMenuCells(activeTab, activeView, activePills)',
+			'viewMenuCells(activeTab, activeView, activePills',
 		);
 		expect(popupSource).not.toContain('const PILLS');
 	});
