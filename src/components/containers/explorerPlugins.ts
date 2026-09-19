@@ -27,6 +27,8 @@ import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
 	formatAddonTimestamp,
+	isSettingsSearchActive,
+	resolveSettingsBridgeNodes,
 	sortAddonEntries,
 	type AddonExplorerPanelPort,
 } from '../../logic/logicAddonExplorer';
@@ -73,6 +75,15 @@ import {
 } from '../../types/typeGroupPreset';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
+import type { NativeSettingsSearchGroup } from '../../types/typeSettingsSearch';
+import {
+	settingsBridgeIdentity,
+	settingsBridgeRefOf,
+} from '../../types/typeSettingsSearch';
+import {
+	isNativeSettingsSearchAvailable,
+	queryNativeSettingsSearch,
+} from '../../services/serviceSettingSearchAdapter';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -88,6 +99,18 @@ export class PluginsExplorerPanel
 	private _lastProjectedTree: TreeNode<PluginMeta>[] = [];
 	private entries: PluginMeta[] = [];
 	private searchTerm = '';
+	/**
+	 * U130 Slice A (provider/search settingScene): con término activo la
+	 * única fuente es `app.setting.searchIndex.search` (una sola búsqueda
+	 * por cambio efectivo, sin `searchText` local). El resultado crudo se
+	 * cachea aquí para que sorts, grupos y refreshes re-resuelvan sin
+	 * re-preguntar al nativo; `null` = adapter ausente o término inactivo.
+	 */
+	private settingsSearchGroups: NativeSettingsSearchGroup[] | null = null;
+	/** Ids de fila del puente: todo lo emitido es match y se resalta. */
+	private settingsSearchHighlightIds = new Set<string>();
+	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
+	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
 	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config']);
 	private emptyEl: HTMLElement | null = null;
@@ -238,6 +261,30 @@ export class PluginsExplorerPanel
 	setSearchTerm(term: string): void {
 		if (this.searchTerm === term) return;
 		this.searchTerm = term;
+		if (isSettingsSearchActive(term)) {
+			if (isNativeSettingsSearchAvailable(this.plugin.app)) {
+				try {
+					this.settingsSearchGroups = queryNativeSettingsSearch(
+						this.plugin.app,
+						term,
+					);
+					this.settingsSearchUnavailable = false;
+				} catch (error) {
+					console.error(
+						'Vaultman settings bridge: native search failed',
+						error,
+					);
+					this.settingsSearchGroups = null;
+					this.settingsSearchUnavailable = true;
+				}
+			} else {
+				this.settingsSearchGroups = null;
+				this.settingsSearchUnavailable = true;
+			}
+		} else {
+			this.settingsSearchGroups = null;
+			this.settingsSearchUnavailable = false;
+		}
 		this.rebuildNodes();
 	}
 
@@ -281,6 +328,18 @@ export class PluginsExplorerPanel
 	}
 
 	private _membershipUrnOf(node: TreeNode<PluginMeta>): string {
+		// U130 Slice A: la fila `node_settings` no es un plugin; su kind es
+		// `settings` con la tripleta nativa como identidad. providerId `plugins`
+		// intacto (no se renombra) y kind `plugin` conservado en resolubles.
+		const ref = settingsBridgeRefOf(node.meta);
+		if (ref) {
+			return formatMembershipUrn({
+				providerId: 'plugins',
+				kind: 'settings',
+				canonicalId: settingsBridgeIdentity(ref),
+				displayLabel: node.label,
+			});
+		}
 		return formatMembershipUrn({
 			providerId: 'plugins',
 			kind: 'plugin',
@@ -398,6 +457,13 @@ export class PluginsExplorerPanel
 	}
 
 	private rebuildNodes(): void {
+		// U130 Slice A: término activo = camino nativo (sin `searchText`
+		// local, sin re-sort: el ranking es el orden nativo). Término vacío
+		// = camino legacy idéntico al de antes del puente.
+		if (isSettingsSearchActive(this.searchTerm)) {
+			this.rebuildSettingsBridgeNodes();
+			return;
+		}
 		const filtered = filterAddonEntries(
 			this.entries,
 			this.searchTerm,
@@ -410,10 +476,45 @@ export class PluginsExplorerPanel
 			filtered,
 			activeScopeSort('plugins', this.sortState),
 		);
+		this.nodes = this.buildPluginNodes(entries);
+		this.settingsSearchHighlightIds = new Set<string>();
+		this.render();
+	}
+
+	/**
+	 * Camino nativo: resuelve los grupos cacheados contra las entries
+	 * frescas. Espacios, cero resultados, adapter ausente o nativo roto
+	 * limpian el árbol previo (nada de rows stale, nada de filtro local).
+	 */
+	private rebuildSettingsBridgeNodes(): void {
+		if (this.settingsSearchUnavailable || !this.settingsSearchGroups) {
+			this.nodes = [];
+			this.settingsSearchHighlightIds = new Set<string>();
+			this.render();
+			return;
+		}
+		const ordered = sortAddonEntries(
+			this.entries,
+			activeScopeSort('plugins', this.sortState),
+		);
+		const byId = new Map<string, TreeNode<PluginMeta>>();
+		for (const node of this.buildPluginNodes(ordered)) {
+			byId.set(node.meta.pluginId, node);
+		}
+		const bridge = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: this.settingsSearchGroups,
+		});
+		this.nodes = bridge.nodes;
+		this.settingsSearchHighlightIds = bridge.highlightIds;
+		this.render();
+	}
+
+	private buildPluginNodes(entries: readonly PluginMeta[]): TreeNode<PluginMeta>[] {
 		const settingsTabIds = pluginSettingTabIds(this.plugin.app);
 		// Read the override map once per rebuild, not once per row.
 		const overrides = readAddonIconOverrides(this.plugin.settings);
-		this.nodes = entries.map((entry) => {
+		return entries.map((entry) => {
 			const meta: PluginMeta = {
 				...entry,
 			};
@@ -464,7 +565,6 @@ export class PluginsExplorerPanel
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			};
 		});
-		this.render();
 	}
 
 	
@@ -488,7 +588,10 @@ export class PluginsExplorerPanel
 		}
 
 		for (const node of nodes) {
-			const pluginId = node.meta?.pluginId ?? node.id;
+			// U130 Slice A: las filas `node_settings` no son plugins y no
+			// enlazan notas de nodo (su `pluginId` es '').
+			if (!node.meta?.pluginId) continue;
+			const pluginId = node.meta.pluginId;
 			const pluginName = node.meta?.name ?? node.label;
 			const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
 			if (pluginTokens.some((t) => aliasSet.has(t))) {
@@ -561,11 +664,19 @@ export class PluginsExplorerPanel
 		return rows.map((row) => {
 			if (!isGroupHeader(row.id, this._groupIds)) return row;
 			if (!row.children?.length) return row;
-			const states = row.children.map(
+			// U130 Slice A: las filas `node_settings` no tienen toggle (sin
+			// celdas) y el toggle de grupo solo despacha a plugins con
+			// `pluginId`; el agregado se calcula sobre esos mismos miembros.
+			// Sin filas de settings el filtro es no-op (camino legacy idéntico).
+			const actionable = row.children.filter(
+				(child) => child.meta?.pluginId,
+			);
+			if (actionable.length === 0) return row;
+			const states = actionable.map(
 				(child) => child.meta?.enabled ?? false,
 			);
 			const { enabled, mixed } = summarizeGroupToggleState(states);
-			const pending = row.children.some((child) =>
+			const pending = actionable.some((child) =>
 				this.pendingToggleIds.has(child.meta?.pluginId ?? ''),
 			);
 			const cells: TreeNodeCell[] = [
@@ -602,6 +713,8 @@ export class PluginsExplorerPanel
 			surface: 'plugins',
 			nodes: this._lastProjectedTree,
 			visibleCells: this.visibleCells,
+			// U130 Slice A: todo lo emitido por el puente es match nativo.
+			searchHighlightIds: this.settingsSearchHighlightIds,
 			// U130-t33 (L-PNODE): plugins no tiene anidacion propia, pero un
 			// grupo activo si crea un nivel (cabecera -> miembros) que
 			// necesita la guia igual que el resto de p-nodes con hijos.
@@ -690,14 +803,24 @@ export class PluginsExplorerPanel
 					return;
 				}
 				const node = this.findNode(id);
-				if (node) this.openMenu(node.meta, event);
+				// U130 Slice A: `node_settings` no es plugin y no tiene menú
+				// de plugin (su `pluginId` es '').
+				if (!node || !node.meta.pluginId) return;
+				this.openMenu(node.meta, event);
 			},
 		});
 		this.onIndexChanged?.();
 		if (this.nodes.length === 0) {
 			this.emptyEl = this.containerEl.createDiv({
 				cls: 'vaultman-files-empty-state',
-				text: translate('addons.plugins.empty'),
+				// U130 Slice A: término no vacío con adapter ausente = estado
+				// "native settings search unavailable" (clave existente, sin
+				// strings nuevos); el resto conserva el vacío de siempre.
+				text: translate(
+					this.settingsSearchUnavailable
+						? 'addons.plugins.unavailable'
+						: 'addons.plugins.empty',
+				),
 			});
 		}
 	}
