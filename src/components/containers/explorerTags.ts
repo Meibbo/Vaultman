@@ -1876,13 +1876,38 @@ export class TagsExplorerPanel extends Component {
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
-			onContextMenu: (id: string, e: MouseEvent) => {
-				if (isGroupHeader(id, this._groupIds)) {
-					// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
-					// de grupo en logicGroupContextMenu no hay menu que
-					// abrir; no caer al menu del item (ver informe).
-					return;
-				}
+		onContextMenu: (id: string, e: MouseEvent) => {
+			if (isGroupHeader(id, this._groupIds)) {
+				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
+				const header = this._findNode(id, tree);
+				this.plugin.contextMenuService.openPanelMenu(
+					{
+						nodeType: 'group',
+						node: header ?? {
+							id,
+							label: id,
+							meta: {},
+							icon: '',
+							depth: 0,
+						},
+						surface: 'panel',
+						groupId: id,
+						groupOwner:
+							this.groupPreset.kind === 'note'
+								? 'note'
+								: this._groupIds.has(id)
+									? 'custom'
+									: 'preset',
+						groupHidden: this.hiddenGroupIds.has(id),
+						groupExpanded: this.expandedIds.has(id),
+						toggleGroupExpand: (groupId: string) => {
+							this._toggleExpanded(groupId);
+						},
+					},
+					e,
+				);
+				return;
+			}
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
