@@ -156,3 +156,30 @@ export interface OperationResult {
 	errors: number;
 	messages: string[];
 }
+
+export interface PluginUpdateItem {
+	id: string;
+	name: string;
+	fromVersion: string;
+	toVersion: string;
+}
+
+export type PluginUpdateItemStatus = 'success' | 'warning' | 'error';
+
+export interface PluginUpdateItemResult {
+	item: Readonly<PluginUpdateItem>;
+	status: PluginUpdateItemStatus;
+	message?: string;
+}
+
+export interface PluginUpdateBatchResult {
+	items: readonly PluginUpdateItemResult[];
+	cancelled: boolean;
+}
+
+export interface PluginUpdateQueueState {
+	items: readonly Readonly<PluginUpdateItem>[];
+	results: readonly PluginUpdateItemResult[];
+	running: boolean;
+	cancelled: boolean;
+}
