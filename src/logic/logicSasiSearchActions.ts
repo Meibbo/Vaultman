@@ -26,7 +26,7 @@ export function registerSearchActions(registry: SasiRegistry): void {
 		kind: 'action',
 		labelKey: 'sasi.search.cycle_category',
 		icon: 'lucide-search',
-		supports: [{ surface: 'searchbox' }],
+		supports: [{ surface: 'searchbox' }, { surface: 'panelWidget' }],
 	});
 	registry.register({
 		id: SEARCH_CREATE_TARGET_ID,
@@ -34,6 +34,6 @@ export function registerSearchActions(registry: SasiRegistry): void {
 		kind: 'action',
 		labelKey: 'sasi.search.create_target',
 		icon: 'lucide-plus',
-		supports: [{ surface: 'searchbox' }],
+		supports: [{ surface: 'searchbox' }, { surface: 'panelWidget' }],
 	});
 }

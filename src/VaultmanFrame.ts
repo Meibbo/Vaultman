@@ -34,6 +34,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
 	isPropRevealActive?(): boolean;
 	setSceneEngine?(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean;
+	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
 	switchScene?(tab: StatisticsDataTab): boolean;
 };
 
@@ -226,6 +227,10 @@ export class VaultmanFrame extends ItemView {
 
 	setSceneEngine(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean {
 		return this.svelteApp?.setSceneEngine?.(surface, mode) ?? false;
+	}
+
+	async invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return (await this.svelteApp?.invokeToolbarSasiAction?.(actionId)) ?? false;
 	}
 
 	switchScene(tab: StatisticsDataTab): boolean {

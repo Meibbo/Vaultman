@@ -85,6 +85,7 @@ describe('navbarFilters monta BarTransaction', () => {
 					proposeFloatingToc: () => Promise.resolve(),
 					setInstanceId: () => {},
 					onInstanceChange: () => () => {},
+					readInstanceRecord: () => null,
 				} satisfies SceneConfigPort,
 				icon,
 				minimalStyle: true,

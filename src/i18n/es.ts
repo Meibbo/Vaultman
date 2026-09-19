@@ -404,6 +404,12 @@ export const es: Record<string, string> = {
 	'settings.tooltip_placement.side': 'Lateral (nativo)',
 	'settings.tooltip_placement.below': 'Debajo',
 	'settings.tooltip_placement.above': 'Arriba',
+	'settings.files_context_menu.icon': 'ID de icono Lucide',
+	'settings.files_context_menu.node_kind.gp': 'Padre de grupo',
+	'settings.files_context_menu.node_kind.p': 'Padre',
+	'settings.files_context_menu.node_kind.c': 'Hijo',
+	'settings.files_context_menu.node_kind.gc': 'Hijo de grupo',
+	'settings.files_context_menu.node_kind.ad': 'Nodo de acción/datos',
 	'settings.toolbar_commands': 'Comandos del toolbar',
 	'settings.toolbar_commands.desc':
 		'Comandos de Obsidian mostrados como nodos de acción del toolbar de Files. El toolbar ejecuta el comando de inmediato al activarlo.',

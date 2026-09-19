@@ -73,6 +73,7 @@ export interface PanelPluginCtx {
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
+		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
 	};

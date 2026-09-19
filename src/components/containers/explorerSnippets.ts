@@ -346,7 +346,7 @@ export class SnippetsExplorerPanel
 	setTooltipsEnabled(enabled: boolean): void {
 		if (this.tooltipsOverride === enabled) return;
 		this.tooltipsOverride = enabled;
-		this._render();
+		this.render();
 	}
 
 	setIndentEnabled(enabled: boolean): void {

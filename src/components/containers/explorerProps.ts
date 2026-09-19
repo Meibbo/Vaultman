@@ -49,6 +49,7 @@ export interface PanelPluginCtx {
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
+		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-003: how far a type-incompatibility warning decorates its node. */
 		propConflictWarnings?: PropConflictWarnings;
 		/** U121-003: what `Move to prop...` does with an unwilling destination. */

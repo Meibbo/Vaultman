@@ -103,6 +103,15 @@ import {
 	type SceneEngineSurface,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
+import {
+	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+	TOOLBAR_SEARCHBOX_ID,
+	TOOLBAR_TOGGLE_EXPANSION_ID,
+} from './logic/logicSasiToolbarActions';
+import {
+	SEARCH_CREATE_TARGET_ID,
+	SEARCH_CYCLE_CATEGORY_ID,
+} from './logic/logicSasiSearchActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -470,8 +479,25 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
-		this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
-		this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
+	this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
+	this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
+		const toolbarCommands = [
+		[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
+		[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
+		[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
+		[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
+		[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+	] as const;
+	for (const [id, labelKey] of toolbarCommands) {
+		this.sasiCommandPublisher.register({
+			id,
+			name: translate(labelKey),
+			handler: () => {
+				void this.invokeToolbarSasiAction(id);
+			},
+		});
+		this.sasiCommandPublisher.setPublished(id, true);
+	}
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -537,6 +563,11 @@ export class VaultmanPlugin extends Plugin {
 		if (!leaf) return null;
 		const view = leaf.view;
 		return view instanceof VaultmanFrame ? view : null;
+	}
+
+	private async invokeToolbarSasiAction(actionId: string): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.invokeToolbarSasiAction?.(actionId);
 	}
 
 	private async focusVaultmanContentSearch(

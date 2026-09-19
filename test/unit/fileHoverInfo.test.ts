@@ -94,7 +94,7 @@ describe('Files hover info', () => {
 					mtime: null,
 					ctime: null,
 					opened: null,
-					ext: null,
+				ext: '',
 					words: 120,
 					characters: null,
 					tasks: 4,

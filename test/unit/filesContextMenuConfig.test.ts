@@ -13,6 +13,7 @@ import {
 	removeFilesMenuItem,
 	reorderFilesMenuItems,
 	setFilesMenuParent,
+	setFilesMenuSubmenuIdentity,
 	setFilesMenuVisibility,
 	type FilesMenuItem,
 } from '../../src/logic/logicFilesContextMenu';
@@ -167,6 +168,26 @@ describe('BT5-018 Files context menu configuration', () => {
 		expect(
 			normalizeFilesMenuLayout(populated).map((item) => item.id),
 		).toContain(submenu?.id);
+	});
+
+	it('keeps submenu identity editable and recognizes its children', () => {
+		const layout: FilesMenuItem[] = [
+			{ kind: 'submenu', id: 'submenu:1', label: 'Old' },
+			{ kind: 'action', id: 'file.rename', visible: true, parent: 'submenu:1' },
+		];
+		const edited = setFilesMenuSubmenuIdentity(layout, 'submenu:1', {
+			label: 'Convert',
+			icon: 'lucide-wand',
+			nodeKind: 'gc',
+		});
+		expect(edited[0]).toEqual({
+			kind: 'submenu',
+			id: 'submenu:1',
+			label: 'Convert',
+			icon: 'lucide-wand',
+			nodeKind: 'gc',
+		});
+		expect(edited[1]).toMatchObject({ parent: 'submenu:1' });
 	});
 
 	it('detaches its children when a submenu is removed', () => {

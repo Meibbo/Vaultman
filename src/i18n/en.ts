@@ -400,6 +400,12 @@ export const en: Record<string, string> = {
 	'settings.tooltip_placement.side': 'Side (native)',
 	'settings.tooltip_placement.below': 'Below',
 	'settings.tooltip_placement.above': 'Above',
+	'settings.files_context_menu.icon': 'Lucide icon id',
+	'settings.files_context_menu.node_kind.gp': 'Group parent',
+	'settings.files_context_menu.node_kind.p': 'Parent',
+	'settings.files_context_menu.node_kind.c': 'Child',
+	'settings.files_context_menu.node_kind.gc': 'Group child',
+	'settings.files_context_menu.node_kind.ad': 'Action/data node',
 	'settings.toolbar_commands': 'Toolbar commands',
 	'settings.toolbar_commands.desc':
 		'Obsidian commands shown as Files toolbar action nodes. The toolbar runs a command immediately when you activate it.',

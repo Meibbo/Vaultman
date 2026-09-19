@@ -125,6 +125,7 @@
 			surface: SceneEngineSurface,
 			mode: ExplorerViewMode,
 		) => boolean;
+		invokeToolbarSasiAction?: (actionId: string) => Promise<boolean>;
 	};
 
 	let panelWidgetHostRef = $state<PanelWidgetHostApi | null>(null);
@@ -138,6 +139,10 @@
 		mode: ExplorerViewMode,
 	): boolean {
 		return panelWidgetHostRef?.setSceneEngine?.(surface, mode) ?? false;
+	}
+
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return panelWidgetHostRef?.invokeToolbarSasiAction?.(actionId) ?? false;
 	}
 
 	/**

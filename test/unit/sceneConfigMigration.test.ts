@@ -41,6 +41,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 		// llega tarde. Este doble no la ejercita, pero debe cumplir el contrato.
 		setInstanceId: () => {},
 		onInstanceChange: () => () => {},
+		readInstanceRecord: () => null,
 	};
 }
 

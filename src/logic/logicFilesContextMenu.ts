@@ -12,7 +12,16 @@
 export type FilesMenuItem =
 	| { kind: 'action'; id: string; visible: boolean; parent?: string }
 	| { kind: 'divider'; id: string }
-	| { kind: 'submenu'; id: string; label: string };
+	| {
+			kind: 'submenu';
+			id: string;
+			label: string;
+			icon?: string;
+			nodeKind?: FilesMenuNodeKind;
+		};
+
+/** Identity of a configurable context-menu node, not its translated label. */
+export type FilesMenuNodeKind = 'gp' | 'p' | 'c' | 'gc' | 'ad';
 
 /**
  * BT5-036: the node context menus Vaultman configures, one per explorer surface
@@ -191,10 +200,16 @@ function readSavedItem(value: unknown): FilesMenuItem | null {
 	if (candidate.kind === 'divider') return { kind: 'divider', id: candidate.id };
 	if (candidate.kind === 'submenu') {
 		const label = (candidate as { label?: unknown }).label;
+		const icon = (candidate as { icon?: unknown }).icon;
+		const nodeKind = (candidate as { nodeKind?: unknown }).nodeKind;
 		return {
 			kind: 'submenu',
 			id: candidate.id,
 			label: typeof label === 'string' ? label : candidate.id,
+			...(typeof icon === 'string' && icon ? { icon } : {}),
+			...(nodeKind === 'gp' || nodeKind === 'p' || nodeKind === 'c' || nodeKind === 'gc' || nodeKind === 'ad'
+				? { nodeKind }
+				: {}),
 		};
 	}
 	if (candidate.kind !== 'action') return null;
@@ -361,6 +376,26 @@ export function setFilesMenuParent(
 		if (item.kind !== 'action' || item.id !== id) return item;
 		if (!parent) return { kind: 'action', id: item.id, visible: item.visible };
 		return { ...item, parent };
+	});
+}
+
+export function setFilesMenuSubmenuIdentity(
+	items: readonly FilesMenuItem[],
+	id: string,
+	patch: { label?: string; icon?: string; nodeKind?: FilesMenuNodeKind },
+): FilesMenuItem[] {
+	return items.map((item) => {
+		if (item.kind !== 'submenu' || item.id !== id) return item;
+		return {
+			...item,
+			...(patch.label !== undefined ? { label: patch.label } : {}),
+			...(patch.icon !== undefined
+				? patch.icon
+					? { icon: patch.icon }
+					: { icon: undefined }
+				: {}),
+			...(patch.nodeKind !== undefined ? { nodeKind: patch.nodeKind } : {}),
+		};
 	});
 }
 

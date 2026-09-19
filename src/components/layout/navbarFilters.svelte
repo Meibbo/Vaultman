@@ -18,6 +18,12 @@
 		SEARCH_CREATE_TARGET_ID,
 		SEARCH_CYCLE_CATEGORY_ID,
 	} from '../../logic/logicSasiSearchActions';
+import {
+		TOOLBAR_FOCUS_SEARCH_ID,
+		TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+		TOOLBAR_SEARCHBOX_ID,
+		TOOLBAR_TOGGLE_EXPANSION_ID,
+	} from '../../logic/logicSasiToolbarActions';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SasiNode } from '../../services/serviceSasiProvider';
 	import type {
@@ -149,6 +155,24 @@
 		snippetsExplorer?: PanelWidgetExplorerPort;
 		pluginsExplorer?: PanelWidgetExplorerPort;
 	};
+
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		if (actionId === TOOLBAR_SEARCHBOX_ID || actionId === TOOLBAR_FOCUS_SEARCH_ID) {
+			expandSearch();
+			return true;
+		}
+		if (actionId === SEARCH_CYCLE_CATEGORY_ID || actionId === SEARCH_CREATE_TARGET_ID) {
+			runSearchCell(actionId);
+			return true;
+		}
+		const localId =
+			actionId === TOOLBAR_REVEAL_ACTIVE_FILE_ID
+				? 'reveal-active-file'
+				: actionId === TOOLBAR_TOGGLE_EXPANSION_ID
+					? 'toggle-expansion'
+					: actionId;
+		return (await actionPort.invoke({ actionId: localId, origin: 'command' })) === true;
+	}
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone' | 'row';
 	type NativeMenuValue = {

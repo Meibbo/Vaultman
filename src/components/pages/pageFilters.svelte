@@ -1903,6 +1903,10 @@
 		},
 	};
 
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return panelWidgetActionPort.invoke({ actionId, origin: 'command' });
+	}
+
 	$effect(() => {
 		const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } =
 			{

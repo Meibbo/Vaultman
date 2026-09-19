@@ -4885,7 +4885,7 @@ export class FilesExplorerPanel extends Component {
 				mtime:
 					maxMtime > 0 ? (this._formatHoverDateCell(maxMtime) ?? null) : null,
 				ctime: null,
-				ext: null,
+				ext: '',
 				words: this._folderWordCount.get(folderPath) ?? 0,
 				characters: null,
 				tasks: this._folderTaskCount.get(folderPath) ?? 0,
