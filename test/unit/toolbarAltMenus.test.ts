@@ -145,4 +145,27 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(navbarSource).toContain('drag-reorder-ghost');
 		expect(navbarSource).toContain('mod-dragged-item');
 	});
+
+	it('offers instance info from the toolbar empty menu', () => {
+		expect(navbarSource).toContain('openToolbarEmptyMenu(');
+		expect(navbarSource).toContain("translate('toolbar.instance_info')");
+		expect(navbarSource).toContain('InstanceInfoModal');
+		expect(navbarSource).toContain('readInstanceRecord()');
+		for (const key of [
+			'toolbar.instance_info',
+			'toolbar.instance_info.id',
+			'toolbar.instance_info.revision',
+			'toolbar.instance_info.active_scene',
+			'toolbar.instance_info.created',
+			'toolbar.instance_info.updated',
+			'toolbar.instance_info.tombstoned',
+			'toolbar.instance_info.self',
+			'toolbar.instance_info.scenes',
+			'toolbar.instance_info.empty',
+		]) {
+			expect(en[key], `en: ${key}`).toBeTruthy();
+			expect(es[key], `es: ${key}`).toBeTruthy();
+			expect(es[key], `es!=en: ${key}`).not.toBe(en[key]);
+		}
+	});
 });

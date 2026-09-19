@@ -9,6 +9,7 @@ import type {
 	SceneConfig,
 	SceneDefinitionId,
 	WorkspaceInstanceId,
+	WorkspaceInstanceRecord,
 } from '../types/typeInstance';
 import type {
 	ExplorerSortState,
@@ -62,6 +63,12 @@ export interface SceneConfigPort {
 	proposeScenes?: (
 		updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>>,
 	) => Promise<void>;
+	/**
+	 * U130 polishing: el registro vivo de ESTA instancia (id, revisiones,
+	 * overrides por scene) para superficies de info. `null` si la identidad
+	 * aún no está anclada en el registro.
+	 */
+	readInstanceRecord: () => WorkspaceInstanceRecord | null;
 }
 
 /**
@@ -304,5 +311,7 @@ export function createSceneConfigPort(
 		proposeFloatingToc,
 		setInstanceId,
 		onInstanceChange,
+		readInstanceRecord: () =>
+			deps.readRegistry().instances[currentId] ?? null,
 	};
 }

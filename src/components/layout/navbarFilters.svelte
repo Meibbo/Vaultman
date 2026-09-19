@@ -28,6 +28,7 @@
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
 	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
+	import { InstanceInfoModal } from '../../modals/modalInstanceInfo';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -2292,6 +2293,18 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.instance_info'))
+				.setIcon('lucide-info')
+				.onClick(() => {
+					if (!app) return;
+					const record = sceneConfigPort.readInstanceRecord();
+					if (!record) return;
+					new InstanceInfoModal(app, record).open();
+				});
+		});
+		menu.addSeparator();
 		if (onToggleToolbar) {
 			menu.addItem((item) => {
 				item
