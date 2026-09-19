@@ -585,6 +585,7 @@ export const en: Record<string, string> = {
 	'toolbar.alt.change_icon': 'Change icon',
 	'toolbar.alt.add_command': 'Add command node here',
 	'toolbar.alt.remove_from_instance': 'Remove from this instance',
+	'toolbar.alt.nest_create': 'Nest creation in searchbox',
 	'viewmenu.layouts': 'Layout',
 	'viewmenu.save_layout': 'Save layout',
 	'viewmenu.saved_config_notice': 'View composition saved',

@@ -321,7 +321,7 @@
 	const canCreateSearchTarget = $derived(
 		// BT5-022: with Create moved to the toolbar, the Files searchbox no longer
 		// carries its own create button; Props and Tags keep theirs.
-		(activeTab === 'files' && createActionsPlacement !== 'toolbar') ||
+		(activeTab === 'files' && effectiveCreateActionsPlacement !== 'toolbar') ||
 			activeTab === 'props' ||
 			activeTab === 'tags',
 	);
@@ -883,6 +883,17 @@
 		).filter((command) => !seen.has(command.id));
 		return [...commandActions, ...extra];
 	});
+	// U130 polishing: override per-instance de la ubicación de creación.
+	// `auto` (defecto) = el setting global que llega por prop; explícito =
+	// esta scene decide. Se lee aquí (tras `configByTab`) y se consume en
+	// `canCreateSearchTarget` y en los nodos create-*: esos $derived solo se
+	// evalúan al renderizar, cuando todo el setup ya corrió.
+	const effectiveCreateActionsPlacement = $derived.by(() => {
+		const override = configByTab[activeTab]?.createActionsPlacement;
+		return override === 'toolbar' || override === 'searchbox'
+			? override
+			: createActionsPlacement;
+	});
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
 		const nodes: PanelWidgetNode[] = [];
 		const append = (
@@ -971,7 +982,7 @@
 				30,
 			);
 		}
-		if (activeTab === 'files' && createActionsPlacement === 'toolbar') {
+		if (activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar') {
 			append(
 				'create-file',
 				translate('folder.ctx.new_note'),
@@ -1980,6 +1991,21 @@
 
 	function openNodeAltMenu(localId: string, event: MouseEvent): void {
 		const menu = new Menu();
+		if (localId === 'search' && activeTab === 'files') {
+			const nested = effectiveCreateActionsPlacement !== 'toolbar';
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.nest_create'))
+					.setIcon('lucide-plus')
+					.setChecked(nested)
+					.onClick(() => {
+						commitConfig(activeTab, {
+							createActionsPlacement: nested ? 'toolbar' : 'searchbox',
+						});
+					});
+			});
+			menu.addSeparator();
+		}
 		if (localId === 'tabs') {
 			menu.addItem((item) => {
 				item
@@ -3495,7 +3521,7 @@
 									use:icon={panelWidgetNodeIcon('toggle-expansion', expansionIcon)}
 							></div>
 						{/if}
-						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
+						{#if activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
 							{#if toolbarNodeVisible('create-file')}
 								<div

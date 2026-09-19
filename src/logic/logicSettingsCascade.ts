@@ -42,6 +42,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
 		toolbarNodeIcons: { ...input.defaults.toolbarNodeIcons },
 		toolbarCommandActions: cloneCells(input.defaults.toolbarCommandActions),
+		createActionsPlacement: input.defaults.createActionsPlacement,
 		groupMemberships: cloneGroupMemberships(input.defaults.groupMemberships),
 	};
 	for (const layer of layers) {
@@ -70,6 +71,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		}
 		if (layer.toolbarCommandActions !== undefined) {
 			out.toolbarCommandActions = cloneCells(layer.toolbarCommandActions);
+		}
+		if (layer.createActionsPlacement !== undefined) {
+			out.createActionsPlacement = layer.createActionsPlacement;
 		}
 		// U130-09: como los arrays, el mapa NO se fusiona: la capa que lo
 		// declara decide los grupos enteros de esa scene.
@@ -144,6 +148,9 @@ export function diffSceneConfig(
 		)
 	) {
 		patch.toolbarCommandActions = cloneCells(next.toolbarCommandActions);
+	}
+	if (next.createActionsPlacement !== baseline.createActionsPlacement) {
+		patch.createActionsPlacement = next.createActionsPlacement;
 	}
 	// U130-09: el orden de las claves es el orden de las cabeceras, asi que
 	// una reordenacion cuenta como cambio, igual que en `visibleCells`.

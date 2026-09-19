@@ -21,6 +21,7 @@ const defaults = {
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
 	toolbarCommandActions: [],
+	createActionsPlacement: 'auto',
 	groupMemberships: {},
 };
 

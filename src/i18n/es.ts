@@ -591,6 +591,7 @@ export const es: Record<string, string> = {
 	'toolbar.alt.change_icon': 'Cambiar icono',
 	'toolbar.alt.add_command': 'Añadir nodo de comando aquí',
 	'toolbar.alt.remove_from_instance': 'Quitar de esta instancia',
+	'toolbar.alt.nest_create': 'Anidar creación en el searchbox',
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.save_layout': 'Guardar composición de vista',
 	'viewmenu.saved_config_notice': 'Composición de vista guardada',

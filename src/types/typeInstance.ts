@@ -68,6 +68,13 @@ export interface SceneConfig {
 	 */
 	toolbarCommandActions?: string[];
 	/**
+	 * U130 polishing: override per-instance de la ubicación de los nodos de
+	 * creación (create-file/create-folder). `auto` = el setting global
+	 * `createActionsPlacement` (searchbox = anidados en el searchbox,
+	 * toolbar = nodos propios). Tri-estado concreto como sceneLabelMode.
+	 */
+	createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
+	/**
 	 * U130-09 (dev 2026-09-15): custom groups de ESTA scene de ESTA instancia.
 	 * groupId -> URNs de sus miembros. Solo los custom: los presets son
 	 * predicado en memoria. Las URNs ya llevan `providerId:kind:`

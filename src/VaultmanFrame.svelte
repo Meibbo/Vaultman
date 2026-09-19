@@ -377,6 +377,9 @@
 			toolbarNodeIcons: {},
 			// U130 polishing: sin comandos extra per-instance por defecto.
 			toolbarCommandActions: [],
+			// U130 polishing: la ubicación de creación sigue al setting
+			// global hasta que el cmenu del search la fije por instancia.
+			createActionsPlacement: 'auto',
 			// U130-09: una scene nace sin grupos custom; los crea el usuario en
 			// esta instancia o los copia un layout al activarse.
 			groupMemberships: {},

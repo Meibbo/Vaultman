@@ -18,6 +18,7 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(typeInstanceSource).toContain("autoRevealMode?: 'auto' | 'on' | 'off'");
 		expect(typeInstanceSource).toContain('hiddenToolbarNodes?: string[]');
 		expect(typeInstanceSource).toContain('toolbarCommandActions?: string[]');
+		expect(typeInstanceSource).toContain("createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar'");
 	});
 
 	it('mezcla ocultos globales y per-instance antes de proyectar', () => {
@@ -116,6 +117,7 @@ describe('U130 toolbar alt-cmenus', () => {
 			'toolbar.alt.change_icon',
 			'toolbar.alt.add_command',
 			'toolbar.alt.remove_from_instance',
+			'toolbar.alt.nest_create',
 		]) {
 			expect(en[key], `en: ${key}`).toBeTruthy();
 			expect(es[key], `es: ${key}`).toBeTruthy();
@@ -131,5 +133,8 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(navbarSource).toContain('toolbarCommandActions');
 		expect(navbarSource).toContain('addCommandId(');
 		expect(navbarSource).toContain('removeCommandId(');
+		expect(navbarSource).toContain('effectiveCreateActionsPlacement');
+		expect(navbarSource).toContain("translate('toolbar.alt.nest_create')");
+		expect(navbarSource).toContain('createActionsPlacement');
 	});
 });
