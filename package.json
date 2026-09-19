@@ -42,7 +42,7 @@
 		"esbuild": "0.25.12",
 		"esbuild-svelte": "0.9.5",
 		"eslint": "9.39.4",
-		"eslint-plugin-obsidianmd": "0.3.0",
+		"eslint-plugin-obsidianmd": "0.4.2",
 		"globals": "14.0.0",
 		"jiti": "2.6.1",
 		"mocha": "10.8.2",
