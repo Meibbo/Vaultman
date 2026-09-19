@@ -2,12 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 
 describe('U130 SASI bootstrap', () => {
-	it('nace con los tres ejes aunque solo rellene function', () => {
+	it('nace con los tres ejes y registra el catalogo de settingScene', () => {
 		const { registry } = createVaultmanSasi();
-		// Los ejes vacios EXISTEN: es la puerta que prueba que el registro no
-		// habra que rehacerlo cuando llegue el sceneBuilder.
-		expect(registry.list('kind')).toEqual([]);
-		expect(registry.list('provider')).toEqual([]);
+		expect(registry.list('provider').map((entry) => entry.id)).toEqual(['plugins']);
+		expect(registry.list('kind').map((entry) => entry.id)).toEqual([
+			'node_settings',
+			'node_group',
+			'node_group_custom',
+			'cell_badge_update',
+			'panelExplorer',
+			'panelContent',
+			'settings-explorer',
+			'settings-content',
+			'settingScene.toolbar',
+			'node_plugin.cmenu',
+			'node_group.cmenu',
+		]);
 		expect(registry.list('function').length).toBeGreaterThan(0);
 	});
 
