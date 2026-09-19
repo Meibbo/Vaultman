@@ -1267,6 +1267,39 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		// U130 polishing: where the native tooltips appear (`side` = native
+		// lateral like the ribbon, `below` = historic ours, `above` = option).
+		items.push({
+			name: translate('settings.tooltip_placement'),
+			desc: translate('settings.tooltip_placement.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							side: translate('settings.tooltip_placement.side'),
+							below: translate('settings.tooltip_placement.below'),
+							above: translate('settings.tooltip_placement.above'),
+						})
+						.setValue(
+							this.plugin.settings.tooltipPlacement === 'below'
+								? 'below'
+								: this.plugin.settings.tooltipPlacement === 'above'
+									? 'above'
+									: 'side',
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.tooltipPlacement =
+								value === 'below'
+									? 'below'
+									: value === 'above'
+										? 'above'
+										: 'side';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		items.push(...this.getToolbarCommandActionsItems());
 		return items;
 	}

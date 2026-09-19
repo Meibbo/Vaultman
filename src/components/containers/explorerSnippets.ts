@@ -1,4 +1,5 @@
 import { Component, Notice, setTooltip } from 'obsidian';
+import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { SnippetMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
@@ -595,6 +596,7 @@ export class SnippetsExplorerPanel
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
@@ -667,7 +669,11 @@ export class SnippetsExplorerPanel
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
 				if (node && this.tooltipsOverride !== false)
-					setTooltip(row, this.tooltip(node.meta));
+					setTooltip(row, this.tooltip(node.meta), {
+				placement: tooltipPlacementForSetting(
+					this.plugin.settings?.tooltipPlacement,
+				),
+			});
 			},
 			onContextMenu: (id, event) => {
 				if (isGroupHeader(id, this._groupIds)) {

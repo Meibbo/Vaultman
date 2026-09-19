@@ -398,6 +398,12 @@ export const es: Record<string, string> = {
 		'Si Crear archivo y Crear carpeta viven en la caja de búsqueda o como nodos de acción del toolbar.',
 	'settings.create_actions_placement.searchbox': 'Caja de búsqueda',
 	'settings.create_actions_placement.toolbar': 'Toolbar',
+	'settings.tooltip_placement': 'Posición de tooltips',
+	'settings.tooltip_placement.desc':
+		'Dónde aparecen los tooltips nativos: lateral como el nativo, debajo o arriba.',
+	'settings.tooltip_placement.side': 'Lateral (nativo)',
+	'settings.tooltip_placement.below': 'Debajo',
+	'settings.tooltip_placement.above': 'Arriba',
 	'settings.toolbar_commands': 'Comandos del toolbar',
 	'settings.toolbar_commands.desc':
 		'Comandos de Obsidian mostrados como nodos de acción del toolbar de Files. El toolbar ejecuta el comando de inmediato al activarlo.',

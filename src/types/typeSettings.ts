@@ -323,6 +323,8 @@ export interface VaultmanSettings {
 	toolbarCommandActions: string[];
 	/** BT5-022: where the built-in Create File/Folder actions live */
 	createActionsPlacement: 'searchbox' | 'toolbar';
+	/** U130 polishing: where native tooltips appear (`side` = native lateral) */
+	tooltipPlacement: 'side' | 'below' | 'above';
 	/** Ordered fields shown in the native Files node hover tooltip */
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
@@ -576,6 +578,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	createFileCommand: '',
 	toolbarCommandActions: [],
 	createActionsPlacement: 'searchbox',
+	tooltipPlacement: 'side',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,

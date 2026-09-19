@@ -394,6 +394,12 @@ export const en: Record<string, string> = {
 		'Whether Create File and Create Folder live on the search box or as toolbar action nodes.',
 	'settings.create_actions_placement.searchbox': 'Search box',
 	'settings.create_actions_placement.toolbar': 'Toolbar',
+	'settings.tooltip_placement': 'Tooltip position',
+	'settings.tooltip_placement.desc':
+		'Where the native tooltips appear: on the side like native, below, or above.',
+	'settings.tooltip_placement.side': 'Side (native)',
+	'settings.tooltip_placement.below': 'Below',
+	'settings.tooltip_placement.above': 'Above',
 	'settings.toolbar_commands': 'Toolbar commands',
 	'settings.toolbar_commands.desc':
 		'Obsidian commands shown as Files toolbar action nodes. The toolbar runs a command immediately when you activate it.',

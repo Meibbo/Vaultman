@@ -1,4 +1,5 @@
 import { setTooltip } from 'obsidian';
+import type { TooltipPlacement } from 'obsidian';
 import { translate } from '../i18n/index';
 import type { ExplorerTabId, ExplorerViewMode } from '../types/typeUI';
 import { cellDef, cellLabelKey } from './logicCellRegistry';
@@ -50,15 +51,27 @@ export function cellTooltipText(
 	return translate(cellLabelKey(definition, explorer, viewMode));
 }
 
+/**
+ * U130 polishing: user-facing tooltip placement (`side` = native lateral,
+ * `below` = historic ours, `above`) mapped to Obsidian placements. Unknown
+ * values fall back to native-like `right`.
+ */
+export function tooltipPlacementForSetting(value: unknown): TooltipPlacement {
+	if (value === 'below') return 'bottom';
+	if (value === 'above') return 'top';
+	return 'right';
+}
+
 export function applyCellTooltip(
 	element: HTMLElement,
 	explorer: ExplorerTabId,
 	viewMode: ExplorerViewMode,
 	cellId: string,
+	placement?: TooltipPlacement,
 ): void {
 	const text = cellTooltipText(explorer, viewMode, cellId);
 	element.removeAttribute('title');
 	if (!text) return;
 	element.setAttribute('aria-label', text);
-	setTooltip(element, text);
+	setTooltip(element, text, { placement: placement ?? 'right' });
 }

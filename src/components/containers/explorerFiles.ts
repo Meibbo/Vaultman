@@ -7,6 +7,7 @@ import {
 	TFile,
 	TFolder,
 } from 'obsidian';
+import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -2378,6 +2379,7 @@ export class FilesExplorerPanel extends Component {
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2642,6 +2644,7 @@ export class FilesExplorerPanel extends Component {
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -4801,7 +4804,11 @@ export class FilesExplorerPanel extends Component {
 	): void {
 		element.removeAttribute('title');
 		if (this.tooltipsOverride !== false)
-			setTooltip(element, this._fileHoverText(file, fields));
+			setTooltip(element, this._fileHoverText(file, fields), {
+			placement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+			),
+		});
 	}
 
 	private _handleFileHover(file: TFile, element: HTMLElement): void {
@@ -4896,7 +4903,12 @@ export class FilesExplorerPanel extends Component {
 		element.removeAttribute('title');
 		if (this.tooltipsOverride === false) return;
 		const text = this._folderHoverText(folderPath, fields);
-		if (text) setTooltip(element, text);
+		if (text)
+			setTooltip(element, text, {
+				placement: tooltipPlacementForSetting(
+					this.plugin.settings?.tooltipPlacement,
+				),
+			});
 	}
 
 	private _handleFolderHover(folderPath: string, element: HTMLElement): void {
@@ -5455,6 +5467,7 @@ export class FilesExplorerPanel extends Component {
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

@@ -30,7 +30,7 @@ import {
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
 } from '../../logic/logicNodeTypeFilters';
-import { applyCellTooltip } from '../../logic/logicCellTooltip';
+import { applyCellTooltip, tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -2623,6 +2623,7 @@ export class PropsExplorerPanel extends Component {
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

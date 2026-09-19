@@ -33,7 +33,7 @@ import {
 	type AddToFilesTarget,
 } from '../../logic/logicAddToFiles';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
-import { applyCellTooltip } from '../../logic/logicCellTooltip';
+import { applyCellTooltip, tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import { openFileAtOffset } from '../../utils/openFileAtOffset';
 import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
@@ -1798,6 +1798,7 @@ export class TagsExplorerPanel extends Component {
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
