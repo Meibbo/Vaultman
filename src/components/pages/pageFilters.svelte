@@ -413,10 +413,6 @@
 		void settingsRevision;
 		return plugin.settings.orderCellsByActivation === true;
 	});
-	const sortLevelInline = $derived.by(() => {
-		void settingsRevision;
-		return plugin.settings.sortLevelInline !== false;
-	});
 	const selectionCheckboxPosition = $derived.by(() => {
 		void settingsRevision;
 		const position = plugin.settings.selectionCheckboxPosition;
@@ -1968,7 +1964,6 @@
 				createActionsPlacement,
 				commandActions,
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
-				sortLevelInline,
 				orderCellsByActivation,
 				selectionCheckboxPosition,
 				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,

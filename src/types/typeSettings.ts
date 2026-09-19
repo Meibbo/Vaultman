@@ -273,8 +273,6 @@ export interface VaultmanSettings {
 	explorerGlyphScope: import('../logic/logicGlyphColor').GlyphColorScope;
 	/** Floating index drill also drives the sort scope (reset on index close) */
 	tocDrillSyncsSort: boolean;
-	/** Show By level options inline in the sort menu instead of a submenu */
-	sortLevelInline: boolean;
 	/** File paths hidden from the files explorer (D39 Exclude file) */
 	excludedFilePaths: string[];
 	/** Rainbow folder colors in the files tree (snippet-compatible, D38) */
@@ -562,7 +560,6 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerGlyphCustomColor: '#7c3aed',
 	explorerGlyphScope: 'folders',
 	tocDrillSyncsSort: false,
-	sortLevelInline: true,
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',

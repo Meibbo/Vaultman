@@ -305,7 +305,6 @@ export interface NavbarPanelWidgetState {
 	onLayoutLoaded?: (layout: SavedLayout) => void;
 	app?: App;
 	showTabLabels?: boolean;
-	sortLevelInline?: boolean;
 	orderCellsByActivation?: boolean;
 	/** U121-108: edge of the select-mode checkbox; `hidden` hides its view_option. */
 	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';

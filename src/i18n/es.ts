@@ -1177,9 +1177,6 @@ export const es: Record<string, string> = {
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'sort.level.sticky_rows': 'Filas fijas',
 	'sort.level.compact_folders': 'Carpetas compactas',
-	'settings.sort_level_inline': 'Opciones By level en línea',
-	'settings.sort_level_inline.desc':
-		'Muestra las opciones By level directamente en el menú de orden en vez de un submenú.',
 	'settings.toc_drill_sync': 'El drill del índice define el scope del sort',
 	'settings.toc_drill_sync.desc':
 		'El scope drill del índice flotante también selecciona el scope del sort; cerrar el índice restaura el scope por defecto.',

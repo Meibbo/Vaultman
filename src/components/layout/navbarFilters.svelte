@@ -284,7 +284,6 @@
 		onLayoutLoaded,
 		app,
 		showTabLabels = true,
-		sortLevelInline = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
 		toolbarMenuLayouts,
@@ -3204,7 +3203,9 @@
 			projectNativeMenu(
 				'sort_menu',
 				nodes,
-				sortLevelInline && supportsByLevel(activeTab) ? ['by-level'] : [],
+				// U130 polishing: deprecated inline toggle removed; By level
+				// stays inline where supported.
+				supportsByLevel(activeTab) ? ['by-level'] : [],
 			),
 		);
 		menu.showAtMouseEvent(event);

@@ -233,9 +233,13 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 		expect(viewMenuCells('files', 'tree').map((cell) => cell.id)).not.toContain(
 			'nested',
 		);
-		expect(navbarSource).toContain('sortLevelInline = true');
+		// U130 polishing: deprecated sortLevelInline setting removed; By level
+		// stays inline where supported.
+		expect(navbarSource).not.toContain('sortLevelInline');
+		expect(navbarSource).toContain(
+			"supportsByLevel(activeTab) ? ['by-level'] : []",
+		);
 		expect(navbarSource).toContain('const byLevelModelValue = byLevelModel(');
-		expect(DEFAULT_SETTINGS.sortLevelInline).toBe(true);
 	});
 
 	it('hides contextual options and shows the six-char drill scope label', () => {

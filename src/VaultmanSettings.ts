@@ -1268,21 +1268,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push(...this.getToolbarCommandActionsItems());
-
-		items.push({
-			name: translate('settings.sort_level_inline'),
-			desc: translate('settings.sort_level_inline.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.sortLevelInline !== false)
-						.onChange(async (value) => {
-							this.plugin.settings.sortLevelInline = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
 		return items;
 	}
 
