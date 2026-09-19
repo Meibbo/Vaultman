@@ -2827,6 +2827,11 @@ export class FilesExplorerPanel extends Component {
 				onRowHover: (id: string, row: HTMLElement) => {
 					const node = this._findNode(id, renderTree);
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
+					else if (
+						node?.meta.isFolder &&
+						typeof node.meta.folderPath === 'string'
+					)
+						this._handleFolderHover(node.meta.folderPath, row);
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) {
@@ -4846,6 +4851,60 @@ export class FilesExplorerPanel extends Component {
 				);
 			})
 			.finally(() => this.pendingHoverStats.delete(file.path));
+	}
+
+	/**
+	 * U130 polishing: folders get hover tooltips like files — same native
+	 * mechanism (`setTooltip`, like the native ones) and same field
+	 * flexibility (`filesHoverInfo` order + labels). Aggregates bubble at
+	 * render, so no stats warmup is needed. Fields without folder meaning
+	 * (ext/opened/ctime/characters/count) stay null and are skipped.
+	 */
+	private _folderHoverText(
+		folderPath: string,
+		fields: readonly FileHoverInfoId[] = this._filesHoverFields(),
+	): string {
+		const labels = Object.fromEntries(
+			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
+		) as Record<FileHoverInfoId, string>;
+		const name = folderPath.split('/').filter(Boolean).pop() ?? folderPath;
+		const maxMtime = this._folderMaxMtime.get(folderPath) ?? 0;
+		return buildFileHoverInfo(
+			fields,
+			{
+				label: name,
+				path: folderPath,
+				opened: null,
+				mtime:
+					maxMtime > 0 ? (this._formatHoverDateCell(maxMtime) ?? null) : null,
+				ctime: null,
+				ext: null,
+				words: this._folderWordCount.get(folderPath) ?? 0,
+				characters: null,
+				tasks: this._folderTaskCount.get(folderPath) ?? 0,
+				count: null,
+			},
+			labels,
+		);
+	}
+
+	private _applyFolderHoverTooltip(
+		folderPath: string,
+		element: HTMLElement,
+		fields: readonly FileHoverInfoId[],
+	): void {
+		element.removeAttribute('title');
+		if (this.tooltipsOverride === false) return;
+		const text = this._folderHoverText(folderPath, fields);
+		if (text) setTooltip(element, text);
+	}
+
+	private _handleFolderHover(folderPath: string, element: HTMLElement): void {
+		this._applyFolderHoverTooltip(
+			folderPath,
+			element,
+			this._filesHoverFields(),
+		);
 	}
 
 	/**
