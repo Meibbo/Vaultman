@@ -74,6 +74,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						toolbarNodeIcons: {},
 						toolbarCommandActions: [],
 						createActionsPlacement: 'auto',
+						tooltips: true,
 						toolbarNodeOrder: [],
 						groupMemberships: {},
 					}),

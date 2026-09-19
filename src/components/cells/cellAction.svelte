@@ -28,6 +28,8 @@
 		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 		onInvoke?: (id: string) => void;
 		translate: (key: string) => string;
+		/** U130 polishing: view_option `tooltips` — `false` apaga el título. */
+		tooltipsEnabled?: boolean;
 	}
 
 	let {
@@ -38,6 +40,7 @@
 		icon,
 		onInvoke,
 		translate,
+		tooltipsEnabled = true,
 	}: Props = $props();
 
 	const node = $derived(resolve(actionId));
@@ -56,7 +59,7 @@
 	disabled={!available}
 	aria-label={label}
 	aria-pressed={toggle ? toggle.on : undefined}
-	title={label}
+	title={tooltipsEnabled ? label : undefined}
 	use:icon={node?.icon ?? 'lucide-circle-help'}
 	onclick={() => available && onInvoke?.(actionId)}
 ></button>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import { en } from '../../src/i18n/en';
+import { es } from '../../src/i18n/es';
 
 function functionSlice(source: string, name: string): string {
 	const start = source.indexOf(`function ${name}`);
@@ -106,5 +108,21 @@ describe('L-VMFIX view_menu guard', () => {
 			fixedFoldersIdx,
 		);
 		expect(fixedFoldersParentsGuard).toBeGreaterThan(-1);
+	});
+
+	it('emits the per-instance tooltips toggle inside the engines submenu', () => {
+		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
+		const enginesIdx = menu.indexOf('const engineChildren: NativeMenuNode[]');
+		expect(enginesIdx).toBeGreaterThan(-1);
+		const enginesBlock = menu.slice(enginesIdx);
+		expect(enginesBlock).toContain("'view_menu.engines.tooltips'");
+		expect(enginesBlock).toContain("translate('sort.level.tooltips')");
+		expect(enginesBlock).toContain('tooltipsEnabledFor(activeTab)');
+		expect(enginesBlock).toContain('toggleTooltipsFor(activeTab)');
+		// El commit vive en `toggleTooltipsFor`, fuera del slice del menú.
+		expect(navbarSource).toContain('commitConfig(tab, { tooltips: next })');
+		expect(en['sort.level.tooltips']).toBeTruthy();
+		expect(es['sort.level.tooltips']).toBeTruthy();
+		expect(es['sort.level.tooltips']).not.toBe(en['sort.level.tooltips']);
 	});
 });

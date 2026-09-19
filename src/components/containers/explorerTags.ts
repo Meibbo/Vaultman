@@ -222,6 +222,7 @@ export class TagsExplorerPanel extends Component {
 	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
+	private tooltipsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
@@ -691,6 +692,9 @@ export class TagsExplorerPanel extends Component {
 			this.stickyRowsOverride !== config.stickyRows;
 		const indentChanged =
 			config.indent !== undefined && this.indentOverride !== config.indent;
+		const tooltipsChanged =
+			config.tooltips !== undefined &&
+			this.tooltipsOverride !== config.tooltips;
 		const presetChanged =
 			config.groupPreset !== undefined &&
 			!sameGroupPreset(this.groupPreset, config.groupPreset);
@@ -740,6 +744,9 @@ export class TagsExplorerPanel extends Component {
 		}
 		if (indentChanged) {
 			this.indentOverride = config.indent;
+		}
+		if (tooltipsChanged) {
+			this.tooltipsOverride = config.tooltips;
 		}
 		if (stickyChanged) {
 			this.stickyRowsOverride = config.stickyRows;
@@ -822,6 +829,12 @@ export class TagsExplorerPanel extends Component {
 	setStickyRowsEnabled(enabled: boolean): void {
 		if (this.stickyRowsOverride === enabled) return;
 		this.stickyRowsOverride = enabled;
+		this._render();
+	}
+
+	setTooltipsEnabled(enabled: boolean): void {
+		if (this.tooltipsOverride === enabled) return;
+		this.tooltipsOverride = enabled;
 		this._render();
 	}
 
@@ -1784,6 +1797,7 @@ export class TagsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -2038,7 +2052,8 @@ export class TagsExplorerPanel extends Component {
 				const iconEl = bEl.createSpan({ cls: 'vaultman-badge-icon' });
 				setIcon(iconEl, badge.icon);
 			}
-			if (badge.text) bEl.setAttribute('title', badge.text);
+			if (badge.text && this.tooltipsOverride !== false)
+				bEl.setAttribute('title', badge.text);
 			if (badge.queueIndex !== undefined) {
 				const badgeCancelClickMode = normalizeBadgeCancelClickMode(
 					this.plugin.settings?.badgeCancelClickMode,

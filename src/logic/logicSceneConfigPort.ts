@@ -178,6 +178,7 @@ export async function applyLayoutToPort(
 			toolbarCommandActions: current.toolbarCommandActions,
 			createActionsPlacement: current.createActionsPlacement,
 			toolbarNodeOrder: current.toolbarNodeOrder,
+			tooltips: current.tooltips,
 			groupMemberships: facets.groupMemberships ?? current.groupMemberships,
 		};
 	}

@@ -56,6 +56,7 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				toolbarNodeIcons: {},
 				toolbarCommandActions: [],
 				createActionsPlacement: 'auto',
+				tooltips: true,
 				toolbarNodeOrder: [],
 				groupMemberships: {},
 			}),

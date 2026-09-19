@@ -1621,6 +1621,7 @@
 						? { compactFolders: config.compactFolders }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1640,6 +1641,7 @@
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1662,6 +1664,7 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1679,6 +1682,7 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1701,6 +1705,7 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1718,6 +1723,7 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2083,6 +2089,14 @@
 				}),
 			);
 		}
+		engineChildren.push(
+			nativeMenuItem('view_menu.engines.tooltips', {
+				title: translate('sort.level.tooltips'),
+				icon: 'lucide-eye',
+				checked: tooltipsEnabledFor(activeTab),
+				onClick: () => toggleTooltipsFor(activeTab),
+			}),
+		);
 		if (nestedAct && activeTab === 'files') {
 			const parentsFirst = sortState.parentsFirst ?? true;
 			engineChildren.push(
@@ -2815,6 +2829,29 @@
 		applyStickyRows(tab, next);
 	}
 
+	function tooltipsEnabledFor(tab: FiltersTab): boolean {
+		return configByTab[tab].tooltips !== false;
+	}
+
+	function applyTooltips(tab: FiltersTab, enabled: boolean) {
+		explorerPortForTab(tab)?.setTooltipsEnabled?.(enabled);
+	}
+
+	function toggleTooltipsFor(tab: FiltersTab) {
+		const next = !tooltipsEnabledFor(tab);
+		commitConfig(tab, { tooltips: next });
+		applyTooltips(tab, next);
+	}
+
+	// U130 polishing: view_option `tooltips` — los títulos (tooltips) de
+	// los nodos del toolbar siguen al override per-instance; los aria-label
+	// (a11y) no se tocan.
+	const toolbarTooltipsEnabled = $derived(tooltipsEnabledFor(activeTab));
+	function toolbarNodeTitle(label: string | undefined): string | undefined {
+		if (minimalStyle || !toolbarTooltipsEnabled) return undefined;
+		return label;
+	}
+
 	function compactFoldersEnabledFor(tab: FiltersTab): boolean {
 		return configByTab[tab].compactFolders;
 	}
@@ -3405,6 +3442,7 @@
 		{translate}
 		onInvoke={runSearchCell}
 		onValueChange={setFiltersSearch}
+		tooltipsEnabled={toolbarTooltipsEnabled}
 		{icon}
 	/>
 {/snippet}
@@ -3417,6 +3455,7 @@
 			{translate}
 			{icon}
 			onToggleMoveKind={transactionBar.onToggleMoveKind ?? (() => {})}
+			tooltipsEnabled={toolbarTooltipsEnabled}
 		/>
 	{/if}
 {/snippet}
@@ -3466,7 +3505,7 @@
 							role="button"
 							tabindex="0"
 							aria-label={currentTabsLabel}
-							title={minimalStyle ? undefined : currentTabsLabel}
+							title={toolbarNodeTitle(currentTabsLabel)}
 							onclick={(event: MouseEvent) => openScenePopup(event)}
 							oncontextmenu={(e: MouseEvent) => {
 								e.preventDefault();
@@ -3511,7 +3550,7 @@
 								aria-label={action.label}
 								aria-pressed={action.checked}
 								aria-disabled={action.disabled ? 'true' : undefined}
-								title={minimalStyle ? undefined : action.label}
+								title={toolbarNodeTitle(action.label)}
 								onclick={(event: MouseEvent) => {
 									if (action.disabled) return;
 									invokeSceneAction(`header:${action.id}`, 'pointer', event);
@@ -3545,9 +3584,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.viewmode_btn')}
-								title={minimalStyle
-									? undefined
-									: translate('filter.viewmode_btn')}
+								title={toolbarNodeTitle(translate('filter.viewmode_btn'))}
 								onclick={(event: MouseEvent) => openViewModePopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3575,7 +3612,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.sort_btn')}
-								title={minimalStyle ? undefined : translate('filter.sort_btn')}
+								title={toolbarNodeTitle(translate('filter.sort_btn'))}
 								onclick={(event: MouseEvent) => openSortPopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3606,9 +3643,7 @@
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
 								aria-pressed={searchExpanded}
-								title={minimalStyle
-									? undefined
-									: translate('explorer.btn.search')}
+								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={toggleSearch}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3632,9 +3667,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
-								title={minimalStyle
-									? undefined
-									: translate('explorer.btn.search')}
+								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={expandSearch}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
@@ -3656,9 +3689,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.auto_reveal')}
-								title={minimalStyle
-									? undefined
-									: translate('filter.auto_reveal')}
+								title={toolbarNodeTitle(translate('filter.auto_reveal'))}
 								onclick={(event) => revealActiveExplorerFile('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3690,7 +3721,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={expansionLabel}
-								title={minimalStyle ? undefined : expansionLabel}
+								title={toolbarNodeTitle(expansionLabel)}
 								onclick={(event) => toggleExplorerExpansion('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3719,9 +3750,9 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_note')}
-									title={minimalStyle
-										? undefined
-										: translate('folder.ctx.new_note')}
+									title={toolbarNodeTitle(
+										translate('folder.ctx.new_note'),
+									)}
 									onclick={(event) =>
 										invokeSceneAction('create-file', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -3750,9 +3781,9 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_folder')}
-									title={minimalStyle
-										? undefined
-										: translate('folder.ctx.new_folder')}
+									title={toolbarNodeTitle(
+										translate('folder.ctx.new_folder'),
+									)}
 									onclick={(event) =>
 										invokeSceneAction('create-folder', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -3787,12 +3818,11 @@
 									role="button"
 									tabindex="0"
 									aria-label={command.label}
-									title={command.available
-										? command.label
-										: translate('command.unavailable').replace(
-												'{id}',
-												command.id,
-											)}
+									title={toolbarNodeTitle(
+										command.available
+											? command.label
+											: translate('command.unavailable').replace('{id}', command.id),
+									)}
 									onclick={() => {
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');

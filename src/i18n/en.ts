@@ -1283,6 +1283,7 @@ export const en: Record<string, string> = {
 	'sort.level.fixed_folders': 'Fixed folders',
 	'sort.level.sticky_rows': 'Sticky rows',
 	'sort.level.compact_folders': 'Compact folders',
+	'sort.level.tooltips': 'Tooltips',
 	'settings.toc_drill_sync': 'Index drill drives sort scope',
 	'settings.toc_drill_sync.desc':
 		'The floating index scope drill also selects the sort scope; closing the index restores the default sort scope.',

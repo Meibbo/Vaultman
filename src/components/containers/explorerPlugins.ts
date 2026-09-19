@@ -105,6 +105,7 @@ export class PluginsExplorerPanel
 	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
+	private tooltipsOverride: boolean | undefined;
 	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	private createGroupHandler?: (urns: readonly string[]) => void;
@@ -364,6 +365,12 @@ export class PluginsExplorerPanel
 		this.rebuildNodes();
 	}
 
+	setTooltipsEnabled(enabled: boolean): void {
+		if (this.tooltipsOverride === enabled) return;
+		this.tooltipsOverride = enabled;
+		this._render();
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
@@ -613,6 +620,7 @@ export class PluginsExplorerPanel
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
@@ -686,7 +694,8 @@ export class PluginsExplorerPanel
 			rowTooltip: (node) => this.tooltip(node.meta as PluginMeta),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
-				if (node) setTooltip(row, this.tooltip(node.meta));
+				if (node && this.tooltipsOverride !== false)
+					setTooltip(row, this.tooltip(node.meta));
 			},
 			onContextMenu: (id, event) => {
 				if (isGroupHeader(id, this._groupIds)) {

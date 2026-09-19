@@ -126,6 +126,7 @@ const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'view_menu.engines.fixed_folders', labelKey: 'sort.level.fixed_folders', icon: 'lucide-folder-lock', section: 'engines', submenu: 'engines', requires: ['view_menu.engines.nested', 'view_menu.engines.parents_first'], availability: { tabs: ['files'] } },
 	{ id: 'view_menu.engines.sticky_rows', labelKey: 'sort.level.sticky_rows', icon: 'lucide-pin', section: 'engines', submenu: 'engines', requires: ['view_menu.engines.nested'], availability: HIERARCHICAL_AVAILABILITY },
 	{ id: 'view_menu.engines.compact_folders', labelKey: 'sort.level.compact_folders', icon: 'lucide-folder-minus', section: 'engines', submenu: 'engines', requires: ['view_menu.engines.nested'], availability: { tabs: ['files'] } },
+	{ id: 'view_menu.engines.tooltips', labelKey: 'sort.level.tooltips', icon: 'lucide-eye', section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 ];
 
 const GROUP_PRESETS = uniqueByKey(

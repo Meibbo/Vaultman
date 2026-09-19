@@ -396,6 +396,7 @@ export class FilesExplorerPanel extends Component {
 	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
+	private tooltipsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
@@ -1008,6 +1009,9 @@ export class FilesExplorerPanel extends Component {
 			if (config.indent !== undefined) {
 				this.setIndentEnabled(config.indent);
 			}
+			if (config.tooltips !== undefined) {
+				this.setTooltipsEnabled(config.tooltips);
+			}
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 			if (config.groupMemberships) {
@@ -1089,6 +1093,12 @@ export class FilesExplorerPanel extends Component {
 	setCompactFoldersEnabled(enabled: boolean): void {
 		if (this.compactFoldersOverride === enabled) return;
 		this.compactFoldersOverride = enabled;
+		this._render();
+	}
+
+	setTooltipsEnabled(enabled: boolean): void {
+		if (this.tooltipsOverride === enabled) return;
+		this.tooltipsOverride = enabled;
 		this._render();
 	}
 
@@ -2367,6 +2377,7 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2630,6 +2641,7 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -4783,7 +4795,8 @@ export class FilesExplorerPanel extends Component {
 		fields: readonly FileHoverInfoId[],
 	): void {
 		element.removeAttribute('title');
-		setTooltip(element, this._fileHoverText(file, fields));
+		if (this.tooltipsOverride !== false)
+			setTooltip(element, this._fileHoverText(file, fields));
 	}
 
 	private _handleFileHover(file: TFile, element: HTMLElement): void {
@@ -5382,6 +5395,7 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

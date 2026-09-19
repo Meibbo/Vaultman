@@ -366,6 +366,9 @@
 			// Sin default en Settings: el view_option nuevo nace `on` (geometria
 			// de hoy) y solo lo toca quien abra el submenu `engines` y lo apague.
 			indent: true,
+			// U130 polishing: los tooltips nacen visibles; el view_menu los
+			// apaga por scene.
+			tooltips: true,
 			// Spec 08 §3.2: la agrupacion es una seleccion de preset y `none` es el defecto.
 			groupPreset: { ...NO_GROUP_PRESET },
 			hiddenGroupIds: [],

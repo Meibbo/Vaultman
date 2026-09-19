@@ -1177,6 +1177,7 @@ export const es: Record<string, string> = {
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'sort.level.sticky_rows': 'Filas fijas',
 	'sort.level.compact_folders': 'Carpetas compactas',
+	'sort.level.tooltips': 'Ayuda emergente',
 	'settings.toc_drill_sync': 'El drill del índice define el scope del sort',
 	'settings.toc_drill_sync.desc':
 		'El scope drill del índice flotante también selecciona el scope del sort; cerrar el índice restaura el scope por defecto.',

@@ -45,6 +45,7 @@ const defaults: Required<SceneConfig> = {
 	toolbarNodeIcons: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto',
+	tooltips: true,
 	toolbarNodeOrder: [],
 	groupMemberships: {},
 };

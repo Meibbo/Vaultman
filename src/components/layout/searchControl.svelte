@@ -23,6 +23,7 @@
 		translate,
 		onInvoke,
 		onValueChange,
+		tooltipsEnabled = true,
 		icon,
 	}: {
 		value: string;
@@ -42,6 +43,8 @@
 		translate: (key: string) => string;
 		onInvoke?: (id: string) => void;
 		onValueChange: (value: string) => void;
+		/** U130 polishing: view_option `tooltips` per-instance. */
+		tooltipsEnabled?: boolean;
 		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 	} = $props();
 </script>
@@ -101,6 +104,7 @@
 					{icon}
 					{translate}
 					{onInvoke}
+					tooltipsEnabled={tooltipsEnabled}
 				/>
 			{/each}
 		</div>

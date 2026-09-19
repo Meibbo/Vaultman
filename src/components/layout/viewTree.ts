@@ -184,6 +184,12 @@ export interface TreeViewOptions {
 	 * keeps today's geometry for every row.
 	 */
 	indent?: boolean;
+	/**
+	 * U130 polishing: view_option `tooltips`, per_instance. `false` apaga
+	 * los tooltips nativos de filas y celdas. Ausente/`true` conserva los
+	 * de hoy.
+	 */
+	tooltipsEnabled?: boolean;
 	/** Height to reserve above the pinned rows when the layout overlays nav
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
@@ -993,6 +999,7 @@ export class UnifiedTreeView {
 	private applyRowTooltip(row: HTMLElement, text: string): void {
 		// Obsidian's native tooltip, not the browser `title` (which double-renders).
 		row.removeAttribute('title');
+		if (this._opts?.tooltipsEnabled === false) return;
 		setTooltip(row, text);
 	}
 
@@ -1001,6 +1008,10 @@ export class UnifiedTreeView {
 		cellId: string,
 		opts: TreeViewOptions,
 	): void {
+		if (opts.tooltipsEnabled === false) {
+			element.removeAttribute('title');
+			return;
+		}
 		if (opts.surface) {
 			applySharedCellTooltip(element, opts.surface, 'tree', cellId);
 		} else {

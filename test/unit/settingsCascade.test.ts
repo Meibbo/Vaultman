@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSceneConfig } from '../../src/logic/logicSettingsCascade';
+import {
+	diffSceneConfig,
+	resolveSceneConfig,
+} from '../../src/logic/logicSettingsCascade';
 import type { SceneConfig } from '../../src/types/typeInstance';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 
@@ -22,6 +25,7 @@ const defaults: Required<SceneConfig> = {
 	toolbarNodeIcons: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto',
+	tooltips: true,
 	toolbarNodeOrder: [],
 	groupMemberships: {},
 };
@@ -29,6 +33,15 @@ const defaults: Required<SceneConfig> = {
 describe('resolveSceneConfig', () => {
 	it('returns the defaults when every other layer is empty', () => {
 		expect(resolveSceneConfig({ defaults })).toEqual(defaults);
+	});
+
+	it('resolves the per-instance tooltips override and diffs it minimally', () => {
+		expect(
+			resolveSceneConfig({ defaults, scene: { tooltips: false } }).tooltips,
+		).toBe(false);
+		expect(
+			diffSceneConfig(defaults, { ...defaults, tooltips: false }),
+		).toEqual({ tooltips: false });
 	});
 
 	it('lets each layer override the one above it', () => {

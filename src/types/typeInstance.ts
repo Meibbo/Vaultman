@@ -29,6 +29,12 @@ export interface SceneConfig {
 	 * se conserva, solo deja de desplazarse por `--depth`.
 	 */
 	indent?: boolean;
+	/**
+	 * U130 polishing: view_option `tooltips`, per_instance. `false` apaga
+	 * los tooltips de todos los nodos y cells de la scene (toolbar, árbol
+	 * nativo y badges). Ausente/`true` conserva los de hoy.
+	 */
+	tooltips?: boolean;
 	/** Spec 08 §3.2: el group preset seleccionado, per_instance. `none` por defecto. */
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos (no borrados) en esta instancia. */

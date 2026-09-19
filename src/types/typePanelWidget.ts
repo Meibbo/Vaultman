@@ -75,6 +75,9 @@ export interface PanelWidgetExplorerProjectionConfig {
 	 * se conserva, solo deja de desplazarse por `--depth`.
 	 */
 	indent?: boolean;
+	/** U130 polishing: view_option `tooltips`, per_instance. `false` apaga
+	 * los tooltips de nodos y cells del explorer. */
+	tooltips?: boolean;
 	/** Spec 08 §3.2: group preset seleccionado, per_instance. */
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos en esta instancia. */
@@ -98,6 +101,8 @@ export interface PanelWidgetExplorerPort {
 	setStickyRowsEnabled?(enabled: boolean): void;
 	setCompactFoldersEnabled?(enabled: boolean): void;
 	setIndentEnabled?(enabled: boolean): void;
+	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
+	setTooltipsEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
 	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */
