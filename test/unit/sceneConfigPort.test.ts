@@ -22,6 +22,7 @@ const defaults = {
 	toolbarNodeIcons: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto',
+	toolbarNodeOrder: [],
 	groupMemberships: {},
 };
 

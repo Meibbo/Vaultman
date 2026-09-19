@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Menu, Notice, TFile } from 'obsidian';
-	import { onMount, tick, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
@@ -101,8 +101,11 @@
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
 	import {
+		dropIndexForPointer,
+		reorderLocalIds,
 		resolvePanelWidgetProjection,
 		resolveToolbarHiddenIds,
+		resolveToolbarNodeOrder,
 	} from '../../logic/logicPanelWidgetProjection';
 	import {
 		resolveCondensedPanelWidgetOverflow,
@@ -1026,6 +1029,11 @@
 			configByTab[activeTab]?.hiddenToolbarNodes,
 			providerId,
 		),
+		nodeOrder: resolveToolbarNodeOrder(
+			pvpuiConfig.nodeOrder,
+			configByTab[activeTab]?.toolbarNodeOrder,
+			providerId,
+		),
 	});
 	const panelWidgetProjection = $derived(
 		resolvePanelWidgetProjection({
@@ -1067,6 +1075,184 @@
 		panelWidgetProjection.nodes.findIndex(
 			(node) => node.id === panelWidgetNodeId(localId),
 		);
+	// U130 polishing: reorden por arrastre al estilo `Gv` de app.js (el
+	// ribbon nativo): mousedown + umbral 5px + ghost clonado con las clases
+	// de serie (`drag-reorder-ghost`, `mod-dragged-item`, `is-grabbing`,
+	// `drag-ghost-hidden`) + índice por posición del puntero + commit
+	// per-instance (`SceneConfig.toolbarNodeOrder`). Sin `draggable` HTML5
+	// (el nativo tampoco lo usa: `draggable=false` en el DOM vivo) y sin
+	// auto-scroll de bordes (v1: la barra cabe en el viewport). Solo ratón:
+	// el táctil conserva el scroll nativo. Delegado en el contenedor (los
+	// nodos no llevan handlers propios, igual que el oncontextmenu del
+	// wrapper); el campo de búsqueda no tiene node-id y queda fuera.
+	const PANEL_WIDGET_DRAG_THRESHOLD_PX = 5;
+	type PanelWidgetDragState = {
+		localId: string;
+		el: HTMLElement;
+		startX: number;
+		startY: number;
+		grabDX: number;
+		grabDY: number;
+		width: number;
+		height: number;
+		ghost: HTMLElement | null;
+		dropAnchor: HTMLElement | null;
+		lastX: number;
+		cleanup: (() => void) | null;
+	};
+	let panelWidgetDrag: PanelWidgetDragState | null = null;
+
+	function panelWidgetDragLocalId(element: HTMLElement | null): string | null {
+		const node = element?.closest?.('[data-panel-widget-node-id]');
+		const fullId = node?.getAttribute('data-panel-widget-node-id');
+		if (!fullId) return null;
+		const prefix = `${providerId}:`;
+		return fullId.startsWith(prefix) ? fullId.slice(prefix.length) : null;
+	}
+
+	function panelWidgetDragSiblings(): { el: HTMLElement; localId: string }[] {
+		if (!actionsEl) return [];
+		const out: { el: HTMLElement; localId: string }[] = [];
+		for (const el of actionsEl.querySelectorAll('[data-panel-widget-node-id]')) {
+			if (!(el instanceof HTMLElement)) continue;
+			const localId = panelWidgetDragLocalId(el);
+			if (localId === null) continue;
+			out.push({ el, localId });
+		}
+		// Orden visual (el DOM es fijo; lo visual lo da `order` de la proyección).
+		const rank = new Map(
+			panelWidgetProjection.nodes.map((node, index) => [node.id, index] as const),
+		);
+		out.sort(
+			(a, b) =>
+				(rank.get(`${providerId}:${a.localId}`) ?? Number.MAX_SAFE_INTEGER) -
+				(rank.get(`${providerId}:${b.localId}`) ?? Number.MAX_SAFE_INTEGER),
+		);
+		return out;
+	}
+
+	function clearPanelWidgetDropMark(): void {
+		const drag = panelWidgetDrag;
+		if (drag?.dropAnchor) {
+			drag.dropAnchor.style.boxShadow = '';
+			drag.dropAnchor = null;
+		}
+	}
+
+	function panelWidgetDropAnchorFromPoint(clientX: number): HTMLElement | null {
+		const drag = panelWidgetDrag;
+		if (!drag) return null;
+		const siblings = panelWidgetDragSiblings().filter((s) => s.el !== drag.el);
+		if (siblings.length === 0) return null;
+		const ends = siblings.map((s) => s.el.getBoundingClientRect().right);
+		const index = dropIndexForPointer(ends, clientX, drag.grabDX, drag.width);
+		return siblings[index]?.el ?? null;
+	}
+
+	function markPanelWidgetDrop(anchor: HTMLElement | null): void {
+		const drag = panelWidgetDrag;
+		if (!drag || anchor === drag.dropAnchor) return;
+		clearPanelWidgetDropMark();
+		drag.dropAnchor = anchor;
+		if (anchor) anchor.style.boxShadow = 'inset 2px 0 0 var(--text-accent)';
+	}
+
+	function onPanelWidgetBarPointerDown(event: PointerEvent): void {
+		if (event.pointerType !== 'mouse' || event.button !== 0) return;
+		const target = event.target as HTMLElement | null;
+		if (target?.closest?.('input, textarea, [contenteditable="true"]')) return;
+		const node = target?.closest?.('[data-panel-widget-node-id]');
+		if (!(node instanceof HTMLElement)) return;
+		const localId = panelWidgetDragLocalId(node);
+		if (localId === null) return;
+		if (panelWidgetDragSiblings().length < 2) return;
+		const rect = node.getBoundingClientRect();
+		const onMove = (move: PointerEvent): void => panelWidgetDragMove(move);
+		const onUp = (up: PointerEvent): void => endPanelWidgetDrag(up, true);
+		const onCancel = (): void => endPanelWidgetDrag(null, false);
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+		window.addEventListener('pointercancel', onCancel);
+		panelWidgetDrag = {
+			localId,
+			el: node,
+			startX: event.clientX,
+			startY: event.clientY,
+			grabDX: event.clientX - rect.left,
+			grabDY: event.clientY - rect.top,
+			width: rect.width,
+			height: rect.height,
+			ghost: null,
+			dropAnchor: null,
+			lastX: event.clientX,
+			cleanup: () => {
+				window.removeEventListener('pointermove', onMove);
+				window.removeEventListener('pointerup', onUp);
+				window.removeEventListener('pointercancel', onCancel);
+			},
+		};
+	}
+
+	function panelWidgetDragMove(event: PointerEvent): void {
+		const drag = panelWidgetDrag;
+		if (!drag) return;
+		drag.lastX = event.clientX;
+		if (!drag.ghost) {
+			const dx = event.clientX - drag.startX;
+			const dy = event.clientY - drag.startY;
+			if (
+				dx * dx + dy * dy <
+				PANEL_WIDGET_DRAG_THRESHOLD_PX * PANEL_WIDGET_DRAG_THRESHOLD_PX
+			)
+				return;
+			const ghost = document.createElement('div');
+			ghost.className = 'drag-reorder-ghost';
+			const clone = drag.el.cloneNode(true) as HTMLElement;
+			clone.removeAttribute('aria-label');
+			clone.removeAttribute('id');
+			clone.classList.add('mod-dragged-item');
+			clone.style.width = `${drag.width}px`;
+			clone.style.height = `${drag.height}px`;
+			ghost.appendChild(clone);
+			document.body.appendChild(ghost);
+			document.body.classList.add('is-grabbing');
+			document.body.style.userSelect = 'none';
+			drag.el.classList.add('drag-ghost-hidden');
+			drag.ghost = ghost;
+		}
+		event.preventDefault();
+		if (drag.ghost) {
+			drag.ghost.style.left = `${event.clientX - drag.grabDX}px`;
+			drag.ghost.style.top = `${event.clientY - drag.grabDY}px`;
+		}
+		markPanelWidgetDrop(panelWidgetDropAnchorFromPoint(event.clientX));
+	}
+
+	function endPanelWidgetDrag(event: PointerEvent | null, commit: boolean): void {
+		const drag = panelWidgetDrag;
+		if (!drag) return;
+		panelWidgetDrag = null;
+		drag.cleanup?.();
+		drag.ghost?.remove();
+		drag.el.classList.remove('drag-ghost-hidden');
+		document.body.classList.remove('is-grabbing');
+		document.body.style.userSelect = '';
+		clearPanelWidgetDropMark();
+		// Sin ghost fue un click: no tocar nada (el onclick del nodo sigue vivo).
+		if (!commit || !drag.ghost) return;
+		const anchor = panelWidgetDropAnchorFromPoint(drag.lastX);
+		const anchorLocalId = anchor ? panelWidgetDragLocalId(anchor) : null;
+		const prefix = `${providerId}:`;
+		const visibleLocalIds = panelWidgetProjection.nodes.map((node) =>
+			node.id.startsWith(prefix) ? node.id.slice(prefix.length) : node.id,
+		);
+		const stored = configByTab[activeTab]?.toolbarNodeOrder ?? [];
+		commitConfig(activeTab, {
+			toolbarNodeOrder: reorderLocalIds(visibleLocalIds, stored, drag.localId, anchorLocalId),
+		});
+	}
+
+	onDestroy(() => endPanelWidgetDrag(null, false));
 	const compactPanelWidgetTools = $derived(
 		toolbarOverflowStrategy === 'condensed' && forcedOverflowIds.length > 0,
 	);
@@ -3268,6 +3454,7 @@
 					class:vaultman-filters-actions--scroll={toolbarScroll}
 					class:vaultman-filters-actions--wrap={toolbarWrap}
 					bind:this={actionsEl}
+					onpointerdown={onPanelWidgetBarPointerDown}
 				>
 					{#if minimalStyle && tabOptions.length > 0 && toolbarNodeVisible('tabs')}
 						<div

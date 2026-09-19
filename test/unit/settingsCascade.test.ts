@@ -22,6 +22,7 @@ const defaults: Required<SceneConfig> = {
 	toolbarNodeIcons: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto',
+	toolbarNodeOrder: [],
 	groupMemberships: {},
 };
 

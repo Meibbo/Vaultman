@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	PANEL_WIDGET_HOST_ID,
+	dropIndexForPointer,
+	reorderLocalIds,
 	resolvePanelWidgetProjection,
+	resolveToolbarNodeOrder,
 } from '../../src/logic/logicPanelWidgetProjection';
 import type { PanelWidgetNode } from '../../src/types/typePanelWidget';
 
@@ -192,5 +195,45 @@ describe('Scene-owned Controller instance isolation and teardown', () => {
 
 		const controllerC = new ScenePanelWidgetController('scene-instance-C');
 		expect(controllerC.publish(latePubA)).toBeNull();
+	});
+});
+
+describe('U130 panelWidget_bar drag reorder (Gv-faithful)', () => {
+	it('resolveToolbarNodeOrder pone la scene primero y conserva el resto global', () => {
+		expect(resolveToolbarNodeOrder(['p:a', 'p:b'], ['b', 'c'], 'p')).toEqual([
+			'p:b',
+			'p:c',
+			'p:a',
+		]);
+		expect(resolveToolbarNodeOrder(['p:a'], [], 'p')).toEqual(['p:a']);
+		expect(resolveToolbarNodeOrder(undefined, undefined, 'p')).toEqual([]);
+	});
+
+	it('dropIndexForPointer usa el punto medio del fantasma como Gv', () => {
+		// Hermanos de 100px: bordes en 100/200/300; fantasma de 100 agarrado a 30.
+		expect(dropIndexForPointer([100, 200, 300], 0, 30, 100)).toBe(0);
+		expect(dropIndexForPointer([100, 200, 300], 120, 30, 100)).toBe(1);
+		expect(dropIndexForPointer([100, 200, 300], 500, 30, 100)).toBe(3);
+		expect(dropIndexForPointer([], 500, 30, 100)).toBe(0);
+	});
+
+	it('reorderLocalIds mueve delante del ancla y conserva guardados invisibles', () => {
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'c', 'a')).toEqual([
+			'c',
+			'a',
+			'b',
+		]);
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'a', null)).toEqual([
+			'b',
+			'c',
+			'a',
+		]);
+		expect(reorderLocalIds(['a', 'b'], ['z'], 'b', 'a')).toEqual([
+			'b',
+			'a',
+			'z',
+		]);
+		// Ancla desconocida = al final, sin duplicar.
+		expect(reorderLocalIds(['a', 'b'], [], 'a', 'zzz')).toEqual(['b', 'a']);
 	});
 });

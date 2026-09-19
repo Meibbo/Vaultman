@@ -26,6 +26,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			toolbarNodeIcons: {},
 			toolbarCommandActions: [],
 			createActionsPlacement: 'auto',
+			toolbarNodeOrder: [],
 			groupMemberships: {},
 		}),
 		propose: async (scene, next) => {

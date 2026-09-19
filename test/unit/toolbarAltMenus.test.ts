@@ -19,6 +19,7 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(typeInstanceSource).toContain('hiddenToolbarNodes?: string[]');
 		expect(typeInstanceSource).toContain('toolbarCommandActions?: string[]');
 		expect(typeInstanceSource).toContain("createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar'");
+		expect(typeInstanceSource).toContain('toolbarNodeOrder?: string[]');
 	});
 
 	it('mezcla ocultos globales y per-instance antes de proyectar', () => {
@@ -136,5 +137,12 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(navbarSource).toContain('effectiveCreateActionsPlacement');
 		expect(navbarSource).toContain("translate('toolbar.alt.nest_create')");
 		expect(navbarSource).toContain('createActionsPlacement');
+		expect(navbarSource).toContain('toolbarNodeOrder');
+		expect(navbarSource).toContain('resolveToolbarNodeOrder');
+		expect(navbarSource).toContain('dropIndexForPointer');
+		expect(navbarSource).toContain('reorderLocalIds');
+		expect(navbarSource).toContain('onPanelWidgetBarPointerDown');
+		expect(navbarSource).toContain('drag-reorder-ghost');
+		expect(navbarSource).toContain('mod-dragged-item');
 	});
 });

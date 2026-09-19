@@ -75,6 +75,14 @@ export interface SceneConfig {
 	 */
 	createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
 	/**
+	 * U130 polishing: orden de los nodos del panelWidget_bar en ESTA scene
+	 * de ESTA instancia (ids LOCALES, en orden visual). Se escribe por
+	 * arrastre al estilo del ribbon nativo (mousedown + umbral + ghost +
+	 * persist, ver `Gv` en app.js) y se suma al `nodeOrder` global de pvpui
+	 * antes de la proyección. Vacío = orden de serie.
+	 */
+	toolbarNodeOrder?: string[];
+	/**
 	 * U130-09 (dev 2026-09-15): custom groups de ESTA scene de ESTA instancia.
 	 * groupId -> URNs de sus miembros. Solo los custom: los presets son
 	 * predicado en memoria. Las URNs ya llevan `providerId:kind:`
