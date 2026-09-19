@@ -583,6 +583,8 @@ export const en: Record<string, string> = {
 	'toolbar.alt.reveal_now': 'Reveal now',
 	'toolbar.alt.always_reveal': 'Always reveal here',
 	'toolbar.alt.change_icon': 'Change icon',
+	'toolbar.alt.add_command': 'Add command node here',
+	'toolbar.alt.remove_from_instance': 'Remove from this instance',
 	'viewmenu.layouts': 'Layout',
 	'viewmenu.save_layout': 'Save layout',
 	'viewmenu.saved_config_notice': 'View composition saved',

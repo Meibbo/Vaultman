@@ -17,6 +17,7 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(typeInstanceSource).toContain("sceneLabelMode?: 'auto' | 'on' | 'off'");
 		expect(typeInstanceSource).toContain("autoRevealMode?: 'auto' | 'on' | 'off'");
 		expect(typeInstanceSource).toContain('hiddenToolbarNodes?: string[]');
+		expect(typeInstanceSource).toContain('toolbarCommandActions?: string[]');
 	});
 
 	it('mezcla ocultos globales y per-instance antes de proyectar', () => {
@@ -113,10 +114,22 @@ describe('U130 toolbar alt-cmenus', () => {
 			'toolbar.alt.reveal_now',
 			'toolbar.alt.always_reveal',
 			'toolbar.alt.change_icon',
+			'toolbar.alt.add_command',
+			'toolbar.alt.remove_from_instance',
 		]) {
 			expect(en[key], `en: ${key}`).toBeTruthy();
 			expect(es[key], `es: ${key}`).toBeTruthy();
 			expect(es[key], `es!=en: ${key}`).not.toBe(en[key]);
 		}
+	});
+
+	it('el alt-cmenu añade comandos per-instance y los nodos command:* se quitan por instancia', () => {
+		expect(navbarSource).toContain('effectiveCommandActions');
+		expect(navbarSource).toContain('openCommandPicker(');
+		expect(navbarSource).toContain("translate('toolbar.alt.add_command')");
+		expect(navbarSource).toContain("translate('toolbar.alt.remove_from_instance')");
+		expect(navbarSource).toContain('toolbarCommandActions');
+		expect(navbarSource).toContain('addCommandId(');
+		expect(navbarSource).toContain('removeCommandId(');
 	});
 });

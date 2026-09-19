@@ -20,6 +20,7 @@ const defaults: Required<SceneConfig> = {
 	autoRevealMode: 'auto',
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
+	toolbarCommandActions: [],
 	groupMemberships: {},
 };
 

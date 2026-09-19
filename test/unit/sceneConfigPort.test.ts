@@ -20,6 +20,7 @@ const defaults = {
 	autoRevealMode: 'auto' as const,
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
+	toolbarCommandActions: [],
 	groupMemberships: {},
 };
 

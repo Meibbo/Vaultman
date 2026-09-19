@@ -117,6 +117,13 @@
 		type SceneFacets,
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
+	import {
+		addCommandId,
+		removeCommandId,
+		resolveCommandActions,
+	} from '../../logic/logicCommandActions';
+	import { listObsidianCommands } from '../../utils/obsidianCommands';
+	import { openCommandPicker } from '../../modals/modalCommandPicker';
 	import type { GroupPreset } from '../../types/typeGroupPreset';
 	import type {
 		NavbarPanelWidgetState,
@@ -863,6 +870,19 @@
 	// "Change icon"). Ausencia de clave = icono de serie.
 	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
 		configByTab[activeTab]?.toolbarNodeIcons?.[localId] ?? fallback;
+	// U130 polishing: nodos de comando per-instance de esta scene (ids en
+	// `SceneConfig.toolbarCommandActions`), resueltos contra el registro vivo
+	// y sumados a los globales del prop `commandActions` (el global gana en
+	// caso de duplicado). Reactivo a `configByTab` para respuesta inmediata.
+	const effectiveCommandActions = $derived.by(() => {
+		const seen = new Set(commandActions.map((command) => command.id));
+		const instanceIds = configByTab[activeTab]?.toolbarCommandActions ?? [];
+		const extra = resolveCommandActions(
+			app ? listObsidianCommands(app) : [],
+			instanceIds,
+		).filter((command) => !seen.has(command.id));
+		return [...commandActions, ...extra];
+	});
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
 		const nodes: PanelWidgetNode[] = [];
 		const append = (
@@ -971,7 +991,7 @@
 				41,
 			);
 		}
-		for (const command of commandActions) {
+		for (const command of effectiveCommandActions) {
 			append(
 				`command:${command.id}`,
 				command.label,
@@ -1999,6 +2019,22 @@
 			menu.addSeparator();
 		}
 		addToolbarNodeVisibilityItem(menu, localId);
+		if (localId.startsWith('command:')) {
+			const commandId = localId.slice('command:'.length);
+			const instanceIds = configByTab[activeTab]?.toolbarCommandActions ?? [];
+			if (instanceIds.includes(commandId)) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('toolbar.alt.remove_from_instance'))
+						.setIcon('lucide-trash-2')
+						.onClick(() => {
+							commitConfig(activeTab, {
+								toolbarCommandActions: removeCommandId(instanceIds, commandId),
+							});
+						});
+				});
+			}
+		}
 		const nodeDef = panelWidgetNodes.find(
 			(node) => node.id === panelWidgetNodeId(localId),
 		);
@@ -2041,6 +2077,29 @@
 			});
 			menu.addSeparator();
 		}
+		// U130 polishing: añadir nodos con comandos bindeados directamente
+		// per-instance (scene). Los `command:*` globales se gestionan en
+		// Settings; aquí solo entra la lista de esta scene.
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.alt.add_command'))
+				.setIcon('lucide-plus')
+				.onClick(() => {
+					if (!app) return;
+					openCommandPicker({
+						app,
+						title: translate('toolbar.alt.add_command'),
+						onPick: async (id) => {
+							const current =
+								configByTab[activeTab]?.toolbarCommandActions ?? [];
+							commitConfig(activeTab, {
+								toolbarCommandActions: addCommandId(current, id),
+							});
+						},
+					});
+				});
+		});
+		menu.addSeparator();
 		// Solo nodos provided: los `command:*` los gestiona el usuario donde
 		// los agregó, no desde aquí.
 		for (const node of panelWidgetNodes) {

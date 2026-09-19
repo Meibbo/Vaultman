@@ -60,6 +60,14 @@ export interface SceneConfig {
 	 */
 	toolbarNodeIcons?: Record<string, string>;
 	/**
+	 * U130 polishing: ids de comandos Obsidian proyectados como nodos de
+	 * acción en ESTA scene de ESTA instancia. Se suman a los globales de
+	 * `plugin.settings.toolbarCommandActions` antes de resolver; la ausencia
+	 * (undefined) = solo globales. Array con semántica de sustitución como
+	 * `hiddenToolbarNodes`: la capa que lo declara decide la lista entera.
+	 */
+	toolbarCommandActions?: string[];
+	/**
 	 * U130-09 (dev 2026-09-15): custom groups de ESTA scene de ESTA instancia.
 	 * groupId -> URNs de sus miembros. Solo los custom: los presets son
 	 * predicado en memoria. Las URNs ya llevan `providerId:kind:`
