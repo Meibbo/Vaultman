@@ -20,6 +20,22 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-7"></a>
+
+## 1.3.0-beta.7 — Groups that reveal, menus you own
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.7 makes large vaults easier to group and command, from reveal-mode note groups to toolbar menus you configure yourself.
+
+- **Groups ride the scene:** Custom groups and presets now project from the scene itself, so creating or deleting a group acts on what you see, with headers that open on first sight and bubble counts like folders.
+- **Menus you own:** Global menu layouts are configurable in settings, with a catalog of toolbar menus and per-instance right-click alternatives that stay visible where they apply.
+- **Commands go further:** Scene engines and go-to-tabs are publishable commands, and toolbar menu actions register through the same pipeline, so search and navigation stay consistent.
+- **Selections that keep up:** Checkbox changes repaint immediately across scenes, selected folders reach queued operations, and long-pressing a parent selects the whole branch.
+- **Calmer chrome:** Edge hit-zones wake a collapsed sidebar on hover, the floating rail respects the toolbar, and revealing a tag flashes its pill instead of the whole row.
+
+[Full changelog](../CHANGELOG.md#130-beta7---2026-09-19)
+
 <a id="v1-3-0-beta-6"></a>
 
 ## 1.3.0-beta.6 — Native-feeling properties and calmer trees
