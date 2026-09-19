@@ -954,6 +954,9 @@ export const es: Record<string, string> = {
 	'settings.open_mode.left_sidebar': 'Barra lateral izquierda',
 	'settings.open_mode.right_sidebar': 'Barra lateral derecha',
 	'settings.open_mode.main': 'Vista principal',
+	'ribbon.open.left_sidebar': 'Abrir en la barra izquierda',
+	'ribbon.open.main': 'Abrir en la vista principal',
+	'ribbon.open.right_sidebar': 'Abrir en la barra derecha',
 	'settings.open_mode.new_instance': 'Nueva instancia',
 	'settings.open_mode.both': 'Nueva instancia',
 

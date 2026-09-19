@@ -22,7 +22,7 @@
 //--------------------------------------------------------------------\\
 
 //...----------—————————————(   IMPORTS   )————————————------------...\\
-import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import type { ExplorerViewMode } from './types/typeUI';
 import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
@@ -344,8 +344,15 @@ export class VaultmanPlugin extends Plugin {
 		this.statusBarEl = this.addStatusBarItem();
 		this.statusBarEl.addClass('vaultman-native-statusbar');
 
-		this.addRibbonIcon('lucide-vault', translate('plugin.open'), () => {
-			void this.activateView();
+		const ribbonIconEl = this.addRibbonIcon(
+			'lucide-vault',
+			translate('plugin.open'),
+			() => {
+				void this.activateView();
+			},
+		);
+		this.registerDomEvent(ribbonIconEl, 'contextmenu', (event) => {
+			this.openRibbonLocationMenu(event);
 		});
 
 		this.registerView(
@@ -975,10 +982,15 @@ export class VaultmanPlugin extends Plugin {
 		return anchors;
 	}
 
-	/** Open a frame and reveal it. Never closes one. */
-	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
+	/**
+	 * Open a frame and reveal it. Never closes one. `explicitMode` bypasses
+	 * the setting (ribbon alt-cmenu): the new instance lands where asked.
+	 */
+	private async openVaultmanView(
+		explicitMode?: 'left_sidebar' | 'right_sidebar' | 'main',
+	): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
-		const mode = normalizeOpenMode(this.settings.openMode);
+		const mode = normalizeOpenMode(explicitMode ?? this.settings.openMode);
 		let leaf: WorkspaceLeaf | null;
 		if (mode === 'left_sidebar') {
 			leaf = workspace.getLeftLeaf(false);
@@ -991,6 +1003,42 @@ export class VaultmanPlugin extends Plugin {
 		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
 		void workspace.revealLeaf(leaf);
 		return leaf;
+	}
+
+	/**
+	 * U130 polishing: the `Open Vaultman` ribbon node gets its own
+	 * alt-cmenu (right-click like the toolbar): location options for where
+	 * the NEW instance opens. Click behavior is untouched.
+	 */
+	private openRibbonLocationMenu(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		const menu = new Menu();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.left_sidebar'))
+				.setIcon('lucide-panel-left')
+				.onClick(() => {
+					void this.openVaultmanView('left_sidebar');
+				});
+		});
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.main'))
+				.setIcon('lucide-app-window')
+				.onClick(() => {
+					void this.openVaultmanView('main');
+				});
+		});
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.right_sidebar'))
+				.setIcon('lucide-panel-right')
+				.onClick(() => {
+					void this.openVaultmanView('right_sidebar');
+				});
+		});
+		menu.showAtMouseEvent(event);
 	}
 
 	/**
