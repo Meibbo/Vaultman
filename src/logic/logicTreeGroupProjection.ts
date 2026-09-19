@@ -458,12 +458,17 @@ export function projectGroupedTree<TMeta>(
 			input.memberKeyOf ??
 			((node: TreeNode<TMeta>) => {
 				const meta = node.meta as { propName?: string; isValueNode?: boolean; rawValue?: unknown; tagPath?: string } | null;
-				if (meta) {
-					if ('propName' in meta && meta.propName !== undefined) {
-						return String(
-							meta.isValueNode ? (meta.rawValue ?? node.label) : meta.propName,
-						);
+			if (meta) {
+				if ('propName' in meta && meta.propName !== undefined) {
+					if (meta.isValueNode) {
+						const raw = meta.rawValue ?? node.label;
+						if (typeof raw === 'string') return raw;
+						if (typeof raw === 'number' || typeof raw === 'boolean')
+							return String(raw);
+						return node.label ?? node.id;
 					}
+					return meta.propName;
+				}
 					if ('tagPath' in meta && meta.tagPath !== undefined) {
 						const p = String(meta.tagPath ?? node.label);
 						return p.startsWith('#') ? p.slice(1) : p;

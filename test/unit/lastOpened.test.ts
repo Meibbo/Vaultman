@@ -1,4 +1,4 @@
-import { TFile, type TFolder, type Vault } from 'obsidian';
+import { TFile, type App, type TFolder, type Vault } from 'obsidian';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -9,6 +9,7 @@ import {
 	withDeletedPath,
 	withFileOpened,
 	withRenamedPath,
+	type LastOpenedRecord,
 } from '../../src/logic/logicLastOpened';
 import {
 	DEFAULT_EXPLORER_SORT_DIR,
@@ -48,7 +49,7 @@ function makeFile(path: string): TFile {
 		path,
 		stat: { ctime: 0, mtime: 0, size: 0 },
 		vault,
-	}) as TFile;
+	});
 }
 
 /** Fake vault adapter that resolves read on the next microtask. */
@@ -76,7 +77,7 @@ function makeFakeAdapter(
 }
 
 /** Create a minimal App stub with a fake adapter. */
-function makeApp(adapter: ReturnType<typeof makeFakeAdapter>, files: string[] = []): any {
+function makeApp(adapter: ReturnType<typeof makeFakeAdapter>, files: string[] = []): App {
 	return {
 		vault: {
 			configDir: '/test-vault/.obsidian',
@@ -84,10 +85,10 @@ function makeApp(adapter: ReturnType<typeof makeFakeAdapter>, files: string[] = 
 			getFiles: () => files.map((p) => ({ path: p })),
 		},
 		workspace: {
-			on: vi.fn((_event, cb) => ({ off: () => {}, then: cb })),
+			on: vi.fn((_event: string, cb: () => void) => ({ off: () => {}, then: cb })),
 		},
 		manifest: { id: 'test-plugin' },
-	};
+	} as unknown as App;
 }
 
 describe('BT5-013 last opened record', () => {
@@ -251,7 +252,7 @@ describe('BT5-013 service lifecycle and notifications (U130 B-a05)', () => {
 		const app = makeApp(adapter, ['a.md', 'b.md']);
 		const svc = new LastOpenedService(app, 'test-plugin');
 
-		const changes: any[] = [];
+		const changes: LastOpenedRecord[] = [];
 		const unsubscribe = svc.onChange((record) => changes.push(record));
 
 		svc.onload();
@@ -269,7 +270,7 @@ describe('BT5-013 service lifecycle and notifications (U130 B-a05)', () => {
 		const app = makeApp(adapter, ['new.md']);
 		const svc = new LastOpenedService(app, 'test-plugin');
 
-		const changes: any[] = [];
+		const changes: LastOpenedRecord[] = [];
 		svc.onChange((record) => changes.push(record));
 
 		svc.onload();
@@ -291,7 +292,7 @@ describe('BT5-013 service lifecycle and notifications (U130 B-a05)', () => {
 		const app = makeApp(adapter, ['old.md', 'other.md', 'renamed.md']);
 		const svc = new LastOpenedService(app, 'test-plugin');
 
-		const changes: any[] = [];
+		const changes: LastOpenedRecord[] = [];
 		svc.onChange((record) => changes.push(record));
 
 		svc.onload();
@@ -312,7 +313,7 @@ describe('BT5-013 explorer re-renders when store arrives (U130 B-a05 criterion 2
 		const app = makeApp(adapter, ['a.md']);
 		const svc = new LastOpenedService(app, 'test-plugin');
 
-		const snapshots: any[] = [];
+		const snapshots: LastOpenedRecord[] = [];
 		svc.onChange((record) => snapshots.push(record));
 
 		// Before load: no notification yet
@@ -339,11 +340,12 @@ describe('BT5-013 robust flush on unload and mobile (U130 B-a05 criterion 3)', (
 		const file = makeFile('test.md');
 		svc.handleFileOpen(file, 500);
 
-		// onunload should await the flush
-		await svc.onunload();
+		// onunload kicks the flush (void per Component); await flush explicitly
+		svc.onunload();
+		await svc.flush();
 
 		expect(adapter.write).toHaveBeenCalled();
-		const written = JSON.parse(adapter.stored);
+		const written: unknown = JSON.parse(adapter.stored);
 		expect(written).toEqual({ 'test.md': 500 });
 	});
 
@@ -410,11 +412,11 @@ describe('BT5-013 roundtrip: N opens -> flush -> new service -> loadStore -> N o
 
 		// Explicit flush (simulates quit/visibilitychange)
 		await svc1.flush();
-		await svc1.onunload();
+		svc1.onunload();
 
 		// Second service instance with same adapter (simulates restart)
 		const svc2 = new LastOpenedService(app, 'test-plugin');
-		const restored: any[] = [];
+		const restored: LastOpenedRecord[] = [];
 		svc2.onChange((r) => restored.push(r));
 
 		svc2.onload();

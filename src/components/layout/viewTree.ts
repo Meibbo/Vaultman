@@ -1229,8 +1229,10 @@ export class UnifiedTreeView {
 		// formula unconditionally, at any depth, so its caret still marks the
 		// level it actually sits at.
 		if (opts.indent === false && !showCaret) {
-			row.style.setProperty('--vaultman-tree-row-padding-start', 'var(--size-4-1)');
-			row.style.setProperty('--vaultman-tree-indent-unit', '0px');
+			row.setCssProps({
+				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
+				'--vaultman-tree-indent-unit': '0px',
+			});
 		} else {
 			row.style.removeProperty('--vaultman-tree-row-padding-start');
 			row.style.removeProperty('--vaultman-tree-indent-unit');

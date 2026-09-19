@@ -52,10 +52,10 @@ export class LastOpenedService extends Component {
 		this._setupMobileFlushListeners();
 	}
 
-	onunload(): Promise<void> {
+	onunload(): void {
 		this._cancelFlush();
 		// Await the pending write so Android doesn't cut it off.
-		return this.flush();
+		void this.flush();
 	}
 
 	/** Subscribe to store changes. Returns an unsubscribe function. */

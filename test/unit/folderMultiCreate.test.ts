@@ -37,7 +37,7 @@ function folderNode(path: string): TreeNode<FileMeta> {
 			isFolder: true,
 			folderPath: path,
 		},
-	} as TreeNode<FileMeta>;
+	};
 }
 
 function fileNode(path: string): TreeNode<FileMeta> {
@@ -50,7 +50,7 @@ function fileNode(path: string): TreeNode<FileMeta> {
 			isFolder: false,
 			folderPath: path.split('/').slice(0, -1).join('/'),
 		},
-	} as TreeNode<FileMeta>;
+	};
 }
 
 type MultiCreateHarness = {
@@ -155,7 +155,7 @@ function folderCtx(
 ): MenuCtx {
 	return {
 		nodeType: 'folder',
-		node: node as unknown as MenuCtx['node'],
+		node,
 		surface: 'panel',
 		selectedIds: new Set(selectedIds),
 		orderedIds,

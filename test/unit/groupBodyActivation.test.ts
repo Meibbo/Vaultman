@@ -230,10 +230,9 @@ class TinyElement {
 }
 
 vi.mock('obsidian', async (importOriginal) => {
-	const actual =
-		(await importOriginal()) as Record<string, unknown>;
+	const actual: Record<string, unknown> = await importOriginal();
 	return {
-		...(actual as object),
+		...actual,
 		setIcon: (el: TinyElement, icon: string) => {
 			el.createEl('svg', { cls: `svg-icon ${icon}` });
 		},

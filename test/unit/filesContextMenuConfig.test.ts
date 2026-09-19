@@ -19,6 +19,7 @@ import {
 import { TOOLBAR_MENU_CANONICAL_ORDER } from '../../src/logic/logicToolbarMenuCatalog';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import contextMenuSource from '../../src/services/serviceContextMenu.ts?raw';
+import type { ContextMenuPluginCtx } from '../../src/services/serviceContextMenu';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import enSource from '../../src/i18n/en.ts?raw';
 import esSource from '../../src/i18n/es.ts?raw';
@@ -383,7 +384,7 @@ describe('BT5-018 Files context menu configuration', () => {
 		const svc = new mod.ContextMenuService({
 			app: fakeApp,
 			settings: DEFAULT_SETTINGS,
-		} as unknown as any);
+		} as unknown as ContextMenuPluginCtx);
 
 		const catalog = svc.panelActionCatalog('files');
 		const nativeIds = catalog.filter((e) => e.native).map((e) => e.id);
@@ -430,7 +431,7 @@ describe('BT5-018 Files context menu configuration', () => {
 		const svc = new mod.ContextMenuService({
 			app: fakeApp,
 			settings: DEFAULT_SETTINGS,
-		} as unknown as any);
+		} as unknown as ContextMenuPluginCtx);
 
 		const catalog = svc.panelActionCatalog('files');
 		const nativeLabels = catalog

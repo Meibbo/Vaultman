@@ -50,7 +50,7 @@ describe('A07b-2 creating a group in the plugins explorer', () => {
 		// Alpha vive en DOS grupos: sus filas proyectadas son ocurrencias
 		// con sufijo (`id@grupo`), que es lo que la vista entrega como
 		// seleccion al crear el siguiente grupo.
-		const prior = { g0: [urnOf(nodes[0]!)], g0b: [urnOf(nodes[0]!)] };
+		const prior = { g0: [urnOf(nodes[0])], g0b: [urnOf(nodes[0])] };
 		const groups = resolveCustomGroups(prior);
 		const groupIds = new Set(groups.map((group) => group.id));
 		const projected = projectGroupedTree<AddonMeta>({
@@ -69,7 +69,7 @@ describe('A07b-2 creating a group in the plugins explorer', () => {
 		// La fila proyectada del miembro de g0 lleva el sufijo de ocurrencia.
 		const memberRow = projected
 			.flatMap((row) => [row, ...(row.children ?? [])])
-			.find((row) => (row.id.split('@')[0] ?? row.id) === nodes[0]!.id);
+			.find((row) => (row.id.split('@')[0] ?? row.id) === nodes[0].id);
 		expect(memberRow).toBeDefined();
 		expect(memberRow!.id).toContain('@');
 
@@ -77,7 +77,7 @@ describe('A07b-2 creating a group in the plugins explorer', () => {
 		// igual que `explorerPlugins._groupCreationMenuCtx` tras A07b-2 (con
 		// el arbol sin proyectar la ocurrencia `id@grupo` se perdia en
 		// silencio y el grupo nacia sin ese miembro).
-		const selected = new Set([memberRow!.id, nodes[2]!.id]);
+		const selected = new Set([memberRow!.id, nodes[2].id]);
 		const urns = collectSelectedMembershipUrns(
 			projected,
 			selected,
@@ -85,14 +85,14 @@ describe('A07b-2 creating a group in the plugins explorer', () => {
 			groupIds,
 		);
 		expect(urns).toHaveLength(2);
-		expect(urns).toContain(urnOf(nodes[0]!));
-		expect(urns).toContain(urnOf(nodes[2]!));
+		expect(urns).toContain(urnOf(nodes[0]));
+		expect(urns).toContain(urnOf(nodes[2]));
 	});
 
 	it('la pertenencia nueva proyecta una cabecera con sus miembros', () => {
 		const nodes = [pluginNode('Alpha'), pluginNode('Beta'), pluginNode('Gamma')];
 		const memberships = {
-			g1: [urnOf(nodes[0]!), urnOf(nodes[1]!)],
+			g1: [urnOf(nodes[0]), urnOf(nodes[1])],
 		};
 		const groups = resolveCustomGroups(memberships);
 		const projected = projectGroupedTree<AddonMeta>({
@@ -118,7 +118,7 @@ describe('A07b-2 creating a group in the plugins explorer', () => {
 
 	it('A07b-3 la cabecera burbujea el total de miembros (badges/bubbling)', () => {
 		const nodes = [pluginNode('Alpha'), pluginNode('Beta')];
-		const memberships = { g1: [urnOf(nodes[0]!), urnOf(nodes[1]!)] };
+		const memberships = { g1: [urnOf(nodes[0]), urnOf(nodes[1])] };
 		const groups = resolveCustomGroups(memberships);
 		const totals = bubbleMemberCountsToGroups({ groups, memberships });
 		expect(totals.get('g1')).toBe(2);

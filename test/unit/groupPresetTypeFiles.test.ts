@@ -29,7 +29,7 @@ function extRuns(nodes: readonly FileLike[]): string[][] {
 	for (const node of sorted) {
 		const key = sceneExtKey(node);
 		if (lastKey !== null && compareExplorerText(lastKey, key) === 0) {
-			runs[runs.length - 1]!.push(node.label);
+			runs[runs.length - 1].push(node.label);
 		} else {
 			runs.push([node.label]);
 			lastKey = key;

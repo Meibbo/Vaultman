@@ -556,16 +556,16 @@ export class PropsExplorerPanel extends Component {
 			run: (ctx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const peers = this._selectionPeers(ctx);
-				for (const node of peers) {
-					if (node.meta.isValueNode) {
-						this._setCheckboxValue(node.meta.propName, node.meta.rawValue ?? '', true);
-					}
+			for (const node of peers) {
+				if (node.meta.isValueNode) {
+					void this._setCheckboxValue(node.meta.propName, node.meta.rawValue ?? '', true);
 				}
-			},
-		});
+			}
+		},
+	});
 
-		svc.registerAction({
-			id: 'value.checkbox-unchecked',
+	svc.registerAction({
+		id: 'value.checkbox-unchecked',
 			nodeTypes: ['value'],
 			surfaces: ['panel'],
 			label: 'Mark unchecked',
@@ -584,15 +584,15 @@ export class PropsExplorerPanel extends Component {
 			run: (ctx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const peers = this._selectionPeers(ctx);
-				for (const node of peers) {
-					if (node.meta.isValueNode) {
-						this._setCheckboxValue(
-							node.meta.propName,
-							node.meta.rawValue ?? '',
-							false,
-						);
-					}
+			for (const node of peers) {
+				if (node.meta.isValueNode) {
+					void this._setCheckboxValue(
+						node.meta.propName,
+						node.meta.rawValue ?? '',
+						false,
+					);
 				}
+			}
 			},
 		});
 

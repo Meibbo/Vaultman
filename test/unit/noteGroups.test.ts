@@ -75,7 +75,7 @@ function createTestApp(files: { path: string; frontmatter?: Record<string, unkno
 	return { app, metaMap };
 }
 
-const createNode = (id: string, label: string, meta?: any): TreeNode<any> => ({
+const createNode = (id: string, label: string, meta?: unknown): TreeNode<unknown> => ({
 	id,
 	label,
 	depth: 0,
@@ -475,7 +475,7 @@ describe('U130-09 Note Groups: Custom-vs-note target exclusivity', () => {
 			stickyRows: true,
 			compactFolders: false,
 			indent: true,
-		} as any);
+		} as unknown as Parameters<typeof captureSavedViewConfig>[0]);
 
 		// Preset activation is captured
 		expect(saved.groupPreset).toEqual({ kind: 'note', direction: 'asc' });

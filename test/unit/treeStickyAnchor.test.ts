@@ -355,7 +355,6 @@ describe('A14: collapsing a pinned row parks it under the sticky stack', () => {
 		const rowHeight = 28;
 		const viewportHeight = 400;
 
-		const sweepStart = performance.now();
 		let calls = 0;
 		for (let s = 1; s < rows.length * rowHeight; s += rowHeight) {
 			stickyTreeRows(rows, {
@@ -367,7 +366,6 @@ describe('A14: collapsing a pinned row parks it under the sticky stack', () => {
 			});
 			calls += 1;
 		}
-		const sweepMs = performance.now() - sweepStart;
 
 		const container = new TinyElement('div');
 		container.clientHeight = viewportHeight;
@@ -385,11 +383,6 @@ describe('A14: collapsing a pinned row parks it under the sticky stack', () => {
 			.filter((entry) => entry.label === 'tree.window')
 			.at(-1);
 
-		// MEDICION: real numbers, printed for the lane report.
-		console.log(
-			`[u130-b] rows=${rows.length} stickyTreeRows x${calls}: ${sweepMs.toFixed(1)}ms total, ${((sweepMs / calls) * 1000).toFixed(1)}us/call; ` +
-				`view render ${renderMs.toFixed(1)}ms; tree.window ${windowEntry?.ms.toFixed(2) ?? 'n/a'}ms`,
-		);
 		expect(calls).toBeGreaterThan(100);
 		expect(windowEntry?.ms ?? 0).toBeLessThan(3000);
 		expect(renderMs).toBeLessThan(5000);

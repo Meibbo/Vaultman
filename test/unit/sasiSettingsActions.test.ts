@@ -56,7 +56,7 @@ describe('U130 SASI settings action indexing', () => {
 			app: mockApp,
 			manifest: { id: 'vaultman' },
 			openSettings() {
-				const setting = (this.app as any).setting;
+				const setting = this.app.setting;
 				if (!setting?.open || !setting.openTabById) return false;
 				setting.open();
 				setting.openTabById(this.manifest.id);

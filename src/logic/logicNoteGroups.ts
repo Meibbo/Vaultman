@@ -537,7 +537,9 @@ export function updateNoteGroupMembersOnRename(
 		const existing = fm[newKey];
 		delete fm[oldKey];
 		if (Array.isArray(existing) && Array.isArray(value)) {
-			fm[newKey] = Array.from(new Set([...existing, ...value]));
+			const existingList: unknown[] = existing;
+			const valueList: unknown[] = value;
+			fm[newKey] = Array.from(new Set([...existingList, ...valueList]));
 		} else if (Array.isArray(existing) && !Array.isArray(value)) {
 			// Preserve preexisting members; do not overwrite an array with a collision value.
 			// Re-read the merged value if the renamed value is a list-like collision edge.

@@ -472,7 +472,7 @@ export class TagsExplorerPanel extends Component {
 		if (this.groupPreset.kind === 'note') {
 			if (!this.isRevealingActiveFile()) return nodes as TreeNode<TagMeta>[];
 			const cache = this._revealCache();
-			const frontmatter = (cache?.frontmatter ?? {}) as Record<string, unknown>;
+			const frontmatter = cache?.frontmatter ?? {};
 			const activeScope = this.sortState?.activeScope ?? 'all';
 			const target =
 				scopeToNoteGroupTarget(activeScope, this.sortState?.drillNodeId) ??
