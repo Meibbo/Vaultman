@@ -14,8 +14,12 @@ import { es } from '../../src/i18n/es';
  */
 describe('U130 toolbar alt-cmenus', () => {
 	it('expone SceneConfig per-instance para label, always-reveal y nodos ocultos', () => {
-		expect(typeInstanceSource).toContain("sceneLabelMode?: 'auto' | 'on' | 'off'");
-		expect(typeInstanceSource).toContain("autoRevealMode?: 'auto' | 'on' | 'off'");
+		expect(typeInstanceSource).toContain(
+			"sceneLabelMode?: 'auto' | 'on' | 'off'",
+		);
+		expect(typeInstanceSource).toContain(
+			"autoRevealMode?: 'auto' | 'on' | 'off'",
+		);
 		expect(typeInstanceSource).toContain('hiddenToolbarNodes?: string[]');
 	});
 
@@ -28,9 +32,10 @@ describe('U130 toolbar alt-cmenus', () => {
 	});
 
 	it('mezcla ids completos globales con locales per-instance por provider', () => {
-		expect(
-			resolveToolbarHiddenIds(['p:view'], ['sort'], 'p'),
-		).toEqual(['p:view', 'p:sort']);
+		expect(resolveToolbarHiddenIds(['p:view'], ['sort'], 'p')).toEqual([
+			'p:view',
+			'p:sort',
+		]);
 		expect(resolveToolbarHiddenIds(undefined, undefined, 'p')).toEqual([]);
 		expect(resolveToolbarHiddenIds(['p:view'], [], 'p')).toEqual(['p:view']);
 		// Mismo local id en otro provider no colisiona.
@@ -53,13 +58,13 @@ describe('U130 toolbar alt-cmenus', () => {
 			expect(navbarSource).toContain(`openNodeAltMenu(${localId}, e)`);
 		}
 		expect(navbarSource).toContain('openNodeAltMenu(`header:${action.id}`, e)');
-		expect(navbarSource).toContain('openNodeAltMenu(`command:${command.id}`, e)');
+		expect(navbarSource).toContain(
+			'openNodeAltMenu(`command:${command.id}`, e)',
+		);
 		// El wrap ignora el evento cuando nace en un nodo (el nodo ya abrió
 		// el suyo con stopPropagation): solo el espacio vacío abre el menú
 		// del toolbar.
-		expect(navbarSource).toContain(
-			"closest?.('[data-panel-widget-node-id]')",
-		);
+		expect(navbarSource).toContain("closest?.('[data-panel-widget-node-id]')");
 	});
 
 	it('el menú vacío ofrece Toolbar y solo nodos provided', () => {
@@ -84,14 +89,25 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(navbarSource).toContain("translate('toolbar.alt.change_icon')");
 		expect(navbarSource).toContain('openAddonIconPicker(');
 		expect(navbarSource).toContain('toolbarNodeIcons');
-		expect(typeInstanceSource).toContain('toolbarNodeIcons?: Record<string, string>');
+		expect(typeInstanceSource).toContain(
+			'toolbarNodeIcons?: Record<string, string>',
+		);
 	});
 
 	it('pinta cada nodo con el mismo override que edita el alt-cmenu', () => {
-		const source = navbarSource.replace(/\s+/g, ' ');
+		// Normaliza espacios, apertura de paren y comas finales en AMBOS
+		// lados: prettier puede envolver estas llamadas en varias lineas
+		// (con trailing comma) sin cambiar su significado; el contrato es
+		// la expresion, no su ajuste de linea.
+		const norm = (code: string): string =>
+			code
+				.replace(/\s+/g, ' ')
+				.replace(/\(\s+/g, '(')
+				.replace(/,\s*\)/g, ')');
+		const source = norm(navbarSource);
 		const renderedIcons = [
 			"panelWidgetNodeIcon('tabs', currentTabsIcon)",
-			"panelWidgetNodeIcon(`header:${action.id}`, action.icon)",
+			'panelWidgetNodeIcon(`header:${action.id}`, action.icon)',
 			"panelWidgetNodeIcon('view', 'lucide-layout-list')",
 			"panelWidgetNodeIcon('sort', 'lucide-arrow-up-down')",
 			"panelWidgetNodeIcon('search', 'lucide-search')",
@@ -99,10 +115,10 @@ describe('U130 toolbar alt-cmenus', () => {
 			"panelWidgetNodeIcon('toggle-expansion', expansionIcon)",
 			"panelWidgetNodeIcon('create-file', 'lucide-file-plus')",
 			"panelWidgetNodeIcon('create-folder', 'lucide-folder-plus')",
-			"panelWidgetNodeIcon( `command:${command.id}`",
+			'panelWidgetNodeIcon( `command:${command.id}`',
 		];
 		for (const iconExpression of renderedIcons) {
-			expect(source).toContain(iconExpression);
+			expect(source).toContain(norm(iconExpression));
 		}
 	});
 
