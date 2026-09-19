@@ -650,12 +650,16 @@
 				new Notice(translate('group.note.no_file'));
 				return;
 			}
-			const target =
-				scopeToNoteGroupTarget(state.activeScope, state.drillNodeId) ??
-				{ kind: 'level', level: 1 };
+			const target = scopeToNoteGroupTarget(
+				state.activeScope,
+				state.drillNodeId,
+			) ?? { kind: 'level', level: 1 };
 			const scene = tab === 'props' ? 'prop' : 'tag';
 			const current = parseFrontmatterNoteGroups(
-				(app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as Record<string, unknown>,
+				(app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as Record<
+					string,
+					unknown
+				>,
 				scene,
 				target,
 			);
@@ -3259,7 +3263,10 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon(`header:${action.id}`, action.icon)}
+								use:icon={panelWidgetNodeIcon(
+									`header:${action.id}`,
+									action.icon,
+								)}
 							></div>
 						{/if}
 					{/each}
@@ -3433,7 +3440,10 @@
 										);
 									}
 								}}
-									use:icon={panelWidgetNodeIcon('toggle-expansion', expansionIcon)}
+								use:icon={panelWidgetNodeIcon(
+									'toggle-expansion',
+									expansionIcon,
+								)}
 							></div>
 						{/if}
 						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
@@ -3466,7 +3476,10 @@
 											);
 										}
 									}}
-									use:icon={panelWidgetNodeIcon('create-file', 'lucide-file-plus')}
+									use:icon={panelWidgetNodeIcon(
+										'create-file',
+										'lucide-file-plus',
+									)}
 								></div>
 							{/if}
 							{#if toolbarNodeVisible('create-folder')}
@@ -3497,7 +3510,10 @@
 											);
 										}
 									}}
-									use:icon={panelWidgetNodeIcon('create-folder', 'lucide-folder-plus')}
+									use:icon={panelWidgetNodeIcon(
+										'create-folder',
+										'lucide-folder-plus',
+									)}
 								></div>
 							{/if}
 						{/if}

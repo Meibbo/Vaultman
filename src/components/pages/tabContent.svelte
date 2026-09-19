@@ -233,7 +233,8 @@
 			bind:value={contentFind}
 		/>
 		<span class="vaultman-content-input-placeholder" aria-hidden="true">
-			<span class="vaultman-content-input-icon" use:iconAction={'lucide-search'}></span>
+			<span class="vaultman-content-input-icon" use:iconAction={'lucide-search'}
+			></span>
 			<span class="vaultman-content-input-placeholder-text"
 				>{translate('content.find_placeholder')}</span
 			>
@@ -303,7 +304,10 @@
 				bind:value={contentReplace}
 			/>
 			<span class="vaultman-content-input-placeholder" aria-hidden="true">
-				<span class="vaultman-content-input-icon" use:iconAction={'lucide-replace'}></span>
+				<span
+					class="vaultman-content-input-icon"
+					use:iconAction={'lucide-replace'}
+				></span>
 				<span class="vaultman-content-input-placeholder-text"
 					>{translate('content.replace_placeholder')}</span
 				>
