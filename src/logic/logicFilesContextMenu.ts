@@ -51,6 +51,11 @@ export function panelMenuKindForNodeType(nodeType: string): PanelMenuKind {
 			return 'plugins';
 		case 'content':
 			return 'content';
+		// U130 Slice B: group headers open the universal group menu, routed
+		// through the host explorer's own menu kind upstream; the fallback
+		// here is Files so a bare 'group' never lands nowhere.
+		case 'group':
+			return 'files';
 		default:
 			return 'files';
 	}

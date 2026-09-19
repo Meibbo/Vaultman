@@ -49,8 +49,22 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		registerGroupActions({
 			contextMenuService: { registerAction },
 		} as never);
-		expect(registerAction).toHaveBeenCalledTimes(1);
-		return registerAction.mock.calls[0]?.[0] as ActionDef;
+		const actions = registerAction.mock.calls.map(
+			([action]) => action as ActionDef,
+		);
+		const action = actions.find((entry) => entry.id === 'group.create-with-selected');
+		expect(action).toBeDefined();
+		expect(actions.map((entry) => entry.id)).toEqual(
+			expect.arrayContaining([
+				'group.toggle-expand',
+				'group.copy-id',
+				'group.icon',
+				'group.hide-toggle',
+				'group.delete',
+			]),
+		);
+		if (!action) throw new Error('group.create-with-selected action was not registered');
+		return action;
 	}
 
 	it('is offered to every explorer node kind on the panel surface', () => {
