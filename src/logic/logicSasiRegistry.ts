@@ -13,6 +13,25 @@
 
 export type SasiAxis = 'provider' | 'kind' | 'function';
 
+export type SasiCatalogKind =
+	| 'settingScene'
+	| 'panelExplorer'
+	| 'panelContent'
+	| 'settings-explorer'
+	| 'settings-content'
+	| 'settingScene.toolbar'
+	| 'node_plugin.cmenu'
+	| 'node_group.cmenu'
+	| 'node_settings'
+	| 'node_group'
+	| 'node_group_custom'
+	| 'cell_badge_update';
+
+export interface SasiAvailability {
+	status: 'available' | 'unavailable';
+	reason?: { code: string; labelKey: string };
+}
+
 /** Categoria dentro del eje FUNCTIONS. Son tres cosas distintas: */
 export type SasiFunctionKind =
 	/** altera estados o procesos sobre el workspace */
@@ -24,12 +43,17 @@ export type SasiFunctionKind =
 
 export interface SasiSupport {
 	surface: string;
+	panelType?: 'panelExplorer' | 'panelContent';
+	mode?: 'settings-explorer' | 'settings-content';
+	context?: 'settingScene.toolbar' | 'node_plugin.cmenu' | 'node_group.cmenu';
 }
 
 export interface SasiDef {
 	/** Estable y con namespace: `vaultman.move.proceed`. */
 	id: string;
 	axis: SasiAxis;
+	type?: SasiCatalogKind;
+	catalogKind?: SasiCatalogKind;
 	/** Solo cuando `axis === 'function'`. */
 	kind?: SasiFunctionKind;
 	labelKey: string;
@@ -37,6 +61,7 @@ export interface SasiDef {
 	/** Solo `operation`: declara que escribe en el vault. Obliga a confirmar. */
 	mutatesVault?: true;
 	supports: readonly SasiSupport[];
+	availability?: SasiAvailability;
 	/** `command`: los ids de action/operation que compone. */
 	composes?: readonly string[];
 }
@@ -83,7 +108,10 @@ export function createSasiRegistry(): SasiRegistry {
 			const def = byId.get(id);
 			// Contrato de logicCommandActions.ts: retirado != inexistente.
 			if (!def) return { def: null, available: false, id };
-			return { def, available: true };
+			return {
+				def,
+				available: def.availability?.status !== 'unavailable',
+			};
 		},
 	};
 }

@@ -19,13 +19,29 @@ describe('U130-01: el inspector de SASI', () => {
 		]);
 	});
 
-	it('un eje vacio se proyecta VACIO, no se oculta', () => {
-		// Un eje que desaparece no le dice al agente que consulta que existe
-		// pero esta sin poblar, que es justo lo que necesita saber.
+	it('proyecta el catalogo de nodos, paneles, modos y contextos', () => {
 		const model = buildSasiInspectorModel(registry);
 		const kinds = model.find((section) => section.axis === 'kind');
 		expect(kinds).toBeDefined();
-		expect(kinds?.entries).toEqual([]);
+		expect(kinds?.entries.map((entry) => entry.id)).toEqual([
+			'node_settings',
+			'node_group',
+			'node_group_custom',
+			'cell_badge_update',
+			'panelExplorer',
+			'panelContent',
+			'settings-explorer',
+			'settings-content',
+			'settingScene.toolbar',
+			'node_plugin.cmenu',
+			'node_group.cmenu',
+		]);
+		expect(kinds?.entries.slice(0, 4).map((entry) => entry.surfaces)).toEqual([
+			['settingScene'],
+			['settingScene'],
+			['settingScene'],
+			['settingScene'],
+		]);
 	});
 
 	it('dentro de FUNCTIONS separa las tres categorias', () => {

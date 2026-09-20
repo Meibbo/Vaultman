@@ -661,13 +661,33 @@ export class SnippetsExplorerPanel
 				const node = this.findNode(id);
 				if (node) setTooltip(row, this.tooltip(node.meta));
 			},
-			onContextMenu: (id, event) => {
-				if (isGroupHeader(id, this._groupIds)) {
-					// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
-					// de grupo en logicGroupContextMenu no hay menu que
-					// abrir; no caer al menu del item (ver informe).
-					return;
-				}
+		onContextMenu: (id, event) => {
+			if (isGroupHeader(id, this._groupIds)) {
+				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
+				const header = this.findNode(id);
+				this.plugin.contextMenuService.openPanelMenu(
+					{
+						nodeType: 'group',
+						node: header ?? {
+							id,
+							label: id,
+							meta: {},
+							icon: '',
+							depth: 0,
+						},
+						surface: 'panel',
+						groupId: id,
+						groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
+						groupHidden: this.hiddenGroupIds.has(id),
+						groupExpanded: this._expandedGroupIds.has(id),
+						toggleGroupExpand: (groupId: string) => {
+							this._toggleExpandedGroup(groupId);
+						},
+					},
+					event,
+				);
+				return;
+			}
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},

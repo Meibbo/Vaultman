@@ -69,6 +69,7 @@
 	import { shouldFaintRevealNode } from '../../logic/logicRevealFaint';
 	import {
 		byLevelModel,
+		GROUP_PRESET_META,
 		groupMenuModel,
 		nextGroupPreset,
 		NODE_TYPE_MENU_OPTIONS,
@@ -118,6 +119,14 @@
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
 	import type { GroupPreset } from '../../types/typeGroupPreset';
+	import {
+		GROUP_PRESETS_BY_TAB,
+	} from '../../types/typeGroupPreset';
+	import {
+		openGroupSuggester,
+		planGroupMembershipBatch,
+	} from '../../modals/modalGroupSuggester';
+	import { resolveCustomGroups } from '../../logic/logicTreeGroupProjection';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExpandableExplorerPort,
@@ -631,6 +640,62 @@
 		urns: readonly string[] = [],
 	): Promise<void> {
 		if (!app) return;
+		/**
+		 * U130 Slice B (spec-03 §41-50): crear-o-añadir. With origins (the
+		 * §3.3 `Create group with selected` path) and existing customs, the
+		 * suggester offers presets + customs of the ACTIVE scene first:
+		 * existing = atomic idempotent add, dismiss = new-name prompt below.
+		 */
+		if (urns.length > 0) {
+			const customs = customGroupsForMenu(tab);
+			if (customs.length > 0) {
+				const picked = await openGroupSuggester(
+					app,
+					[
+						...customs.map((group) => ({
+							id: group.id,
+							label: group.label,
+							flavor: 'custom' as const,
+							...(group.hidden ? { hidden: true } : {}),
+						})),
+						...GROUP_PRESETS_BY_TAB[tab].map((kind) => ({
+							id: `vaultman.group.preset:${kind}`,
+							label: translate(GROUP_PRESET_META[kind].labelKey),
+							flavor: 'preset' as const,
+						})),
+					],
+					translate('group.suggester.placeholder'),
+				);
+				if (picked) {
+					const presetIds = new Set(
+						GROUP_PRESETS_BY_TAB[tab].map(
+							(kind) => `vaultman.group.preset:${kind}`,
+						),
+					);
+					if (presetIds.has(picked.id)) {
+						new Notice(translate('group.preset.locked'));
+						return;
+					}
+					const plan = planGroupMembershipBatch({
+						memberships: configByTab[tab].groupMemberships,
+						targetId: picked.id,
+						origins: urns,
+						groups: resolveCustomGroups(configByTab[tab].groupMemberships),
+						providerId: tab,
+					});
+					if (!plan.ok) {
+						new Notice(
+							`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
+						);
+						return;
+					}
+					commitConfig(tab, { groupMemberships: plan.next });
+					applyGroupMemberships(tab, plan.next);
+					setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+					return;
+				}
+			}
+		}
 		const name = (
 			await showInputModal(app, translate('group.new.prompt'))
 		)?.trim();
@@ -685,7 +750,28 @@
 			return;
 		}
 		const memberships = configByTab[tab].groupMemberships;
-		if (name in memberships) return;
+		if (name in memberships) {
+			// U130 Slice B: the typed name already exists — adding is
+			// idempotent and atomic, never a silent no-op over origins.
+			if (urns.length === 0) return;
+			const plan = planGroupMembershipBatch({
+				memberships,
+				targetId: name,
+				origins: urns,
+				groups: resolveCustomGroups(memberships),
+				providerId: tab,
+			});
+			if (!plan.ok) {
+				new Notice(
+					`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
+				);
+				return;
+			}
+			commitConfig(tab, { groupMemberships: plan.next });
+			applyGroupMemberships(tab, plan.next);
+			setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+			return;
+		}
 		const next = { ...memberships, [name]: [...urns] };
 		commitConfig(tab, { groupMemberships: next });
 		applyGroupMemberships(tab, next);
@@ -2706,19 +2792,17 @@
 				);
 				continue;
 			}
-			if (entry.kind === 'new-group') {
-				groupChildren.push(
-					nativeMenuItem('sort_menu.groups.new', {
-						title: translate(
-							entry.disabled ? 'group.new.needs_layout' : entry.labelKey,
-						),
-						icon: entry.icon,
-						disabled: entry.disabled,
-						onClick: () => void createCustomGroup(activeTab),
-					}),
-				);
-				continue;
-			}
+		if (entry.kind === 'new-group') {
+			groupChildren.push(
+				nativeMenuItem('sort_menu.groups.new', {
+					title: translate(entry.labelKey),
+					icon: entry.icon,
+					disabled: entry.disabled,
+					onClick: () => void createCustomGroup(activeTab),
+				}),
+			);
+			continue;
+		}
 			groupChildren.push(
 				nativeMenuItem(
 					`sort_menu.groups.custom.${entry.id}`,

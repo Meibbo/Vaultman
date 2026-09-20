@@ -1,7 +1,10 @@
 import type {
 	SasiAxis,
+	SasiAvailability,
+	SasiCatalogKind,
 	SasiFunctionKind,
 	SasiRegistry,
+	SasiSupport,
 } from '../logic/logicSasiRegistry';
 
 /** Un nodo proyectable desde SASI. Plano y serializable a proposito. */
@@ -10,7 +13,11 @@ export interface SasiNode {
 	labelKey: string;
 	icon?: string;
 	kind?: SasiFunctionKind;
+	type?: SasiCatalogKind;
+	catalogKind?: SasiCatalogKind;
 	mutatesVault?: true;
+	availability?: SasiAvailability;
+	supports?: readonly SasiSupport[];
 }
 
 export interface SasiProvider {
@@ -30,7 +37,11 @@ export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 				labelKey: def.labelKey,
 				...(def.icon ? { icon: def.icon } : {}),
 				...(def.kind ? { kind: def.kind } : {}),
+				...(def.type ? { type: def.type } : {}),
+				...(def.catalogKind ? { catalogKind: def.catalogKind } : {}),
 				...(def.mutatesVault ? { mutatesVault: def.mutatesVault } : {}),
+				supports: def.supports,
+				availability: def.availability ?? { status: 'available' },
 			}));
 		},
 	};

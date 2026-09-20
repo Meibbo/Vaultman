@@ -1,5 +1,12 @@
 import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obsidian';
-import type { PendingChange, OperationResult } from '../types/typeOps';
+import type {
+	PendingChange,
+	OperationResult,
+	PluginUpdateBatchResult,
+	PluginUpdateItem,
+	PluginUpdateItemResult,
+	PluginUpdateQueueState,
+} from '../types/typeOps';
 import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
 import { pathReaches, promotionPlan } from '../logic/logicDeletionDecoration';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, COPY_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
@@ -28,6 +35,14 @@ interface OperationQueueOptions {
 	 * same one the settings tab mutates.
 	 */
 	queueWarnOnSupersede?: boolean;
+}
+
+export interface PluginUpdateAdapter {
+	/** Must reflect the live update catalog immediately before installation. */
+	hasUpdate(id: string, toVersion: string): boolean | Promise<boolean>;
+	installPlugin(id: string): Promise<void>;
+	/** Post-state read required because installPlugin has no reliable result. */
+	getInstalledVersion(id: string): string | undefined | Promise<string | undefined>;
 }
 
 type QueuePolicyDecision =
@@ -265,6 +280,11 @@ export class OperationQueueService extends Component {
 
 	readonly queue: PendingChange[] = [];
 	operationMode: 'stage' | 'bypass' = 'stage';
+	private pluginUpdateItems: readonly Readonly<PluginUpdateItem>[] = [];
+	private pluginUpdateResults: readonly PluginUpdateItemResult[] = [];
+	private pluginUpdateRunning = false;
+	private pluginUpdateCancelled = false;
+	private pluginUpdateRun: Promise<PluginUpdateBatchResult> | null = null;
 
 	constructor(app: App, options: OperationQueueOptions = {}) {
 		super();
@@ -302,6 +322,108 @@ export class OperationQueueService extends Component {
 
 	setBypassOperations(enabled: boolean): void {
 		this.setOperationMode(enabled ? 'bypass' : 'stage');
+	}
+
+	getPluginUpdateQueueState(): PluginUpdateQueueState {
+		return {
+			items: this.pluginUpdateItems.map((item) => ({ ...item })),
+			results: this.pluginUpdateResults.map((result) => ({
+				item: { ...result.item },
+				status: result.status,
+				...(result.message === undefined ? {} : { message: result.message }),
+			})),
+			running: this.pluginUpdateRunning,
+			cancelled: this.pluginUpdateCancelled,
+		};
+	}
+
+	cancelPluginUpdates(): void {
+		if (!this.pluginUpdateRunning) return;
+		this.pluginUpdateCancelled = true;
+		this.events.trigger('changed');
+	}
+
+	runPluginUpdates(
+		items: readonly PluginUpdateItem[],
+		adapter: PluginUpdateAdapter,
+	): Promise<PluginUpdateBatchResult> {
+		if (this.pluginUpdateRun) return this.pluginUpdateRun;
+
+		this.pluginUpdateItems = [...items]
+			.sort((a, b) => a.id.localeCompare(b.id))
+			.map((item) => ({ ...item }));
+		this.pluginUpdateResults = [];
+		this.pluginUpdateCancelled = false;
+		this.pluginUpdateRunning = true;
+		this.events.trigger('changed');
+
+		const run = this.executePluginUpdates(adapter);
+		this.pluginUpdateRun = run;
+		void run.then(() => {
+			if (this.pluginUpdateRun === run) this.pluginUpdateRun = null;
+		});
+		return run;
+	}
+
+	private async executePluginUpdates(
+		adapter: PluginUpdateAdapter,
+	): Promise<PluginUpdateBatchResult> {
+		const results: PluginUpdateItemResult[] = [];
+		for (const item of this.pluginUpdateItems) {
+			if (this.pluginUpdateCancelled) {
+				results.push({ item, status: 'warning', message: 'Update cancelled' });
+				continue;
+			}
+
+			try {
+				if (!(await adapter.hasUpdate(item.id, item.toVersion))) {
+					results.push({
+						item,
+						status: 'warning',
+						message: 'Update is no longer available',
+					});
+					continue;
+				}
+				await adapter.installPlugin(item.id);
+				const installedVersion = await adapter.getInstalledVersion(item.id);
+				if (installedVersion === item.toVersion) {
+					results.push({ item, status: 'success' });
+				} else if (installedVersion === undefined) {
+					results.push({
+						item,
+						status: 'warning',
+						message: 'Plugin disappeared after update',
+					});
+				} else {
+					results.push({
+						item,
+						status: 'error',
+						message: `Expected ${item.toVersion}, found ${installedVersion}`,
+					});
+				}
+			} catch (error) {
+				results.push({
+					item,
+					status: 'error',
+					message: String(error),
+				});
+			}
+			this.pluginUpdateResults = [...results];
+			this.events.trigger('changed');
+		}
+
+		const batch: PluginUpdateBatchResult = {
+			items: results.map((result) => ({
+				item: { ...result.item },
+				status: result.status,
+				...(result.message === undefined ? {} : { message: result.message }),
+			})),
+			cancelled: this.pluginUpdateCancelled,
+		};
+		this.pluginUpdateResults = batch.items;
+		this.pluginUpdateRunning = false;
+		this.events.trigger('changed');
+		return batch;
 	}
 
 	/** Add a single operation to the queue */

@@ -6,6 +6,7 @@ import { registerToolbarMenuActions } from './logicSasiToolbarActions';
 import { registerSearchActions } from './logicSasiSearchActions';
 import { registerHoverActions } from './logicSasiHoverActions';
 import { registerSettingsActions } from './logicSasiSettingsActions';
+import { registerSettingSceneCatalog } from './logicSasiSettingScene';
 import {
 	createSasiProvider,
 	type SasiProvider,
@@ -33,5 +34,6 @@ export function createVaultmanSasi(): VaultmanSasi {
 	registerAddonGroupToggleActions(registry);
 	registerHoverActions(registry);
 	registerSettingsActions(registry);
+	registerSettingSceneCatalog(registry);
 	return { registry, provider: createSasiProvider(registry) };
 }

@@ -190,6 +190,7 @@ export class ContextMenuService extends Component {
 		if (!def) return false;
 		if (!def.nodeTypes.includes(ctx.nodeType)) return false;
 		if (def.when && !def.when(ctx)) return false;
+		if (def.disabledReason?.(ctx)) return false;
 		this._runAction(def, ctx);
 		return true;
 	}
@@ -204,17 +205,17 @@ export class ContextMenuService extends Component {
 	private _nodeTypesForKind(kind: PanelMenuKind): MenuCtx['nodeType'][] {
 		switch (kind) {
 			case 'props':
-				return ['prop', 'value'];
+				return ['prop', 'value', 'group'];
 			case 'tags':
-				return ['tag'];
+				return ['tag', 'group'];
 			case 'snippets':
-				return ['snippet'];
+				return ['snippet', 'group'];
 			case 'plugins':
-				return ['plugin'];
+				return ['plugin', 'group'];
 			case 'content':
-				return ['content'];
+				return ['content', 'group'];
 			default:
-				return ['file', 'folder'];
+				return ['file', 'folder', 'group'];
 		}
 	}
 
@@ -421,21 +422,23 @@ export class ContextMenuService extends Component {
 				}
 			}
 
-			targetMenu.addItem((item) => {
-				const label =
-					typeof def.label === 'function' ? def.label(ctx) : def.label;
-				item.setTitle(label);
-				if (def.icon) item.setIcon(def.icon);
-				if (def.checked !== undefined) {
-					item.setChecked(
-						typeof def.checked === 'function' ? def.checked(ctx) : def.checked,
-					);
-				}
-				item.onClick(() => this._runAction(def, ctx));
-			});
-		}
-		menu.showAtMouseEvent(event);
+		targetMenu.addItem((item) => {
+			const label =
+				typeof def.label === 'function' ? def.label(ctx) : def.label;
+			const reason = def.disabledReason?.(ctx) ?? null;
+			item.setTitle(reason ? `${label} — ${reason}` : label);
+			if (def.icon) item.setIcon(def.icon);
+			if (def.checked !== undefined) {
+				item.setChecked(
+					typeof def.checked === 'function' ? def.checked(ctx) : def.checked,
+				);
+			}
+			if (reason) item.setDisabled(true);
+			else item.onClick(() => this._runAction(def, ctx));
+		});
 	}
+	menu.showAtMouseEvent(event);
+}
 
 	/**
 	 * BT5-018: a native item the saved layout marks hidden is spliced out of the

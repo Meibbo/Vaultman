@@ -2817,13 +2817,39 @@ export class FilesExplorerPanel extends Component {
 					const node = this._findNode(id, renderTree);
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
 				},
-				onContextMenu: (id: string, e: MouseEvent) => {
-					if (isGroupHeader(id, this._groupIds)) {
-						// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
-						// de grupo en logicGroupContextMenu no hay menu que
-						// abrir; no caer al menu de folder '' (ver informe).
-						return;
-					}
+			onContextMenu: (id: string, e: MouseEvent) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					// U130 Slice B (spec-03 §24-40): las cabeceras abren el
+					// cmenu universal de grupo (`nodeType: 'group'`). El
+					// owner lo decide el engine: custom en `_groupIds`,
+					// resto preset. Hide/delete son de la scene (navbar) y
+					// desde aqui quedan disabled con razon.
+					const header =
+						this._findNode(id, renderTree) ??
+						this._findNode(id, this._lastRenderTree);
+					this.plugin.contextMenuService.openPanelMenu(
+						{
+							nodeType: 'group',
+							node: header ?? {
+								id,
+								label: id,
+								meta: {},
+								icon: '',
+								depth: 0,
+							},
+							surface: 'panel',
+							groupId: id,
+							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
+							groupHidden: this.hiddenGroupIds.has(id),
+							groupExpanded: this.expandedIds.has(id),
+							toggleGroupExpand: (groupId: string) => {
+								this._toggleExpanded(groupId);
+							},
+						},
+						e,
+					);
+					return;
+				}
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
