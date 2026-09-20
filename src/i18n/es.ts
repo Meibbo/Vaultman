@@ -501,6 +501,9 @@ export const es: Record<string, string> = {
 		'Autoexpandir pocos padres de nivel 1',
 	'settings.sparse_auto_expand_top_level.desc':
 		'Cuando los filtros o la búsqueda dejan menos de cuatro carpetas de nivel superior, expandirlas automáticamente. Apagado mantiene colapsados los padres de nivel 1 sea cual sea el número de resultados.',
+	'settings.tree_expansion_animation': 'Animaciones de expansión del árbol',
+	'settings.tree_expansion_animation.desc':
+		'Anima la apertura y cierre de carpetas tipo cajón en el explorador. Desactivado por defecto para máximo rendimiento en bóvedas grandes.',
 	'settings.node_icon_scope': 'Alcance de icono de nodo',
 	'settings.node_icon_scope.desc':
 		'Qué nodos del explorer pueden mostrar icono: files y folders, solo files, solo folders, o solo nodos con icono personalizado.',

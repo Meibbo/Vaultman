@@ -210,6 +210,11 @@ export interface VaultmanSettings {
 	 * them automatically so their content stays one glance away. Off keeps
 	 * the p1-nodes collapsed whatever the result count is. */
 	sparseAutoExpandTopLevel: boolean;
+	/**
+	 * Animate folder expand/collapse with a smooth drawer effect.
+	 * Off by default for maximum performance in large vaults.
+	 */
+	treeExpansionAnimation: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
 	/** Render add-on enabled state as an Obsidian toggle or compact badge. */
@@ -529,6 +534,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	minimalStyle: true,
 	stickyParentRows: true,
 	stickyParentRowsMaxFraction: 0.4,
+	treeExpansionAnimation: false,
 	coloredBadges: false,
 	addonCellStyle: 'native',
 	iconicEnabled: true,

@@ -190,6 +190,12 @@ export interface TreeViewOptions {
 	stickyTopOffset?: number;
 	/** Share of the tree the pinned headers may cover. */
 	stickyMaxFraction?: number;
+	/**
+	 * Opt-in drawer animation for expand/collapse. When on, children emerge
+	 * from an overflow-hidden wrapper (the "drawer") and siblings slide
+	 * smoothly to their new positions. Off by default for performance.
+	 */
+	expansionAnimation?: boolean;
 }
 
 export class UnifiedTreeView {
@@ -211,8 +217,11 @@ export class UnifiedTreeView {
 		.slice(2)}`;
 	private readonly _markupVersion = 2;
 	private _structureAnimationTimer: number | null = null;
-	private _expandedIdsSignature = '';
+	private _lastExpandedIds: Set<string> | null = null;
 	private _hasRenderedExpandedState = false;
+	/** Drawer animation state (opt-in via expansionAnimation). */
+	private _drawerEl: HTMLElement | null = null;
+	private _drawerTimer: number | null = null;
 	private _pendingScroll: {
 		id: string;
 		block: ScrollLogicalPosition;
@@ -437,8 +446,9 @@ export class UnifiedTreeView {
 		this.rowEls.clear();
 		this.stickyRowEls.clear();
 		this._pendingScroll = null;
-		this._expandedIdsSignature = '';
+		this._lastExpandedIds = null;
 		this._hasRenderedExpandedState = false;
+		this._cleanupDrawer();
 	}
 
 	/**
@@ -462,9 +472,14 @@ export class UnifiedTreeView {
 		// collapsed folder forever -- it kept the subtreeEnd of its expanded
 		// self -- and made an expansion silently kill every sticky, because the
 		// indices no longer pointed at the rows they named.
-		const chain = treeChainFromRows(this._rows);
-		this._parentIndex = chain.parentIndex;
-		this._subtreeEnd = chain.subtreeEnd;
+		if (this._opts.stickyParentRows) {
+			const chain = treeChainFromRows(this._rows);
+			this._parentIndex = chain.parentIndex;
+			this._subtreeEnd = chain.subtreeEnd;
+		} else {
+			this._parentIndex = null;
+			this._subtreeEnd = null;
+		}
 
 		const rowHeight = this.rowHeight();
 		if (this._spacerEl) {
@@ -488,6 +503,17 @@ export class UnifiedTreeView {
 		);
 
 		this._renderWindow();
+
+		// Drawer animation: wrap newly inserted children in an overflow-hidden
+		// container whose height animates from 0 → full, giving the Obsidian-
+		// like drawer illusion. Only on pure expand (inserted > 0, removed = 0).
+		if (this._opts.expansionAnimation && delta.inserted > 0 && delta.removed === 0) {
+			this._startDrawerExpand(rootId, delta.inserted);
+		} else if (this._opts.expansionAnimation) {
+			// Collapse or toggle: siblings slide via CSS transition, clean up after.
+			this._scheduleDrawerCleanup();
+		}
+
 		this._flushPendingScroll();
 	}
 
@@ -627,19 +653,30 @@ export class UnifiedTreeView {
 	}
 
 	private _markStructureAnimationIfNeeded(expandedIds: Set<string>): void {
-		const nextSignature = this._expandedIdsSignatureFor(expandedIds);
-		if (
+		const changed =
 			this._hasRenderedExpandedState &&
-			nextSignature !== this._expandedIdsSignature
-		) {
+			!this._areExpandedSetsEqual(this._lastExpandedIds, expandedIds);
+		if (changed) {
 			this._startStructureAnimation();
+			if (this._opts?.expansionAnimation) {
+				this.containerEl.addClass('vaultman-tree-drawer-animating');
+			}
 		}
-		this._expandedIdsSignature = nextSignature;
+		this._lastExpandedIds = new Set(expandedIds);
 		this._hasRenderedExpandedState = true;
 	}
 
-	private _expandedIdsSignatureFor(expandedIds: Set<string>): string {
-		return [...expandedIds].sort().join('\u001f');
+	private _areExpandedSetsEqual(
+		a: Set<string> | null,
+		b: Set<string>,
+	): boolean {
+		if (!a) return false;
+		if (a === b) return true;
+		if (a.size !== b.size) return false;
+		for (const id of a) {
+			if (!b.has(id)) return false;
+		}
+		return true;
 	}
 
 	private _startStructureAnimation(): void {
@@ -652,6 +689,81 @@ export class UnifiedTreeView {
 			this.containerEl.removeClass('vaultman-tree-structure-animating');
 			this._structureAnimationTimer = null;
 		}, 140);
+	}
+
+	/**
+	 * Drawer expand: wrap newly inserted children in an overflow-hidden div
+	 * whose height animates from 0 → full. Children inside are clipped until
+	 * revealed, giving the Obsidian-like drawer illusion without overlap.
+	 */
+	private _startDrawerExpand(rootId: string, insertedCount: number): void {
+		this._cleanupDrawer();
+		if (!this._contentEl) return;
+		const rootIdx = this._indexById.get(rootId);
+		if (rootIdx === undefined) return;
+
+		const rowHeight = this.rowHeight();
+		const drawerTop = (rootIdx + 1) * rowHeight;
+		const fullHeight = insertedCount * rowHeight;
+
+		const doc = this.containerEl.ownerDocument;
+		const drawer = doc.createElement('div');
+		drawer.className = 'vaultman-tree-drawer';
+		drawer.style.top = `${drawerTop}px`;
+		drawer.style.height = '0px';
+		this._contentEl.appendChild(drawer);
+
+		// Move child row elements into the drawer, adjusting top to be
+		// relative to the drawer's own top.
+		for (let i = rootIdx + 1; i < rootIdx + 1 + insertedCount && i < this._rows.length; i++) {
+			const node = this._rows[i];
+			if (!node) continue;
+			const rowEl = this.rowEls.get(node.id);
+			if (!rowEl) continue;
+			rowEl.style.top = `${i * rowHeight - drawerTop}px`;
+			drawer.appendChild(rowEl);
+		}
+
+		this._drawerEl = drawer;
+
+		// Trigger expand on next frame so the browser paints height:0 first.
+		const win = this._treeWindow();
+		win.requestAnimationFrame(() => {
+			if (this._drawerEl) {
+				this._drawerEl.style.height = `${fullHeight}px`;
+			}
+		});
+
+		this._scheduleDrawerCleanup();
+	}
+
+	private _scheduleDrawerCleanup(): void {
+		if (this._drawerTimer !== null) {
+			this._treeWindow().clearTimeout(this._drawerTimer);
+		}
+		this._drawerTimer = this._treeWindow().setTimeout(() => {
+			this._cleanupDrawer();
+			this._renderWindow();
+		}, 160);
+	}
+
+	private _cleanupDrawer(): void {
+		if (this._drawerTimer !== null) {
+			this._treeWindow().clearTimeout(this._drawerTimer);
+			this._drawerTimer = null;
+		}
+		if (this._drawerEl) {
+			// Remove rows from cache so _renderWindow recreates them
+			// in _contentEl at their correct absolute positions.
+			for (const child of Array.from(this._drawerEl.children)) {
+				if (child instanceof HTMLElement && child.dataset.id) {
+					this.rowEls.delete(child.dataset.id);
+				}
+			}
+			this._drawerEl.remove();
+			this._drawerEl = null;
+		}
+		this.containerEl.removeClass('vaultman-tree-drawer-animating');
 	}
 
 	private _treeWindow(): Window {

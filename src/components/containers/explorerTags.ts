@@ -75,6 +75,8 @@ export interface PanelPluginCtx {
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
+		/** Opt-in drawer animation for expand/collapse. */
+		treeExpansionAnimation?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -1787,6 +1789,7 @@ export class TagsExplorerPanel extends Component {
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
+			expansionAnimation: this.plugin.settings?.treeExpansionAnimation === true,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (row, node) => {

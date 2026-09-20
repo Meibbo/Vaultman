@@ -1516,6 +1516,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.tree_expansion_animation'),
+			desc: translate('settings.tree_expansion_animation.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.treeExpansionAnimation === true)
+						.onChange(async (value) => {
+							this.plugin.settings.treeExpansionAnimation = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// U121-027. saveSettings() notifies the settings listeners and the explorer
 		// now subscribes, so toggling this repaints the visible cells immediately.
 		items.push({

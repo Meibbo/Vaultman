@@ -608,6 +608,7 @@ export class SnippetsExplorerPanel
 				return false;
 			},
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
 			expandedIds: this._expandedGroupIds,
 			...(this.interactionMode === 'select'
 				? {

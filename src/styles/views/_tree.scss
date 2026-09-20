@@ -924,18 +924,61 @@ body.vaultman-resizing {
 
 .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
   transition:
-    top 100ms ease-in-out,
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+/* Drawer animation (opt-in via settings.treeExpansionAnimation).
+   Children emerge from an overflow-hidden wrapper whose height transitions
+   from 0 → full; sibling rows slide smoothly via `top` transition.  */
+.vaultman-tree-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  will-change: height;
+  contain: paint;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-drawer {
+  transition: height 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-row--virtual {
+  transition:
+    top 140ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+.vaultman-tree-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  will-change: height;
+  contain: paint;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-drawer {
+  transition: height 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-row--virtual {
+  transition:
+    top 140ms cubic-bezier(0.2, 0, 0, 1),
     background-color 120ms ease,
     box-shadow 120ms ease,
     color 120ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {
-    transition:
-      background-color 120ms ease,
-      box-shadow 120ms ease,
-      color 120ms ease;
+  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual,
+  .vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-drawer,
+  .vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-row--virtual {
+    transition: none !important;
   }
 }
 

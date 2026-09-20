@@ -57,6 +57,8 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** U121-062: does a property survive losing its last value? */
 		keepPropertyWhenLastValueDeleted?: boolean;
+		/** Opt-in drawer animation for expand/collapse. */
+		treeExpansionAnimation?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -2611,6 +2613,7 @@ export class PropsExplorerPanel extends Component {
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
+			expansionAnimation: this.plugin.settings?.treeExpansionAnimation === true,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			onCellClick: (id, cellId) => {

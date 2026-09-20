@@ -495,6 +495,9 @@ export const en: Record<string, string> = {
 	'settings.sparse_auto_expand_top_level': 'Auto-expand few top-level folders',
 	'settings.sparse_auto_expand_top_level.desc':
 		'When filters or search leave fewer than four top-level folders, expand them automatically. Off keeps level-1 parents collapsed whatever the result count is.',
+	'settings.tree_expansion_animation': 'Tree expansion animations',
+	'settings.tree_expansion_animation.desc':
+		'Animate folder expand and collapse with a smooth drawer effect. Disabled by default for maximum performance in large vaults.',
 	'settings.node_icon_scope': 'Node icon scope',
 	'settings.node_icon_scope.desc':
 		'Which explorer nodes may show an icon: files and folders, files only, folders only, or only nodes with a custom icon.',

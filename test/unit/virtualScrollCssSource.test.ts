@@ -68,16 +68,28 @@ describe('virtual scroll CSS source guards', () => {
 		expect(desktopCoreRowIndentBlock).not.toContain('!important');
 	});
 
-	it('only adds top motion to virtual rows during expand collapse structure animation', () => {
+	it('structure-animating does NOT include top transition (moved to drawer-animating opt-in)', () => {
 		const structureAnimationBlock =
 			stylesSource.match(
 				/\.vaultman-tree-virtual-viewport\.vaultman-tree-structure-animating \.vaultman-tree-row--virtual\s*\{[\s\S]*?\n\}/,
 			)?.[0] ?? '';
 
-		expect(structureAnimationBlock).toContain('top 100ms ease-in-out');
+		expect(structureAnimationBlock).not.toContain('top 100ms');
+		expect(structureAnimationBlock).not.toContain('top 140ms');
 		expect(structureAnimationBlock).toContain('background-color 120ms ease');
 		expect(structureAnimationBlock).not.toContain('!important');
 		expect(stylesSource).toContain('@media (prefers-reduced-motion: reduce)');
+	});
+
+	it('drawer-animating includes top transition and drawer clip container', () => {
+		expect(stylesSource).toContain('.vaultman-tree-drawer');
+		expect(stylesSource).toContain('overflow: hidden');
+		const drawerAnimatingBlock =
+			stylesSource.match(
+				/\.vaultman-tree-virtual-viewport\.vaultman-tree-drawer-animating \.vaultman-tree-row--virtual\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+		expect(drawerAnimatingBlock).toContain('top 140ms');
+		expect(drawerAnimatingBlock).toContain('background-color 120ms ease');
 	});
 
 	it('keeps Tags and Props grid operation badges visually quieter than Files operation badges', () => {
