@@ -113,6 +113,36 @@ describe('native settings search query', () => {
 		expect(groups[2]?.results).toEqual([]);
 	});
 
+	it('keeps the tab id and the visible tab name apart', () => {
+		const payload = [
+			{
+				tab: { id: 'hotkeys', name: 'Hotkeys' },
+				page: { id: 'general', name: 'General' },
+				pagePath: {},
+				tabNameMatch: { score: 1, matches: [[0, 1]] },
+				bestScore: { score: 1 },
+				results: [],
+			},
+			{
+				tab: 'plain',
+				page: { name: 'General' },
+				pagePath: {},
+				tabNameMatch: { score: 0, matches: [] },
+				bestScore: 0,
+				results: [],
+			},
+		];
+		const app = nativeApp(() => payload);
+		const groups = queryNativeSettingsSearch(app, 'hot');
+		expect(groups).toHaveLength(2);
+		expect(groups[0]?.tab).toBe('hotkeys');
+		expect(groups[0]?.tabName).toBe('Hotkeys');
+		expect(groups[0]?.results).toEqual([]);
+		expect(groups[0]?.tabNameMatch).toEqual([{ start: 0, end: 1 }]);
+		expect(groups[1]?.tab).toBe('plain');
+		expect(groups[1]?.tabName).toBe('plain');
+	});
+
 	it('drops malformed groups and items instead of failing', () => {
 		const app = nativeApp(() => [
 			null,

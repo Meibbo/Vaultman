@@ -99,6 +99,12 @@ function toName(value: unknown): string {
 	return toText(value['name']);
 }
 
+function toTabName(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	return toText(value['name']);
+}
+
 function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 	if (!isRecord(value)) return null;
 	const entry = value['entry'];
@@ -135,6 +141,7 @@ function toGroup(value: unknown): NativeSettingsSearchGroup | null {
 	}
 	return {
 		tab: toNamedId(value['tab']),
+		tabName: toTabName(value['tab']),
 		page: toName(value['page']),
 		pagePath: toText(value['pagePath']),
 		tabNameMatch: toSpans(value['tabNameMatch']),

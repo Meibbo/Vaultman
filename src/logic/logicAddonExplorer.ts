@@ -115,7 +115,12 @@ export interface SettingsBridgeInput {
 export interface SettingsBridgeResult {
 	/** Filas en ranking nativo: plugin resoluble o `node_settings`. */
 	nodes: TreeNode<PluginMeta>[];
-	/** Todas las filas emitidas son matches: entran al highlight de búsqueda. */
+	/**
+	 * Solo las filas con match real (mecanismo estándar
+	 * `settingsSearchHighlightIds`): al menos un span en `nameMatch` o
+	 * `descMatch` del item (filas plugin/settings) o en `tabNameMatch`
+	 * del grupo (filas de tab). Sin matches → fila normal sin highlight.
+	 */
 	highlightIds: Set<string>;
 }
 
@@ -125,12 +130,25 @@ export interface SettingsBridgeResult {
  * - `entry.tab` idéntico a un `plugin:<id>` conocido = la MISMA fila legacy
  *   (conserva kind `plugin` y sus celdas toggle/config). Sin fuzzy: la
  *   igualdad es exacta y case-sensitive, como los ids de plugin.
- * - Sin resoluble (tab desconocido, intercepción sin identidad canónica,
- *   tag sin `tagPath`) = `node_settings` con texto+highlight y SIN celdas.
+ * - Si el tab no resuelve (caso real: `community-plugins`), `definition.name`
+ *   idéntico al `meta.name` de UNA entry conocida = la MISMA fila legacy.
+ *   Igualdad exacta y case-sensitive; cero o dos+ candidatas con ese nombre
+ *   (duplicado/ambiguo) = fila `node_settings`, nunca adivinar.
+ * - Sin resoluble (tab desconocido, nombre sin candidato único, intercepción
+ *   sin identidad canónica, tag sin `tagPath`) = `node_settings` con texto
+ *   y SIN celdas (highlight solo si el item trae matches, ver abajo).
  *   Nunca una segunda entidad para la misma identidad: un plugin que sale
  *   en dos grupos nativos emite UNA fila (su primera posición de ranking);
  *   las dos ocurrencias `adopted` (`id@grupo`) las pone la proyección de
  *   grupos custom cuando el toggle está on, no el puente.
+ * - Grupo con cero resultados y `tabNameMatch` NO vacío (editor custom no
+ *   indexado, caso real: `hotkeys`) = UNA fila con el nombre del tab
+ *   (`tabName`, clave `tab.id`), navegable por selección y highlighted.
+ *   Grupo vacío SIN `tabNameMatch` = cero filas, no se inventa nada.
+ *
+ * Highlight: solo entran las filas cuyo item tenga `nameMatch`/`descMatch`
+ * NO vacíos (o la fila de tab, cuyo `tabNameMatch` es NO vacío por
+ * construcción). Sin matches → fila normal sin highlight.
  *
  * Las fechas de plugins llegan con la fila legacy (vía `obsidianAddons`
  * `addonTimes` + la proyección existente). Las filas `node_settings` y los
@@ -143,15 +161,78 @@ export function resolveSettingsBridgeNodes(
 	const nodes: TreeNode<PluginMeta>[] = [];
 	const highlightIds = new Set<string>();
 	const emittedIds = new Set<string>();
+	// Intercepción por nombre de definición: índice exacto y case-sensitive
+	// de `meta.name` → filas legacy. Lista por nombre para detectar
+	// duplicados (ambiguo = no adivinar).
+	const nodesByName = new Map<string, TreeNode<PluginMeta>[]>();
+	for (const node of input.pluginNodesById.values()) {
+		const list = nodesByName.get(node.meta.name);
+		if (list) list.push(node);
+		else nodesByName.set(node.meta.name, [node]);
+	}
+	const hasRealMatch = (item: {
+		readonly nameMatch: readonly unknown[];
+		readonly descMatch: readonly unknown[];
+	}): boolean => item.nameMatch.length > 0 || item.descMatch.length > 0;
+	const emitPluginRow = (
+		row: TreeNode<PluginMeta>,
+		matched: boolean,
+	): void => {
+		if (emittedIds.has(row.id)) {
+			if (matched) highlightIds.add(row.id);
+			return;
+		}
+		emittedIds.add(row.id);
+		nodes.push(row);
+		if (matched) highlightIds.add(row.id);
+	};
 	for (const group of input.groups) {
-		for (const item of group.results ?? []) {
+		const results = group.results ?? [];
+		if (results.length === 0) {
+			// Grupo vacío sin match en el nombre del tab: no inventa filas.
+			if (group.tabNameMatch.length === 0) continue;
+			const tabLabel = group.tabName !== '' ? group.tabName : group.tab;
+			const ref = {
+				tab: group.tab,
+				page: group.page,
+				pagePath: group.pagePath,
+				definition: '',
+			};
+			const rowId = settingsBridgeRowId(ref);
+			if (emittedIds.has(rowId)) continue;
+			emittedIds.add(rowId);
+			nodes.push({
+				id: rowId,
+				label: tabLabel,
+				depth: 0,
+				cells: [],
+				meta: withSettingsRef(
+					{
+						pluginId: '',
+						name: tabLabel,
+						enabled: false,
+						loaded: false,
+						isVaultman: false,
+					},
+					ref,
+				),
+				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+			});
+			highlightIds.add(rowId);
+			continue;
+		}
+		for (const item of results) {
 			const tab = item.entry?.tab ?? '';
 			const resolved = tab !== '' ? input.pluginNodesById.get(tab) : undefined;
 			if (resolved) {
-				if (emittedIds.has(resolved.id)) continue;
-				emittedIds.add(resolved.id);
-				nodes.push(resolved);
-				highlightIds.add(resolved.id);
+				emitPluginRow(resolved, hasRealMatch(item));
+				continue;
+			}
+			const definition = item.entry?.definition ?? '';
+			const candidates =
+				definition !== '' ? nodesByName.get(definition) : undefined;
+			if (candidates?.length === 1 && candidates[0]) {
+				emitPluginRow(candidates[0], hasRealMatch(item));
 				continue;
 			}
 			const ref = {
@@ -184,7 +265,7 @@ export function resolveSettingsBridgeNodes(
 				),
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			});
-			highlightIds.add(rowId);
+			if (hasRealMatch(item)) highlightIds.add(rowId);
 		}
 	}
 	return { nodes, highlightIds };

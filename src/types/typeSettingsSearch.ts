@@ -6,6 +6,8 @@ import type { PluginMeta } from './typeTree';
  * `app.setting.searchIndex.search(q)` devuelve grupos
  * `{tab,page,pagePath,tabNameMatch,results[],bestScore}` con items
  * `{entry:{tab,definition,page,pagePath},nameMatch,descMatch,score}`.
+ * `tab` llega como `{id,name}`: el adaptador parte el espejo en `tab`
+ * (id, clave de la fila de tab) y `tabName` (nombre visible).
  * Solo lo declarativo indexado (`visible`/`searchable`) aparece; el
  * imperativo `display()` queda fuera del índice.
  *
@@ -79,6 +81,8 @@ export interface NativeSettingsSearchItem {
 
 export interface NativeSettingsSearchGroup {
 	tab: string;
+	/** Nombre visible del tab (`tab.name` nativo; `tab` es el id/clave). */
+	tabName: string;
 	page: string;
 	pagePath: string;
 	tabNameMatch: readonly NativeSettingsSearchSpan[];

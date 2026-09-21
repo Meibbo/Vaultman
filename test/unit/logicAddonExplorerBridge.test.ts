@@ -54,6 +54,8 @@ function item(
 	definition: string,
 	page = 'General',
 	score = 1,
+	nameMatches: readonly (readonly number[])[] = [],
+	descMatches: readonly (readonly number[])[] = [],
 ): RawSettingsSearchItem {
 	return {
 		entry: {
@@ -62,8 +64,8 @@ function item(
 			page: { id: page.toLowerCase(), name: page },
 			pagePath: {},
 		},
-		nameMatch: { score, matches: [] },
-		descMatch: { score: 0, matches: [] },
+		nameMatch: { score, matches: nameMatches },
+		descMatch: { score: 0, matches: descMatches },
 		score,
 	};
 }
@@ -72,12 +74,14 @@ function group(
 	tab: string,
 	results: RawSettingsSearchItem[],
 	bestScore = 1,
+	tabName: string = tab,
+	tabNameMatches: readonly (readonly number[])[] = [],
 ): NativeSettingsSearchGroup {
 	const raw: RawSettingsSearchGroup = {
-		tab: { id: tab, name: tab },
+		tab: { id: tab, name: tabName },
 		page: { id: 'general', name: 'General' },
 		pagePath: {},
-		tabNameMatch: { score: bestScore, matches: [] },
+		tabNameMatch: { score: bestScore, matches: tabNameMatches },
 		results,
 		bestScore: { score: bestScore },
 	};
@@ -122,7 +126,7 @@ describe('settings bridge resolution', () => {
 		const byId = new Map([['calendar', row]]);
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
-			groups: [group('calendar', [item('calendar', 'Week start')])],
+			groups: [group('calendar', [item('calendar', 'Week start', 'General', 1, [[0, 4]])])],
 		});
 		expect(result.nodes).toHaveLength(1);
 		expect(result.nodes[0]).toBe(row);
@@ -136,7 +140,7 @@ describe('settings bridge resolution', () => {
 	it('projects an unresolvable hit as a cell-less settings row with text', () => {
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: new Map(),
-			groups: [group('theme', [item('theme', 'Accent color')])],
+			groups: [group('theme', [item('theme', 'Accent color', 'General', 1, [[0, 6]])])],
 		});
 		expect(result.nodes).toHaveLength(1);
 		const row = result.nodes[0];
@@ -163,6 +167,104 @@ describe('settings bridge resolution', () => {
 		expect(result.nodes).toHaveLength(1);
 		expect(result.nodes[0]).not.toBe(row);
 		expect(result.nodes[0]?.id.startsWith('settings:')).toBe(true);
+	});
+
+	it('highlights only rows with a real match in a mixed group', () => {
+		const row = pluginNode('calendar', 'Calendar');
+		const byId = new Map([['calendar', row]]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('theme', [
+					item('theme', 'Accent color', 'Appearance', 12, [[0, 6]]),
+					item('theme', 'Background', 'Appearance', 4),
+				]),
+				group('calendar', [item('calendar', 'Week start')]),
+			],
+		});
+		expect(result.nodes).toHaveLength(3);
+		expect(result.highlightIds.size).toBe(1);
+		expect(result.highlightIds.has(result.nodes[0]?.id ?? '')).toBe(true);
+	});
+
+	it('intercepts by exact definition name when the tab is community-plugins', () => {
+		const row = pluginNode('hot-reload', 'Hot Reload');
+		const byId = new Map([['hot-reload', row]]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('community-plugins', [
+					item('community-plugins', 'Hot Reload', 'General', 5, [[0, 3]]),
+				]),
+			],
+		});
+		expect(result.nodes).toHaveLength(1);
+		expect(result.nodes[0]).toBe(row);
+		expect(result.nodes[0]?.id).toBe('plugin:hot-reload');
+		expect(result.nodes[0]?.cells).toHaveLength(1);
+		expect(result.highlightIds.has('plugin:hot-reload')).toBe(true);
+	});
+
+	it('falls back to settings rows on near-miss and case-mismatched names', () => {
+		const row = pluginNode('hot-reload', 'Hot Reload');
+		const byId = new Map([['hot-reload', row]]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('community-plugins', [
+					item('community-plugins', 'Hot Reloa', 'General', 5, [[0, 3]]),
+					item('community-plugins', 'hot reload', 'General', 5, [[0, 3]]),
+				]),
+			],
+		});
+		expect(result.nodes).toHaveLength(2);
+		expect(result.nodes.every((node) => node.id.startsWith('settings:'))).toBe(
+			true,
+		);
+		expect(result.nodes).not.toContain(row);
+	});
+
+	it('never guesses on ambiguous duplicate definition names', () => {
+		const first = pluginNode('a-plug', 'Shared Name');
+		const second = pluginNode('b-plug', 'Shared Name');
+		const byId = new Map([
+			['a-plug', first],
+			['b-plug', second],
+		]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('community-plugins', [
+					item('community-plugins', 'Shared Name', 'General', 5, [[0, 6]]),
+				]),
+			],
+		});
+		expect(result.nodes).toHaveLength(1);
+		expect(result.nodes[0]?.id.startsWith('settings:')).toBe(true);
+		expect(result.nodes[0]).not.toBe(first);
+		expect(result.nodes[0]).not.toBe(second);
+	});
+
+	it('emits a navigable tab row for an empty group with a tab name match', () => {
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: new Map(),
+			groups: [group('hotkeys', [], 1, 'Hotkeys', [[0, 1]])],
+		});
+		expect(result.nodes.length).toBeGreaterThanOrEqual(1);
+		const row = result.nodes[0];
+		expect(row?.label).toBe('Hotkeys');
+		expect(row?.cells).toEqual([]);
+		expect(row?.meta.pluginId).toBe('');
+		expect(result.highlightIds.has(row?.id ?? '')).toBe(true);
+	});
+
+	it('emits nothing for an empty group without a tab name match', () => {
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: new Map(),
+			groups: [group('hotkeys', [])],
+		});
+		expect(result.nodes).toEqual([]);
+		expect(result.highlightIds.size).toBe(0);
 	});
 
 	it('applies no local text filter: rows stay even when their text lacks the term', () => {
