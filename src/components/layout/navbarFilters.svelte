@@ -87,6 +87,10 @@ import {
 		type NodeTypeMenuOption,
 		type ScopeMenuScene,
 	} from '../../logic/logicSortMenu';
+	import {
+		activePaneInOwner,
+		scopePickAvailability,
+	} from '../../logic/logicScopePick';
 	import type { GroupPresetKind } from '../../types/typeGroupPreset';
 	import type { ToolbarMenuKind } from '../../logic/logicToolbarMenuCatalog';
 	import {
@@ -2772,16 +2776,12 @@ import {
 
 	function beginScopePick(tab: FiltersTab, mode: 'parent' | 'level') {
 		if (!supportsByLevel(tab)) return;
+		const availability = scopePickAvailabilityFor(tab);
+		if (!availability[mode]) return;
 		stopDrillPick();
-		const pane =
-			navbarEl?.closest<HTMLElement>('.vaultman-filters-tab-pane.is-active') ??
-			document.querySelector<HTMLElement>(
-				'.vaultman-filters-tab-pane.is-active',
-			);
+		const pane = activePaneInOwner(ownerFrameRoot());
 		if (!pane) return;
-		// D29 drill UX (twin of the floating-index pick): a dashed frame marks
-		// pick mode and ONE simple click on any row selects that row's LEVEL
-		// (its parent scope). Re-open Scope / choose All levels to change it.
+		// D29 drill UX: one click selects the requested parent/level scope.
 		pane.classList.add('vaultman-sort-pick-mode');
 		const suppressEvent = (event: Event) => {
 			event.preventDefault();
@@ -2811,7 +2811,7 @@ import {
 				stopDrillPick();
 				return;
 			}
-			const parentId = panel?.scopeRootForNode(nodeId) ?? null;
+			const parentId = panel?.scopeParentForNode(nodeId) ?? null;
 			handleScopeChangeForTab(
 				tab,
 				parentId
@@ -2849,15 +2849,38 @@ import {
 		return null;
 	}
 
+	function ownerFrameRoot(): ParentNode | null {
+		return navbarEl?.closest<HTMLElement>('.vaultman-pages-viewport') ?? null;
+	}
+
+	function scopePickAvailabilityFor(tab: FiltersTab) {
+		const current = normalizeSortState(
+			tab,
+			untrack(() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]),
+		);
+		return scopePickAvailability({
+			tab,
+			treeCapable: treeCapableFor(tab),
+			nestedActive: nestedActiveFor(tab),
+			hasParentNodes: treePanelForTab(tab)?.hasScopeParentNodes?.() === true,
+			filesFoldersOnly:
+				tab === 'files' &&
+				nodeTypeFiltersForState(current).includes('folders-only'),
+		});
+	}
+
 	/** Spec 08 §3.1: what the scope submenu needs from the scene to name its rows. */
 	function scopeSceneFor(tab: FiltersTab): ScopeMenuScene {
 		const panel = treePanelForTab(tab);
+		const availability = scopePickAvailabilityFor(tab);
 		return {
 			parentLabel: (id) => panel?.sortNodeLabel?.(id) ?? null,
 			parentLevel: (id) => panel?.scopeLevelForNode?.(id) ?? null,
 			sortLabel: (sort) =>
 				`${translate(sortOptionLabelKey(tab, sort.sortBy))} ${sortDirectionGlyph(sort.direction)}`,
 			levelLabel: (level) => translate('sort.scope.level_n', { n: level }),
+			canPickParent: availability.parent,
+			canPickLevel: availability.level,
 		};
 	}
 
@@ -2975,9 +2998,7 @@ import {
 		// given a second frame before the pick gives up on it.
 		for (let attempt = 0; attempt < 2; attempt += 1) {
 			await tick();
-			const pane = document.querySelector<HTMLElement>(
-				'.vaultman-filters-tab-pane.is-active',
-			);
+			const pane = activePaneInOwner(ownerFrameRoot());
 			if (pane) return pane;
 			await new Promise((resolve) => window.setTimeout(resolve, 50));
 		}

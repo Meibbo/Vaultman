@@ -93,6 +93,44 @@ export function findParentId<T extends IndexTreeNode>(
 }
 
 /**
+ * Scope pick ownership differs from the floating index: clicking a container
+ * selects that container's own sibling scope, while clicking a leaf selects
+ * the scope of its immediate parent.
+ */
+export function findScopeParentId<T extends IndexTreeNode>(
+	roots: readonly T[] | null | undefined,
+	id: string,
+	parent: string | null = null,
+	isParent: (node: T) => boolean = (node) =>
+		(node.children?.length ?? 0) > 0,
+): string | null {
+	for (const node of roots ?? []) {
+		if (node.id === id) {
+			return isParent(node) ? node.id : parent;
+		}
+		const hit = node.children
+			? findScopeParentId(node.children as T[], id, node.id, isParent)
+			: null;
+		if (hit !== null) return hit;
+	}
+	return null;
+}
+
+/** Whether the rendered source tree contains at least one selectable parent. */
+export function hasScopeParentNodes<T extends IndexTreeNode>(
+	roots: readonly T[] | null | undefined,
+	isParent: (node: T) => boolean = (node) =>
+		(node.children?.length ?? 0) > 0,
+): boolean {
+	for (const node of roots ?? []) {
+		if (isParent(node)) return true;
+		if (node.children && hasScopeParentNodes(node.children as T[], isParent))
+			return true;
+	}
+	return false;
+}
+
+/**
  * Spec 08 §3.1 item 3 ("Select a level"): the 1-based level of a node in the
  * rendered tree — root rows are level 1 — or null when it is not there.
  */

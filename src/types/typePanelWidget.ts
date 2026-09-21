@@ -169,6 +169,10 @@ export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplo
 	getFileTypeOptions(): Array<{ id: string; icon: string; label: string }>;
 	hasSortNode(id: string): boolean;
 	scopeRootForNode(id: string): string | null;
+	/** Scope pick: a p-node owns itself; a leaf resolves to its parent. */
+	scopeParentForNode(id: string): string | null;
+	/** True when the current projected tree contains a selectable p-node. */
+	hasScopeParentNodes?(): boolean;
 	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
 	scopeLevelForNode?(id: string): number | null;
 	sortNodeLabel(id: string): string | null;
@@ -187,6 +191,10 @@ export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplor
 	createFromSearch(term: string, category?: number): void | Promise<void>;
 	hasSortNode?(id: string): boolean;
 	scopeRootForNode(id: string): string | null;
+	/** Scope pick: a p-node owns itself; a leaf resolves to its parent. */
+	scopeParentForNode(id: string): string | null;
+	/** True when the current projected tree contains a selectable p-node. */
+	hasScopeParentNodes?(): boolean;
 	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
 	scopeLevelForNode?(id: string): number | null;
 	sortNodeLabel?(id: string): string | null;

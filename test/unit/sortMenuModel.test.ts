@@ -64,11 +64,19 @@ describe('BT5-007 shared sort menu model', () => {
 			sortLabel: (sort: { sortBy: string; direction: string }) =>
 				`${sort.sortBy} ${sort.direction}`,
 			levelLabel: (level: number) => `Level ${level}`,
+			canPickParent: true,
+			canPickLevel: true,
 		};
 		const all = scopeMenuModel('files', stateFor('files'), scene);
 		expect(all?.titleKind).toBe('all');
 		expect(all?.items.map((item) => item.id)).toEqual(['all', 'drill', 'level']);
 		expect(all?.items.find((item) => item.id === 'all')).toMatchObject({ checked: true });
+		const constrained = scopeMenuModel('files', stateFor('files'), {
+			...scene,
+			canPickParent: false,
+			canPickLevel: false,
+		});
+		expect(constrained?.items.map((item) => item.id)).toEqual(['all']);
 
 		// A picked parent titles the submenu after it and lists it as a row.
 		const picked = scopeMenuModel(

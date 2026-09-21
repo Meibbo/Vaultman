@@ -161,6 +161,8 @@ import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
 	findNodeLevel,
 	findParentId,
+	findScopeParentId,
+	hasScopeParentNodes,
 	indexLevel,
 	type FloatingTocExpansionChange,
 	type IndexNodeRef,
@@ -2432,6 +2434,15 @@ export class PropsExplorerPanel extends Component {
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
+	}
+
+	scopeParentForNode(id: string): string | null {
+		if (this.viewMode !== 'tree') return null;
+		return findScopeParentId(this._lastRenderTree, id);
+	}
+
+	hasScopeParentNodes(): boolean {
+		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
 	}
 
 	scopeLevelForNode(id: string): number | null {

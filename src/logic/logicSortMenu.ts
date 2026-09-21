@@ -309,6 +309,9 @@ export interface ScopeMenuScene {
 	sortLabel: (sort: ScopeSort) => string;
 	/** `Level N` for a level. */
 	levelLabel: (level: number) => string;
+	/** Runtime availability of the two row-picking entries. */
+	canPickParent: boolean;
+	canPickLevel: boolean;
 }
 
 export function scopeMenuModel(
@@ -336,19 +339,25 @@ export function scopeMenuModel(
 			...SCOPE_META.all,
 			checked: active === 'all',
 		},
-		{
+	];
+	// The Scope submenu itself remains present for every hierarchical tab; the
+	// scene only withdraws picks that cannot describe the current projection.
+	if (scene.canPickParent) {
+		items.push({
 			kind: 'pick',
 			id: 'drill',
 			...SCOPE_META.drill,
 			checked: activeParent !== null,
-		},
-		{
+		});
+	}
+	if (scene.canPickLevel) {
+		items.push({
 			kind: 'pick',
 			id: 'level',
 			...LEVEL_PICK_META,
 			checked: activeLevel !== null,
-		},
-	];
+		});
+	}
 	const rows: ScopeSortRowItem[] = [];
 	const hidden = new Set(state.hiddenScopes ?? []);
 	for (const key of Object.keys(state.sorts) as SortScopeKey[]) {

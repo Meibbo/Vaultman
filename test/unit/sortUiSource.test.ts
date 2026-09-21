@@ -86,8 +86,14 @@ describe('explorer sort UI source', () => {
 	it('captures a drill level with one click in dashed pick mode (BT4-009/D29)', () => {
 		expect(navbarSource).not.toContain('new LongPressGesture()');
 		expect(navbarSource).toContain("closest<HTMLElement>('[data-id]')");
-		// Picking a row selects its LEVEL: the parent scope, like the index drill.
-		expect(navbarSource).toContain('panel?.scopeRootForNode(nodeId)');
+		// Parent pick uses the p-node itself; leaves resolve to their parent.
+		expect(navbarSource).toContain('panel?.scopeParentForNode(nodeId)');
+		expect(navbarSource).toContain("closest<HTMLElement>('.vaultman-pages-viewport')");
+		expect(navbarSource).toContain('const availability = scopePickAvailabilityFor(tab)');
+		expect(navbarSource).toContain('if (!availability[mode]) return;');
+		expect(navbarSource).not.toContain(
+			"document.querySelector<HTMLElement>('.vaultman-filters-tab-pane.is-active')",
+		);
 		expect(navbarSource).toContain("classList.add('vaultman-sort-pick-mode')");
 		expect(navbarSource).toContain(
 			"classList.remove('vaultman-sort-pick-mode')",
