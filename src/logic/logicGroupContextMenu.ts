@@ -2,35 +2,84 @@ import { Notice } from 'obsidian';
 import type { VaultmanPlugin } from '../main';
 import type { MenuCtx } from '../types/typeCMenu';
 import { translate } from '../i18n/index';
+import {
+	ADD_PROPERTY_ROW_ID,
+	DEGROUP_SELECTED_ICON,
+	DEGROUP_SELECTED_SASI_ID,
+	GROUP_SELECTED_ICON,
+	GROUP_SELECTED_SASI_ID,
+} from './logicGroupSelectionTransaction';
 
 /**
- * Spec 08 §3.3: `Create group with selected` on the cmenu of every explorer
- * node kind. The explorer decides when it applies (select mode with a
- * selection) by attaching `createGroupWithSelected` to the ctx; the action
- * only dispatches.
+ * Spec 08 §3.3 + U130 transacción (spec-01 §4, spec-02 §4-5):
+ * `Group selected` / `Degroup selected` en el cmenu de cada explorer.
  *
- * U130 Slice B (spec-03 §24-40): universal group-header menu on
- * `nodeType: 'group'`. Owner decides availability — preset/note headers are
- * engine-owned, custom ones scene-owned — and unavailable is disabled with a
- * reason, never hidden. The explorer attaches `groupId`/`groupOwner` plus a
- * `toggleGroupExpand` callback; hide/delete stay scene-owned (navbar
- * `SceneConfig`) so from here they are disabled with the reason pointing at
- * the Groups submenu.
+ * - Group selected no depende de `interactionMode === select` ni de
+ *   checkbox visible: exige selección válida y groupable.
+ * - Si la selección contiene un action-only node (`add_property`), la
+ *   acción queda unavailable con razón explícita; nunca opera sobre un
+ *   subset silencioso.
+ * - Menú/invoker async: espera el resultado del handler.
+ * - Los IDs son los del catálogo SASI (`vaultman.group.*`), sin callbacks
+ *   duplicados: el context menu es una proyección de esas Actions.
  */
 export function registerGroupActions(plugin: VaultmanPlugin): void {
 	const svc = plugin.contextMenuService;
 	if (!svc?.registerAction) return;
 
 	svc.registerAction({
-		id: 'group.create-with-selected',
+		id: GROUP_SELECTED_SASI_ID,
 		nodeTypes: ['file', 'folder', 'tag', 'prop', 'value', 'snippet', 'plugin'],
 		surfaces: ['panel'],
-		label: () => translate('group.create_with_selected'),
-		icon: 'lucide-folder-plus',
+		label: () => translate('group.selected'),
+		icon: GROUP_SELECTED_ICON,
 		separatorBefore: true,
 		when: (ctx: MenuCtx) => typeof ctx.createGroupWithSelected === 'function',
-		run: (ctx: MenuCtx) => {
-			ctx.createGroupWithSelected?.();
+		disabledReason: (ctx: MenuCtx) => {
+			if (typeof ctx.createGroupWithSelected !== 'function')
+				return translate('group.selected.no_handler');
+			const ids = ctx.selectedIds;
+			if (!ids || ids.size === 0) return translate('group.selected.empty');
+			if (ids.has(ADD_PROPERTY_ROW_ID))
+				return translate('group.selected.action_only');
+			return null;
+		},
+		run: async (ctx: MenuCtx) => {
+			const result = await ctx.createGroupWithSelected?.();
+			if (result && typeof result === 'object' && 'status' in result) {
+				if (result.status === 'rejected')
+					new Notice(`${translate('group.batch.rejected')} (${result.reason})`);
+			}
+		},
+	});
+
+	svc.registerAction({
+		id: DEGROUP_SELECTED_SASI_ID,
+		nodeTypes: ['file', 'folder', 'tag', 'prop', 'value', 'snippet', 'plugin'],
+		surfaces: ['panel'],
+		label: () => translate('group.degroup_selected'),
+		icon: DEGROUP_SELECTED_ICON,
+		when: (ctx: MenuCtx) => typeof ctx.degroupSelected === 'function',
+		disabledReason: (ctx: MenuCtx) => {
+			if (typeof ctx.degroupSelected !== 'function')
+				return translate('group.degroup.no_handler');
+			// Preset nunca ofrece Degroup: sin owner no hay de dónde salir.
+			if (!ctx.membershipOwner && ctx.groupOwner !== 'custom' && ctx.groupOwner !== 'note')
+				return translate('group.degroup.unavailable_no_owner');
+			if (ctx.membershipOwner === undefined && ctx.groupOwner === 'preset')
+				return translate('group.degroup.unavailable_preset');
+			const ids = ctx.selectedIds;
+			if (!ids || ids.size === 0) return translate('group.selected.empty');
+			if (ids.has(ADD_PROPERTY_ROW_ID))
+				return translate('group.selected.action_only');
+			return null;
+		},
+		run: async (ctx: MenuCtx) => {
+			const result = await ctx.degroupSelected?.();
+			if (result && typeof result === 'object' && 'status' in result) {
+				if (result.status === 'rejected')
+					new Notice(`${translate('group.batch.rejected')} (${result.reason})`);
+			}
 		},
 	});
 

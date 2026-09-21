@@ -46,14 +46,22 @@ import {
 } from '../../logic/logicMembershipUrn';
 import {
 	collectGroupMemberIds,
-	collectSelectedMembershipUrns,
 	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
+	occurrenceOwnerOf,
 	projectGroupedTree,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	noteSelectionState,
+	reconcileCommittedSelection,
+	selectionKeyFor,
+	snapshotFromProjectedTree,
+	type CreateGroupHandler,
+	type DegroupSelectedHandler,
+} from '../../logic/logicGroupSelectionTransaction';
 import {
 	NO_GROUP_PRESET,
 	sameGroupPreset,
@@ -401,8 +409,12 @@ export class FilesExplorerPanel extends Component {
 	private tooltipsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
-	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
-	private createGroupHandler?: (urns: readonly string[]) => void;
+	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
+	private createGroupHandler?: CreateGroupHandler;
+	private degroupSelectedHandler?: DegroupSelectedHandler;
+	/** Guarda de reconciliación (instance/revision de esta scene). */
+	private selectionInstanceId: string | null = null;
+	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
@@ -1048,10 +1060,29 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
-	setCreateGroupHandler(
-		handler?: (urns: readonly string[]) => void,
-	): void {
+	setCreateGroupHandler(handler?: CreateGroupHandler): void {
 		this.createGroupHandler = handler;
+	}
+
+	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
+		this.degroupSelectedHandler = handler;
+	}
+
+	setSelectionScope(scope: {
+		instanceId: string | null;
+		revision: number | null;
+		scene: string;
+	}): void {
+		this.selectionInstanceId = scope.instanceId;
+		this.selectionRevision = scope.revision;
+	}
+
+	private _selectionKey(): string {
+		return selectionKeyFor('files', 'files', this.selectionInstanceId);
+	}
+
+	private _touchSelection(): void {
+		noteSelectionState(this._selectionKey(), this.selectedFilePaths);
 	}
 
 	private _membershipUrnOf(node: TreeNode<FileMeta>): string {
@@ -1063,26 +1094,88 @@ export class FilesExplorerPanel extends Component {
 		});
 	}
 
-	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
-	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
+	/**
+	 * U130 transacción: captura snapshot al invocar (spec-01 §4). Sin gate
+	 * de `interactionMode === select` ni checkbox visible (spec-02 §4): sí
+	 * exige selección válida y groupable. Solo `committed` elimina del axón
+	 * los targets del snapshot realmente confirmados; cancelar/rechazar no
+	 * limpia y las selecciones nuevas durante el modal sobreviven (ABA por
+	 * token). Reconcilia vía `_applyFileSelection` (sincroniza
+	 * table/grid/filter y conserva el anchor); nunca reemplaza el Set
+	 * directamente.
+	 */
+	private _groupCreationMenuCtx(): Pick<
+		MenuCtx,
+		'createGroupWithSelected' | 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'
+	> {
 		const handler = this.createGroupHandler;
-		if (
-			!handler ||
-			this.interactionMode !== 'select' ||
-			this.selectedFilePaths.size === 0
-		) {
+		if (!handler || this.selectedFilePaths.size === 0) {
 			return {};
 		}
 		return {
-			createGroupWithSelected: () =>
-				handler(
-					collectSelectedMembershipUrns(
-						this._lastRenderTree,
+			createGroupWithSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedFilePaths,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'files',
+					scene: 'files',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				const result = await handler(snapshot);
+				if (result.status === 'committed') {
+					const next = reconcileCommittedSelection(
+						snapshot,
+						result,
 						this.selectedFilePaths,
-						(node) => this._membershipUrnOf(node),
-						this._groupIds,
-					),
-				),
+						{
+							instanceId: this.selectionInstanceId,
+							revision: this.selectionRevision,
+						},
+					);
+					this._applyFileSelection({
+						selectedPaths: next,
+						anchorPath: this.selectionAnchorPath,
+					});
+				}
+				return result;
+			},
+		};
+	}
+
+	/**
+	 * U130 Degroup selected (spec-02 §5): targets = selección efectiva ∩
+	 * miembros del owner invocado. El owner viaja desde la metadata de la
+	 * ocurrencia miembro; preset sin handler.
+	 */
+	private _degroupMenuCtx(
+		invoked: TreeNode<FileMeta>,
+	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const handler = this.degroupSelectedHandler;
+		const owner = occurrenceOwnerOf(invoked);
+		if (!handler || !owner || !this._groupIds.has(owner)) return {};
+		if (this.selectedFilePaths.size === 0) return {};
+		return {
+			membershipOwner: owner,
+			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			occurrenceEntityId: entityIdOf(invoked),
+			degroupSelected: () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedFilePaths,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'files',
+					scene: 'files',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				return handler(snapshot, owner);
+			},
 		};
 	}
 
@@ -1957,6 +2050,7 @@ export class FilesExplorerPanel extends Component {
 		);
 
 		this.selectedFilePaths = new Set<string>();
+		this._touchSelection();
 		this.setInteractionMode('select');
 		this._emitNodeMoveChange();
 		this._render();
@@ -1995,6 +2089,7 @@ export class FilesExplorerPanel extends Component {
 		const newSelection = new Set<string>();
 		newSelection.add(targetFolder.path);
 		this.selectedFilePaths = newSelection;
+		this._touchSelection();
 		this.selectionAnchorPath = targetFolder.path;
 		this._emitNodeMoveChange();
 		this._render();
@@ -2883,6 +2978,7 @@ export class FilesExplorerPanel extends Component {
 								selectedIds: this.selectedFilePaths,
 								orderedIds: this._orderedVisibleTreeIds(),
 								...this._groupCreationMenuCtx(),
+								...this._degroupMenuCtx(node),
 								...this._viewFilterMenuActions(),
 							},
 							e,
@@ -2898,6 +2994,7 @@ export class FilesExplorerPanel extends Component {
 							selectedIds: this.selectedFilePaths,
 							orderedIds: this._orderedVisibleTreeIds(),
 							...this._groupCreationMenuCtx(),
+							...this._degroupMenuCtx(node),
 							file: meta.file,
 							...this._viewFilterMenuActions(),
 							invokeRename: (targetId: string) => {
@@ -5132,6 +5229,7 @@ export class FilesExplorerPanel extends Component {
 		anchorPath: string | null;
 	}): void {
 		this.selectedFilePaths = selectedPaths;
+		this._touchSelection();
 		this.selectionAnchorPath = anchorPath;
 		this.tableView?.setSelectedPaths(selectedPaths);
 		this.gridView?.setSelectedPaths(selectedPaths);

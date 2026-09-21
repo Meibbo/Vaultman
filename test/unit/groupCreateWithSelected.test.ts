@@ -60,7 +60,7 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		const actions = registerAction.mock.calls.map(
 			([action]) => action as ActionDef,
 		);
-		const action = actions.find((entry) => entry.id === 'group.create-with-selected');
+		const action = actions.find((entry) => entry.id === 'vaultman.group.selected');
 		expect(action).toBeDefined();
 		expect(actions.map((entry) => entry.id)).toEqual(
 			expect.arrayContaining([
@@ -71,13 +71,13 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 				'group.delete',
 			]),
 		);
-		if (!action) throw new Error('group.create-with-selected action was not registered');
+		if (!action) throw new Error('vaultman.group.selected action was not registered');
 		return action;
 	}
 
 	it('is offered to every explorer node kind on the panel surface', () => {
 		const action = registered();
-		expect(action.id).toBe('group.create-with-selected');
+		expect(action.id).toBe('vaultman.group.selected');
 		expect([...action.nodeTypes].sort()).toEqual(
 			['file', 'folder', 'plugin', 'prop', 'snippet', 'tag', 'value'].sort(),
 		);
@@ -88,21 +88,21 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		const action = registered();
 		const base: MenuCtx = { nodeType: 'file', node: node('f'), surface: 'panel' };
 		expect(action.when?.(base)).toBe(false);
-		const create = vi.fn();
+		const create = vi.fn(async () => ({ status: 'cancelled' as const }));
 		const ctx: MenuCtx = { ...base, createGroupWithSelected: create };
 		expect(action.when?.(ctx)).toBe(true);
 		void action.run(ctx);
 		expect(create).toHaveBeenCalledTimes(1);
 	});
 
-	it('the explorer attaches it only in select mode with a selection and a listener', () => {
+	it('the explorer attaches it whenever a selection and listener exist, independent of mode', () => {
 		type Harness = {
 			interactionMode: 'open' | 'select';
 			selectedNodeIds: Set<string>;
 			nodes: TreeNode<SnippetMeta>[];
 			_groupIds: Set<string>;
 			_lastProjectedTree: TreeNode<SnippetMeta>[];
-			setCreateGroupHandler: (h?: (urns: readonly string[]) => void) => void;
+			setCreateGroupHandler: (h?: (snapshot: unknown) => Promise<unknown>) => void;
 			_groupCreationMenuCtx: () => Pick<MenuCtx, 'createGroupWithSelected'>;
 		};
 		const panel = Object.create(SnippetsExplorerPanel.prototype) as Harness;
@@ -121,16 +121,21 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		panel.selectedNodeIds = new Set(['snippet:beta']);
 		expect(panel._groupCreationMenuCtx()).toEqual({});
 
-		const handler = vi.fn();
+		const handler = vi.fn(async () => ({ status: 'cancelled' as const }));
 		panel.setCreateGroupHandler(handler);
 		panel.interactionMode = 'open';
-		expect(panel._groupCreationMenuCtx()).toEqual({});
+		expect(panel._groupCreationMenuCtx()).toHaveProperty('createGroupWithSelected');
 		panel.interactionMode = 'select';
 		panel.selectedNodeIds = new Set();
 		expect(panel._groupCreationMenuCtx()).toEqual({});
 
 		panel.selectedNodeIds = new Set(['snippet:beta']);
-		panel._groupCreationMenuCtx().createGroupWithSelected?.();
-		expect(handler).toHaveBeenCalledWith(['snippets:snippet:beta|beta']);
+		void panel._groupCreationMenuCtx().createGroupWithSelected?.();
+		expect(handler).toHaveBeenCalledWith(
+			expect.objectContaining({
+				entityIds: ['snippet:beta'],
+				urns: ['snippets:snippet:beta|beta'],
+			}),
+		);
 	});
 });

@@ -7,6 +7,10 @@ import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 import type { GroupPreset } from './typeGroupPreset';
 import type { SasiRegistry } from '../logic/logicSasiRegistry';
 import type { SasiHandler } from '../logic/logicSasiInvoke';
+import type {
+	CreateGroupHandler,
+	DegroupSelectedHandler,
+} from '../logic/logicGroupSelectionTransaction';
 import type { TransactionBarState } from '../logic/logicTransactionBarState';
 import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
 import type { ToolbarMenuKind } from '../logic/logicToolbarMenuCatalog';
@@ -116,8 +120,19 @@ export interface PanelWidgetExplorerPort {
 	setGroupMemberships?(
 		memberships: Readonly<Record<string, readonly string[]>>,
 	): void;
-	/** Spec 08 §3.3: receives the selection's membership URNs to create a custom group. */
-	setCreateGroupHandler?(handler?: (urns: readonly string[]) => void): void;
+	/**
+	 * Spec 08 §3.3 + U130 transacción: recibe el snapshot inmutable de la
+	 * selección y devuelve el resultado discriminado. Solo `committed`
+	 * limpia el axón (lo hace el explorer, nunca el navbar).
+	 */
+	setCreateGroupHandler?(handler?: CreateGroupHandler): void;
+	/**
+	 * U130 Degroup selected: el explorer captura snapshot + owner invocado;
+	 * el navbar persiste (custom) o escribe la nota (note). Preset sin handler.
+	 */
+	setDegroupSelectedHandler?(handler?: DegroupSelectedHandler): void;
+	/** Identidad de scene/instancia para la guarda de reconciliación. */
+	setSelectionScope?(scope: { instanceId: string | null; revision: number | null; scene: string }): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;

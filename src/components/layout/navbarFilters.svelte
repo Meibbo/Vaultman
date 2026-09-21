@@ -144,6 +144,15 @@ import {
 		planGroupMembershipBatch,
 	} from '../../modals/modalGroupSuggester';
 	import { resolveCustomGroups } from '../../logic/logicTreeGroupProjection';
+	import {
+		ADD_PROPERTY_ROW_ID,
+		customOwnerMemberKeys,
+		intersectDegroupTargets,
+		removeCustomMemberships,
+		type GroupMutationResult,
+		type GroupSelectionSnapshot,
+	} from '../../logic/logicGroupSelectionTransaction';
+	import { parseMembershipUrn } from '../../logic/logicMembershipUrn';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExpandableExplorerPort,
@@ -669,11 +678,23 @@ import {
 	 * `Foo` in Files. The created group is selected right away
 	 * (`kind: 'custom'`), which is what makes it visible.
 	 */
+	function selectionScopeFor(tab: FiltersTab) {
+		const record = sceneConfigPort.readInstanceRecord();
+		return {
+			instanceId: record?.id ?? null,
+			revision: record?.revision ?? null,
+			scene: tab,
+		};
+	}
+
 	async function createCustomGroup(
 		tab: FiltersTab,
-		urns: readonly string[] = [],
-	): Promise<void> {
-		if (!app) return;
+		snapshot?: GroupSelectionSnapshot,
+	): Promise<GroupMutationResult> {
+		if (!app) return { status: 'rejected', reason: 'group.selected.no_app' };
+		if (snapshot?.rowIds.includes(ADD_PROPERTY_ROW_ID))
+			return { status: 'rejected', reason: 'group.selected.action_only' };
+		const urns = snapshot?.urns ?? [];
 		/**
 		 * U130 Slice B (spec-03 §41-50): crear-o-añadir. With origins (the
 		 * §3.3 `Create group with selected` path) and existing customs, the
@@ -708,7 +729,7 @@ import {
 					);
 					if (presetIds.has(picked.id)) {
 						new Notice(translate('group.preset.locked'));
-						return;
+						return { status: 'rejected', reason: 'group.preset.locked' };
 					}
 					const plan = planGroupMembershipBatch({
 						memberships: configByTab[tab].groupMemberships,
@@ -721,19 +742,24 @@ import {
 						new Notice(
 							`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
 						);
-						return;
+						return { status: 'rejected', reason: 'group.batch.rejected' };
 					}
 					commitConfig(tab, { groupMemberships: plan.next });
 					applyGroupMemberships(tab, plan.next);
 					setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-					return;
+					return {
+						status: 'committed',
+						groupId: picked.id,
+						affectedUrns: [...urns],
+					};
 				}
 			}
 		}
 		const name = (
 			await showInputModal(app, translate('group.new.prompt'))
 		)?.trim();
-		if (!name) return;
+		if (!name)
+			return { status: 'cancelled' };
 		const noteMode =
 			revealActive &&
 			(tab === 'props' || tab === 'tags') &&
@@ -747,7 +773,7 @@ import {
 			const file = path ? app.vault.getFileByPath(path) : null;
 			if (!(file instanceof TFile)) {
 				new Notice(translate('group.note.no_file'));
-				return;
+				return { status: 'rejected', reason: 'group.note.no_file' };
 			}
 			const target = scopeToNoteGroupTarget(
 				state.activeScope,
@@ -764,7 +790,7 @@ import {
 			);
 			if (current.groups.some((group) => group.id === name)) {
 				new Notice(translate('group.note.duplicate'));
-				return;
+				return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 			}
 			const members = noteGroupMemberIdsFromMemberships(urns, scene, target);
 			const result = await writeNoteGroups({
@@ -780,14 +806,16 @@ import {
 					{ name, members },
 				],
 			});
-			if (!result.ok) return;
-			return;
+			if (!result.ok)
+				return { status: 'rejected', reason: result.error ?? 'group.note.write_failed' };
+			return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 		}
 		const memberships = configByTab[tab].groupMemberships;
 		if (name in memberships) {
 			// U130 Slice B: the typed name already exists — adding is
 			// idempotent and atomic, never a silent no-op over origins.
-			if (urns.length === 0) return;
+			if (urns.length === 0)
+				return { status: 'committed', groupId: name, affectedUrns: [] };
 			const plan = planGroupMembershipBatch({
 				memberships,
 				targetId: name,
@@ -799,17 +827,18 @@ import {
 				new Notice(
 					`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
 				);
-				return;
+				return { status: 'rejected', reason: 'group.batch.rejected' };
 			}
 			commitConfig(tab, { groupMemberships: plan.next });
 			applyGroupMemberships(tab, plan.next);
 			setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-			return;
+			return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 		}
 		const next = { ...memberships, [name]: [...urns] };
 		commitConfig(tab, { groupMemberships: next });
 		applyGroupMemberships(tab, next);
 		setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+		return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 	}
 	/** U130-09: `New group` only needs a host that can open the name prompt. */
 	function canCreateGroup(): boolean {
@@ -1473,6 +1502,90 @@ import {
 		if (signature !== measuredOverflowIds.join('\u0000')) {
 			measuredOverflowIds = result.overflowIds;
 		}
+	}
+
+	async function degroupSelected(
+		tab: FiltersTab,
+		snapshot: GroupSelectionSnapshot,
+		owner: string,
+	): Promise<GroupMutationResult> {
+		const noteMode =
+			revealActive &&
+			(tab === 'props' || tab === 'tags') &&
+			configByTab[tab].groupPreset.kind === 'note';
+		if (noteMode) {
+			const state = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
+			const path =
+				state.revealAnchor === 'pinned'
+					? state.revealAnchorPath
+					: activeFilePath;
+			const file = path ? app?.vault.getFileByPath(path) : null;
+			if (!(file instanceof TFile))
+				return { status: 'rejected', reason: 'group.note.no_file' };
+			const target =
+				scopeToNoteGroupTarget(state.activeScope, state.drillNodeId) ??
+				{ kind: 'level', level: 1 };
+			const scene = tab === 'props' ? 'prop' : 'tag';
+			const current = parseFrontmatterNoteGroups(
+				(app?.metadataCache.getFileCache(file)?.frontmatter ?? {}) as Record<
+					string,
+					unknown
+				>,
+				scene,
+				target,
+			);
+			const ownerMembers = current.memberships[owner];
+			if (!ownerMembers)
+				return { status: 'rejected', reason: 'group.degroup.unavailable_preset' };
+			const selectedMembers = new Set(
+				noteGroupMemberIdsFromMemberships(
+					snapshot.urns,
+					scene,
+					target,
+				),
+			);
+			const doomed = new Set(ownerMembers.filter((member) => selectedMembers.has(member)));
+			const nextGroups = current.groups.map((group) => ({
+				name: group.id,
+				members:
+					group.id === owner
+						? ownerMembers.filter((member) => !doomed.has(member))
+						: current.memberships[group.id] ?? [],
+			}));
+			const result = await writeNoteGroups({
+				app: app!,
+				file,
+				scene,
+				target,
+				groups: nextGroups,
+			});
+			if (!result.ok)
+				return { status: 'rejected', reason: result.error ?? 'group.note.write_failed' };
+			const affectedUrns = snapshot.urns.filter((urn) => {
+				const members = noteGroupMemberIdsFromMemberships([urn], scene, target);
+				return members.some((member) => doomed.has(member));
+			});
+			return { status: 'committed', groupId: owner, affectedUrns };
+		}
+		const memberships = configByTab[tab].groupMemberships;
+		const ownerUrns = memberships[owner];
+		if (!ownerUrns)
+			return { status: 'rejected', reason: 'group.degroup.unavailable_preset' };
+		const memberIds = intersectDegroupTargets({
+			selectedEntityIds: snapshot.entityIds,
+			ownerMemberKeys: customOwnerMemberKeys(ownerUrns),
+			selectedUrns: snapshot.urns,
+			ownerUrns,
+		});
+		const memberIdSet = new Set(memberIds);
+		const affectedUrns = snapshot.urns.filter((urn) => {
+			const ref = parseMembershipUrn(urn);
+			return ref !== null && memberIdSet.has(ref.canonicalId);
+		});
+		const next = removeCustomMemberships(memberships, owner, memberIds);
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+		return { status: 'committed', groupId: owner, affectedUrns };
 	}
 
 	function schedulePanelWidgetOverflowMeasure(): void {
@@ -3539,8 +3652,12 @@ import {
 		}
 		// Spec 08 §3.3: the cmenu's `Create group with selected` lands here,
 		// where the scene's groups and the per-instance preset live (U130-09).
-		explorerPortForTab(tab)?.setCreateGroupHandler?.(
-			(urns) => void createCustomGroup(tab, urns),
+		const port = explorerPortForTab(tab);
+		const scope = selectionScopeFor(tab);
+		port?.setSelectionScope?.(scope);
+		port?.setCreateGroupHandler?.((snapshot) => createCustomGroup(tab, snapshot));
+		port?.setDegroupSelectedHandler?.((snapshot, owner) =>
+			degroupSelected(tab, snapshot, owner),
 		);
 		if (tab === 'props' && propExplorer) {
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {

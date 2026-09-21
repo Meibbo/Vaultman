@@ -117,14 +117,22 @@ import {
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
-	collectSelectedMembershipUrns,
 	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
+	occurrenceOwnerOf,
 	projectGroupedTree,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	noteSelectionState,
+	reconcileCommittedSelection,
+	selectionKeyFor,
+	snapshotFromProjectedTree,
+	type CreateGroupHandler,
+	type DegroupSelectedHandler,
+} from '../../logic/logicGroupSelectionTransaction';
 import {
 	NO_GROUP_PRESET,
 	sameGroupPreset,
@@ -288,8 +296,11 @@ export class PropsExplorerPanel extends Component {
 	private tooltipsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
-	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
-	private createGroupHandler?: (urns: readonly string[]) => void;
+	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
+	private createGroupHandler?: CreateGroupHandler;
+	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private selectionInstanceId: string | null = null;
+	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
@@ -840,10 +851,11 @@ export class PropsExplorerPanel extends Component {
 				selectionCheckboxPosition: this.visibleCells.has('checkbox')
 					? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 					: 'hidden',
-				onSelectionToggle: (id: string, selected: boolean) => {
-					if (selected) this.selectedNodeIds.add(id);
-					else this.selectedNodeIds.delete(id);
-					void this._render();
+					onSelectionToggle: (id: string, selected: boolean) => {
+						if (selected) this.selectedNodeIds.add(id);
+						else this.selectedNodeIds.delete(id);
+						this._touchSelection();
+						void this._render();
 				},
 			} as const;
 		}
@@ -893,6 +905,7 @@ export class PropsExplorerPanel extends Component {
 			event.stopPropagation();
 			if (checkbox.checked) this.selectedNodeIds.add(node.id);
 			else this.selectedNodeIds.delete(node.id);
+			this._touchSelection();
 			card.toggleClass('is-selected', checkbox.checked);
 		});
 	}
@@ -1128,10 +1141,35 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setCreateGroupHandler(
-		handler?: (urns: readonly string[]) => void,
-	): void {
+	setCreateGroupHandler(handler?: CreateGroupHandler): void {
 		this.createGroupHandler = handler;
+	}
+
+	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
+		this.degroupSelectedHandler = handler;
+	}
+
+	setSelectionScope(scope: {
+		instanceId: string | null;
+		revision: number | null;
+		scene: string;
+	}): void {
+		this.selectionInstanceId = scope.instanceId;
+		this.selectionRevision = scope.revision;
+	}
+
+	private _selectionKey(): string {
+		return selectionKeyFor('props', 'props', this.selectionInstanceId);
+	}
+
+	private _touchSelection(): void {
+		noteSelectionState(this._selectionKey(), this.selectedNodeIds);
+	}
+
+	private _applyPropSelection(next: Set<string>): void {
+		this.selectedNodeIds = next;
+		this._touchSelection();
+		void this._render();
 	}
 
 	private _membershipUrnOf(node: TreeNode<PropMeta>): string {
@@ -1149,26 +1187,78 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
-	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
+	/**
+	 * U130 transacción: snapshot al invocar, sin gate de interactionMode ni
+	 * checkbox (spec-02 §4). Solo `committed` limpia el axón; ABA por token,
+	 * nuevas selecciones sobreviven, instance/revision impiden limpiar el
+	 * axón equivocado. `add_property` nunca entra en subset: el menú lo
+	 * marca unavailable con razón.
+	 */
+	private _groupCreationMenuCtx(): Pick<
+		MenuCtx,
+		'createGroupWithSelected' | 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'
+	> {
 		const handler = this.createGroupHandler;
-		if (
-			!handler ||
-			this.interactionMode !== 'select' ||
-			this.selectedNodeIds.size === 0
-		) {
+		if (!handler || this.selectedNodeIds.size === 0) {
 			return {};
 		}
 		return {
-			createGroupWithSelected: () =>
-				handler(
-					collectSelectedMembershipUrns(
-						this._lastRenderTree,
+			createGroupWithSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedNodeIds,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'props',
+					scene: 'props',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				const result = await handler(snapshot);
+				if (result.status === 'committed') {
+					const next = reconcileCommittedSelection(
+						snapshot,
+						result,
 						this.selectedNodeIds,
-						(node) => this._membershipUrnOf(node),
-						this._groupIds,
-					),
-				),
+						{
+							instanceId: this.selectionInstanceId,
+							revision: this.selectionRevision,
+						},
+					);
+					this._applyPropSelection(next);
+				}
+				return result;
+			},
+		};
+	}
+
+	private _degroupMenuCtx(
+		invoked: TreeNode<PropMeta>,
+	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const handler = this.degroupSelectedHandler;
+		const owner = occurrenceOwnerOf(invoked);
+		const noteGroup = this.groupPreset.kind === 'note';
+		if (!handler || !owner || (!noteGroup && !this._groupIds.has(owner))) return {};
+		if (this.selectedNodeIds.size === 0) return {};
+		return {
+			membershipOwner: owner,
+			groupOwner: noteGroup ? 'note' : 'custom',
+			occurrenceEntityId: entityIdOf(invoked),
+			degroupSelected: () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedNodeIds,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'props',
+					scene: 'props',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				return handler(snapshot, owner);
+			},
 		};
 	}
 
@@ -2107,6 +2197,7 @@ export class PropsExplorerPanel extends Component {
 			if (this.selectedNodeIds.has(node.id))
 				this.selectedNodeIds.delete(node.id);
 			else this.selectedNodeIds.add(node.id);
+			this._touchSelection();
 			// While the move mode is composing, the same selection gesture also
 			// names a destination; a value node names its parent property.
 			this._registerValueMoveDestination(meta);
@@ -2190,6 +2281,7 @@ export class PropsExplorerPanel extends Component {
 				selectedIds: this.selectedNodeIds,
 				orderedIds: this._orderedVisibleTreeIds(),
 				...this._groupCreationMenuCtx(),
+				...this._degroupMenuCtx(node),
 				invokeRename: (targetId: string) => {
 					this._editingId = targetId;
 					void this._render();
@@ -3629,6 +3721,7 @@ export class PropsExplorerPanel extends Component {
 			node,
 			this.selectedNodeIds,
 		);
+		this._touchSelection();
 		void this._render();
 	}
 
@@ -3650,6 +3743,7 @@ export class PropsExplorerPanel extends Component {
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
+			this._touchSelection();
 			void this._render();
 			return;
 		}

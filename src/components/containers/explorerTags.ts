@@ -110,10 +110,10 @@ import {
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
-	collectSelectedMembershipUrns,
 	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
+	occurrenceOwnerOf,
 	projectGroupedTree,
 	resolveCustomGroups,
 	toggleGroupMembers,
@@ -175,6 +175,14 @@ import {
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	noteSelectionState,
+	reconcileCommittedSelection,
+	selectionKeyFor,
+	snapshotFromProjectedTree,
+	type CreateGroupHandler,
+	type DegroupSelectedHandler,
+} from '../../logic/logicGroupSelectionTransaction';
 
 type DateSortId = 'mtime' | 'ctime';
 
@@ -230,7 +238,10 @@ export class TagsExplorerPanel extends Component {
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
-	private createGroupHandler?: (urns: readonly string[]) => void;
+	private createGroupHandler?: CreateGroupHandler;
+	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private selectionInstanceId: string | null = null;
+	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
@@ -467,6 +478,13 @@ export class TagsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	private _selectionKey(): string {
+		return selectionKeyFor('tags', 'tags', this.selectionInstanceId);
+	}
+
+	private _touchSelection(): void {
+		noteSelectionState(this._selectionKey(), this.selectedNodeIds);
+	}
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
@@ -580,6 +598,7 @@ export class TagsExplorerPanel extends Component {
 				onSelectionToggle: (id: string, selected: boolean) => {
 					if (selected) this.selectedNodeIds.add(id);
 					else this.selectedNodeIds.delete(id);
+					this._touchSelection();
 					void this._render();
 				},
 			} as const;
@@ -615,6 +634,7 @@ export class TagsExplorerPanel extends Component {
 			event.stopPropagation();
 			if (checkbox.checked) this.selectedNodeIds.add(node.id);
 			else this.selectedNodeIds.delete(node.id);
+			this._touchSelection();
 			card.toggleClass('is-selected', checkbox.checked);
 		});
 	}
@@ -793,9 +813,23 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	setCreateGroupHandler(
-		handler?: (urns: readonly string[]) => void,
+		handler?: CreateGroupHandler,
 	): void {
 		this.createGroupHandler = handler;
+	}
+
+	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
+		this.degroupSelectedHandler = handler;
+	}
+
+	setSelectionScope(scope: {
+		instanceId: string | null;
+		revision: number | null;
+		_scene?: string;
+		scene?: string;
+	}): void {
+		this.selectionInstanceId = scope.instanceId;
+		this.selectionRevision = scope.revision;
 	}
 
 	private _membershipUrnOf(node: TreeNode<TagMeta>): string {
@@ -807,26 +841,69 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
-		if (
-			!handler ||
-			this.interactionMode !== 'select' ||
-			this.selectedNodeIds.size === 0
-		) {
+		if (!handler || this.selectedNodeIds.size === 0) {
 			return {};
 		}
 		return {
-			createGroupWithSelected: () =>
-				handler(
-					collectSelectedMembershipUrns(
-						this._lastRenderTree,
+			createGroupWithSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedNodeIds,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'tags',
+					scene: 'tags',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				const result = await handler(snapshot);
+				if (result.status === 'committed') {
+					this.selectedNodeIds = reconcileCommittedSelection(
+						snapshot,
+						result,
 						this.selectedNodeIds,
-						(node) => this._membershipUrnOf(node),
-						this._groupIds,
-					),
-				),
+						{ instanceId: this.selectionInstanceId, revision: this.selectionRevision },
+					);
+					this._touchSelection();
+					void this._render();
+				}
+				return result;
+			},
+		};
+	}
+
+	private _degroupMenuCtx(node: TreeNode<TagMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const owner = occurrenceOwnerOf(node);
+		const handler = this.degroupSelectedHandler;
+		const noteGroup = this.groupPreset.kind === 'note';
+		if (
+			!owner ||
+			!handler ||
+			this.selectedNodeIds.size === 0 ||
+			(!noteGroup && !this._groupIds.has(owner))
+		)
+			return {};
+		return {
+			membershipOwner: owner,
+			groupOwner: noteGroup ? 'note' : 'custom',
+			occurrenceEntityId: entityIdOf(node),
+			degroupSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this.projectedNodes(this._lastRenderTree),
+					selectedIds: this.selectedNodeIds,
+					urnOf: (entry) => this._membershipUrnOf(entry),
+					providerId: 'tags',
+					scene: 'tags',
+					instanceId: this.selectionInstanceId,
+					revision: this.selectionRevision,
+					selectionKey: this._selectionKey(),
+					customGroupIds: this._groupIds,
+				});
+				return handler(snapshot, owner);
+			},
 		};
 	}
 
@@ -1420,9 +1497,10 @@ export class TagsExplorerPanel extends Component {
 		const node = this._findNode(id, this._lastRenderTree);
 		if (!node?.children?.length) return;
 		this.selectedNodeIds = toggleDescendantSelection(
-			node,
-			this.selectedNodeIds,
-		);
+				node,
+				this.selectedNodeIds,
+			);
+		this._touchSelection();
 		void this._render();
 	}
 
@@ -1444,6 +1522,7 @@ export class TagsExplorerPanel extends Component {
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
+			this._touchSelection();
 			void this._render();
 			return;
 		}
@@ -1948,6 +2027,7 @@ export class TagsExplorerPanel extends Component {
 						selectedIds: this.selectedNodeIds,
 						orderedIds: this._orderedVisibleTreeIds(),
 						...this._groupCreationMenuCtx(),
+						...this._degroupMenuCtx(node),
 						invokeRename: (targetId: string) => {
 							this.editingId = targetId;
 							void this._render();
@@ -2029,6 +2109,7 @@ export class TagsExplorerPanel extends Component {
 			if (this.selectedNodeIds.has(node.id))
 				this.selectedNodeIds.delete(node.id);
 			else this.selectedNodeIds.add(node.id);
+			this._touchSelection();
 			void this._render();
 			return;
 		}

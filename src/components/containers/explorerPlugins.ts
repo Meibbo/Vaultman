@@ -62,10 +62,10 @@ import {
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
-	collectSelectedMembershipUrns,
 	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
+	occurrenceOwnerOf,
 	projectGroupedTree,
 	resolveCustomGroups,
 	toggleGroupMembers,
@@ -86,6 +86,14 @@ import {
 	isNativeSettingsSearchAvailable,
 	queryNativeSettingsSearch,
 } from '../../services/serviceSettingSearchAdapter';
+import {
+	noteSelectionState,
+	reconcileCommittedSelection,
+	selectionKeyFor,
+	snapshotFromProjectedTree,
+	type CreateGroupHandler,
+	type DegroupSelectedHandler,
+} from '../../logic/logicGroupSelectionTransaction';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -122,6 +130,18 @@ export class PluginsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	private createGroupHandler?: CreateGroupHandler;
+	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private selectionInstanceId: string | null = null;
+	private selectionRevision: number | null = null;
+
+	private _selectionKey(): string {
+		return selectionKeyFor('plugins', 'plugins', this.selectionInstanceId);
+	}
+
+	private _touchSelection(): void {
+		noteSelectionState(this._selectionKey(), this.selectedNodeIds);
+	}
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
@@ -133,7 +153,6 @@ export class PluginsExplorerPanel
 	private tooltipsOverride: boolean | undefined;
 	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
-	private createGroupHandler?: (urns: readonly string[]) => void;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
@@ -331,9 +350,18 @@ export class PluginsExplorerPanel
 	}
 
 	setCreateGroupHandler(
-		handler?: (urns: readonly string[]) => void,
+		handler?: CreateGroupHandler,
 	): void {
 		this.createGroupHandler = handler;
+	}
+
+	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
+		this.degroupSelectedHandler = handler;
+	}
+
+	setSelectionScope(scope: { instanceId: string | null; revision: number | null; scene: string }): void {
+		this.selectionInstanceId = scope.instanceId;
+		this.selectionRevision = scope.revision;
 	}
 
 	private _membershipUrnOf(node: TreeNode<PluginMeta>): string {
@@ -360,29 +388,56 @@ export class PluginsExplorerPanel
 	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
-		if (
-			!handler ||
-			this.interactionMode !== 'select' ||
-			this.selectedNodeIds.size === 0
-		) {
+		if (!handler || this.selectedNodeIds.size === 0) {
 			return {};
 		}
 		return {
-			createGroupWithSelected: () =>
-				handler(
-					collectSelectedMembershipUrns(
-						// A07b-2: el proyectado, como files (`_lastRenderTree`):
-						// la seleccion trae ids de fila (`id@grupo` en
-						// ocurrencias multi-grupo) y el arbol sin proyectar
-						// los pierde en silencio.
-						this._lastProjectedTree.length > 0
-							? this._lastProjectedTree
-							: this.nodes,
-						this.selectedNodeIds,
-						(node) => this._membershipUrnOf(node),
-						this._groupIds,
-					),
-				),
+			createGroupWithSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this._lastProjectedTree.length > 0 ? this._lastProjectedTree : this.nodes,
+					selectedIds: this.selectedNodeIds,
+					urnOf: (node) => this._membershipUrnOf(node),
+					providerId: 'plugins', scene: 'plugins',
+					instanceId: this.selectionInstanceId, revision: this.selectionRevision,
+					selectionKey: this._selectionKey(), customGroupIds: this._groupIds,
+				});
+				const result = await handler(snapshot);
+				if (result.status === 'committed') {
+					this.selectedNodeIds = reconcileCommittedSelection(snapshot, result, this.selectedNodeIds, {
+						instanceId: this.selectionInstanceId, revision: this.selectionRevision,
+					});
+					this._touchSelection();
+					this.render();
+				}
+				return result;
+			},
+		};
+	}
+
+	private _degroupMenuCtx(node: TreeNode<PluginMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const owner = occurrenceOwnerOf(node);
+		if (
+			!owner ||
+			!this.degroupSelectedHandler ||
+			this.selectedNodeIds.size === 0 ||
+			!this._groupIds.has(owner)
+		)
+			return {};
+		return {
+			membershipOwner: owner,
+			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			occurrenceEntityId: entityIdOf(node),
+			degroupSelected: async () => {
+				const snapshot = snapshotFromProjectedTree({
+					tree: this._lastProjectedTree,
+					selectedIds: this.selectedNodeIds,
+					urnOf: (entry) => this._membershipUrnOf(entry),
+					providerId: 'plugins', scene: 'plugins',
+					instanceId: this.selectionInstanceId, revision: this.selectionRevision,
+					selectionKey: this._selectionKey(), customGroupIds: this._groupIds,
+				});
+				return this.degroupSelectedHandler?.(snapshot, owner) ?? { status: 'cancelled' };
+			},
 		};
 	}
 
@@ -767,10 +822,11 @@ export class PluginsExplorerPanel
 							this.visibleCells.has('checkbox')
 							? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
 							: 'hidden',
-						onSelectionToggle: (id: string, selected: boolean) => {
-							if (selected) this.selectedNodeIds.add(id);
-							else this.selectedNodeIds.delete(id);
-							this.render();
+							onSelectionToggle: (id: string, selected: boolean) => {
+								if (selected) this.selectedNodeIds.add(id);
+								else this.selectedNodeIds.delete(id);
+								this._touchSelection();
+								this.render();
 						},
 					}
 				: {}),
@@ -792,6 +848,7 @@ export class PluginsExplorerPanel
 				if (this.interactionMode !== 'select') return;
 				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
 				else this.selectedNodeIds.add(id);
+				this._touchSelection();
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
@@ -883,6 +940,7 @@ export class PluginsExplorerPanel
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
+			this._touchSelection();
 			this.render();
 			return;
 		}
@@ -959,6 +1017,7 @@ export class PluginsExplorerPanel
 				orderedIds: this.nodes.map((node) => node.meta.pluginId),
 				surface: 'panel',
 				...this._groupCreationMenuCtx(),
+				...this._degroupMenuCtx(this.findNode(meta.pluginId) ?? { id: meta.pluginId, label: meta.name, depth: 0, meta }),
 			},
 			event,
 		);

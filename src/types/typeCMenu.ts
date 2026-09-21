@@ -32,10 +32,23 @@ export interface MenuCtx {
 	clearViewFilters?: () => void;
 	invokeRename?: (id: string) => void;
 	/**
-	 * Spec 08 §3.3: present only while the panel is in select mode with one
-	 * or more nodes selected. Creates a custom group holding the selection.
+	 * U130 transacción: presente cuando hay selección válida y alguien
+	 * escucha. Crea un custom group con el snapshot y devuelve el resultado.
+	 * El menú/invoker espera el resultado (async); solo `committed` limpia.
 	 */
-	createGroupWithSelected?: () => void;
+	createGroupWithSelected?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
+	/**
+	 * U130 Degroup selected: presente en ocurrencias miembro de custom/note.
+	 * Elimina solo la intersección con el owner invocado. Preset sin handler.
+	 */
+	degroupSelected?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
+	/**
+	 * U130 spec-02 §5: owner de la ocurrencia miembro invocada. Viaja en el
+	 * ctx desde la metadata (`membershipOwner`), nunca por `split('@')`.
+	 */
+	membershipOwner?: string;
+	/** Entidad de la ocurrencia invocada (para Degroup sin parseo). */
+	occurrenceEntityId?: string;
 	/**
 	 * U130 Slice B (spec-03 §24-40): group-header menu metadata. Only set
 	 * when `nodeType` is `'group'`. `groupOwner` decides availability:
@@ -66,7 +79,7 @@ export interface ActionDef {
 	 * reason, never hidden. Return `null` when available.
 	 */
 	disabledReason?: (ctx: MenuCtx) => string | null;
-	run: (ctx: MenuCtx) => Promise<void> | void;
+	run: (ctx: MenuCtx) => Promise<unknown> | void;
 }
 
 export interface MenuHideRule {
