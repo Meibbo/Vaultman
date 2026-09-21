@@ -100,4 +100,12 @@ describe('U130-p2 checkbox wiring source contracts', () => {
 		);
 		expect(explorerFilesSource).toContain('_orderedVisibleTreeIds()');
 	});
+
+	it('shared views expose row selectability independently of interaction mode', () => {
+		expect(treeSource).toContain(
+			'isNodeSelectable?: (node: TreeNode) => boolean',
+		);
+		expect(treeSource).toContain('isNodeSelectable &&');
+		expect(explorerFilesSource).toContain("visibleCells.has('checkbox')");
+	});
 });

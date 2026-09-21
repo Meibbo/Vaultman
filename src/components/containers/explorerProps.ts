@@ -279,7 +279,6 @@ export class PropsExplorerPanel extends Component {
 	private currentFilePropertyRevealId: string | null = null;
 	private gridCardEls = new Map<string, HTMLElement>();
 	private visibleCells = new Set<string>([
-		'checkbox',
 		'icon',
 		'text',
 		'count',
@@ -845,21 +844,20 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _selectionViewOptions() {
-		if (this.interactionMode === 'select') {
-			return {
-				selectedIds: this.selectedNodeIds,
-				selectionCheckboxPosition: this.visibleCells.has('checkbox')
-					? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
-					: 'hidden',
-					onSelectionToggle: (id: string, selected: boolean) => {
-						if (selected) this.selectedNodeIds.add(id);
-						else this.selectedNodeIds.delete(id);
-						this._touchSelection();
-						void this._render();
-				},
-			} as const;
-		}
-		return {};
+		return {
+			selectedIds: this.selectedNodeIds,
+			isNodeSelectable: (node: TreeNode) =>
+				!(node.meta as PropMeta).isAddPropertyRow,
+			selectionCheckboxPosition: this.visibleCells.has('checkbox')
+				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+				: 'hidden',
+			onSelectionToggle: (id: string, selected: boolean) => {
+				if (selected) this.selectedNodeIds.add(id);
+				else this.selectedNodeIds.delete(id);
+				this._touchSelection();
+				void this._render();
+			},
+		} as const;
 	}
 
 	/**
@@ -885,7 +883,7 @@ export class PropsExplorerPanel extends Component {
 		card: HTMLElement,
 		node: TreeNode<PropMeta>,
 	): void {
-		if (this.interactionMode !== 'select') return;
+		if (node.meta.isAddPropertyRow) return;
 		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
 		if (position === 'hidden' || !this.visibleCells.has('checkbox')) return;
 		card.dataset.id = node.id;
@@ -3430,6 +3428,8 @@ export class PropsExplorerPanel extends Component {
 	private static readonly ADD_PROPERTY_ROW_ID = '__add_property__';
 
 	private _addPropertyRowNode(): TreeNode<PropMeta> {
+		// GC/AD node-button action-only por ahora; su semántica futura de
+		// selección/batch action aún no está definida.
 		return {
 			id: PropsExplorerPanel.ADD_PROPERTY_ROW_ID,
 			label: translate('ops.add_property'),
@@ -4056,7 +4056,10 @@ export class PropsExplorerPanel extends Component {
 			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
-			card.toggleClass('is-selected', this.selectedNodeIds.has(node.id));
+			card.toggleClass(
+				'is-selected',
+				!node.meta.isAddPropertyRow && this.selectedNodeIds.has(node.id),
+			);
 			card.setAttribute('role', 'button');
 			card.draggable = true;
 			card.setAttribute('tabindex', '0');

@@ -22,7 +22,6 @@
 
 	let {
 		activeTab,
-		selectionMode = false,
 		selectionCheckboxPosition = 'start',
 		onClose,
 		onViewModeChange,
@@ -34,12 +33,6 @@
 		addOpCount = 0,
 	}: {
 		activeTab: FiltersTab;
-		/**
-		 * U121-081: the selection checkbox is only a cell while there is a
-		 * selection to make. Offering it outside `select` puts a control in the
-		 * menu that cannot do anything.
-		 */
-		selectionMode?: boolean;
 		/**
 		 * U121-108: when `hidden`, the checkbox view_option is not offered at
 		 * all — the setting is not a position then.
@@ -80,9 +73,6 @@
 		viewMenuCells(activeTab, activeView, activePills, {
 			selectionCheckboxPosition,
 		})
-			.filter(
-				(definition) => definition.id !== 'checkbox' || selectionMode === true,
-			)
 			.map((definition) => ({
 				id: definition.id,
 				labelKey: cellLabelKey(definition, activeTab, activeView),

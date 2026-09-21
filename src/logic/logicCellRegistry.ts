@@ -108,8 +108,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			// U121-081: `files` was the only explorer left out, which is the whole
 			// reason fileScene never offered the option.
 			{ explorer: 'files', fixedRank: 999, defaultOn: false },
-			{ explorer: 'props', fixedRank: 999, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 999, defaultOn: true },
+			{ explorer: 'props', fixedRank: 999, defaultOn: false },
+			{ explorer: 'tags', fixedRank: 999, defaultOn: false },
 			{ explorer: 'snippets', fixedRank: 999, defaultOn: true },
 			{ explorer: 'plugins', fixedRank: 999, defaultOn: true },
 		],

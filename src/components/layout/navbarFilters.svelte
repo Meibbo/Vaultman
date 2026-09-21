@@ -4186,7 +4186,6 @@ import {
 			>
 				<ViewModePopup
 					{activeTab}
-					selectionMode={interactionModeByTab[activeTab] === 'select'}
 					{selectionCheckboxPosition}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}

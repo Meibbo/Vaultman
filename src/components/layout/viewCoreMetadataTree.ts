@@ -41,6 +41,7 @@ export interface CoreMetadataTreeRenderOptions {
 	excludedFilterIds?: Set<string>;
 	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
+	isNodeSelectable?: (node: TreeNode) => boolean;
 	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	onSelectionToggle?: (id: string, selected: boolean) => void;
 	searchHighlightIds?: Set<string>;
@@ -284,7 +285,11 @@ export class CoreMetadataTreeView {
 			'vaultman-badge-warning',
 			opts.warningIds?.has(node.id) ?? false,
 		);
-		element.toggleClass('is-selected', opts.selectedIds?.has(node.id) ?? false);
+		element.toggleClass(
+			'is-selected',
+			(opts.isNodeSelectable?.(node) ?? true) &&
+				(opts.selectedIds?.has(node.id) ?? false),
+		);
 	}
 
 	private renderSelectionCheckbox(
@@ -292,7 +297,8 @@ export class CoreMetadataTreeView {
 		node: TreeNode,
 		opts: CoreMetadataTreeRenderOptions,
 	): void {
-		if (!opts.onSelectionToggle) return;
+		if (!opts.onSelectionToggle || !(opts.isNodeSelectable?.(node) ?? true))
+			return;
 		if (opts.selectionCheckboxPosition === 'hidden') return;
 		const checkbox = container.createEl('input', {
 			type: 'checkbox',

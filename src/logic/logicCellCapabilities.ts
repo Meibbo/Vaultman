@@ -14,7 +14,8 @@ export interface CellCapabilityContext {
 	engine: CanonicalExplorerEngine;
 	nested: boolean;
 	fixedFolders: boolean;
-	selectionMode: boolean;
+	/** The scene owns a selection axon, independently of row interaction mode. */
+	selectionAvailable: boolean;
 	nodeKinds: ReadonlySet<MenuCtx['nodeType']>;
 	/**
 	 * `reveal this file` narrows the projection to one file. Cells whose meaning
@@ -22,6 +23,24 @@ export interface CellCapabilityContext {
 	 * rendering a number that means nothing.
 	 */
 	reveal?: boolean;
+}
+
+export interface NodeInteractionCapabilities {
+	selectable: boolean;
+	groupable: boolean;
+	membershipMutable: boolean;
+}
+
+export function resolveNodeInteractionCapabilities(
+	selectionAvailable: boolean,
+	nodeType: MenuCtx['nodeType'],
+): NodeInteractionCapabilities {
+	const selectable = selectionAvailable && nodeType !== 'group';
+	return {
+		selectable,
+		groupable: selectable,
+		membershipMutable: selectable,
+	};
 }
 
 export interface CellCapabilityResolution {
@@ -87,8 +106,8 @@ export function resolveCellCapabilities(
 		availableSortIds.add('count');
 	}
 
-	// Cell: checkbox is available when selectionMode is true
-	if (ctx.selectionMode) {
+	// Cell: checkbox is available when the scene exposes a selection axon.
+	if (ctx.selectionAvailable && ctx.nodeKinds.size > 0) {
 		availableCellIds.add('checkbox');
 		availableSortIds.add('checkbox');
 		availableFilterTypeIds.add('selected');

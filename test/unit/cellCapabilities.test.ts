@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	resolveCellCapabilities,
+	resolveNodeInteractionCapabilities,
 	toCanonicalEngine,
 	type CellCapabilityContext,
 } from '../../src/logic/logicCellCapabilities';
@@ -20,7 +21,7 @@ describe('CellCapabilityResolver contracts', () => {
 			engine: 'tree',
 			nested: true,
 			fixedFolders: false,
-			selectionMode: false,
+			selectionAvailable: false,
 			nodeKinds: new Set(['file', 'folder']),
 		};
 
@@ -32,13 +33,13 @@ describe('CellCapabilityResolver contracts', () => {
 		expect(resolution.effectiveVisibleCellIds).toContain('name');
 	});
 
-	it('includes cell_checkbox only when selectionMode is true', () => {
+	it('includes cell_checkbox when the selection axon is available', () => {
 		const ctxNoSelect: CellCapabilityContext = {
 			providerId: 'files',
 			engine: 'tree',
 			nested: false,
 			fixedFolders: false,
-			selectionMode: false,
+			selectionAvailable: false,
 			nodeKinds: new Set(['file']),
 		};
 
@@ -47,11 +48,25 @@ describe('CellCapabilityResolver contracts', () => {
 
 		const ctxSelect: CellCapabilityContext = {
 			...ctxNoSelect,
-			selectionMode: true,
+			selectionAvailable: true,
 		};
 
 		res = resolveCellCapabilities(ctxSelect, ['name', 'checkbox']);
 		expect(res.availableCellIds.has('checkbox')).toBe(true);
+	});
+
+	it('resolves node actions from the axon, not from interaction mode', () => {
+		expect(resolveNodeInteractionCapabilities(true, 'value')).toEqual({
+			selectable: true,
+			groupable: true,
+			membershipMutable: true,
+		});
+		expect(resolveNodeInteractionCapabilities(false, 'value').selectable).toBe(
+			false,
+		);
+		expect(resolveNodeInteractionCapabilities(true, 'group').selectable).toBe(
+			false,
+		);
 	});
 });
 
@@ -61,7 +76,7 @@ describe('reveal narrows capability to one file', () => {
 		engine: 'tree',
 		nested: true,
 		fixedFolders: false,
-		selectionMode: false,
+		selectionAvailable: false,
 		nodeKinds: new Set(['file', 'folder']),
 	};
 
@@ -108,7 +123,7 @@ describe('A16: props reveal hides count, tags reveal keeps count', () => {
 		engine: 'tree',
 		nested: true,
 		fixedFolders: false,
-		selectionMode: false,
+		selectionAvailable: false,
 		nodeKinds: new Set(['prop', 'value']),
 	};
 
@@ -117,7 +132,7 @@ describe('A16: props reveal hides count, tags reveal keeps count', () => {
 		engine: 'tree',
 		nested: true,
 		fixedFolders: false,
-		selectionMode: false,
+		selectionAvailable: false,
 		nodeKinds: new Set(['tag', 'value']),
 	};
 

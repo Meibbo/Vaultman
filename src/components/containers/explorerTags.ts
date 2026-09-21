@@ -220,7 +220,6 @@ export class TagsExplorerPanel extends Component {
 	private nodeTypeFilters: string[] = [];
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private visibleCells = new Set<string>([
-		'checkbox',
 		'icon',
 		'text',
 		'count',
@@ -589,21 +588,19 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _selectionViewOptions() {
-		if (this.interactionMode === 'select') {
-			return {
-				selectedIds: this.selectedNodeIds,
-				selectionCheckboxPosition: this.visibleCells.has('checkbox')
-					? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
-					: 'hidden',
-				onSelectionToggle: (id: string, selected: boolean) => {
-					if (selected) this.selectedNodeIds.add(id);
-					else this.selectedNodeIds.delete(id);
-					this._touchSelection();
-					void this._render();
-				},
-			} as const;
-		}
-		return {};
+		return {
+			selectedIds: this.selectedNodeIds,
+			isNodeSelectable: () => true,
+			selectionCheckboxPosition: this.visibleCells.has('checkbox')
+				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
+				: 'hidden',
+			onSelectionToggle: (id: string, selected: boolean) => {
+				if (selected) this.selectedNodeIds.add(id);
+				else this.selectedNodeIds.delete(id);
+				this._touchSelection();
+				void this._render();
+			},
+		} as const;
 	}
 
 	/**
@@ -619,7 +616,6 @@ export class TagsExplorerPanel extends Component {
 		card: HTMLElement,
 		node: TreeNode<TagMeta>,
 	): void {
-		if (this.interactionMode !== 'select') return;
 		const position = this.plugin.settings?.selectionCheckboxPosition ?? 'start';
 		if (position === 'hidden' || !this.visibleCells.has('checkbox')) return;
 		card.dataset.id = node.id;

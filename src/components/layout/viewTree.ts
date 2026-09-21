@@ -96,6 +96,7 @@ export interface TreeViewOptions {
 	/** U121-013: provider-neutral, independently composable highlight channels. */
 	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
+	isNodeSelectable?: (node: TreeNode) => boolean;
 	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 	onSelectionToggle?: (id: string, selected: boolean, event?: MouseEvent) => void;
 	searchHighlightIds?: Set<string>;
@@ -1103,6 +1104,7 @@ export class UnifiedTreeView {
 			cellOrder,
 			opts.iconInCaretSlot ? '1' : '0',
 			opts.onSelectionToggle ? 'selection' : '',
+			(opts.isNodeSelectable?.(node) ?? true) ? 'selectable' : 'action-only',
 			opts.selectionCheckboxPosition ?? 'start',
 			badges,
 			cells,
@@ -1318,7 +1320,9 @@ export class UnifiedTreeView {
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
-		const isSelected = opts.selectedIds?.has(node.id) ?? false;
+		const isNodeSelectable = opts.isNodeSelectable?.(node) ?? true;
+		const isSelected =
+			isNodeSelectable && (opts.selectedIds?.has(node.id) ?? false);
 		const visibleCells = opts.visibleCells;
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
@@ -1521,7 +1525,7 @@ export class UnifiedTreeView {
 			!showCaret;
 		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
 		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
-			if (!opts.onSelectionToggle) return;
+			if (!opts.onSelectionToggle || !isNodeSelectable) return;
 			const checkbox = row.createEl('input', {
 				type: 'checkbox',
 				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,

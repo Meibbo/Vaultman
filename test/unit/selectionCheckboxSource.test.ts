@@ -18,19 +18,25 @@ describe('U121-003 select-mode checkbox cell', () => {
 		}
 	});
 
-	it('is wired into Props, Tags, Snippets and Plugins only through select mode', () => {
+	it('is wired independently from interaction mode', () => {
 		for (const source of [propsSource, tagsSource, snippetsSource, pluginsSource]) {
-			expect(source).toContain("interactionMode === 'select'");
 			expect(source).toContain('selectedNodeIds');
 			expect(source).toContain('selectionCheckboxPosition');
 		}
+		expect(propsSource).toContain('isNodeSelectable');
+		expect(propsSource).toContain('isAddPropertyRow');
 	});
 
 	it('exposes a toggleable checkbox cell in the cell registry', () => {
 		expect(registrySource).toContain("id: 'checkbox'");
 		expect(registrySource).toContain("labelKey: 'viewmode.pill.checkbox'");
 		// Orden dev 2026-09-15: el checkbox cierra la lista del view_menu.
-		expect(registrySource).toContain('fixedRank: 999, defaultOn: true');
+		expect(registrySource).toContain(
+			"explorer: 'props', fixedRank: 999, defaultOn: false",
+		);
+		expect(registrySource).toContain(
+			"explorer: 'tags', fixedRank: 999, defaultOn: false",
+		);
 	});
 
 	it('hides the checkbox when its cell is off or the edge is hidden', () => {

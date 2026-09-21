@@ -815,21 +815,16 @@ export class PluginsExplorerPanel
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
 			expandedIds: this._expandedGroupIds,
-			...(this.interactionMode === 'select'
-				? {
-						selectedIds: this.selectedNodeIds,
-						selectionCheckboxPosition:
-							this.visibleCells.has('checkbox')
-							? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
-							: 'hidden',
-							onSelectionToggle: (id: string, selected: boolean) => {
-								if (selected) this.selectedNodeIds.add(id);
-								else this.selectedNodeIds.delete(id);
-								this._touchSelection();
-								this.render();
-						},
-					}
-				: {}),
+			selectedIds: this.selectedNodeIds,
+			selectionCheckboxPosition: this.visibleCells.has('checkbox')
+				? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
+				: 'hidden',
+			onSelectionToggle: (id: string, selected: boolean) => {
+				if (selected) this.selectedNodeIds.add(id);
+				else this.selectedNodeIds.delete(id);
+				this._touchSelection();
+				this.render();
+			},
 			onToggle: (id: string) => {
 				this._toggleExpandedGroup(id);
 			},

@@ -32,7 +32,6 @@ describe('shared explorer cell registry', () => {
 			'parent',
 			'count',
 			'cell_hover',
-			'checkbox',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
@@ -41,7 +40,6 @@ describe('shared explorer cell registry', () => {
 			'text',
 			'parent',
 			'count',
-			'checkbox',
 			'nested',
 		]);
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
@@ -192,6 +190,17 @@ describe('shared explorer cell registry', () => {
 				'tree',
 			),
 		).toEqual(['words', 'name']);
+	});
+
+	it('keeps an explicit Props/Tags checkbox preference opt-in', () => {
+		expect(defaultVisibleCells('props', 'tree')).not.toContain('checkbox');
+		expect(defaultVisibleCells('tags', 'tree')).not.toContain('checkbox');
+		expect(normalizeVisibleCellIds('props', ['checkbox'], 'tree')).toEqual([
+			'checkbox',
+		]);
+		expect(normalizeVisibleCellIds('tags', ['checkbox'], 'tree')).toEqual([
+			'checkbox',
+		]);
 	});
 });
 

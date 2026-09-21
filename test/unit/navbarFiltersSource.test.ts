@@ -78,6 +78,11 @@ describe('minimal filters header source guards', () => {
 		expect(popupViewSource).not.toContain('const PILLS');
 	});
 
+	it('does not gate the checkbox pill by interaction mode', () => {
+		expect(popupViewSource).not.toContain('selectionMode');
+		expect(navbarFiltersSource).not.toContain('selectionMode={');
+	});
+
 	it('keeps Files date cells opt-in and represents path mode as Nested off', () => {
 		// BT5-011: the navbar projects through cellMenuOrder; the view popup
 		// still reads viewMenuCells directly.
