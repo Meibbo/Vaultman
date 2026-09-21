@@ -58,6 +58,8 @@ export interface MenuCtx {
 	groupOwner?: GroupMenuOwner;
 	groupHidden?: boolean;
 	groupExpanded?: boolean;
+	/** Materializes the visible preset snapshot atomically. */
+	materializePreset?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
 	/** Scene-owned affordances the explorer cannot resolve itself. */
 	toggleGroupExpand?: (groupId: string) => void;
 }

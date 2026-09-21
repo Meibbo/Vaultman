@@ -140,6 +140,9 @@ function headerNode<TMeta>(
 	meta: TMeta,
 	count?: number,
 	coreCls?: string,
+	range?: import('../types/typeGroupPreset').CounterRange,
+	ranges?: readonly import('../types/typeGroupPreset').CounterRange[],
+	domain?: import('../types/typeGroupPreset').CounterDomain,
 ): TreeNode<TMeta> {
 	return {
 		id,
@@ -161,6 +164,9 @@ function headerNode<TMeta>(
 		count: count ?? children.length,
 		children,
 		meta,
+		...(range ? { counterRange: { ...range } } : {}),
+		...(ranges ? { counterRanges: ranges.map((item) => ({ ...item })) } : {}),
+		...(domain ? { counterDomain: { ...domain } } : {}),
 	};
 }
 
@@ -745,6 +751,11 @@ export function projectGroupedTree<TMeta>(
 				ownMeta,
 				undefined,
 				headerCoreCls,
+				bucket.range,
+				resolved.buckets.flatMap((item) =>
+					item.range ? [item.range] : [],
+				),
+				resolved.counterDomain,
 			),
 			reparented,
 			expandedIds,

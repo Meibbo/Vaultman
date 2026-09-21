@@ -36,6 +36,24 @@ describe('explorer sort UI source', () => {
 		expect(navbarSource).toContain("parentsFirst: !parentsFirst");
 	});
 
+	it('keeps custom group rows to title, Hide, and Delete in the native Groups submenu', () => {
+		const customGroupStart = navbarSource.indexOf(
+			'`sort_menu.groups.custom.${entry.id}`',
+		);
+		const customGroupEnd = navbarSource.indexOf('\n\t\t\t);', customGroupStart);
+		const customGroupSource = navbarSource.slice(customGroupStart, customGroupEnd);
+
+		expect(customGroupSource).toContain('title: entry.label');
+		expect(customGroupSource).toContain(
+			'`sort_menu.groups.custom.${entry.id}.hide`',
+		);
+		expect(customGroupSource).toContain(
+			'`sort_menu.groups.custom.${entry.id}.delete`',
+		);
+		expect(customGroupSource).not.toContain('.confirm`');
+		expect(customGroupSource).not.toContain('.cancel`');
+	});
+
 	it('offers explicit per-tab sort levels in native and popup controls', () => {
 		expect(navbarSource).toContain("translate('sort.level.title')");
 		expect(

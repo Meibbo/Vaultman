@@ -118,6 +118,32 @@ describe('U130-09 — the layout photographs the scene; it does not own it', () 
 		expect(scene.groupPreset).toEqual({ kind: 'custom', direction: 'asc' });
 	});
 
+	it('counter ranges survive the layout photo exactly and never share references', async () => {
+		const a = instance('vm-counter-a');
+		await a.port.propose('files', {
+			...defaults,
+			groupPreset: {
+				kind: 'words',
+				direction: 'desc',
+				counterRanges: [
+					{ id: 'r1', lo: 0, hi: 4 },
+					{ id: 'r2', lo: 8, hi: 20 },
+				],
+			},
+		});
+		const saved = captureSavedViewConfig(a.port.read('files'));
+		const b = instance('vm-counter-b');
+		await applyLayoutToPort(b.port, layoutFor('files', saved));
+		const restored = b.port.read('files');
+		expect(restored.groupPreset).toEqual(saved.groupPreset);
+		expect(restored.groupPreset.counterRanges).not.toBe(
+			saved.groupPreset?.counterRanges,
+		);
+		(restored.groupPreset.counterRanges![0] as { lo: number }).lo = 99;
+		expect(saved.groupPreset?.counterRanges?.[0]?.lo).toBe(0);
+		expect(a.port.read('files').groupPreset.counterRanges?.[0]?.lo).toBe(0);
+	});
+
 	it('save in one instance, activate in a clean one: read(tab).groupMemberships is equal', async () => {
 		const a = instance('vm-a');
 		await a.port.propose('tags', {

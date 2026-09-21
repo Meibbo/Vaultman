@@ -64,9 +64,16 @@ import {
 } from '../../logic/logicGroupSelectionTransaction';
 import {
 	NO_GROUP_PRESET,
+	cloneGroupPreset,
 	sameGroupPreset,
+	type CounterRange,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	addCounterRangeSlice,
+	snapshotPresetBucket,
+	type MaterializePresetHandler,
+} from '../../logic/logicGroupPresets';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
@@ -412,6 +419,10 @@ export class FilesExplorerPanel extends Component {
 	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private materializePresetHandler?: MaterializePresetHandler;
+	private counterRangesChangeHandler?: (
+		ranges: readonly CounterRange[],
+	) => void;
 	/** Guarda de reconciliación (instance/revision de esta scene). */
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
@@ -1036,7 +1047,7 @@ export class FilesExplorerPanel extends Component {
 
 	setGroupPreset(preset: GroupPreset): void {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
-		this.groupPreset = { ...preset };
+		this.groupPreset = cloneGroupPreset(preset);
 		this._render();
 	}
 
@@ -1066,6 +1077,31 @@ export class FilesExplorerPanel extends Component {
 
 	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
 		this.degroupSelectedHandler = handler;
+	}
+
+	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
+		this.materializePresetHandler = handler;
+	}
+
+	setCounterRangesChangeHandler(
+		handler?: (ranges: readonly CounterRange[]) => void,
+	): void {
+		this.counterRangesChangeHandler = handler;
+	}
+
+	createCounterRangeSlice(): boolean {
+		if (!this.counterRangesChangeHandler) return false;
+		const header = this.projectedNodes(this._lastRenderTree).find(
+			(node) => node.counterDomain && node.counterRanges?.length,
+		);
+		if (!header?.counterDomain || !header.counterRanges) return false;
+		const result = addCounterRangeSlice(
+			header.counterRanges,
+			header.counterDomain,
+		);
+		if (!result.ok) return false;
+		this.counterRangesChangeHandler(result.ranges);
+		return true;
 	}
 
 	setSelectionScope(scope: {
@@ -2478,6 +2514,20 @@ export class FilesExplorerPanel extends Component {
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
+			counterRangeBoundLabel: (bound) =>
+				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
+			onCounterRangeCommit: (_id, range) => {
+				const ranges = this._findNode(_id, this.projectedNodes(nodes))
+					?.counterRanges;
+				if (!ranges || !this.counterRangesChangeHandler) return;
+				this.counterRangesChangeHandler(
+					ranges.map((entry) =>
+						entry.id === range.id ? { ...range } : { ...entry },
+					),
+				);
+			},
+			onCounterRangeError: () =>
+				new Notice(translate('group.counter.invalid')),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
 		this.treeView.render({
@@ -2752,6 +2802,20 @@ export class FilesExplorerPanel extends Component {
 				// U121-081: fileScene never passed this, so even with the cell on
 				// there was nothing to render.
 				selectionCheckboxPosition: this._selectionCheckboxPosition(),
+				counterRangeBoundLabel: (bound) =>
+					translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
+				onCounterRangeCommit: (id, range) => {
+					const ranges = this._findNode(id, this.projectedNodes(renderTree))
+						?.counterRanges;
+					if (!ranges || !this.counterRangesChangeHandler) return;
+					this.counterRangesChangeHandler(
+						ranges.map((entry) =>
+							entry.id === range.id ? { ...range } : { ...entry },
+						),
+					);
+				},
+				onCounterRangeError: () =>
+					new Notice(translate('group.counter.invalid')),
 				// U121-106: mantener pulsado el checkbox de un p-node actua sobre
 				// toda su descendencia. La regla de apagado que pidio el dev es
 				// "si ya hay ALGUNO o todos", no "si estan todos": un p-node con
@@ -2958,6 +3022,17 @@ export class FilesExplorerPanel extends Component {
 							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
 							groupHidden: this.hiddenGroupIds.has(id),
 							groupExpanded: this.expandedIds.has(id),
+							materializePreset:
+								this._groupIds.has(id) || !header || !this.materializePresetHandler
+									? undefined
+									: () =>
+										this.materializePresetHandler!(
+											snapshotPresetBucket(
+												header,
+												(node) => this._membershipUrnOf(node),
+												this.selectionRevision,
+											),
+										),
 							toggleGroupExpand: (groupId: string) => {
 								this._toggleExpanded(groupId);
 							},

@@ -22,6 +22,7 @@ import type {
 	SavedViewConfig,
 } from '../types/typeSettings';
 import { cloneGroupMemberships } from './logicMembershipUrn';
+import { cloneGroupPreset } from '../types/typeGroupPreset';
 
 export interface SceneConfigPortDeps {
 	instanceId: WorkspaceInstanceId;
@@ -93,7 +94,7 @@ export function captureSceneFacets(
 ): Required<SceneFacets> {
 	return {
 		groupMemberships: cloneGroupMemberships(config.groupMemberships),
-		groupPreset: { ...config.groupPreset },
+		groupPreset: cloneGroupPreset(config.groupPreset),
 		hiddenGroupIds: [...config.hiddenGroupIds],
 		stickyRows: config.stickyRows,
 		compactFolders: config.compactFolders,
@@ -131,7 +132,7 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 	if (saved.groupMemberships) {
 		out.groupMemberships = cloneGroupMemberships(saved.groupMemberships);
 	}
-	if (saved.groupPreset) out.groupPreset = { ...saved.groupPreset };
+	if (saved.groupPreset) out.groupPreset = cloneGroupPreset(saved.groupPreset);
 	if (saved.hiddenGroupIds) out.hiddenGroupIds = [...saved.hiddenGroupIds];
 	if (saved.stickyRows !== undefined) out.stickyRows = saved.stickyRows;
 	if (saved.compactFolders !== undefined) {

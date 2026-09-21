@@ -135,15 +135,18 @@ import {
 	} from '../../logic/logicCommandActions';
 	import { listObsidianCommands } from '../../utils/obsidianCommands';
 	import { openCommandPicker } from '../../modals/modalCommandPicker';
-	import type { GroupPreset } from '../../types/typeGroupPreset';
 	import {
 		GROUP_PRESETS_BY_TAB,
+		isCounterPresetKind,
+		type CounterRange,
+		type GroupPreset,
 	} from '../../types/typeGroupPreset';
 	import {
 		openGroupSuggester,
 		planGroupMembershipBatch,
 	} from '../../modals/modalGroupSuggester';
 	import { resolveCustomGroups } from '../../logic/logicTreeGroupProjection';
+	import type { PresetBucketSnapshot } from '../../logic/logicGroupPresets';
 	import {
 		ADD_PROPERTY_ROW_ID,
 		customOwnerMemberKeys,
@@ -666,6 +669,58 @@ import {
 		commitConfig(tab, { groupPreset: next });
 		applyGroupPreset(tab, next);
 	}
+	function setCounterRangesFor(
+		tab: FiltersTab,
+		ranges: readonly CounterRange[],
+	): void {
+		const preset = configByTab[tab].groupPreset;
+		if (!['words', 'tasks', 'props'].includes(preset.kind)) return;
+		setGroupPresetFor(tab, {
+			kind: preset.kind,
+			direction: preset.direction,
+			counterRanges: ranges.map((range) => ({ ...range })),
+		});
+	}
+
+	async function materializePresetBucket(
+		tab: FiltersTab,
+		snapshot: PresetBucketSnapshot,
+	): Promise<GroupMutationResult> {
+		const revision = sceneConfigPort.readInstanceRecord()?.revision ?? null;
+		if (
+			snapshot.projectionRevision !== null &&
+			revision !== snapshot.projectionRevision
+		)
+			return { status: 'rejected', reason: 'projection_revision_changed' };
+		if (!app) return { status: 'rejected', reason: 'group.selected.no_app' };
+		const name = (
+			await showInputModal(app, translate('group.new.prompt'))
+		)?.trim();
+		if (!name) return { status: 'cancelled' };
+		const current = configByTab[tab];
+		if (name in current.groupMemberships)
+			return { status: 'rejected', reason: 'group_name_collision' };
+		const nextMemberships = {
+			...current.groupMemberships,
+			[name]: [...snapshot.urns],
+		};
+		const nextPreset: GroupPreset = {
+			kind: 'custom',
+			direction: current.groupPreset.direction,
+		};
+		// One SceneConfig patch: membership + selected preset become visible atomically.
+		commitConfig(tab, {
+			groupMemberships: nextMemberships,
+			groupPreset: nextPreset,
+		});
+		applyGroupMemberships(tab, nextMemberships);
+		applyGroupPreset(tab, nextPreset);
+		return {
+			status: 'committed',
+			groupId: name,
+			affectedUrns: [...snapshot.urns],
+		};
+	}
 	function selectGroupPreset(tab: FiltersTab, kind: GroupPresetKind) {
 		setGroupPresetFor(tab, nextGroupPreset(configByTab[tab].groupPreset, kind));
 	}
@@ -843,6 +898,15 @@ import {
 	/** U130-09: `New group` only needs a host that can open the name prompt. */
 	function canCreateGroup(): boolean {
 		return Boolean(app);
+	}
+	function createGroupForPreset(tab: FiltersTab): void {
+		if (isCounterPresetKind(configByTab[tab].groupPreset.kind)) {
+			if (tab !== 'files' || !fileList?.createCounterRangeSlice?.()) {
+				new Notice(translate('group.counter.no_slice'));
+			}
+			return;
+		}
+		void createCustomGroup(tab);
 	}
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
@@ -3255,7 +3319,7 @@ import {
 					title: translate(entry.labelKey),
 					icon: entry.icon,
 					disabled: entry.disabled,
-					onClick: () => void createCustomGroup(activeTab),
+					onClick: () => createGroupForPreset(activeTab),
 				}),
 			);
 			continue;
@@ -3268,10 +3332,6 @@ import {
 						icon: entry.icon,
 					},
 					[
-						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.confirm`, {
-							title: translate('group.row.confirm'),
-							disabled: true,
-						}),
 						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.hide`, {
 							title: translate(
 								entry.hidden ? 'group.row.unhide' : 'group.row.hide',
@@ -3283,10 +3343,6 @@ import {
 							title: translate('group.row.delete'),
 							icon: 'lucide-trash-2',
 							onClick: () => deleteCustomGroup(activeTab, entry.id),
-						}),
-						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.cancel`, {
-							title: translate('group.row.cancel'),
-							icon: 'lucide-x',
 						}),
 					],
 				),
@@ -3658,6 +3714,12 @@ import {
 		port?.setCreateGroupHandler?.((snapshot) => createCustomGroup(tab, snapshot));
 		port?.setDegroupSelectedHandler?.((snapshot, owner) =>
 			degroupSelected(tab, snapshot, owner),
+		);
+		port?.setMaterializePresetHandler?.((snapshot) =>
+			materializePresetBucket(tab, snapshot),
+		);
+		port?.setCounterRangesChangeHandler?.((ranges) =>
+			setCounterRangesFor(tab, ranges),
 		);
 		if (tab === 'props' && propExplorer) {
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
@@ -4172,7 +4234,7 @@ import {
 					customGroups={customGroupsForMenu(activeTab)}
 					canCreateGroup={canCreateGroup()}
 					onGroupPresetChange={(kind) => selectGroupPreset(activeTab, kind)}
-					onNewGroup={() => void createCustomGroup(activeTab)}
+					onNewGroup={() => createGroupForPreset(activeTab)}
 					onHideGroup={(id, hidden) => setGroupHidden(activeTab, id, hidden)}
 					onDeleteGroup={(id) => deleteCustomGroup(activeTab, id)}
 					{icon}

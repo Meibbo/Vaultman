@@ -1246,6 +1246,11 @@ export const es: Record<string, string> = {
 	'group.degroup.no_handler': 'Sin manejador de desagrupado en esta superficie',
 	// U130 Slice B (spec-03 §24-40): menú universal de cabeceras de grupo.
 	'group.preset.locked': 'Los grupos preset los gestiona el motor',
+	'group.preset.materialize': 'Crear grupo personalizado desde este grupo',
+	'group.counter.invalid': 'El rango counter no es válido o se solapa con otro.',
+	'group.counter.lower': 'Límite inferior',
+	'group.counter.upper': 'Límite superior',
+	'group.counter.no_slice': 'No se puede añadir otro slice dentro del rango fetcheado.',
 	'group.caret.expand': 'Expandir grupo',
 	'group.caret.collapse': 'Colapsar grupo',
 	'group.caret.unavailable': 'Sin expansor en esta superficie',

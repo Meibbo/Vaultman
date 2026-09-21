@@ -596,7 +596,13 @@ export function nextGroupPreset(
 ): GroupPreset {
 	if (kind === 'none') return { kind: 'none', direction: 'asc' };
 	if (current.kind === kind) {
-		return { kind, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+		return {
+			kind,
+			direction: current.direction === 'asc' ? 'desc' : 'asc',
+			...(current.counterRanges
+				? { counterRanges: current.counterRanges.map((range) => ({ ...range })) }
+				: {}),
+		};
 	}
 	return { kind, direction: 'asc' };
 }

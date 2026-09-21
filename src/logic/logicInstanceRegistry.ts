@@ -6,6 +6,8 @@ import type {
 	WorkspaceInstanceRecord,
 } from '../types/typeInstance';
 import type { SavedFloatingTocState } from '../types/typeSettings';
+import { cloneGroupPreset } from '../types/typeGroupPreset';
+import { cloneGroupMemberships } from './logicMembershipUrn';
 
 export const EMPTY_REGISTRY: InstanceRegistryData = { schema: 1, instances: {} };
 
@@ -93,8 +95,10 @@ function cloneSceneConfig(config: SceneConfig): SceneConfig {
 	const out: SceneConfig = { ...config };
 	if (config.visibleCells) out.visibleCells = [...config.visibleCells];
 	if (config.sortState) out.sortState = { ...config.sortState };
+	if (config.groupPreset) out.groupPreset = cloneGroupPreset(config.groupPreset);
 	if (config.hiddenToolbarNodes) out.hiddenToolbarNodes = [...config.hiddenToolbarNodes];
 	if (config.toolbarCommandActions) out.toolbarCommandActions = [...config.toolbarCommandActions];
+	if (config.groupMemberships) out.groupMemberships = cloneGroupMemberships(config.groupMemberships);
 	return out;
 }
 

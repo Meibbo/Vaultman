@@ -71,11 +71,16 @@ import {
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
+	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
+import {
+	snapshotPresetBucket,
+	type MaterializePresetHandler,
+} from '../../logic/logicGroupPresets';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { NativeSettingsSearchGroup } from '../../types/typeSettingsSearch';
 import {
@@ -132,6 +137,7 @@ export class PluginsExplorerPanel
 	private selectedNodeIds = new Set<string>();
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private materializePresetHandler?: MaterializePresetHandler;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 
@@ -325,7 +331,7 @@ export class PluginsExplorerPanel
 
 	setGroupPreset(preset: GroupPreset): void {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
-		this.groupPreset = { ...preset };
+		this.groupPreset = cloneGroupPreset(preset);
 		this.rebuildNodes();
 	}
 
@@ -357,6 +363,10 @@ export class PluginsExplorerPanel
 
 	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
 		this.degroupSelectedHandler = handler;
+	}
+
+	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
+		this.materializePresetHandler = handler;
 	}
 
 	setSelectionScope(scope: { instanceId: string | null; revision: number | null; scene: string }): void {
@@ -872,9 +882,42 @@ export class PluginsExplorerPanel
 			},
 			onContextMenu: (id, event) => {
 				if (isGroupHeader(id, this._groupIds)) {
-					// B-groupbody: sin nodeType 'group' en typeCMenu ni menu
-					// de grupo en logicGroupContextMenu no hay menu que
-					// abrir; no caer al menu del item (ver informe).
+					// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
+					const header = this.findNode(id);
+					this.plugin.contextMenuService.openPanelMenu(
+						{
+							nodeType: 'group',
+							node: header ?? {
+								id,
+								label: id,
+								meta: {},
+								icon: '',
+								depth: 0,
+							},
+							surface: 'panel',
+							groupId: id,
+							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
+							groupHidden: this.hiddenGroupIds.has(id),
+							groupExpanded: this._expandedGroupIds.has(id),
+							materializePreset:
+								this._groupIds.has(id) ||
+								!header ||
+								!this.materializePresetHandler
+									? undefined
+									: () =>
+										this.materializePresetHandler!(
+											snapshotPresetBucket(
+												header,
+												(node) => this._membershipUrnOf(node),
+												this.selectionRevision,
+											),
+										),
+							toggleGroupExpand: (groupId: string) => {
+								this._toggleExpandedGroup(groupId);
+							},
+						},
+						event,
+					);
 					return;
 				}
 				const node = this.findNode(id);

@@ -84,6 +84,24 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	const isCustom = (ctx: MenuCtx): boolean => ctx.groupOwner === 'custom';
+	const isPreset = (ctx: MenuCtx): boolean => ctx.groupOwner === 'preset';
+
+	svc.registerAction({
+		id: 'group.materialize-preset',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.preset.materialize'),
+		icon: 'lucide-copy-plus',
+		when: (ctx: MenuCtx) => isPreset(ctx) && typeof ctx.materializePreset === 'function',
+		disabledReason: (ctx: MenuCtx) =>
+			!isPreset(ctx) ? translate('group.preset.locked') :
+				typeof ctx.materializePreset === 'function' ? null : translate('group.preset.locked'),
+		run: async (ctx: MenuCtx) => {
+			const result = await ctx.materializePreset?.();
+			if (result && typeof result === 'object' && result.status === 'rejected')
+				new Notice(`${translate('group.batch.rejected')} (${result.reason})`);
+		},
+	});
 
 	svc.registerAction({
 		id: 'group.toggle-expand',

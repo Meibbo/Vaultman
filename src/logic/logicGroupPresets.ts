@@ -3,8 +3,16 @@ import {
 	DATE_PRESET_KINDS,
 	type GroupPreset,
 	type GroupPresetKind,
+	type CounterDomain,
+	type CounterRange,
+} from '../types/typeGroupPreset';
+import {
+	cloneGroupPreset,
+	isCounterPresetKind,
 } from '../types/typeGroupPreset';
 import type { ExplorerSortDirection } from '../types/typeUI';
+import type { TreeNode } from '../types/typeTree';
+import type { GroupMutationResult } from './logicGroupSelectionTransaction';
 
 /**
  * Spec 08 §3.2 — the group presets as pure derivations.
@@ -18,13 +26,83 @@ export interface PresetBucket<T> {
 	key: string;
 	label: string;
 	members: T[];
+	range?: CounterRange;
 }
 
 export interface PresetBuckets<T> {
 	buckets: PresetBucket<T>[];
 	/** Nodes without a usable value (folders for a counter, short names…). */
 	ungrouped: T[];
+	/** Present only for counter presets with at least one fetched value. */
+	counterDomain?: CounterDomain;
 }
+
+export interface PresetBucketSnapshot {
+	readonly bucketId: string;
+	readonly label: string;
+	readonly entityIds: readonly string[];
+	readonly urns: readonly string[];
+	readonly projectionRevision: number | null;
+}
+
+export type MaterializePresetHandler = (
+	snapshot: PresetBucketSnapshot,
+) => Promise<GroupMutationResult>;
+
+/** Snapshot only membership roots; descendants are reproduced by projection. */
+export function snapshotPresetBucket<TMeta>(
+	header: TreeNode<TMeta>,
+	urnOf: (node: TreeNode<TMeta>) => string,
+	projectionRevision: number | null,
+): PresetBucketSnapshot {
+	const entityIds: string[] = [];
+	const urns: string[] = [];
+	const seen = new Set<string>();
+	for (const node of header.children ?? []) {
+		const entityId = node.entityId ?? node.id;
+		if (seen.has(entityId)) continue;
+		seen.add(entityId);
+		entityIds.push(entityId);
+		urns.push(urnOf(node));
+	}
+	return Object.freeze({
+		bucketId: header.id,
+		label: header.label,
+		entityIds: Object.freeze(entityIds),
+		urns: Object.freeze(urns),
+		projectionRevision,
+	});
+}
+
+export interface MaterializePresetInput<
+	T extends { label: string; id: string; entityId?: string },
+> {
+	nodes: readonly T[];
+	preset: GroupPreset;
+	extract?: PresetValueOf<T>;
+	labels?: RangeLabels;
+	now?: number;
+	/** One name per selected bucket, in the order of `sourceBucketIds`. */
+	names: readonly string[];
+	sourceBucketIds?: readonly string[];
+	existingMemberships?: Readonly<Record<string, readonly string[]>>;
+	urnOf: (node: T) => string;
+	projectionRevision: number;
+	currentRevision?: number;
+}
+
+export type MaterializePresetResult<
+	T extends { label: string; id: string; entityId?: string },
+> =
+	| {
+			status: 'committed';
+			memberships: Record<string, readonly string[]>;
+			preset: GroupPreset;
+			projectionRevision: number;
+			buckets: readonly PresetBucket<T>[];
+		}
+	| { status: 'cancelled' }
+	| { status: 'rejected'; reason: string };
 
 /**
  * What a scene must be able to answer about a node for the value presets.
@@ -112,6 +190,157 @@ function daysAgo(epochMs: number, now: number): number {
 interface ValueRange {
 	lo: number;
 	hi: number;
+}
+
+export function counterRangeId(index: number): string {
+	return `counter-range-${index + 1}`;
+}
+
+export function materializeCounterRanges<T extends { label: string }>(
+	nodes: readonly T[],
+	preset: GroupPreset,
+	options: PresetBucketOptions<T> = {},
+): GroupPreset {
+	if (!isCounterPresetKind(preset.kind) || preset.counterRanges !== undefined)
+		return cloneGroupPreset(preset);
+	const extract = options.extract;
+	if (!extract) return cloneGroupPreset(preset);
+	const values = nodes
+		.map((node) => extract(node, preset.kind))
+		.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+		.map((value) => Math.max(0, Math.floor(value)));
+	const count = sectionCount(values.length);
+	if (count < 2) return cloneGroupPreset(preset);
+	const ranges = quantileRanges([...values].sort((a, b) => a - b), count).map(
+		(range, index) => ({ ...range, id: counterRangeId(index) }),
+	);
+	return { ...cloneGroupPreset(preset), counterRanges: ranges };
+}
+
+export type AddCounterRangeSliceResult =
+	| { ok: true; ranges: CounterRange[]; addedId: string }
+	| { ok: false; reason: 'invalid_domain' | 'no_slice_available' };
+
+function nextCounterRangeId(ranges: readonly CounterRange[]): string {
+	const used = new Set(ranges.map((range) => range.id));
+	let index = ranges.length;
+	while (used.has(counterRangeId(index))) index += 1;
+	return counterRangeId(index);
+}
+
+/**
+ * Add one integer slice without extending the fetched domain. Prefer an
+ * uncovered gap; otherwise split the widest existing interval and preserve
+ * its id on the lower half. Other intervals are never changed.
+ */
+export function addCounterRangeSlice(
+	ranges: readonly CounterRange[],
+	domain: CounterDomain,
+): AddCounterRangeSliceResult {
+	if (
+		!Number.isInteger(domain.min) ||
+		!Number.isInteger(domain.max) ||
+		domain.min < 0 ||
+		domain.min > domain.max
+	)
+		return { ok: false, reason: 'invalid_domain' };
+	const ordered = ranges
+		.map((range) => ({ ...range }))
+		.sort((a, b) => a.lo - b.lo || a.hi - b.hi);
+	const gaps: Array<{ lo: number; hi: number }> = [];
+	let cursor = domain.min;
+	for (const range of ordered) {
+		if (range.hi < domain.min || range.lo > domain.max) continue;
+		const lo = Math.max(domain.min, range.lo);
+		const hi = Math.min(domain.max, range.hi);
+		if (cursor < lo) gaps.push({ lo: cursor, hi: lo - 1 });
+		cursor = Math.max(cursor, hi + 1);
+	}
+	if (cursor <= domain.max) gaps.push({ lo: cursor, hi: domain.max });
+	const addedId = nextCounterRangeId(ordered);
+	const gap = gaps.sort((a, b) => b.hi - b.lo - (a.hi - a.lo))[0];
+	if (gap) {
+		return {
+			ok: true,
+			addedId,
+			ranges: [...ordered, { id: addedId, ...gap }].sort(
+				(a, b) => a.lo - b.lo || a.hi - b.hi,
+			),
+		};
+	}
+	let splitIndex = -1;
+	let splitWidth = 0;
+	for (const [index, range] of ordered.entries()) {
+		const lo = Math.max(domain.min, range.lo);
+		const hi = Math.min(domain.max, range.hi);
+		if (hi - lo > splitWidth) {
+			splitWidth = hi - lo;
+			splitIndex = index;
+		}
+	}
+	if (splitIndex < 0 || splitWidth < 1)
+		return { ok: false, reason: 'no_slice_available' };
+	const source = ordered[splitIndex]!;
+	const midpoint = Math.floor((source.lo + source.hi) / 2);
+	const next = ordered.map((range) => ({ ...range }));
+	next[splitIndex] = { ...source, hi: midpoint };
+	next.splice(splitIndex + 1, 0, {
+		id: addedId,
+		lo: midpoint + 1,
+		hi: source.hi,
+	});
+	return { ok: true, ranges: next, addedId };
+}
+
+export function materializePresetAsCustom<
+	T extends { label: string; id: string; entityId?: string },
+>(
+	input: MaterializePresetInput<T>,
+): MaterializePresetResult<T> {
+	if (
+		input.currentRevision !== undefined &&
+		input.currentRevision !== input.projectionRevision
+	)
+		return { status: 'rejected', reason: 'projection_revision_changed' };
+	const resolved = buildPresetBuckets(input.nodes, input.preset, {
+		extract: input.extract,
+		labels: input.labels,
+		now: input.now,
+	});
+	if (!resolved) return { status: 'rejected', reason: 'preset_not_projectable' };
+	const selected = input.sourceBucketIds
+		? resolved.buckets.filter((bucket) => input.sourceBucketIds!.includes(bucket.key))
+		: resolved.buckets;
+	if (selected.length !== input.names.length || selected.length === 0)
+		return { status: 'rejected', reason: 'bucket_name_count_mismatch' };
+	const names = input.names.map((name) => name.trim());
+	const existing = new Set(Object.keys(input.existingMemberships ?? {}));
+	const unique = new Set<string>();
+	if (names.some((name) => !name || existing.has(name) || !unique.add(name)))
+		return { status: 'rejected', reason: 'group_name_collision' };
+	const memberships: Record<string, readonly string[]> = {
+		...Object.fromEntries(
+			Object.entries(input.existingMemberships ?? {}).map(([id, urns]) => [id, [...urns]]),
+		),
+	};
+	for (const [index, bucket] of selected.entries()) {
+		const seen = new Set<string>();
+		const urns: string[] = [];
+		for (const node of bucket.members) {
+			const identity = node.entityId ?? node.id;
+			if (seen.has(identity)) continue;
+			seen.add(identity);
+			urns.push(input.urnOf(node));
+		}
+		memberships[names[index]!] = urns;
+	}
+	return {
+		status: 'committed',
+		memberships,
+		preset: { kind: 'custom', direction: input.preset.direction },
+		projectionRevision: input.projectionRevision,
+		buckets: selected,
+	};
 }
 
 /**
@@ -245,28 +474,47 @@ export function buildPresetBuckets<T extends { label: string }>(
 		}
 		valued.push({ node, value: isDate ? daysAgo(raw, now) : raw });
 	}
-	const k = sectionCount(valued.length);
-	if (k < 2) return null;
-
-	const ranges = quantileRanges(
-		valued.map((entry) => entry.value).sort((a, b) => a - b),
-		k,
-	);
-	const buckets: PresetBucket<T>[] = ranges.map((range, index) => ({
-		key: String(index),
+	const explicitRanges = isCounter && preset.counterRanges !== undefined;
+	const counterValues = isCounter
+		? valued.map((entry) => Math.max(0, Math.floor(entry.value)))
+		: [];
+	const counterDomain =
+		counterValues.length > 0
+			? { min: Math.min(...counterValues), max: Math.max(...counterValues) }
+			: undefined;
+	const ranges: CounterRange[] = explicitRanges
+		? preset.counterRanges!.map((range) => ({ ...range }))
+		: quantileRanges(
+				valued.map((entry) => entry.value).sort((a, b) => a - b),
+				sectionCount(valued.length),
+			).map((range, index) => ({ ...range, id: counterRangeId(index) }));
+	if (!explicitRanges && ranges.length < 2) return null;
+	if (ranges.length === 0) return null;
+	const buckets: PresetBucket<T>[] = ranges.map((range) => ({
+		key: range.id,
 		label: isDate
 			? range.lo === 0
 				? labels.recent(range.hi + 1)
 				: labels.daysAgo(range.lo, range.hi)
 			: labels.span(range.lo, range.hi),
 		members: [],
+		...(isCounter ? { range } : {}),
 	}));
 	for (const { node, value } of valued) {
 		const index = ranges.findIndex((r) => value >= r.lo && value <= r.hi);
-		buckets[index === -1 ? buckets.length - 1 : index].members.push(node);
+		if (index === -1) ungrouped.push(node);
+		else buckets[index]!.members.push(node);
 	}
-	const byIndexOrder = (a: PresetBucket<T>, b: PresetBucket<T>) =>
-		Number(a.key) - Number(b.key);
+	const rangeById = new Map(ranges.map((range) => [range.id, range] as const));
+	const byIndexOrder = (a: PresetBucket<T>, b: PresetBucket<T>) => {
+		const ar = rangeById.get(a.key)!;
+		const br = rangeById.get(b.key)!;
+		return ar.lo - br.lo || ar.hi - br.hi;
+	};
 	// Dates: `asc` reads as "most recent first", which is ascending days-ago.
-	return { buckets: orderBuckets(buckets, byIndexOrder, direction), ungrouped };
+	return {
+		buckets: orderBuckets(buckets, byIndexOrder, direction),
+		ungrouped,
+		...(counterDomain ? { counterDomain } : {}),
+	};
 }

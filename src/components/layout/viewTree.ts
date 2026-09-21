@@ -7,6 +7,8 @@ import type {
 	TreeNodeCell,
 } from '../../types/typeTree';
 import type { ExplorerTabId } from '../../types/typeUI';
+import type { CounterRange } from '../../types/typeGroupPreset';
+import { validateCounterRangeEdit } from '../../logic/logicCounterRangeEditor';
 import { applyCellTooltip as applySharedCellTooltip } from '../../logic/logicCellTooltip';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import {
@@ -109,6 +111,10 @@ export interface TreeViewOptions {
 	getEditingPlaceholder?: (node: TreeNode) => string;
 	onCancelRename?: () => void;
 	onOpenRichRename?: (id: string, currentValue: string) => void;
+	/** Structured editor for counter preset headers. */
+	onCounterRangeCommit?: (id: string, range: CounterRange) => void;
+	onCounterRangeError?: (id: string, reason: string) => void;
+	counterRangeBoundLabel?: (bound: 'lower' | 'upper') => string;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	/**
 	 * U121-073: the badge of a node doomed by an ANCESTOR's deletion releases
@@ -1813,6 +1819,66 @@ export class UnifiedTreeView {
 				});
 			}
 		} else if (showLabel && !usesActivationOrder) {
+			if (node.counterRange && opts.onCounterRangeCommit) {
+				const range = node.counterRange;
+				const ranges = node.counterRanges ?? [range];
+				const editor = row.createSpan({
+					cls: 'vaultman-counter-range-editor',
+					attr: { role: 'group', 'aria-label': node.label },
+				});
+				const createInput = (value: number, label: string): HTMLInputElement => {
+					const domain = node.counterDomain;
+					const input = editor.createEl('input', {
+						type: 'number',
+						value: String(value),
+						attr: {
+							'aria-label': label,
+							min: String(domain?.min ?? 0),
+							...(domain ? { max: String(domain.max) } : {}),
+							step: '1',
+						},
+					});
+					input.addEventListener('click', (event) => event.stopPropagation());
+					return input;
+				};
+				const loInput = createInput(
+					range.lo,
+					opts.counterRangeBoundLabel?.('lower') ?? `${node.label} lower bound`,
+				);
+				editor.createSpan({ cls: 'vaultman-counter-range-separator', text: '–' });
+				const hiInput = createInput(
+					range.hi,
+					opts.counterRangeBoundLabel?.('upper') ?? `${node.label} upper bound`,
+				);
+				let done = false;
+				const commit = (): void => {
+					if (done) return;
+					const result = validateCounterRangeEdit(
+						{ id: range.id, lo: loInput.value, hi: hiInput.value },
+						ranges,
+						node.counterDomain,
+					);
+					if (!result.ok) {
+						opts.onCounterRangeError?.(node.id, result.reason);
+						return;
+					}
+					done = true;
+					opts.onCounterRangeCommit?.(node.id, result.range);
+				};
+				const cancel = (): void => {
+					if (done) return;
+					done = true;
+				};
+				for (const input of [loInput, hiInput]) {
+					input.addEventListener('keydown', (event) => {
+						if (event.isComposing) return;
+						if (event.key === 'Enter') commit();
+						if (event.key === 'Escape') cancel();
+					});
+					input.addEventListener('blur', commit);
+				}
+				return row;
+			}
 			if (opts.renderLabel?.(row, node)) {
 				// Custom renderer emitted the complete label cell.
 			} else {

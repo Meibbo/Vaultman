@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+	addCounterRangeSlice,
 	buildPresetBuckets,
+	materializeCounterRanges,
+	materializePresetAsCustom,
 	namePrefixKey,
 	quantileRanges,
 	sectionCount,
 } from '../../src/logic/logicGroupPresets';
+import {
+	updateCounterRange,
+	validateCounterRangeEdit,
+} from '../../src/logic/logicCounterRangeEditor';
 import {
 	expandNewGroupHeaders,
 	NO_GROUP_ID,
@@ -16,7 +23,10 @@ import {
 	resolveSceneConfig,
 } from '../../src/logic/logicSettingsCascade';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
-import { normalizeGroupPreset } from '../../src/types/typeGroupPreset';
+import {
+	cloneGroupPreset,
+	normalizeGroupPreset,
+} from '../../src/types/typeGroupPreset';
 import type { SceneConfig } from '../../src/types/typeInstance';
 import type { TreeNode } from '../../src/types/typeTree';
 
@@ -141,6 +151,126 @@ describe('spec 08 §3.2.1 — range sectioning', () => {
 		]);
 	});
 
+	it('materializes stable range ids once, then preserves them', () => {
+		const nodes = Array.from({ length: 10 }, (_, i) => ({
+			id: `n${i}`,
+			label: `n${i}`,
+			words: i + 1,
+		}));
+		const generated = materializeCounterRanges(
+			nodes,
+			{ kind: 'words', direction: 'asc' },
+			{ extract: (node) => node.words },
+		);
+		expect(generated.counterRanges).toEqual([
+			{ id: 'counter-range-1', lo: 1, hi: 5 },
+			{ id: 'counter-range-2', lo: 6, hi: 10 },
+		]);
+		const regenerated = materializeCounterRanges(
+			nodes,
+			generated,
+			{ extract: (node) => node.words },
+		);
+		expect(regenerated).toEqual(generated);
+		expect(regenerated.counterRanges).not.toBe(generated.counterRanges);
+	});
+
+	it('explicit ranges keep empty buckets and send values in gaps to ungrouped', () => {
+		const nodes = [0, 2, 4, 9].map((words) => ({
+			id: `n${words}`,
+			label: `n${words}`,
+			words,
+		}));
+		const out = buildPresetBuckets(
+			nodes,
+			{
+				kind: 'words',
+				direction: 'desc',
+				counterRanges: [
+					{ id: 'low', lo: 0, hi: 2 },
+					{ id: 'empty', lo: 5, hi: 7 },
+				],
+			},
+			{ extract: (node) => node.words },
+		);
+		expect(out?.buckets.map((bucket) => [bucket.key, bucket.members.length])).toEqual([
+			['empty', 0],
+			['low', 2],
+		]);
+		expect(out?.ungrouped.map((node) => node.id)).toEqual(['n4', 'n9']);
+		expect(out?.counterDomain).toEqual({ min: 0, max: 9 });
+	});
+
+	it('validates an edit without mutating the other ranges', () => {
+		const ranges = [
+			{ id: 'r1', lo: 0, hi: 4 },
+			{ id: 'r2', lo: 5, hi: 9 },
+		];
+		expect(
+			validateCounterRangeEdit({ id: 'r2', lo: '4', hi: '8' }, ranges),
+		).toEqual({ ok: false, reason: 'overlap' });
+		expect(
+			validateCounterRangeEdit({ id: 'r2', lo: '-1', hi: '8' }, ranges),
+		).toEqual({ ok: false, reason: 'negative' });
+		expect(
+			validateCounterRangeEdit({ id: 'r2', lo: '7', hi: '6' }, ranges),
+		).toEqual({ ok: false, reason: 'order' });
+		expect(
+			validateCounterRangeEdit(
+				{ id: 'r2', lo: '5', hi: '12' },
+				ranges,
+				{ min: 0, max: 10 },
+			),
+		).toEqual({ ok: false, reason: 'bounds' });
+		expect(
+			updateCounterRange(ranges, { id: 'r2', lo: '6', hi: '12' }),
+		).toEqual({ ok: true, range: { id: 'r2', lo: 6, hi: 12 } });
+		expect(ranges).toEqual([
+			{ id: 'r1', lo: 0, hi: 4 },
+			{ id: 'r2', lo: 5, hi: 9 },
+		]);
+	});
+
+	it('adds a slice inside an uncovered part of the fetched min/max', () => {
+		expect(
+			addCounterRangeSlice(
+				[
+					{ id: 'r1', lo: 0, hi: 2 },
+					{ id: 'r2', lo: 6, hi: 9 },
+				],
+				{ min: 0, max: 9 },
+			),
+		).toEqual({
+			ok: true,
+			addedId: 'counter-range-3',
+			ranges: [
+				{ id: 'r1', lo: 0, hi: 2 },
+				{ id: 'counter-range-3', lo: 3, hi: 5 },
+				{ id: 'r2', lo: 6, hi: 9 },
+			],
+		});
+	});
+
+	it('splits only the widest existing slice when the domain has no gaps', () => {
+		expect(
+			addCounterRangeSlice(
+				[
+					{ id: 'r1', lo: 0, hi: 7 },
+					{ id: 'r2', lo: 8, hi: 9 },
+				],
+				{ min: 0, max: 9 },
+			),
+		).toEqual({
+			ok: true,
+			addedId: 'counter-range-3',
+			ranges: [
+				{ id: 'r1', lo: 0, hi: 3 },
+				{ id: 'counter-range-3', lo: 4, hi: 7 },
+				{ id: 'r2', lo: 8, hi: 9 },
+			],
+		});
+	});
+
 	it('nodes without a value go to `ungrouped`, never to a range', () => {
 		const nodes = Array.from({ length: 12 }, (_, i) => ({
 			id: `n${i}`,
@@ -178,6 +308,99 @@ describe('spec 08 §3.2.1 — range sectioning', () => {
 			['Last 13 days', 5],
 			['15–27 days ago', 5],
 		]);
+		expect(out?.buckets.every((bucket) => bucket.range === undefined)).toBe(true);
+		expect(out?.counterDomain).toBeUndefined();
+	});
+});
+
+describe('U130 — preset buckets materialize as custom groups', () => {
+	const nodes = [
+		{ id: 'row-a1', entityId: 'a', label: 'Alpha one' },
+		{ id: 'row-a2', entityId: 'a', label: 'Alpha two' },
+		{ id: 'row-b', entityId: 'b', label: 'Beta one' },
+	];
+
+	it('materializes every bucket atomically and deduplicates occurrences by entity', () => {
+		const result = materializePresetAsCustom({
+			nodes,
+			preset: { kind: 'letter', direction: 'asc' },
+			names: ['Group A', 'Group B'],
+			existingMemberships: { Existing: ['files:file:x|x'] },
+			urnOf: (node) => `files:file:${node.entityId}|${node.label}`,
+			projectionRevision: 7,
+			currentRevision: 7,
+		});
+		expect(result.status).toBe('committed');
+		if (result.status !== 'committed') return;
+		expect(result.memberships).toEqual({
+			Existing: ['files:file:x|x'],
+			'Group A': ['files:file:a|Alpha one'],
+			'Group B': ['files:file:b|Beta one'],
+		});
+		expect(result.preset).toEqual({ kind: 'custom', direction: 'asc' });
+	});
+
+	it('materializes one selected bucket and rejects stale projections or collisions', () => {
+		const input = {
+			nodes,
+			preset: { kind: 'letter' as const, direction: 'asc' as const },
+			names: ['Only B'],
+			sourceBucketIds: ['B'],
+			existingMemberships: {},
+			urnOf: (node: (typeof nodes)[number]) => `root:${node.entityId}`,
+			projectionRevision: 3,
+			currentRevision: 3,
+		};
+		const committed = materializePresetAsCustom(input);
+		expect(committed.status).toBe('committed');
+		if (committed.status === 'committed') {
+			// Only the p-node/root URN is stored; projection reproduces descendants.
+			expect(committed.memberships).toEqual({ 'Only B': ['root:b'] });
+		}
+		expect(
+			materializePresetAsCustom({ ...input, currentRevision: 4 }),
+		).toEqual({ status: 'rejected', reason: 'projection_revision_changed' });
+		expect(
+			materializePresetAsCustom({
+				...input,
+				existingMemberships: { 'Only B': [] },
+			}),
+		).toEqual({ status: 'rejected', reason: 'group_name_collision' });
+	});
+
+	it('materializes the members produced by an explicit counter interval', () => {
+		const counterNodes = [1, 3, 6, 9].map((words) => ({
+			id: `row-${words}`,
+			label: `Note ${words}`,
+			words,
+		}));
+		const result = materializePresetAsCustom({
+			nodes: counterNodes,
+			preset: {
+				kind: 'words',
+				direction: 'asc',
+				counterRanges: [
+					{ id: 'small', lo: 0, hi: 3 },
+					{ id: 'large', lo: 6, hi: 10 },
+				],
+			},
+			extract: (node) => node.words,
+			names: ['Large notes'],
+			sourceBucketIds: ['large'],
+			existingMemberships: {},
+			urnOf: (node) => `files:file:${node.id}|${node.label}`,
+			projectionRevision: 2,
+			currentRevision: 2,
+		});
+		expect(result.status).toBe('committed');
+		if (result.status === 'committed') {
+			expect(result.memberships).toEqual({
+				'Large notes': [
+					'files:file:row-6|Note 6',
+					'files:file:row-9|Note 9',
+				],
+			});
+		}
 	});
 });
 
@@ -300,6 +523,49 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 			kind: 'none',
 			direction: 'asc',
 		});
+	});
+
+	it('normalizes valid counter ranges and rejects malformed or overlapping sets', () => {
+		const valid = normalizeGroupPreset('files', {
+			kind: 'words',
+			direction: 'asc',
+			counterRanges: [
+				{ id: 'r1', lo: 0, hi: 4 },
+				{ id: 'r2', lo: 6, hi: 9 },
+			],
+		});
+		expect(valid.counterRanges).toEqual([
+			{ id: 'r1', lo: 0, hi: 4 },
+			{ id: 'r2', lo: 6, hi: 9 },
+		]);
+		for (const counterRanges of [
+			[{ id: 'r1', lo: -1, hi: 2 }],
+			[{ id: 'r1', lo: 3, hi: 2 }],
+			[
+				{ id: 'r1', lo: 0, hi: 4 },
+				{ id: 'r2', lo: 4, hi: 8 },
+			],
+			[{ id: 'r1', lo: Number.NaN, hi: 2 }],
+		]) {
+			expect(
+				normalizeGroupPreset('files', {
+					kind: 'words',
+					direction: 'asc',
+					counterRanges,
+				}).counterRanges,
+			).toBeUndefined();
+		}
+	});
+
+	it('cloneGroupPreset deep-copies counter ranges', () => {
+		const original = {
+			kind: 'words' as const,
+			direction: 'asc' as const,
+			counterRanges: [{ id: 'r1', lo: 0, hi: 4 }],
+		};
+		const cloned = cloneGroupPreset(original);
+		(cloned.counterRanges![0] as { lo: number }).lo = 99;
+		expect(original.counterRanges[0]?.lo).toBe(0);
 	});
 });
 

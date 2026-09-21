@@ -63,7 +63,8 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		const action = actions.find((entry) => entry.id === 'vaultman.group.selected');
 		expect(action).toBeDefined();
 		expect(actions.map((entry) => entry.id)).toEqual(
-			expect.arrayContaining([
+				expect.arrayContaining([
+				'group.materialize-preset',
 				'group.toggle-expand',
 				'group.copy-id',
 				'group.icon',
@@ -82,6 +83,33 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 			['file', 'folder', 'plugin', 'prop', 'snippet', 'tag', 'value'].sort(),
 		);
 		expect(action.surfaces).toEqual(['panel']);
+	});
+
+	it('materializes only preset headers and awaits the scene handler', async () => {
+		const registerAction = vi.fn();
+		registerGroupActions({
+			contextMenuService: { registerAction },
+		} as never);
+		const action = registerAction.mock.calls
+			.map(([entry]) => entry as ActionDef)
+			.find((entry) => entry.id === 'group.materialize-preset');
+		if (!action) throw new Error('materialize action was not registered');
+		const materialize = vi.fn(async () => ({
+			status: 'committed' as const,
+			groupId: 'A',
+			affectedUrns: ['urn:a'],
+		}));
+		const preset: MenuCtx = {
+			nodeType: 'group',
+			node: node('preset:A'),
+			surface: 'panel',
+			groupOwner: 'preset',
+			materializePreset: materialize,
+		};
+		expect(action.when?.(preset)).toBe(true);
+		await action.run(preset);
+		expect(materialize).toHaveBeenCalledTimes(1);
+		expect(action.when?.({ ...preset, groupOwner: 'custom' })).toBe(false);
 	});
 
 	it('only appears when the explorer attached the creator, and dispatches to it', () => {

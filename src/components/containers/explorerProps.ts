@@ -134,6 +134,7 @@ import {
 	type DegroupSelectedHandler,
 } from '../../logic/logicGroupSelectionTransaction';
 import {
+	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
 	type GroupPreset,
@@ -144,6 +145,10 @@ import {
 	updateNoteGroupMembersOnRename,
 } from '../../logic/logicNoteGroups';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
+import {
+	snapshotPresetBucket,
+	type MaterializePresetHandler,
+} from '../../logic/logicGroupPresets';
 import type { MenuCtx } from '../../types/typeCMenu';
 import {
 	activeScopeSort,
@@ -298,6 +303,7 @@ export class PropsExplorerPanel extends Component {
 	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private materializePresetHandler?: MaterializePresetHandler;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -1103,7 +1109,7 @@ export class PropsExplorerPanel extends Component {
 			this.tooltipsOverride = config.tooltips;
 		}
 		if (presetChanged && config.groupPreset) {
-			this.groupPreset = { ...config.groupPreset };
+			this.groupPreset = cloneGroupPreset(config.groupPreset);
 		}
 		if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 		if (membershipsChanged && config.groupMemberships) {
@@ -1115,7 +1121,7 @@ export class PropsExplorerPanel extends Component {
 
 	setGroupPreset(preset: GroupPreset): void {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
-		this.groupPreset = { ...preset };
+		this.groupPreset = cloneGroupPreset(preset);
 		this._render();
 	}
 
@@ -1145,6 +1151,10 @@ export class PropsExplorerPanel extends Component {
 
 	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
 		this.degroupSelectedHandler = handler;
+	}
+
+	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
+		this.materializePresetHandler = handler;
 	}
 
 	setSelectionScope(scope: {
@@ -2984,6 +2994,20 @@ export class PropsExplorerPanel extends Component {
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(id),
 						groupExpanded: this.expandedIds.has(id),
+						materializePreset:
+							this.groupPreset.kind === 'note' ||
+							this._groupIds.has(id) ||
+							!header ||
+							!this.materializePresetHandler
+								? undefined
+								: () =>
+									this.materializePresetHandler!(
+										snapshotPresetBucket(
+											header,
+											(node) => this._membershipUrnOf(node),
+											this.selectionRevision,
+										),
+									),
 						toggleGroupExpand: (groupId: string) => {
 							this._toggleExpanded(groupId);
 						},

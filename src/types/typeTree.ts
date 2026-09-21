@@ -2,6 +2,7 @@
 import type { TFile, TFolder } from 'obsidian';
 import type { TagSource } from '../logic/logicTagSource';
 import type { AddonCellStyle } from './typeSettings';
+import type { CounterDomain, CounterRange } from './typeGroupPreset';
 
 export interface NodeBadge {
 	text?: string;
@@ -97,6 +98,11 @@ export interface TreeNode<TMeta = unknown> {
 	/** BT4-014: rainbow bucket color value for folder rows. */
 	folderColor?: string;
 	count?: number;
+	/** Closed interval represented by a counter preset header. */
+	counterRange?: CounterRange;
+	counterRanges?: readonly CounterRange[];
+	/** Current fetched counter limits; edits and new slices stay inside them. */
+	counterDomain?: CounterDomain;
 	/**
 	 * B-groupbody: marca puesta SOLO por `headerNode` de
 	 * `logicTreeGroupProjection`. El motor (`UnifiedTreeView`) reconoce por

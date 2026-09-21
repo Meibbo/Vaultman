@@ -23,6 +23,20 @@ export interface GroupPreset {
 	kind: GroupPresetKind;
 	/** Header order. Ignored for `none` (§3.2: no direction there). */
 	direction: ExplorerSortDirection;
+	/** Explicit closed counter intervals. Only valid for words/tasks/props. */
+	counterRanges?: readonly CounterRange[];
+}
+
+export interface CounterRange {
+	id: string;
+	lo: number;
+	hi: number;
+}
+
+/** Transient limits of the counter values fetched for the current projection. */
+export interface CounterDomain {
+	min: number;
+	max: number;
 }
 
 export const NO_GROUP_PRESET: Readonly<GroupPreset> = Object.freeze({
@@ -90,7 +104,11 @@ export function normalizeGroupPreset(
 ): GroupPreset {
 	if (typeof value !== 'object' || value === null)
 		return { ...NO_GROUP_PRESET };
-	const raw = value as { kind?: unknown; direction?: unknown };
+	const raw = value as {
+		kind?: unknown;
+		direction?: unknown;
+		counterRanges?: unknown;
+	};
 	// Note groups are meaningful only while the props/tags explorer is
 	// actually revealing a note.  Do not let a persisted `kind: note` leak
 	// into an ordinary scene (or into files/snippets/plugins) merely because
@@ -105,11 +123,74 @@ export function normalizeGroupPreset(
 			: 'none';
 	const direction: ExplorerSortDirection =
 		raw.direction === 'desc' ? 'desc' : 'asc';
-	return { kind, direction };
+	const counterRanges = normalizeCounterRanges(kind, raw.counterRanges);
+	return counterRanges ? { kind, direction, counterRanges } : { kind, direction };
 }
 
 export function sameGroupPreset(a: GroupPreset, b: GroupPreset): boolean {
+	if (a.kind !== b.kind || (a.kind !== 'none' && a.direction !== b.direction))
+		return false;
+	const ar = a.counterRanges;
+	const br = b.counterRanges;
+	if (ar === undefined || br === undefined) return ar === br;
 	return (
-		a.kind === b.kind && (a.kind === 'none' || a.direction === b.direction)
+		ar.length === br.length &&
+		ar.every(
+			(range, index) =>
+				range.id === br[index]?.id &&
+				range.lo === br[index]?.lo &&
+				range.hi === br[index]?.hi,
+		)
 	);
+}
+
+export function isCounterPresetKind(
+	kind: GroupPresetKind,
+): boolean {
+	return COUNTER_PRESET_KINDS.includes(kind);
+}
+
+export function normalizeCounterRanges(
+	kind: GroupPresetKind,
+	value: unknown,
+): CounterRange[] | undefined {
+	if (!isCounterPresetKind(kind) || value === undefined) return undefined;
+	if (!Array.isArray(value)) return undefined;
+	const ranges: CounterRange[] = [];
+	const ids = new Set<string>();
+	for (const item of value) {
+		if (typeof item !== 'object' || item === null) return undefined;
+		const raw = item as { id?: unknown; lo?: unknown; hi?: unknown };
+		if (
+			typeof raw.id !== 'string' ||
+			raw.id.length === 0 ||
+			ids.has(raw.id) ||
+			!Number.isInteger(raw.lo) ||
+			!Number.isInteger(raw.hi) ||
+			!Number.isFinite(raw.lo) ||
+			!Number.isFinite(raw.hi) ||
+			(raw.lo as number) < 0 ||
+			(raw.hi as number) < 0 ||
+			(raw.lo as number) > (raw.hi as number)
+		) {
+			return undefined;
+		}
+		ids.add(raw.id);
+		ranges.push({ id: raw.id, lo: raw.lo as number, hi: raw.hi as number });
+	}
+	const ordered = [...ranges].sort((a, b) => a.lo - b.lo || a.hi - b.hi);
+	for (let index = 1; index < ordered.length; index += 1) {
+		if (ordered[index - 1]!.hi >= ordered[index]!.lo) return undefined;
+	}
+	return ranges.map((range) => ({ ...range }));
+}
+
+export function cloneGroupPreset(preset: GroupPreset): GroupPreset {
+	return {
+		kind: preset.kind,
+		direction: preset.direction,
+		...(preset.counterRanges
+			? { counterRanges: preset.counterRanges.map((range) => ({ ...range })) }
+			: {}),
+	};
 }

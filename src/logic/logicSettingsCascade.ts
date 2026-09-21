@@ -1,5 +1,5 @@
 import type { SceneConfig } from '../types/typeInstance';
-import { sameGroupPreset } from '../types/typeGroupPreset';
+import { cloneGroupPreset, sameGroupPreset } from '../types/typeGroupPreset';
 import { cloneGroupMemberships } from './logicMembershipUrn';
 
 /**
@@ -36,7 +36,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		compactFolders: input.defaults.compactFolders,
 		indent: input.defaults.indent,
 		tooltips: input.defaults.tooltips,
-		groupPreset: { ...input.defaults.groupPreset },
+		groupPreset: cloneGroupPreset(input.defaults.groupPreset),
 		hiddenGroupIds: cloneCells(input.defaults.hiddenGroupIds),
 		sceneLabelMode: input.defaults.sceneLabelMode,
 		autoRevealMode: input.defaults.autoRevealMode,
@@ -58,7 +58,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
 		if (layer.indent !== undefined) out.indent = layer.indent;
 		if (layer.tooltips !== undefined) out.tooltips = layer.tooltips;
-		if (layer.groupPreset !== undefined) out.groupPreset = { ...layer.groupPreset };
+		if (layer.groupPreset !== undefined) out.groupPreset = cloneGroupPreset(layer.groupPreset);
 		if (layer.hiddenGroupIds !== undefined) {
 			out.hiddenGroupIds = cloneCells(layer.hiddenGroupIds);
 		}
@@ -120,7 +120,7 @@ export function diffSceneConfig(
 	if (next.indent !== baseline.indent) patch.indent = next.indent;
 	if (next.tooltips !== baseline.tooltips) patch.tooltips = next.tooltips;
 	if (!sameGroupPreset(next.groupPreset, baseline.groupPreset)) {
-		patch.groupPreset = { ...next.groupPreset };
+		patch.groupPreset = cloneGroupPreset(next.groupPreset);
 	}
 	if (
 		next.hiddenGroupIds.length !== baseline.hiddenGroupIds.length ||

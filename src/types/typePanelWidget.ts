@@ -5,6 +5,8 @@ import type { ToolbarOverflowStrategy } from '../logic/logicResponsiveLayout';
 import type { SavedLayout } from './typeSettings';
 import type { ExplorerSortState, ExplorerTabId } from './typeUI';
 import type { GroupPreset } from './typeGroupPreset';
+import type { CounterRange } from './typeGroupPreset';
+import type { MaterializePresetHandler } from '../logic/logicGroupPresets';
 import type { SasiRegistry } from '../logic/logicSasiRegistry';
 import type { SasiHandler } from '../logic/logicSasiInvoke';
 import type {
@@ -131,6 +133,14 @@ export interface PanelWidgetExplorerPort {
 	 * el navbar persiste (custom) o escribe la nota (note). Preset sin handler.
 	 */
 	setDegroupSelectedHandler?(handler?: DegroupSelectedHandler): void;
+	/** Persist one visible preset bucket as a custom group. */
+	setMaterializePresetHandler?(handler?: MaterializePresetHandler): void;
+	/** Persist the complete explicit range set after one header edit. */
+	setCounterRangesChangeHandler?(
+		handler?: (ranges: readonly CounterRange[]) => void,
+	): void;
+	/** Add one counter bucket inside the current fetched min/max domain. */
+	createCounterRangeSlice?(): boolean;
 	/** Identidad de scene/instancia para la guarda de reconciliación. */
 	setSelectionScope?(scope: { instanceId: string | null; revision: number | null; scene: string }): void;
 	configurePanelWidgetProjection?(

@@ -12,3 +12,31 @@
 .vaultman-tree-row--group-header .vaultman-tree-label {
 	color: inherit;
 }
+
+.vaultman-counter-range-editor {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-1, 4px);
+	min-inline-size: 0;
+}
+
+.vaultman-counter-range-editor input[type='number'] {
+	inline-size: 5.5ch;
+	min-inline-size: 0;
+	block-size: 22px;
+	padding-block: 0;
+	padding-inline: var(--size-4-1, 4px);
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.vaultman-counter-range-editor input[type='number']:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+.vaultman-counter-range-separator {
+	flex: 0 0 auto;
+	user-select: none;
+}

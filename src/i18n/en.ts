@@ -1351,6 +1351,11 @@ export const en: Record<string, string> = {
 	'group.degroup.no_handler': 'No degroup handler on this surface',
 	// U130 Slice B (spec-03 §24-40): universal group-header menu.
 	'group.preset.locked': 'Preset groups are managed by the engine',
+	'group.preset.materialize': 'Create custom from this group',
+	'group.counter.invalid': 'The counter range is invalid or overlaps another range.',
+	'group.counter.lower': 'Lower bound',
+	'group.counter.upper': 'Upper bound',
+	'group.counter.no_slice': 'No counter slice can be added inside the fetched range.',
 	'group.caret.expand': 'Expand group',
 	'group.caret.collapse': 'Collapse group',
 	'group.caret.unavailable': 'No expander on this surface',

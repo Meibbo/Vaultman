@@ -65,11 +65,16 @@ import {
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
 import {
+	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
+import {
+	snapshotPresetBucket,
+	type MaterializePresetHandler,
+} from '../../logic/logicGroupPresets';
 import type { MenuCtx } from '../../types/typeCMenu';
 import {
 	noteSelectionState,
@@ -105,6 +110,7 @@ export class SnippetsExplorerPanel
 	private selectedNodeIds = new Set<string>();
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
+	private materializePresetHandler?: MaterializePresetHandler;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 
@@ -255,7 +261,7 @@ export class SnippetsExplorerPanel
 
 	setGroupPreset(preset: GroupPreset): void {
 		if (sameGroupPreset(this.groupPreset, preset)) return;
-		this.groupPreset = { ...preset };
+		this.groupPreset = cloneGroupPreset(preset);
 		this.rebuildNodes();
 	}
 
@@ -287,6 +293,10 @@ export class SnippetsExplorerPanel
 
 	setDegroupSelectedHandler(handler?: DegroupSelectedHandler): void {
 		this.degroupSelectedHandler = handler;
+	}
+
+	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
+		this.materializePresetHandler = handler;
 	}
 
 	setSelectionScope(scope: { instanceId: string | null; revision: number | null; scene: string }): void {
@@ -748,6 +758,19 @@ export class SnippetsExplorerPanel
 						groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
 						groupHidden: this.hiddenGroupIds.has(id),
 						groupExpanded: this._expandedGroupIds.has(id),
+						materializePreset:
+							this._groupIds.has(id) ||
+							!header ||
+							!this.materializePresetHandler
+								? undefined
+								: () =>
+									this.materializePresetHandler!(
+										snapshotPresetBucket(
+											header,
+											(node) => this._membershipUrnOf(node),
+											this.selectionRevision,
+										),
+									),
 						toggleGroupExpand: (groupId: string) => {
 							this._toggleExpandedGroup(groupId);
 						},

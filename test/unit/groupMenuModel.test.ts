@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { groupMenuModel, nextGroupPreset } from '../../src/logic/logicSortMenu';
 import { GROUP_PRESETS_BY_TAB } from '../../src/types/typeGroupPreset';
+import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 
 describe('spec 08 §3.2 — the groups submenu model', () => {
 	it('lists `none` first and checked by default', () => {
@@ -73,6 +74,15 @@ describe('spec 08 §3.2 — the groups submenu model', () => {
 });
 
 describe('spec 08 §3.2 — presets are asc/desc toggles, except none', () => {
+	it('routes New group through counter slicing before custom creation', () => {
+		expect(navbarSource).toContain(
+			'isCounterPresetKind(configByTab[tab].groupPreset.kind)',
+		);
+		expect(navbarSource).toContain('fileList?.createCounterRangeSlice?.()');
+		expect(navbarSource).toContain(
+			'onNewGroup={() => createGroupForPreset(activeTab)}',
+		);
+	});
 	it('picking another preset selects it ascending', () => {
 		expect(nextGroupPreset({ kind: 'none', direction: 'asc' }, 'letter')).toEqual({
 			kind: 'letter',
@@ -85,6 +95,17 @@ describe('spec 08 §3.2 — presets are asc/desc toggles, except none', () => {
 			kind: 'letter',
 			direction: 'desc',
 		});
+	});
+
+	it('flipping a counter preset preserves its explicit limits and stable ids', () => {
+		const current = {
+			kind: 'words' as const,
+			direction: 'asc' as const,
+			counterRanges: [{ id: 'r1', lo: 2, hi: 8 }],
+		};
+		const next = nextGroupPreset(current, 'words');
+		expect(next).toEqual({ ...current, direction: 'desc' });
+		expect(next.counterRanges).not.toBe(current.counterRanges);
 	});
 
 	it('`none` never carries a direction', () => {
