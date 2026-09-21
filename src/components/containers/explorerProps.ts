@@ -118,6 +118,7 @@ import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
+	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
 	projectGroupedTree,
@@ -2009,9 +2010,8 @@ export class PropsExplorerPanel extends Component {
 		id: string,
 		nodes: TreeNode<PropMeta>[],
 	): TreeNode<PropMeta> | null {
-		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
 		for (const n of nodes) {
-			if (n.id === id || n.id === baseId) return n;
+			if (n.id === id || entityIdOf(n) === id) return n;
 			if (n.children) {
 				const found = this._findNode(id, n.children);
 				if (found) return found;

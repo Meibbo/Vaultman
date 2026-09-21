@@ -165,27 +165,161 @@ function headerNode<TMeta>(
 }
 
 /**
+ * U130 Spec 01 §1: ocurrencia proyectada como datos, no como texto.
+ * `rowId` es `TreeNode.id`; `entityId`/`membershipOwner`/`occurrenceRoot`
+ * viajan en el nodo (`typeTree.ts`). La unica API canonica es
+ * `entityIdOf`/`occurrenceOwnerOf`/`rowIdForOccurrence`: ningun consumidor
+ * nuevo extrae identidad con separadores.
+ */
+export interface ProjectedOccurrence {
+	entityId: string;
+	rowId: string;
+	membershipOwner?: string;
+	occurrenceRoot?: string;
+}
+
+/**
+ * U130 Spec 01 §1: identidad semantica de una fila. Las filas proyectadas
+ * llevan `entityId` explicito (exacto aunque contenga `@`). Los nodos sin
+ * proyectar devuelven su `id` literalmente: la API canonica nunca interpreta
+ * separadores de texto.
+ */
+export function entityIdOf(
+	node: Pick<TreeNode<unknown>, 'id'> & { entityId?: string },
+): string {
+	return node.entityId ?? node.id;
+}
+
+/**
+ * U130 Spec 01 §1 + requisito 5: grupo custom/note (o complemento/bucket)
+ * dueno de esta ocurrencia. Sin parseo: si la fila no lleva el campo, no hay
+ * dueno conocido (mejor que adivinar y sacar a la fila del grupo equivocado
+ * en un futuro Degroup). Toda raiz agrupada proyectada lo expone.
+ */
+export function occurrenceOwnerOf(
+	node: Pick<TreeNode<unknown>, 'id'> & { membershipOwner?: string },
+): string | undefined {
+	return node.membershipOwner;
+}
+
+/**
+ * U130 Spec 01 §2: rowId estable derivado de owner + ocurrencia raiz + ruta
+ * relativa. Raices: `entity@owner`. Descendientes de una raiz duplicada:
+ * `entity@owner::root::relPath`, donde `relPath` es la ruta de indices desde
+ * la raiz (`0`, `0/2`). Determinista para el mismo input ordenado; la
+ * unicidad global la garantiza `cloneOccurrence` (sufijo `#n` si el
+ * provisional colisiona con un id crudo o una cabecera).
+ */
+export function rowIdForOccurrence(
+	entityId: string,
+	owner: string,
+	opts?: { rootEntityId?: string; relPath?: string },
+): string {
+	if (opts?.rootEntityId !== undefined && opts?.relPath !== undefined) {
+		return `${entityId}@${owner}::${opts.rootEntityId}::${opts.relPath}`;
+	}
+	return `${entityId}@${owner}`;
+}
+
+/** Reserva un rowId unico en `used`; con colision anade `#n` (determinista). */
+function claimRowId(proposed: string, used: Set<string>): string {
+	if (!used.has(proposed)) {
+		used.add(proposed);
+		return proposed;
+	}
+	let n = 2;
+	while (used.has(`${proposed}#${n}`)) n += 1;
+	const out = `${proposed}#${n}`;
+	used.add(out);
+	return out;
+}
+
+interface OccurrenceCloneCtx {
+	owner: string;
+	rootEntityId: string;
+	/** La raiz aparece en >1 grupo: toda la ocurrencia usa keys compuestas. */
+	composite: boolean;
+	used: Set<string>;
+	shift: number;
+}
+
+/**
+ * U130 Spec 01 §2: clon recursivo de una ocurrencia. Una ocurrencia
+ * duplicada de un p-node clona TODO su subarbol visible (nunca cero hijos
+ * por construction: se clona lo que el nodo trae); cada clon recibe rowId
+ * unico y conserva `entityId`. El `depth` se desplaza exactamente una vez en
+ * todo el subarbol. Los hijos no crean memberships: heredan `owner`/`root`.
+ */
+function cloneOccurrence<TMeta>(
+	node: TreeNode<TMeta>,
+	ctx: OccurrenceCloneCtx,
+	relPath: string | null,
+): TreeNode<TMeta> {
+	const entity = node.entityId ?? node.id;
+	const provisional =
+		relPath === null
+			? ctx.composite
+				? rowIdForOccurrence(entity, ctx.owner)
+				: entity
+			: ctx.composite
+				? rowIdForOccurrence(entity, ctx.owner, {
+						rootEntityId: ctx.rootEntityId,
+						relPath,
+					})
+				: entity;
+	const rowId = claimRowId(provisional, ctx.used);
+	const children = node.children?.map((child, index) =>
+		cloneOccurrence(
+			child,
+			ctx,
+			relPath === null ? String(index) : `${relPath}/${index}`,
+		),
+	);
+	return {
+		...node,
+		id: rowId,
+		entityId: entity,
+		membershipOwner: ctx.owner,
+		occurrenceRoot: ctx.rootEntityId,
+		depth: node.depth + ctx.shift,
+		children,
+	};
+}
+
+/**
  * Los hijos bajan un nivel: la cabecera es depth 0 y ocupa el sitio del p-node.
  *
  * `viewTree` indexa las filas por id en un `Map`, asi que dos ocurrencias del
- * mismo nodo en dos grupos necesitarian ids de FILA distintos o solo se
- * pintaria una. Pero reescribir el id SIEMPRE rompe la identidad de la fila
- * en el caso comun (una ocurrencia): por eso solo se sufija (`id@groupId`)
- * cuando el nodo aparece en mas de un grupo. La identidad de la entidad
- * sigue siendo el id original, que va delante.
+ * mismo nodo en dos grupos necesitan ids de FILA distintos o solo se pintaria
+ * una. Pero reescribir el id SIEMPRE rompe la identidad de la fila en el caso
+ * comun (una ocurrencia): por eso solo se compone (`entity@owner`, hijos
+ * `entity@owner::root::relPath`) cuando la raiz aparece en mas de un grupo,
+ * y la entidad que solo aparece una vez conserva su ID historico salvo
+ * colision (requisito 4). La identidad de la entidad viaja en `entityId`, sin
+ * heuristicas `split('@')`.
  */
 function reparent<TMeta>(
 	nodes: readonly TreeNode<TMeta>[],
 	groupId: string,
 	shift: number,
 	suffixed: ReadonlySet<string>,
+	used?: Set<string>,
 ): TreeNode<TMeta>[] {
-	return nodes.map((node) => ({
-		...node,
-		id: suffixed.has(node.id) ? `${node.id}@${groupId}` : node.id,
-		depth: node.depth + shift,
-		children: shiftDepth(node.children, shift),
-	}));
+	const registry = used ?? new Set<string>();
+	return nodes.map((node) => {
+		const entity = node.entityId ?? node.id;
+		return cloneOccurrence(
+			node,
+			{
+				owner: groupId,
+				rootEntityId: entity,
+				composite: suffixed.has(entity),
+				used: registry,
+				shift,
+			},
+			null,
+		);
+	});
 }
 
 const NO_SUFFIX: ReadonlySet<string> = new Set<string>();
@@ -202,22 +336,12 @@ function identityKey(ref: MembershipRef): string {
 	return `${ref.providerId}:${ref.kind}:${ref.canonicalId}`;
 }
 
-/** Desplaza la profundidad del subarbol entero, recursivamente. */
-function shiftDepth<TMeta>(
-	nodes: readonly TreeNode<TMeta>[] | undefined,
-	shift: number,
-): TreeNode<TMeta>[] | undefined {
-	if (!nodes) return undefined;
-	return nodes.map((child) => ({
-		...child,
-		depth: child.depth + shift,
-		children: shiftDepth(child.children, shift),
-	}));
-}
-
 /**
- * B-groupbody: the entity id behind a projected row id. Multi-group rows are
- * suffixed `id@groupId` by `reparent`; single occurrences keep the raw id.
+ * B-groupbody (legacy): la entidad detras de un row id opaco. Solo para
+ * arboles sin `entityId` explicito; ambiguo por diseno cuando la entidad
+ * contiene `@` (no distingue `a@b` crudo de `a` en `b`). El camino principal
+ * es `entityIdOf(nodo)`. Se conserva por compat con callers que solo tienen
+ * el string.
  */
 export function groupMemberEntityId(rowId: string): string {
 	const at = rowId.lastIndexOf('@');
@@ -228,6 +352,7 @@ export function groupMemberEntityId(rowId: string): string {
  * B-groupbody: entity ids of every descendant of a group header, deduped, so
  * a scene in `select` mode can toggle the MEMBERS instead of the header id
  * (which is not a path and means nothing to the selection).
+ * U130 Spec 01: usa `entityIdOf` (campo explicito; legacy solo sin campo).
  */
 export function collectGroupMemberIds<TMeta>(
 	children: readonly TreeNode<TMeta>[] | undefined,
@@ -236,7 +361,7 @@ export function collectGroupMemberIds<TMeta>(
 	const seen = new Set<string>();
 	const walk = (rows: readonly TreeNode<TMeta>[] | undefined): void => {
 		for (const row of rows ?? []) {
-			const entityId = groupMemberEntityId(row.id);
+			const entityId = entityIdOf(row);
 			if (!seen.has(entityId)) {
 				seen.add(entityId);
 				out.push(entityId);
@@ -267,9 +392,9 @@ export function toggleGroupMembers(
 
 /**
  * Spec 08 §3.3: the membership URNs of the selected rows, in tree order.
- * Rows under a group header keep their entity id (only multi-group
- * occurrences are suffixed `id@group`), so the suffix is stripped before
- * matching the selection.
+ * U130 Spec 01: la identidad viene de `entityIdOf` (campo explicito; sin
+ * `split('@')`). Acepta tanto rowIds como entityIds en `selectedIds` y
+ * deduplica por entidad (actions identity-scoped).
  */
 export function collectSelectedMembershipUrns<TMeta>(
 	tree: readonly TreeNode<TMeta>[],
@@ -281,7 +406,7 @@ export function collectSelectedMembershipUrns<TMeta>(
 	const seen = new Set<string>();
 	const walk = (nodes: readonly TreeNode<TMeta>[]) => {
 		for (const node of nodes) {
-			const entityId = node.id.split('@')[0] ?? node.id;
+			const entityId = entityIdOf(node);
 			if (
 				!isGroupHeader(node.id, customGroupIds) &&
 				(selectedIds.has(node.id) || selectedIds.has(entityId)) &&
@@ -389,11 +514,14 @@ export function projectGroupedTree<TMeta>(
 			});
 		});
 		// Caso S-26: un nodo en dos grupos es UNA identidad y DOS ocurrencias.
-		// Solo esos nodos multi-grupo necesitan ids de FILA distintos.
+		// Solo esas raices multi-grupo usan keys compuestas; la entidad que
+		// solo aparece una vez conserva su ID historico salvo colision
+		// (requisito 4, resuelta en `cloneOccurrence` via `used`).
 		const occurrences = new Map<string, number>();
 		for (const members of membersPerGroup) {
 			for (const member of members) {
-				occurrences.set(member.id, (occurrences.get(member.id) ?? 0) + 1);
+				const entity = member.entityId ?? member.id;
+				occurrences.set(entity, (occurrences.get(entity) ?? 0) + 1);
 			}
 		}
 		const suffixed = new Set(
@@ -401,14 +529,21 @@ export function projectGroupedTree<TMeta>(
 				.filter(([, count]) => count > 1)
 				.map(([id]) => id),
 		);
+		// Reserva global de rowIds: cabeceras + cada ocurrencia, para cero
+		// duplicados en todo el arbol (Spec 01 §6). Incluye NO_GROUP aunque el
+		// complemento acabe podado: reservar de mas nunca crea una fila.
+		const used = new Set<string>([
+			...ownGroups.map((group) => group.id),
+			NO_GROUP_ID,
+		]);
 		const claimed = new Set<string>();
 		const out: TreeNode<TMeta>[] = [];
 		ownGroups.forEach((group, index) => {
 			const members = membersPerGroup[index] ?? [];
-			for (const member of members) claimed.add(member.id);
+			for (const member of members) claimed.add(member.entityId ?? member.id);
 			// Poda normal del pipeline, no inmunidad.
 			if (members.length === 0 && filtered) return;
-			const reparented = reparent(members, group.id, 1, suffixed);
+			const reparented = reparent(members, group.id, 1, suffixed, used);
 			out.push(
 				finishHeader(
 					headerNode(
@@ -427,9 +562,11 @@ export function projectGroupedTree<TMeta>(
 		});
 		// `no group` es el COMPLEMENTO, no un grupo mas: no se borra ni se
 		// renombra, y por eso no lleva id de grupo custom.
-		const orphans = nodes.filter((node) => !claimed.has(node.id));
+		const orphans = nodes.filter(
+			(node) => !claimed.has(node.entityId ?? node.id),
+		);
 		if (orphans.length > 0 || !filtered) {
-			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed);
+			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed, used);
 			out.push(
 				finishHeader(
 					headerNode(
@@ -514,7 +651,8 @@ export function projectGroupedTree<TMeta>(
 		const occurrences = new Map<string, number>();
 		for (const members of membersPerGroup) {
 			for (const member of members) {
-				occurrences.set(member.id, (occurrences.get(member.id) ?? 0) + 1);
+				const entity = member.entityId ?? member.id;
+				occurrences.set(entity, (occurrences.get(entity) ?? 0) + 1);
 			}
 		}
 		const suffixed = new Set(
@@ -522,13 +660,17 @@ export function projectGroupedTree<TMeta>(
 				.filter(([, count]) => count > 1)
 				.map(([id]) => id),
 		);
+		const used = new Set<string>([
+			...ownGroups.map((group) => group.id),
+			NO_GROUP_ID,
+		]);
 		const claimed = new Set<string>();
 		const out: TreeNode<TMeta>[] = [];
 		ownGroups.forEach((group, index) => {
 			const members = membersPerGroup[index] ?? [];
-			for (const member of members) claimed.add(member.id);
+			for (const member of members) claimed.add(member.entityId ?? member.id);
 			if (members.length === 0 && filtered) return;
-			const reparented = reparent(members, group.id, 1, suffixed);
+			const reparented = reparent(members, group.id, 1, suffixed, used);
 			out.push(
 				finishHeader(
 					headerNode(
@@ -546,9 +688,11 @@ export function projectGroupedTree<TMeta>(
 			);
 		});
 
-		const orphans = nodes.filter((node) => !claimed.has(node.id));
+		const orphans = nodes.filter(
+			(node) => !claimed.has(node.entityId ?? node.id),
+		);
 		if (orphans.length > 0 || !filtered) {
-			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed);
+			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed, used);
 			out.push(
 				finishHeader(
 					headerNode(
@@ -579,9 +723,20 @@ export function projectGroupedTree<TMeta>(
 	);
 	if (!resolved || resolved.buckets.length === 0) return nodes;
 	// Cada nodo cae en exactamente un bucket, asi que nunca hay dos
-	// ocurrencias del mismo id: las filas conservan su identidad.
+	// ocurrencias del mismo id: las filas conservan su identidad, pero llevan
+	// `entityId`/owner para la API canonica.
+	const used = new Set<string>([
+		...resolved.buckets.map((bucket) => `${PRESET_GROUP_PREFIX}${bucket.key}`),
+		NO_GROUP_ID,
+	]);
 	const out = resolved.buckets.map((bucket) => {
-		const reparented = reparent(bucket.members, bucket.key, 1, NO_SUFFIX);
+		const reparented = reparent(
+			bucket.members,
+			`${PRESET_GROUP_PREFIX}${bucket.key}`,
+			1,
+			NO_SUFFIX,
+			used,
+		);
 		return finishHeader(
 			headerNode(
 				`${PRESET_GROUP_PREFIX}${bucket.key}`,
@@ -597,7 +752,13 @@ export function projectGroupedTree<TMeta>(
 		);
 	});
 	if (resolved.ungrouped.length > 0) {
-		const reparented = reparent(resolved.ungrouped, NO_GROUP_ID, 1, NO_SUFFIX);
+		const reparented = reparent(
+			resolved.ungrouped,
+			NO_GROUP_ID,
+			1,
+			NO_SUFFIX,
+			used,
+		);
 		out.push(
 			finishHeader(
 				headerNode(

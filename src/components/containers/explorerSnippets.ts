@@ -57,6 +57,7 @@ import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
 	collectSelectedMembershipUrns,
+	entityIdOf,
 	expandNewGroupHeaders,
 	isGroupHeader,
 	projectGroupedTree,
@@ -721,8 +722,12 @@ export class SnippetsExplorerPanel
 	}
 
 	private findNode(id: string): TreeNode<SnippetMeta> | undefined {
-		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
-		return this.nodes.find((node) => node.id === baseId || node.id === id);
+		// El arbol proyectado conoce la ocurrencia exacta. Si el caller trae una
+		// identidad base, el fallback crudo no interpreta separadores.
+		return (
+			findProjectedNode(this._lastProjectedTree, id) ??
+			this.nodes.find((node) => node.id === id || entityIdOf(node) === id)
+		);
 	}
 
 	/** B-groupbody: el chevron y el fallback open del cuerpo. Puro toggle. */

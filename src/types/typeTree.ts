@@ -105,6 +105,28 @@ export interface TreeNode<TMeta = unknown> {
 	 */
 	isGroupHeader?: boolean;
 	/**
+	 * U130 Spec 01 §1: identidad semantica original de la fila proyectada.
+	 * `id` es la identidad de FILA (rowId, unico en el arbol renderizado);
+	 * `entityId` es la identidad de ENTIDAD (estable entre ocurrencias).
+	 * Toda fila producida por `projectGroupedTree` lo lleva; ausente en
+	 * nodos sin proyectar, donde `id` ya es la entidad.
+	 */
+	entityId?: string;
+	/**
+	 * U130 Spec 01 §1: grupo custom/note (o `vaultman.group.none` para el
+	 * complemento, o bucket preset) que causa esta ocurrencia. Necesario
+	 * para Degroup occurrence-scoped: dice de que membership sale la fila.
+	 * Toda raiz agrupada lo expone, incluso no duplicada.
+	 */
+	membershipOwner?: string;
+	/**
+	 * U130 Spec 01 §2: entidad raiz cuyo subarbol se clono para producir
+	 * esta fila. En la raiz coincide con `entityId`; en descendientes
+	 * apunta a la raiz del clon. Los children no crean memberships: aparecen
+	 * por proyeccion del p-node.
+	 */
+	occurrenceRoot?: string;
+	/**
 	 * U121-003: set only by the flat projections. Flattening rewrites `label` to
 	 * carry the ancestry (`lugar: cocina`, `parent/child`), which made every
 	 * label comparison an ancestry comparison — a Name sort that silently
