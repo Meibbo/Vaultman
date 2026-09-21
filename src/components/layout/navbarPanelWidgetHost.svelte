@@ -39,6 +39,10 @@
 	): boolean {
 		return navbarRef?.setSceneEngine?.(surface, mode) ?? false;
 	}
+
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return navbarRef?.invokeToolbarSasiAction?.(actionId) ?? false;
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

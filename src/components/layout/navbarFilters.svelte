@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Menu, Notice, TFile } from 'obsidian';
-	import { onMount, tick, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
@@ -18,6 +18,12 @@
 		SEARCH_CREATE_TARGET_ID,
 		SEARCH_CYCLE_CATEGORY_ID,
 	} from '../../logic/logicSasiSearchActions';
+import {
+		TOOLBAR_FOCUS_SEARCH_ID,
+		TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+		TOOLBAR_SEARCHBOX_ID,
+		TOOLBAR_TOGGLE_EXPANSION_ID,
+	} from '../../logic/logicSasiToolbarActions';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SasiNode } from '../../services/serviceSasiProvider';
 	import type {
@@ -28,6 +34,7 @@
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
 	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
+	import { InstanceInfoModal } from '../../modals/modalInstanceInfo';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -102,8 +109,11 @@
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
 	import {
+		dropIndexForPointer,
+		reorderLocalIds,
 		resolvePanelWidgetProjection,
 		resolveToolbarHiddenIds,
+		resolveToolbarNodeOrder,
 	} from '../../logic/logicPanelWidgetProjection';
 	import {
 		resolveCondensedPanelWidgetOverflow,
@@ -118,6 +128,13 @@
 		type SceneFacets,
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
+	import {
+		addCommandId,
+		removeCommandId,
+		resolveCommandActions,
+	} from '../../logic/logicCommandActions';
+	import { listObsidianCommands } from '../../utils/obsidianCommands';
+	import { openCommandPicker } from '../../modals/modalCommandPicker';
 	import type { GroupPreset } from '../../types/typeGroupPreset';
 	import {
 		GROUP_PRESETS_BY_TAB,
@@ -147,6 +164,24 @@
 		snippetsExplorer?: PanelWidgetExplorerPort;
 		pluginsExplorer?: PanelWidgetExplorerPort;
 	};
+
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		if (actionId === TOOLBAR_SEARCHBOX_ID || actionId === TOOLBAR_FOCUS_SEARCH_ID) {
+			expandSearch();
+			return true;
+		}
+		if (actionId === SEARCH_CYCLE_CATEGORY_ID || actionId === SEARCH_CREATE_TARGET_ID) {
+			runSearchCell(actionId);
+			return true;
+		}
+		const localId =
+			actionId === TOOLBAR_REVEAL_ACTIVE_FILE_ID
+				? 'reveal-active-file'
+				: actionId === TOOLBAR_TOGGLE_EXPANSION_ID
+					? 'toggle-expansion'
+					: actionId;
+		return (await actionPort.invoke({ actionId: localId, origin: 'command' })) === true;
+	}
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone' | 'row';
 	type NativeMenuValue = {
@@ -283,7 +318,6 @@
 		onLayoutLoaded,
 		app,
 		showTabLabels = true,
-		sortLevelInline = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
 		toolbarMenuLayouts,
@@ -323,7 +357,7 @@
 	const canCreateSearchTarget = $derived(
 		// BT5-022: with Create moved to the toolbar, the Files searchbox no longer
 		// carries its own create button; Props and Tags keep theirs.
-		(activeTab === 'files' && createActionsPlacement !== 'toolbar') ||
+		(activeTab === 'files' && effectiveCreateActionsPlacement !== 'toolbar') ||
 			activeTab === 'props' ||
 			activeTab === 'tags',
 	);
@@ -953,6 +987,30 @@
 	// "Change icon"). Ausencia de clave = icono de serie.
 	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
 		configByTab[activeTab]?.toolbarNodeIcons?.[localId] ?? fallback;
+	// U130 polishing: nodos de comando per-instance de esta scene (ids en
+	// `SceneConfig.toolbarCommandActions`), resueltos contra el registro vivo
+	// y sumados a los globales del prop `commandActions` (el global gana en
+	// caso de duplicado). Reactivo a `configByTab` para respuesta inmediata.
+	const effectiveCommandActions = $derived.by(() => {
+		const seen = new Set(commandActions.map((command) => command.id));
+		const instanceIds = configByTab[activeTab]?.toolbarCommandActions ?? [];
+		const extra = resolveCommandActions(
+			app ? listObsidianCommands(app) : [],
+			instanceIds,
+		).filter((command) => !seen.has(command.id));
+		return [...commandActions, ...extra];
+	});
+	// U130 polishing: override per-instance de la ubicación de creación.
+	// `auto` (defecto) = el setting global que llega por prop; explícito =
+	// esta scene decide. Se lee aquí (tras `configByTab`) y se consume en
+	// `canCreateSearchTarget` y en los nodos create-*: esos $derived solo se
+	// evalúan al renderizar, cuando todo el setup ya corrió.
+	const effectiveCreateActionsPlacement = $derived.by(() => {
+		const override = configByTab[activeTab]?.createActionsPlacement;
+		return override === 'toolbar' || override === 'searchbox'
+			? override
+			: createActionsPlacement;
+	});
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
 		const nodes: PanelWidgetNode[] = [];
 		const append = (
@@ -1041,7 +1099,7 @@
 				30,
 			);
 		}
-		if (activeTab === 'files' && createActionsPlacement === 'toolbar') {
+		if (activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar') {
 			append(
 				'create-file',
 				translate('folder.ctx.new_note'),
@@ -1061,7 +1119,7 @@
 				41,
 			);
 		}
-		for (const command of commandActions) {
+		for (const command of effectiveCommandActions) {
 			append(
 				`command:${command.id}`,
 				command.label,
@@ -1083,6 +1141,11 @@
 		hiddenNodeIds: resolveToolbarHiddenIds(
 			pvpuiConfig.hiddenNodeIds,
 			configByTab[activeTab]?.hiddenToolbarNodes,
+			providerId,
+		),
+		nodeOrder: resolveToolbarNodeOrder(
+			pvpuiConfig.nodeOrder,
+			configByTab[activeTab]?.toolbarNodeOrder,
 			providerId,
 		),
 	});
@@ -1126,6 +1189,184 @@
 		panelWidgetProjection.nodes.findIndex(
 			(node) => node.id === panelWidgetNodeId(localId),
 		);
+	// U130 polishing: reorden por arrastre al estilo `Gv` de app.js (el
+	// ribbon nativo): mousedown + umbral 5px + ghost clonado con las clases
+	// de serie (`drag-reorder-ghost`, `mod-dragged-item`, `is-grabbing`,
+	// `drag-ghost-hidden`) + índice por posición del puntero + commit
+	// per-instance (`SceneConfig.toolbarNodeOrder`). Sin `draggable` HTML5
+	// (el nativo tampoco lo usa: `draggable=false` en el DOM vivo) y sin
+	// auto-scroll de bordes (v1: la barra cabe en el viewport). Solo ratón:
+	// el táctil conserva el scroll nativo. Delegado en el contenedor (los
+	// nodos no llevan handlers propios, igual que el oncontextmenu del
+	// wrapper); el campo de búsqueda no tiene node-id y queda fuera.
+	const PANEL_WIDGET_DRAG_THRESHOLD_PX = 5;
+	type PanelWidgetDragState = {
+		localId: string;
+		el: HTMLElement;
+		startX: number;
+		startY: number;
+		grabDX: number;
+		grabDY: number;
+		width: number;
+		height: number;
+		ghost: HTMLElement | null;
+		dropAnchor: HTMLElement | null;
+		lastX: number;
+		cleanup: (() => void) | null;
+	};
+	let panelWidgetDrag: PanelWidgetDragState | null = null;
+
+	function panelWidgetDragLocalId(element: HTMLElement | null): string | null {
+		const node = element?.closest?.('[data-panel-widget-node-id]');
+		const fullId = node?.getAttribute('data-panel-widget-node-id');
+		if (!fullId) return null;
+		const prefix = `${providerId}:`;
+		return fullId.startsWith(prefix) ? fullId.slice(prefix.length) : null;
+	}
+
+	function panelWidgetDragSiblings(): { el: HTMLElement; localId: string }[] {
+		if (!actionsEl) return [];
+		const out: { el: HTMLElement; localId: string }[] = [];
+		for (const el of actionsEl.querySelectorAll('[data-panel-widget-node-id]')) {
+			if (!(el instanceof HTMLElement)) continue;
+			const localId = panelWidgetDragLocalId(el);
+			if (localId === null) continue;
+			out.push({ el, localId });
+		}
+		// Orden visual (el DOM es fijo; lo visual lo da `order` de la proyección).
+		const rank = new Map(
+			panelWidgetProjection.nodes.map((node, index) => [node.id, index] as const),
+		);
+		out.sort(
+			(a, b) =>
+				(rank.get(`${providerId}:${a.localId}`) ?? Number.MAX_SAFE_INTEGER) -
+				(rank.get(`${providerId}:${b.localId}`) ?? Number.MAX_SAFE_INTEGER),
+		);
+		return out;
+	}
+
+	function clearPanelWidgetDropMark(): void {
+		const drag = panelWidgetDrag;
+		if (drag?.dropAnchor) {
+			drag.dropAnchor.style.boxShadow = '';
+			drag.dropAnchor = null;
+		}
+	}
+
+	function panelWidgetDropAnchorFromPoint(clientX: number): HTMLElement | null {
+		const drag = panelWidgetDrag;
+		if (!drag) return null;
+		const siblings = panelWidgetDragSiblings().filter((s) => s.el !== drag.el);
+		if (siblings.length === 0) return null;
+		const ends = siblings.map((s) => s.el.getBoundingClientRect().right);
+		const index = dropIndexForPointer(ends, clientX, drag.grabDX, drag.width);
+		return siblings[index]?.el ?? null;
+	}
+
+	function markPanelWidgetDrop(anchor: HTMLElement | null): void {
+		const drag = panelWidgetDrag;
+		if (!drag || anchor === drag.dropAnchor) return;
+		clearPanelWidgetDropMark();
+		drag.dropAnchor = anchor;
+		if (anchor) anchor.style.boxShadow = 'inset 2px 0 0 var(--text-accent)';
+	}
+
+	function onPanelWidgetBarPointerDown(event: PointerEvent): void {
+		if (event.pointerType !== 'mouse' || event.button !== 0) return;
+		const target = event.target as HTMLElement | null;
+		if (target?.closest?.('input, textarea, [contenteditable="true"]')) return;
+		const node = target?.closest?.('[data-panel-widget-node-id]');
+		if (!(node instanceof HTMLElement)) return;
+		const localId = panelWidgetDragLocalId(node);
+		if (localId === null) return;
+		if (panelWidgetDragSiblings().length < 2) return;
+		const rect = node.getBoundingClientRect();
+		const onMove = (move: PointerEvent): void => panelWidgetDragMove(move);
+		const onUp = (up: PointerEvent): void => endPanelWidgetDrag(up, true);
+		const onCancel = (): void => endPanelWidgetDrag(null, false);
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
+		window.addEventListener('pointercancel', onCancel);
+		panelWidgetDrag = {
+			localId,
+			el: node,
+			startX: event.clientX,
+			startY: event.clientY,
+			grabDX: event.clientX - rect.left,
+			grabDY: event.clientY - rect.top,
+			width: rect.width,
+			height: rect.height,
+			ghost: null,
+			dropAnchor: null,
+			lastX: event.clientX,
+			cleanup: () => {
+				window.removeEventListener('pointermove', onMove);
+				window.removeEventListener('pointerup', onUp);
+				window.removeEventListener('pointercancel', onCancel);
+			},
+		};
+	}
+
+	function panelWidgetDragMove(event: PointerEvent): void {
+		const drag = panelWidgetDrag;
+		if (!drag) return;
+		drag.lastX = event.clientX;
+		if (!drag.ghost) {
+			const dx = event.clientX - drag.startX;
+			const dy = event.clientY - drag.startY;
+			if (
+				dx * dx + dy * dy <
+				PANEL_WIDGET_DRAG_THRESHOLD_PX * PANEL_WIDGET_DRAG_THRESHOLD_PX
+			)
+				return;
+			const ghost = document.createElement('div');
+			ghost.className = 'drag-reorder-ghost';
+			const clone = drag.el.cloneNode(true) as HTMLElement;
+			clone.removeAttribute('aria-label');
+			clone.removeAttribute('id');
+			clone.classList.add('mod-dragged-item');
+			clone.style.width = `${drag.width}px`;
+			clone.style.height = `${drag.height}px`;
+			ghost.appendChild(clone);
+			document.body.appendChild(ghost);
+			document.body.classList.add('is-grabbing');
+			document.body.style.userSelect = 'none';
+			drag.el.classList.add('drag-ghost-hidden');
+			drag.ghost = ghost;
+		}
+		event.preventDefault();
+		if (drag.ghost) {
+			drag.ghost.style.left = `${event.clientX - drag.grabDX}px`;
+			drag.ghost.style.top = `${event.clientY - drag.grabDY}px`;
+		}
+		markPanelWidgetDrop(panelWidgetDropAnchorFromPoint(event.clientX));
+	}
+
+	function endPanelWidgetDrag(event: PointerEvent | null, commit: boolean): void {
+		const drag = panelWidgetDrag;
+		if (!drag) return;
+		panelWidgetDrag = null;
+		drag.cleanup?.();
+		drag.ghost?.remove();
+		drag.el.classList.remove('drag-ghost-hidden');
+		document.body.classList.remove('is-grabbing');
+		document.body.style.userSelect = '';
+		clearPanelWidgetDropMark();
+		// Sin ghost fue un click: no tocar nada (el onclick del nodo sigue vivo).
+		if (!commit || !drag.ghost) return;
+		const anchor = panelWidgetDropAnchorFromPoint(drag.lastX);
+		const anchorLocalId = anchor ? panelWidgetDragLocalId(anchor) : null;
+		const prefix = `${providerId}:`;
+		const visibleLocalIds = panelWidgetProjection.nodes.map((node) =>
+			node.id.startsWith(prefix) ? node.id.slice(prefix.length) : node.id,
+		);
+		const stored = configByTab[activeTab]?.toolbarNodeOrder ?? [];
+		commitConfig(activeTab, {
+			toolbarNodeOrder: reorderLocalIds(visibleLocalIds, stored, drag.localId, anchorLocalId),
+		});
+	}
+
+	onDestroy(() => endPanelWidgetDrag(null, false));
 	const compactPanelWidgetTools = $derived(
 		toolbarOverflowStrategy === 'condensed' && forcedOverflowIds.length > 0,
 	);
@@ -1495,6 +1736,7 @@
 						? { compactFolders: config.compactFolders }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1514,6 +1756,7 @@
 				if (config.compactFolders !== undefined)
 					applyCompactFolders(tab, config.compactFolders);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1536,6 +1779,7 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1553,6 +1797,7 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1575,6 +1820,7 @@
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
+					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -1592,6 +1838,7 @@
 				if (config.stickyRows !== undefined)
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
+				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -1957,6 +2204,14 @@
 				}),
 			);
 		}
+		engineChildren.push(
+			nativeMenuItem('view_menu.engines.tooltips', {
+				title: translate('sort.level.tooltips'),
+				icon: 'lucide-eye',
+				checked: tooltipsEnabledFor(activeTab),
+				onClick: () => toggleTooltipsFor(activeTab),
+			}),
+		);
 		if (nestedAct && activeTab === 'files') {
 			const parentsFirst = sortState.parentsFirst ?? true;
 			engineChildren.push(
@@ -2050,6 +2305,21 @@
 
 	function openNodeAltMenu(localId: string, event: MouseEvent): void {
 		const menu = new Menu();
+		if (localId === 'search' && activeTab === 'files') {
+			const nested = effectiveCreateActionsPlacement !== 'toolbar';
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.nest_create'))
+					.setIcon('lucide-plus')
+					.setChecked(nested)
+					.onClick(() => {
+						commitConfig(activeTab, {
+							createActionsPlacement: nested ? 'toolbar' : 'searchbox',
+						});
+					});
+			});
+			menu.addSeparator();
+		}
 		if (localId === 'tabs') {
 			menu.addItem((item) => {
 				item
@@ -2089,6 +2359,22 @@
 			menu.addSeparator();
 		}
 		addToolbarNodeVisibilityItem(menu, localId);
+		if (localId.startsWith('command:')) {
+			const commandId = localId.slice('command:'.length);
+			const instanceIds = configByTab[activeTab]?.toolbarCommandActions ?? [];
+			if (instanceIds.includes(commandId)) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('toolbar.alt.remove_from_instance'))
+						.setIcon('lucide-trash-2')
+						.onClick(() => {
+							commitConfig(activeTab, {
+								toolbarCommandActions: removeCommandId(instanceIds, commandId),
+							});
+						});
+				});
+			}
+		}
 		const nodeDef = panelWidgetNodes.find(
 			(node) => node.id === panelWidgetNodeId(localId),
 		);
@@ -2121,6 +2407,18 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.instance_info'))
+				.setIcon('lucide-info')
+				.onClick(() => {
+					if (!app) return;
+					const record = sceneConfigPort.readInstanceRecord();
+					if (!record) return;
+					new InstanceInfoModal(app, record).open();
+				});
+		});
+		menu.addSeparator();
 		if (onToggleToolbar) {
 			menu.addItem((item) => {
 				item
@@ -2131,6 +2429,29 @@
 			});
 			menu.addSeparator();
 		}
+		// U130 polishing: añadir nodos con comandos bindeados directamente
+		// per-instance (scene). Los `command:*` globales se gestionan en
+		// Settings; aquí solo entra la lista de esta scene.
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.alt.add_command'))
+				.setIcon('lucide-plus')
+				.onClick(() => {
+					if (!app) return;
+					openCommandPicker({
+						app,
+						title: translate('toolbar.alt.add_command'),
+						onPick: async (id) => {
+							const current =
+								configByTab[activeTab]?.toolbarCommandActions ?? [];
+							commitConfig(activeTab, {
+								toolbarCommandActions: addCommandId(current, id),
+							});
+						},
+					});
+				});
+		});
+		menu.addSeparator();
 		// Solo nodos provided: los `command:*` los gestiona el usuario donde
 		// los agregó, no desde aquí.
 		for (const node of panelWidgetNodes) {
@@ -2635,6 +2956,29 @@
 		applyStickyRows(tab, next);
 	}
 
+	function tooltipsEnabledFor(tab: FiltersTab): boolean {
+		return configByTab[tab].tooltips !== false;
+	}
+
+	function applyTooltips(tab: FiltersTab, enabled: boolean) {
+		explorerPortForTab(tab)?.setTooltipsEnabled?.(enabled);
+	}
+
+	function toggleTooltipsFor(tab: FiltersTab) {
+		const next = !tooltipsEnabledFor(tab);
+		commitConfig(tab, { tooltips: next });
+		applyTooltips(tab, next);
+	}
+
+	// U130 polishing: view_option `tooltips` — los títulos (tooltips) de
+	// los nodos del toolbar siguen al override per-instance; los aria-label
+	// (a11y) no se tocan.
+	const toolbarTooltipsEnabled = $derived(tooltipsEnabledFor(activeTab));
+	function toolbarNodeTitle(label: string | undefined): string | undefined {
+		if (minimalStyle || !toolbarTooltipsEnabled) return undefined;
+		return label;
+	}
+
 	function compactFoldersEnabledFor(tab: FiltersTab): boolean {
 		return configByTab[tab].compactFolders;
 	}
@@ -3021,7 +3365,9 @@
 			projectNativeMenu(
 				'sort_menu',
 				nodes,
-				sortLevelInline && supportsByLevel(activeTab) ? ['by-level'] : [],
+				// U130 polishing: deprecated inline toggle removed; By level
+				// stays inline where supported.
+				supportsByLevel(activeTab) ? ['by-level'] : [],
 			),
 		);
 		menu.showAtMouseEvent(event);
@@ -3221,6 +3567,7 @@
 		{translate}
 		onInvoke={runSearchCell}
 		onValueChange={setFiltersSearch}
+		tooltipsEnabled={toolbarTooltipsEnabled}
 		{icon}
 	/>
 {/snippet}
@@ -3233,6 +3580,7 @@
 			{translate}
 			{icon}
 			onToggleMoveKind={transactionBar.onToggleMoveKind ?? (() => {})}
+			tooltipsEnabled={toolbarTooltipsEnabled}
 		/>
 	{/if}
 {/snippet}
@@ -3271,6 +3619,7 @@
 					class:vaultman-filters-actions--scroll={toolbarScroll}
 					class:vaultman-filters-actions--wrap={toolbarWrap}
 					bind:this={actionsEl}
+					onpointerdown={onPanelWidgetBarPointerDown}
 				>
 					{#if minimalStyle && tabOptions.length > 0 && toolbarNodeVisible('tabs')}
 						<div
@@ -3281,7 +3630,7 @@
 							role="button"
 							tabindex="0"
 							aria-label={currentTabsLabel}
-							title={minimalStyle ? undefined : currentTabsLabel}
+							title={toolbarNodeTitle(currentTabsLabel)}
 							onclick={(event: MouseEvent) => openScenePopup(event)}
 							oncontextmenu={(e: MouseEvent) => {
 								e.preventDefault();
@@ -3326,7 +3675,7 @@
 								aria-label={action.label}
 								aria-pressed={action.checked}
 								aria-disabled={action.disabled ? 'true' : undefined}
-								title={minimalStyle ? undefined : action.label}
+								title={toolbarNodeTitle(action.label)}
 								onclick={(event: MouseEvent) => {
 									if (action.disabled) return;
 									invokeSceneAction(`header:${action.id}`, 'pointer', event);
@@ -3363,9 +3712,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.viewmode_btn')}
-								title={minimalStyle
-									? undefined
-									: translate('filter.viewmode_btn')}
+								title={toolbarNodeTitle(translate('filter.viewmode_btn'))}
 								onclick={(event: MouseEvent) => openViewModePopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3393,7 +3740,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.sort_btn')}
-								title={minimalStyle ? undefined : translate('filter.sort_btn')}
+								title={toolbarNodeTitle(translate('filter.sort_btn'))}
 								onclick={(event: MouseEvent) => openSortPopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3424,9 +3771,7 @@
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
 								aria-pressed={searchExpanded}
-								title={minimalStyle
-									? undefined
-									: translate('explorer.btn.search')}
+								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={toggleSearch}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3450,9 +3795,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
-								title={minimalStyle
-									? undefined
-									: translate('explorer.btn.search')}
+								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={expandSearch}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
@@ -3474,9 +3817,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.auto_reveal')}
-								title={minimalStyle
-									? undefined
-									: translate('filter.auto_reveal')}
+								title={toolbarNodeTitle(translate('filter.auto_reveal'))}
 								onclick={(event) => revealActiveExplorerFile('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3508,7 +3849,7 @@
 								role="button"
 								tabindex="0"
 								aria-label={expansionLabel}
-								title={minimalStyle ? undefined : expansionLabel}
+								title={toolbarNodeTitle(expansionLabel)}
 								onclick={(event) => toggleExplorerExpansion('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -3530,7 +3871,7 @@
 								)}
 							></div>
 						{/if}
-						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
+						{#if activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
 							{#if toolbarNodeVisible('create-file')}
 								<div
@@ -3540,9 +3881,9 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_note')}
-									title={minimalStyle
-										? undefined
-										: translate('folder.ctx.new_note')}
+									title={toolbarNodeTitle(
+										translate('folder.ctx.new_note'),
+									)}
 									onclick={(event) =>
 										invokeSceneAction('create-file', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -3574,9 +3915,9 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_folder')}
-									title={minimalStyle
-										? undefined
-										: translate('folder.ctx.new_folder')}
+									title={toolbarNodeTitle(
+										translate('folder.ctx.new_folder'),
+									)}
 									onclick={(event) =>
 										invokeSceneAction('create-folder', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -3614,12 +3955,11 @@
 									role="button"
 									tabindex="0"
 									aria-label={command.label}
-									title={command.available
-										? command.label
-										: translate('command.unavailable').replace(
-												'{id}',
-												command.id,
-											)}
+									title={toolbarNodeTitle(
+										command.available
+											? command.label
+											: translate('command.unavailable').replace('{id}', command.id),
+									)}
 									onclick={() => {
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');

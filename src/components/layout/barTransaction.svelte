@@ -16,9 +16,25 @@
 		translate: (key: string, vars?: Record<string, string | number>) => string;
 		icon: (el: HTMLElement, name: string) => { update(name: string): void };
 		onToggleMoveKind: (next: 'node' | 'group') => void;
+		/** U130 polishing: view_option `tooltips` per-instance. */
+		tooltipsEnabled?: boolean;
 	}
 
-	let { state, resolve, translate, icon, onToggleMoveKind }: Props = $props();
+	let {
+
+		state,
+
+		resolve,
+
+		translate,
+
+		icon,
+
+		onToggleMoveKind,
+
+		tooltipsEnabled = true,
+
+	}: Props = $props();
 
 	const TOGGLE_ID = 'vaultman.move.toggleMoveKind';
 
@@ -68,6 +84,7 @@
 				{resolve}
 				{icon}
 				{translate}
+				tooltipsEnabled={tooltipsEnabled}
 				onInvoke={() =>
 					onToggleMoveKind(state.moveKind === 'node' ? 'group' : 'node')}
 			/>

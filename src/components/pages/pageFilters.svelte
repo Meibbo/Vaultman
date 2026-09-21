@@ -413,10 +413,6 @@
 		void settingsRevision;
 		return plugin.settings.orderCellsByActivation === true;
 	});
-	const sortLevelInline = $derived.by(() => {
-		void settingsRevision;
-		return plugin.settings.sortLevelInline !== false;
-	});
 	const selectionCheckboxPosition = $derived.by(() => {
 		void settingsRevision;
 		const position = plugin.settings.selectionCheckboxPosition;
@@ -1907,6 +1903,10 @@
 		},
 	};
 
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return panelWidgetActionPort.invoke({ actionId, origin: 'command' });
+	}
+
 	$effect(() => {
 		const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } =
 			{
@@ -1968,7 +1968,6 @@
 				createActionsPlacement,
 				commandActions,
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
-				sortLevelInline,
 				orderCellsByActivation,
 				selectionCheckboxPosition,
 				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,

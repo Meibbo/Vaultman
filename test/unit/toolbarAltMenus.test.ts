@@ -21,6 +21,9 @@ describe('U130 toolbar alt-cmenus', () => {
 			"autoRevealMode?: 'auto' | 'on' | 'off'",
 		);
 		expect(typeInstanceSource).toContain('hiddenToolbarNodes?: string[]');
+		expect(typeInstanceSource).toContain('toolbarCommandActions?: string[]');
+		expect(typeInstanceSource).toContain("createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar'");
+		expect(typeInstanceSource).toContain('toolbarNodeOrder?: string[]');
 	});
 
 	it('mezcla ocultos globales y per-instance antes de proyectar', () => {
@@ -129,6 +132,52 @@ describe('U130 toolbar alt-cmenus', () => {
 			'toolbar.alt.reveal_now',
 			'toolbar.alt.always_reveal',
 			'toolbar.alt.change_icon',
+			'toolbar.alt.add_command',
+			'toolbar.alt.remove_from_instance',
+			'toolbar.alt.nest_create',
+		]) {
+			expect(en[key], `en: ${key}`).toBeTruthy();
+			expect(es[key], `es: ${key}`).toBeTruthy();
+			expect(es[key], `es!=en: ${key}`).not.toBe(en[key]);
+		}
+	});
+
+	it('el alt-cmenu añade comandos per-instance y los nodos command:* se quitan por instancia', () => {
+		expect(navbarSource).toContain('effectiveCommandActions');
+		expect(navbarSource).toContain('openCommandPicker(');
+		expect(navbarSource).toContain("translate('toolbar.alt.add_command')");
+		expect(navbarSource).toContain("translate('toolbar.alt.remove_from_instance')");
+		expect(navbarSource).toContain('toolbarCommandActions');
+		expect(navbarSource).toContain('addCommandId(');
+		expect(navbarSource).toContain('removeCommandId(');
+		expect(navbarSource).toContain('effectiveCreateActionsPlacement');
+		expect(navbarSource).toContain("translate('toolbar.alt.nest_create')");
+		expect(navbarSource).toContain('createActionsPlacement');
+		expect(navbarSource).toContain('toolbarNodeOrder');
+		expect(navbarSource).toContain('resolveToolbarNodeOrder');
+		expect(navbarSource).toContain('dropIndexForPointer');
+		expect(navbarSource).toContain('reorderLocalIds');
+		expect(navbarSource).toContain('onPanelWidgetBarPointerDown');
+		expect(navbarSource).toContain('drag-reorder-ghost');
+		expect(navbarSource).toContain('mod-dragged-item');
+	});
+
+	it('offers instance info from the toolbar empty menu', () => {
+		expect(navbarSource).toContain('openToolbarEmptyMenu(');
+		expect(navbarSource).toContain("translate('toolbar.instance_info')");
+		expect(navbarSource).toContain('InstanceInfoModal');
+		expect(navbarSource).toContain('readInstanceRecord()');
+		for (const key of [
+			'toolbar.instance_info',
+			'toolbar.instance_info.id',
+			'toolbar.instance_info.revision',
+			'toolbar.instance_info.active_scene',
+			'toolbar.instance_info.created',
+			'toolbar.instance_info.updated',
+			'toolbar.instance_info.tombstoned',
+			'toolbar.instance_info.self',
+			'toolbar.instance_info.scenes',
+			'toolbar.instance_info.empty',
 		]) {
 			expect(en[key], `en: ${key}`).toBeTruthy();
 			expect(es[key], `es: ${key}`).toBeTruthy();

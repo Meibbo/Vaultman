@@ -93,6 +93,8 @@ function cloneSceneConfig(config: SceneConfig): SceneConfig {
 	const out: SceneConfig = { ...config };
 	if (config.visibleCells) out.visibleCells = [...config.visibleCells];
 	if (config.sortState) out.sortState = { ...config.sortState };
+	if (config.hiddenToolbarNodes) out.hiddenToolbarNodes = [...config.hiddenToolbarNodes];
+	if (config.toolbarCommandActions) out.toolbarCommandActions = [...config.toolbarCommandActions];
 	return out;
 }
 

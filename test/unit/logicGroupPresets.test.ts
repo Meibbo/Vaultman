@@ -251,6 +251,10 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		autoRevealMode: 'auto',
 		hiddenToolbarNodes: [],
 		toolbarNodeIcons: {},
+		toolbarCommandActions: [],
+		createActionsPlacement: 'auto',
+		tooltips: true,
+		toolbarNodeOrder: [],
 		groupMemberships: {},
 	};
 

@@ -278,8 +278,6 @@ export interface VaultmanSettings {
 	explorerGlyphScope: import('../logic/logicGlyphColor').GlyphColorScope;
 	/** Floating index drill also drives the sort scope (reset on index close) */
 	tocDrillSyncsSort: boolean;
-	/** Show By level options inline in the sort menu instead of a submenu */
-	sortLevelInline: boolean;
 	/** File paths hidden from the files explorer (D39 Exclude file) */
 	excludedFilePaths: string[];
 	/** Rainbow folder colors in the files tree (snippet-compatible, D38) */
@@ -330,6 +328,8 @@ export interface VaultmanSettings {
 	toolbarCommandActions: string[];
 	/** BT5-022: where the built-in Create File/Folder actions live */
 	createActionsPlacement: 'searchbox' | 'toolbar';
+	/** U130 polishing: where native tooltips appear (`side` = native lateral) */
+	tooltipPlacement: 'side' | 'below' | 'above';
 	/** Ordered fields shown in the native Files node hover tooltip */
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
@@ -568,7 +568,6 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerGlyphCustomColor: '#7c3aed',
 	explorerGlyphScope: 'folders',
 	tocDrillSyncsSort: false,
-	sortLevelInline: true,
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
@@ -585,6 +584,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	createFileCommand: '',
 	toolbarCommandActions: [],
 	createActionsPlacement: 'searchbox',
+	tooltipPlacement: 'side',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,

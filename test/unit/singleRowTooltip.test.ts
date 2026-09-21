@@ -44,7 +44,7 @@ describe('BT5-032 one tooltip owner per row', () => {
 		expect(explorerFilesSource).toContain('this._filesHoverFields()');
 		for (const source of [explorerPluginsSource, explorerSnippetsSource]) {
 			expect(source).toContain('onRowHover:');
-			expect(source).toContain('setTooltip(row, this.tooltip(node.meta))');
+			expect(source).toContain('setTooltip(row, this.tooltip(node.meta),');
 		}
 	});
 
@@ -54,5 +54,12 @@ describe('BT5-032 one tooltip owner per row', () => {
 		for (const source of [explorerPropsSource, explorerTagsSource]) {
 			expect(source).not.toContain('onRowHover:');
 		}
+	});
+
+	it('arms folder rows with the same native hover as files', () => {
+		expect(explorerFilesSource).toContain('_handleFolderHover(');
+		expect(explorerFilesSource).toContain('_folderHoverText(');
+		expect(explorerFilesSource).toContain('meta.isFolder');
+		expect(explorerFilesSource).toContain('this._filesHoverFields()');
 	});
 });

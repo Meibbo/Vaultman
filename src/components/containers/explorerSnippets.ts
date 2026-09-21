@@ -1,4 +1,5 @@
 import { Component, Notice, setTooltip } from 'obsidian';
+import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { SnippetMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
@@ -101,6 +102,7 @@ export class SnippetsExplorerPanel
 	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
+	private tooltipsOverride: boolean | undefined;
 	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	private createGroupHandler?: (urns: readonly string[]) => void;
@@ -339,6 +341,12 @@ export class SnippetsExplorerPanel
 		if (this.cellStyle === next) return;
 		this.cellStyle = next;
 		this.rebuildNodes();
+	}
+
+	setTooltipsEnabled(enabled: boolean): void {
+		if (this.tooltipsOverride === enabled) return;
+		this.tooltipsOverride = enabled;
+		this.render();
 	}
 
 	setIndentEnabled(enabled: boolean): void {
@@ -587,6 +595,8 @@ export class SnippetsExplorerPanel
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
@@ -659,7 +669,12 @@ export class SnippetsExplorerPanel
 			rowTooltip: (node) => this.tooltip(node.meta as SnippetMeta),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
-				if (node) setTooltip(row, this.tooltip(node.meta));
+				if (node && this.tooltipsOverride !== false)
+					setTooltip(row, this.tooltip(node.meta), {
+				placement: tooltipPlacementForSetting(
+					this.plugin.settings?.tooltipPlacement,
+				),
+			});
 			},
 		onContextMenu: (id, event) => {
 			if (isGroupHeader(id, this._groupIds)) {

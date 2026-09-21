@@ -29,6 +29,12 @@ export interface SceneConfig {
 	 * se conserva, solo deja de desplazarse por `--depth`.
 	 */
 	indent?: boolean;
+	/**
+	 * U130 polishing: view_option `tooltips`, per_instance. `false` apaga
+	 * los tooltips de todos los nodos y cells de la scene (toolbar, árbol
+	 * nativo y badges). Ausente/`true` conserva los de hoy.
+	 */
+	tooltips?: boolean;
 	/** Spec 08 §3.2: el group preset seleccionado, per_instance. `none` por defecto. */
 	groupPreset?: GroupPreset;
 	/** Spec 08 §4: custom groups ocultos (no borrados) en esta instancia. */
@@ -59,6 +65,29 @@ export interface SceneConfig {
 	 * icono de serie del nodo.
 	 */
 	toolbarNodeIcons?: Record<string, string>;
+	/**
+	 * U130 polishing: ids de comandos Obsidian proyectados como nodos de
+	 * acción en ESTA scene de ESTA instancia. Se suman a los globales de
+	 * `plugin.settings.toolbarCommandActions` antes de resolver; la ausencia
+	 * (undefined) = solo globales. Array con semántica de sustitución como
+	 * `hiddenToolbarNodes`: la capa que lo declara decide la lista entera.
+	 */
+	toolbarCommandActions?: string[];
+	/**
+	 * U130 polishing: override per-instance de la ubicación de los nodos de
+	 * creación (create-file/create-folder). `auto` = el setting global
+	 * `createActionsPlacement` (searchbox = anidados en el searchbox,
+	 * toolbar = nodos propios). Tri-estado concreto como sceneLabelMode.
+	 */
+	createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
+	/**
+	 * U130 polishing: orden de los nodos del panelWidget_bar en ESTA scene
+	 * de ESTA instancia (ids LOCALES, en orden visual). Se escribe por
+	 * arrastre al estilo del ribbon nativo (mousedown + umbral + ghost +
+	 * persist, ver `Gv` en app.js) y se suma al `nodeOrder` global de pvpui
+	 * antes de la proyección. Vacío = orden de serie.
+	 */
+	toolbarNodeOrder?: string[];
 	/**
 	 * U130-09 (dev 2026-09-15): custom groups de ESTA scene de ESTA instancia.
 	 * groupId -> URNs de sus miembros. Solo los custom: los presets son

@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { InstanceRegistryData } from '../../src/types/typeInstance';
+import type {
+	InstanceRegistryData,
+	WorkspaceInstanceRecord,
+} from '../../src/types/typeInstance';
 // El estado de orden no se escribe a mano: se construye con el helper real del
 // proyecto. `ExplorerSortState` no es {key,direction,filtered}.
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import { createSceneConfigPort } from '../../src/logic/logicSceneConfigPort';
+import { buildInstanceInfoModel } from '../../src/modals/modalInstanceInfo';
 import { EMPTY_REGISTRY, ensureInstance } from '../../src/logic/logicInstanceRegistry';
 
 const defaults = {
@@ -20,6 +24,10 @@ const defaults = {
 	autoRevealMode: 'auto' as const,
 	hiddenToolbarNodes: [],
 	toolbarNodeIcons: {},
+	toolbarCommandActions: [],
+	createActionsPlacement: 'auto' as const,
+	tooltips: true,
+	toolbarNodeOrder: [],
 	groupMemberships: {},
 };
 
@@ -231,5 +239,57 @@ describe('createSceneConfigPort', () => {
 		expect(h.persist).toHaveBeenCalledTimes(1);
 		await h.port.proposeFloatingToc(toc);
 		expect(h.persist).toHaveBeenCalledTimes(1);
+	});
+
+	it('exposes the live instance record for info surfaces', () => {
+		const h = harness();
+		expect(h.port.readInstanceRecord()?.id).toBe('vm-1');
+		expect(h.port.readInstanceRecord()?.revision).toBe(1);
+	});
+
+	it('reports null when the identity is not anchored yet', () => {
+		const h = harness();
+		h.port.setInstanceId('ghost');
+		expect(h.port.readInstanceRecord()).toBeNull();
+	});
+});
+
+describe('instance info model (U130 polishing)', () => {
+	const record: WorkspaceInstanceRecord = {
+		id: 'vm-9',
+		createdAt: 1000,
+		lastActiveAt: 2000,
+		revision: 4,
+		tombstoned: false,
+		self: { viewMode: 'table' },
+		activeScene: 'files',
+		scenes: {
+			files: { viewMode: 'table' },
+			tags: {},
+		},
+	};
+
+	it('projects identity, revision data and per-scene overrides', () => {
+		const model = buildInstanceInfoModel(record);
+		expect(model.id).toBe('vm-9');
+		expect(model.revision).toBe(4);
+		expect(model.activeScene).toBe('files');
+		expect(model.selfOverrideKeys).toEqual(['viewMode']);
+		expect(model.scenes.map((s) => s.scene)).toEqual(['files', 'tags']);
+		expect(model.scenes[0]).toMatchObject({
+			active: true,
+			overrideKeys: ['viewMode'],
+		});
+		expect(model.scenes[1]).toMatchObject({ active: false, overrideKeys: [] });
+	});
+
+	it('lists scenes in canonical order with the active one flagged', () => {
+		const model = buildInstanceInfoModel({
+			...record,
+			activeScene: 'tags',
+			scenes: { tags: {}, files: { viewMode: 'table' } },
+		});
+		expect(model.scenes.map((s) => s.scene)).toEqual(['files', 'tags']);
+		expect(model.scenes.map((s) => s.active)).toEqual([false, true]);
 	});
 });

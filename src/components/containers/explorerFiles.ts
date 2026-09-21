@@ -7,6 +7,7 @@ import {
 	TFile,
 	TFolder,
 } from 'obsidian';
+import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -396,6 +397,7 @@ export class FilesExplorerPanel extends Component {
 	 *  to 4px and zeroes the per-depth indent unit. Default (unset) keeps the
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
+	private tooltipsOverride: boolean | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
@@ -1008,6 +1010,9 @@ export class FilesExplorerPanel extends Component {
 			if (config.indent !== undefined) {
 				this.setIndentEnabled(config.indent);
 			}
+			if (config.tooltips !== undefined) {
+				this.setTooltipsEnabled(config.tooltips);
+			}
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 			if (config.groupMemberships) {
@@ -1089,6 +1094,12 @@ export class FilesExplorerPanel extends Component {
 	setCompactFoldersEnabled(enabled: boolean): void {
 		if (this.compactFoldersOverride === enabled) return;
 		this.compactFoldersOverride = enabled;
+		this._render();
+	}
+
+	setTooltipsEnabled(enabled: boolean): void {
+		if (this.tooltipsOverride === enabled) return;
+		this.tooltipsOverride = enabled;
 		this._render();
 	}
 
@@ -2367,6 +2378,8 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
@@ -2630,6 +2643,8 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -2816,6 +2831,11 @@ export class FilesExplorerPanel extends Component {
 				onRowHover: (id: string, row: HTMLElement) => {
 					const node = this._findNode(id, renderTree);
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
+					else if (
+						node?.meta.isFolder &&
+						typeof node.meta.folderPath === 'string'
+					)
+						this._handleFolderHover(node.meta.folderPath, row);
 				},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
@@ -4810,7 +4830,12 @@ export class FilesExplorerPanel extends Component {
 		fields: readonly FileHoverInfoId[],
 	): void {
 		element.removeAttribute('title');
-		setTooltip(element, this._fileHoverText(file, fields));
+		if (this.tooltipsOverride !== false)
+			setTooltip(element, this._fileHoverText(file, fields), {
+			placement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+			),
+		});
 	}
 
 	private _handleFileHover(file: TFile, element: HTMLElement): void {
@@ -4860,6 +4885,65 @@ export class FilesExplorerPanel extends Component {
 				);
 			})
 			.finally(() => this.pendingHoverStats.delete(file.path));
+	}
+
+	/**
+	 * U130 polishing: folders get hover tooltips like files — same native
+	 * mechanism (`setTooltip`, like the native ones) and same field
+	 * flexibility (`filesHoverInfo` order + labels). Aggregates bubble at
+	 * render, so no stats warmup is needed. Fields without folder meaning
+	 * (ext/opened/ctime/characters/count) stay null and are skipped.
+	 */
+	private _folderHoverText(
+		folderPath: string,
+		fields: readonly FileHoverInfoId[] = this._filesHoverFields(),
+	): string {
+		const labels = Object.fromEntries(
+			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
+		) as Record<FileHoverInfoId, string>;
+		const name = folderPath.split('/').filter(Boolean).pop() ?? folderPath;
+		const maxMtime = this._folderMaxMtime.get(folderPath) ?? 0;
+		return buildFileHoverInfo(
+			fields,
+			{
+				label: name,
+				path: folderPath,
+				opened: null,
+				mtime:
+					maxMtime > 0 ? (this._formatHoverDateCell(maxMtime) ?? null) : null,
+				ctime: null,
+				ext: '',
+				words: this._folderWordCount.get(folderPath) ?? 0,
+				characters: null,
+				tasks: this._folderTaskCount.get(folderPath) ?? 0,
+				count: null,
+			},
+			labels,
+		);
+	}
+
+	private _applyFolderHoverTooltip(
+		folderPath: string,
+		element: HTMLElement,
+		fields: readonly FileHoverInfoId[],
+	): void {
+		element.removeAttribute('title');
+		if (this.tooltipsOverride === false) return;
+		const text = this._folderHoverText(folderPath, fields);
+		if (text)
+			setTooltip(element, text, {
+				placement: tooltipPlacementForSetting(
+					this.plugin.settings?.tooltipPlacement,
+				),
+			});
+	}
+
+	private _handleFolderHover(folderPath: string, element: HTMLElement): void {
+		this._applyFolderHoverTooltip(
+			folderPath,
+			element,
+			this._filesHoverFields(),
+		);
 	}
 
 	/**
@@ -5409,6 +5493,8 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			tooltipsEnabled: this.tooltipsOverride ?? true,
+			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

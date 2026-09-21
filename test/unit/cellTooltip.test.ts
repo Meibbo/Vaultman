@@ -3,12 +3,16 @@ import { setLanguage } from '../../src/i18n/index';
 import {
 	cellTooltipKind,
 	cellTooltipText,
+	tooltipPlacementForSetting,
 } from '../../src/logic/logicCellTooltip';
 import viewTreeSource from '../../src/components/layout/viewTree.ts?raw';
 import nodeTableSource from '../../src/components/layout/viewNodeTable.ts?raw';
 import filesTableSource from '../../src/components/layout/viewGrid.ts?raw';
 import filesCardsSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
+import settingsSource from '../../src/VaultmanSettings.ts?raw';
+import { en } from '../../src/i18n/en';
+import { es } from '../../src/i18n/es';
 
 afterEach(() => setLanguage('en'));
 
@@ -58,5 +62,38 @@ describe('concise counter/date cell tooltips', () => {
 		expect(explorerFilesSource).toContain(
 			'onRowHover: (id: string, row: HTMLElement)',
 		);
+	});
+});
+
+describe('tooltip placement (U130 polishing)', () => {
+	it('maps the user-facing position to native placements, defaulting to side', () => {
+		expect(tooltipPlacementForSetting('side')).toBe('right');
+		expect(tooltipPlacementForSetting('below')).toBe('bottom');
+		expect(tooltipPlacementForSetting('above')).toBe('top');
+		expect(tooltipPlacementForSetting(undefined)).toBe('right');
+		expect(tooltipPlacementForSetting('sideways')).toBe('right');
+	});
+
+	it('routes placement from the global setting through rows, cells and hovers', () => {
+		expect(viewTreeSource).toContain('tooltipPlacement?: TooltipPlacement');
+		expect(viewTreeSource).toContain('opts.tooltipPlacement');
+		expect(explorerFilesSource).toContain(
+			'tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement)',
+		);
+		expect(settingsSource).toContain("translate('settings.tooltip_placement')");
+	});
+
+	it('labels the position setting in both languages', () => {
+		for (const key of [
+			'settings.tooltip_placement',
+			'settings.tooltip_placement.desc',
+			'settings.tooltip_placement.side',
+			'settings.tooltip_placement.below',
+			'settings.tooltip_placement.above',
+		]) {
+			expect(en[key], `en: ${key}`).toBeTruthy();
+			expect(es[key], `es: ${key}`).toBeTruthy();
+			expect(es[key], `es!=en: ${key}`).not.toBe(en[key]);
+		}
 	});
 });

@@ -91,3 +91,79 @@ export function resolvePanelWidgetProjection({
 		nodes: resolvedNodes,
 	};
 }
+
+/**
+ * U130 polishing: orden per-instance del panelWidget_bar. Los ids LOCALES
+ * de la scene van PRIMERO (proyectados a `provider:local`); detrás, los
+ * globales de pvpui que la scene no declara. La capa que declara decide la
+ * lista entera (igual que `visibleCells` en la cascada): un reorden por
+ * arrastre pisa el orden global solo en esta scene. Sin lista per-instance,
+ * manda el global. Sin pérdida: lo global no declarado sobrevive detrás.
+ */
+export function resolveToolbarNodeOrder(
+	globalFullIds: readonly string[] | undefined,
+	instanceLocalIds: readonly string[] | undefined,
+	providerId: string,
+): string[] {
+	const merged = (instanceLocalIds ?? []).map(
+		(localId) => `${providerId}:${localId}`,
+	);
+	for (const full of globalFullIds ?? []) {
+		if (!merged.includes(full)) merged.push(full);
+	}
+	return merged;
+}
+
+/**
+ * U130 polishing: índice de inserción al estilo `Gv` de app.js (el ribbon
+ * nativo), en eje horizontal. `ends` son los bordes derechos de los
+ * hermanos en orden visual, SIN el arrastrado. Devuelve el primer índice
+ * cuyo borde supera `pointer - grabOffset + draggedSize / 2` (el punto
+ * medio del fantasma); si ninguno, el final. Puro y probado sin DOM.
+ */
+export function dropIndexForPointer(
+	ends: readonly number[],
+	pointer: number,
+	grabOffset: number,
+	draggedSize: number,
+): number {
+	const threshold = pointer - grabOffset + draggedSize / 2;
+	for (let index = 0; index < ends.length; index += 1) {
+		if (threshold < (ends[index] ?? Number.POSITIVE_INFINITY)) return index;
+	}
+	return ends.length;
+}
+
+/**
+ * U130 polishing: mueve `draggedLocalId` delante de `anchorLocalId` (al
+ * final si el ancla es `null` o ya no se ve) dentro del orden visible y
+ * conserva detrás los ids guardados que ya no se ven (sin pérdida al
+ * ocultar/mostrar nodos). Puro y probado sin DOM.
+ */
+export function reorderLocalIds(
+	visibleLocalIds: readonly string[],
+	storedIds: readonly string[],
+	draggedLocalId: string,
+	anchorLocalId: string | null,
+): string[] {
+	const without = visibleLocalIds.filter((id) => id !== draggedLocalId);
+	const anchorIndex =
+		anchorLocalId === null ? -1 : without.indexOf(anchorLocalId);
+	const clamped =
+		anchorIndex < 0
+			? without.length
+			: Math.max(0, Math.min(anchorIndex, without.length));
+	const next = [
+		...without.slice(0, clamped),
+		draggedLocalId,
+		...without.slice(clamped),
+	];
+	const seen = new Set(next);
+	for (const id of storedIds) {
+		if (!seen.has(id)) {
+			seen.add(id);
+			next.push(id);
+		}
+	}
+	return next;
+}

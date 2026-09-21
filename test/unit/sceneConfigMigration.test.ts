@@ -24,6 +24,10 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
 			toolbarNodeIcons: {},
+			toolbarCommandActions: [],
+			createActionsPlacement: 'auto',
+			tooltips: true,
+			toolbarNodeOrder: [],
 			groupMemberships: {},
 		}),
 		propose: async (scene, next) => {
@@ -37,6 +41,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 		// llega tarde. Este doble no la ejercita, pero debe cumplir el contrato.
 		setInstanceId: () => {},
 		onInstanceChange: () => () => {},
+		readInstanceRecord: () => null,
 	};
 }
 

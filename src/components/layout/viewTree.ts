@@ -1,5 +1,6 @@
 // src/components/UnifiedTreeView.ts
 import { Platform, setIcon, setTooltip } from 'obsidian';
+import type { TooltipPlacement } from 'obsidian';
 import type {
 	NodeBubbleDot,
 	TreeNode,
@@ -184,6 +185,18 @@ export interface TreeViewOptions {
 	 * keeps today's geometry for every row.
 	 */
 	indent?: boolean;
+	/**
+	 * U130 polishing: view_option `tooltips`, per_instance. `false` apaga
+	 * los tooltips nativos de filas y celdas. Ausente/`true` conserva los
+	 * de hoy.
+	 */
+	tooltipsEnabled?: boolean;
+	/**
+	 * U130 polishing: ubicación de los tooltips nativos (`side` = lateral
+	 * como el nativo). La fija el setting global `tooltipPlacement`.
+	 * Ausente = lateral.
+	 */
+	tooltipPlacement?: TooltipPlacement;
 	/** Height to reserve above the pinned rows when the layout overlays nav
 	 * tools on the scrollport. Left undefined it is measured; pass a number
 	 * to override, and 0 for a detached layout that overlays nothing. */
@@ -1105,7 +1118,10 @@ export class UnifiedTreeView {
 	private applyRowTooltip(row: HTMLElement, text: string): void {
 		// Obsidian's native tooltip, not the browser `title` (which double-renders).
 		row.removeAttribute('title');
-		setTooltip(row, text);
+		if (this._opts?.tooltipsEnabled === false) return;
+		setTooltip(row, text, {
+			placement: this._opts?.tooltipPlacement ?? 'right',
+		});
 	}
 
 	private applyCellTooltip(
@@ -1113,8 +1129,18 @@ export class UnifiedTreeView {
 		cellId: string,
 		opts: TreeViewOptions,
 	): void {
+		if (opts.tooltipsEnabled === false) {
+			element.removeAttribute('title');
+			return;
+		}
 		if (opts.surface) {
-			applySharedCellTooltip(element, opts.surface, 'tree', cellId);
+			applySharedCellTooltip(
+				element,
+				opts.surface,
+				'tree',
+				cellId,
+				opts.tooltipPlacement,
+			);
 		} else {
 			element.removeAttribute('title');
 		}
@@ -1852,7 +1878,9 @@ export class UnifiedTreeView {
 				});
 				const description = opts.bubbleDotLabel?.(node.bubbleDot);
 				if (description) {
-					setTooltip(dotEl, description);
+					setTooltip(dotEl, description, {
+				placement: opts.tooltipPlacement ?? 'right',
+			});
 					dotEl.setAttribute('role', 'img');
 					dotEl.setAttribute('aria-label', description);
 				}
@@ -1870,7 +1898,9 @@ export class UnifiedTreeView {
 				if (description) {
 					dotEl.setAttribute('role', 'img');
 					dotEl.setAttribute('aria-label', description);
-					setTooltip(dotEl, description);
+					setTooltip(dotEl, description, {
+				placement: opts.tooltipPlacement ?? 'right',
+			});
 				}
 			}
 
@@ -1888,7 +1918,10 @@ export class UnifiedTreeView {
 						setIcon(iEl, badge.icon);
 					}
 					const badgeHint = badge.tooltip ?? badge.text;
-					if (badgeHint) setTooltip(bEl, badgeHint);
+					if (badgeHint)
+						setTooltip(bEl, badgeHint, {
+							placement: opts.tooltipPlacement ?? 'right',
+						});
 					if (badge.text && !badge.icon) bEl.setText(badge.text);
 					// Double-click to undo this specific queue operation
 					const releasesNode =
@@ -1971,7 +2004,9 @@ export class UnifiedTreeView {
 		toggleEl.toggleClass('is-disabled', cell.disabled === true);
 		toggleEl.toggleClass('is-mixed', cell.mixed === true);
 			toggleEl.setAttribute('aria-label', cell.label);
-			setTooltip(toggleEl, cell.label);
+			setTooltip(toggleEl, cell.label, {
+				placement: opts.tooltipPlacement ?? 'right',
+			});
 			const input = toggleEl.createEl('input', {
 				cls: 'vaultman-addon-toggle-input',
 			});
@@ -2009,7 +2044,9 @@ export class UnifiedTreeView {
 						: 'lucide-toggle-left'
 					: cell.icon,
 			);
-			setTooltip(badgeEl, cell.label);
+			setTooltip(badgeEl, cell.label, {
+				placement: opts.tooltipPlacement ?? 'right',
+			});
 			if (!cell.disabled) {
 				badgeEl.addClass('is-clickable');
 				handleClick(badgeEl);
@@ -2024,7 +2061,9 @@ export class UnifiedTreeView {
 		actionEl.setAttribute('aria-label', cell.label);
 		actionEl.disabled = cell.disabled === true;
 		setIcon(actionEl, cell.icon);
-		setTooltip(actionEl, cell.label);
+		setTooltip(actionEl, cell.label, {
+			placement: opts.tooltipPlacement ?? 'right',
+		});
 		handleClick(actionEl);
 	}
 

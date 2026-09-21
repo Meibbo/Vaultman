@@ -16,9 +16,13 @@ describe('U130-05b: los controles del searchbox en SASI', () => {
 			const resolved = registry.resolve(id);
 			expect(resolved.available).toBe(true);
 			expect(resolved.def?.kind).toBe('action');
-			// No se les inventa alcance mas alla del searchbox: no hay quien los
-			// consuma en otra superficie y seria alcance imaginado.
-			expect(resolved.def?.supports).toEqual([{ surface: 'searchbox' }]);
+		// Alcance searchbox + panelWidget: la barra del panelWidget los consume
+		// de verdad (navbarFilters despacha SEARCH_CYCLE/CREATE y la
+		// proyeccion search-cell los proyecta) — no es alcance imaginado.
+		expect(resolved.def?.supports).toEqual([
+			{ surface: 'searchbox' },
+			{ surface: 'panelWidget' },
+		]);
 			expect(resolved.def?.mutatesVault).toBeUndefined();
 		}
 	});

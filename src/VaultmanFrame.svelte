@@ -125,6 +125,7 @@
 			surface: SceneEngineSurface,
 			mode: ExplorerViewMode,
 		) => boolean;
+		invokeToolbarSasiAction?: (actionId: string) => Promise<boolean>;
 	};
 
 	let panelWidgetHostRef = $state<PanelWidgetHostApi | null>(null);
@@ -138,6 +139,10 @@
 		mode: ExplorerViewMode,
 	): boolean {
 		return panelWidgetHostRef?.setSceneEngine?.(surface, mode) ?? false;
+	}
+
+	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+		return panelWidgetHostRef?.invokeToolbarSasiAction?.(actionId) ?? false;
 	}
 
 	/**
@@ -366,6 +371,9 @@
 			// Sin default en Settings: el view_option nuevo nace `on` (geometria
 			// de hoy) y solo lo toca quien abra el submenu `engines` y lo apague.
 			indent: true,
+			// U130 polishing: los tooltips nacen visibles; el view_menu los
+			// apaga por scene.
+			tooltips: true,
 			// Spec 08 §3.2: la agrupacion es una seleccion de preset y `none` es el defecto.
 			groupPreset: { ...NO_GROUP_PRESET },
 			hiddenGroupIds: [],
@@ -375,6 +383,13 @@
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
 			toolbarNodeIcons: {},
+			// U130 polishing: sin comandos extra per-instance por defecto.
+			toolbarCommandActions: [],
+			// U130 polishing: la ubicación de creación sigue al setting
+			// global hasta que el cmenu del search la fije por instancia.
+			createActionsPlacement: 'auto',
+			// U130 polishing: sin reorden per-instance por defecto.
+			toolbarNodeOrder: [],
 			// U130-09: una scene nace sin grupos custom; los crea el usuario en
 			// esta instancia o los copia un layout al activarse.
 			groupMemberships: {},

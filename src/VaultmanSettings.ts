@@ -31,6 +31,7 @@ import {
 	PANEL_MENU_KINDS,
 	addFilesMenuDivider,
 	addFilesMenuSubmenu,
+	setFilesMenuSubmenuIdentity,
 	defaultFilesMenuLayout,
 	mergeFilesMenuLayout,
 	normalizeFilesMenuLayout,
@@ -1267,22 +1268,40 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		items.push(...this.getToolbarCommandActionsItems());
-
+		// U130 polishing: where the native tooltips appear (`side` = native
+		// lateral like the ribbon, `below` = historic ours, `above` = option).
 		items.push({
-			name: translate('settings.sort_level_inline'),
-			desc: translate('settings.sort_level_inline.desc'),
+			name: translate('settings.tooltip_placement'),
+			desc: translate('settings.tooltip_placement.desc'),
 			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.sortLevelInline !== false)
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							side: translate('settings.tooltip_placement.side'),
+							below: translate('settings.tooltip_placement.below'),
+							above: translate('settings.tooltip_placement.above'),
+						})
+						.setValue(
+							this.plugin.settings.tooltipPlacement === 'below'
+								? 'below'
+								: this.plugin.settings.tooltipPlacement === 'above'
+									? 'above'
+									: 'side',
+						)
 						.onChange(async (value) => {
-							this.plugin.settings.sortLevelInline = value;
+							this.plugin.settings.tooltipPlacement =
+								value === 'below'
+									? 'below'
+									: value === 'above'
+										? 'above'
+										: 'side';
 							await this.plugin.saveSettings();
 						}),
 				);
 			},
 		});
+
+		items.push(...this.getToolbarCommandActionsItems());
 		return items;
 	}
 
@@ -2320,6 +2339,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			(item): item is Extract<FilesMenuItem, { kind: 'submenu' }> =>
 				item.kind === 'submenu',
 		);
+		const submenuById = new Map(submenuChoices.map((submenu) => [submenu.id, submenu]));
+		const nodeKindLabels: Readonly<Record<string, string>> = {
+			gp: translate('settings.files_context_menu.node_kind.gp'),
+			p: translate('settings.files_context_menu.node_kind.p'),
+			c: translate('settings.files_context_menu.node_kind.c'),
+			gc: translate('settings.files_context_menu.node_kind.gc'),
+			ad: translate('settings.files_context_menu.node_kind.ad'),
+		};
 		const nativeIds = new Set(
 			catalog.filter((entry) => entry.native).map((entry) => entry.id),
 		);
@@ -2334,9 +2361,56 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						setting.setName(translate('settings.files_context_menu.divider'));
 					} else if (item.kind === 'submenu') {
 						setting.setName(item.label);
-						setting.setDesc(translate('settings.files_context_menu.submenu'));
+						setting.setDesc(
+							`${translate('settings.files_context_menu.submenu')} · ${item.id}`,
+						);
+						setting.settingEl.addClass('vaultman-context-menu-submenu-row');
+						setting.addText((text) => {
+							text
+								.setPlaceholder(translate('settings.files_context_menu.submenu_name'))
+								.setValue(item.label)
+								.onChange((value) => {
+									void persist(
+										setFilesMenuSubmenuIdentity(layout, item.id, {
+											label: value.trim() || item.id,
+										}),
+									);
+								});
+						});
+						setting.addText((text) => {
+							text
+								.setPlaceholder('lucide-chevron-right')
+								.setValue(item.icon ?? '')
+								.onChange((value) => {
+									void persist(
+										setFilesMenuSubmenuIdentity(layout, item.id, {
+											icon: value.trim(),
+										}),
+									);
+								});
+						});
+						setting.addDropdown((dropdown) => {
+							for (const [value, label] of Object.entries(nodeKindLabels)) {
+								dropdown.addOption(value, label);
+							}
+							dropdown.setValue(item.nodeKind ?? 'c');
+							dropdown.onChange((value) =>
+								void persist(
+									setFilesMenuSubmenuIdentity(layout, item.id, {
+										nodeKind: value as 'gp' | 'p' | 'c' | 'gc' | 'ad',
+									}),
+								),
+							);
+						});
 					} else {
 						setting.setName(labels.get(item.id) ?? item.id);
+						if (item.parent) {
+							setting.settingEl.addClass('vaultman-context-menu-child-row');
+							setting.settingEl.style.paddingInlineStart = '2em';
+							setting.setDesc(
+								`${labels.get(item.id) ?? item.id} · ${submenuById.get(item.parent)?.label ?? item.parent}`,
+							);
+						}
 						// Intercepted items can only be shown or hidden — Vaultman does not
 						// own their order or their handler, so they carry no grip.
 						setting.setDesc(
@@ -2367,11 +2441,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						});
 					}
 
-					if (
-						item.kind === 'action' &&
-						!isNative &&
-						submenuChoices.length > 0
-					) {
+					if (item.kind === 'action' && submenuChoices.length > 0) {
 						setting.addDropdown((dropdown) => {
 							dropdown.addOption(
 								'',

@@ -14,8 +14,10 @@ describe('BT5-022 create actions placement', () => {
 
 	it('renders Create nodes on the toolbar only in toolbar placement', () => {
 		expect(navbarSource).toContain(
-			"activeTab === 'files' && createActionsPlacement === 'toolbar'",
+			"activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'",
 		);
+		// U130 polishing: per-instance override (`auto` = global prop).
+		expect(navbarSource).toContain('effectiveCreateActionsPlacement');
 		expect(navbarSource).toContain("append(\n\t\t\t\t'create-file'");
 		expect(navbarSource).toContain("append(\n\t\t\t\t'create-folder'");
 		expect(pageFiltersSource).toContain(
@@ -28,7 +30,7 @@ describe('BT5-022 create actions placement', () => {
 
 	it('drops the Files searchbox create button when moved to the toolbar', () => {
 		expect(navbarSource).toContain(
-			"activeTab === 'files' && createActionsPlacement !== 'toolbar'",
+			"activeTab === 'files' && effectiveCreateActionsPlacement !== 'toolbar'",
 		);
 	});
 

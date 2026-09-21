@@ -114,27 +114,15 @@ describe('Vaultman Settings layout', () => {
 		expect(toolsIndex).toBeGreaterThan(showToolbarIndex);
 	});
 
-	it('renders the inline-sort setting independently from the tools toggle callback', () => {
-		const toolbarSource = sliceBetween(TOOLBAR_PAGE, TOOLBAR_COMMANDS);
-		const toolsIndex = toolbarSource.indexOf(
-			"translate('settings.toolbar_tools_menu')",
-		);
-		const inlineSortIndex = toolbarSource.indexOf(
+	it('no longer renders the deprecated inline-sort setting', () => {
+		expect(settingsSource).not.toContain(
 			"translate('settings.sort_level_inline')",
 		);
-		// BT5-023 inserts the Create File binding between the tools toggle and
-		// the inline-sort setting, so the tools block ends at the NEXT item
-		// pushed, not at the inline-sort one.
-		const nextSettingIndex = toolbarSource.indexOf('items.push({', toolsIndex);
-		const toolsBlock = toolbarSource.slice(toolsIndex, nextSettingIndex);
-
-		expect(inlineSortIndex).toBeGreaterThan(toolsIndex);
-		expect(nextSettingIndex).toBeGreaterThan(toolsIndex);
-		// The tools toggle owns a fully closed onChange callback, independent of
-		// whatever setting is declared next.
-		expect(toolsBlock).toMatch(
-			/await this\.plugin\.saveSettings\(\);\s*}\),\s*\);/,
+		expect(settingsSource).not.toContain(
+			"translate('settings.sort_level_inline.desc')",
 		);
+		expect(settingsSource).not.toContain('sortLevelInline');
+		expect(typeSettingsSource).not.toContain('sortLevelInline');
 	});
 
 	it('routes Floating TOC to a declarative sub-page reachable from the root', () => {

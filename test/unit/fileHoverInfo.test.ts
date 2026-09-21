@@ -83,4 +83,25 @@ describe('Files hover info', () => {
 			),
 		).toBe('Extension: md\ncount: 2');
 	});
+
+	it('renders folder aggregates through the same fields', () => {
+		expect(
+			buildFileHoverInfo(
+				['label', 'path', 'words', 'tasks'],
+				{
+					label: 'sub',
+					path: 'Notes/sub',
+					mtime: null,
+					ctime: null,
+					opened: null,
+				ext: '',
+					words: 120,
+					characters: null,
+					tasks: 4,
+					count: null,
+				},
+				labels,
+			),
+		).toBe('Label: sub\nPath: Notes/sub\nWords: 120\nTasks: 4');
+	});
 });

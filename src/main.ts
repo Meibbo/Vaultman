@@ -22,7 +22,7 @@
 //--------------------------------------------------------------------\\
 
 //...----------—————————————(   IMPORTS   )————————————------------...\\
-import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import type { ExplorerViewMode } from './types/typeUI';
 import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
@@ -103,6 +103,15 @@ import {
 	type SceneEngineSurface,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
+import {
+	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+	TOOLBAR_SEARCHBOX_ID,
+	TOOLBAR_TOGGLE_EXPANSION_ID,
+} from './logic/logicSasiToolbarActions';
+import {
+	SEARCH_CREATE_TARGET_ID,
+	SEARCH_CYCLE_CATEGORY_ID,
+} from './logic/logicSasiSearchActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -344,8 +353,15 @@ export class VaultmanPlugin extends Plugin {
 		this.statusBarEl = this.addStatusBarItem();
 		this.statusBarEl.addClass('vaultman-native-statusbar');
 
-		this.addRibbonIcon('lucide-vault', translate('plugin.open'), () => {
-			void this.activateView();
+		const ribbonIconEl = this.addRibbonIcon(
+			'lucide-vault',
+			translate('plugin.open'),
+			() => {
+				void this.activateView();
+			},
+		);
+		this.registerDomEvent(ribbonIconEl, 'contextmenu', (event) => {
+			this.openRibbonLocationMenu(event);
 		});
 
 		this.registerView(
@@ -463,8 +479,25 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
-		this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
-		this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
+	this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
+	this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
+		const toolbarCommands = [
+		[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
+		[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
+		[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
+		[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
+		[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+	] as const;
+	for (const [id, labelKey] of toolbarCommands) {
+		this.sasiCommandPublisher.register({
+			id,
+			name: translate(labelKey),
+			handler: () => {
+				void this.invokeToolbarSasiAction(id);
+			},
+		});
+		this.sasiCommandPublisher.setPublished(id, true);
+	}
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -530,6 +563,11 @@ export class VaultmanPlugin extends Plugin {
 		if (!leaf) return null;
 		const view = leaf.view;
 		return view instanceof VaultmanFrame ? view : null;
+	}
+
+	private async invokeToolbarSasiAction(actionId: string): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.invokeToolbarSasiAction?.(actionId);
 	}
 
 	private async focusVaultmanContentSearch(
@@ -975,10 +1013,15 @@ export class VaultmanPlugin extends Plugin {
 		return anchors;
 	}
 
-	/** Open a frame and reveal it. Never closes one. */
-	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
+	/**
+	 * Open a frame and reveal it. Never closes one. `explicitMode` bypasses
+	 * the setting (ribbon alt-cmenu): the new instance lands where asked.
+	 */
+	private async openVaultmanView(
+		explicitMode?: 'left_sidebar' | 'right_sidebar' | 'main',
+	): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
-		const mode = normalizeOpenMode(this.settings.openMode);
+		const mode = normalizeOpenMode(explicitMode ?? this.settings.openMode);
 		let leaf: WorkspaceLeaf | null;
 		if (mode === 'left_sidebar') {
 			leaf = workspace.getLeftLeaf(false);
@@ -991,6 +1034,42 @@ export class VaultmanPlugin extends Plugin {
 		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
 		void workspace.revealLeaf(leaf);
 		return leaf;
+	}
+
+	/**
+	 * U130 polishing: the `Open Vaultman` ribbon node gets its own
+	 * alt-cmenu (right-click like the toolbar): location options for where
+	 * the NEW instance opens. Click behavior is untouched.
+	 */
+	private openRibbonLocationMenu(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		const menu = new Menu();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.left_sidebar'))
+				.setIcon('lucide-panel-left')
+				.onClick(() => {
+					void this.openVaultmanView('left_sidebar');
+				});
+		});
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.main'))
+				.setIcon('lucide-app-window')
+				.onClick(() => {
+					void this.openVaultmanView('main');
+				});
+		});
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('ribbon.open.right_sidebar'))
+				.setIcon('lucide-panel-right')
+				.onClick(() => {
+					void this.openVaultmanView('right_sidebar');
+				});
+		});
+		menu.showAtMouseEvent(event);
 	}
 
 	/**
