@@ -48,9 +48,10 @@ import {
 	collectGroupMemberIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
-	projectGroupedTree,
+	projectGroupedTreeInScope,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
@@ -327,7 +328,7 @@ export class FilesExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTree<FileMeta>({
+		const projected = projectGroupedTreeInScope<FileMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -357,7 +358,10 @@ export class FilesExplorerPanel extends Component {
 			// prestada del primer hijo.
 			headerCoreCls: 'tree-item-self nav-folder-title is-clickable',
 			headerMeta: { file: null, folder: null, isFolder: true, folderPath: '' },
-		}) as TreeNode<FileMeta>[];
+		}, groupProjectionScope(
+			this.sortState?.activeScope ?? 'all',
+			this.sortState?.drillNodeId,
+		)) as TreeNode<FileMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -3071,6 +3075,7 @@ export class FilesExplorerPanel extends Component {
 					// resto preset. Hide/delete son de la scene (navbar) y
 					// desde aqui quedan disabled con razon.
 					const header = this._findNode(id, projectedTree);
+					const groupId = header ? entityIdOf(header) : id;
 					this.plugin.contextMenuService.openPanelMenu(
 						{
 							nodeType: 'group',
@@ -3082,14 +3087,14 @@ export class FilesExplorerPanel extends Component {
 								depth: 0,
 							},
 							surface: 'panel',
-							groupId: id,
-							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
-							groupHidden: this.hiddenGroupIds.has(id),
+							groupId,
+							groupOwner: this._groupIds.has(groupId) ? 'custom' : 'preset',
+							groupHidden: this.hiddenGroupIds.has(groupId),
 							hideGroup: this.groupHideHandler,
 							deleteGroup: this.groupDeleteHandler,
 							groupExpanded: this.expandedIds.has(id),
 							materializePreset:
-								this._groupIds.has(id) || !header || !this.materializePresetHandler
+								this._groupIds.has(groupId) || !header || !this.materializePresetHandler
 									? undefined
 									: () =>
 										this.materializePresetHandler!(
@@ -3099,8 +3104,8 @@ export class FilesExplorerPanel extends Component {
 												this.selectionRevision,
 											),
 										),
-							toggleGroupExpand: (groupId: string) => {
-								this._toggleExpanded(groupId);
+							toggleGroupExpand: () => {
+								this._toggleExpanded(id);
 							},
 						},
 						e,

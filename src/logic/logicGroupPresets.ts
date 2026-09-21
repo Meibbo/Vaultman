@@ -66,7 +66,7 @@ export function snapshotPresetBucket<TMeta>(
 		urns.push(urnOf(node));
 	}
 	return Object.freeze({
-		bucketId: header.id,
+		bucketId: header.entityId ?? header.id,
 		label: header.label,
 		entityIds: Object.freeze(entityIds),
 		urns: Object.freeze(urns),

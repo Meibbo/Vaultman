@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	groupProjectionScope,
 	isGroupHeader,
 	NO_GROUP_ID,
 	PRESET_GROUP_PREFIX,
 	projectGroupedTree,
+	projectGroupedTreeInScope,
 	resolveCustomGroups,
+	SCOPED_GROUP_HEADER_PREFIX,
 } from '../../src/logic/logicTreeGroupProjection';
 import { bubbleMemberCountsToGroups } from '../../src/logic/logicBadgeBubbling';
 import type { TreeNode } from '../../src/types/typeTree';
@@ -397,6 +400,7 @@ describe('isGroupHeader', () => {
 	it('reconoce IDs con prefijo de preset como cabecera', () => {
 		expect(isGroupHeader(`${PRESET_GROUP_PREFIX}A`)).toBe(true);
 		expect(isGroupHeader('vaultman.group.preset:X')).toBe(true);
+		expect(isGroupHeader(`${SCOPED_GROUP_HEADER_PREFIX}parent%3Ax:A`)).toBe(true);
 	});
 
 	it('reconoce IDs de grupos custom activos', () => {
@@ -410,6 +414,117 @@ describe('isGroupHeader', () => {
 		expect(isGroupHeader('note.md')).toBe(false);
 		expect(isGroupHeader('prop:tag')).toBe(false);
 		expect(isGroupHeader('')).toBe(false);
+	});
+});
+
+describe('U130 Corte G — agrupacion relativa al scope', () => {
+	const input = (roots: readonly TreeNode<null>[]) => ({
+		nodes: roots,
+		groups: [],
+		memberships: {},
+		providerId: 'props',
+		noGroupLabel: NO_GROUP,
+		filtered: false,
+		preset: { kind: 'letter' as const, direction: 'asc' as const },
+	});
+
+	it('maps drill and stored scopes to their projection target', () => {
+		expect(groupProjectionScope('drill', 'parent-row')).toEqual({
+			kind: 'parent',
+			parentId: 'parent-row',
+		});
+		expect(groupProjectionScope('parent:stored')).toEqual({
+			kind: 'parent',
+			parentId: 'stored',
+		});
+		expect(groupProjectionScope('level:3')).toEqual({
+			kind: 'level',
+			level: 3,
+		});
+		expect(groupProjectionScope('drill', null)).toEqual({ kind: 'all' });
+		expect(groupProjectionScope('level:0')).toEqual({ kind: 'all' });
+	});
+
+	it('inserta headers en el slot de hijos del parent profundo, no en root', () => {
+		const roots: TreeNode<null>[] = [{
+			id: 'reference', label: 'Reference', depth: 0, meta: null,
+			children: [{
+				id: 'css', label: 'CSS variables', depth: 1, meta: null,
+				children: [{
+					id: 'editor', label: 'Editor', depth: 2, meta: null,
+					children: [
+						{ id: 'alpha', label: 'Alpha', depth: 3, meta: null },
+						{ id: 'beta', label: 'Beta', depth: 3, meta: null },
+					],
+				}],
+			}],
+		}];
+		const out = projectGroupedTreeInScope(input(roots), {
+			kind: 'parent', parentId: 'editor',
+		});
+		const editor = out[0].children?.[0].children?.[0];
+
+		expect(out[0].id).toBe('reference');
+		expect(editor?.children?.map((child) => child.label)).toEqual(['A', 'B']);
+		expect(editor?.children?.every((header) => header.depth === 3)).toBe(true);
+		expect(editor?.children?.flatMap((header) => header.children ?? [])
+			.every((member) => member.depth === 4)).toBe(true);
+		expect(editor?.children?.every((header) =>
+			header.id.startsWith(SCOPED_GROUP_HEADER_PREFIX))).toBe(true);
+	});
+
+	it('scopes one duplicated p-node occurrence instead of every matching entity', () => {
+		const roots: TreeNode<null>[] = [
+			{
+				id: 'parent@left',
+				entityId: 'parent',
+				label: 'Parent',
+				depth: 0,
+				meta: null,
+				children: [{ id: 'alpha', label: 'Alpha', depth: 1, meta: null }],
+			},
+			{
+				id: 'parent@right',
+				entityId: 'parent',
+				label: 'Parent',
+				depth: 0,
+				meta: null,
+				children: [{ id: 'beta', label: 'Beta', depth: 1, meta: null }],
+			},
+		];
+		const out = projectGroupedTreeInScope(input(roots), {
+			kind: 'parent',
+			parentId: 'parent@right',
+		});
+
+		expect(out[0].children?.[0].id).toBe('alpha');
+		expect(out[1].children?.[0].id.startsWith(SCOPED_GROUP_HEADER_PREFIX)).toBe(
+			true,
+		);
+	});
+
+	it('agrupa cada sibling-list del level con row ids unicos y grupo canonico estable', () => {
+		const roots: TreeNode<null>[] = [
+			{
+				id: 'left', label: 'Left', depth: 0, meta: null,
+				children: [{ id: 'left-alpha', label: 'Alpha', depth: 1, meta: null }],
+			},
+			{
+				id: 'right', label: 'Right', depth: 0, meta: null,
+				children: [{ id: 'right-atom', label: 'Atom', depth: 1, meta: null }],
+			},
+		];
+		const out = projectGroupedTreeInScope(input(roots), { kind: 'level', level: 2 });
+		const leftHeader = out[0].children?.[0];
+		const rightHeader = out[1].children?.[0];
+
+		expect(leftHeader?.id).not.toBe(rightHeader?.id);
+		expect(leftHeader?.entityId).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(rightHeader?.entityId).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(leftHeader?.depth).toBe(1);
+		expect(rightHeader?.depth).toBe(1);
+		expect(leftHeader?.children?.[0].depth).toBe(2);
+		expect(rightHeader?.children?.[0].depth).toBe(2);
 	});
 });
 

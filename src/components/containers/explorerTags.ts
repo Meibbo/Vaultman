@@ -112,9 +112,10 @@ import {
 	collectGroupMemberIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
-	projectGroupedTree,
+	projectGroupedTreeInScope,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
@@ -522,7 +523,7 @@ export class TagsExplorerPanel extends Component {
 			for (const group of groups) this._groupIds.add(group.id);
 			const currentSort = activeScopeSort('tags', this.sortState);
 			const sortByNote = currentSort.sortBy === 'note';
-			const projected = projectGroupedTree<TagMeta>({
+			const projected = projectGroupedTreeInScope<TagMeta>({
 				nodes,
 				groups,
 				memberships: noteRes.memberships,
@@ -540,7 +541,10 @@ export class TagsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
 				headerMeta: { tagPath: '' },
-			}) as TreeNode<TagMeta>[];
+			}, groupProjectionScope(
+				this.sortState?.activeScope ?? 'all',
+				this.sortState?.drillNodeId,
+			)) as TreeNode<TagMeta>[];
 			expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 			return projected;
 		}
@@ -554,7 +558,7 @@ export class TagsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTree<TagMeta>({
+		const projected = projectGroupedTreeInScope<TagMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -583,7 +587,10 @@ export class TagsExplorerPanel extends Component {
 			// del primer hijo.
 			headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
 			headerMeta: { tagPath: '' },
-		}) as TreeNode<TagMeta>[];
+		}, groupProjectionScope(
+			this.sortState?.activeScope ?? 'all',
+			this.sortState?.drillNodeId,
+		)) as TreeNode<TagMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -2019,6 +2026,7 @@ export class TagsExplorerPanel extends Component {
 			if (isGroupHeader(id, this._groupIds)) {
 				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
 				const header = this._findNode(id, projected);
+				const groupId = header ? entityIdOf(header) : id;
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'group',
@@ -2030,20 +2038,20 @@ export class TagsExplorerPanel extends Component {
 							depth: 0,
 						},
 						surface: 'panel',
-						groupId: id,
+						groupId,
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(id)
+								: this._groupIds.has(groupId)
 									? 'custom'
 									: 'preset',
-						groupHidden: this.hiddenGroupIds.has(id),
+						groupHidden: this.hiddenGroupIds.has(groupId),
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(id) ||
+							this._groupIds.has(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -2055,8 +2063,8 @@ export class TagsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
-						toggleGroupExpand: (groupId: string) => {
-							this._toggleExpanded(groupId);
+						toggleGroupExpand: () => {
+							this._toggleExpanded(id);
 						},
 					},
 					e,

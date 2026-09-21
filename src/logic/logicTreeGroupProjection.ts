@@ -8,10 +8,12 @@ import { parseMembershipUrn, type MembershipRef } from './logicMembershipUrn';
 import type { NodeGroupDef } from './logicNodeGroup';
 import type { GroupPreset } from '../types/typeGroupPreset';
 import type { TreeNode } from '../types/typeTree';
+import type { SortScopeKey } from '../types/typeUI';
 
 export const NO_GROUP_ID = 'vaultman.group.none';
 export const PRESET_GROUP_PREFIX = 'vaultman.group.preset:';
 export const GROUP_PRESET_PREFIX = PRESET_GROUP_PREFIX;
+export const SCOPED_GROUP_HEADER_PREFIX = 'vaultman.group.header:';
 const GROUP_HEADER_CLS = 'vaultman-tree-row--group-header';
 
 /**
@@ -25,11 +27,39 @@ export function isGroupHeader(
 	return (
 		id === NO_GROUP_ID ||
 		id.startsWith(PRESET_GROUP_PREFIX) ||
+		id.startsWith(SCOPED_GROUP_HEADER_PREFIX) ||
 		Boolean(customGroupIds?.has(id))
 	);
 }
 
 export const _isGroupHeader = isGroupHeader;
+
+/** The sibling-list(s) on which the selected grouping preset is projected. */
+export type GroupProjectionScope =
+	| { kind: 'all' }
+	| { kind: 'parent'; parentId: string }
+	| { kind: 'level'; level: number };
+
+/** Translate the persisted sort scope into the sibling-list grouping target. */
+export function groupProjectionScope(
+	activeScope: SortScopeKey,
+	drillNodeId?: string | null,
+): GroupProjectionScope {
+	if (activeScope === 'drill') {
+		return drillNodeId
+			? { kind: 'parent', parentId: drillNodeId }
+			: { kind: 'all' };
+	}
+	if (activeScope.startsWith('parent:')) {
+		const parentId = activeScope.slice('parent:'.length);
+		return parentId ? { kind: 'parent', parentId } : { kind: 'all' };
+	}
+	if (activeScope.startsWith('level:')) {
+		const level = Number(activeScope.slice('level:'.length));
+		if (Number.isInteger(level) && level >= 1) return { kind: 'level', level };
+	}
+	return { kind: 'all' };
+}
 
 /**
  * U130-03: deriva los NodeGroupDef custom de las claves de groupMemberships.
@@ -442,11 +472,16 @@ export function expandNewGroupHeaders<TMeta>(
 	expanded: Set<string>,
 	customGroupIds?: ReadonlySet<string>,
 ): void {
-	for (const node of projected) {
-		if (!isGroupHeader(node.id, customGroupIds) || seen.has(node.id)) continue;
-		seen.add(node.id);
-		expanded.add(node.id);
-	}
+	const visit = (nodes: readonly TreeNode<TMeta>[]) => {
+		for (const node of nodes) {
+			if (isGroupHeader(node.id, customGroupIds) && !seen.has(node.id)) {
+				seen.add(node.id);
+				expanded.add(node.id);
+			}
+			if (node.children?.length) visit(node.children);
+		}
+	};
+	visit(projected);
 }
 
 export function projectGroupedTree<TMeta>(
@@ -798,4 +833,90 @@ export function projectGroupedTree<TMeta>(
 		);
 	}
 	return out;
+}
+
+function scopedHeaderRowId(groupId: string, owner: string): string {
+	return `${SCOPED_GROUP_HEADER_PREFIX}${encodeURIComponent(owner)}:${encodeURIComponent(groupId)}`;
+}
+
+/**
+ * Project grouping at the sibling-list selected by Scope instead of always at
+ * the root. Parent scopes affect only that parent's direct children; level
+ * scopes affect every sibling-list whose rows live at that 1-based level.
+ *
+ * Repeated level buckets need distinct row ids because ViewTree indexes DOM
+ * rows by id. Their canonical group id stays in `entityId`, so hide/delete,
+ * membership and preset materialization still address one semantic group.
+ */
+export function projectGroupedTreeInScope<TMeta>(
+	input: GroupProjectionInput<TMeta>,
+	scope: GroupProjectionScope,
+): readonly TreeNode<TMeta>[] {
+	if (scope.kind === 'all') return projectGroupedTree(input);
+
+	const projectSiblings = (
+		nodes: readonly TreeNode<TMeta>[],
+		owner: string,
+	): TreeNode<TMeta>[] => {
+		if (nodes.length === 0) return nodes as TreeNode<TMeta>[];
+		const depth = nodes[0]?.depth ?? 0;
+		return projectGroupedTree({ ...input, nodes }).map((node) => {
+			if (node.isGroupHeader !== true) return node;
+			const groupId = entityIdOf(node);
+			const rowId = scopedHeaderRowId(groupId, owner);
+			return {
+				...node,
+				id: rowId,
+				entityId: groupId,
+				depth,
+				// `finishHeader` saw the canonical id before it became an
+				// occurrence. Expansion itself is row-owned, so clear a stale
+				// collapsed dot when this concrete occurrence is expanded.
+				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
+			};
+		});
+	};
+
+	if (scope.kind === 'parent') {
+		const visit = (nodes: readonly TreeNode<TMeta>[]): TreeNode<TMeta>[] =>
+			nodes.map((node) => {
+				// Scope is occurrence-owned: selecting one duplicated p-node must
+				// not mutate every occurrence of the same semantic entity.
+				if (node.id === scope.parentId) {
+					return {
+						...node,
+						children: projectSiblings(
+							node.children ?? [],
+							`parent:${node.id}`,
+						),
+					};
+				}
+				if (!node.children?.length) return node;
+				return { ...node, children: visit(node.children) };
+			});
+		return visit(input.nodes);
+	}
+
+	if (!Number.isInteger(scope.level) || scope.level < 1)
+		return input.nodes as TreeNode<TMeta>[];
+	const visitLevel = (
+		nodes: readonly TreeNode<TMeta>[],
+		level: number,
+		owner: string,
+	): TreeNode<TMeta>[] => {
+		if (level === scope.level) return projectSiblings(nodes, owner);
+		return nodes.map((node) =>
+			node.children?.length
+				? {
+						...node,
+						children: visitLevel(
+							node.children,
+							level + 1,
+							`parent:${node.id}`,
+						),
+					}
+				: node,
+		);
+	};
+	return visitLevel(input.nodes, 1, 'level:1:root');
 }

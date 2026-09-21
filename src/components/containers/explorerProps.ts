@@ -119,9 +119,10 @@ import {
 	collectGroupMemberIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
-	projectGroupedTree,
+	projectGroupedTreeInScope,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
@@ -760,7 +761,7 @@ export class PropsExplorerPanel extends Component {
 			for (const group of groups) this._groupIds.add(group.id);
 			const currentSort = activeScopeSort('props', this.sortState);
 			const sortByNote = currentSort.sortBy === 'note';
-			const projected = projectGroupedTree<PropMeta>({
+			const projected = projectGroupedTreeInScope<PropMeta>({
 				nodes,
 				groups,
 				memberships: noteRes.memberships,
@@ -778,7 +779,10 @@ export class PropsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				headerCoreCls: 'tree-item-self tappable is-clickable',
 				headerMeta: { propName: '', propType: '', isValueNode: false },
-			}) as TreeNode<PropMeta>[];
+			}, groupProjectionScope(
+				this.sortState?.activeScope ?? 'all',
+				this.sortState?.drillNodeId,
+			)) as TreeNode<PropMeta>[];
 			expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 			return projected;
 		}
@@ -792,7 +796,7 @@ export class PropsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTree<PropMeta>({
+		const projected = projectGroupedTreeInScope<PropMeta>({
 			nodes,
 			groups,
 			memberships,
@@ -821,7 +825,10 @@ export class PropsExplorerPanel extends Component {
 			// del primer hijo.
 			headerCoreCls: 'tree-item-self tappable is-clickable',
 			headerMeta: { propName: '', propType: '', isValueNode: false },
-		}) as TreeNode<PropMeta>[];
+		}, groupProjectionScope(
+			this.sortState?.activeScope ?? 'all',
+			this.sortState?.drillNodeId,
+		)) as TreeNode<PropMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -2997,6 +3004,7 @@ export class PropsExplorerPanel extends Component {
 				// Con preset `note` las cabeceras son de frontmatter (owner
 				// note); si no, custom en `_groupIds`, resto preset.
 				const header = this._findNode(id, projected);
+				const groupId = header ? entityIdOf(header) : id;
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'group',
@@ -3008,20 +3016,20 @@ export class PropsExplorerPanel extends Component {
 							depth: 0,
 						},
 						surface: 'panel',
-						groupId: id,
+						groupId,
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(id)
+								: this._groupIds.has(groupId)
 									? 'custom'
 									: 'preset',
-						groupHidden: this.hiddenGroupIds.has(id),
+						groupHidden: this.hiddenGroupIds.has(groupId),
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(id) ||
+							this._groupIds.has(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -3033,8 +3041,8 @@ export class PropsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
-						toggleGroupExpand: (groupId: string) => {
-							this._toggleExpanded(groupId);
+						toggleGroupExpand: () => {
+							this._toggleExpanded(id);
 						},
 					},
 					e,

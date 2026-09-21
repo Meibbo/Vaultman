@@ -7,6 +7,7 @@ import {
 	namePrefixKey,
 	quantileRanges,
 	sectionCount,
+	snapshotPresetBucket,
 } from '../../src/logic/logicGroupPresets';
 import {
 	updateCounterRange,
@@ -320,6 +321,25 @@ describe('U130 — preset buckets materialize as custom groups', () => {
 		{ id: 'row-b', entityId: 'b', label: 'Beta one' },
 	];
 
+	it('snapshots a scoped header by its canonical preset bucket id', () => {
+		const snapshot = snapshotPresetBucket(
+			{
+				id: 'vaultman.group.header:parent%3Ax:vaultman.group.preset%3AA',
+				entityId: `${PRESET_GROUP_PREFIX}A`,
+				label: 'A',
+				depth: 2,
+				meta: null,
+				children: [
+					{ id: 'row-a', entityId: 'a', label: 'Alpha', depth: 3, meta: null },
+				],
+			},
+			(node) => `root:${node.entityId ?? node.id}`,
+			4,
+		);
+		expect(snapshot.bucketId).toBe(`${PRESET_GROUP_PREFIX}A`);
+		expect(snapshot.entityIds).toEqual(['a']);
+	});
+
 	it('materializes every bucket atomically and deduplicates occurrences by entity', () => {
 		const result = materializePresetAsCustom({
 			nodes,
@@ -589,6 +609,24 @@ describe('SOTR pass F1 — group headers open on first sight, collapses are resp
 		expect(expanded.has('Work')).toBe(false);
 		expandNewGroupHeaders([{ id: 'Work', label: 'Work', depth: 0, meta: null }], seen, expanded, new Set(['Work']));
 		expect(expanded.has('Work')).toBe(true);
+	});
+
+	it('also discovers headers inserted below a scoped parent', () => {
+		const scopedId = 'vaultman.group.header:parent%3Ax:vaultman.group.preset%3AA';
+		const seen = new Set<string>();
+		const expanded = new Set<string>();
+		expandNewGroupHeaders(
+			[{
+				id: 'parent',
+				label: 'Parent',
+				depth: 0,
+				meta: null,
+				children: [{ id: scopedId, label: 'A', depth: 1, meta: null }],
+			}],
+			seen,
+			expanded,
+		);
+		expect(expanded.has(scopedId)).toBe(true);
 	});
 });
 
