@@ -281,6 +281,32 @@ describe('U130-03: cabeceras de grupo en el arbol', () => {
 		expect(header.children?.[0].children?.[0].depth).toBe(2);
 		expect(header.children?.[0].children?.[0].children?.[0].depth).toBe(3);
 	});
+
+	it('ocultar un bucket preset lo quita y desplaza sus miembros a no group', () => {
+		const out = projectGroupedTree({
+			nodes,
+			groups: [],
+			memberships: {},
+			providerId: 'props',
+			noGroupLabel: NO_GROUP,
+			filtered: false,
+			preset: { kind: 'letter', direction: 'asc' },
+			hiddenGroupIds: new Set([`${PRESET_GROUP_PREFIX}A`]),
+		});
+
+		expect(out.map((group) => group.id)).toEqual([
+			`${PRESET_GROUP_PREFIX}B`,
+			NO_GROUP_ID,
+		]);
+		expect(out.find((group) => group.id === `${PRESET_GROUP_PREFIX}A`)).toBeUndefined();
+		expect(out.find((group) => group.id === NO_GROUP_ID)?.children?.map((child) => child.id)).toEqual([
+			'a1',
+			'a2',
+		]);
+		expect(
+			out.flatMap((group) => group.children ?? []).map((child) => child.id).sort(),
+		).toEqual(['a1', 'a2', 'b1']);
+	});
 });
 
 describe('U130-09: guarda de provider — un grupo de Tags no existe en Files', () => {

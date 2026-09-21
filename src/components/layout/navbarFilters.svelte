@@ -3718,6 +3718,15 @@ import {
 		port?.setMaterializePresetHandler?.((snapshot) =>
 			materializePresetBucket(tab, snapshot),
 		);
+		// Group-header Hide is scene-owned and applies to both derived presets
+		// and custom groups. Delete deliberately remains custom-only in the
+		// universal cmenu; the action itself enforces that owner guard.
+		port?.setGroupHideHandler?.((groupId, hidden) =>
+			setGroupHidden(tab, groupId, hidden),
+		);
+		port?.setGroupDeleteHandler?.((groupId) =>
+			deleteCustomGroup(tab, groupId),
+		);
 		port?.setCounterRangesChangeHandler?.((ranges) =>
 			setCounterRangesFor(tab, ranges),
 		);

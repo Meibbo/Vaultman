@@ -16,6 +16,7 @@ import type {
 import type { TransactionBarState } from '../logic/logicTransactionBarState';
 import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
 import type { ToolbarMenuKind } from '../logic/logicToolbarMenuCatalog';
+import type { GroupHideHandler, GroupDeleteHandler } from './typeCMenu';
 
 
 export type PanelWidgetNodeKind = 'action' | 'data' | 'container';
@@ -135,6 +136,10 @@ export interface PanelWidgetExplorerPort {
 	setDegroupSelectedHandler?(handler?: DegroupSelectedHandler): void;
 	/** Persist one visible preset bucket as a custom group. */
 	setMaterializePresetHandler?(handler?: MaterializePresetHandler): void;
+	/** Scene-owned visibility mutation for preset and custom group headers. */
+	setGroupHideHandler?(handler?: GroupHideHandler): void;
+	/** Scene-owned deletion mutation for custom group headers. */
+	setGroupDeleteHandler?(handler?: GroupDeleteHandler): void;
 	/** Persist the complete explicit range set after one header edit. */
 	setCounterRangesChangeHandler?(
 		handler?: (ranges: readonly CounterRange[]) => void,

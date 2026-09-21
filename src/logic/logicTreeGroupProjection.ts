@@ -63,6 +63,8 @@ export interface GroupProjectionInput<TMeta> {
 	urnOf?: (node: TreeNode<TMeta>) => string;
 	/** `false` devuelve la lista TAL CUAL, por identidad. */
 	enabled?: boolean;
+	/** Header ids hidden by the scene, including derived preset buckets. */
+	hiddenGroupIds?: ReadonlySet<string>;
 	/**
 	 * Spec 08 §3.2: el group preset seleccionado. `custom` proyecta `groups`
 	 * (pertenencia explicita); el resto son predicados sobre los nodos. Sin
@@ -460,6 +462,7 @@ export function projectGroupedTree<TMeta>(
 		urnOf,
 		enabled = true,
 		groupTotals,
+		hiddenGroupIds,
 		headerCoreCls,
 		headerMeta,
 		preset,
@@ -728,14 +731,22 @@ export function projectGroupedTree<TMeta>(
 		{ extract: presetValueOf, labels: rangeLabels, now },
 	);
 	if (!resolved || resolved.buckets.length === 0) return nodes;
+	const visibleBuckets = resolved.buckets.filter(
+		(bucket) => !hiddenGroupIds?.has(`${PRESET_GROUP_PREFIX}${bucket.key}`),
+	);
+	const hiddenMembers = resolved.buckets
+		.filter((bucket) => hiddenGroupIds?.has(`${PRESET_GROUP_PREFIX}${bucket.key}`))
+		.flatMap((bucket) => bucket.members);
+	const ungrouped = [...resolved.ungrouped, ...hiddenMembers];
+	if (visibleBuckets.length === 0 && ungrouped.length === 0) return nodes;
 	// Cada nodo cae en exactamente un bucket, asi que nunca hay dos
 	// ocurrencias del mismo id: las filas conservan su identidad, pero llevan
 	// `entityId`/owner para la API canonica.
 	const used = new Set<string>([
-		...resolved.buckets.map((bucket) => `${PRESET_GROUP_PREFIX}${bucket.key}`),
+		...visibleBuckets.map((bucket) => `${PRESET_GROUP_PREFIX}${bucket.key}`),
 		NO_GROUP_ID,
 	]);
-	const out = resolved.buckets.map((bucket) => {
+	const out = visibleBuckets.map((bucket) => {
 		const reparented = reparent(
 			bucket.members,
 			`${PRESET_GROUP_PREFIX}${bucket.key}`,
@@ -752,7 +763,7 @@ export function projectGroupedTree<TMeta>(
 				undefined,
 				headerCoreCls,
 				bucket.range,
-				resolved.buckets.flatMap((item) =>
+				visibleBuckets.flatMap((item) =>
 					item.range ? [item.range] : [],
 				),
 				resolved.counterDomain,
@@ -762,9 +773,9 @@ export function projectGroupedTree<TMeta>(
 			decorateHeader,
 		);
 	});
-	if (resolved.ungrouped.length > 0) {
+	if (ungrouped.length > 0) {
 		const reparented = reparent(
-			resolved.ungrouped,
+			ungrouped,
 			NO_GROUP_ID,
 			1,
 			NO_SUFFIX,

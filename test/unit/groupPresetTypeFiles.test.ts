@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildPresetBuckets } from '../../src/logic/logicGroupPresets';
 import { groupMenuModel } from '../../src/logic/logicSortMenu';
 import { compareExplorerText } from '../../src/logic/logicSort';
+import { bubbledFolderCounterValue } from '../../src/components/containers/explorerFiles';
+import type { FileMeta, TreeNode } from '../../src/types/typeTree';
 
 interface FileLike {
 	label: string;
@@ -81,5 +83,61 @@ describe('A08 — grouping by `type` partitions like sorting by `extensions`', (
 			.sort();
 		const runs = extRuns(NODES).map((run) => run.join('|')).sort();
 		expect(partitions).toEqual(runs);
+	});
+});
+
+describe('U130 — counter presets consume folder cell_bubbling', () => {
+	const folder = (patch: Partial<TreeNode<FileMeta>>): TreeNode<FileMeta> => ({
+		id: 'docs',
+		label: 'docs',
+		depth: 0,
+		meta: { file: null, folder: null, isFolder: true, folderPath: 'docs' },
+		...patch,
+	});
+
+	it('reads words, remaining tasks and props from the bubbled folder cells', () => {
+		expect(
+			bubbledFolderCounterValue(
+				folder({ wordCountText: '240' }),
+				'words',
+				new Set(['words']),
+				true,
+			),
+		).toBe(240);
+		expect(
+			bubbledFolderCounterValue(
+				folder({ tasksText: '3/10' }),
+				'tasks',
+				new Set(['tasks']),
+				true,
+			),
+		).toBe(7);
+		expect(
+			bubbledFolderCounterValue(
+				folder({ count: 12 }),
+				'props',
+				new Set(['count']),
+				true,
+			),
+		).toBe(12);
+	});
+
+	it('returns zero for an enabled empty bubbled cell and null when bubbling is off', () => {
+		expect(
+			bubbledFolderCounterValue(
+				folder({}),
+				'words',
+				new Set(['words']),
+				true,
+			),
+		).toBe(0);
+		expect(
+			bubbledFolderCounterValue(
+				folder({ wordCountText: '240' }),
+				'words',
+				new Set(['words']),
+				false,
+			),
+		).toBeNull();
 	});
 });

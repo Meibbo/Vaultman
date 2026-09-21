@@ -4,6 +4,10 @@ import type { TFile } from 'obsidian';
 
 export type GroupMenuOwner = 'preset' | 'custom' | 'note';
 
+/** Scene-owned mutations exposed by group-header context menus. */
+export type GroupHideHandler = (groupId: string, hidden: boolean) => void;
+export type GroupDeleteHandler = (groupId: string) => void;
+
 export interface MenuCtx {
 	nodeType:
 		| 'file'
@@ -60,6 +64,10 @@ export interface MenuCtx {
 	groupExpanded?: boolean;
 	/** Materializes the visible preset snapshot atomically. */
 	materializePreset?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
+	/** Scene-owned visibility mutation for preset and custom headers. */
+	hideGroup?: GroupHideHandler;
+	/** Scene-owned deletion mutation for custom headers only. */
+	deleteGroup?: GroupDeleteHandler;
 	/** Scene-owned affordances the explorer cannot resolve itself. */
 	toggleGroupExpand?: (groupId: string) => void;
 }

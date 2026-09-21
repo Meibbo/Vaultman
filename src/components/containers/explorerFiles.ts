@@ -252,6 +252,34 @@ function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	return true;
 }
 
+/**
+ * Counter presets must consume the same recursive value already projected by
+ * `cell_bubbling` on a folder. A folder is ungrouped only when bubbling (or
+ * the corresponding cell) is actually unavailable, never merely because it
+ * has no `TFile` identity.
+ */
+export function bubbledFolderCounterValue(
+	node: TreeNode<FileMeta>,
+	kind: GroupPreset['kind'],
+	visibleCells: ReadonlySet<string>,
+	bubblingEnabled: boolean,
+): number | null {
+	if (!node.meta?.isFolder || !bubblingEnabled) return null;
+	if (kind === 'words' && visibleCells.has('words')) {
+		const words = Number(node.wordCountText ?? 0);
+		return Number.isFinite(words) ? words : null;
+	}
+	if (kind === 'props' && visibleCells.has('count')) {
+		return node.count ?? 0;
+	}
+	if (kind === 'tasks' && visibleCells.has('tasks')) {
+		const match = /^(\d+)\/(\d+)$/.exec(node.tasksText ?? '0/0');
+		if (!match) return null;
+		return Math.max(0, Number(match[2]) - Number(match[1]));
+	}
+	return null;
+}
+
 /** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
 export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
@@ -304,6 +332,7 @@ export class FilesExplorerPanel extends Component {
 			providerId: 'files',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
+			hiddenGroupIds: this.hiddenGroupIds,
 			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
@@ -420,6 +449,8 @@ export class FilesExplorerPanel extends Component {
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
 	private materializePresetHandler?: MaterializePresetHandler;
+	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
+	private groupDeleteHandler?: (groupId: string) => void;
 	private counterRangesChangeHandler?: (
 		ranges: readonly CounterRange[],
 	) => void;
@@ -1081,6 +1112,14 @@ export class FilesExplorerPanel extends Component {
 
 	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
 		this.materializePresetHandler = handler;
+	}
+
+	setGroupHideHandler(handler?: (groupId: string, hidden: boolean) => void): void {
+		this.groupHideHandler = handler;
+	}
+
+	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
+		this.groupDeleteHandler = handler;
 	}
 
 	setCounterRangesChangeHandler(
@@ -3021,6 +3060,8 @@ export class FilesExplorerPanel extends Component {
 							groupId: id,
 							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
 							groupHidden: this.hiddenGroupIds.has(id),
+							hideGroup: this.groupHideHandler,
+							deleteGroup: this.groupDeleteHandler,
 							groupExpanded: this.expandedIds.has(id),
 							materializePreset:
 								this._groupIds.has(id) || !header || !this.materializePresetHandler
@@ -3838,7 +3879,14 @@ export class FilesExplorerPanel extends Component {
 		kind: GroupPreset['kind'],
 	): string | number | null {
 		const file = node.meta?.file ?? null;
-		if (!file) return null;
+		if (!file) {
+			return bubbledFolderCounterValue(
+				node,
+				kind,
+				this.visibleCells,
+				this.plugin.settings.folderAggregateCells === true,
+			);
+		}
 		switch (kind) {
 			case 'type':
 				return file.extension || null;

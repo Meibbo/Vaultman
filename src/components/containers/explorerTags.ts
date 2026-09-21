@@ -245,6 +245,8 @@ export class TagsExplorerPanel extends Component {
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
 	private materializePresetHandler?: MaterializePresetHandler;
+	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
+	private groupDeleteHandler?: (groupId: string) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -525,6 +527,7 @@ export class TagsExplorerPanel extends Component {
 				providerId: 'tags',
 				noGroupLabel: translate('explorer.group.no_group'),
 				filtered: this.sortState?.filtered === true,
+				hiddenGroupIds: this.hiddenGroupIds,
 				enabled: true,
 				preset: this.groupPreset,
 				sortByNote,
@@ -556,6 +559,7 @@ export class TagsExplorerPanel extends Component {
 			providerId: 'tags',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
+			hiddenGroupIds: this.hiddenGroupIds,
 			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
@@ -826,6 +830,14 @@ export class TagsExplorerPanel extends Component {
 
 	setMaterializePresetHandler(handler?: MaterializePresetHandler): void {
 		this.materializePresetHandler = handler;
+	}
+
+	setGroupHideHandler(handler?: (groupId: string, hidden: boolean) => void): void {
+		this.groupHideHandler = handler;
+	}
+
+	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
+		this.groupDeleteHandler = handler;
 	}
 
 	setSelectionScope(scope: {
@@ -2014,6 +2026,8 @@ export class TagsExplorerPanel extends Component {
 									? 'custom'
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(id),
+						hideGroup: this.groupHideHandler,
+						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
 						materializePreset:
 							this.groupPreset.kind === 'note' ||

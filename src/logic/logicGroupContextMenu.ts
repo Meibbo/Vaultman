@@ -141,8 +141,7 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		surfaces: ['panel'],
 		label: () => translate('group.icon.change'),
 		icon: 'lucide-palette',
-		disabledReason: (ctx: MenuCtx) =>
-			isCustom(ctx) ? translate('group.icon.unavailable') : translate('group.preset.locked'),
+		disabledReason: () => translate('group.icon.unavailable'),
 		run: () => {
 			new Notice(translate('group.icon.unavailable'));
 		},
@@ -158,9 +157,13 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 				: translate('group.row.hide'),
 		icon: 'lucide-eye-off',
 		disabledReason: (ctx: MenuCtx) =>
-			isCustom(ctx) ? null : translate('group.preset.locked'),
-		run: () => {
-			new Notice(translate('group.hide.from_groups_menu'));
+			ctx.groupId && (isCustom(ctx) || isPreset(ctx) || ctx.groupOwner === 'note') &&
+				typeof ctx.hideGroup === 'function'
+				? null
+				: translate('group.hide.unavailable'),
+		run: (ctx: MenuCtx) => {
+			if (ctx.groupId && ctx.hideGroup)
+				ctx.hideGroup(ctx.groupId, ctx.groupHidden !== true);
 		},
 	});
 
@@ -171,10 +174,14 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		label: () => translate('group.row.delete'),
 		icon: 'lucide-trash-2',
 		separatorBefore: true,
-		disabledReason: (ctx: MenuCtx) =>
-			isCustom(ctx) ? null : translate('group.preset.locked'),
-		run: () => {
-			new Notice(translate('group.delete.from_groups_menu'));
+		disabledReason: (ctx: MenuCtx) => {
+			if (!isCustom(ctx)) return translate('group.delete.preset');
+			return ctx.groupId && typeof ctx.deleteGroup === 'function'
+				? null
+				: translate('group.delete.unavailable');
+		},
+		run: (ctx: MenuCtx) => {
+			if (ctx.groupId && ctx.deleteGroup) ctx.deleteGroup(ctx.groupId);
 		},
 	});
 }

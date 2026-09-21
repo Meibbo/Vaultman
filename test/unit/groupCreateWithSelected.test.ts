@@ -112,6 +112,36 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 		expect(action.when?.({ ...preset, groupOwner: 'custom' })).toBe(false);
 	});
 
+	it('dispatches header hide for presets and custom groups, but deletes custom only', async () => {
+		const registerAction = vi.fn();
+		registerGroupActions({ contextMenuService: { registerAction } } as never);
+		const actions = registerAction.mock.calls.map(([entry]) => entry as ActionDef);
+		const hide = actions.find((entry) => entry.id === 'group.hide-toggle');
+		const remove = actions.find((entry) => entry.id === 'group.delete');
+		const icon = actions.find((entry) => entry.id === 'group.icon');
+		if (!hide || !remove || !icon) throw new Error('group actions were not registered');
+
+		const hidden = vi.fn();
+		const preset: MenuCtx = {
+			nodeType: 'group', node: node('preset:A'), surface: 'panel',
+			groupId: 'vaultman.group.preset:A', groupOwner: 'preset',
+			groupHidden: false, hideGroup: hidden,
+		};
+		expect(hide.disabledReason?.(preset)).toBeNull();
+		hide.run(preset);
+		expect(hidden).toHaveBeenCalledWith('vaultman.group.preset:A', true);
+		expect(remove.disabledReason?.(preset)).toBe('Preset groups cannot be deleted');
+		expect(icon.disabledReason?.(preset)).toBe('Group icons are not configurable yet');
+
+		const deleted = vi.fn();
+		const custom: MenuCtx = {
+			...preset, groupId: 'Work', groupOwner: 'custom', deleteGroup: deleted,
+		};
+		expect(remove.disabledReason?.(custom)).toBeNull();
+		remove.run(custom);
+		expect(deleted).toHaveBeenCalledWith('Work');
+	});
+
 	it('only appears when the explorer attached the creator, and dispatches to it', () => {
 		const action = registered();
 		const base: MenuCtx = { nodeType: 'file', node: node('f'), surface: 'panel' };
