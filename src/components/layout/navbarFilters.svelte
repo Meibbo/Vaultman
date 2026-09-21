@@ -2781,6 +2781,8 @@ import {
 		stopDrillPick();
 		const pane = activePaneInOwner(ownerFrameRoot());
 		if (!pane) return;
+		const ownerPanel = treePanelForTab(tab);
+		ownerPanel?.setScopePickMode?.(mode);
 		// D29 drill UX: one click selects the requested parent/level scope.
 		pane.classList.add('vaultman-sort-pick-mode');
 		const suppressEvent = (event: Event) => {
@@ -2825,6 +2827,7 @@ import {
 		pane.addEventListener('click', suppressEvent, true);
 		drillPickCleanup = () => {
 			window.clearTimeout(timeout);
+			ownerPanel?.setScopePickMode?.(null);
 			pane.classList.remove('vaultman-sort-pick-mode');
 			pane.removeEventListener('pointerdown', onPick, true);
 			// Let the click that completed the pick stay suppressed.

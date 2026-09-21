@@ -952,6 +952,11 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
+	setScopePickMode(mode: 'parent' | 'level' | null): void {
+		if (this.viewMode !== 'tree') return;
+		this.view.setScopePickMode(mode);
+	}
+
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;

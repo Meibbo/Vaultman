@@ -1284,6 +1284,11 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	setScopePickMode(mode: 'parent' | 'level' | null): void {
+		if (this.viewMode !== 'tree') return;
+		this.treeView?.setScopePickMode(mode);
+	}
+
 	setViewMode(mode: FilesViewMode): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;

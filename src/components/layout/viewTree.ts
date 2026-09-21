@@ -33,6 +33,11 @@ import {
 	treeChainFromRows,
 } from '../../utils/treeVirtualization';
 import {
+	scopePreviewGeometry,
+	type ScopePreviewMode,
+	type ScopePreviewRow,
+} from '../../logic/logicScopePreview';
+import {
 	attachBadgeCancelInteraction,
 	badgeCancelInteractionLabel,
 	normalizeBadgeCancelClickMode,
@@ -251,6 +256,12 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _stickyLayerEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
+	private _scopePreviewRows: ScopePreviewRow[] = [];
+	private _scopePreviewLevels = new Map<number, number[]>();
+	private _scopePickMode: ScopePreviewMode | null = null;
+	private _scopePreviewNodeId: string | null = null;
+	private _scopePreviewRaf: number | null = null;
+	private _scopePreviewEl: HTMLElement | null = null;
 	/** Emitted with the rows so the sticky stack can walk up to the ancestors
 	 * of the first visible row instead of scanning everything above it. */
 	private _parentIndex: number[] | null = null;
@@ -279,10 +290,34 @@ export class UnifiedTreeView {
 		this._cancelWindowRender();
 		this._renderWindow();
 	};
+	private readonly _onScopePointerLeave = () => {
+		this._scopePreviewNodeId = null;
+		this._clearScopePreview();
+	};
 
 	constructor(containerEl: HTMLElement) {
 		this.containerEl = containerEl;
 		this._coreMetadataView = new CoreMetadataTreeView(containerEl, this.rowEls);
+	}
+
+	/**
+	 * Arms the owner-local hover affordance used by Select a parent/level.
+	 * The overlay is rendered inside this tree's own scrollport, so sibling
+	 * Scene instances cannot receive or paint the preview.
+	 */
+	setScopePickMode(mode: ScopePreviewMode | null): void {
+		if (this._scopePickMode === mode) return;
+		this._scopePickMode = mode;
+		if (mode) {
+			this.containerEl.dataset.vaultmanScopePickMode = mode;
+			this.containerEl.addEventListener('pointerleave', this._onScopePointerLeave);
+			this._ensureScopePreviewElement();
+		} else {
+			delete this.containerEl.dataset.vaultmanScopePickMode;
+			this.containerEl.removeEventListener('pointerleave', this._onScopePointerLeave);
+			this._scopePreviewNodeId = null;
+			this._clearScopePreview();
+		}
 	}
 
 	render(opts: TreeViewOptions): void {
@@ -348,6 +383,7 @@ export class UnifiedTreeView {
 			this._spacerEl = null;
 			this._contentEl = null;
 			this._rows = opts.nodes;
+			this._rebuildScopePreviewIndex();
 			// Pre-flattened rows arrive without a chain; the scan still answers.
 			this._parentIndex = null;
 			this._subtreeEnd = null;
@@ -374,6 +410,7 @@ export class UnifiedTreeView {
 			opts.expandedIds,
 		);
 		this._rows = flattened.rows;
+		this._rebuildScopePreviewIndex();
 		this._parentIndex = flattened.parentIndex;
 		this._subtreeEnd = flattened.subtreeEnd;
 		this._indexById = this._buildIndex(this._rows);
@@ -431,6 +468,7 @@ export class UnifiedTreeView {
 
 	destroy(): void {
 		this._recursiveExpandGesture.cancel();
+		this.setScopePickMode(null);
 		this._coreMetadataView.destroy();
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
@@ -462,6 +500,9 @@ export class UnifiedTreeView {
 		this._stickyLayerEl?.remove();
 		this._stickyLayerEl = null;
 		this._rows = [];
+		this._rebuildScopePreviewIndex();
+		this._scopePreviewRows = [];
+		this._scopePreviewLevels.clear();
 		this._indexById.clear();
 		this.rowEls.clear();
 		this.stickyRowEls.clear();
@@ -469,6 +510,164 @@ export class UnifiedTreeView {
 		this._lastExpandedIds = null;
 		this._hasRenderedExpandedState = false;
 		this._cleanupDrawer();
+	}
+
+	private _ensureScopePreviewElement(): HTMLElement {
+		if (this._scopePreviewEl && this.containerEl.contains(this._scopePreviewEl)) {
+			return this._scopePreviewEl;
+		}
+		const overlay = this.containerEl.createDiv({
+			cls: 'vaultman-tree-scope-preview',
+		});
+		overlay.setAttribute('aria-hidden', 'true');
+		this._scopePreviewEl = overlay;
+		return overlay;
+	}
+
+	private _clearScopePreview(): void {
+		if (this._scopePreviewRaf !== null) {
+			this._treeWindow().cancelAnimationFrame(this._scopePreviewRaf);
+			this._scopePreviewRaf = null;
+		}
+		this._scopePreviewEl?.empty();
+		this._scopePreviewEl?.removeClass('is-active');
+	}
+
+	private _scheduleScopePreview(nodeId: string): void {
+		if (!this._activeScopePickMode()) return;
+		this._scopePreviewNodeId = nodeId;
+		if (this._scopePreviewRaf !== null) return;
+		this._scopePreviewRaf = this._treeWindow().requestAnimationFrame(() => {
+			this._scopePreviewRaf = null;
+			this._renderScopePreview();
+		});
+	}
+
+	private _renderScopePreview(): void {
+		const mode = this._activeScopePickMode();
+		const nodeId = this._scopePreviewNodeId;
+		if (this._scopePreviewRows.length !== this._rows.length) {
+			this._rebuildScopePreviewIndex();
+		}
+		const contentEl =
+			this._contentEl ??
+			this.containerEl.querySelector<HTMLElement>(
+				'.vaultman-tree-virtual-content',
+			);
+		const overlay = this._ensureScopePreviewElement();
+		if (!mode || !nodeId || !this._scopePreviewRows.length || !contentEl) {
+			overlay.dataset.previewState = `rows:${this._scopePreviewRows.length};content:${Boolean(contentEl)}`;
+			this._clearScopePreview();
+			return;
+		}
+		const hoveredIndex =
+			this._indexById.get(nodeId) ??
+			this._scopePreviewRows.findIndex((row) => row.id === nodeId);
+		if (hoveredIndex < 0) {
+			overlay.dataset.previewState = `missing:${nodeId};rows:${this._scopePreviewRows.length}`;
+			this._clearScopePreview();
+			return;
+		}
+
+		// Read all geometry and CSS metrics before touching the overlay DOM.
+		const computed = this._treeWindow().getComputedStyle(this.containerEl);
+		const parsePx = (value: string, fallback: number): number => {
+			const parsed = Number.parseFloat(value);
+			return Number.isFinite(parsed) ? parsed : fallback;
+		};
+		const renderedRow = this.rowEls.get(nodeId);
+		const rowStyle = renderedRow
+			? this._treeWindow().getComputedStyle(renderedRow)
+			: null;
+		const rowInset = parsePx(rowStyle?.marginInlineStart ?? '', 4);
+		const rowPaddingStart = parsePx(
+			computed.getPropertyValue('--vaultman-tree-row-padding-start'),
+			24,
+		);
+		const leafRowPaddingStart = parsePx(
+			computed.getPropertyValue('--size-4-1'),
+			4,
+		);
+		const indentUnit = parsePx(
+			computed.getPropertyValue('--vaultman-tree-indent-unit'),
+			16,
+		);
+		const rowHeight = this.rowHeight();
+		const viewportHeight = this.containerEl.clientHeight;
+		const visibleStartIndex = Math.max(
+			0,
+			Math.floor(this.containerEl.scrollTop / rowHeight) - this._overscan,
+		);
+		const visibleEndIndex = Math.min(
+			this._rows.length,
+			Math.ceil((this.containerEl.scrollTop + viewportHeight) / rowHeight) +
+				this._overscan,
+		);
+		const geometry = scopePreviewGeometry({
+			rows: this._scopePreviewRows,
+			parentIndex: this._parentIndex ?? [],
+			subtreeEnd: this._subtreeEnd ?? [],
+			hoveredIndex,
+			mode,
+			rowHeight,
+			scrollTop: this.containerEl.scrollTop,
+			viewportHeight,
+			contentWidth: this.containerEl.clientWidth,
+			rowInset,
+			rowPaddingStart,
+			leafRowPaddingStart,
+			indentUnit,
+			indentEnabled: this._opts?.indent !== false,
+			levelIndices: this._scopePreviewLevels,
+			visibleStartIndex,
+			visibleEndIndex,
+		});
+
+		// Writes are kept after every read above; pointer movement therefore does
+		// not interleave layout reads with style/DOM mutations.
+		overlay.dataset.previewState = `ok:${hoveredIndex};rows:${this._scopePreviewRows.length}`;
+		overlay.empty();
+		for (const segment of geometry.segments) {
+			const el = overlay.createDiv({ cls: 'vaultman-tree-scope-preview-segment' });
+			el.dataset.rowIndex = String(segment.index);
+			el.style.top = `${segment.top}px`;
+			el.style.left = `${segment.left}px`;
+			el.style.width = `${segment.width}px`;
+			el.style.height = `${segment.height}px`;
+			el.toggleClass('is-open-top', segment.openTop);
+			el.toggleClass('is-open-bottom', segment.openBottom);
+		}
+		overlay.toggleClass('is-active', geometry.segments.length > 0);
+	}
+
+	private _activeScopePickMode(): ScopePreviewMode | null {
+		const mode = this.containerEl.dataset.vaultmanScopePickMode;
+		return mode === 'parent' || mode === 'level'
+			? mode
+			: this._scopePickMode;
+	}
+
+	private _rebuildScopePreviewIndex(): void {
+		this._scopePreviewRows = this._rows.map((node) => {
+			const hasCaret = Boolean(node.children?.length || node.showCaret);
+			const meta = node.meta as { isFolder?: unknown } | null;
+			return {
+				id: node.id,
+				depth: node.depth,
+				hasCaret,
+				isParent:
+					hasCaret ||
+					node.isGroupHeader === true ||
+					(meta !== null && meta?.isFolder === true),
+			};
+		});
+		this._scopePreviewLevels.clear();
+		for (let index = 0; index < this._scopePreviewRows.length; index += 1) {
+			const depth = this._scopePreviewRows[index]!.depth;
+			const indexes = this._scopePreviewLevels.get(depth);
+			if (indexes) indexes.push(index);
+			else this._scopePreviewLevels.set(depth, [index]);
+		}
 	}
 
 	/**
@@ -486,6 +685,7 @@ export class UnifiedTreeView {
 		const modelStarted = performance.now();
 		const delta = this._replaceVisibleDescendants(rootId);
 		if (!delta) return;
+		this._rebuildScopePreviewIndex();
 
 		// U121-080: the splice above rewrote the row list, so the chain that
 		// describes it has to be rewritten too. Leaving it stale pinned a
@@ -806,6 +1006,7 @@ export class UnifiedTreeView {
 		this._contentEl = this._spacerEl.createDiv({
 			cls: 'vaultman-tree-virtual-content',
 		});
+		if (this._scopePickMode) this._ensureScopePreviewElement();
 		this.containerEl.addEventListener('scroll', this._onScroll, {
 			passive: true,
 		});
@@ -910,6 +1111,9 @@ export class UnifiedTreeView {
 		}
 		this._renderStickyRows();
 		this._focusEditingRow(this._opts);
+		if (this._scopePreviewNodeId) {
+			this._scheduleScopePreview(this._scopePreviewNodeId);
+		}
 		vaultmanPerfMonitor.record('tree.window', performance.now() - started, {
 			rows: this._rows.length,
 			visibleRows: projection.visibleRows.length,
@@ -1434,6 +1638,7 @@ export class UnifiedTreeView {
 			: null;
 		row.onpointerenter = () => {
 			this._hoveredRowId = node.id;
+			this._scheduleScopePreview(node.id);
 			opts.onRowHover?.(node.id, row);
 		};
 		row.onpointerleave = () => {
@@ -1473,7 +1678,10 @@ export class UnifiedTreeView {
 		this.applyRowTooltip(row, opts.rowTooltip?.(node) ?? '');
 		// A row repainted under the pointer also re-runs the hover hook, so any
 		// lazily loaded value (word counts, tasks) upgrades the text in place.
-		if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);
+		if (this._hoveredRowId === node.id) {
+			this._scheduleScopePreview(node.id);
+			opts.onRowHover?.(node.id, row);
+		}
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
 			this.applyMutableRowState({

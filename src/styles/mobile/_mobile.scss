@@ -830,12 +830,6 @@
 	margin: 0;
 }
 
-/* Sort scope pick mode (BT4-009 D29): dashed frame while choosing a level. */
-.vaultman-filters-tab-pane.vaultman-sort-pick-mode {
-	outline: 2px dashed var(--interactive-accent);
-	outline-offset: -2px;
-}
-
 /* Rainbow folders (BT4-014, snippet-compatible): row-level var, tree only. */
 .vaultman-rainbow-folders .vaultman-tree-row.nav-folder-title {
 	color: var(--folder-color, var(--text-muted));

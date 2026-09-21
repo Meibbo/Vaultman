@@ -228,6 +228,45 @@
   --vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
 }
 
+/* G3: owner-local scope-pick preview. It lives in the tree scrollport and is
+   clipped by that scrollport; segments are generated only for virtual rows
+   intersecting the window. Open edges communicate that the target continues
+   through rows that are currently offscreen. */
+.vaultman-tree-scope-preview {
+	position: sticky;
+	top: 0;
+	width: 100%;
+	height: 0;
+	z-index: 4;
+	overflow: visible;
+	pointer-events: none;
+	display: none;
+}
+
+.vaultman-tree-scope-preview.is-active {
+	display: block;
+}
+
+.vaultman-tree-scope-preview-segment {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px dashed var(--interactive-accent);
+	border-radius: var(--radius-s, 4px);
+	background: color-mix(in srgb, var(--interactive-accent) 3%, transparent);
+}
+
+.vaultman-tree-scope-preview-segment.is-open-top {
+	border-top-color: transparent;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.vaultman-tree-scope-preview-segment.is-open-bottom {
+	border-bottom-color: transparent;
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport {
   overflow-y: auto;

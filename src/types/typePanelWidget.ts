@@ -108,6 +108,8 @@ export interface PanelWidgetExplorerPort {
 	setStickyRowsEnabled?(enabled: boolean): void;
 	setCompactFoldersEnabled?(enabled: boolean): void;
 	setIndentEnabled?(enabled: boolean): void;
+	/** Owner-local hover outline while choosing a parent or level scope. */
+	setScopePickMode?(mode: 'parent' | 'level' | null): void;
 	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
 	setTooltipsEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */

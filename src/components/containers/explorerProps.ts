@@ -1309,6 +1309,11 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	setScopePickMode(mode: 'parent' | 'level' | null): void {
+		if (this.viewMode !== 'tree') return;
+		this.view.setScopePickMode(mode);
+	}
+
 	setSortState(state: ExplorerSortState): void {
 		const normalizedState = normalizeExplorerSortState('props', state);
 		const nextNodeTypeFilters = normalizeNodeTypeFilters(
