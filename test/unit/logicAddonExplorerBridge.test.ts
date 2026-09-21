@@ -4,6 +4,7 @@ import {
 	isSettingsSearchActive,
 	resolveSettingsBridgeNodes,
 } from '../../src/logic/logicAddonExplorer';
+import { queryNativeSettingsSearch } from '../../src/services/serviceSettingSearchAdapter';
 import {
 	groupMemberEntityId,
 	projectGroupedTree,
@@ -12,7 +13,8 @@ import {
 import { formatMembershipUrn } from '../../src/logic/logicMembershipUrn';
 import type {
 	NativeSettingsSearchGroup,
-	NativeSettingsSearchItem,
+	RawSettingsSearchGroup,
+	RawSettingsSearchItem,
 } from '../../src/types/typeSettingsSearch';
 import { settingsBridgeRefOf } from '../../src/types/typeSettingsSearch';
 import type { PluginMeta, TreeNode } from '../../src/types/typeTree';
@@ -52,28 +54,40 @@ function item(
 	definition: string,
 	page = 'General',
 	score = 1,
-): NativeSettingsSearchItem {
+): RawSettingsSearchItem {
 	return {
-		entry: { tab, definition, page, pagePath: page },
-		nameMatch: [],
-		descMatch: [],
+		entry: {
+			tab: { id: tab, name: tab },
+			definition: { name: definition },
+			page: { id: page.toLowerCase(), name: page },
+			pagePath: {},
+		},
+		nameMatch: { score, matches: [] },
+		descMatch: { score: 0, matches: [] },
 		score,
 	};
 }
 
 function group(
 	tab: string,
-	results: NativeSettingsSearchItem[],
+	results: RawSettingsSearchItem[],
 	bestScore = 1,
 ): NativeSettingsSearchGroup {
-	return {
-		tab,
-		page: 'General',
-		pagePath: 'General',
-		tabNameMatch: [],
+	const raw: RawSettingsSearchGroup = {
+		tab: { id: tab, name: tab },
+		page: { id: 'general', name: 'General' },
+		pagePath: {},
+		tabNameMatch: { score: bestScore, matches: [] },
 		results,
-		bestScore,
+		bestScore: { score: bestScore },
 	};
+	const parsed = queryNativeSettingsSearch(
+		{ setting: { searchIndex: { search: () => [raw] } } },
+		'fixture',
+	);
+	const result = parsed[0];
+	if (!result) throw new Error('fixture did not parse');
+	return result;
 }
 
 const HEADER_META: PluginMeta = {
@@ -133,7 +147,7 @@ describe('settings bridge resolution', () => {
 		expect(row?.meta ? settingsBridgeRefOf(row.meta) : null).toEqual({
 			tab: 'theme',
 			page: 'General',
-			pagePath: 'General',
+			pagePath: '',
 			definition: 'Accent color',
 		});
 		expect(result.highlightIds.has(row?.id ?? '')).toBe(true);
@@ -216,7 +230,15 @@ describe('settings bridge resolution', () => {
 			groups: [
 				group('g', [
 					item('theme', '', 'Appearance'),
-					{ ...item('', '', '', 0), entry: { tab: 'core', definition: '', page: '', pagePath: '' } },
+					{
+						...item('', '', '', 0),
+						entry: {
+							tab: { id: 'core', name: 'Core' },
+							definition: { name: '' },
+							page: { id: '', name: '' },
+							pagePath: {},
+						},
+					},
 				]),
 			],
 		});

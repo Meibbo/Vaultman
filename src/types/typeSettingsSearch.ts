@@ -18,6 +18,51 @@ export interface NativeSettingsSearchSpan {
 	end: number;
 }
 
+export interface RawSettingsSearchTab {
+	id?: unknown;
+	name?: unknown;
+}
+
+export interface RawSettingsSearchPage {
+	id?: unknown;
+	name?: unknown;
+}
+
+export interface RawSettingsSearchDefinition {
+	name?: unknown;
+	desc?: unknown;
+	aliases?: unknown;
+	render?: unknown;
+}
+
+export interface RawSettingsSearchMatches {
+	score?: unknown;
+	matches?: unknown;
+}
+
+export interface RawSettingsSearchEntry {
+	tab?: RawSettingsSearchTab | string;
+	definition?: RawSettingsSearchDefinition | string;
+	page?: RawSettingsSearchPage | string;
+	pagePath?: unknown;
+}
+
+export interface RawSettingsSearchItem {
+	entry?: RawSettingsSearchEntry;
+	nameMatch?: RawSettingsSearchMatches | readonly unknown[];
+	descMatch?: RawSettingsSearchMatches | readonly unknown[];
+	score?: unknown;
+}
+
+export interface RawSettingsSearchGroup {
+	tab?: RawSettingsSearchTab | string;
+	page?: RawSettingsSearchPage | string;
+	pagePath?: unknown;
+	tabNameMatch?: RawSettingsSearchMatches | readonly unknown[];
+	results?: readonly RawSettingsSearchItem[];
+	bestScore?: unknown;
+}
+
 export interface NativeSettingsSearchEntry {
 	tab: string;
 	definition: string;

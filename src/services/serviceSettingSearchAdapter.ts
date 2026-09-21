@@ -47,13 +47,16 @@ function toText(value: unknown): string {
 }
 
 function toScore(value: unknown): number {
-	return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+	if (typeof value === 'number' && Number.isFinite(value)) return value;
+	if (isRecord(value)) return toScore(value['score']);
+	return 0;
 }
 
 function toSpans(value: unknown): readonly NativeSettingsSearchSpan[] {
-	if (!Array.isArray(value)) return [];
+	const matches = isRecord(value) ? value['matches'] : value;
+	if (!Array.isArray(matches)) return [];
 	const spans: NativeSettingsSearchSpan[] = [];
-	for (const span of value) {
+	for (const span of matches) {
 		if (Array.isArray(span) && span.length >= 2) {
 			const start: unknown = span[0];
 			const end: unknown = span[1];
@@ -76,14 +79,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;
 }
 
+function toNamedId(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	const id = value['id'];
+	if (typeof id === 'string') return id;
+	return toText(value['name']);
+}
+
+function toDefinitionName(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	return toText(value['name']);
+}
+
+function toName(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	return toText(value['name']);
+}
+
 function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 	if (!isRecord(value)) return null;
 	const entry = value['entry'];
 	if (!isRecord(entry)) return null;
 	return {
-		tab: toText(entry['tab']),
-		definition: toText(entry['definition']),
-		page: toText(entry['page']),
+		tab: toNamedId(entry['tab']),
+		definition: toDefinitionName(entry['definition']),
+		page: toName(entry['page']),
 		pagePath: toText(entry['pagePath']),
 	};
 }
@@ -111,8 +134,8 @@ function toGroup(value: unknown): NativeSettingsSearchGroup | null {
 		}
 	}
 	return {
-		tab: toText(value['tab']),
-		page: toText(value['page']),
+		tab: toNamedId(value['tab']),
+		page: toName(value['page']),
 		pagePath: toText(value['pagePath']),
 		tabNameMatch: toSpans(value['tabNameMatch']),
 		results,
