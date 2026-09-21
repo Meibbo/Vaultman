@@ -27,7 +27,7 @@ interface ExtendedApp extends App {
 describe('Vaultman Integration Tests', () => {
     it('should be loaded by Obsidian', async () => {
         const isLoaded = await evalInObsidian({
-            fn: ({ app }) => {
+            callback: ({ app }) => {
                 const extendedApp = app as ExtendedApp;
                 return extendedApp.plugins.enabledPlugins.has('vaultman');
             }
@@ -40,8 +40,8 @@ describe('Vaultman Integration Tests', () => {
 
         // Delete if left over from a previous failed run
         await evalInObsidian({
-            args: { fileName },
-            fn: async ({ app, fileName }) => {
+            input: { fileName },
+            callback: async ({ app, fileName }) => {
                 if (typeof fileName !== 'string') return;
                 const existing = app.vault.getAbstractFileByPath(fileName);
                 if (existing && 'extension' in existing) {
@@ -51,16 +51,16 @@ describe('Vaultman Integration Tests', () => {
         });
 
         await evalInObsidian({
-            args: { fileName },
-            fn: async ({ app, fileName }) => {
+            input: { fileName },
+            callback: async ({ app, fileName }) => {
                 if (typeof fileName !== 'string') return;
                 await app.vault.create(fileName, '# Test Content\nCreated during integration test.');
             }
         });
 
         const fileExists = await evalInObsidian({
-            args: { fileName },
-            fn: ({ app, fileName }) => {
+            input: { fileName },
+            callback: ({ app, fileName }) => {
                 if (typeof fileName !== 'string') return false;
                 return !!app.vault.getAbstractFileByPath(fileName);
             }
@@ -68,8 +68,8 @@ describe('Vaultman Integration Tests', () => {
         expect(fileExists).toBe(true);
 
         await evalInObsidian({
-            args: { fileName },
-            fn: async ({ app, fileName }) => {
+            input: { fileName },
+            callback: async ({ app, fileName }) => {
                 if (typeof fileName !== 'string') return;
                 const file = app.vault.getAbstractFileByPath(fileName);
                 // Guard: only trash if it's a file (has an extension), not a folder
@@ -82,7 +82,7 @@ describe('Vaultman Integration Tests', () => {
 
     it('has core services initialized', async () => {
         const services = await evalInObsidian({
-            fn: ({ app }) => {
+            callback: ({ app }) => {
                 const extendedApp = app as ExtendedApp;
                 const plugin = extendedApp.plugins.plugins.vaultman;
                 return {
@@ -103,7 +103,7 @@ describe('Vaultman Integration Tests', () => {
         // which only runs when the Vaultman view is mounted. In the test environment
         // the view is not open, so we only verify: service exists + workspace stub action.
         const result = await evalInObsidian({
-            fn: ({ app }) => {
+            callback: ({ app }) => {
                 const extendedApp = app as ExtendedApp;
                 const plugin = extendedApp.plugins.plugins.vaultman;
                 if (!plugin) return { ok: false, reason: 'plugin not found' };
