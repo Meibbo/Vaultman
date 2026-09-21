@@ -2985,7 +2985,7 @@ export class PropsExplorerPanel extends Component {
 				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
 				// Con preset `note` las cabeceras son de frontmatter (owner
 				// note); si no, custom en `_groupIds`, resto preset.
-				const header = this._findNode(id, tree);
+				const header = this._findNode(id, projected);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'group',

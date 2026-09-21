@@ -2821,6 +2821,11 @@ export class FilesExplorerPanel extends Component {
 				{ files: sortedFiles.length },
 			);
 		this._setIndexRoots(renderTree, []);
+		// Project once per render. Besides avoiding repeated O(N) bucket work,
+		// this is the only tree that contains derived preset headers; looking a
+		// header up in the raw source tree made materialization disappear from
+		// the universal group menu.
+		const projectedTree = this.projectedNodes(renderTree);
 		this._treeRenderOpts = {
 			surface: 'files',
 			nodes: renderTree,
@@ -2844,7 +2849,7 @@ export class FilesExplorerPanel extends Component {
 				counterRangeBoundLabel: (bound) =>
 					translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
 				onCounterRangeCommit: (id, range) => {
-					const ranges = this._findNode(id, this.projectedNodes(renderTree))
+					const ranges = this._findNode(id, projectedTree)
 						?.counterRanges;
 					if (!ranges || !this.counterRangesChangeHandler) return;
 					this.counterRangesChangeHandler(
@@ -2961,12 +2966,12 @@ export class FilesExplorerPanel extends Component {
 					resolveRecursiveInteractionAction(this.interactionMode) ===
 					'select-descendants'
 						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, this.projectedNodes(renderTree)),
+						: this._expandSubtree(id, projectedTree),
 				onRowDoubleClick: (id: string) =>
 					resolveRecursiveInteractionAction(this.interactionMode) ===
 					'select-descendants'
 						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, this.projectedNodes(renderTree)),
+						: this._expandSubtree(id, projectedTree),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) {
 						// B-groupbody: el motor ya no trae el cuerpo por aqui
@@ -3043,9 +3048,7 @@ export class FilesExplorerPanel extends Component {
 					// owner lo decide el engine: custom en `_groupIds`,
 					// resto preset. Hide/delete son de la scene (navbar) y
 					// desde aqui quedan disabled con razon.
-					const header =
-						this._findNode(id, renderTree) ??
-						this._findNode(id, this._lastRenderTree);
+					const header = this._findNode(id, projectedTree);
 					this.plugin.contextMenuService.openPanelMenu(
 						{
 							nodeType: 'group',
@@ -3166,7 +3169,7 @@ export class FilesExplorerPanel extends Component {
 			};
 			this.treeView.render({
 				...this._treeRenderOpts,
-				nodes: this.projectedNodes(renderTree),
+				nodes: projectedTree,
 			});
 		}
 		if (this._needsStatisticsWarmup()) {

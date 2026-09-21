@@ -1891,9 +1891,10 @@ export class TagsExplorerPanel extends Component {
 			return;
 		}
 
+		const projected = this.projectedNodes(nodesWithIcons);
 		this.view.render({
 			surface: 'tags',
-			nodes: this.projectedNodes(nodesWithIcons),
+			nodes: projected,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
@@ -2006,7 +2007,7 @@ export class TagsExplorerPanel extends Component {
 		onContextMenu: (id: string, e: MouseEvent) => {
 			if (isGroupHeader(id, this._groupIds)) {
 				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
-				const header = this._findNode(id, tree);
+				const header = this._findNode(id, projected);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'group',
