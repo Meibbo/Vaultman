@@ -556,7 +556,6 @@ export class UnifiedTreeView {
 			);
 		const overlay = this._ensureScopePreviewElement();
 		if (!mode || !nodeId || !this._scopePreviewRows.length || !contentEl) {
-			overlay.dataset.previewState = `rows:${this._scopePreviewRows.length};content:${Boolean(contentEl)}`;
 			this._clearScopePreview();
 			return;
 		}
@@ -564,7 +563,6 @@ export class UnifiedTreeView {
 			this._indexById.get(nodeId) ??
 			this._scopePreviewRows.findIndex((row) => row.id === nodeId);
 		if (hoveredIndex < 0) {
-			overlay.dataset.previewState = `missing:${nodeId};rows:${this._scopePreviewRows.length}`;
 			this._clearScopePreview();
 			return;
 		}
@@ -625,7 +623,6 @@ export class UnifiedTreeView {
 
 		// Writes are kept after every read above; pointer movement therefore does
 		// not interleave layout reads with style/DOM mutations.
-		overlay.dataset.previewState = `ok:${hoveredIndex};rows:${this._scopePreviewRows.length}`;
 		overlay.empty();
 		for (const segment of geometry.segments) {
 			const el = overlay.createDiv({ cls: 'vaultman-tree-scope-preview-segment' });

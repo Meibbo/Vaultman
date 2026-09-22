@@ -34,6 +34,26 @@ export function isGroupHeader(
 
 export const _isGroupHeader = isGroupHeader;
 
+/** Locate the first materialized counter header at any scoped tree depth. */
+export function findCounterGroupHeader<TMeta>(
+	nodes: readonly TreeNode<TMeta>[],
+): TreeNode<TMeta> | undefined {
+	for (const node of nodes) {
+		if (
+			node.isGroupHeader === true &&
+			node.counterDomain &&
+			node.counterRanges?.length
+		) {
+			return node;
+		}
+		const nested = node.children
+			? findCounterGroupHeader(node.children)
+			: undefined;
+		if (nested) return nested;
+	}
+	return undefined;
+}
+
 /** The sibling-list(s) on which the selected grouping preset is projected. */
 export type GroupProjectionScope =
 	| { kind: 'all' }

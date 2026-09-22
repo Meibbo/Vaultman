@@ -48,6 +48,7 @@ import {
 	collectGroupMemberIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	findCounterGroupHeader,
 	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
@@ -1136,8 +1137,8 @@ export class FilesExplorerPanel extends Component {
 
 	createCounterRangeSlice(): boolean {
 		if (!this.counterRangesChangeHandler) return false;
-		const header = this.projectedNodes(this._lastRenderTree).find(
-			(node) => node.counterDomain && node.counterRanges?.length,
+		const header = findCounterGroupHeader(
+			this.projectedNodes(this._lastRenderTree),
 		);
 		if (!header?.counterDomain || !header.counterRanges) return false;
 		const result = addCounterRangeSlice(

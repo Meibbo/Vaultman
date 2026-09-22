@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	findCounterGroupHeader,
 	groupProjectionScope,
 	isGroupHeader,
 	NO_GROUP_ID,
@@ -443,6 +444,35 @@ describe('U130 Corte G — agrupacion relativa al scope', () => {
 		});
 		expect(groupProjectionScope('drill', null)).toEqual({ kind: 'all' });
 		expect(groupProjectionScope('level:0')).toEqual({ kind: 'all' });
+	});
+
+	it('finds a counter header nested under its scoped parent', () => {
+		const counterDomain = { min: 0, max: 12 };
+		const counterRanges = [{ id: 'slice', lo: 0, hi: 12 }];
+		const header: TreeNode<null> = {
+			id: 'scoped-header',
+			label: '0–12',
+			depth: 2,
+			meta: null,
+			isGroupHeader: true,
+			counterDomain,
+			counterRanges,
+		};
+		const roots: TreeNode<null>[] = [{
+			id: 'parent',
+			label: 'Parent',
+			depth: 0,
+			meta: null,
+			children: [{
+				id: 'child-parent',
+				label: 'Child parent',
+				depth: 1,
+				meta: null,
+				children: [header],
+			}],
+		}];
+
+		expect(findCounterGroupHeader(roots)).toBe(header);
 	});
 
 	it('inserta headers en el slot de hijos del parent profundo, no en root', () => {
