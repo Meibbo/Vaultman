@@ -71,6 +71,7 @@ export class ContextMenuService extends Component {
 	private plugin: ContextMenuPluginCtx;
 	private _registry: ActionDef[] = [];
 	private suppressWorkspaceInjection = false;
+	private activePanelMenu: Menu | null = null;
 
 	constructor(plugin: ContextMenuPluginCtx) {
 		super();
@@ -78,6 +79,7 @@ export class ContextMenuService extends Component {
 	}
 
 	onload(): void {
+		this.register(() => this.activePanelMenu?.hide());
 		this.registerAction({
 			id: 'filters.clear-selection',
 			nodeTypes: ['file', 'folder', 'tag', 'prop', 'value'],
@@ -345,6 +347,9 @@ export class ContextMenuService extends Component {
 	}
 
 	openPanelMenu(ctx: MenuCtx, event: MouseEvent): void {
+		// Obsidian can leave the previous native/DOM menu mounted when another
+		// row opens its menu without an intervening pointer dismissal.
+		this.activePanelMenu?.hide();
 		ctx.event = event;
 		const menu = new Menu();
 		const nativeTarget = this._getNativeMenuTarget(ctx);
@@ -437,6 +442,10 @@ export class ContextMenuService extends Component {
 			else item.onClick(() => this._runAction(def, ctx));
 		});
 	}
+	this.activePanelMenu = menu;
+	menu.onHide(() => {
+		if (this.activePanelMenu === menu) this.activePanelMenu = null;
+	});
 	menu.showAtMouseEvent(event);
 }
 

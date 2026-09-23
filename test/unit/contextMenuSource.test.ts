@@ -5,6 +5,14 @@ import { es } from '../../src/i18n/es';
 import contextMenuSource from '../../src/services/serviceContextMenu.ts?raw';
 
 describe('ContextMenuService source guards', () => {
+	it('dismisses the prior panel menu before opening a new one', () => {
+		const start = contextMenuSource.indexOf('openPanelMenu(ctx: MenuCtx, event: MouseEvent): void');
+		const end = contextMenuSource.indexOf('\n\t/**', start + 1);
+		const handler = contextMenuSource.slice(start, end);
+		expect(handler).toContain('this.activePanelMenu?.hide();');
+		expect(handler).toContain('this.activePanelMenu = menu;');
+		expect(handler).toContain('menu.onHide(() => {');
+	});
 	it('registers a panel action to clear active filters from node context menus', () => {
 		expect(contextMenuSource).toContain("id: 'filters.clear-selection'");
 		expect(contextMenuSource).toContain(
