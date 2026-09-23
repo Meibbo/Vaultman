@@ -85,6 +85,10 @@ export interface NativeSettingsSearchGroup {
 	tabName: string;
 	page: string;
 	pagePath: string;
+	/** Datos canónicos del tab/page del runtime nativo (1.13.7+). */
+	tabIcon?: string;
+	pageDesc?: string;
+	pageType?: string;
 	tabNameMatch: readonly NativeSettingsSearchSpan[];
 	results: readonly NativeSettingsSearchItem[];
 	bestScore: number;
@@ -112,6 +116,11 @@ export function settingsBridgeIdentity(ref: SettingsBridgeRef): string {
 /** Id de fila para una identidad de settings (nunca un id de entidad plugin). */
 export function settingsBridgeRowId(ref: SettingsBridgeRef): string {
 	return `settings:${settingsBridgeIdentity(ref)}`;
+}
+
+/** Id de fila para un grupo nativo (tab + pagePath, sin definition). */
+export function settingsBridgeGroupRowId(tab: string, pagePath: string): string {
+	return `settings:${tab}::${pagePath}::`;
 }
 
 /**

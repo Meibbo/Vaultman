@@ -47,6 +47,9 @@ import {
 	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
 import {
+	resolvePluginSettingsChildren,
+} from '../../logic/logicAddonExplorer';
+import {
 	resolveGroupToggleTarget,
 	summarizeGroupToggleState,
 } from '../../logic/logicAddonGroupToggle';
@@ -110,6 +113,10 @@ export class PluginsExplorerPanel
 	private settingsSearchGroups: NativeSettingsSearchGroup[] | null = null;
 	/** Ids de fila del puente: todo lo emitido es match y se resalta. */
 	private settingsSearchHighlightIds = new Set<string>();
+	/** U130: highlight solo si el usuario activó explorerSearchHighlights. */
+	private get searchHighlightEnabled(): boolean {
+		return this.plugin.settings?.explorerSearchHighlights === true;
+	}
 	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
 	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
@@ -470,6 +477,34 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	private readonly _pluginSettingsChildrenCache = new Map<
+		string,
+		{ children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> }
+	>();
+
+	private _getPluginSettingsChildren(
+		pluginId: string,
+		node: TreeNode<PluginMeta>,
+	): { children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> } {
+		const cache = this._pluginSettingsChildrenCache.get(pluginId);
+		const tabIds = pluginSettingTabIds(this.plugin.app);
+		// Invalidate cache if pluginSettingTabIds changed
+		if (cache && cache.tabIds === tabIds && cache.enabled === node.meta.enabled) {
+			return cache;
+		}
+		const result = resolvePluginSettingsChildren(
+			this.plugin.app,
+			pluginId,
+			node,
+		);
+		this._pluginSettingsChildrenCache.set(pluginId, {
+			children: result,
+			enabled: node.meta.enabled,
+			tabIds,
+		});
+		return this._pluginSettingsChildrenCache.get(pluginId)!;
+	}
+
 	private rebuildNodes(): void {
 		// U130 Slice A: término activo = camino nativo (sin `searchText`
 		// local, sin re-sort: el ranking es el orden nativo). Término vacío
@@ -491,6 +526,18 @@ export class PluginsExplorerPanel
 			activeScopeSort('plugins', this.sortState),
 		);
 		this.nodes = this.buildPluginNodes(entries);
+		// U130 Spec 07: add children+showCaret for empty-term path
+		for (const node of this.nodes) {
+			if (node.meta?.pluginId) {
+				const { children: pluginChildren } = this._getPluginSettingsChildren(
+					node.meta.pluginId,
+					node,
+				);
+				node.children = pluginChildren;
+				// Ensure showCaret is true when there are children, false otherwise
+				node.showCaret = pluginChildren.length > 0 ? true : node.showCaret !== false;
+			}
+		}
 		this.settingsSearchHighlightIds = new Set<string>();
 		this.render();
 	}
@@ -520,7 +567,9 @@ export class PluginsExplorerPanel
 			groups: this.settingsSearchGroups,
 		});
 		this.nodes = bridge.nodes;
-		this.settingsSearchHighlightIds = bridge.highlightIds;
+		this.settingsSearchHighlightIds = this.searchHighlightEnabled
+			? bridge.highlightIds
+			: new Set<string>();
 		this.render();
 	}
 
@@ -624,8 +673,37 @@ export class PluginsExplorerPanel
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
+
+		// U130: native group parents must not be rewrapped/flattened
+		// by custom groups while a native search term is active.
+		const searchActive = isSettingsSearchActive(this.searchTerm ?? '');
+		let nodesForGrouping = this.nodes;
+		let nativeParents: TreeNode<PluginMeta>[] | undefined;
+		if (searchActive) {
+			const protectedIds = new Set<string>();
+			for (const node of this.nodes) {
+				if (
+					node.id.startsWith('settings:') &&
+					node.id.endsWith('::') &&
+					node.children !== undefined
+				) {
+					protectedIds.add(node.id);
+				}
+			}
+			// Separate: native parents stay at top level, rest get grouped
+			nativeParents = this.nodes.filter((node) =>
+				protectedIds.has(node.id),
+			);
+			nodesForGrouping = this.nodes.filter(
+				(node) => !protectedIds.has(node.id),
+			);
+			if (nodesForGrouping.length === 0) {
+				return this.withGroupToggleCells(nativeParents);
+			}
+		}
+
 		const projected = projectGroupedTree<PluginMeta>({
-			nodes: this.nodes,
+			nodes: nodesForGrouping,
 			groups,
 			memberships,
 			providerId: 'plugins',
@@ -661,7 +739,13 @@ export class PluginsExplorerPanel
 			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<PluginMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this._expandedGroupIds, this._groupIds);
-		return this.withGroupToggleCells(projected);
+		const result = this.withGroupToggleCells(projected);
+		// U130: prepend native group parents so they stay at top level
+		// and are not rewrapped by custom groups during native search.
+		if (searchActive && nativeParents && nativeParents.length > 0) {
+			return [...nativeParents, ...result];
+		}
+		return result;
 	}
 
 	/**
@@ -849,7 +933,17 @@ export class PluginsExplorerPanel
 
 	private findNode(id: string): TreeNode<PluginMeta> | undefined {
 		const baseId = id.includes('@') ? id.slice(0, id.lastIndexOf('@')) : id;
-		return this.nodes.find((node) => node.id === baseId || node.id === id);
+		const walk = (
+			list: readonly TreeNode<PluginMeta>[],
+		): TreeNode<PluginMeta> | undefined => {
+			for (const node of list) {
+				if (node.id === baseId || node.id === id) return node;
+				const found = walk(node.children ?? []);
+				if (found) return found;
+			}
+			return undefined;
+		};
+		return walk(this.nodes);
 	}
 
 	/** B-groupbody: el chevron y el fallback open del cuerpo. Puro toggle. */

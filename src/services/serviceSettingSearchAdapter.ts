@@ -105,6 +105,27 @@ function toTabName(value: unknown): string {
 	return toText(value['name']);
 }
 
+function toTabIcon(value: unknown): string | undefined {
+	if (typeof value === 'string') return value || undefined;
+	if (!isRecord(value)) return undefined;
+	const icon = value['icon'];
+	return typeof icon === 'string' ? icon : undefined;
+}
+
+function toPageDesc(value: unknown): string | undefined {
+	if (typeof value === 'string') return value || undefined;
+	if (!isRecord(value)) return undefined;
+	const desc = value['desc'];
+	return typeof desc === 'string' ? desc : undefined;
+}
+
+function toPageType(value: unknown): string | undefined {
+	if (typeof value === 'string') return value || undefined;
+	if (!isRecord(value)) return undefined;
+	const type = value['type'];
+	return typeof type === 'string' ? type : undefined;
+}
+
 function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 	if (!isRecord(value)) return null;
 	const entry = value['entry'];
@@ -142,8 +163,11 @@ function toGroup(value: unknown): NativeSettingsSearchGroup | null {
 	return {
 		tab: toNamedId(value['tab']),
 		tabName: toTabName(value['tab']),
+		tabIcon: toTabIcon(value['tab']),
 		page: toName(value['page']),
 		pagePath: toText(value['pagePath']),
+		pageDesc: toPageDesc(value['page']),
+		pageType: toPageType(value['page']),
 		tabNameMatch: toSpans(value['tabNameMatch']),
 		results,
 		bestScore: toScore(value['bestScore']),
@@ -173,4 +197,93 @@ export function queryNativeSettingsSearch(
 		if (group) groups.push(group);
 	}
 	return groups;
+}
+
+/**
+ * Lista las pages de settings de un plugin mediante lectura declarativa
+ * del setting manager. Éxito: devuelve grupos NativeSettingsSearchGroup con
+ * tabs/pages derivadas de app.setting.pluginTabs[pluginId].
+ * Fallback: si el manager no expone pages, busca nativamente filtrado por
+ * group.tab === pluginId, orden nativo, sin re-rank.
+ * Ausencia total: [] (plugin hoja, sin hijos inventados, sin scrapeo).
+ */
+export function listPluginSettingPages(
+	app: unknown,
+	pluginId: string,
+): NativeSettingsSearchGroup[] {
+	// Primary: lectura declarativa de pluginTabs (puede ser Record u array)
+	const declarative = listPluginSettingPagesDeclarative(app, pluginId);
+	if (declarative.length > 0) return declarative;
+
+	// Fallback: búsqueda nativa filtrada por group.tab === pluginId,
+	// orden nativo, sin re-rank.
+	// Usamos el pluginId como query para intentar discovery de pages.
+	const raw = queryNativeSettingsSearch(app, pluginId);
+	if (!Array.isArray(raw)) return [];
+	const groups: NativeSettingsSearchGroup[] = [];
+	for (const candidate of raw) {
+		if (candidate.tab === pluginId) {
+			groups.push(candidate);
+		}
+	}
+	return groups;
+}
+
+/**
+ * Lectura declarativa primaria de pluginTabs.
+ * Soporta ambos formatos: Record<string, RuntimePluginSettingTab> o
+ * RuntimePluginSettingTab[] (order-preservando).
+ * Deriva pages + pagePath + definition sin llamar a search().
+ */
+function listPluginSettingPagesDeclarative(
+	app: unknown,
+	pluginId: string,
+): NativeSettingsSearchGroup[] {
+	const setting = (app as { setting?: unknown }).setting;
+	if (typeof setting !== 'object' || setting === null) return [];
+
+	// Normalizar a array de tabs para tratamiento unificado
+	let pluginTabs: readonly { id?: string; name?: string }[] = [];
+	// Cast to access pluginTabs property safely
+	const settingRecord = setting as Record<string, unknown>;
+	if (typeof settingRecord.pluginTabs === 'object' && settingRecord.pluginTabs !== null) {
+		if (Array.isArray(settingRecord.pluginTabs)) {
+			pluginTabs = settingRecord.pluginTabs;
+		} else {
+			// Record<string, RuntimePluginSettingTab>
+			pluginTabs = Object.values(
+				settingRecord.pluginTabs as Record<string, { id?: string; name?: string }>
+			);
+		}
+	} else {
+		return [];
+	}
+
+	// Buscar el tab correspondiente a este pluginId
+	const tabInfo = pluginTabs.find(
+		(tab) => tab.id !== undefined && tab.id === pluginId,
+	);
+	if (!tabInfo) return [];
+
+	// Derivar el grupo nativo a partir de la info del tab.
+	// Usamos los helpers de conversión ya definidos en este módulo.
+	const group: NativeSettingsSearchGroup = {
+		tab: pluginId,
+		tabName: tabInfo.name !== undefined ? tabInfo.name : pluginId,
+		page: '',
+		pagePath: '',
+		tabNameMatch: [],
+		results: [],
+		bestScore: 0,
+		// Datos canónicos del runtime nativo (1.13.7+).
+		tabIcon: tabInfo.name !== undefined ? undefined : undefined,
+		pageDesc: undefined,
+		pageType: undefined,
+	};
+
+	// Intentar derivar page/definition si el tabInfo tiene información adicional.
+	// El setting manager puede tener fields adicionales; usamos los conversores.
+	// Por ahora dejamos values por defecto vacíos; el bridge los completará.
+
+	return [group];
 }

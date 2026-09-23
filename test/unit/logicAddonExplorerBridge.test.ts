@@ -121,20 +121,27 @@ describe('settings bridge resolution', () => {
 		expect(result.highlightIds.size).toBe(0);
 	});
 
-	it('resolves a known tab to the same row, keeping kind and cells', () => {
-		const row = pluginNode('calendar', 'Calendar');
-		const byId = new Map([['calendar', row]]);
+	it('one native group yields one parent plus child definition rows', () => {
+		const byId = new Map([['calendar', pluginNode('calendar', 'Calendar')]]);
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
-			groups: [group('calendar', [item('calendar', 'Week start', 'General', 1, [[0, 4]])])],
+			groups: [group('community-plugins', [item('community-plugins', 'Calendar', 'General', 1, [[0, 4]])], 1, 'community-plugins', [[0, 4]])],
 		});
 		expect(result.nodes).toHaveLength(1);
-		expect(result.nodes[0]).toBe(row);
-		expect(result.nodes[0]?.id).toBe('plugin:calendar');
-		expect(result.nodes[0]?.cells).toHaveLength(1);
-		const rowMeta = result.nodes[0]?.meta;
-		expect(rowMeta ? settingsBridgeRefOf(rowMeta) : null).toBeNull();
-		expect(result.highlightIds.has('plugin:calendar')).toBe(true);
+		const parent = result.nodes[0];
+		expect(parent?.id).toBe('settings:community-plugins::::');
+		expect(parent?.label).toBe('community-plugins');
+		expect(parent?.cells).toEqual([]);
+		expect(parent?.showCaret).toBe(true);
+		expect(parent?.children?.length).toBe(1);
+		const child = parent?.children?.[0];
+		expect(child?.id).toBe('plugin:calendar');
+		expect(child?.cells).toHaveLength(1);
+		if (child?.meta) {
+			expect(settingsBridgeRefOf(child.meta)).toBeNull();
+		}
+		expect(result.highlightIds.has(child?.id ?? '')).toBe(true);
+		expect(result.highlightIds.has(parent?.id ?? '')).toBe(true);
 	});
 
 	it('projects an unresolvable hit as a cell-less settings row with text', () => {
@@ -143,7 +150,11 @@ describe('settings bridge resolution', () => {
 			groups: [group('theme', [item('theme', 'Accent color', 'General', 1, [[0, 6]])])],
 		});
 		expect(result.nodes).toHaveLength(1);
-		const row = result.nodes[0];
+		const parent = result.nodes[0];
+		expect(parent?.id).toBe('settings:theme::::');
+		expect(parent?.label).toBe('theme');
+		expect(parent?.children?.length).toBe(1);
+		const row = parent?.children?.[0];
 		expect(row?.id.startsWith('settings:')).toBe(true);
 		expect(row?.label).toBe('Accent color');
 		expect(row?.cells).toEqual([]);
@@ -165,13 +176,15 @@ describe('settings bridge resolution', () => {
 			groups: [group('Calendar', [item('Calendar', 'Week start')])],
 		});
 		expect(result.nodes).toHaveLength(1);
-		expect(result.nodes[0]).not.toBe(row);
-		expect(result.nodes[0]?.id.startsWith('settings:')).toBe(true);
+		const parent = result.nodes[0];
+		expect(parent?.id).toBe('settings:Calendar::::');
+		expect(parent?.children?.length).toBe(1);
+		expect(parent?.children?.[0]?.id.startsWith('settings:')).toBe(true);
+		expect(result.nodes).not.toContain(row);
 	});
 
 	it('highlights only rows with a real match in a mixed group', () => {
-		const row = pluginNode('calendar', 'Calendar');
-		const byId = new Map([['calendar', row]]);
+		const byId = new Map([['calendar', pluginNode('calendar', 'Calendar')]]);
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
 			groups: [
@@ -182,9 +195,13 @@ describe('settings bridge resolution', () => {
 				group('calendar', [item('calendar', 'Week start')]),
 			],
 		});
-		expect(result.nodes).toHaveLength(3);
+		expect(result.nodes).toHaveLength(2);
 		expect(result.highlightIds.size).toBe(1);
-		expect(result.highlightIds.has(result.nodes[0]?.id ?? '')).toBe(true);
+		const highlightedChild = result.nodes[0]?.children?.find((c) =>
+			result.highlightIds.has(c.id),
+		);
+		expect(highlightedChild?.id).toBeTruthy();
+		expect(result.highlightIds.has(highlightedChild!.id)).toBe(true);
 	});
 
 	it('intercepts by exact definition name when the tab is community-plugins', () => {
@@ -199,10 +216,31 @@ describe('settings bridge resolution', () => {
 			],
 		});
 		expect(result.nodes).toHaveLength(1);
-		expect(result.nodes[0]).toBe(row);
-		expect(result.nodes[0]?.id).toBe('plugin:hot-reload');
-		expect(result.nodes[0]?.cells).toHaveLength(1);
-		expect(result.highlightIds.has('plugin:hot-reload')).toBe(true);
+		const parent = result.nodes[0];
+		expect(parent?.id).toBe('settings:community-plugins::::');
+		expect(parent?.children?.length).toBe(1);
+		expect(parent?.children?.[0]).toBe(row);
+		expect(parent?.children?.[0]?.id).toBe('plugin:hot-reload');
+		expect(parent?.children?.[0]?.cells).toHaveLength(1);
+		expect(result.highlightIds.has(row.id)).toBe(true);
+	});
+
+	it('does NOT resolve plugin when tab is NOT community-plugins/core-plugins', () => {
+		const row = pluginNode('hot-reload', 'Hot Reload');
+		const byId = new Map([['hot-reload', row]]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('appearance', [
+					item('appearance', 'Hot Reload', 'General', 5, [[0, 3]]),
+				]),
+			],
+		});
+		expect(result.nodes).toHaveLength(1);
+		const parent = result.nodes[0];
+		expect(parent?.children?.length).toBe(1);
+		expect(parent?.children?.[0]?.id.startsWith('settings:')).toBe(true);
+		expect(parent?.children).not.toContain(row);
 	});
 
 	it('falls back to settings rows on near-miss and case-mismatched names', () => {
@@ -217,11 +255,13 @@ describe('settings bridge resolution', () => {
 				]),
 			],
 		});
-		expect(result.nodes).toHaveLength(2);
-		expect(result.nodes.every((node) => node.id.startsWith('settings:'))).toBe(
+		expect(result.nodes).toHaveLength(1);
+		const parent = result.nodes[0];
+		expect(parent?.children?.length).toBe(2);
+		expect(parent?.children?.every((node) => node.id.startsWith('settings:'))).toBe(
 			true,
 		);
-		expect(result.nodes).not.toContain(row);
+		expect(parent?.children).not.toContain(row);
 	});
 
 	it('never guesses on ambiguous duplicate definition names', () => {
@@ -240,22 +280,25 @@ describe('settings bridge resolution', () => {
 			],
 		});
 		expect(result.nodes).toHaveLength(1);
-		expect(result.nodes[0]?.id.startsWith('settings:')).toBe(true);
-		expect(result.nodes[0]).not.toBe(first);
-		expect(result.nodes[0]).not.toBe(second);
+		const parent = result.nodes[0];
+		expect(parent?.children?.length).toBe(1);
+		expect(parent?.children?.[0]?.id.startsWith('settings:')).toBe(true);
+		expect(parent?.children?.[0]).not.toBe(first);
+		expect(parent?.children?.[0]).not.toBe(second);
 	});
 
-	it('emits a navigable tab row for an empty group with a tab name match', () => {
+	it('emits a parent row with zero children for an empty group with a tab name match', () => {
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: new Map(),
 			groups: [group('hotkeys', [], 1, 'Hotkeys', [[0, 1]])],
 		});
 		expect(result.nodes.length).toBeGreaterThanOrEqual(1);
-		const row = result.nodes[0];
-		expect(row?.label).toBe('Hotkeys');
-		expect(row?.cells).toEqual([]);
-		expect(row?.meta.pluginId).toBe('');
-		expect(result.highlightIds.has(row?.id ?? '')).toBe(true);
+		const parent = result.nodes[0];
+		expect(parent?.label).toBe('Hotkeys');
+		expect(parent?.cells).toEqual([]);
+		expect(parent?.children).toEqual([]);
+		expect(parent?.meta.pluginId).toBe('');
+		expect(result.highlightIds.has(parent?.id ?? '')).toBe(true);
 	});
 
 	it('emits nothing for an empty group without a tab name match', () => {
@@ -268,8 +311,7 @@ describe('settings bridge resolution', () => {
 	});
 
 	it('applies no local text filter: rows stay even when their text lacks the term', () => {
-		const row = pluginNode('calendar', 'Calendar');
-		const byId = new Map([['calendar', row]]);
+		const byId = new Map([['calendar', pluginNode('calendar', 'Calendar')]]);
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
 			groups: [
@@ -278,7 +320,7 @@ describe('settings bridge resolution', () => {
 			],
 		});
 		expect(result.nodes.map((node) => node.id)).toEqual([
-			'plugin:calendar',
+			'settings:calendar::::',
 			result.nodes[1]?.id,
 		]);
 	});
@@ -296,8 +338,8 @@ describe('settings bridge resolution', () => {
 			],
 		});
 		expect(result.nodes.map((node) => node.id)).toEqual([
-			'plugin:b-plug',
-			'plugin:a-plug',
+			'settings:second::::',
+			'settings:first::::',
 		]);
 	});
 
@@ -307,12 +349,14 @@ describe('settings bridge resolution', () => {
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
 			groups: [
-				group('one', [item('calendar', 'Week start')]),
-				group('two', [item('calendar', 'Week end')]),
+				group('community-plugins', [item('community-plugins', 'Calendar', 'General', 1, [[0, 4]])]),
+				group('core-plugins', [item('core-plugins', 'Calendar', 'General', 1)]),
 			],
 		});
-		expect(result.nodes).toHaveLength(1);
-		expect(result.nodes[0]).toBe(row);
+		expect(result.nodes).toHaveLength(2);
+		expect(result.nodes[0]?.children?.length).toBe(1);
+		expect(result.nodes[0]?.children?.[0]).toBe(row);
+		expect(result.nodes[1]?.children).toEqual([]);
 	});
 
 	it('dedupes a repeated settings identity instead of doubling the entity', () => {
@@ -323,7 +367,9 @@ describe('settings bridge resolution', () => {
 				group('two', [item('theme', 'Accent color')]),
 			],
 		});
-		expect(result.nodes).toHaveLength(1);
+		expect(result.nodes).toHaveLength(2);
+		expect(result.nodes[0]?.children?.length).toBe(1);
+		expect(result.nodes[1]?.children).toEqual([]);
 	});
 
 	it('falls back from definition to page to tab for the row text', () => {
@@ -344,7 +390,9 @@ describe('settings bridge resolution', () => {
 				]),
 			],
 		});
-		expect(result.nodes.map((node) => node.label)).toEqual([
+		expect(result.nodes).toHaveLength(1);
+		const parent = result.nodes[0];
+		expect(parent?.children?.map((node) => node.label)).toEqual([
 			'Appearance',
 			'core',
 		]);
@@ -378,7 +426,7 @@ describe('bridge rows through grouping and flattening', () => {
 		return resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
 			groups: [
-				group('calendar', [item('calendar', 'Week start')]),
+				group('community-plugins', [item('community-plugins', 'Calendar')]),
 				group('theme', [item('theme', 'Accent color')]),
 			],
 		});
@@ -388,7 +436,17 @@ describe('bridge rows through grouping and flattening', () => {
 		const out: string[] = [];
 		const walk = (list: readonly TreeNode<PluginMeta>[]): void => {
 			for (const row of list) {
-				if (!row.isGroupHeader) out.push(groupMemberEntityId(row.id));
+				if (!row.isGroupHeader) {
+					// Skip native search group parent nodes (settings:*::*:*);
+					// they are containers, not entities.
+					const isNativeParent =
+						row.id.startsWith('settings:') &&
+						row.id.endsWith('::') &&
+						row.children !== undefined;
+					if (!isNativeParent) {
+						out.push(groupMemberEntityId(row.id));
+					}
+				}
 				walk(row.children ?? []);
 			}
 		};
@@ -416,7 +474,9 @@ describe('bridge rows through grouping and flattening', () => {
 
 	it('toggling groups on keeps entries and highlights while changing parentage', () => {
 		const bridge = bridgeFixture();
-		const settingsId = bridge.nodes[1]?.id ?? '';
+		// bridgeFixture: parent 0 = community-plugins, parent 1 = theme
+		const themeChild = bridge.nodes[1]?.children?.[0];
+		const settingsId = themeChild?.id ?? bridge.nodes[1]?.id ?? '';
 		const memberships = {
 			favs: [
 				formatMembershipUrn({
@@ -457,7 +517,7 @@ describe('bridge rows through grouping and flattening', () => {
 		const byId = new Map([['calendar', pluginNode('calendar', 'Calendar')]]);
 		const bridge = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
-			groups: [group('calendar', [item('calendar', 'Week start')])],
+			groups: [group('community-plugins', [item('community-plugins', 'Calendar', 'General', 1, [[0, 4]])], 1, 'community-plugins', [[0, 4]])],
 		});
 		const memberships = {
 			g1: [
@@ -489,7 +549,9 @@ describe('bridge rows through grouping and flattening', () => {
 			headerMeta: HEADER_META,
 		});
 		const members = entityIds(grouped);
-		expect(members).toEqual(['plugin:calendar', 'plugin:calendar']);
+		expect(members).toEqual(['plugin:calendar']);
+		// Native search parent stays at top level; children are not
+		// separately adopted into custom groups while search is active.
 		const rows: string[] = [];
 		const walk = (list: readonly TreeNode<PluginMeta>[]): void => {
 			for (const row of list) {
@@ -499,7 +561,7 @@ describe('bridge rows through grouping and flattening', () => {
 		};
 		walk(grouped);
 		expect([...rows].sort()).toEqual(
-			['plugin:calendar@g1', 'plugin:calendar@g2'].sort(),
+			['plugin:calendar', 'settings:community-plugins::::'].sort(),
 		);
 	});
 });
