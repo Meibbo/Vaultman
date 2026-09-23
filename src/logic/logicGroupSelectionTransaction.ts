@@ -255,12 +255,17 @@ export interface ReconcileScope {
 	readonly revision?: number | null;
 }
 
+export interface ReconcileOptions {
+	readonly clearAllOnCommit?: boolean;
+}
+
 /**
  * Calcula la selección siguiente tras un `GroupMutationResult`.
  *
  * - `cancelled`/`rejected`: sin cambios (misma referencia).
  * - `committed`: elimina del axón solo los ids del snapshot realmente
- *   confirmados. Sobreviven: selecciones nuevas durante el modal, ids
+ *   confirmados (o vacía todo el axón si `clearAllOnCommit` está activo).
+ *   Sobreviven: selecciones nuevas durante el modal, ids
  *   re-seleccionados tras ABA (época por id posterior al snapshot) e
  *   ids cuya entidad no entró en `affected`.
  * - Cambio/unmount de instance/revision: no limpia el axón equivocado.
@@ -270,6 +275,7 @@ export function reconcileCommittedSelection(
 	result: GroupMutationResult,
 	currentIds: ReadonlySet<string>,
 	scope?: ReconcileScope,
+	options?: ReconcileOptions,
 ): Set<string> {
 	if (result.status !== 'committed') return currentIds as Set<string>;
 	if (
@@ -284,6 +290,10 @@ export function reconcileCommittedSelection(
 				scope.revision !== snapshot.revision))
 	) {
 		return currentIds as Set<string>;
+	}
+	if (options?.clearAllOnCommit) {
+		noteSelectionState(snapshot.selectionKey, []);
+		return new Set<string>();
 	}
 	const affectedEntities = new Set<string>([
 		...snapshot.affectedEntityIds,
@@ -317,6 +327,24 @@ export function reconcileCommittedSelection(
 		next.add(id);
 	}
 	return next;
+}
+
+/**
+ * U130-GGC-031: en Create/Group selected, un resultado `committed` vacía
+ * a `0` la selección y anchor del mismo owner Scene/instancia tras resolver,
+ * independiente de `affectedUrns` y de selecciones añadidas durante el modal.
+ * `cancelled`/`rejected` conservan la selección exacta.
+ * Si hubo unmount/revision/cambio de owner, no limpia otro panel.
+ */
+export function reconcileCommittedGroupCreation(
+	snapshot: GroupSelectionSnapshot,
+	result: GroupMutationResult,
+	currentIds: ReadonlySet<string>,
+	scope?: ReconcileScope,
+): Set<string> {
+	return reconcileCommittedSelection(snapshot, result, currentIds, scope, {
+		clearAllOnCommit: true,
+	});
 }
 
 function entityOfSelectionId(
