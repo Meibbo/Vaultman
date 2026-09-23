@@ -272,13 +272,22 @@ export function hasScopeGrouping(state: ScopeState | undefined): boolean {
  * Build the new cumulative scope space from the legacy flat scene fields.
  * This helper is idempotent when called with an existing `scopeState` by the
  * caller: it is only intended for the first load of a scene.
+ *
+ * U130-GGC-025: new scenes open with cursor `level:1` on hierarchical tabs
+ * (`all` on flat add-on tabs). Persisted scenes keep their historically
+ * assigned cursor: this helper only defaults the cursor when the legacy
+ * state carries nothing to preserve, and it never rewrites existing sets.
  */
 export function scopeStateFromLegacy(
 	tab: ExplorerTabId,
 	sortState: ExplorerSortState | undefined,
 	groupPreset?: GroupPreset,
 ): ScopeState {
-	const state: ScopeState = { sets: {}, cursor: 'all', levelBase: 1 };
+	const state: ScopeState = {
+		sets: {},
+		cursor: defaultScopeForTab(tab),
+		levelBase: 1,
+	};
 	if (sortState) {
 		for (const [rawKey, sort] of Object.entries(sortState.sorts)) {
 			if (!sort) continue;
@@ -414,12 +423,35 @@ export function migrateLegacyScopeKey(scope: string): string {
 }
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
-	props: 'all',
-	files: 'all',
-	tags: 'all',
+	props: 'level:1',
+	files: 'level:1',
+	tags: 'level:1',
 	snippets: 'all',
 	plugins: 'all',
 };
+
+/**
+ * U130-GGC-025: the scope a brand-new scene opens with. Hierarchical tabs
+ * open on `level:1`; flat add-on tabs stay on `all`. A persisted Settings
+ * override (`scopeDefaultCursor`) only selects the initial cursor between
+ * these two visitable targets — it never rewrites existing sets. Passing an
+ * override that the tab cannot project falls back to the tab default.
+ */
+export type ScopeDefaultCursor = 'level:1' | 'all';
+
+export function normalizeScopeDefaultCursor(value: unknown): ScopeDefaultCursor {
+	return value === 'all' ? 'all' : 'level:1';
+}
+
+export function defaultScopeForTab(
+	tab: ExplorerTabId,
+	preferred?: ScopeDefaultCursor | string,
+): ScopeTarget {
+	if (preferred === 'all' || preferred === 'level:1') {
+		if (isScopeAllowed(tab, preferred)) return preferred;
+	}
+	return DEFAULT_SCOPE_BY_TAB[tab] as ScopeTarget;
+}
 
 function isHierarchicalTab(tab: ExplorerTabId): boolean {
 	return supportsLevelScopes(tab);
@@ -539,7 +571,11 @@ export function normalizeExplorerSortState(
 	if (legacySort) {
 		const normalized: ExplorerSortState = {
 			...fallback,
-			sorts: { [DEFAULT_SCOPE_BY_TAB[tab]]: legacySort },
+			// U130-GGC-025: a legacy flat sort described the whole tree, so it
+			// stays on `all` even though new scenes now open on `level:1`.
+			// The fallback above already carries the new default cursor.
+			activeScope: 'all',
+			sorts: { all: legacySort },
 			...nodeFilters,
 			...normalizeNarrowingState(tab, value),
 			...(tab === 'files' && typeof value.parentsFirst === 'boolean'

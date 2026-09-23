@@ -53,9 +53,11 @@ describe('scoped explorer sort state', () => {
 		// U121-029: the node providers carry the narrowing state explicitly, so an
 		// undefined here cannot read as a change against a false there. Add-on
 		// explorers project no property set and keep the older, smaller shape.
+		// U130-GGC-025: unknown shapes are new-like, so hierarchical tabs open
+		// on `level:1`; a legacy flat sort below still preserves `all`.
 		expect(normalizeExplorerSortState('tags', { unexpected: true })).toEqual({
 			sorts: {},
-			activeScope: 'all',
+			activeScope: 'level:1',
 			drillNodeId: null,
 			nodeTypeFilter: null,
 			filtered: false,

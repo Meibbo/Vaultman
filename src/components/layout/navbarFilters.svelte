@@ -3080,6 +3080,7 @@ import {
 			sortLabel: (sort) =>
 				`${translate(sortOptionLabelKey(tab, sort.sortBy))} ${sortDirectionGlyph(sort.direction)}`,
 			levelLabel: (level) => translate('sort.scope.level_n', { n: level }),
+			allLevelsLabel: () => translate('sort.level.all'),
 			canPickParent: availability.parent,
 			canPickLevel: availability.level,
 		};

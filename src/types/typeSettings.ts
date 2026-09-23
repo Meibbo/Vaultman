@@ -141,6 +141,13 @@ export interface VaultmanSettings {
 	explorerSearchHighlights: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
+	/**
+	 * U130-GGC-025: scope cursor a new scene opens with on hierarchical tabs
+	 * (`props`/`files`/`tags`). `level:1` is the default; `all` restores the
+	 * pre-025 entry point. It only selects the initial cursor — it never
+	 * rewrites the persisted `sets` of an existing scene.
+	 */
+	scopeDefaultCursor: 'level:1' | 'all';
 	/** How to present the File Move UI: inline within the explorer or in a modal */
 	explorerFileMoveMode: 'inline' | 'modal';
 	/** Position of the operations panel */
@@ -509,6 +516,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,
 	explorerOperationScope: 'auto',
+	scopeDefaultCursor: 'level:1',
 	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',

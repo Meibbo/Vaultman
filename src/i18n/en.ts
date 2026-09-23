@@ -953,6 +953,9 @@ export const en: Record<string, string> = {
 		'Enable searching text inside files in the file tree',
 	'settings.operation_scope': 'Operation scope',
 	'settings.operation_scope.desc': 'Default scope for explorer operations',
+	'settings.default_scope': 'Default scope cursor',
+	'settings.default_scope.desc':
+		'Scope a new scene opens with (Level 1 or All levels). It only selects the initial cursor and never rewrites saved sorts, groups or cells.',
 	'settings.scope.auto': 'Auto (selected > filtered > all)',
 	'settings.scope.selected': 'Selected files only',
 	'settings.scope.filtered': 'Filtered files',

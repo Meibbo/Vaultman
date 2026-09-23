@@ -11,6 +11,8 @@ import {
 	type GroupPresetKind,
 } from '../types/typeGroupPreset';
 import {
+	activeScopeSort,
+	isScopeAllowed,
 	isSortOptionVisible,
 	levelOfScope,
 	parentOfScope,
@@ -309,6 +311,8 @@ export interface ScopeMenuScene {
 	sortLabel: (sort: ScopeSort) => string;
 	/** `Level N` for a level. */
 	levelLabel: (level: number) => string;
+	/** `All levels` label; defaults to English when the caller omits it. */
+	allLevelsLabel?: () => string;
 	/** Runtime availability of the two row-picking entries. */
 	canPickParent: boolean;
 	canPickLevel: boolean;
@@ -332,14 +336,14 @@ export function scopeMenuModel(
 				? scene.levelLabel(activeLevel)
 				: '';
 
-	const items: ScopeMenuItem[] = [
-		{
-			kind: 'pick',
-			id: 'all',
-			...SCOPE_META.all,
-			checked: active === 'all',
-		},
-	];
+	// U130-GGC-025: fixed visual order — `Select a parent`, `Select a level`,
+	// divider, fixed `All levels` with its config, fixed `Level 1` with its
+	// own, then the remaining configured targets (parents before other
+	// levels). The visual order never changes field resolution, which stays
+	// `parent > level > all > defaults` in `resolveScopeSet`/`siblingScopeSort`.
+	// Picks hide per the projection gate, but All/L1 stay visitable; no
+	// orphan divider is rendered when both picks are hidden.
+	const items: ScopeMenuItem[] = [];
 	// The Scope submenu itself remains present for every hierarchical tab; the
 	// scene only withdraws picks that cannot describe the current projection.
 	if (scene.canPickParent) {
@@ -358,11 +362,65 @@ export function scopeMenuModel(
 			checked: activeLevel !== null,
 		});
 	}
-	const rows: ScopeSortRowItem[] = [];
+	if (items.length > 0) {
+		items.push({ kind: 'separator', id: 'scope-rows-separator' });
+	}
+
 	const hidden = new Set(state.hiddenScopes ?? []);
+	const sortLabelFor = (scope: SortScopeKey): string =>
+		scene.sortLabel(activeScopeSort(tab, state, scope));
+
+	// Fixed entries: always visitable even when their set carries no
+	// overrides yet, so a fresh scene can land on either cursor.
+	const fixedAll: ScopeSortRowItem = {
+		kind: 'scope-row',
+		id: 'all',
+		icon: SCOPE_META.all.icon,
+		label: scene.allLevelsLabel?.() ?? 'All levels',
+		sortLabel: sortLabelFor('all'),
+		checked: active === 'all',
+		hidden: hidden.has('all'),
+	};
+	const fixedLevel1: ScopeSortRowItem = {
+		kind: 'scope-row',
+		id: 'level:1',
+		icon: LEVEL_PICK_META.icon,
+		label: scene.levelLabel(1),
+		sortLabel: sortLabelFor('level:1'),
+		checked: active === 'level:1',
+		hidden: hidden.has('level:1'),
+	};
+	items.push(fixedAll, fixedLevel1);
+
+	// Remaining configured targets: union of the flat `sorts` and the
+	// cumulative `scopeState.sets`, minus the two fixed entries. Parents
+	// precede other levels; levels sort numerically; `level:0` (group
+	// headers) is not a visitable scope row.
+	const seen = new Set<string>(['all', 'level:1', 'drill']);
+	const parentKeys: string[] = [];
+	const levelKeys: string[] = [];
+	const consider = (key: string) => {
+		if (seen.has(key)) return;
+		seen.add(key);
+		if (key === 'drill' || !isScopeAllowed(tab, key)) return;
+		if (parentOfScope(key) !== null) {
+			parentKeys.push(key);
+			return;
+		}
+		const level = levelOfScope(key);
+		if (level !== null && level > 1) levelKeys.push(key);
+	};
 	for (const key of Object.keys(state.sorts) as SortScopeKey[]) {
+		if (state.sorts[key]) consider(key);
+	}
+	for (const key of Object.keys(state.scopeState?.sets ?? {})) {
+		if ((state.scopeState?.sets as Record<string, unknown>)[key]) consider(key);
+	}
+	levelKeys.sort((a, b) => (levelOfScope(a) ?? 0) - (levelOfScope(b) ?? 0));
+
+	const rows: ScopeSortRowItem[] = [];
+	for (const key of [...parentKeys, ...levelKeys] as SortScopeKey[]) {
 		const sort = state.sorts[key];
-		if (!sort) continue;
 		const parentId = parentOfScope(key);
 		const level = levelOfScope(key);
 		if (parentId !== null) {
@@ -374,7 +432,9 @@ export function scopeMenuModel(
 				id: key,
 				icon: SCOPE_META.drill.icon,
 				label: parentLevel !== null ? `${parentLevel}: ${label}` : label,
-				sortLabel: scene.sortLabel(sort),
+				sortLabel: sort
+					? scene.sortLabel(sort)
+					: sortLabelFor(key),
 				checked: key === active,
 				hidden: hidden.has(key),
 			});
@@ -384,16 +444,15 @@ export function scopeMenuModel(
 				id: key,
 				icon: LEVEL_PICK_META.icon,
 				label: scene.levelLabel(level),
-				sortLabel: scene.sortLabel(sort),
+				sortLabel: sort
+					? scene.sortLabel(sort)
+					: sortLabelFor(key),
 				checked: key === active,
 				hidden: hidden.has(key),
 			});
 		}
 	}
-	if (rows.length > 0) {
-		items.push({ kind: 'separator', id: 'scope-rows-separator' });
-		items.push(...rows);
-	}
+	items.push(...rows);
 	return { titleKind, titleArg, items };
 }
 

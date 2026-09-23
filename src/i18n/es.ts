@@ -973,6 +973,9 @@ export const es: Record<string, string> = {
 	'settings.operation_scope': 'Alcance de operaciones',
 	'settings.operation_scope.desc':
 		'Alcance por defecto para operaciones del explorador',
+	'settings.default_scope': 'Cursor de alcance por defecto',
+	'settings.default_scope.desc':
+		'Alcance con el que abre una escena nueva (Nivel 1 o Todos los niveles). Solo elige el cursor inicial y nunca reescribe sorts, grupos ni celdas guardados.',
 	'settings.scope.auto': 'Auto (seleccionados > filtrados > todos)',
 	'settings.scope.selected': 'Solo archivos seleccionados',
 	'settings.scope.filtered': 'Archivos filtrados',

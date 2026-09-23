@@ -387,7 +387,34 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.explorerOperationScope)
 						.onChange(async (value) => {
 							this.plugin.settings.explorerOperationScope = value as
-								'auto' | 'selected' | 'filtered' | 'all';
+								| 'auto' | 'selected' | 'filtered' | 'all';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		// U130-GGC-025: initial scope cursor for new scenes. It only selects
+		// the cursor a fresh scene opens with — it never rewrites persisted
+		// `sets`, so flipping it leaves existing sorts/groups/cells intact.
+		items.push({
+			name: translate('settings.default_scope'),
+			desc: translate('settings.default_scope.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							'level:1': translate('sort.scope.level_n', { n: 1 }),
+							all: translate('sort.level.all'),
+						})
+						.setValue(
+							this.plugin.settings.scopeDefaultCursor === 'all'
+								? 'all'
+								: 'level:1',
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.scopeDefaultCursor =
+								value === 'all' ? 'all' : 'level:1';
 							await this.plugin.saveSettings();
 						}),
 				);
