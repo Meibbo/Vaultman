@@ -193,7 +193,7 @@ import {
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
-	addInvokedSelection,
+	resolveContextClickSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -745,6 +745,8 @@ export class PropsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
+	private selectionAnchorId: string | null = null;
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
@@ -891,8 +893,14 @@ export class PropsExplorerPanel extends Component {
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
 			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) this.selectedNodeIds.add(id);
-				else this.selectedNodeIds.delete(id);
+				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
+				if (selected) {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				} else {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				}
 				this._touchSelection();
 				void this._render();
 			},
@@ -940,8 +948,13 @@ export class PropsExplorerPanel extends Component {
 		checkbox.addEventListener('click', (event) => event.stopPropagation());
 		checkbox.addEventListener('change', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) this.selectedNodeIds.add(node.id);
-			else this.selectedNodeIds.delete(node.id);
+			if (checkbox.checked) {
+				this.selectedNodeIds.add(node.id);
+				this.selectionAnchorId = node.id;
+			} else {
+				this.selectedNodeIds.delete(node.id);
+				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
+			}
 			this._touchSelection();
 			card.toggleClass('is-selected', checkbox.checked);
 		});
@@ -1215,24 +1228,55 @@ export class PropsExplorerPanel extends Component {
 		noteSelectionState(this._selectionKey(), this.selectedNodeIds);
 	}
 
-	private _applyPropSelection(next: Set<string>): void {
+	private _applyPropSelection(next: Set<string>, anchor?: string | null): void {
 		this.selectedNodeIds = next;
+		if (anchor !== undefined) this.selectionAnchorId = anchor;
 		this._touchSelection();
 		void this._render();
 	}
 
-	/** Context invocation extends the axon even when checkbox projection is off. */
-	private _includeInvokedInSelection(id: string): void {
+	/**
+	 * U130-GGC-022/024: shared right-click policy (plain replaces, Ctrl/Meta
+	 * toggles, Shift ranges from the per-instance anchor, Ctrl+Shift unions).
+	 * Action-only `add_property` never enters the selection.
+	 */
+	private _includeInvokedInSelection(
+		id: string,
+		event?: MouseEvent | null,
+		orderedVisibleIds?: readonly string[],
+	): void {
 		if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-		const next = addInvokedSelection(this.selectedNodeIds, id);
-		if (next.size === this.selectedNodeIds.size) return;
-		this._applyPropSelection(next);
+		const ordered = orderedVisibleIds ?? this._orderedVisibleTreeIds();
+		const prev = this.selectedNodeIds;
+		const prevAnchor = this.selectionAnchorId;
+		const { selectedIds, anchorId } = resolveContextClickSelection({
+			selectedIds: prev,
+			anchorId: prevAnchor,
+			orderedVisibleIds: ordered,
+			invokedId: id,
+			modifiers: event
+				? {
+						ctrlKey: event.ctrlKey,
+						metaKey: event.metaKey,
+						shiftKey: event.shiftKey,
+					}
+				: null,
+			isSelectable: (entry) => entry !== PropsExplorerPanel.ADD_PROPERTY_ROW_ID,
+		});
+		if (
+			selectedIds.size === prev.size &&
+			anchorId === prevAnchor &&
+			[...selectedIds].every((entry) => prev.has(entry))
+		)
+			return;
+		this._applyPropSelection(selectedIds, anchorId);
 	}
 
 	/** Clears only this scene instance's row selection. */
 	clearSelection(): void {
-		if (this.selectedNodeIds.size === 0) return;
-		this._applyPropSelection(new Set());
+		if (this.selectedNodeIds.size === 0 && this.selectionAnchorId === null)
+			return;
+		this._applyPropSelection(new Set(), null);
 	}
 
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
@@ -2220,6 +2264,43 @@ export class PropsExplorerPanel extends Component {
 		return { active, excluded };
 	}
 
+	/**
+	 * U130-GGC-024: Shift/Ctrl+Shift extend over the logical visible order
+	 * from the per-instance anchor; plain click keeps the explicit toggle
+	 * outcome and only moves the anchor.
+	 */
+	private _toggleSelectWithAnchor(
+		node: TreeNode<PropMeta>,
+		event?: MouseEvent | KeyboardEvent,
+	): void {
+		if (event?.shiftKey === true) {
+			const { selectedIds, anchorId } = resolveContextClickSelection({
+				selectedIds: this.selectedNodeIds,
+				anchorId: this.selectionAnchorId,
+				orderedVisibleIds: this._orderedVisibleTreeIds(),
+				invokedId: node.id,
+				modifiers: {
+					ctrlKey: 'ctrlKey' in event ? Boolean(event.ctrlKey) : false,
+					metaKey: 'metaKey' in event ? Boolean(event.metaKey) : false,
+					shiftKey: true,
+				},
+				isSelectable: (entry) =>
+					entry !== PropsExplorerPanel.ADD_PROPERTY_ROW_ID,
+			});
+			this._applyPropSelection(selectedIds, anchorId);
+			return;
+		}
+		if (this.selectedNodeIds.has(node.id)) {
+			this.selectedNodeIds.delete(node.id);
+			if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
+		} else {
+			this.selectedNodeIds.add(node.id);
+			this.selectionAnchorId = node.id;
+		}
+		this._touchSelection();
+		void this._render();
+	}
+
 	private _handleNodeClick(
 		node: TreeNode<PropMeta>,
 		event?: MouseEvent | KeyboardEvent,
@@ -2267,14 +2348,10 @@ export class PropsExplorerPanel extends Component {
 		}
 
 		if (action === 'select') {
-			if (this.selectedNodeIds.has(node.id))
-				this.selectedNodeIds.delete(node.id);
-			else this.selectedNodeIds.add(node.id);
-			this._touchSelection();
+			this._toggleSelectWithAnchor(node, event);
 			// While the move mode is composing, the same selection gesture also
 			// names a destination; a value node names its parent property.
 			this._registerValueMoveDestination(meta);
-			void this._render();
 			return;
 		}
 
@@ -2346,7 +2423,8 @@ export class PropsExplorerPanel extends Component {
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
 		if (node.id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-		this._includeInvokedInSelection(node.id);
+		const orderedIds = this._orderedVisibleTreeIds();
+		this._includeInvokedInSelection(node.id, e, orderedIds);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
 		this.plugin.contextMenuService.openPanelMenu(
 			{
@@ -2354,7 +2432,7 @@ export class PropsExplorerPanel extends Component {
 				node,
 				surface: 'panel',
 				selectedIds: this.selectedNodeIds,
-				orderedIds: this._orderedVisibleTreeIds(),
+				orderedIds,
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(node),
 				invokeRename: (targetId: string) => {

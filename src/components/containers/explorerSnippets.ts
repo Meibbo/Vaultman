@@ -85,9 +85,10 @@ import {
 	type DegroupSelectedHandler,
 } from '../../logic/logicGroupSelectionTransaction';
 import {
-	addInvokedSelection,
+	resolveContextClickSelection,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
+import { flattenVisibleTree } from '../../utils/treeVirtualization';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -112,6 +113,8 @@ export class SnippetsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
+	private selectionAnchorId: string | null = null;
 	private createGroupHandler?: CreateGroupHandler;
 	private degroupSelectedHandler?: DegroupSelectedHandler;
 	private materializePresetHandler?: MaterializePresetHandler;
@@ -331,19 +334,61 @@ export class SnippetsExplorerPanel
 		});
 	}
 
-	/** Context invocation extends the axon, independently of checkbox visibility. */
-	private _includeInvokedInSelection(id: string): void {
-		const next = addInvokedSelection(this.selectedNodeIds, id);
-		if (next.size === this.selectedNodeIds.size) return;
-		this.selectedNodeIds = next;
+	/**
+	 * U130-GGC-022/024: logical visible occurrence order (virtualization-proof:
+	 * the projected tree, not the mounted DOM).
+	 */
+	private _orderedVisibleTreeIds(): string[] {
+		if (this._lastProjectedTree.length === 0) return [];
+		return flattenVisibleTree(
+			this._lastProjectedTree,
+			this._expandedGroupIds,
+		).map((node) => node.id);
+	}
+
+	/**
+	 * U130-GGC-022/024: shared right-click policy (plain replaces, Ctrl/Meta
+	 * toggles, Shift ranges from the per-instance anchor, Ctrl+Shift unions).
+	 */
+	private _includeInvokedInSelection(
+		id: string,
+		event?: MouseEvent | null,
+		orderedVisibleIds?: readonly string[],
+	): void {
+		const ordered = orderedVisibleIds ?? this._orderedVisibleTreeIds();
+		const prev = this.selectedNodeIds;
+		const prevAnchor = this.selectionAnchorId;
+		const { selectedIds, anchorId } = resolveContextClickSelection({
+			selectedIds: prev,
+			anchorId: prevAnchor,
+			orderedVisibleIds: ordered,
+			invokedId: id,
+			modifiers: event
+				? {
+						ctrlKey: event.ctrlKey,
+						metaKey: event.metaKey,
+						shiftKey: event.shiftKey,
+					}
+				: null,
+		});
+		if (
+			selectedIds.size === prev.size &&
+			anchorId === prevAnchor &&
+			[...selectedIds].every((entry) => prev.has(entry))
+		)
+			return;
+		this.selectedNodeIds = selectedIds;
+		this.selectionAnchorId = anchorId;
 		this._touchSelection();
 		this.render();
 	}
 
 	/** Clears only this scene instance's row selection. */
 	clearSelection(): void {
-		if (this.selectedNodeIds.size === 0) return;
+		if (this.selectedNodeIds.size === 0 && this.selectionAnchorId === null)
+			return;
 		this.selectedNodeIds = new Set();
+		this.selectionAnchorId = null;
 		this._touchSelection();
 		this.render();
 	}
@@ -732,8 +777,13 @@ export class SnippetsExplorerPanel
 				? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
 			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) this.selectedNodeIds.add(id);
-				else this.selectedNodeIds.delete(id);
+				if (selected) {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				} else {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				}
 				this._touchSelection();
 				this.render();
 			},
@@ -746,7 +796,7 @@ export class SnippetsExplorerPanel
 			onGroupActivate: (id: string) => {
 				this._activateGroupRow(id);
 			},
-			onRowClick: (id) => {
+			onRowClick: (id, event) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// B-groupbody: el motor ya no trae el cuerpo por aqui
 					// (va a `onGroupActivate`); el auxclick si. Mismo camino.
@@ -754,8 +804,30 @@ export class SnippetsExplorerPanel
 					return;
 				}
 				if (this.interactionMode !== 'select') return;
-				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
-				else this.selectedNodeIds.add(id);
+				// U130-GGC-024: Shift/Ctrl+Shift range over the logical visible
+				// order; plain click keeps the explicit toggle outcome.
+				if ((event as MouseEvent | undefined)?.shiftKey === true) {
+					const mouse = event as MouseEvent;
+					const { selectedIds, anchorId } = resolveContextClickSelection({
+						selectedIds: this.selectedNodeIds,
+						anchorId: this.selectionAnchorId,
+						orderedVisibleIds: this._orderedVisibleTreeIds(),
+						invokedId: id,
+						modifiers: {
+							ctrlKey: mouse.ctrlKey,
+							metaKey: mouse.metaKey,
+							shiftKey: true,
+						},
+					});
+					this.selectedNodeIds = selectedIds;
+					this.selectionAnchorId = anchorId;
+				} else if (this.selectedNodeIds.has(id)) {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				} else {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				}
 				this._touchSelection();
 				this.render();
 			},
@@ -824,7 +896,7 @@ export class SnippetsExplorerPanel
 			}
 				const node = this.findNode(id);
 				if (node) {
-					this._includeInvokedInSelection(id);
+					this._includeInvokedInSelection(id, event);
 					this.openMenu(node.meta, event);
 				}
 			},

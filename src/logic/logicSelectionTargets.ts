@@ -33,6 +33,10 @@ export function resolveSelectionTargets(
  * Context actions use the visible operation target set, not the checkbox
  * projection.  A pointer/context invocation therefore preserves the current
  * selection and adds the invoked row exactly once.
+ *
+ * Kept for backwards compatibility (unit-tested union semantics). New
+ * context-menu paths must use {@link resolveContextClickSelection}, which
+ * applies the shared right-click/range policy with modifiers.
  */
 export function addInvokedSelection(
 	selectedIds: ReadonlySet<string>,
@@ -41,6 +45,109 @@ export function addInvokedSelection(
 	const next = new Set(selectedIds);
 	next.add(invokedId);
 	return next;
+}
+
+/** Modifier subset driving the shared context-click policy. */
+export interface ContextClickModifiers {
+	ctrlKey?: boolean | undefined;
+	metaKey?: boolean | undefined;
+	shiftKey?: boolean | undefined;
+}
+
+/**
+ * U130-GGC-022/024: shared pure policy for right-click and visible-occurrence
+ * range selection, with a per-instance/scene anchor.
+ *
+ * Contract:
+ * - plain right-click replaces the selection with the invoked row and moves
+ *   the anchor there, even under group headers.
+ * - Ctrl/Meta toggles the invoked row (add or remove) and moves the anchor
+ *   to it on add; removing the anchor row clears the anchor, otherwise the
+ *   anchor is preserved.
+ * - Shift selects the anchor→row range over the logical visible order and
+ *   keeps the anchor. Missing/invalid anchor or invoked id falls back to a
+ *   single replace.
+ * - Ctrl/Meta+Shift unions the anchor→row range into the previous selection
+ *   without losing it; missing anchor falls back to adding the invoked row.
+ *
+ * Occurrence ids (row ids), never canonical URNs: `orderedVisibleIds` is the
+ * explorer's logical visible order (already flattened, virtualization-proof),
+ * so hidden rows are never selected and only mounted-DOM order is ignored.
+ * Action-only rows must be filtered by the caller via `isSelectable`.
+ */
+export function resolveContextClickSelection(args: {
+	selectedIds: ReadonlySet<string>;
+	anchorId: string | null;
+	orderedVisibleIds: readonly string[];
+	invokedId: string;
+	modifiers: ContextClickModifiers | null | undefined;
+	isSelectable?: ((id: string) => boolean) | undefined;
+}): { selectedIds: Set<string>; anchorId: string | null } {
+	const {
+		selectedIds,
+		anchorId,
+		orderedVisibleIds,
+		invokedId,
+		modifiers,
+		isSelectable,
+	} = args;
+	if (isSelectable !== undefined && !isSelectable(invokedId)) {
+		return { selectedIds: new Set(selectedIds), anchorId };
+	}
+	const ctrl = Boolean(modifiers?.ctrlKey === true || modifiers?.metaKey === true);
+	const shift = Boolean(modifiers?.shiftKey);
+	if (ctrl && shift) {
+		const targetIndex = orderedVisibleIds.indexOf(invokedId);
+		const anchorIndex =
+			anchorId === null ? -1 : orderedVisibleIds.indexOf(anchorId);
+		if (targetIndex < 0) {
+			const next = new Set(selectedIds);
+			next.add(invokedId);
+			return { selectedIds: next, anchorId: anchorId ?? invokedId };
+		}
+		if (anchorIndex < 0) {
+			const next = new Set(selectedIds);
+			next.add(invokedId);
+			return { selectedIds: next, anchorId: anchorId ?? invokedId };
+		}
+		const start = Math.min(anchorIndex, targetIndex);
+		const end = Math.max(anchorIndex, targetIndex);
+		const next = new Set(selectedIds);
+		for (let i = start; i <= end; i += 1) {
+			const id = orderedVisibleIds[i];
+			if (id !== undefined) next.add(id);
+		}
+		return { selectedIds: next, anchorId };
+	}
+	if (shift) {
+		const targetIndex = orderedVisibleIds.indexOf(invokedId);
+		const anchorIndex =
+			anchorId === null ? -1 : orderedVisibleIds.indexOf(anchorId);
+		if (targetIndex < 0 || anchorIndex < 0) {
+			return { selectedIds: new Set([invokedId]), anchorId: invokedId };
+		}
+		const start = Math.min(anchorIndex, targetIndex);
+		const end = Math.max(anchorIndex, targetIndex);
+		const next = new Set<string>();
+		for (let i = start; i <= end; i += 1) {
+			const id = orderedVisibleIds[i];
+			if (id !== undefined) next.add(id);
+		}
+		return { selectedIds: next, anchorId };
+	}
+	if (ctrl) {
+		const next = new Set(selectedIds);
+		if (next.has(invokedId)) {
+			next.delete(invokedId);
+			return {
+				selectedIds: next,
+				anchorId: anchorId === invokedId ? null : anchorId,
+			};
+		}
+		next.add(invokedId);
+		return { selectedIds: next, anchorId: invokedId };
+	}
+	return { selectedIds: new Set([invokedId]), anchorId: invokedId };
 }
 
 /** Escape belongs to the explorer only when an editor-like surface owns it. */

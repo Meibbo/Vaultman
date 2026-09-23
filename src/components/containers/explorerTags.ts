@@ -179,7 +179,7 @@ import {
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
-	addInvokedSelection,
+	resolveContextClickSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -499,6 +499,8 @@ export class TagsExplorerPanel extends Component {
 
 	private interactionMode: InteractionMode = 'filter';
 	private selectedNodeIds = new Set<string>();
+	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
+	private selectionAnchorId: string | null = null;
 	private _selectionKey(): string {
 		return selectionKeyFor('tags', 'tags', this.selectionInstanceId);
 	}
@@ -634,8 +636,13 @@ export class TagsExplorerPanel extends Component {
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
 			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) this.selectedNodeIds.add(id);
-				else this.selectedNodeIds.delete(id);
+				if (selected) {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				} else {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				}
 				this._touchSelection();
 				void this._render();
 			},
@@ -667,8 +674,13 @@ export class TagsExplorerPanel extends Component {
 		checkbox.addEventListener('click', (event) => event.stopPropagation());
 		checkbox.addEventListener('change', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) this.selectedNodeIds.add(node.id);
-			else this.selectedNodeIds.delete(node.id);
+			if (checkbox.checked) {
+				this.selectedNodeIds.add(node.id);
+				this.selectionAnchorId = node.id;
+			} else {
+				this.selectedNodeIds.delete(node.id);
+				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
+			}
 			this._touchSelection();
 			card.toggleClass('is-selected', checkbox.checked);
 		});
@@ -888,19 +900,49 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	/** Context invocation extends the axon, independently of checkbox visibility. */
-	private _includeInvokedInSelection(id: string): void {
-		const next = addInvokedSelection(this.selectedNodeIds, id);
-		if (next.size === this.selectedNodeIds.size) return;
-		this.selectedNodeIds = next;
+	/**
+	 * U130-GGC-022/024: shared right-click policy (plain replaces, Ctrl/Meta
+	 * toggles, Shift ranges from the per-instance anchor, Ctrl+Shift unions).
+	 */
+	private _includeInvokedInSelection(
+		id: string,
+		event?: MouseEvent | null,
+		orderedVisibleIds?: readonly string[],
+	): void {
+		const ordered = orderedVisibleIds ?? this._orderedVisibleTreeIds();
+		const prev = this.selectedNodeIds;
+		const prevAnchor = this.selectionAnchorId;
+		const { selectedIds, anchorId } = resolveContextClickSelection({
+			selectedIds: prev,
+			anchorId: prevAnchor,
+			orderedVisibleIds: ordered,
+			invokedId: id,
+			modifiers: event
+				? {
+						ctrlKey: event.ctrlKey,
+						metaKey: event.metaKey,
+						shiftKey: event.shiftKey,
+					}
+				: null,
+		});
+		if (
+			selectedIds.size === prev.size &&
+			anchorId === prevAnchor &&
+			[...selectedIds].every((entry) => prev.has(entry))
+		)
+			return;
+		this.selectedNodeIds = selectedIds;
+		this.selectionAnchorId = anchorId;
 		this._touchSelection();
 		this._render();
 	}
 
 	/** Clears only this scene instance's row selection. */
 	clearSelection(): void {
-		if (this.selectedNodeIds.size === 0) return;
+		if (this.selectedNodeIds.size === 0 && this.selectionAnchorId === null)
+			return;
 		this.selectedNodeIds = new Set();
+		this.selectionAnchorId = null;
 		this._touchSelection();
 		this._render();
 	}
@@ -1906,14 +1948,15 @@ export class TagsExplorerPanel extends Component {
 					// B-groupbody: idem (la tabla no proyecta cabeceras).
 					const node = this._findNode(id, tree);
 					if (!node) return;
-					this._includeInvokedInSelection(id);
+					const orderedIds = this._orderedVisibleTreeIds();
+					this._includeInvokedInSelection(id, event, orderedIds);
 					this.plugin.contextMenuService.openPanelMenu(
 						{
 							nodeType: 'tag',
 							node,
 							surface: 'panel',
 							selectedIds: this.selectedNodeIds,
-							orderedIds: this._orderedVisibleTreeIds(),
+							orderedIds,
 							...this._groupCreationMenuCtx(),
 							...this._degroupMenuCtx(node),
 							invokeRename: (targetId: string) => {
@@ -2122,14 +2165,15 @@ export class TagsExplorerPanel extends Component {
 			}
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				this._includeInvokedInSelection(id);
+				const orderedIds = this._orderedVisibleTreeIds();
+				this._includeInvokedInSelection(id, e, orderedIds);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'tag',
 						node,
 						surface: 'panel',
 						selectedIds: this.selectedNodeIds,
-						orderedIds: this._orderedVisibleTreeIds(),
+						orderedIds,
 						...this._groupCreationMenuCtx(),
 						...this._degroupMenuCtx(node),
 						invokeRename: (targetId: string) => {
@@ -2210,9 +2254,29 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		if (action === 'select') {
-			if (this.selectedNodeIds.has(node.id))
+			// U130-GGC-024: Shift/Ctrl+Shift range over the logical visible
+			// order; plain click keeps the explicit toggle outcome.
+			if (event?.shiftKey === true) {
+				const { selectedIds, anchorId } = resolveContextClickSelection({
+					selectedIds: this.selectedNodeIds,
+					anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(),
+					invokedId: node.id,
+					modifiers: {
+						ctrlKey: 'ctrlKey' in event ? Boolean(event.ctrlKey) : false,
+						metaKey: 'metaKey' in event ? Boolean(event.metaKey) : false,
+						shiftKey: true,
+					},
+				});
+				this.selectedNodeIds = selectedIds;
+				this.selectionAnchorId = anchorId;
+			} else if (this.selectedNodeIds.has(node.id)) {
 				this.selectedNodeIds.delete(node.id);
-			else this.selectedNodeIds.add(node.id);
+				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
+			} else {
+				this.selectedNodeIds.add(node.id);
+				this.selectionAnchorId = node.id;
+			}
 			this._touchSelection();
 			void this._render();
 			return;
@@ -2360,14 +2424,15 @@ export class TagsExplorerPanel extends Component {
 			});
 			card.addEventListener('contextmenu', (event) => {
 				event.preventDefault();
-				this._includeInvokedInSelection(node.id);
+				const orderedIds = this._orderedVisibleTreeIds();
+				this._includeInvokedInSelection(node.id, event, orderedIds);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'tag',
 						node,
 						surface: 'panel',
 						selectedIds: this.selectedNodeIds,
-						orderedIds: this._orderedVisibleTreeIds(),
+						orderedIds,
 						...this._groupCreationMenuCtx(),
 						...this._degroupMenuCtx(node),
 					},

@@ -198,7 +198,7 @@ import {
 	updateFileSelection,
 } from '../../logic/logicNodeSelection';
 import {
-	addInvokedSelection,
+	resolveContextClickSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -1259,14 +1259,42 @@ export class FilesExplorerPanel extends Component {
 		};
 	}
 
-	/** Context invocation extends selection independently of checkbox display. */
-	private _includeInvokedInSelection(id: string): void {
-		const next = addInvokedSelection(this.selectedFilePaths, id);
-		if (next.size === this.selectedFilePaths.size) return;
-		this._applyFileSelection({
-			selectedPaths: next,
-			anchorPath: this.selectionAnchorPath ?? id,
-		});
+	/**
+	 * U130-GGC-022/024: shared right-click policy (plain replaces, Ctrl/Meta
+	 * toggles, Shift ranges from the per-instance anchor, Ctrl+Shift unions
+	 * the range). Independent of checkbox display. The caller passes the
+	 * already-computed logical visible order so a gesture costs no extra
+	 * tree traversal.
+	 */
+	private _includeInvokedInSelection(
+		id: string,
+		event?: MouseEvent | null,
+		orderedVisibleIds?: readonly string[],
+	): void {
+		const ordered = orderedVisibleIds ?? this._orderedVisibleTreeIds();
+		const prev = this.selectedFilePaths;
+		const prevAnchor = this.selectionAnchorPath;
+		const { selectedIds: selectedPaths, anchorId: anchorPath } =
+			resolveContextClickSelection({
+				selectedIds: prev,
+				anchorId: prevAnchor,
+				orderedVisibleIds: ordered,
+				invokedId: id,
+				modifiers: event
+					? {
+							ctrlKey: event.ctrlKey,
+							metaKey: event.metaKey,
+							shiftKey: event.shiftKey,
+						}
+					: null,
+			});
+		if (
+			selectedPaths.size === prev.size &&
+			anchorPath === prevAnchor &&
+			[...selectedPaths].every((entry) => prev.has(entry))
+		)
+			return;
+		this._applyFileSelection({ selectedPaths, anchorPath });
 	}
 
 	clearSelection(): void {
@@ -1886,7 +1914,8 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _openFileContextMenu(file: TFile, event: MouseEvent): void {
-		this._includeInvokedInSelection(file.path);
+		const orderedIds = this._orderedVisibleTreeIds();
+		this._includeInvokedInSelection(file.path, event, orderedIds);
 		const syntheticNode = {
 			id: file.path,
 			label: file.name,
@@ -1904,7 +1933,7 @@ export class FilesExplorerPanel extends Component {
 				node: syntheticNode,
 				surface: 'panel',
 				selectedIds: this.selectedFilePaths,
-				orderedIds: this._orderedVisibleTreeIds(),
+				orderedIds,
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(syntheticNode),
 				file,
@@ -3081,7 +3110,6 @@ export class FilesExplorerPanel extends Component {
 					}
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
-					this._includeInvokedInSelection(id);
 					const meta = node.meta;
 					if (meta.isFolder) {
 						if (event?.button === 1) return;
@@ -3118,7 +3146,11 @@ export class FilesExplorerPanel extends Component {
 							});
 							return;
 						}
-						if (!this._nestedEnabled()) return;
+						if (!this._nestedEnabled()) {
+							this.selectionAnchorPath = id;
+							return;
+						}
+						this.selectionAnchorPath = id;
 						this._toggleFolderWithStickyAnchor(id);
 						return;
 					}
@@ -3194,6 +3226,8 @@ export class FilesExplorerPanel extends Component {
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
+					const orderedIds = this._orderedVisibleTreeIds();
+					this._includeInvokedInSelection(id, e, orderedIds);
 					if (meta.isFolder) {
 						this.plugin.contextMenuService.openPanelMenu(
 							{
@@ -3201,7 +3235,7 @@ export class FilesExplorerPanel extends Component {
 								node,
 								surface: 'panel',
 								selectedIds: this.selectedFilePaths,
-								orderedIds: this._orderedVisibleTreeIds(),
+								orderedIds,
 								...this._groupCreationMenuCtx(),
 								...this._degroupMenuCtx(node),
 								...this._viewFilterMenuActions(),
@@ -3217,7 +3251,7 @@ export class FilesExplorerPanel extends Component {
 							node,
 							surface: 'panel',
 							selectedIds: this.selectedFilePaths,
-							orderedIds: this._orderedVisibleTreeIds(),
+							orderedIds,
 							...this._groupCreationMenuCtx(),
 							...this._degroupMenuCtx(node),
 							file: meta.file,
