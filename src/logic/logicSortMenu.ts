@@ -486,6 +486,8 @@ export const GROUP_PRESET_META: Record<
 	created: { icon: 'lucide-calendar-plus', labelKey: 'group.preset.created' },
 	custom: { icon: 'lucide-boxes', labelKey: 'group.preset.custom' },
 	note: { icon: 'lucide-file-cog', labelKey: 'group.preset.note' },
+	sections: { icon: 'lucide-folder-tree', labelKey: 'group.preset.sections' },
+	state: { icon: 'lucide-toggle-right', labelKey: 'group.preset.state' },
 };
 
 export interface GroupMenuPresetItem {

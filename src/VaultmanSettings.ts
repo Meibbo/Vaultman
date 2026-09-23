@@ -1,4 +1,5 @@
 import { normalizeOpenMode } from './logic/logicFrameActivation';
+import { normalizeSettingSceneGoToTarget } from './logic/logicSettingSceneActivation';
 import {
 	PluginSettingTab,
 	Setting,
@@ -1875,6 +1876,38 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.explorerSearchHighlights)
 						.onChange(async (value) => {
 							this.plugin.settings.explorerSearchHighlights = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		// U130 parity C (F5/F6): destino del `go_to` de `input=open` en
+		// settingScene. `modal` (default) abre el modal nativo por defecto;
+		// `panel_content` entra al modo content scene-local (toggle F6),
+		// nunca a una superficie a medio construir.
+		items.push({
+			name: translate('settings.setting_scene_go_to_target'),
+			desc: translate('settings.setting_scene_go_to_target.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption(
+							'modal',
+							translate('settings.setting_scene_go_to_target.modal'),
+						)
+						.addOption(
+							'panel_content',
+							translate('settings.setting_scene_go_to_target.panel_content'),
+						)
+						.setValue(
+							normalizeSettingSceneGoToTarget(
+								this.plugin.settings.settingSceneGoToTarget,
+							),
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.settingSceneGoToTarget =
+								normalizeSettingSceneGoToTarget(value);
 							await this.plugin.saveSettings();
 						}),
 				);

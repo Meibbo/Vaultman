@@ -70,7 +70,7 @@ export interface GroupProjectionInput<TMeta> {
 	 * por primera letra.
 	 */
 	preset?: GroupPreset;
-	/** Extractor de valor para los presets `type`, counters y fechas. */
+	/** Extractor de valor para `type`/`sections`/`state`, counters y fechas. */
 	presetValueOf?: PresetValueOf<TreeNode<TMeta>>;
 	/** Etiquetas de los rangos (§3.2.1); la escena pasa las traducidas. */
 	rangeLabels?: RangeLabels;

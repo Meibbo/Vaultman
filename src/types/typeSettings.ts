@@ -75,6 +75,16 @@ export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
 export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
 export type AddonCellStyle = 'native' | 'badge';
 
+/**
+ * U130 parity C (F5/F6): destino del `go_to` de `input=open` en settingScene.
+ * `modal` abre el modal nativo de settings (tab exacto); `panel_content`
+ * alimenta el modo content scene-local (toggle explorer/content, F6), nunca
+ * una superficie a medio construir.
+ */
+export const SETTING_SCENE_GO_TO_TARGETS = ['modal', 'panel_content'] as const;
+export type SettingSceneGoToTarget =
+	(typeof SETTING_SCENE_GO_TO_TARGETS)[number];
+
 export const PROP_CONFLICT_WARNINGS = ['off', 'badge', 'full'] as const;
 export type PropConflictWarnings = (typeof PROP_CONFLICT_WARNINGS)[number];
 
@@ -138,6 +148,12 @@ export interface VaultmanSettings {
 	explorerContentSearch: boolean;
 	/** Highlight explorer rows/cards that match the current explorer search */
 	explorerSearchHighlights: boolean;
+	/**
+	 * U130 parity C (F5): destino del `go_to` de `input=open` en settingScene.
+	 * `modal` (default) abre el modal nativo; `panel_content` entra al modo
+	 * content scene-local (F6). Vive junto a `explorerSearchHighlights`.
+	 */
+	settingSceneGoToTarget: SettingSceneGoToTarget;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
 	/** How to present the File Move UI: inline within the explorer or in a modal */
@@ -505,6 +521,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerShowQueuePreview: true,
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,
+	settingSceneGoToTarget: 'modal',
 	explorerOperationScope: 'auto',
 	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',

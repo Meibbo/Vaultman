@@ -218,7 +218,12 @@ export function buildPresetBuckets<T extends { label: string }>(
 	const valueOf = options.extract;
 	if (!valueOf) return null;
 
-	if (kind === 'type') {
+	// U130 parity A2 (F3): `sections` (sección/tab nativa) y `state`
+	// (enabled/disabled) agrupan como `type`: buckets por string del
+	// extractor de la scene (`_groupPresetValue` en plugins). Sin valor
+	// la fila queda en `ungrouped` (p. ej. `node_plugin` sin sección en
+	// term vacío no se agrupa por secciones).
+	if (kind === 'type' || kind === 'sections' || kind === 'state') {
 		const out = keyed(
 			nodes,
 			(n) => {

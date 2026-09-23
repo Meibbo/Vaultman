@@ -291,15 +291,22 @@ export function resolveSettingsBridgeNodes(
 				pagePath: item.entry?.pagePath ?? '',
 				definition: item.entry?.definition ?? '',
 			};
-			const rowId = settingsBridgeRowId(ref);
-			if (emittedSettingsIds.has(rowId)) continue;
-			emittedSettingsIds.add(rowId);
+			// F4: cadena definition → page → pagePath → tab; vacía = skip.
+			// (Las filas tab-only con solo `tab` se conservan: el bridge
+			// de búsqueda las proyecta con label = tab.)
 			const label =
 				ref.definition !== ''
 					? ref.definition
 					: ref.page !== ''
 						? ref.page
-						: tab;
+						: ref.pagePath !== ''
+							? ref.pagePath
+							: tab;
+			if (label === '') continue; // F4: Skip empty labels
+
+			const rowId = settingsBridgeRowId(ref);
+			if (emittedSettingsIds.has(rowId)) continue;
+			emittedSettingsIds.add(rowId);
 			const typeText =
 				ref.pagePath !== ''
 					? ref.pagePath
@@ -328,9 +335,15 @@ export function resolveSettingsBridgeNodes(
 			if (hasRealMatch(item)) highlightIds.add(rowId);
 		}
 
-		// Padre native.
+		// Padre native (orden nativo de grupos preservado: sin re-sort;
+		// el plugin matched viaja COMO HIJO y nunca se hoistea sobre su
+		// sección, F3). El padre se emite aunque sus hijos se hayan
+		// dedupado a otra sección (el grupo nativo sigue existiendo);
+		// "sin grupos vacíos" (F4) aplica al camino de hijos de plugin,
+		// no a las secciones nativas de búsqueda.
 		const tabLabel =
 			group.tabName !== '' ? group.tabName : group.tab;
+		if (tabLabel === '') continue; // F4: padre sin label no se emite
 		const ref = {
 			tab: group.tab,
 			page: group.page,
@@ -371,16 +384,33 @@ export function resolveSettingsBridgeNodes(
 }
 
 /**
- * U130 Spec 07: projeta hijos `node_settings` bajo un nodo de plugin.
+ * U130 Spec 07 + parity A2 (F2/F3/F4): catálogo de hijos `node_settings`
+ * bajo un nodo de plugin (term vacío).
  *
- * - Padre: se convierte en p-node (`showCaret: true` + `children`) IFF
+ * - Padre: p-node (`showCaret: true` + `children`) IFF
  *   `meta.enabled === true && hasPluginSettingsTab(app, pluginId)`;
  *   de lo contrario hoja (`showCaret: false`, `children: []`).
- * - Un child `node_settings` por tab+page publicado:
- *   id = `settingsBridgeRowId({tab, page, pagePath, definition})`,
- *   `depth` = parent.depth + 1, `cells: []`,
- *   `meta = withSettingsRef(base, ref)` con `pluginId: ''`.
- * - Los hijos conservan el orden nativo de pages (sin re-sort).
+ * - Dos niveles bajo el plugin (orden nativo, sin re-sort):
+ *   nivel 1 = un `node_setting_tab` por tab distinto publicado (tabs
+ *   primero, en orden nativo de primera aparición);
+ *   nivel 2 = un `node_setting_page` por page distinta de ese tab
+ *   (pages después, en orden nativo). Con un solo tab hay un único
+ *   nodo tab con N page hijos (p. ej. vaultman: 1 tab + 21 pages live).
+ * - Ids estables que EXTIENDEN `settingsBridgeGroupRowId` con sufijo
+ *   `#tab` / `#page` (p. ej. `settings:vaultman::Files tooltip::#page`).
+ *   El sufijo `#` nunca aparece en ids del camino de búsqueda (ni en
+ *   `settingsBridgeRowId` ni en `settingsBridgeGroupRowId` ni en
+ *   `plugin:<id>`), así que no hay colisión con filas de búsqueda aunque
+ *   page === pagePath: misma `SettingsBridgeRef` canónica (tab, page,
+ *   pagePath, definition), distinta identidad de fila por camino.
+ *   `SettingsBridgeRef` sigue siendo canónico (`typeSettingsSearch.ts`).
+ * - NUNCA emite la fila espejo: se omite cualquier page con
+ *   `tab===pluginId && page==='' && pagePath===''`
+ *   (el plugin ya existe como `node_plugin`; el hijo idéntico no debe
+ *   existir). Sin pages tras el filtrado el plugin queda hoja (F4: nada
+ *   de grupos vacíos en este camino).
+ * - F4: se omite todo hijo cuya label quede vacía tras la cadena
+ *   (page → pagePath → tab para pages; tabName → tab para tabs).
  * - Zero highlight ids para este camino (no entran en
  *   settingsSearchHighlightIds).
  */
@@ -401,64 +431,128 @@ export function resolvePluginSettingsChildren(
 		];
 	}
 
-	// Obtener pages declarativas para este plugin
+	// Catálogo de pages para este plugin (nativo filtrado + broaden,
+	// orden nativo, ver serviceSettingSearchAdapter).
 	const groups = listPluginSettingPages(app as unknown as App, pluginId);
 	if (groups.length === 0) {
-		// No hay pages: el plugin sigue siendo p-node pero sin hijos
+		// F4: sin fuente de pages el plugin queda hoja (nunca p-node vacío).
 		return [
 			{
 				...baseNode,
-				showCaret: true,
+				showCaret: false,
 				children: [],
 			} as TreeNode<PluginMeta>,
 		];
 	}
 
-	// Derivar hijos node_settings por cada group (tab+page)
-	const children: TreeNode<PluginMeta>[] = [];
+	// Nivel 1: tabs distintos en orden nativo de primera aparición.
+	// Nivel 2: pages distintas por tab en orden nativo.
 	const baseDepth = baseNode.depth;
-
+	const tabOrder: string[] = [];
+	const tabNameById = new Map<string, string>();
+	const pagesByTab = new Map<string, { page: string; pagePath: string }[]>();
+	const seenPages = new Set<string>();
 	for (const group of groups) {
-		// El group.tab es el pluginId; derivamos page/pagePath/definition
-		// desde la estructura del group. Para el caso sin búsqueda, usamos
-		// values vacíos que el bridge completaría con la identidad nativa.
-		const ref = {
-			tab: group.tab,
-			page: group.page,
-			pagePath: group.pagePath,
-			definition: group.results?.[0]?.entry?.definition ?? '',
-		};
-		const rowId = settingsBridgeRowId(ref);
+		const tab = group.tab ?? '';
+		if (tab === '') continue; // F4: tab sin identidad no se emite
+		if (!pagesByTab.has(tab)) {
+			tabOrder.push(tab);
+			pagesByTab.set(tab, []);
+			const tabName = group.tabName !== '' ? group.tabName : tab;
+			tabNameById.set(tab, tabName);
+		}
+		const page = group.page ?? '';
+		const pagePath = group.pagePath ?? '';
+		// Espejo: page idéntica al plugin (tab===pluginId sin page ni
+		// path) no se emite como page; el tab ya representa esa entrada.
+		if (tab === pluginId && page === '' && pagePath === '') continue;
+		const pageKey = `${tab}::${pagePath || page}`;
+		if (seenPages.has(pageKey)) continue;
+		seenPages.add(pageKey);
+		// F4: label vacía tras la cadena page → pagePath → tab: no se emite.
+		const pageLabel = page !== '' ? page : pagePath !== '' ? pagePath : tab;
+		if (pageLabel === '') continue;
+		pagesByTab.get(tab)?.push({ page, pagePath });
+	}
 
-		children.push({
-			id: rowId,
-			label: ref.definition !== ''
-				? ref.definition
-				: ref.page !== ''
-					? ref.page
-					: ref.tab,
+	// Tabs sin label visible no se emiten (F4: nada de grupos vacíos).
+	const tabNodes: TreeNode<PluginMeta>[] = [];
+	for (const tab of tabOrder) {
+		const pages = pagesByTab.get(tab) ?? [];
+		if (pages.length === 0) continue; // F4: tab sin pages = ausente
+		const tabLabel = tabNameById.get(tab) ?? tab;
+		if (tabLabel === '') continue;
+		const tabRef = { tab, page: '', pagePath: '', definition: '' };
+		const pageNodes: TreeNode<PluginMeta>[] = [];
+		for (const { page, pagePath } of pages) {
+			const pageLabel =
+				page !== '' ? page : pagePath !== '' ? pagePath : tab;
+			if (pageLabel === '') continue;
+			const pageRef = { tab, page, pagePath, definition: '' };
+			pageNodes.push({
+				id: `${settingsBridgeGroupRowId(tab, pagePath || page)}#page`,
+				label: pageLabel,
+				...(pagePath !== ''
+					? { typeText: pagePath }
+					: page !== ''
+						? { typeText: page }
+						: {}),
+				depth: baseDepth + 2,
+				cells: [],
+				showCaret: false,
+				children: [],
+				meta: withSettingsRef(
+					{
+						pluginId: '',
+						name: pageLabel,
+						enabled: false,
+						loaded: false,
+						isVaultman: false,
+					},
+					pageRef,
+				),
+				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+			});
+		}
+		if (pageNodes.length === 0) continue; // F4: sin pages no hay tab
+		tabNodes.push({
+			id: `${settingsBridgeGroupRowId(tab, '')}#tab`,
+			label: tabLabel,
 			depth: baseDepth + 1,
 			cells: [],
+			showCaret: true,
+			children: pageNodes,
 			meta: withSettingsRef(
 				{
 					pluginId: '',
-					name: rowId,
+					name: tabLabel,
 					enabled: false,
 					loaded: false,
 					isVaultman: false,
 				},
-				ref,
+				tabRef,
 			),
 			coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		});
 	}
 
-	// El padre se mantiene con showCaret: true y los nuevos children
+	// F4: sin hijos tras el filtrado el plugin queda hoja.
+	if (tabNodes.length === 0) {
+		return [
+			{
+				...baseNode,
+				showCaret: false,
+				children: [],
+			} as TreeNode<PluginMeta>,
+		];
+	}
+
+	// El padre se mantiene con showCaret: true y los tabs como hijos.
 	return [
 		{
 			...baseNode,
 			showCaret: true,
-			children,
+			children: tabNodes,
 		} as TreeNode<PluginMeta>,
 	];
 }

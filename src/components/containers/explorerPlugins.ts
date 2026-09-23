@@ -50,6 +50,20 @@ import {
 	resolvePluginSettingsChildren,
 } from '../../logic/logicAddonExplorer';
 import {
+	executeSettingSceneActivation,
+	hasSettingOpenApi,
+	normalizeSettingSceneGoToTarget,
+	resolveSettingSceneActivation,
+} from '../../logic/logicSettingSceneActivation';
+import {
+	normalizeSettingSceneMode,
+	resolveSettingSceneContent,
+	settingSceneModeToggle,
+	type SettingSceneContentModel,
+	type SettingSceneMode,
+	type SettingSceneModeToggle,
+} from '../../logic/logicSettingSceneContent';
+import {
 	resolveGroupToggleTarget,
 	summarizeGroupToggleState,
 } from '../../logic/logicAddonGroupToggle';
@@ -120,7 +134,7 @@ export class PluginsExplorerPanel
 	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
 	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
-	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config']);
+	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
@@ -128,6 +142,14 @@ export class PluginsExplorerPanel
 	private readonly pendingToggleIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
+	/**
+	 * U130 parity C (F6): modo scene-local (`explorer` default). Solo esta
+	 * instancia lo ve; `input=open` sigue yendo al modal (F5) en ambos.
+	 */
+	private settingSceneMode: SettingSceneMode = 'explorer';
+	/** U130 parity C (F6): fila que alimenta al modo content. */
+	private settingSceneContentId: string | null = null;
+	private onSettingSceneModeChange?: () => void;
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
@@ -399,6 +421,15 @@ export class PluginsExplorerPanel
 	): string | number | null {
 		if (kind === 'modified') return node.meta.updatedTime ?? null;
 		if (kind === 'created') return node.meta.installedTime ?? null;
+		if (kind === 'state') return node.meta.enabled ? 'enabled' : 'disabled';
+		if (kind === 'sections') {
+			// For settings bridge nodes, use the native tab from settingsRef
+			const ref = settingsBridgeRefOf(node.meta);
+			if (ref) return ref.tab;
+			// For plugin nodes, they don't have a section in empty-term mode
+			// (they ARE the top-level entries). Return null to not group.
+			return null;
+		}
 		return null;
 	}
 
@@ -423,6 +454,113 @@ export class PluginsExplorerPanel
 		if (this.interactionMode === normalized) return;
 		this.interactionMode = normalized;
 		this.render();
+	}
+
+	/**
+	 * U130 parity C (F6): modo scene-local explorer/content. El cableado al
+	 * toolbar (`navbarFilters`/`navbarPanelWidgetHost`) lo hace el merge
+	 * coordinador; aquí viven el estado y el payload con checked.
+	 */
+	getSettingSceneMode(): SettingSceneMode {
+		return this.settingSceneMode;
+	}
+
+	setSettingSceneMode(mode: SettingSceneMode): void {
+		const next = normalizeSettingSceneMode(mode);
+		if (this.settingSceneMode === next) return;
+		this.settingSceneMode = next;
+		this.onSettingSceneModeChange?.();
+		this.render();
+	}
+
+	toggleSettingSceneMode(): SettingSceneMode {
+		this.setSettingSceneMode(
+			this.settingSceneMode === 'content' ? 'explorer' : 'content',
+		);
+		return this.settingSceneMode;
+	}
+
+	setSettingSceneModeChangeHandler(handler?: () => void): void {
+		this.onSettingSceneModeChange = handler;
+	}
+
+	getSettingSceneModeToggle(): SettingSceneModeToggle {
+		return settingSceneModeToggle(this.settingSceneMode);
+	}
+
+	getSettingSceneContentId(): string | null {
+		return this.settingSceneContentId;
+	}
+
+	/**
+	 * U130 parity C (F6): modelo de contenido para la selección (semántica
+	 * design-02 vía `resolveSettingSceneContent`). Sin executor (design-01,
+	 * fuera de alcance) no hay handle de definición nativa: `definition`
+	 * llega `null` y el modelo cae a unavailable explícito
+	 * (`definition-missing`); el camino `ready` queda resuelto a nivel de
+	 * puente y testeado, pendiente del lookup de definición del merge.
+	 */
+	getSettingSceneContent(): SettingSceneContentModel {
+		const id = this.settingSceneContentId;
+		if (id === null) {
+			return resolveSettingSceneContent({
+				rowKind: 'none',
+				ref: null,
+				label: null,
+				tabAvailable: false,
+				definition: null,
+			});
+		}
+		if (isGroupHeader(id, this._groupIds)) {
+			return resolveSettingSceneContent({
+				rowKind: 'group',
+				ref: null,
+				label: null,
+				tabAvailable: false,
+				definition: null,
+			});
+		}
+		const node = this.findNode(id);
+		if (!node) {
+			return resolveSettingSceneContent({
+				rowKind: 'none',
+				ref: null,
+				label: null,
+				tabAvailable: false,
+				definition: null,
+			});
+		}
+		const ref = settingsBridgeRefOf(node.meta);
+		if (node.meta.pluginId !== '' || !ref) {
+			return resolveSettingSceneContent({
+				rowKind: node.meta.pluginId !== '' ? 'plugin' : 'none',
+				ref: ref ?? null,
+				label: node.label,
+				tabAvailable: false,
+				definition: null,
+			});
+		}
+		return resolveSettingSceneContent({
+			rowKind: 'settings',
+			ref,
+			label: node.label,
+			tabAvailable: this._isSettingSceneTabAvailable(ref.tab),
+			definition: null,
+		});
+	}
+
+	/**
+	 * Revalidación del tab a nivel de tab (design-01 §1.3 `tabRef()`): un
+	 * tab registrado en `pluginTabs` está vivo; un tab con id de plugin
+	 * conocido pero sin registro es un tab removido; los tabs nativos no
+	 * plugin no son enumerables en este checkout y se asumen presentes (la
+	 * definición sigue gateando el render).
+	 */
+	private _isSettingSceneTabAvailable(tab: string): boolean {
+		if (tab === '') return false;
+		if (pluginSettingTabIds(this.plugin.app).has(tab)) return true;
+		if (this.entries.some((entry) => entry.pluginId === tab)) return false;
+		return true;
 	}
 
 	setCellStyle(style: AddonCellStyle): void {
@@ -450,6 +588,12 @@ export class PluginsExplorerPanel
 	 */
 	private _expansionEnabled(): boolean {
 		return this.groupPreset.kind !== 'none';
+	}
+
+	/** U130 parity B (F1): la proyección anidada sigue a la cell `nested`
+	 * (igual que `explorerFiles._nestedEnabled`). Sin nesting, filas planas. */
+	private _nestedEnabled(): boolean {
+		return this.visibleCells.has('nested');
 	}
 
 	hasExpandedNodes(): boolean {
@@ -488,17 +632,26 @@ export class PluginsExplorerPanel
 	): { children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> } {
 		const cache = this._pluginSettingsChildrenCache.get(pluginId);
 		const tabIds = pluginSettingTabIds(this.plugin.app);
-		// Invalidate cache if pluginSettingTabIds changed
-		if (cache && cache.tabIds === tabIds && cache.enabled === node.meta.enabled) {
+		// U130 parity A2: invalidar por enable/disable y por cambio de tabs
+		// (comparación por valor: cada llamada crea un Set nuevo).
+		if (
+			cache &&
+			cache.enabled === node.meta.enabled &&
+			sameIdSet(cache.tabIds, tabIds)
+		) {
 			return cache;
 		}
-		const result = resolvePluginSettingsChildren(
+		// `resolvePluginSettingsChildren` devuelve el padre completo
+		// ([hoja] o [padre con tabs]); aquí solo se cachean los tabs
+		// (nivel 1). El padre ya lo tiene el llamador (no auto-anidado).
+		const resolved = resolvePluginSettingsChildren(
 			this.plugin.app,
 			pluginId,
 			node,
 		);
+		const tabs = resolved[0]?.children ?? [];
 		this._pluginSettingsChildrenCache.set(pluginId, {
-			children: result,
+			children: tabs,
 			enabled: node.meta.enabled,
 			tabIds,
 		});
@@ -526,16 +679,24 @@ export class PluginsExplorerPanel
 			activeScopeSort('plugins', this.sortState),
 		);
 		this.nodes = this.buildPluginNodes(entries);
-		// U130 Spec 07: add children+showCaret for empty-term path
+		// U130 Spec 07 + parity A2 (F3): term vacío conserva el sort de
+		// plugins; cada plugin recibe tabs (nivel 1) → pages (nivel 2) en
+		// orden nativo. Sin tabs el plugin queda hoja (F4).
+		// U130 parity B (F1): con nesting off, filas planas sin caret.
+		const nestedOn = this._nestedEnabled();
 		for (const node of this.nodes) {
 			if (node.meta?.pluginId) {
-				const { children: pluginChildren } = this._getPluginSettingsChildren(
+				if (!nestedOn) {
+					node.children = [];
+					node.showCaret = false;
+					continue;
+				}
+				const { children: tabNodes } = this._getPluginSettingsChildren(
 					node.meta.pluginId,
 					node,
 				);
-				node.children = pluginChildren;
-				// Ensure showCaret is true when there are children, false otherwise
-				node.showCaret = pluginChildren.length > 0 ? true : node.showCaret !== false;
+				node.children = tabNodes;
+				node.showCaret = tabNodes.length > 0;
 			}
 		}
 		this.settingsSearchHighlightIds = new Set<string>();
@@ -674,19 +835,21 @@ export class PluginsExplorerPanel
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
 
-		// U130: native group parents must not be rewrapped/flattened
-		// by custom groups while a native search term is active.
+		// U130 parity A2 (F3): las filas del puente nunca entran a
+		// grupos custom (ni padres nativos ni sus hijos settings/plugin;
+		// tampoco los tabs/pages de term vacío, que viajan con su plugin
+		// por holarchy). Con búsqueda activa los padres nativos quedan
+		// arriba sin re-envolver; los hijos viajan con ellos.
 		const searchActive = isSettingsSearchActive(this.searchTerm ?? '');
 		let nodesForGrouping = this.nodes;
 		let nativeParents: TreeNode<PluginMeta>[] | undefined;
 		if (searchActive) {
 			const protectedIds = new Set<string>();
 			for (const node of this.nodes) {
-				if (
-					node.id.startsWith('settings:') &&
-					node.id.endsWith('::') &&
-					node.children !== undefined
-				) {
+				// Padres nativos (grupo `settings:tab::pagePath::`) y
+				// cualquier fila puente top-level (`settings:…`, incl.
+				// hijos con `#tab`/`#page` si alguna vez suben a raíz).
+				if (node.id.startsWith('settings:')) {
 					protectedIds.add(node.id);
 				}
 			}
@@ -865,18 +1028,21 @@ export class PluginsExplorerPanel
 			onGroupActivate: (id: string) => {
 				this._activateGroupRow(id);
 			},
-			onRowClick: (id) => {
-				if (isGroupHeader(id, this._groupIds)) {
-					// B-groupbody: el motor ya no trae el cuerpo por aqui
-					// (va a `onGroupActivate`); el auxclick si. Mismo camino.
-					this._activateGroupRow(id);
-					return;
-				}
-				if (this.interactionMode !== 'select') return;
-				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
-				else this.selectedNodeIds.add(id);
-				this.render();
-			},
+		onRowClick: (id) => {
+			if (isGroupHeader(id, this._groupIds)) {
+				// B-groupbody: el motor ya no trae el cuerpo por aqui
+				// (va a `onGroupActivate`); el auxclick si. Mismo camino.
+				this._activateGroupRow(id);
+				return;
+			}
+			if (this.interactionMode === 'select') {
+				this._toggleRowSelection(id);
+				return;
+			}
+			// U130 parity C (F5): `open` es el default y abre el modal
+			// nativo (tab exacto); `select` queda intacto arriba.
+			this._activateSettingSceneRow(id);
+		},
 			onCellClick: (id, cellId) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
@@ -952,6 +1118,57 @@ export class PluginsExplorerPanel
 		else this._expandedGroupIds.add(id);
 		this.onExpansionChange?.();
 		this.render();
+	}
+
+	/** Conmuta la selección de una fila (camino `select` y fallback F5). */
+	private _toggleRowSelection(id: string): void {
+		if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
+		else this.selectedNodeIds.add(id);
+		this.render();
+	}
+
+	/**
+	 * U130 parity C (F5 primero): activación en modo `open` (default).
+	 *
+	 * - Fila `node_plugin` con tab → su tab (`openPluginSettings` path).
+	 * - Fila `node_settings` con `ref.tab` → el tab exacto vía
+	 *   `openTabById(ref.tab)` (page-level solo cuando sea direccionable:
+	 *   la API pública nativa direcciona tabs; la page queda para el
+	 *   executor de design-01, fuera de alcance).
+	 * - Con `settingSceneGoToTarget === 'panel_content'`, la fila
+	 *   `node_settings` resoluble entra al modo content (F6) en vez del
+	 *   modal; la fila `node_plugin` mantiene el modal (el contenido a
+	 *   nivel de tab exige el executor, fuera de alcance: nunca una
+	 *   superficie a medio construir).
+	 * - Sin destino resoluble → selección (nunca un click muerto). Formas:
+	 *   plugin sin tab registrado, settings sin tab, API nativa ausente.
+	 */
+	private _activateSettingSceneRow(id: string): void {
+		const node = this.findNode(id);
+		if (!node) return;
+		const ref = settingsBridgeRefOf(node.meta);
+		const hasPluginTab =
+			node.meta.pluginId !== '' &&
+			pluginSettingTabIds(this.plugin.app).has(node.meta.pluginId);
+		const activation = resolveSettingSceneActivation({
+			row: {
+				pluginId: node.meta.pluginId,
+				settingsTab: ref ? ref.tab : '',
+				hasPluginTab,
+			},
+			settingApiAvailable: hasSettingOpenApi(this.plugin.app),
+		});
+		const target = normalizeSettingSceneGoToTarget(
+			this.plugin.settings.settingSceneGoToTarget,
+		);
+		if (target === 'panel_content' && activation.kind === 'open-settings-tab') {
+			this.selectedNodeIds.add(id);
+			this.settingSceneContentId = id;
+			this.setSettingSceneMode('content');
+			return;
+		}
+		if (executeSettingSceneActivation(this.plugin.app, activation)) return;
+		this._toggleRowSelection(id);
 	}
 
 	/**
@@ -1132,6 +1349,13 @@ export class PluginsExplorerPanel
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
 		}
 	}
+}
+
+/** Comparación por valor para la invalidación de la caché de tabs. */
+function sameIdSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+	if (a.size !== b.size) return false;
+	for (const id of a) if (!b.has(id)) return false;
+	return true;
 }
 
 /**

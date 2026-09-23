@@ -577,6 +577,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 				fixedRank: 1000,
 				defaultOn: true,
 			},
+			{ explorer: 'plugins', fixedRank: 1000, defaultOn: true },
 		],
 	},
 ];

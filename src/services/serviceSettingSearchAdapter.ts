@@ -207,26 +207,96 @@ export function queryNativeSettingsSearch(
  * group.tab === pluginId, orden nativo, sin re-rank.
  * Ausencia total: [] (plugin hoja, sin hijos inventados, sin scrapeo).
  */
+/**
+ * U130 parity A2 (F2): caché por pluginId para la enumeración de pages.
+ * Clave de invalidación: firma de `pluginTabs` (ids ordenados). El
+ * enable/disable lo invalida el panel (ver `_getPluginSettingsChildren`);
+ * aquí se invalida por cambio de tabs (instalación/desinstalación).
+ */
+const pluginPagesCache = new Map<string, { tabSig: string; groups: NativeSettingsSearchGroup[] }>();
+
+function pluginTabsSignature(app: unknown): string {
+	const setting = (app as { setting?: unknown }).setting;
+	if (typeof setting !== 'object' || setting === null) return '';
+	const record = setting as Record<string, unknown>;
+	const tabs = record['pluginTabs'];
+	if (Array.isArray(tabs)) {
+		return tabs
+			.map((t) => (t as { id?: unknown })?.id)
+			.filter((id): id is string => typeof id === 'string')
+			.sort()
+			.join('|');
+	}
+	if (typeof tabs === 'object' && tabs !== null) {
+		return Object.values(tabs as Record<string, { id?: unknown }>)
+			.map((t) => t?.id)
+			.filter((id): id is string => typeof id === 'string')
+			.sort()
+			.join('|');
+	}
+	return '';
+}
+
+function groupIdentity(g: NativeSettingsSearchGroup): string {
+	return `${g.tab}::${g.pagePath}::${g.page}`;
+}
+
 export function listPluginSettingPages(
+	app: unknown,
+	pluginId: string,
+): NativeSettingsSearchGroup[] {
+	const tabSig = pluginTabsSignature(app);
+	const cached = pluginPagesCache.get(pluginId);
+	if (cached && cached.tabSig === tabSig) return cached.groups;
+
+	const groups = listPluginSettingPagesUncached(app, pluginId);
+	pluginPagesCache.set(pluginId, { tabSig, groups });
+	return groups;
+}
+
+/** Camino sin caché (ver `listPluginSettingPages`). */
+function listPluginSettingPagesUncached(
 	app: unknown,
 	pluginId: string,
 ): NativeSettingsSearchGroup[] {
 	// Primary: lectura declarativa de pluginTabs (puede ser Record u array)
 	const declarative = listPluginSettingPagesDeclarative(app, pluginId);
-	if (declarative.length > 0) return declarative;
+	// Si el declarativo devuelve grupos CON results, úsalos.
+	// Si devuelve grupos SIN results (solo tab info), cae al fallback nativo.
+	const hasResults = declarative.some((g) => g.results && g.results.length > 0);
+	if (hasResults) return declarative;
 
 	// Fallback: búsqueda nativa filtrada por group.tab === pluginId,
 	// orden nativo, sin re-rank.
-	// Usamos el pluginId como query para intentar discovery de pages.
-	const raw = queryNativeSettingsSearch(app, pluginId);
-	if (!Array.isArray(raw)) return [];
-	const groups: NativeSettingsSearchGroup[] = [];
-	for (const candidate of raw) {
-		if (candidate.tab === pluginId) {
-			groups.push(candidate);
+	// Paso 1: query por pluginId (precisa, pero incompleta en vivo:
+	// `search("vaultman")` devuelve 4 grupos vaultman frente a 22 con
+	// `search("a")` en Obsidian Help 1.3.0-beta.7).
+	const primary = queryNativeSettingsSearch(app, pluginId).filter(
+		(candidate) => candidate.tab === pluginId,
+	);
+	// Paso 2 (broaden SOLO hasta cobertura completa): probe de cobertura
+	// con `search("a")` filtrado por tab. Si aporta pages distintas
+	// nuevas, unión en orden nativo (primero primary, luego las nuevas
+	// del probe), sin re-rank. Si no aporta nada, se queda el primary.
+	let broadened: NativeSettingsSearchGroup[] = [];
+	try {
+		broadened = queryNativeSettingsSearch(app, 'a').filter(
+			(candidate) => candidate.tab === pluginId,
+		);
+	} catch {
+		broadened = [];
+	}
+	if (broadened.length === 0) return primary;
+	const seen = new Set(primary.map(groupIdentity));
+	const union = [...primary];
+	for (const candidate of broadened) {
+		const key = groupIdentity(candidate);
+		if (!seen.has(key)) {
+			seen.add(key);
+			union.push(candidate);
 		}
 	}
-	return groups;
+	return union;
 }
 
 /**

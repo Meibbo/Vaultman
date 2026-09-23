@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolvePluginSettingsChildren } from '../../src/logic/logicAddonExplorer';
+import { queryNativeSettingsSearch } from '../../src/services/serviceSettingSearchAdapter';
 import type { PluginMeta, TreeNode } from '../../src/types/typeTree';
 import type { App } from 'obsidian';
+import type { NativeSettingsSearchGroup, RawSettingsSearchGroup, RawSettingsSearchItem } from '../../src/types/typeSettingsSearch';
 
 function pluginNode(
 	pluginId: string,
@@ -26,15 +28,95 @@ function pluginNode(
 	};
 }
 
+function item(
+	tab: string,
+	definition: string,
+	page = 'General',
+	pagePath = '',
+): RawSettingsSearchItem {
+	return {
+		entry: {
+			tab: { id: tab, name: tab },
+			definition: { name: definition },
+			page: { id: page.toLowerCase(), name: page },
+			pagePath,
+		},
+		nameMatch: { score: 1, matches: [] },
+		descMatch: { score: 0, matches: [] },
+		score: 1,
+	};
+}
+
+function group(
+	tab: string,
+	results: RawSettingsSearchItem[],
+	tabName: string = tab,
+): NativeSettingsSearchGroup {
+	const raw: RawSettingsSearchGroup = {
+		tab: { id: tab, name: tabName },
+		page: { id: 'general', name: 'General' },
+		pagePath: {},
+		tabNameMatch: { score: 1, matches: [] },
+		results,
+		bestScore: { score: 1 },
+	};
+	const parsed = queryNativeSettingsSearch(
+		{ setting: { searchIndex: { search: () => [raw] } } },
+		'fixture',
+	);
+	const result = parsed[0];
+	if (!result) throw new Error('fixture did not parse');
+	return result;
+}
+
+function appWithNativeSearch(groups: NativeSettingsSearchGroup[]): unknown {
+	return {
+		setting: {
+			pluginTabs: {
+				myplugin: { id: 'myplugin', name: 'My Plugin' },
+			} as Record<string, { id: string; name: string }>,
+			searchIndex: {
+				search: () => groups.map((g) => ({
+					tab: { id: g.tab, name: g.tabName },
+					page: { id: g.page, name: g.page },
+					pagePath: g.pagePath,
+					tabNameMatch: g.tabNameMatch,
+					results: g.results.map((r) => ({
+						entry: r.entry,
+						nameMatch: r.nameMatch,
+						descMatch: r.descMatch,
+						score: r.score,
+					})),
+					bestScore: g.bestScore,
+				})),
+			},
+		},
+	};
+}
+
+function appWithPluginTabsOnly(): unknown {
+	return {
+		setting: {
+			pluginTabs: {
+				myplugin: { id: 'myplugin', name: 'My Plugin' },
+			} as Record<string, { id: string; name: string }>,
+		},
+	};
+}
+
+// (Removed unused `appWithArrayPluginTabs` helper: the array-format case
+// builds its app inline in 'adapts to pluginTabs being array format'.)
+
 describe('resolvePluginSettingsChildren (spec-07)', () => {
 	it('enabled plugin with tab pages = p-node with N children, correct row ids', () => {
-		const app: unknown = {
-			setting: {
-				pluginTabs: {
-					myplugin: { id: 'myplugin', name: 'My Plugin' },
-				} as Record<string, { id: string; name: string }>,
-			} as any,
-		};
+		// Mock app with native search index returning pages for the plugin
+		const groups = [
+			group('myplugin', [
+				item('myplugin', 'Setting 1', 'General', 'general'),
+				item('myplugin', 'Setting 2', 'Advanced', 'advanced'),
+			], 'My Plugin'),
+		];
+		const app = appWithNativeSearch(groups);
 
 		const baseNode = pluginNode('myplugin', 'My Plugin');
 
@@ -56,11 +138,7 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 	});
 
 	it('disabled plugin / plugin without tab = leaf, no children', () => {
-		const app: unknown = {
-			setting: {
-				pluginTabs: {},
-			} as any,
-		};
+		const app = appWithPluginTabsOnly();
 
 		// Disabled plugin
 		const baseNodeDisabled = pluginNode('myplugin', 'My Plugin', { enabled: false });
@@ -84,13 +162,12 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 	});
 
 	it('child row id equals the bridge search row id for the same triple', () => {
-		const app: unknown = {
-			setting: {
-				pluginTabs: {
-					myplugin: { id: 'myplugin', name: 'My Plugin' },
-				} as Record<string, { id: string; name: string }>,
-			} as any,
-		};
+		const groups = [
+			group('myplugin', [
+				item('myplugin', 'Setting 1', 'General', 'general'),
+			], 'My Plugin'),
+		];
+		const app = appWithNativeSearch(groups);
 
 		const baseNode = pluginNode('myplugin', 'My Plugin');
 
@@ -111,13 +188,12 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 	});
 
 	it('children carry no cells and no highlight ids', () => {
-		const app: unknown = {
-			setting: {
-				pluginTabs: {
-					myplugin: { id: 'myplugin', name: 'My Plugin' },
-				} as Record<string, { id: string; name: string }>,
-			} as any,
-		};
+		const groups = [
+			group('myplugin', [
+				item('myplugin', 'Setting 1', 'General', 'general'),
+			], 'My Plugin'),
+		];
+		const app = appWithNativeSearch(groups);
 
 		const baseNode = pluginNode('myplugin', 'My Plugin');
 
@@ -159,13 +235,13 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 	});
 
 	it('search path and empty-term path share identity (no duplicate rows)', () => {
-		const app: unknown = {
-			setting: {
-				pluginTabs: {
-					myplugin: { id: 'myplugin', name: 'My Plugin' },
-				} as Record<string, { id: string; name: string }>,
-			} as any,
-		};
+		const groups = [
+			group('myplugin', [
+				item('myplugin', 'Setting 1', 'General', 'general'),
+				item('myplugin', 'Setting 2', 'Advanced', 'advanced'),
+			], 'My Plugin'),
+		];
+		const app = appWithNativeSearch(groups);
 
 		const baseNode = pluginNode('myplugin', 'My Plugin');
 
@@ -186,13 +262,34 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 	});
 
 	it('adapts to pluginTabs being array format', () => {
-		const app: unknown = {
+		// Array format still needs native search for pages
+		const groups = [
+			group('myplugin', [
+				item('myplugin', 'Setting 1', 'General', 'general'),
+			], 'My Plugin'),
+		];
+		const app = {
 			setting: {
 				pluginTabs: [
 					{ id: 'myplugin', name: 'My Plugin' },
 					{ id: 'other', name: 'Other' },
 				] as readonly { id: string; name: string }[],
-			} as any,
+				searchIndex: {
+					search: () => groups.map((g) => ({
+						tab: { id: g.tab, name: g.tabName },
+						page: { id: g.page, name: g.page },
+						pagePath: g.pagePath,
+						tabNameMatch: g.tabNameMatch,
+						results: g.results.map((r) => ({
+							entry: r.entry,
+							nameMatch: r.nameMatch,
+							descMatch: r.descMatch,
+							score: r.score,
+						})),
+						bestScore: g.bestScore,
+					})),
+				},
+			},
 		};
 
 		const baseNode = pluginNode('myplugin', 'My Plugin');
