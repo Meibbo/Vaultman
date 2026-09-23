@@ -19,6 +19,13 @@ import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 import { viewMenuCells } from '../../src/logic/logicCellRegistry';
 
 describe('explorer sort UI source', () => {
+	it('turns the visible cell snapshot into a Set before comparing toggles', () => {
+		const start = navbarSource.indexOf('function handlePillsChange(');
+		const end = navbarSource.indexOf('\n\tfunction visibleCellsForScope(', start);
+		const handler = navbarSource.slice(start, end);
+		expect(handler).toContain('const before = new Set(visibleCellsForScope(activeTab));');
+		expect(handler).toContain('before.has(id)');
+	});
 	it('exposes modified and created time instead of the ambiguous date sort', () => {
 		const options = Object.values(SORT_MENU_OPTIONS).flat();
 		expect(options.some((option) => option.id === 'mtime')).toBe(true);

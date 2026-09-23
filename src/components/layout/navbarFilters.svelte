@@ -2334,7 +2334,7 @@ import {
 					? cloneScopeState(current.scopeState)
 					: scopeStateFromLegacy(activeTab, current, configByTab[activeTab].groupPreset);
 				const target = storageScope(current, current.activeScope) as ScopeTarget;
-				const before = visibleCellsForScope(activeTab);
+				const before = new Set(visibleCellsForScope(activeTab));
 				const after = new Set(cells);
 				const toggles = { ...(scopeState.sets[target]?.cellToggles ?? {}) };
 				for (const id of new Set([...before, ...after])) {
