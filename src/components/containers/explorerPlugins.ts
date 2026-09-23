@@ -99,6 +99,10 @@ import {
 	type CreateGroupHandler,
 	type DegroupSelectedHandler,
 } from '../../logic/logicGroupSelectionTransaction';
+import {
+	addInvokedSelection,
+	shouldClearExplorerSelectionOnEscape,
+} from '../../logic/logicSelectionTargets';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -178,6 +182,10 @@ export class PluginsExplorerPanel
 
 	onload(): void {
 		this.destroyed = false;
+		this.containerEl.addEventListener('keydown', this._handleSelectionEscape);
+		this.register(() =>
+			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
+		);
 		this.treeView = new UnifiedTreeView(this.containerEl);
 		void this.refresh();
 		// Core Settings toggles emit no event; poll a cheap signature while the
@@ -405,7 +413,29 @@ export class PluginsExplorerPanel
 		});
 	}
 
-	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
+	/** Context invocation extends the axon, independently of checkbox visibility. */
+	private _includeInvokedInSelection(id: string): void {
+		const next = addInvokedSelection(this.selectedNodeIds, id);
+		if (next.size === this.selectedNodeIds.size) return;
+		this.selectedNodeIds = next;
+		this._touchSelection();
+		this.render();
+	}
+
+	/** Clears only this scene instance's row selection. */
+	clearSelection(): void {
+		if (this.selectedNodeIds.size === 0) return;
+		this.selectedNodeIds = new Set();
+		this._touchSelection();
+		this.render();
+	}
+
+	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (!shouldClearExplorerSelectionOnEscape(event)) return;
+		this.clearSelection();
+	};
+
+	/** Group selected by capacity/selection, never by input=select or checkbox visibility. */
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
 		if (!handler || this.selectedNodeIds.size === 0) {
@@ -937,6 +967,7 @@ export class PluginsExplorerPanel
 				// U130 Slice A: `node_settings` no es plugin y no tiene menú
 				// de plugin (su `pluginId` es '').
 				if (!node || !node.meta.pluginId) return;
+				this._includeInvokedInSelection(id);
 				this.openMenu(node.meta, event);
 			},
 		});

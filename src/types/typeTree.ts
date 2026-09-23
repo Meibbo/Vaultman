@@ -3,6 +3,7 @@ import type { TFile, TFolder } from 'obsidian';
 import type { TagSource } from '../logic/logicTagSource';
 import type { AddonCellStyle } from './typeSettings';
 import type { CounterDomain, CounterRange } from './typeGroupPreset';
+import type { ScopeTarget } from './typeUI';
 
 export interface NodeBadge {
 	text?: string;
@@ -91,10 +92,14 @@ export interface TreeNode<TMeta = unknown> {
 	/** BT5-013: formatted last-opened instant; absent when never opened. */
 	openedText?: string;
 	wordCountText?: string;
+	/** Numeric recursive word metric for folder presets, independent of cell text. */
+	wordCountValue?: number;
 	tagsText?: string;
 	fileCountText?: string;
 	subCountText?: string;
 	tasksText?: string;
+	/** Canonical pending metric for folder grouping, independent of Tasks text. */
+	taskPendingCount?: number;
 	/** BT4-014: rainbow bucket color value for folder rows. */
 	folderColor?: string;
 	count?: number;
@@ -103,6 +108,10 @@ export interface TreeNode<TMeta = unknown> {
 	counterRanges?: readonly CounterRange[];
 	/** Current fetched counter limits; edits and new slices stay inside them. */
 	counterDomain?: CounterDomain;
+	/** Scope set that owns a derived range; independent of the menu cursor. */
+	groupScopeTarget?: ScopeTarget;
+	/** Resolved per-scope cell overrides carried with this projected row. */
+	scopeCellToggles?: Partial<Record<string, boolean>>;
 	/**
 	 * B-groupbody: marca puesta SOLO por `headerNode` de
 	 * `logicTreeGroupProjection`. El motor (`UnifiedTreeView`) reconoce por

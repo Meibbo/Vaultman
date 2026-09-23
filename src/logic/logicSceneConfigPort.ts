@@ -23,6 +23,7 @@ import type {
 } from '../types/typeSettings';
 import { cloneGroupMemberships } from './logicMembershipUrn';
 import { cloneGroupPreset } from '../types/typeGroupPreset';
+import { cloneExplorerSortState } from './logicScopedSort';
 
 export interface SceneConfigPortDeps {
 	instanceId: WorkspaceInstanceId;
@@ -115,13 +116,7 @@ export function captureSavedViewConfig(
 		viewMode: config.viewMode,
 		visibleCells: [...config.visibleCells],
 		interactionMode: config.interactionMode,
-		sortState: {
-			...config.sortState,
-			sorts: { ...config.sortState.sorts },
-			...(config.sortState.nodeTypeFilters
-				? { nodeTypeFilters: [...config.sortState.nodeTypeFilters] }
-				: {}),
-		},
+		sortState: cloneExplorerSortState(config.sortState),
 		...captureSceneFacets(config),
 	};
 }

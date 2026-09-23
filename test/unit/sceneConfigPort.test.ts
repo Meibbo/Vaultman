@@ -6,7 +6,13 @@ import type {
 // El estado de orden no se escribe a mano: se construye con el helper real del
 // proyecto. `ExplorerSortState` no es {key,direction,filtered}.
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
-import { createSceneConfigPort } from '../../src/logic/logicSceneConfigPort';
+import {
+	applyLayoutToPort,
+	captureSavedViewConfig,
+	createSceneConfigPort,
+	sceneFacetsOf,
+} from '../../src/logic/logicSceneConfigPort';
+import { makeScopedGroupKey } from '../../src/logic/logicScopedCustomGroups';
 import { buildInstanceInfoModel } from '../../src/modals/modalInstanceInfo';
 import { EMPTY_REGISTRY, ensureInstance } from '../../src/logic/logicInstanceRegistry';
 
@@ -112,6 +118,37 @@ describe('createSceneConfigPort', () => {
 		});
 		expect(h.port.read('files').groupMemberships).toEqual({});
 		expect(h.registry.instances['vm-1'].scenes.files).toBeUndefined();
+	});
+
+	it('roundtrips same-named custom groups in two targets through scene and layout photo', async () => {
+		const h = harness();
+		const level = makeScopedGroupKey('level:1', 'Foo');
+		const parent = makeScopedGroupKey('parent:Status', 'Foo');
+		const memberships = {
+			[level]: ['props:prop:Status|Status'],
+			[parent]: ['props:value:Open|Open'],
+		};
+		await h.port.propose('props', {
+			...defaults,
+			groupMemberships: memberships,
+			hiddenGroupIds: [parent],
+		});
+		const live = h.port.read('props');
+		expect(live.groupMemberships).toEqual(memberships);
+		const photo = captureSavedViewConfig(live);
+		expect(sceneFacetsOf(photo).groupMemberships).toEqual(memberships);
+		expect(sceneFacetsOf(photo).hiddenGroupIds).toEqual([parent]);
+		expect(photo.groupMemberships?.[level]).toEqual(['props:prop:Status|Status']);
+		const restored = harness();
+		await applyLayoutToPort(restored.port, {
+			viewModeByTab: { props: 'tree' },
+			interactionModeByTab: { props: photo.interactionMode },
+			visibleCellsByTab: { props: photo.visibleCells },
+			sortStateByTab: { props: photo.sortState },
+			sceneFacetsByTab: { props: sceneFacetsOf(photo) },
+		});
+		expect(restored.port.read('props').groupMemberships).toEqual(memberships);
+		expect(restored.port.read('props').hiddenGroupIds).toEqual([parent]);
 	});
 
 	it('keeps two scenes of the same instance independent', async () => {

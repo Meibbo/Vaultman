@@ -495,6 +495,10 @@ export const en: Record<string, string> = {
 	'settings.folder_aggregate_cells': 'Folder cell totals',
 	'settings.folder_aggregate_cells.desc':
 		'Folders in the Files tree show the recursive sum of their files countable cells (properties, words, tasks), including the totals of their subfolders.',
+	'settings.task_cell_display_mode': 'Tasks cell display',
+	'settings.task_cell_display_mode.desc': 'Choose pending tasks or completed/total. Task grouping always uses pending tasks.',
+	'settings.task_cell_display_mode.done_total': 'Completed / total',
+	'settings.task_cell_display_mode.pending': 'Pending tasks',
 	'settings.cell_words_include_frontmatter': 'Count frontmatter words',
 	'settings.cell_words_include_frontmatter.desc':
 		'When on, the words cell also counts the YAML frontmatter so it matches Obsidian word count.',
@@ -1353,6 +1357,8 @@ export const en: Record<string, string> = {
 	'group.preset.locked': 'Preset groups are managed by the engine',
 	'group.preset.materialize': 'Create custom from this group',
 	'group.counter.invalid': 'The counter range is invalid or overlaps another range.',
+	'group.counter.adjust': 'Adjust range',
+	'group.counter.adjust_unavailable': 'This group has no editable range.',
 	'group.counter.lower': 'Lower bound',
 	'group.counter.upper': 'Upper bound',
 	'group.counter.no_slice': 'No counter slice can be added inside the fetched range.',

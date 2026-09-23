@@ -107,7 +107,7 @@ describe('explorer sort UI source', () => {
 		// para cazar.
 		expect(handler).toMatch(/commitConfig\(\s*tab\s*,\s*\{\s*sortState/);
 		expect(handler).not.toMatch(/sortStateByTab\s*=/);
-		expect(handler).not.toContain('applySortState(');
+		expect(handler).toContain('applySortState(tab, nextState)');
 		expect(navbarSource).toContain(
 			'const sortState = untrack(\n\t\t\t() => sortStateByTab[tab]',
 		);

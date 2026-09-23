@@ -91,6 +91,37 @@ export type SortScopeKey =
 	| `level:${number}`
 	| `parent:${string}`;
 
+/**
+ * A persisted target in a scene's scope space. `drill` is deliberately not
+ * part of this type: it was the old, cursor-shaped spelling for a picked
+ * parent and is accepted only by the sort-state migration layer.
+ */
+export type ScopeTarget = 'all' | `level:${number}` | `parent:${string}`;
+
+/** The independent configuration carried by one scope target. */
+export interface ScopeSet {
+	/** Sort applied to direct siblings covered by this target. */
+	sort?: ScopeSort;
+	/** Grouping preset projected at the sibling lists covered by this target. */
+	groupPreset?: import('./typeGroupPreset').GroupPreset;
+	/** Per-cell overrides; omitted cells inherit from the scene base. */
+	cellToggles?: Partial<Record<string, boolean>>;
+	/** By-type filter overrides for this target. */
+	nodeTypeFilters?: string[];
+	/** Whether this target is included in the active filter policy. */
+	filterPolicy?: 'included';
+	/** Hidden targets remain persisted but are ignored by resolution. */
+	hidden?: boolean;
+}
+
+/** Per-scene scope space. `cursor` selects the set being edited only. */
+export interface ScopeState {
+	sets: Partial<Record<ScopeTarget, ScopeSet>>;
+	cursor: ScopeTarget;
+	/** Persisted migration marker for the 1-based p-node level numbering. */
+	levelBase?: 1;
+}
+
 export interface ScopeSort {
 	sortBy: string;
 	direction: ExplorerSortDirection;
@@ -98,6 +129,12 @@ export interface ScopeSort {
 
 export interface ExplorerSortState {
 	sorts: Partial<Record<SortScopeKey, ScopeSort>>;
+	/**
+	 * U130-GGC cumulative target configuration. It is persisted inside the
+	 * scene-owned sort state so legacy SceneConfig/layout ports keep carrying
+	 * one atomic scope snapshot while the old flat fields migrate in place.
+	 */
+	scopeState?: ScopeState;
 	activeScope: SortScopeKey;
 	drillNodeId?: string | null;
 	/** Spec 08 §4 `hide` on a scope row: kept in `sorts`, ignored when resolving. */

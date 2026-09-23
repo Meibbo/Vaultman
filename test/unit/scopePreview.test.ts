@@ -3,6 +3,7 @@ import {
 	scopePreviewGeometry,
 	type ScopePreviewRow,
 } from '../../src/logic/logicScopePreview';
+import viewTreeSource from '../../src/components/layout/viewTree.ts?raw';
 
 const rows: ScopePreviewRow[] = [
 	{ id: 'parent', depth: 1, hasCaret: true },
@@ -14,6 +15,14 @@ const rows: ScopePreviewRow[] = [
 ];
 
 describe('scope preview geometry', () => {
+	it('mounts the sticky preview before the virtual spacer', () => {
+		const ensureStart = viewTreeSource.indexOf('private _ensureScopePreviewElement');
+		const ensureEnd = viewTreeSource.indexOf('private _clearScopePreview', ensureStart);
+		const ensureSource = viewTreeSource.slice(ensureStart, ensureEnd);
+		expect(ensureSource).toContain('this.containerEl.prepend(overlay)');
+		expect(ensureSource).not.toContain('appendChild(overlay)');
+	});
+
 	it('covers a parent subtree and resolves a leaf to its immediate parent', () => {
 		const input = {
 			rows,

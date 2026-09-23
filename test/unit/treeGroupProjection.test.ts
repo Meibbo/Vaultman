@@ -475,6 +475,26 @@ describe('U130 Corte G — agrupacion relativa al scope', () => {
 		expect(findCounterGroupHeader(roots)).toBe(header);
 	});
 
+	it('encuentra solo el header counter del target solicitado', () => {
+		const ranges = [{ id: 'r0', lo: 0, hi: 10 }];
+		const domain = { min: 0, max: 10 };
+		const allHeader: TreeNode<null> = {
+			id: 'all-header', label: 'All', depth: 0, meta: null,
+			isGroupHeader: true, groupScopeTarget: 'all',
+			counterDomain: domain, counterRanges: ranges,
+		};
+		const parentHeader: TreeNode<null> = {
+			...allHeader, id: 'parent-header', groupScopeTarget: 'parent:folder',
+		};
+		const roots: TreeNode<null>[] = [allHeader, {
+			id: 'folder', label: 'Folder', depth: 0, meta: null,
+			children: [parentHeader],
+		}];
+		expect(findCounterGroupHeader(roots, 'parent:folder')).toBe(parentHeader);
+		expect(findCounterGroupHeader(roots, 'all')).toBe(allHeader);
+		expect(findCounterGroupHeader(roots, 'level:2')).toBeUndefined();
+	});
+
 	it('inserta headers en el slot de hijos del parent profundo, no en root', () => {
 		const roots: TreeNode<null>[] = [{
 			id: 'reference', label: 'Reference', depth: 0, meta: null,

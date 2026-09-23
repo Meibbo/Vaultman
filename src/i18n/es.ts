@@ -499,6 +499,10 @@ export const es: Record<string, string> = {
 	'settings.folder_aggregate_cells': 'Totales de cell por folder',
 	'settings.folder_aggregate_cells.desc':
 		'Los folders del árbol de Files muestran la suma recursiva de los cells de conteo de sus files (propiedades, palabras, tareas), incluyendo los totales de sus subfolders.',
+	'settings.task_cell_display_mode': 'Presentación de la celda Tasks',
+	'settings.task_cell_display_mode.desc': 'Alterna tareas pendientes y hechas/total. La agrupación siempre usa pendientes.',
+	'settings.task_cell_display_mode.done_total': 'Hechas / total',
+	'settings.task_cell_display_mode.pending': 'Tareas pendientes',
 	'settings.cell_words_include_frontmatter': 'Contar palabras del frontmatter',
 	'settings.cell_words_include_frontmatter.desc':
 		'Cuando está activo, la celda de palabras también cuenta el frontmatter YAML para coincidir con el contador de Obsidian.',
@@ -1248,6 +1252,8 @@ export const es: Record<string, string> = {
 	'group.preset.locked': 'Los grupos preset los gestiona el motor',
 	'group.preset.materialize': 'Crear grupo personalizado desde este grupo',
 	'group.counter.invalid': 'El rango counter no es válido o se solapa con otro.',
+	'group.counter.adjust': 'Ajustar rango',
+	'group.counter.adjust_unavailable': 'Este grupo no tiene un rango editable.',
 	'group.counter.lower': 'Límite inferior',
 	'group.counter.upper': 'Límite superior',
 	'group.counter.no_slice': 'No se puede añadir otro slice dentro del rango fetcheado.',

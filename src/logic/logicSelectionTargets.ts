@@ -28,3 +28,29 @@ export function resolveSelectionTargets(
 	}
 	return ordered;
 }
+
+/**
+ * Context actions use the visible operation target set, not the checkbox
+ * projection.  A pointer/context invocation therefore preserves the current
+ * selection and adds the invoked row exactly once.
+ */
+export function addInvokedSelection(
+	selectedIds: ReadonlySet<string>,
+	invokedId: string,
+): Set<string> {
+	const next = new Set(selectedIds);
+	next.add(invokedId);
+	return next;
+}
+
+/** Escape belongs to the explorer only when an editor-like surface owns it. */
+export function shouldClearExplorerSelectionOnEscape(
+	event: Pick<KeyboardEvent, 'key' | 'defaultPrevented' | 'target'>,
+): boolean {
+	if (event.key !== 'Escape' || event.defaultPrevented) return false;
+	const target = event.target as Element | null;
+	if (!target || typeof target.closest !== 'function') return true;
+	return !target.closest(
+		'input, textarea, select, [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"], .modal-container, .menu, [role="dialog"], [role="listbox"], .suggestion-container, .popover',
+	);
+}

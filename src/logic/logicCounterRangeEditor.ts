@@ -2,6 +2,11 @@ import type {
 	CounterDomain,
 	CounterRange,
 } from '../types/typeGroupPreset';
+import {
+	rebalanceCounterRange,
+	removeCounterRangeSlice,
+	type CounterRangePartitionResult,
+} from './logicCounterRangePartitions';
 
 export interface CounterRangeEdit {
 	id: string;
@@ -52,3 +57,27 @@ export function updateCounterRange(
 		range: result.range,
 	};
 }
+
+/**
+ * Structured Adjust range commit. Unlike `updateCounterRange`, this variant
+ * edits the selected slice and rebalances only its immediate neighbours so a
+ * configured domain remains a complete partition.
+ */
+export function rebalanceCounterRangeEdit(
+	ranges: readonly CounterRange[],
+	edit: CounterRangeEdit,
+	domain: CounterDomain,
+): CounterRangePartitionResult | {
+	ok: false;
+	reason: Extract<CounterRangeEditResult, { ok: false }>['reason'];
+} {
+	const parsed = validateCounterRangeEdit(edit, [], domain);
+	if (!parsed.ok) return parsed;
+	return rebalanceCounterRange(ranges, parsed.range, domain);
+}
+
+/** Alias used by command/action adapters. */
+export const applyCounterRangeEdit = rebalanceCounterRangeEdit;
+
+/** Remove a configured slice without leaving an uncovered domain. */
+export { removeCounterRangeSlice };

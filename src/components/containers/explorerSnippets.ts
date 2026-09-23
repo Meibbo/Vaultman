@@ -84,6 +84,10 @@ import {
 	type CreateGroupHandler,
 	type DegroupSelectedHandler,
 } from '../../logic/logicGroupSelectionTransaction';
+import {
+	addInvokedSelection,
+	shouldClearExplorerSelectionOnEscape,
+} from '../../logic/logicSelectionTargets';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -151,6 +155,10 @@ export class SnippetsExplorerPanel
 
 	onload(): void {
 		this.destroyed = false;
+		this.containerEl.addEventListener('keydown', this._handleSelectionEscape);
+		this.register(() =>
+			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
+		);
 		this.treeView = new UnifiedTreeView(this.containerEl);
 		void this.refresh();
 		// Snippet toggles made in core Settings surface as css-change; the poll
@@ -323,7 +331,29 @@ export class SnippetsExplorerPanel
 		});
 	}
 
-	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
+	/** Context invocation extends the axon, independently of checkbox visibility. */
+	private _includeInvokedInSelection(id: string): void {
+		const next = addInvokedSelection(this.selectedNodeIds, id);
+		if (next.size === this.selectedNodeIds.size) return;
+		this.selectedNodeIds = next;
+		this._touchSelection();
+		this.render();
+	}
+
+	/** Clears only this scene instance's row selection. */
+	clearSelection(): void {
+		if (this.selectedNodeIds.size === 0) return;
+		this.selectedNodeIds = new Set();
+		this._touchSelection();
+		this.render();
+	}
+
+	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (!shouldClearExplorerSelectionOnEscape(event)) return;
+		this.clearSelection();
+	};
+
+	/** Group selected by capacity/selection, never by input=select or checkbox visibility. */
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
 		if (!handler || this.selectedNodeIds.size === 0) {
@@ -793,7 +823,10 @@ export class SnippetsExplorerPanel
 				return;
 			}
 				const node = this.findNode(id);
-				if (node) this.openMenu(node.meta, event);
+				if (node) {
+					this._includeInvokedInSelection(id);
+					this.openMenu(node.meta, event);
+				}
 			},
 			onBadgeDoubleClick: (queueIndex) => {
 				this.plugin.queueService.remove(queueIndex);

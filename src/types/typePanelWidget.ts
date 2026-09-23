@@ -3,7 +3,7 @@ import type { ResolvedCommandAction } from '../logic/logicCommandActions';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { ToolbarOverflowStrategy } from '../logic/logicResponsiveLayout';
 import type { SavedLayout } from './typeSettings';
-import type { ExplorerSortState, ExplorerTabId } from './typeUI';
+import type { ExplorerSortState, ExplorerTabId, ScopeTarget } from './typeUI';
 import type { GroupPreset } from './typeGroupPreset';
 import type { CounterRange } from './typeGroupPreset';
 import type { MaterializePresetHandler } from '../logic/logicGroupPresets';
@@ -144,7 +144,7 @@ export interface PanelWidgetExplorerPort {
 	setGroupDeleteHandler?(handler?: GroupDeleteHandler): void;
 	/** Persist the complete explicit range set after one header edit. */
 	setCounterRangesChangeHandler?(
-		handler?: (ranges: readonly CounterRange[]) => void,
+		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void;
 	/** Add one counter bucket inside the current fetched min/max domain. */
 	createCounterRangeSlice?(): boolean;

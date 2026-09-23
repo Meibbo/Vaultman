@@ -123,8 +123,10 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTreeInScope,
+	projectGroupedTreeScopeState,
 	resolveCustomGroups,
 	toggleGroupMembers,
+	type GroupProjectionInput,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	noteSelectionState,
@@ -153,6 +155,7 @@ import {
 import type { MenuCtx } from '../../types/typeCMenu';
 import {
 	activeScopeSort,
+	hasScopeGrouping,
 	normalizeExplorerSortState,
 	sameExplorerSortState,
 	siblingScopeSort,
@@ -189,7 +192,11 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
-import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
+import {
+	addInvokedSelection,
+	resolveSelectionTargets,
+	shouldClearExplorerSelectionOnEscape,
+} from '../../logic/logicSelectionTargets';
 import {
 	addToFilesAvailability,
 	applyAddToFile,
@@ -343,6 +350,10 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		this.containerEl.addEventListener('keydown', this._handleSelectionEscape);
+		this.register(() =>
+			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
+		);
 		const svc = this.plugin.contextMenuService;
 
 		// Property actions
@@ -796,7 +807,7 @@ export class PropsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTreeInScope<PropMeta>({
+		const projectionInput: GroupProjectionInput<PropMeta> = {
 			nodes,
 			groups,
 			memberships,
@@ -825,10 +836,19 @@ export class PropsExplorerPanel extends Component {
 			// del primer hijo.
 			headerCoreCls: 'tree-item-self tappable is-clickable',
 			headerMeta: { propName: '', propType: '', isValueNode: false },
-		}, groupProjectionScope(
-			this.sortState?.activeScope ?? 'all',
-			this.sortState?.drillNodeId,
-		)) as TreeNode<PropMeta>[];
+		};
+		const projected = (this.sortState.scopeState
+			? projectGroupedTreeScopeState<PropMeta>(
+					projectionInput,
+					this.sortState.scopeState,
+				)
+			: projectGroupedTreeInScope<PropMeta>(
+					projectionInput,
+					groupProjectionScope(
+						this.sortState?.activeScope ?? 'all',
+						this.sortState?.drillNodeId,
+					),
+				)) as TreeNode<PropMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -1200,6 +1220,25 @@ export class PropsExplorerPanel extends Component {
 		this._touchSelection();
 		void this._render();
 	}
+
+	/** Context invocation extends the axon even when checkbox projection is off. */
+	private _includeInvokedInSelection(id: string): void {
+		if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
+		const next = addInvokedSelection(this.selectedNodeIds, id);
+		if (next.size === this.selectedNodeIds.size) return;
+		this._applyPropSelection(next);
+	}
+
+	/** Clears only this scene instance's row selection. */
+	clearSelection(): void {
+		if (this.selectedNodeIds.size === 0) return;
+		this._applyPropSelection(new Set());
+	}
+
+	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (!shouldClearExplorerSelectionOnEscape(event)) return;
+		this.clearSelection();
+	};
 
 	private _membershipUrnOf(node: TreeNode<PropMeta>): string {
 		const meta = node.meta;
@@ -2306,6 +2345,8 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
+		if (node.id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
+		this._includeInvokedInSelection(node.id);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
 		this.plugin.contextMenuService.openPanelMenu(
 			{
@@ -3854,7 +3895,9 @@ export class PropsExplorerPanel extends Component {
 	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
 	 */
 	private _groupingActive(): boolean {
-		return this.groupPreset.kind !== 'none';
+		return this.sortState.scopeState
+			? hasScopeGrouping(this.sortState.scopeState)
+			: this.groupPreset.kind !== 'none';
 	}
 
 	/** Spec 08 §3.2: `type` groups property nodes by their declared type. */

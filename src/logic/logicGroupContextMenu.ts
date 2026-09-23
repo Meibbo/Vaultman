@@ -104,6 +104,22 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	svc.registerAction({
+		id: 'group.adjust-range',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.counter.adjust'),
+		icon: 'lucide-between-horizontal-start',
+		when: (ctx: MenuCtx) => typeof ctx.adjustGroupRange === 'function',
+		disabledReason: (ctx: MenuCtx) =>
+			typeof ctx.adjustGroupRange === 'function'
+				? null
+				: translate('group.counter.adjust_unavailable'),
+		run: (ctx: MenuCtx) => {
+			ctx.adjustGroupRange?.();
+		},
+	});
+
+	svc.registerAction({
 		id: 'group.toggle-expand',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
@@ -112,6 +128,8 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 				? translate('group.caret.expand')
 				: translate('group.caret.collapse'),
 		icon: 'lucide-chevrons-up-down',
+		when: (ctx: MenuCtx) =>
+			Boolean(ctx.groupId) && typeof ctx.toggleGroupExpand === 'function',
 		disabledReason: (ctx: MenuCtx) =>
 			typeof ctx.toggleGroupExpand === 'function' && ctx.groupId
 				? null
@@ -141,8 +159,16 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		surfaces: ['panel'],
 		label: () => translate('group.icon.change'),
 		icon: 'lucide-palette',
-		disabledReason: () => translate('group.icon.unavailable'),
-		run: () => {
+		when: (ctx: MenuCtx) => typeof ctx.changeGroupIcon === 'function',
+		disabledReason: (ctx: MenuCtx) =>
+			typeof ctx.changeGroupIcon === 'function'
+				? null
+				: translate('group.icon.unavailable'),
+		run: (ctx: MenuCtx) => {
+			if (ctx.changeGroupIcon) {
+				void ctx.changeGroupIcon();
+				return;
+			}
 			new Notice(translate('group.icon.unavailable'));
 		},
 	});
@@ -156,6 +182,10 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 				? translate('group.row.unhide')
 				: translate('group.row.hide'),
 		icon: 'lucide-eye-off',
+		when: (ctx: MenuCtx) =>
+			Boolean(ctx.groupId) &&
+			(isCustom(ctx) || isPreset(ctx) || ctx.groupOwner === 'note') &&
+			typeof ctx.hideGroup === 'function',
 		disabledReason: (ctx: MenuCtx) =>
 			ctx.groupId && (isCustom(ctx) || isPreset(ctx) || ctx.groupOwner === 'note') &&
 				typeof ctx.hideGroup === 'function'
@@ -174,8 +204,14 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		label: () => translate('group.row.delete'),
 		icon: 'lucide-trash-2',
 		separatorBefore: true,
+		// Presets are projections, not mutable memberships. Delete is hidden
+		// rather than rendered as a disabled dead-end row.
+		when: (ctx: MenuCtx) =>
+			(isCustom(ctx) || ctx.groupOwner === 'note') &&
+			typeof ctx.deleteGroup === 'function',
 		disabledReason: (ctx: MenuCtx) => {
-			if (!isCustom(ctx)) return translate('group.delete.preset');
+			if (!isCustom(ctx) && ctx.groupOwner !== 'note')
+				return translate('group.delete.preset');
 			return ctx.groupId && typeof ctx.deleteGroup === 'function'
 				? null
 				: translate('group.delete.unavailable');

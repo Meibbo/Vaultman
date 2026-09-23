@@ -114,6 +114,22 @@ describe('U130 — counter presets consume folder cell_bubbling', () => {
 		).toBe(7);
 		expect(
 			bubbledFolderCounterValue(
+				folder({ tasksText: '3/10', taskPendingCount: 7 }),
+				'tasks',
+				new Set(),
+				true,
+			),
+		).toBe(7);
+		expect(
+			bubbledFolderCounterValue(
+				folder({ wordCountText: '1.2k', wordCountValue: 1200 }),
+				'words',
+				new Set(),
+				true,
+			),
+		).toBe(1200);
+		expect(
+			bubbledFolderCounterValue(
 				folder({ count: 12 }),
 				'props',
 				new Set(['count']),

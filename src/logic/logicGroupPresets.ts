@@ -10,6 +10,21 @@ import {
 	cloneGroupPreset,
 	isCounterPresetKind,
 } from '../types/typeGroupPreset';
+import {
+	addCounterRangeSlice,
+	contiguousCounterRanges,
+	removeCounterRangeSlice,
+	rebalanceCounterRange,
+	validateCounterRangePartition,
+	isCounterRangePartition,
+	type AddCounterRangeSliceResult,
+	type RemoveCounterRangeSliceResult,
+	type CounterRangePartitionResult,
+} from './logicCounterRangePartitions';
+import {
+	resolveTaskGroupingMetric,
+	type TaskMetricInput,
+} from './logicTaskMetric';
 import type { ExplorerSortDirection } from '../types/typeUI';
 import type { TreeNode } from '../types/typeTree';
 import type { GroupMutationResult } from './logicGroupSelectionTransaction';
@@ -43,6 +58,8 @@ export interface PresetBucketSnapshot {
 	readonly entityIds: readonly string[];
 	readonly urns: readonly string[];
 	readonly projectionRevision: number | null;
+	/** Target that owns the visible preset header, not the menu cursor. */
+	readonly scopeTarget?: import('../types/typeUI').ScopeTarget;
 }
 
 export type MaterializePresetHandler = (
@@ -68,6 +85,7 @@ export function snapshotPresetBucket<TMeta>(
 	return Object.freeze({
 		bucketId: header.entityId ?? header.id,
 		label: header.label,
+		...(header.groupScopeTarget ? { scopeTarget: header.groupScopeTarget } : {}),
 		entityIds: Object.freeze(entityIds),
 		urns: Object.freeze(urns),
 		projectionRevision,
@@ -115,7 +133,7 @@ export type MaterializePresetResult<
 export type PresetValueOf<T> = (
 	node: T,
 	kind: GroupPresetKind,
-) => string | number | null;
+) => string | number | TaskMetricInput | null;
 
 export interface RangeLabels {
 	/** `lo–hi` for a closed numeric range (`lo` alone when lo === hi). */
@@ -211,86 +229,31 @@ export function materializeCounterRanges<T extends { label: string }>(
 		.map((value) => Math.max(0, Math.floor(value)));
 	const count = sectionCount(values.length);
 	if (count < 2) return cloneGroupPreset(preset);
-	const ranges = quantileRanges([...values].sort((a, b) => a - b), count).map(
+	const min = Math.min(...values);
+	const max = Math.max(...values);
+	const ranges = contiguousCounterRanges(
+		quantileRanges([...values].sort((a, b) => a - b), count).map(
 		(range, index) => ({ ...range, id: counterRangeId(index) }),
+		),
+		{ min, max },
 	);
 	return { ...cloneGroupPreset(preset), counterRanges: ranges };
 }
 
-export type AddCounterRangeSliceResult =
-	| { ok: true; ranges: CounterRange[]; addedId: string }
-	| { ok: false; reason: 'invalid_domain' | 'no_slice_available' };
-
-function nextCounterRangeId(ranges: readonly CounterRange[]): string {
-	const used = new Set(ranges.map((range) => range.id));
-	let index = ranges.length;
-	while (used.has(counterRangeId(index))) index += 1;
-	return counterRangeId(index);
-}
-
-/**
- * Add one integer slice without extending the fetched domain. Prefer an
- * uncovered gap; otherwise split the widest existing interval and preserve
- * its id on the lower half. Other intervals are never changed.
- */
-export function addCounterRangeSlice(
-	ranges: readonly CounterRange[],
-	domain: CounterDomain,
-): AddCounterRangeSliceResult {
-	if (
-		!Number.isInteger(domain.min) ||
-		!Number.isInteger(domain.max) ||
-		domain.min < 0 ||
-		domain.min > domain.max
-	)
-		return { ok: false, reason: 'invalid_domain' };
-	const ordered = ranges
-		.map((range) => ({ ...range }))
-		.sort((a, b) => a.lo - b.lo || a.hi - b.hi);
-	const gaps: Array<{ lo: number; hi: number }> = [];
-	let cursor = domain.min;
-	for (const range of ordered) {
-		if (range.hi < domain.min || range.lo > domain.max) continue;
-		const lo = Math.max(domain.min, range.lo);
-		const hi = Math.min(domain.max, range.hi);
-		if (cursor < lo) gaps.push({ lo: cursor, hi: lo - 1 });
-		cursor = Math.max(cursor, hi + 1);
-	}
-	if (cursor <= domain.max) gaps.push({ lo: cursor, hi: domain.max });
-	const addedId = nextCounterRangeId(ordered);
-	const gap = gaps.sort((a, b) => b.hi - b.lo - (a.hi - a.lo))[0];
-	if (gap) {
-		return {
-			ok: true,
-			addedId,
-			ranges: [...ordered, { id: addedId, ...gap }].sort(
-				(a, b) => a.lo - b.lo || a.hi - b.hi,
-			),
-		};
-	}
-	let splitIndex = -1;
-	let splitWidth = 0;
-	for (const [index, range] of ordered.entries()) {
-		const lo = Math.max(domain.min, range.lo);
-		const hi = Math.min(domain.max, range.hi);
-		if (hi - lo > splitWidth) {
-			splitWidth = hi - lo;
-			splitIndex = index;
-		}
-	}
-	if (splitIndex < 0 || splitWidth < 1)
-		return { ok: false, reason: 'no_slice_available' };
-	const source = ordered[splitIndex]!;
-	const midpoint = Math.floor((source.lo + source.hi) / 2);
-	const next = ordered.map((range) => ({ ...range }));
-	next[splitIndex] = { ...source, hi: midpoint };
-	next.splice(splitIndex + 1, 0, {
-		id: addedId,
-		lo: midpoint + 1,
-		hi: source.hi,
-	});
-	return { ok: true, ranges: next, addedId };
-}
+// Keep the historical import path stable while the actual partition engine
+// lives in its own pure module (also used by Adjust range helpers).
+export type {
+	AddCounterRangeSliceResult,
+	RemoveCounterRangeSliceResult,
+	CounterRangePartitionResult,
+};
+export {
+	addCounterRangeSlice,
+	removeCounterRangeSlice,
+	rebalanceCounterRange,
+	validateCounterRangePartition,
+	isCounterRangePartition,
+};
 
 export function materializePresetAsCustom<
 	T extends { label: string; id: string; entityId?: string },
@@ -468,14 +431,24 @@ export function buildPresetBuckets<T extends { label: string }>(
 	const ungrouped: T[] = [];
 	for (const node of nodes) {
 		const raw = valueOf(node, kind);
-		if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+		const numeric =
+			kind === 'tasks'
+				? resolveTaskGroupingMetric(raw)
+				: typeof raw === 'number' && Number.isFinite(raw)
+					? raw
+					: null;
+		if (numeric === null) {
 			ungrouped.push(node);
 			continue;
 		}
-		valued.push({ node, value: isDate ? daysAgo(raw, now) : raw });
+		valued.push({ node, value: isDate ? daysAgo(numeric, now) : numeric });
 	}
-	const explicitRanges = isCounter && preset.counterRanges !== undefined;
-	const counterValues = isCounter
+	const explicitRanges =
+		(isCounter || isDate) && preset.counterRanges !== undefined;
+	// Counter and date presets share the same closed-partition editor. Dates
+	// are already represented as integer days-ago, so their fetched domain is
+	// just as bounded and editable as a word/task count domain.
+	const counterValues = (isCounter || isDate)
 		? valued.map((entry) => Math.max(0, Math.floor(entry.value)))
 		: [];
 	const counterDomain =
@@ -484,11 +457,24 @@ export function buildPresetBuckets<T extends { label: string }>(
 			: undefined;
 	const ranges: CounterRange[] = explicitRanges
 		? preset.counterRanges!.map((range) => ({ ...range }))
-		: quantileRanges(
-				valued.map((entry) => entry.value).sort((a, b) => a - b),
-				sectionCount(valued.length),
-			).map((range, index) => ({ ...range, id: counterRangeId(index) }));
-	if (!explicitRanges && ranges.length < 2) return null;
+		: (() => {
+				const values = valued
+					.map((entry) => entry.value)
+					.sort((a, b) => a - b);
+				const rawRanges = quantileRanges(values, sectionCount(valued.length)).map(
+					(range, index) => ({ ...range, id: counterRangeId(index) }),
+				);
+				return values.length > 0
+					? contiguousCounterRanges(rawRanges, {
+							min: Math.min(...values),
+							max: Math.max(...values),
+					  })
+					: rawRanges;
+		  })();
+	// A sufficiently large population may still collapse to one range when
+	// every value is equal (quantiles must not split equal values). Keep that
+	// single bucket; only the genuinely small automatic population opts out.
+	if (!explicitRanges && sectionCount(valued.length) < 2) return null;
 	if (ranges.length === 0) return null;
 	const buckets: PresetBucket<T>[] = ranges.map((range) => ({
 		key: range.id,
@@ -498,7 +484,7 @@ export function buildPresetBuckets<T extends { label: string }>(
 				: labels.daysAgo(range.lo, range.hi)
 			: labels.span(range.lo, range.hi),
 		members: [],
-		...(isCounter ? { range } : {}),
+		...((isCounter || isDate) ? { range } : {}),
 	}));
 	for (const { node, value } of valued) {
 		const index = ranges.findIndex((r) => value >= r.lo && value <= r.hi);

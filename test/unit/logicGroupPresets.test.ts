@@ -306,11 +306,14 @@ describe('spec 08 §3.2.1 — range sectioning', () => {
 			},
 		);
 		expect(out?.buckets.map((b) => [b.label, b.members.length])).toEqual([
-			['Last 13 days', 5],
+			['Last 15 days', 5],
 			['15–27 days ago', 5],
 		]);
-		expect(out?.buckets.every((bucket) => bucket.range === undefined)).toBe(true);
-		expect(out?.counterDomain).toBeUndefined();
+		expect(out?.buckets.map((bucket) => bucket.range)).toEqual([
+			{ id: 'counter-range-1', lo: 0, hi: 14 },
+			{ id: 'counter-range-2', lo: 15, hi: 27 },
+		]);
+		expect(out?.counterDomain).toEqual({ min: 0, max: 27 });
 	});
 });
 

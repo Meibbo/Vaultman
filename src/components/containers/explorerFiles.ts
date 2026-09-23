@@ -53,8 +53,10 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTreeInScope,
+	projectGroupedTreeScopeState,
 	resolveCustomGroups,
 	toggleGroupMembers,
+	type GroupProjectionInput,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	noteSelectionState,
@@ -73,13 +75,14 @@ import {
 } from '../../types/typeGroupPreset';
 import {
 	addCounterRangeSlice,
+	rebalanceCounterRange,
 	snapshotPresetBucket,
 	type MaterializePresetHandler,
 } from '../../logic/logicGroupPresets';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
-import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort, ScopeTarget } from '../../types/typeUI';
 import {
 	fileHoverEntries,
 	resolveFileHoverEntries,
@@ -92,7 +95,10 @@ import {
 } from '../../logic/logicNodeTypeFilters';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
-import { formatTaskStats } from '../../services/serviceStatisticsCache';
+import {
+	resolveTaskCellText,
+	resolveTaskGroupingMetric,
+} from '../../logic/logicTaskMetric';
 import {
 	buildFileRenameChange,
 	FileRenameModal,
@@ -148,6 +154,7 @@ import {
 import { bubbleMaxToFolders } from '../../logic/logicLastOpened';
 import {
 	activeScopeSort,
+	hasScopeGrouping,
 	normalizeExplorerSortState,
 	siblingScopeSort,
 	replaceActiveScopeSort,
@@ -190,7 +197,11 @@ import {
 	toggleDescendantSelection,
 	updateFileSelection,
 } from '../../logic/logicNodeSelection';
-import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
+import {
+	addInvokedSelection,
+	resolveSelectionTargets,
+	shouldClearExplorerSelectionOnEscape,
+} from '../../logic/logicSelectionTargets';
 import {
 	runMultiCreate,
 	toErrorMessage,
@@ -265,21 +276,19 @@ function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 export function bubbledFolderCounterValue(
 	node: TreeNode<FileMeta>,
 	kind: GroupPreset['kind'],
-	visibleCells: ReadonlySet<string>,
+	_visibleCells: ReadonlySet<string>,
 	bubblingEnabled: boolean,
 ): number | null {
 	if (!node.meta?.isFolder || !bubblingEnabled) return null;
-	if (kind === 'words' && visibleCells.has('words')) {
-		const words = Number(node.wordCountText ?? 0);
+	if (kind === 'words') {
+		const words = node.wordCountValue ?? Number(node.wordCountText ?? 0);
 		return Number.isFinite(words) ? words : null;
 	}
-	if (kind === 'props' && visibleCells.has('count')) {
+	if (kind === 'props') {
 		return node.count ?? 0;
 	}
-	if (kind === 'tasks' && visibleCells.has('tasks')) {
-		const match = /^(\d+)\/(\d+)$/.exec(node.tasksText ?? '0/0');
-		if (!match) return null;
-		return Math.max(0, Number(match[2]) - Number(match[1]));
+	if (kind === 'tasks') {
+		return node.taskPendingCount ?? resolveTaskGroupingMetric(node.tasksText);
 	}
 	return null;
 }
@@ -329,7 +338,7 @@ export class FilesExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTreeInScope<FileMeta>({
+		const projectionInput: GroupProjectionInput<FileMeta> = {
 			nodes,
 			groups,
 			memberships,
@@ -359,10 +368,19 @@ export class FilesExplorerPanel extends Component {
 			// prestada del primer hijo.
 			headerCoreCls: 'tree-item-self nav-folder-title is-clickable',
 			headerMeta: { file: null, folder: null, isFolder: true, folderPath: '' },
-		}, groupProjectionScope(
-			this.sortState?.activeScope ?? 'all',
-			this.sortState?.drillNodeId,
-		)) as TreeNode<FileMeta>[];
+		};
+		const projected = (this.sortState.scopeState
+			? projectGroupedTreeScopeState<FileMeta>(
+					projectionInput,
+					this.sortState.scopeState,
+				)
+			: projectGroupedTreeInScope<FileMeta>(
+					projectionInput,
+					groupProjectionScope(
+						this.sortState?.activeScope ?? 'all',
+						this.sortState?.drillNodeId,
+					),
+				)) as TreeNode<FileMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -460,6 +478,7 @@ export class FilesExplorerPanel extends Component {
 	private groupDeleteHandler?: (groupId: string) => void;
 	private counterRangesChangeHandler?: (
 		ranges: readonly CounterRange[],
+		target: ScopeTarget,
 	) => void;
 	/** Guarda de reconciliación (instance/revision de esta scene). */
 	private selectionInstanceId: string | null = null;
@@ -499,6 +518,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		this.containerEl.addEventListener('keydown', this._handleSelectionEscape);
+		this.register(() =>
+			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
+		);
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -1130,23 +1153,31 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	setCounterRangesChangeHandler(
-		handler?: (ranges: readonly CounterRange[]) => void,
+		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
 		this.counterRangesChangeHandler = handler;
 	}
 
 	createCounterRangeSlice(): boolean {
 		if (!this.counterRangesChangeHandler) return false;
-		const header = findCounterGroupHeader(
-			this.projectedNodes(this._lastRenderTree),
-		);
+		const target = this.sortState.scopeState?.cursor ?? 'all';
+		const candidates: ScopeTarget[] = [target];
+		if (target.startsWith('parent:')) {
+			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
+			if (parentLevel !== null) candidates.push(`level:${parentLevel + 1}`);
+		}
+		if (target !== 'all') candidates.push('all');
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const header = candidates
+			.map((candidate) => findCounterGroupHeader(projected, candidate))
+			.find((candidate) => candidate !== undefined);
 		if (!header?.counterDomain || !header.counterRanges) return false;
 		const result = addCounterRangeSlice(
 			header.counterRanges,
 			header.counterDomain,
 		);
 		if (!result.ok) return false;
-		this.counterRangesChangeHandler(result.ranges);
+		this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 		return true;
 	}
 
@@ -1227,6 +1258,26 @@ export class FilesExplorerPanel extends Component {
 			},
 		};
 	}
+
+	/** Context invocation extends selection independently of checkbox display. */
+	private _includeInvokedInSelection(id: string): void {
+		const next = addInvokedSelection(this.selectedFilePaths, id);
+		if (next.size === this.selectedFilePaths.size) return;
+		this._applyFileSelection({
+			selectedPaths: next,
+			anchorPath: this.selectionAnchorPath ?? id,
+		});
+	}
+
+	clearSelection(): void {
+		if (this.selectedFilePaths.size === 0) return;
+		this._applyFileSelection({ selectedPaths: new Set(), anchorPath: null });
+	}
+
+	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (!shouldClearExplorerSelectionOnEscape(event)) return;
+		this.clearSelection();
+	};
 
 	/**
 	 * U130 Degroup selected (spec-02 §5): targets = selección efectiva ∩
@@ -1835,6 +1886,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _openFileContextMenu(file: TFile, event: MouseEvent): void {
+		this._includeInvokedInSelection(file.path);
 		const syntheticNode = {
 			id: file.path,
 			label: file.name,
@@ -1851,7 +1903,10 @@ export class FilesExplorerPanel extends Component {
 				nodeType: 'file',
 				node: syntheticNode,
 				surface: 'panel',
+				selectedIds: this.selectedFilePaths,
+				orderedIds: this._orderedVisibleTreeIds(),
 				...this._groupCreationMenuCtx(),
+				...this._degroupMenuCtx(syntheticNode),
 				file,
 				...this._viewFilterMenuActions(),
 			},
@@ -2574,6 +2629,7 @@ export class FilesExplorerPanel extends Component {
 			this._decorateTreeWithNodeNotes(nodes);
 		}
 		this._setIndexRoots(nodes, []);
+		const projectedTree = this.projectedNodes(nodes);
 		this._treeRenderOpts = {
 			...this._treeRenderOpts,
 			nodes,
@@ -2588,14 +2644,20 @@ export class FilesExplorerPanel extends Component {
 			counterRangeBoundLabel: (bound) =>
 				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
 			onCounterRangeCommit: (_id, range) => {
-				const ranges = this._findNode(_id, this.projectedNodes(nodes))
-					?.counterRanges;
-				if (!ranges || !this.counterRangesChangeHandler) return;
-				this.counterRangesChangeHandler(
-					ranges.map((entry) =>
-						entry.id === range.id ? { ...range } : { ...entry },
-					),
+				const header = this._findNode(_id, projectedTree);
+				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
+					return false;
+				const result = rebalanceCounterRange(
+					header.counterRanges,
+					range,
+					header.counterDomain,
 				);
+				if (!result.ok) {
+					new Notice(translate('group.counter.invalid'));
+					return false;
+				}
+				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+				return true;
 			},
 			onCounterRangeError: () =>
 				new Notice(translate('group.counter.invalid')),
@@ -2603,7 +2665,7 @@ export class FilesExplorerPanel extends Component {
 		};
 		this.treeView.render({
 			...this._treeRenderOpts,
-			nodes: this.projectedNodes(nodes),
+			nodes: projectedTree,
 		});
 		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 	}
@@ -2881,14 +2943,20 @@ export class FilesExplorerPanel extends Component {
 				counterRangeBoundLabel: (bound) =>
 					translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
 				onCounterRangeCommit: (id, range) => {
-					const ranges = this._findNode(id, projectedTree)
-						?.counterRanges;
-					if (!ranges || !this.counterRangesChangeHandler) return;
-					this.counterRangesChangeHandler(
-						ranges.map((entry) =>
-							entry.id === range.id ? { ...range } : { ...entry },
-						),
+					const header = this._findNode(id, projectedTree);
+					if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
+						return false;
+					const result = rebalanceCounterRange(
+						header.counterRanges,
+						range,
+						header.counterDomain,
 					);
+					if (!result.ok) {
+						new Notice(translate('group.counter.invalid'));
+						return false;
+					}
+					this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+					return true;
 				},
 				onCounterRangeError: () =>
 					new Notice(translate('group.counter.invalid')),
@@ -3013,6 +3081,7 @@ export class FilesExplorerPanel extends Component {
 					}
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
+					this._includeInvokedInSelection(id);
 					const meta = node.meta;
 					if (meta.isFolder) {
 						if (event?.button === 1) return;
@@ -3099,6 +3168,10 @@ export class FilesExplorerPanel extends Component {
 							hideGroup: this.groupHideHandler,
 							deleteGroup: this.groupDeleteHandler,
 							groupExpanded: this.expandedIds.has(id),
+							adjustGroupRange:
+								header?.counterRange && header.counterDomain
+									? () => this.treeView?.beginCounterRangeEdit(id)
+									: undefined,
 							materializePreset:
 								this._groupIds.has(groupId) || !header || !this.materializePresetHandler
 									? undefined
@@ -3906,7 +3979,9 @@ export class FilesExplorerPanel extends Component {
 	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
 	 */
 	private _groupingActive(): boolean {
-		return this.groupPreset.kind !== 'none';
+		return this.sortState.scopeState
+			? hasScopeGrouping(this.sortState.scopeState)
+			: this.groupPreset.kind !== 'none';
 	}
 
 	/** Spec 08 §3.2: what each value preset reads off a Files node. */
@@ -3927,9 +4002,9 @@ export class FilesExplorerPanel extends Component {
 			case 'type':
 				return file.extension || null;
 			case 'words':
-				return this.plugin.statisticsCache.getFileWordCount(file) ?? 0;
+				return this.plugin.statisticsCache.getFileWordCount(file);
 			case 'tasks':
-				return this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0;
+				return this.plugin.statisticsCache.getFileRemainingTasks(file);
 			case 'props':
 				return this._propCountForFile(file);
 			case 'modified':
@@ -4063,31 +4138,36 @@ export class FilesExplorerPanel extends Component {
 	private _prepareTreeNodeCells(node: TreeNode<FileMeta>): void {
 		const file = node.meta.file;
 		if (!file) return;
+		const cells = new Set(this.visibleCells);
+		for (const [id, enabled] of Object.entries(node.scopeCellToggles ?? {})) {
+			if (enabled) cells.add(id);
+			else cells.delete(id);
+		}
 		const showMtime =
-			this.visibleCells.has('mtime') || this.visibleCells.has('updated');
+			cells.has('mtime') || cells.has('updated');
 		const showCtime =
-			this.visibleCells.has('ctime') || this.visibleCells.has('installed');
+			cells.has('ctime') || cells.has('installed');
 		if (showMtime || showCtime) {
 			const times = this.plugin.statisticsCache.getFileTimes(file);
 			if (showMtime) node.mtimeText = this._formatDateCell(times.mtime);
 			if (showCtime) node.ctimeText = this._formatDateCell(times.ctime);
 		}
-		if (this.visibleCells.has('opened')) {
+		if (cells.has('opened')) {
 			node.openedText = this._formatOpenedCell(file);
 		}
-		if (this.visibleCells.has('words')) {
+		if (cells.has('words')) {
 			const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
 			node.wordCountText =
 				wordCount === null ? undefined : this._formatWordCountCell(wordCount);
 		}
-		if (this.visibleCells.has('tasks')) {
+		if (cells.has('tasks')) {
 			const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
 			node.tasksText =
 				taskStats === null || taskStats.total === 0
 					? undefined
-					: formatTaskStats(taskStats);
+					: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? undefined;
 		}
-		if (this.visibleCells.has('tags')) {
+		if (cells.has('tags')) {
 			const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
 			node.tagsText = tagCount === null ? undefined : String(tagCount);
 		}
@@ -4568,7 +4648,7 @@ export class FilesExplorerPanel extends Component {
 			);
 			if (laterCell) badgeZone.insertBefore(taskCell, laterCell);
 		}
-		const text = formatTaskStats(taskStats);
+		const text = resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? '';
 		if (taskCell.textContent !== text) taskCell.textContent = text;
 		}
 	}
@@ -4596,7 +4676,9 @@ export class FilesExplorerPanel extends Component {
 				const taskStats = this.plugin.statisticsCache.getFileTaskStats(file);
 				if (taskStats !== null) {
 					node.tasksText =
-						taskStats.total === 0 ? undefined : formatTaskStats(taskStats);
+						taskStats.total === 0
+							? undefined
+							: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? undefined;
 				}
 			}
 		};
@@ -4891,12 +4973,15 @@ export class FilesExplorerPanel extends Component {
 	} | null {
 		const files = this.visibleCells.has('file-count');
 		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
+		const scopedPresets = Object.values(this.sortState.scopeState?.sets ?? {})
+			.filter((set) => set?.hidden !== true)
+			.map((set) => set?.groupPreset?.kind);
 		const flags = {
 			files,
-			count: this.visibleCells.has('count'),
-			words: this.visibleCells.has('words'),
+			count: this.visibleCells.has('count') || this.groupPreset.kind === 'props' || scopedPresets.includes('props'),
+			words: this.visibleCells.has('words') || this.groupPreset.kind === 'words' || scopedPresets.includes('words'),
 			tags: this.visibleCells.has('tags'),
-			tasks: this.visibleCells.has('tasks'),
+			tasks: this.visibleCells.has('tasks') || this.groupPreset.kind === 'tasks' || scopedPresets.includes('tasks'),
 		};
 		return Object.values(flags).some(Boolean) ? flags : null;
 	}
@@ -4914,7 +4999,9 @@ export class FilesExplorerPanel extends Component {
 						: null;
 				return {
 					files: node.meta.file ? 1 : 0,
-					count: node.meta.file && flags.count ? (node.count ?? 0) : 0,
+					count: node.meta.file && flags.count
+						? this._propCountForFile(node.meta.file)
+						: 0,
 					words:
 						node.meta.file && flags.words
 							? (this.plugin.statisticsCache.getFileWordCount(
@@ -4948,15 +5035,17 @@ export class FilesExplorerPanel extends Component {
 	): void {
 		node.fileCountText = flags.files ? String(total.files) : undefined;
 		node.count = total.count > 0 ? total.count : undefined;
+		node.wordCountValue = flags.words ? total.words : undefined;
 		node.wordCountText =
 			total.words > 0 ? this._formatWordCountCell(total.words) : undefined;
 		node.tagsText = flags.tags ? String(total.tags) : undefined;
+		node.taskPendingCount = flags.tasks ? total.tasks : undefined;
 		node.tasksText =
 			total.tasksTotal > 0
-				? formatTaskStats({
+				? resolveTaskCellText({
 						completed: total.tasksCompleted,
 						total: total.tasksTotal,
-					})
+					}, this.plugin.settings.taskCellDisplayMode) ?? undefined
 				: undefined;
 	}
 
@@ -5074,7 +5163,7 @@ export class FilesExplorerPanel extends Component {
 				tasks:
 					taskStats === null || taskStats.total === 0
 						? null
-						: formatTaskStats(taskStats),
+						: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode),
 				count: this._propCountForFile(file),
 			},
 			labels,

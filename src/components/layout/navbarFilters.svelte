@@ -30,6 +30,7 @@ import {
 		ExplorerTabId,
 		ExplorerSortState,
 		ExplorerViewMode,
+		ScopeTarget,
 	} from '../../types/typeUI';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
@@ -41,11 +42,16 @@ import {
 	} from '../../logic/logicSort';
 	import {
 		activeScopeSort,
+		cloneScopeState,
+		levelOfScope,
 		levelScope,
+		mergeScopeStates,
 		normalizeExplorerSortState,
 		parentOfScope,
 		replaceActiveScopeSort,
+		resolveScopeSet,
 		sameExplorerSortState,
+		scopeStateFromLegacy,
 		storageScope,
 	} from '../../logic/logicScopedSort';
 	import {
@@ -141,6 +147,7 @@ import {
 	import { openCommandPicker } from '../../modals/modalCommandPicker';
 	import {
 		GROUP_PRESETS_BY_TAB,
+		cloneGroupPreset,
 		isCounterPresetKind,
 		type CounterRange,
 		type GroupPreset,
@@ -150,6 +157,11 @@ import {
 		planGroupMembershipBatch,
 	} from '../../modals/modalGroupSuggester';
 	import { resolveCustomGroups } from '../../logic/logicTreeGroupProjection';
+	import {
+		makeScopedGroupKey,
+		parseScopedGroupKey,
+		type ScopedCustomTarget,
+	} from '../../logic/logicScopedCustomGroups';
 	import type { PresetBucketSnapshot } from '../../logic/logicGroupPresets';
 	import {
 		ADD_PROPERTY_ROW_ID,
@@ -636,16 +648,50 @@ import {
 	 * `configByTab[tab].groupMemberships`. No layout is consulted: the layout
 	 * is a photo that `loadLayout` copied into the scene, not the owner.
 	 */
+	function currentCustomGroupTarget(tab: FiltersTab): ScopedCustomTarget {
+		const state = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const target = storageScope(state, state.activeScope);
+		// Level 0 sorts group headers; it is not a member-bearing sibling list.
+		return target === 'level:0' ? 'all' : target as ScopedCustomTarget;
+	}
+	function customGroupStorageId(
+		memberships: Readonly<Record<string, readonly string[]>>,
+		target: ScopedCustomTarget,
+		name: string,
+	): string {
+		// Preserve a legacy all-level group's ID until an explicit migration.
+		if (
+			target === 'all' &&
+			parseScopedGroupKey(name).legacy &&
+			Object.prototype.hasOwnProperty.call(memberships, name)
+		)
+			return name;
+		return makeScopedGroupKey(target, name);
+	}
+	function customGroupScopeLabel(tab: FiltersTab, target: ScopedCustomTarget): string {
+		if (target === 'all') return translate('sort.level.all');
+		if (target.startsWith('level:'))
+			return translate('sort.scope.level_n', { n: Number(target.slice('level:'.length)) });
+		const parentId = target.slice('parent:'.length);
+		return `lvl: ${treePanelForTab(tab)?.sortNodeLabel?.(parentId) ?? parentId}`;
+	}
 	function customGroupsForMenu(
 		tab: FiltersTab,
+		selectedTarget?: ScopedCustomTarget,
 	): { id: string; label: string; hidden: boolean }[] {
 		const memberships = configByTab[tab].groupMemberships;
 		const hidden = new Set(configByTab[tab].hiddenGroupIds);
-		return Object.keys(memberships).map((id) => ({
-			id,
-			label: id,
-			hidden: hidden.has(id),
-		}));
+		return Object.keys(memberships).flatMap((id) => {
+			const parsed = parseScopedGroupKey(id);
+			if (selectedTarget && parsed.target !== selectedTarget) return [];
+			return [{
+				id,
+				label: selectedTarget
+					? parsed.name
+					: `${parsed.name} · ${customGroupScopeLabel(tab, parsed.target)}`,
+				hidden: hidden.has(id),
+			}];
+		});
 	}
 	/** Spec 08 §4 `hide`: per instance, reversible; the group survives in the layout. */
 	function setGroupHidden(tab: FiltersTab, id: string, hidden: boolean) {
@@ -670,20 +716,67 @@ import {
 		setGroupHidden(tab, id, false);
 	}
 	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
-		commitConfig(tab, { groupPreset: next });
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+		const targetSet = {
+			...(scopeState.sets[target] ?? {}),
+			groupPreset: cloneGroupPreset(next),
+		};
+		delete targetSet.hidden;
+		scopeState.sets[target] = targetSet;
+		const sortState = { ...currentSort, scopeState };
+		commitConfig(tab, { groupPreset: next, sortState });
+		applySortState(tab, sortState);
 		applyGroupPreset(tab, next);
 	}
 	function setCounterRangesFor(
 		tab: FiltersTab,
 		ranges: readonly CounterRange[],
+		target: ScopeTarget,
 	): void {
-		const preset = configByTab[tab].groupPreset;
-		if (!['words', 'tasks', 'props'].includes(preset.kind)) return;
-		setGroupPresetFor(tab, {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const preset = scopeState.sets[target]?.groupPreset;
+		if (!preset) return;
+		if (!['words', 'tasks', 'props', 'modified', 'created', 'opened'].includes(preset.kind))
+			return;
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			groupPreset: {
 			kind: preset.kind,
 			direction: preset.direction,
 			counterRanges: ranges.map((range) => ({ ...range })),
-		});
+			},
+		};
+		const cursor = storageScope(currentSort, currentSort.activeScope) as ScopeTarget;
+		const parentId = parentOfScope(cursor);
+		const level = parentId
+			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+			: (levelOfScope(cursor) ?? 1);
+		const effectivePreset = resolveScopeSet(
+			scopeState,
+			{ level, parentId },
+			{ groupPreset: { kind: 'none', direction: 'asc' } },
+		).groupPreset ?? { kind: 'none', direction: 'asc' };
+		const sortState = { ...currentSort, scopeState };
+		commitConfig(tab, { sortState, groupPreset: effectivePreset });
+		applySortState(tab, sortState);
+		applyGroupPreset(tab, effectivePreset);
 	}
 
 	async function materializePresetBucket(
@@ -702,26 +795,44 @@ import {
 		)?.trim();
 		if (!name) return { status: 'cancelled' };
 		const current = configByTab[tab];
-		if (name in current.groupMemberships)
+		const target = snapshot.scopeTarget ?? currentCustomGroupTarget(tab);
+		const groupId = customGroupStorageId(current.groupMemberships, target, name);
+		if (Object.prototype.hasOwnProperty.call(current.groupMemberships, groupId))
 			return { status: 'rejected', reason: 'group_name_collision' };
 		const nextMemberships = {
 			...current.groupMemberships,
-			[name]: [...snapshot.urns],
+			[groupId]: [...snapshot.urns],
 		};
 		const nextPreset: GroupPreset = {
 			kind: 'custom',
 			direction: current.groupPreset.direction,
 		};
-		// One SceneConfig patch: membership + selected preset become visible atomically.
+		const currentSort = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, current.groupPreset);
+		const targetSet = {
+			...(scopeState.sets[target] ?? {}),
+			groupPreset: cloneGroupPreset(nextPreset),
+		};
+		delete targetSet.hidden;
+		scopeState.sets[target] = targetSet;
+		const sortState = { ...currentSort, scopeState };
+		const cursorPreset = target === currentCustomGroupTarget(tab)
+			? nextPreset
+			: current.groupPreset;
+		// One SceneConfig patch: membership and the target preset become visible atomically.
 		commitConfig(tab, {
 			groupMemberships: nextMemberships,
-			groupPreset: nextPreset,
+			groupPreset: cursorPreset,
+			sortState,
 		});
 		applyGroupMemberships(tab, nextMemberships);
-		applyGroupPreset(tab, nextPreset);
+		applySortState(tab, sortState);
+		applyGroupPreset(tab, cursorPreset);
 		return {
 			status: 'committed',
-			groupId: name,
+			groupId,
 			affectedUrns: [...snapshot.urns],
 		};
 	}
@@ -754,6 +865,7 @@ import {
 		if (snapshot?.rowIds.includes(ADD_PROPERTY_ROW_ID))
 			return { status: 'rejected', reason: 'group.selected.action_only' };
 		const urns = snapshot?.urns ?? [];
+		const groupTarget = currentCustomGroupTarget(tab);
 		/**
 		 * U130 Slice B (spec-03 §41-50): crear-o-añadir. With origins (the
 		 * §3.3 `Create group with selected` path) and existing customs, the
@@ -761,7 +873,7 @@ import {
 		 * existing = atomic idempotent add, dismiss = new-name prompt below.
 		 */
 		if (urns.length > 0) {
-			const customs = customGroupsForMenu(tab);
+			const customs = customGroupsForMenu(tab, groupTarget);
 			if (customs.length > 0) {
 				const picked = await openGroupSuggester(
 					app,
@@ -870,14 +982,15 @@ import {
 			return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 		}
 		const memberships = configByTab[tab].groupMemberships;
-		if (name in memberships) {
+		const groupId = customGroupStorageId(memberships, groupTarget, name);
+		if (Object.prototype.hasOwnProperty.call(memberships, groupId)) {
 			// U130 Slice B: the typed name already exists — adding is
 			// idempotent and atomic, never a silent no-op over origins.
 			if (urns.length === 0)
-				return { status: 'committed', groupId: name, affectedUrns: [] };
+				return { status: 'committed', groupId, affectedUrns: [] };
 			const plan = planGroupMembershipBatch({
 				memberships,
-				targetId: name,
+				targetId: groupId,
 				origins: urns,
 				groups: resolveCustomGroups(memberships),
 				providerId: tab,
@@ -891,13 +1004,13 @@ import {
 			commitConfig(tab, { groupMemberships: plan.next });
 			applyGroupMemberships(tab, plan.next);
 			setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-			return { status: 'committed', groupId: name, affectedUrns: [...urns] };
+			return { status: 'committed', groupId, affectedUrns: [...urns] };
 		}
-		const next = { ...memberships, [name]: [...urns] };
+		const next = { ...memberships, [groupId]: [...urns] };
 		commitConfig(tab, { groupMemberships: next });
 		applyGroupMemberships(tab, next);
 		setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-		return { status: 'committed', groupId: name, affectedUrns: [...urns] };
+		return { status: 'committed', groupId, affectedUrns: [...urns] };
 	}
 	/** U130-09: `New group` only needs a host that can open the name prompt. */
 	function canCreateGroup(): boolean {
@@ -2070,7 +2183,28 @@ import {
 			`scene.action.change-sort.${activeTab}`,
 			{ operations: 1 },
 			() => {
-				const normalizedState = normalizeSortState(activeTab, state);
+				const current = normalizeSortState(
+					activeTab,
+					sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+				);
+				let normalizedState = normalizeSortState(activeTab, state);
+				if (
+					!current.scopeState &&
+					normalizedState.scopeState &&
+					configByTab[activeTab].groupPreset.kind !== 'none'
+				) {
+					normalizedState = {
+						...normalizedState,
+						scopeState: mergeScopeStates(
+							scopeStateFromLegacy(
+								activeTab,
+								current,
+								configByTab[activeTab].groupPreset,
+							),
+							normalizedState.scopeState,
+						),
+					};
+				}
 				commitConfig(activeTab, { sortState: normalizedState });
 				applySortState(activeTab, normalizedState);
 				onViewFiltersChanged?.();
@@ -2079,8 +2213,34 @@ import {
 	}
 
 	function handleScopeChangeForTab(tab: FiltersTab, state: ExplorerSortState) {
+		const current = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
 		const normalizedState = normalizeSortState(tab, state);
-		commitConfig(tab, { sortState: normalizedState });
+		const scopeState = normalizedState.scopeState
+			? cloneScopeState(normalizedState.scopeState)
+			: current.scopeState
+				? cloneScopeState(current.scopeState)
+				: scopeStateFromLegacy(tab, current, configByTab[tab].groupPreset);
+		const target = storageScope(
+			normalizedState,
+			normalizedState.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+		const parentId = parentOfScope(target);
+		const level = parentId
+			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+			: (levelOfScope(target) ?? 1);
+		const effectivePreset = resolveScopeSet(
+			scopeState,
+			{ level, parentId },
+			{ groupPreset: { kind: 'none', direction: 'asc' } },
+		).groupPreset ?? { kind: 'none', direction: 'asc' };
+		const nextState = { ...normalizedState, scopeState };
+		commitConfig(tab, { sortState: nextState, groupPreset: effectivePreset });
+		applySortState(tab, nextState);
+		applyGroupPreset(tab, effectivePreset);
 		onViewFiltersChanged?.();
 	}
 
@@ -2166,10 +2326,51 @@ import {
 			`scene.action.toggle-cell.${activeTab}`,
 			{ operations: 1 },
 			() => {
-				commitConfig(activeTab, { visibleCells: cells });
-				applyVisibleCells(activeTab, cells);
+				const current = normalizeSortState(
+					activeTab,
+					sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+				);
+				const scopeState = current.scopeState
+					? cloneScopeState(current.scopeState)
+					: scopeStateFromLegacy(activeTab, current, configByTab[activeTab].groupPreset);
+				const target = storageScope(current, current.activeScope) as ScopeTarget;
+				const before = visibleCellsForScope(activeTab);
+				const after = new Set(cells);
+				const toggles = { ...(scopeState.sets[target]?.cellToggles ?? {}) };
+				for (const id of new Set([...before, ...after])) {
+					if (before.has(id) !== after.has(id)) toggles[id] = after.has(id);
+				}
+				scopeState.sets[target] = {
+					...(scopeState.sets[target] ?? {}),
+					cellToggles: toggles,
+				};
+				scopeState.cursor = target;
+				const next = { ...current, scopeState };
+				commitConfig(activeTab, { sortState: next });
+				applySortState(activeTab, next);
 			},
 		);
+	}
+
+	function visibleCellsForScope(tab: FiltersTab): string[] {
+		const base = new Set(
+			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab]),
+		);
+		const state = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const target = storageScope(state, state.activeScope) as ScopeTarget;
+		const parentId = parentOfScope(target);
+		const level = parentId
+			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+			: (levelOfScope(target) ?? 1);
+		const resolved = resolveScopeSet(
+			state.scopeState,
+			{ level, parentId },
+		).cellToggles;
+		for (const [id, enabled] of Object.entries(resolved ?? {})) {
+			if (enabled) base.add(id);
+			else base.delete(id);
+		}
+		return [...base];
 	}
 
 	function canToggleIdentity(
@@ -2188,9 +2389,7 @@ import {
 
 	function toggleVisibleCell(id: string) {
 		const viewMode = viewModeByTab[activeTab] ?? 'tree';
-		const cells = new Set(
-			visibleCellsByTab[activeTab] ?? defaultVisibleCells(activeTab, viewMode),
-		);
+		const cells = new Set(visibleCellsForScope(activeTab));
 		if (cells.has(id)) {
 			if (!canToggleIdentity(cells, id, viewMode)) return;
 			cells.delete(id);
@@ -2297,8 +2496,7 @@ import {
 		// first, then the rest at their canonical rank.
 		for (const entry of cellMenuOrder(
 			activeTab,
-			visibleCellsByTab[activeTab] ??
-				defaultVisibleCells(activeTab, activeView),
+			visibleCellsForScope(activeTab),
 			{
 				byActivation: orderCellsByActivation,
 				viewMode: activeView,
@@ -3751,8 +3949,8 @@ import {
 		port?.setGroupDeleteHandler?.((groupId) =>
 			deleteCustomGroup(tab, groupId),
 		);
-		port?.setCounterRangesChangeHandler?.((ranges) =>
-			setCounterRangesFor(tab, ranges),
+		port?.setCounterRangesChangeHandler?.((ranges, target) =>
+			setCounterRangesFor(tab, ranges, target),
 		);
 		if (tab === 'props' && propExplorer) {
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
@@ -4293,7 +4491,7 @@ import {
 						);
 					}}
 					initialViewMode={viewModeByTab[activeTab]}
-					initialPills={visibleCellsByTab[activeTab]}
+					initialPills={visibleCellsForScope(activeTab)}
 					{addOpCount}
 					{icon}
 				/>

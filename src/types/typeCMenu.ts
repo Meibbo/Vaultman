@@ -70,6 +70,10 @@ export interface MenuCtx {
 	deleteGroup?: GroupDeleteHandler;
 	/** Scene-owned affordances the explorer cannot resolve itself. */
 	toggleGroupExpand?: (groupId: string) => void;
+	/** Scene-projected group icon mutation. */
+	changeGroupIcon?: () => Promise<unknown> | unknown;
+	/** Opens the bounded min/max editor for a counter/date preset header. */
+	adjustGroupRange?: () => boolean | void;
 }
 
 export interface ActionDef {

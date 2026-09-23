@@ -1462,6 +1462,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.task_cell_display_mode'),
+			desc: translate('settings.task_cell_display_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('done-total', translate('settings.task_cell_display_mode.done_total'))
+						.addOption('pending', translate('settings.task_cell_display_mode.pending'))
+						.setValue(this.plugin.settings.taskCellDisplayMode)
+						.onChange(async (value) => {
+							this.plugin.settings.taskCellDisplayMode = value === 'pending' ? 'pending' : 'done-total';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// Cell words: include YAML frontmatter in the word count so it stays
 		// in line with Obsidian's own counter when switched on.
 		items.push({

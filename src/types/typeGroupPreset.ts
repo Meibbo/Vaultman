@@ -23,7 +23,7 @@ export interface GroupPreset {
 	kind: GroupPresetKind;
 	/** Header order. Ignored for `none` (§3.2: no direction there). */
 	direction: ExplorerSortDirection;
-	/** Explicit closed counter intervals. Only valid for words/tasks/props. */
+	/** Explicit closed numeric intervals for counter/date presets. */
 	counterRanges?: readonly CounterRange[];
 }
 
@@ -154,7 +154,11 @@ export function normalizeCounterRanges(
 	kind: GroupPresetKind,
 	value: unknown,
 ): CounterRange[] | undefined {
-	if (!isCounterPresetKind(kind) || value === undefined) return undefined;
+	if (
+		(!isCounterPresetKind(kind) && !DATE_PRESET_KINDS.includes(kind)) ||
+		value === undefined
+	)
+		return undefined;
 	if (!Array.isArray(value)) return undefined;
 	const ranges: CounterRange[] = [];
 	const ids = new Set<string>();

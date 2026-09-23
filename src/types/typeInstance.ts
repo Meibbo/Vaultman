@@ -1,4 +1,8 @@
-import type { ExplorerSortState, ExplorerTabId, ExplorerViewMode } from './typeUI';
+import type {
+	ExplorerSortState,
+	ExplorerTabId,
+	ExplorerViewMode,
+} from './typeUI';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';

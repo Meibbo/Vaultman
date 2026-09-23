@@ -5,10 +5,12 @@ import {
 	type RangeLabels,
 } from './logicGroupPresets';
 import { parseMembershipUrn, type MembershipRef } from './logicMembershipUrn';
+import { parseScopedGroupKey } from './logicScopedCustomGroups';
 import type { NodeGroupDef } from './logicNodeGroup';
 import type { GroupPreset } from '../types/typeGroupPreset';
 import type { TreeNode } from '../types/typeTree';
-import type { SortScopeKey } from '../types/typeUI';
+import type { ScopeState, ScopeTarget, SortScopeKey } from '../types/typeUI';
+import { resolveScopeSet } from './logicScopedSort';
 
 export const NO_GROUP_ID = 'vaultman.group.none';
 export const PRESET_GROUP_PREFIX = 'vaultman.group.preset:';
@@ -37,17 +39,19 @@ export const _isGroupHeader = isGroupHeader;
 /** Locate the first materialized counter header at any scoped tree depth. */
 export function findCounterGroupHeader<TMeta>(
 	nodes: readonly TreeNode<TMeta>[],
+	target?: ScopeTarget,
 ): TreeNode<TMeta> | undefined {
 	for (const node of nodes) {
 		if (
 			node.isGroupHeader === true &&
 			node.counterDomain &&
-			node.counterRanges?.length
+			node.counterRanges?.length &&
+			(target === undefined || node.groupScopeTarget === target)
 		) {
 			return node;
 		}
 		const nested = node.children
-			? findCounterGroupHeader(node.children)
+			? findCounterGroupHeader(node.children, target)
 			: undefined;
 		if (nested) return nested;
 	}
@@ -85,19 +89,25 @@ export function groupProjectionScope(
  * U130-03: deriva los NodeGroupDef custom de las claves de groupMemberships.
  * U130-09: el mapa es el de UNA scene (`SceneConfig.groupMemberships`), asi
  * que todas sus claves son grupos de esta scene y no hay nada que filtrar.
- * Sin label ni orden guardados, el label del grupo es su id.
+ * U130-GGC-011: la clave es la identidad interna (canonica scoped o legacy);
+ * el label es el nombre visible y el scope el target (`all` para legacy).
+ * El `id` conserva la clave de almacenamiento tal cual para que
+ * `memberships[group.id]` siga casando con mapas sin normalizar.
  */
 export function resolveCustomGroups(
 	memberships?: Readonly<Record<string, readonly string[]>>,
 ): readonly NodeGroupDef[] {
 	if (!memberships) return [];
-	return Object.keys(memberships).map((id) => ({
-		id,
-		flavor: 'custom',
-		label: id,
-		parentId: null,
-		scope: 'all',
-	}));
+	return Object.keys(memberships).map((key) => {
+		const parsed = parseScopedGroupKey(key);
+		return {
+			id: key,
+			flavor: 'custom',
+			label: parsed.name,
+			parentId: null,
+			scope: parsed.target,
+		};
+	});
 }
 
 export interface GroupProjectionInput<TMeta> {
@@ -855,6 +865,112 @@ export function projectGroupedTree<TMeta>(
 	return out;
 }
 
+/**
+ * Project an All-level preset at every structural sibling list. Group headers
+ * occupy the current sibling slot; their members retain the recursively
+ * projected descendants that were present before the current list was
+ * grouped. This is deliberately a separate wrapper around the existing
+ * single-list projector so custom/note/counter/date buckets share one walker.
+ */
+export function projectGroupedTreeAllLevels<TMeta>(
+	input: GroupProjectionInput<TMeta>,
+): readonly TreeNode<TMeta>[] {
+	if (input.enabled === false || input.preset?.kind === 'none') return input.nodes;
+	const nested: TreeNode<TMeta>[] = input.nodes.map((node) =>
+		node.children?.length
+			? {
+					...node,
+					children: [...projectGroupedTreeAllLevels({
+						...input,
+						nodes: node.children,
+					})],
+				}
+			: node,
+	);
+	return projectGroupedTree({ ...input, nodes: nested });
+}
+
+/**
+ * Project the effective group preset independently at every structural
+ * sibling list. Parent overrides level, level overrides all, and the editing
+ * cursor is deliberately irrelevant. This is the runtime half of cumulative
+ * scope sets: choosing another scope never erases projections already stored
+ * for other parents/levels.
+ */
+export function projectGroupedTreeScopeState<TMeta>(
+	input: GroupProjectionInput<TMeta>,
+	state: ScopeState,
+): readonly TreeNode<TMeta>[] {
+	const visit = (
+		nodes: readonly TreeNode<TMeta>[],
+		parentId: string | null,
+		level: number,
+	): readonly TreeNode<TMeta>[] => {
+		const resolved = resolveScopeSet(
+			state,
+			{ level, parentId },
+			{
+				groupPreset: {
+					kind: 'none',
+					direction: input.preset?.direction ?? 'asc',
+				},
+			},
+		);
+		const cellToggles = resolved.cellToggles
+			? { ...resolved.cellToggles }
+			: undefined;
+		const nested: TreeNode<TMeta>[] = nodes.map((node) =>
+			node.children?.length
+				? {
+						...node,
+						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+						children: [...visit(node.children, node.id, level + 1)],
+					}
+				: {
+						...node,
+						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+					},
+		);
+		const preset = resolved.groupPreset;
+		if (!preset || preset.kind === 'none') return nested;
+		const parentTarget = parentId === null ? null : (`parent:${parentId}` as ScopeTarget);
+		const levelTarget = `level:${level}` as ScopeTarget;
+		const sourceTarget = (
+			parentTarget && state.sets[parentTarget]?.hidden !== true &&
+			state.sets[parentTarget]?.groupPreset !== undefined
+				? parentTarget
+				: state.sets[levelTarget]?.hidden !== true &&
+					state.sets[levelTarget]?.groupPreset !== undefined
+					? levelTarget
+					: 'all'
+		) as ScopeTarget;
+		const owner = parentId === null ? `level:${level}:root` : `parent:${parentId}`;
+		const depth = nested[0]?.depth ?? level - 1;
+		return projectGroupedTree({
+			...input,
+			nodes: nested,
+			enabled: true,
+			preset,
+			groups: preset.kind === 'custom'
+				? input.groups.filter((group) => group.scope === sourceTarget)
+				: input.groups,
+		}).map((node) => {
+			if (node.isGroupHeader !== true) return node;
+			const rowId = scopedHeaderRowId(entityIdOf(node), owner);
+			return {
+				...node,
+				id: rowId,
+				entityId: entityIdOf(node),
+				groupScopeTarget: sourceTarget,
+				depth,
+				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
+				...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+			};
+		});
+	};
+	return visit(input.nodes, null, 1);
+}
+
 function scopedHeaderRowId(groupId: string, owner: string): string {
 	return `${SCOPED_GROUP_HEADER_PREFIX}${encodeURIComponent(owner)}:${encodeURIComponent(groupId)}`;
 }
@@ -872,7 +988,7 @@ export function projectGroupedTreeInScope<TMeta>(
 	input: GroupProjectionInput<TMeta>,
 	scope: GroupProjectionScope,
 ): readonly TreeNode<TMeta>[] {
-	if (scope.kind === 'all') return projectGroupedTree(input);
+	if (scope.kind === 'all') return projectGroupedTreeAllLevels(input);
 
 	const projectSiblings = (
 		nodes: readonly TreeNode<TMeta>[],

@@ -116,8 +116,10 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTreeInScope,
+	projectGroupedTreeScopeState,
 	resolveCustomGroups,
 	toggleGroupMembers,
+	type GroupProjectionInput,
 } from '../../logic/logicTreeGroupProjection';
 import {
 	cloneGroupPreset,
@@ -137,6 +139,7 @@ import {
 } from '../../logic/logicGroupPresets';
 import {
 	activeScopeSort,
+	hasScopeGrouping,
 	normalizeExplorerSortState,
 	sameExplorerSortState,
 	siblingScopeSort,
@@ -175,7 +178,11 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
-import { resolveSelectionTargets } from '../../logic/logicSelectionTargets';
+import {
+	addInvokedSelection,
+	resolveSelectionTargets,
+	shouldClearExplorerSelectionOnEscape,
+} from '../../logic/logicSelectionTargets';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -305,6 +312,10 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		this.containerEl.addEventListener('keydown', this._handleSelectionEscape);
+		this.register(() =>
+			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
+		);
 		// Register context menu actions through the service
 		const svc = this.plugin.contextMenuService;
 		svc.registerAction({
@@ -558,7 +569,7 @@ export class TagsExplorerPanel extends Component {
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
-		const projected = projectGroupedTreeInScope<TagMeta>({
+		const projectionInput: GroupProjectionInput<TagMeta> = {
 			nodes,
 			groups,
 			memberships,
@@ -587,10 +598,19 @@ export class TagsExplorerPanel extends Component {
 			// del primer hijo.
 			headerCoreCls: 'tree-item-self tag-pane-tag is-clickable',
 			headerMeta: { tagPath: '' },
-		}, groupProjectionScope(
-			this.sortState?.activeScope ?? 'all',
-			this.sortState?.drillNodeId,
-		)) as TreeNode<TagMeta>[];
+		};
+		const projected = (this.sortState.scopeState
+			? projectGroupedTreeScopeState<TagMeta>(
+					projectionInput,
+					this.sortState.scopeState,
+				)
+			: projectGroupedTreeInScope<TagMeta>(
+					projectionInput,
+					groupProjectionScope(
+						this.sortState?.activeScope ?? 'all',
+						this.sortState?.drillNodeId,
+					),
+				)) as TreeNode<TagMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this.expandedIds, this._groupIds);
 		return projected;
 	}
@@ -867,6 +887,28 @@ export class TagsExplorerPanel extends Component {
 			displayLabel: node.label,
 		});
 	}
+
+	/** Context invocation extends the axon, independently of checkbox visibility. */
+	private _includeInvokedInSelection(id: string): void {
+		const next = addInvokedSelection(this.selectedNodeIds, id);
+		if (next.size === this.selectedNodeIds.size) return;
+		this.selectedNodeIds = next;
+		this._touchSelection();
+		this._render();
+	}
+
+	/** Clears only this scene instance's row selection. */
+	clearSelection(): void {
+		if (this.selectedNodeIds.size === 0) return;
+		this.selectedNodeIds = new Set();
+		this._touchSelection();
+		this._render();
+	}
+
+	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (!shouldClearExplorerSelectionOnEscape(event)) return;
+		this.clearSelection();
+	};
 
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
@@ -1864,6 +1906,7 @@ export class TagsExplorerPanel extends Component {
 					// B-groupbody: idem (la tabla no proyecta cabeceras).
 					const node = this._findNode(id, tree);
 					if (!node) return;
+					this._includeInvokedInSelection(id);
 					this.plugin.contextMenuService.openPanelMenu(
 						{
 							nodeType: 'tag',
@@ -1872,6 +1915,7 @@ export class TagsExplorerPanel extends Component {
 							selectedIds: this.selectedNodeIds,
 							orderedIds: this._orderedVisibleTreeIds(),
 							...this._groupCreationMenuCtx(),
+							...this._degroupMenuCtx(node),
 							invokeRename: (targetId: string) => {
 								this.editingId = targetId;
 								void this._render();
@@ -2078,6 +2122,7 @@ export class TagsExplorerPanel extends Component {
 			}
 				const node = this._findNode(id, tree);
 				if (!node) return;
+				this._includeInvokedInSelection(id);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'tag',
@@ -2315,6 +2360,7 @@ export class TagsExplorerPanel extends Component {
 			});
 			card.addEventListener('contextmenu', (event) => {
 				event.preventDefault();
+				this._includeInvokedInSelection(node.id);
 				this.plugin.contextMenuService.openPanelMenu(
 					{
 						nodeType: 'tag',
@@ -2323,6 +2369,7 @@ export class TagsExplorerPanel extends Component {
 						selectedIds: this.selectedNodeIds,
 						orderedIds: this._orderedVisibleTreeIds(),
 						...this._groupCreationMenuCtx(),
+						...this._degroupMenuCtx(node),
 					},
 					event,
 				);
@@ -2726,7 +2773,9 @@ export class TagsExplorerPanel extends Component {
 	 * (`projectedNodes`), no un segundo concepto de "agrupacion encendida".
 	 */
 	private _groupingActive(): boolean {
-		return this.groupPreset.kind !== 'none';
+		return this.sortState.scopeState
+			? hasScopeGrouping(this.sortState.scopeState)
+			: this.groupPreset.kind !== 'none';
 	}
 
 	/** Spec 08 §3.2: tags offer no value presets (letter/name read the label). */

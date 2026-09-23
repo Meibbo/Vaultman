@@ -1,6 +1,7 @@
 import type { SceneConfig } from '../types/typeInstance';
 import { cloneGroupPreset, sameGroupPreset } from '../types/typeGroupPreset';
 import { cloneGroupMemberships } from './logicMembershipUrn';
+import { cloneExplorerSortState } from './logicScopedSort';
 
 /**
  * Las capas de la cascada, en el orden EXACTO del diseño aprobado:
@@ -31,7 +32,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		viewMode: input.defaults.viewMode,
 		interactionMode: input.defaults.interactionMode,
 		visibleCells: cloneCells(input.defaults.visibleCells),
-		sortState: { ...input.defaults.sortState },
+		sortState: cloneExplorerSortState(input.defaults.sortState),
 		stickyRows: input.defaults.stickyRows,
 		compactFolders: input.defaults.compactFolders,
 		indent: input.defaults.indent,
@@ -53,7 +54,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.interactionMode !== undefined) out.interactionMode = layer.interactionMode;
 		// Un array NO se fusiona: la capa que lo declara decide la lista entera.
 		if (layer.visibleCells !== undefined) out.visibleCells = cloneCells(layer.visibleCells);
-		if (layer.sortState !== undefined) out.sortState = { ...layer.sortState };
+		if (layer.sortState !== undefined) {
+			out.sortState = cloneExplorerSortState(layer.sortState);
+		}
 		if (layer.stickyRows !== undefined) out.stickyRows = layer.stickyRows;
 		if (layer.compactFolders !== undefined) out.compactFolders = layer.compactFolders;
 		if (layer.indent !== undefined) out.indent = layer.indent;
@@ -111,7 +114,7 @@ export function diffSceneConfig(
 		patch.visibleCells = cloneCells(next.visibleCells);
 	}
 	if (JSON.stringify(next.sortState) !== JSON.stringify(baseline.sortState)) {
-		patch.sortState = { ...next.sortState };
+		patch.sortState = cloneExplorerSortState(next.sortState);
 	}
 	if (next.stickyRows !== baseline.stickyRows) patch.stickyRows = next.stickyRows;
 	if (next.compactFolders !== baseline.compactFolders) {

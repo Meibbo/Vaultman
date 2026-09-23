@@ -5,6 +5,7 @@ import {
 	classifyGroupTargets,
 	groupSelectedAvailability,
 	intersectDegroupTargets,
+	removeCustomMemberships,
 	noteSelectionState,
 	reconcileCommittedSelection,
 	GROUP_SELECTED_SASI_ID,
@@ -13,6 +14,7 @@ import {
 } from '../../src/logic/logicGroupSelectionTransaction';
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
 import { registerGroupSasiActions } from '../../src/logic/logicGroupSelectionTransaction';
+import { makeScopedGroupKey } from '../../src/logic/logicScopedCustomGroups';
 
 describe('U130 selection transactions', () => {
 	beforeEach(() => __resetGroupSelectionTokens());
@@ -93,6 +95,18 @@ describe('U130 selection transactions', () => {
 				ownerUrns: ['files:file:A|A'],
 			}),
 		).toEqual(['A']);
+	});
+
+	it('degroup touches only the target-qualified custom owner', () => {
+		const level1 = makeScopedGroupKey('level:1', 'Foo');
+		const level2 = makeScopedGroupKey('level:2', 'Foo');
+		const memberships = {
+			[level1]: ['props:prop:A|A'],
+			[level2]: ['props:value:A|A'],
+		};
+		const next = removeCustomMemberships(memberships, level2, ['A']);
+		expect(next[level1]).toEqual(['props:prop:A|A']);
+		expect(next[level2]).toEqual([]);
 	});
 
 	it('rejects action-only targets without silently taking a subset', () => {

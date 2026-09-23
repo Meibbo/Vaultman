@@ -27,6 +27,7 @@ import type { VaultmanSettings } from './types/typeSettings';
 import type { ExplorerViewMode } from './types/typeUI';
 import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
+import { migrateTaskCellDisplayMode } from './logic/logicTaskMetric';
 import { PropertyIndexService } from './services/servicePropertyIndex';
 import { installCoreBookmarkBridge } from './services/serviceCoreBookmarks';
 import { FilterService } from './services/serviceFilter';
@@ -820,6 +821,7 @@ export class VaultmanPlugin extends Plugin {
 		this.settings = {
 			...(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as VaultmanSettings),
 			...saved,
+			taskCellDisplayMode: migrateTaskCellDisplayMode(saved.taskCellDisplayMode),
 		};
 
 		// La reconciliación espera a que el workspace restaure las hojas, o la

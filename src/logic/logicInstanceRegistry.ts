@@ -7,6 +7,7 @@ import type {
 } from '../types/typeInstance';
 import type { SavedFloatingTocState } from '../types/typeSettings';
 import { cloneGroupPreset } from '../types/typeGroupPreset';
+import { cloneExplorerSortState } from './logicScopedSort';
 import { cloneGroupMemberships } from './logicMembershipUrn';
 
 export const EMPTY_REGISTRY: InstanceRegistryData = { schema: 1, instances: {} };
@@ -94,7 +95,7 @@ export function ensureInstance(
 function cloneSceneConfig(config: SceneConfig): SceneConfig {
 	const out: SceneConfig = { ...config };
 	if (config.visibleCells) out.visibleCells = [...config.visibleCells];
-	if (config.sortState) out.sortState = { ...config.sortState };
+	if (config.sortState) out.sortState = cloneExplorerSortState(config.sortState);
 	if (config.groupPreset) out.groupPreset = cloneGroupPreset(config.groupPreset);
 	if (config.hiddenToolbarNodes) out.hiddenToolbarNodes = [...config.hiddenToolbarNodes];
 	if (config.toolbarCommandActions) out.toolbarCommandActions = [...config.toolbarCommandActions];

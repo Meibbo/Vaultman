@@ -117,7 +117,7 @@ export interface TreeViewOptions {
 	onCancelRename?: () => void;
 	onOpenRichRename?: (id: string, currentValue: string) => void;
 	/** Structured editor for counter preset headers. */
-	onCounterRangeCommit?: (id: string, range: CounterRange) => void;
+	onCounterRangeCommit?: (id: string, range: CounterRange) => boolean | void;
 	onCounterRangeError?: (id: string, reason: string) => void;
 	counterRangeBoundLabel?: (bound: 'lower' | 'upper') => string;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
@@ -262,6 +262,7 @@ export class UnifiedTreeView {
 	private _scopePreviewNodeId: string | null = null;
 	private _scopePreviewRaf: number | null = null;
 	private _scopePreviewEl: HTMLElement | null = null;
+	private _editingCounterRangeId: string | null = null;
 	/** Emitted with the rows so the sticky stack can walk up to the ancestors
 	 * of the first visible row instead of scanning everything above it. */
 	private _parentIndex: number[] | null = null;
@@ -318,6 +319,21 @@ export class UnifiedTreeView {
 			this._scopePreviewNodeId = null;
 			this._clearScopePreview();
 		}
+	}
+
+	/** Open the structured editor only after the group context-menu action. */
+	beginCounterRangeEdit(id: string): boolean {
+		const node = this._rows.find((candidate) => candidate.id === id);
+		if (!node?.counterRange || !node.counterDomain || !this._opts?.onCounterRangeCommit)
+			return false;
+		this._editingCounterRangeId = id;
+		this._renderWindow();
+		this._treeWindow().requestAnimationFrame(() => {
+			this.rowEls.get(id)?.querySelector<HTMLInputElement>(
+				'.vaultman-counter-range-editor input',
+			)?.focus();
+		});
+		return true;
 	}
 
 	render(opts: TreeViewOptions): void {
@@ -514,12 +530,16 @@ export class UnifiedTreeView {
 
 	private _ensureScopePreviewElement(): HTMLElement {
 		if (this._scopePreviewEl && this.containerEl.contains(this._scopePreviewEl)) {
+			// A sticky overlay must precede the virtual spacer. Appending it after
+			// the spacer puts its sticky origin at the end of the full tree.
+			this.containerEl.prepend(this._scopePreviewEl);
 			return this._scopePreviewEl;
 		}
 		const overlay = this.containerEl.createDiv({
 			cls: 'vaultman-tree-scope-preview',
 		});
 		overlay.setAttribute('aria-hidden', 'true');
+		this.containerEl.prepend(overlay);
 		this._scopePreviewEl = overlay;
 		return overlay;
 	}
@@ -1229,9 +1249,11 @@ export class UnifiedTreeView {
 			.map((dot) => dot.channel)
 			.join(',');
 		const cellOrder = opts.cellRenderOrder?.join('>') ?? '';
-		const visibleCells = opts.visibleCells
-			? Array.from(opts.visibleCells).sort().join(',')
+		const resolvedVisibleCells = this._visibleCellsForNode(node, opts.visibleCells);
+		const visibleCells = resolvedVisibleCells
+			? Array.from(resolvedVisibleCells).sort().join(',')
 			: 'default';
+		const counterRangeEditing = this._editingCounterRangeId === node.id;
 		const badges = (node.badges ?? [])
 			.map((badge) =>
 				[
@@ -1308,6 +1330,7 @@ export class UnifiedTreeView {
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
+			counterRangeEditing ? 'counter-range-editing' : '',
 			cellOrder,
 			opts.iconInCaretSlot ? '1' : '0',
 			opts.onSelectionToggle ? 'selection' : '',
@@ -1316,6 +1339,19 @@ export class UnifiedTreeView {
 			badges,
 			cells,
 		].join('\u001f');
+	}
+
+	private _visibleCellsForNode(
+		node: TreeNode,
+		base: Set<string> | undefined,
+	): Set<string> | undefined {
+		if (!node.scopeCellToggles) return base;
+		const resolved = new Set(base ?? []);
+		for (const [id, enabled] of Object.entries(node.scopeCellToggles)) {
+			if (enabled) resolved.add(id);
+			else resolved.delete(id);
+		}
+		return resolved;
 	}
 
 	/**
@@ -1530,7 +1566,7 @@ export class UnifiedTreeView {
 		const isNodeSelectable = opts.isNodeSelectable?.(node) ?? true;
 		const isSelected =
 			isNodeSelectable && (opts.selectedIds?.has(node.id) ?? false);
-		const visibleCells = opts.visibleCells;
+		const visibleCells = this._visibleCellsForNode(node, opts.visibleCells);
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
 			? visibleCells.has('text') || visibleCells.has('name')
@@ -1929,7 +1965,14 @@ export class UnifiedTreeView {
 		// Activation mode lays every configurable cell out as a row sibling, so
 		// the label can genuinely sit after a value cell. It stays the flexible
 		// element wherever it lands; overflowing cells clip like any toolbar.
-		const activationOrder = opts.cellRenderOrder;
+		const activationOrder = opts.cellRenderOrder
+			? [
+					...opts.cellRenderOrder,
+					...[...(visibleCells ?? [])].filter(
+						(id) => !opts.cellRenderOrder?.includes(id),
+					),
+				]
+			: undefined;
 		const usesActivationOrder = Boolean(activationOrder?.length) && !isEditing;
 		if (usesActivationOrder) {
 			row.addClass('vaultman-tree-row--activation-order');
@@ -2024,9 +2067,12 @@ export class UnifiedTreeView {
 				});
 			}
 		} else if (showLabel && !usesActivationOrder) {
-			if (node.counterRange && opts.onCounterRangeCommit) {
+			if (
+				node.counterRange &&
+				opts.onCounterRangeCommit &&
+				this._editingCounterRangeId === node.id
+			) {
 				const range = node.counterRange;
-				const ranges = node.counterRanges ?? [range];
 				const editor = row.createSpan({
 					cls: 'vaultman-counter-range-editor',
 					attr: { role: 'group', 'aria-label': node.label },
@@ -2060,28 +2106,43 @@ export class UnifiedTreeView {
 					if (done) return;
 					const result = validateCounterRangeEdit(
 						{ id: range.id, lo: loInput.value, hi: hiInput.value },
-						ranges,
+						[],
 						node.counterDomain,
 					);
 					if (!result.ok) {
 						opts.onCounterRangeError?.(node.id, result.reason);
 						return;
 					}
+					const accepted = opts.onCounterRangeCommit?.(node.id, result.range);
+					if (accepted === false) return;
 					done = true;
-					opts.onCounterRangeCommit?.(node.id, result.range);
+					this._editingCounterRangeId = null;
+					this._renderWindow();
 				};
 				const cancel = (): void => {
 					if (done) return;
 					done = true;
+					this._editingCounterRangeId = null;
+					this._renderWindow();
 				};
 				for (const input of [loInput, hiInput]) {
 					input.addEventListener('keydown', (event) => {
 						if (event.isComposing) return;
-						if (event.key === 'Enter') commit();
-						if (event.key === 'Escape') cancel();
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							commit();
+						}
+						if (event.key === 'Escape') {
+							event.preventDefault();
+							cancel();
+						}
 					});
-					input.addEventListener('blur', commit);
 				}
+				editor.addEventListener('focusout', () => {
+					queueMicrotask(() => {
+						if (!done && !editor.contains(editor.ownerDocument.activeElement)) commit();
+					});
+				});
 				return row;
 			}
 			if (opts.renderLabel?.(row, node)) {

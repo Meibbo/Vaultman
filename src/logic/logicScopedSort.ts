@@ -2,11 +2,346 @@ import type {
 	ExplorerSortDirection,
 	ExplorerSortState,
 	ExplorerTabId,
+	ScopeSet,
+	ScopeState,
+	ScopeTarget,
 	ScopeSort,
 	SortScopeKey,
 } from '../types/typeUI';
+import {
+	normalizeGroupPreset,
+	type GroupPreset,
+} from '../types/typeGroupPreset';
 
 const DEFAULT_SORT: ScopeSort = { sortBy: 'name', direction: 'asc' };
+
+/** Minimal structural information needed by the scope resolver. */
+export interface ScopeResolutionNode {
+	/** Preferred explicit 1-based p-node level. */
+	level?: number;
+	/** TreeNode depth is zero-based, so it is translated to level + 1. */
+	depth?: number;
+	/** Canonical id of the direct p-node parent, when one exists. */
+	parentId?: string | null;
+	parentCanonicalId?: string | null;
+	parent?: { id?: string; canonicalId?: string } | null;
+}
+
+function cloneScopeSort(sort: ScopeSort): ScopeSort {
+	return { sortBy: sort.sortBy, direction: sort.direction };
+}
+
+function cloneScopeSet(set: ScopeSet | undefined): ScopeSet {
+	if (!set) return {};
+	return {
+		...(set.sort ? { sort: cloneScopeSort(set.sort) } : {}),
+		...(set.groupPreset
+			? {
+					groupPreset: {
+						...set.groupPreset,
+						...(set.groupPreset.counterRanges
+							? {
+									counterRanges: set.groupPreset.counterRanges.map((range) => ({ ...range })),
+								}
+							: {}),
+					},
+				}
+			: {}),
+		...(set.cellToggles ? { cellToggles: { ...set.cellToggles } } : {}),
+		...(set.nodeTypeFilters
+			? { nodeTypeFilters: [...set.nodeTypeFilters] }
+			: {}),
+		...(set.filterPolicy ? { filterPolicy: set.filterPolicy } : {}),
+		...(set.hidden ? { hidden: true } : {}),
+	};
+}
+
+/** Defensive copy for persistence/cascade boundaries. */
+export function cloneScopeState(state: ScopeState): ScopeState {
+	const sets: Partial<Record<ScopeTarget, ScopeSet>> = {};
+	for (const [target, set] of Object.entries(state.sets) as Array<
+		[ScopeTarget, ScopeSet | undefined]
+	>) {
+		if (set) sets[target] = cloneScopeSet(set);
+	}
+	return { sets, cursor: state.cursor, levelBase: 1 };
+}
+
+/** Field-wise overlay used while upgrading a legacy flat scene in one edit. */
+export function mergeScopeStates(
+	base: ScopeState,
+	overlay: ScopeState,
+): ScopeState {
+	const out = cloneScopeState(base);
+	for (const [target, rawSet] of Object.entries(overlay.sets) as Array<
+		[ScopeTarget, ScopeSet | undefined]
+	>) {
+		if (!rawSet) continue;
+		const set = cloneScopeSet(rawSet);
+		const prior = out.sets[target];
+		out.sets[target] = {
+			...(prior ?? {}),
+			...set,
+			...((prior?.cellToggles || set.cellToggles)
+				? {
+						cellToggles: {
+							...(prior?.cellToggles ?? {}),
+							...(set.cellToggles ?? {}),
+						},
+					}
+				: {}),
+		};
+	}
+	out.cursor = overlay.cursor;
+	return out;
+}
+
+/** Clone every persisted collection owned by a scene's sort/scope snapshot. */
+export function cloneExplorerSortState(
+	state: ExplorerSortState,
+): ExplorerSortState {
+	const sorts: Partial<Record<SortScopeKey, ScopeSort>> = {};
+	for (const [scope, sort] of Object.entries(state.sorts) as Array<
+		[SortScopeKey, ScopeSort | undefined]
+	>) {
+		if (sort) sorts[scope] = cloneScopeSort(sort);
+	}
+	return {
+		...state,
+		sorts,
+		...(state.scopeState ? { scopeState: cloneScopeState(state.scopeState) } : {}),
+		...(state.hiddenScopes ? { hiddenScopes: [...state.hiddenScopes] } : {}),
+		...(state.nodeTypeFilters
+			? { nodeTypeFilters: [...state.nodeTypeFilters] }
+			: {}),
+	};
+}
+
+function normalizeScopeSetValue(
+	tab: ExplorerTabId,
+	value: unknown,
+): ScopeSet | null {
+	if (!isRecord(value)) return null;
+	const out: ScopeSet = {};
+	const sort = normalizeScopeSort(value.sort);
+	if (sort) out.sort = sort;
+	if (isRecord(value.groupPreset) && typeof value.groupPreset.kind === 'string') {
+		out.groupPreset = normalizeGroupPreset(tab, value.groupPreset, true);
+	}
+	if (isRecord(value.cellToggles)) {
+		const toggles: Record<string, boolean> = {};
+		for (const [id, enabled] of Object.entries(value.cellToggles)) {
+			if (typeof enabled === 'boolean') toggles[id] = enabled;
+		}
+		if (Object.keys(toggles).length > 0) out.cellToggles = toggles;
+	}
+	if (Array.isArray(value.nodeTypeFilters)) {
+		out.nodeTypeFilters = value.nodeTypeFilters.filter(
+			(entry): entry is string => typeof entry === 'string',
+		);
+	}
+	if (value.filterPolicy === 'included') out.filterPolicy = 'included';
+	if (value.hidden === true) out.hidden = true;
+	return out;
+}
+
+/** Normalize an already-persisted scope state without trusting JSON shapes. */
+export function normalizeScopeState(
+	tab: ExplorerTabId,
+	value: unknown,
+	legacy: ExplorerSortState,
+): ScopeState {
+	const migrated = scopeStateFromLegacy(tab, legacy);
+	if (!isRecord(value) || !isRecord(value.sets)) return migrated;
+	const sets: Partial<Record<ScopeTarget, ScopeSet>> = {};
+	for (const [rawTarget, rawSet] of Object.entries(value.sets)) {
+		const target = migrateLegacyScopeKey(rawTarget);
+		if (target === 'drill' || !isScopeAllowed(tab, target)) continue;
+		const normalized = normalizeScopeSetValue(tab, rawSet);
+		if (normalized) sets[target as ScopeTarget] = normalized;
+	}
+	const rawCursor =
+		typeof value.cursor === 'string'
+			? migrateLegacyScopeKey(value.cursor)
+			: migrated.cursor;
+	const cursor =
+		rawCursor !== 'drill' && isScopeAllowed(tab, rawCursor)
+			? (rawCursor as ScopeTarget)
+			: migrated.cursor;
+	return { sets, cursor, levelBase: 1 };
+}
+
+function scopeNodeLevel(node: ScopeResolutionNode): number {
+	if (Number.isInteger(node.level) && node.level! >= 0) return node.level!;
+	if (Number.isInteger(node.depth) && node.depth! >= 0) return node.depth! + 1;
+	return 1;
+}
+
+function scopeNodeParent(node: ScopeResolutionNode): string | null {
+	if (typeof node.parentCanonicalId === 'string' && node.parentCanonicalId) {
+		return node.parentCanonicalId;
+	}
+	if (typeof node.parentId === 'string' && node.parentId) return node.parentId;
+	if (node.parent) {
+		if (typeof node.parent.canonicalId === 'string' && node.parent.canonicalId) {
+			return node.parent.canonicalId;
+		}
+		if (typeof node.parent.id === 'string' && node.parent.id) return node.parent.id;
+	}
+	return null;
+}
+
+/**
+ * Resolve all scope-set fields for one node. The cursor is intentionally not
+ * consulted: it only identifies the target currently being edited by menus.
+ * Parent and level sets are independent overrides, so a parent that only
+ * supplies `sort` still inherits grouping/cells/type filters from lower
+ * specificity sets. Hidden sets are skipped, not deleted.
+ */
+export function resolveScopeSet(
+	state: ScopeState | undefined,
+	node: ScopeResolutionNode,
+	defaults: ScopeSet = {},
+): ScopeSet {
+	const sets = state?.sets ?? {};
+	const parent = scopeNodeParent(node);
+	const level = scopeNodeLevel(node);
+	const candidates: Array<ScopeSet | undefined> = [
+		parent ? sets[parentScope(parent) as ScopeTarget] : undefined,
+		sets[levelScope(level) as ScopeTarget],
+		sets.all,
+	];
+	const active = candidates.map((set) => (set?.hidden ? undefined : set));
+	const out: ScopeSet = {};
+
+	const first = <K extends keyof ScopeSet>(key: K): ScopeSet[K] | undefined => {
+		for (const set of active) {
+			if (set && set[key] !== undefined) return set[key];
+		}
+		return defaults[key];
+	};
+
+	const sort = first('sort');
+	if (sort) out.sort = cloneScopeSort(sort as ScopeSort);
+	const groupPreset = first('groupPreset');
+	if (groupPreset) {
+		out.groupPreset = {
+			...groupPreset,
+			...(groupPreset.counterRanges
+				? { counterRanges: groupPreset.counterRanges.map((range) => ({ ...range })) }
+				: {}),
+		};
+	}
+
+	// Cell toggles are partial overrides, so merge from the least specific
+	// target toward the most specific target. A target may explicitly disable
+	// a cell without replacing unrelated toggles inherited from `all`.
+	const toggles: Record<string, boolean> = {};
+	if (defaults.cellToggles) Object.assign(toggles, defaults.cellToggles);
+	for (const set of [...active].reverse()) {
+		if (set?.cellToggles) Object.assign(toggles, set.cellToggles);
+	}
+	if (Object.keys(toggles).length > 0) out.cellToggles = toggles;
+
+	const nodeTypeFilters = first('nodeTypeFilters');
+	if (nodeTypeFilters) out.nodeTypeFilters = [...nodeTypeFilters];
+
+	// Filter policy is a membership union, not a field cascade: `all`, the
+	// node's level, and its direct parent may each include the node.
+	if (
+		active.some((set) => set?.filterPolicy === 'included') ||
+		(active.every((set) => set === undefined) && defaults.filterPolicy === 'included')
+	) {
+		out.filterPolicy = 'included';
+	}
+	return out;
+}
+
+/** Whether any persisted, non-hidden target currently projects groups. */
+export function hasScopeGrouping(state: ScopeState | undefined): boolean {
+	if (!state) return false;
+	return Object.values(state.sets).some(
+		(set) =>
+			set?.hidden !== true &&
+			set?.groupPreset !== undefined &&
+			set.groupPreset.kind !== 'none',
+	);
+}
+
+/**
+ * Build the new cumulative scope space from the legacy flat scene fields.
+ * This helper is idempotent when called with an existing `scopeState` by the
+ * caller: it is only intended for the first load of a scene.
+ */
+export function scopeStateFromLegacy(
+	tab: ExplorerTabId,
+	sortState: ExplorerSortState | undefined,
+	groupPreset?: GroupPreset,
+): ScopeState {
+	const state: ScopeState = { sets: {}, cursor: 'all', levelBase: 1 };
+	if (sortState) {
+		for (const [rawKey, sort] of Object.entries(sortState.sorts)) {
+			if (!sort) continue;
+			const migrated = rawKey === 'drill'
+				? sortState.drillNodeId
+					? parentScope(sortState.drillNodeId)
+					: null
+				: migrateLegacyScopeKey(rawKey);
+			if (!migrated || migrated === 'drill' || !isScopeAllowed(tab, migrated)) continue;
+			const key = migrated as ScopeTarget;
+			state.sets[key] = {
+				...(state.sets[key] ?? {}),
+				sort: cloneScopeSort(sort),
+			};
+		}
+		const filters = sortState.nodeTypeFilters ??
+			(sortState.nodeTypeFilter ? [sortState.nodeTypeFilter] : undefined);
+		if (filters?.length) {
+			state.sets.all = {
+				...(state.sets.all ?? {}),
+				nodeTypeFilters: [...filters],
+			};
+		}
+		if (sortState.filtered === true) {
+			state.sets.all = {
+				...(state.sets.all ?? {}),
+				filterPolicy: 'included',
+			};
+		}
+		for (const rawHidden of sortState.hiddenScopes ?? []) {
+			const migrated = rawHidden === 'drill'
+				? sortState.drillNodeId
+					? parentScope(sortState.drillNodeId)
+					: null
+				: migrateLegacyScopeKey(rawHidden);
+			if (!migrated || migrated === 'drill' || !isScopeAllowed(tab, migrated)) continue;
+			const key = migrated as ScopeTarget;
+			state.sets[key] = { ...(state.sets[key] ?? {}), hidden: true };
+		}
+		const rawCursor = sortState.activeScope === 'drill'
+			? sortState.drillNodeId
+				? parentScope(sortState.drillNodeId)
+				: 'all'
+			: migrateLegacyScopeKey(sortState.activeScope);
+		if (rawCursor !== 'drill' && isScopeAllowed(tab, rawCursor)) {
+			state.cursor = rawCursor as ScopeTarget;
+		}
+	}
+	if (groupPreset && groupPreset.kind !== 'none') {
+		// A legacy preset was scene-wide. Migrating it into the editing cursor
+		// would silently narrow it to whichever parent/level happened to be
+		// selected when the scene was saved. Preserve the old projection under
+		// `all`; later edits may add narrower cumulative overrides.
+		state.sets.all = {
+			...(state.sets.all ?? {}),
+			groupPreset: cloneScopeSet({ groupPreset }).groupPreset,
+		};
+	}
+	return state;
+}
+
+/** Compatibility spelling for callers that describe this as migration. */
+export const migrateScopeState = scopeStateFromLegacy;
 
 // --- Spec 08 §3.1.bis: scopes are levels -------------------------------------
 
@@ -202,7 +537,7 @@ export function normalizeExplorerSortState(
 	const nodeFilters = normalizeNodeFilters(value);
 	const legacySort = normalizeScopeSort(value);
 	if (legacySort) {
-		return {
+		const normalized: ExplorerSortState = {
 			...fallback,
 			sorts: { [DEFAULT_SCOPE_BY_TAB[tab]]: legacySort },
 			...nodeFilters,
@@ -216,6 +551,10 @@ export function normalizeExplorerSortState(
 					? { fixedFolders: true }
 					: {}),
 		};
+		if (value.scopeState !== undefined) {
+			normalized.scopeState = normalizeScopeState(tab, value.scopeState, normalized);
+		}
+		return normalized;
 	}
 
 	if (!isRecord(value.sorts)) return fallback;
@@ -292,7 +631,7 @@ export function normalizeExplorerSortState(
 		activeScope = 'all';
 	}
 
-	return {
+	const normalized: ExplorerSortState = {
 		sorts,
 		activeScope,
 		...(hiddenScopes.length > 0 ? { hiddenScopes } : {}),
@@ -313,6 +652,10 @@ export function normalizeExplorerSortState(
 				}
 			: {}),
 	};
+	if (value.scopeState !== undefined) {
+		normalized.scopeState = normalizeScopeState(tab, value.scopeState, normalized);
+	}
+	return normalized;
 }
 
 /**
@@ -385,9 +728,20 @@ export function replaceActiveScopeSort(
 		? state.activeScope
 		: DEFAULT_SCOPE_BY_TAB[tab];
 	const key = storageScope(state, scope);
+	const scopeTarget = key === 'drill' ? 'all' : (key as ScopeTarget);
+	const scopeState = state.scopeState
+		? cloneScopeState(state.scopeState)
+		: scopeStateFromLegacy(tab, state);
+	scopeState.cursor = scopeTarget;
+	scopeState.sets[scopeTarget] = {
+		...(scopeState.sets[scopeTarget] ?? {}),
+		sort: { ...sort },
+		hidden: false,
+	};
 	return {
 		...state,
 		sorts: { ...state.sorts, [key]: { ...sort } },
+		scopeState,
 		// Writing a sort to a hidden scope is the user un-hiding it.
 		...(state.hiddenScopes?.includes(key)
 			? { hiddenScopes: state.hiddenScopes.filter((entry) => entry !== key) }
@@ -401,6 +755,7 @@ export function sameSortProjection(
 ): boolean {
 	return (
 		JSON.stringify(a.sorts) === JSON.stringify(b.sorts) &&
+		JSON.stringify(a.scopeState ?? null) === JSON.stringify(b.scopeState ?? null) &&
 		a.parentsFirst === b.parentsFirst &&
 		a.fixedFolders === b.fixedFolders
 	);

@@ -21,6 +21,7 @@ import {
 import type { AddonIconOverrides } from '../logic/logicAddonIcons';
 import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
 import type { ToolbarMenuKind } from '../logic/logicToolbarMenuCatalog';
+import type { TaskCellDisplayMode } from '../logic/logicTaskMetric';
 import type {
 	RelativeTimeCutoffs,
 	TimestampRelativeWindow,
@@ -316,6 +317,8 @@ export interface VaultmanSettings {
 	autoRevealActiveFile: boolean;
 	/** BT5-040: folders show the recursive sum of countable cells of their files */
 	folderAggregateCells: boolean;
+	/** Tasks cell presentation; grouping always uses pending tasks. */
+	taskCellDisplayMode: TaskCellDisplayMode;
 	/** Include YAML frontmatter in the Files explorer word-count cell. */
 	countFrontmatterWords: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
@@ -578,6 +581,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	autoRevealActiveFile: false,
 	sparseAutoExpandTopLevel: true,
 	folderAggregateCells: false,
+	taskCellDisplayMode: 'done-total',
 	countFrontmatterWords: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',
