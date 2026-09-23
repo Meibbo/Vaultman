@@ -145,11 +145,20 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		surfaces: ['panel'],
 		label: () => translate('group.copy.id'),
 		icon: 'lucide-copy',
-		run: (ctx: MenuCtx) => {
-			const id = ctx.groupId ?? ctx.node.id;
-			void navigator.clipboard.writeText(id).catch(() => {
+		run: async (ctx: MenuCtx) => {
+			const id = resolveGroupCopyId(ctx);
+			if (!id) {
 				new Notice(translate('group.copy.failed'));
-			});
+				return;
+			}
+			const ok = await writeGroupCopyIdToClipboard(id);
+			new Notice(
+				translate(
+					ok
+						? 'settings.data_transfer.export.copied'
+						: 'group.copy.failed',
+				),
+			);
 		},
 	});
 
@@ -220,4 +229,72 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 			if (ctx.groupId && ctx.deleteGroup) ctx.deleteGroup(ctx.groupId);
 		},
 	});
+}
+
+/**
+ * U130-GGC-020: identidad estable del grupo invocado.
+ *
+ * `TreeNode.id` es rowId de ocurrencia (p. ej. `vaultman.group.header:<owner>:<id>`
+ * tras `projectGroupedTreeInScope`); la identidad canonica viaja en
+ * `node.entityId` (= `entityIdOf`) y, en Files/Props/Tags, en `ctx.groupId`.
+ * Snippets/Plugins propagan `groupId: id` (rowId), asi que `entityId` tiene
+ * prioridad: copiar el rowId seria copiar otra ocurrencia/instancia.
+ */
+export function resolveGroupCopyId(ctx: MenuCtx): string {
+	const entity = (ctx.node as { entityId?: unknown }).entityId;
+	if (typeof entity === 'string' && entity.length > 0) return entity;
+	if (typeof ctx.groupId === 'string' && ctx.groupId.length > 0)
+		return ctx.groupId;
+	return ctx.node.id;
+}
+
+/**
+ * U130-GGC-020: escritura con capability guard + fallback DOM sin API extra.
+ * Nunca lanza: `false` significa "mostrar `group.copy.failed`".
+ */
+export async function writeGroupCopyIdToClipboard(id: string): Promise<boolean> {
+	try {
+		const scope = globalThis as unknown as {
+			navigator?: { clipboard?: { writeText?: (text: string) => Promise<unknown> } };
+		};
+		const writeText = scope.navigator?.clipboard?.writeText?.bind(
+			scope.navigator.clipboard,
+		);
+		if (typeof writeText === 'function') {
+			await writeText(id);
+			return true;
+		}
+	} catch {
+		// Clipboard API rechazo/permiso: intenta el fallback legacy abajo.
+	}
+	return legacyCopyGroupId(id);
+}
+
+function legacyCopyGroupId(text: string): boolean {
+	try {
+		const scope = globalThis as unknown as {
+			document?: Document;
+		};
+		const doc = scope.document;
+		if (!doc || typeof doc.createElement !== 'function') return false;
+		const exec = (doc as unknown as { execCommand?: (cmd: string) => boolean }).execCommand;
+		if (typeof exec !== 'function') return false;
+		const area = doc.createElement('textarea');
+		area.value = text;
+		area.setAttribute('readonly', '');
+		area.style.position = 'fixed';
+		area.style.opacity = '0';
+		doc.body?.appendChild(area);
+		area.select();
+		try {
+			area.setSelectionRange(0, area.value.length);
+		} catch {
+			// Select ya basta en desktop; ignora el rango movil.
+		}
+		const result = exec.call(doc, 'copy');
+		area.remove();
+		return result !== false;
+	} catch {
+		return false;
+	}
 }
