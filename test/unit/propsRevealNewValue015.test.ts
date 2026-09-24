@@ -682,4 +682,28 @@ describe('PropsExplorerPanel New value in Props Reveal', () => {
 		expect(processFrontMatterSpy).not.toHaveBeenCalled();
 		expect(files['notes/instance1.md'].status).toBe('draft');
 	});
+
+	it('does not write to the old note after an unpinned reveal changes its active file', async () => {
+		const files: Record<string, Record<string, unknown>> = {
+			'notes/first.md': { status: 'draft' },
+			'notes/second.md': { status: 'published' },
+		};
+		const { plugin, processFrontMatterSpy, setActiveFile } = createMockPluginCtx(files);
+		const panel = new PropsExplorerPanel(new TestElement('div') as unknown as HTMLElement, plugin);
+		panel.setSelectionScope({ instanceId: 'vm-1', revision: 1, scene: 'props' });
+		panel.setVisibleCells(new Set(['icon', 'text', 'cell_hover']));
+		setActiveFile('notes/first.md');
+		panel.toggleRevealActiveFile();
+		expect(panel.startNewValueForProp('status')).toBe(true);
+		const tempId = panel.revealAddingState!.tempId;
+		setActiveFile('notes/second.md');
+		const opts = (panel as unknown as {
+			view: { _opts?: { onRename?: (id: string, val: string) => void } };
+		}).view._opts;
+		opts?.onRename?.(tempId, 'review');
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(processFrontMatterSpy).not.toHaveBeenCalled();
+		expect(files['notes/first.md'].status).toBe('draft');
+		expect(files['notes/second.md'].status).toBe('published');
+	});
 });

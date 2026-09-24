@@ -3246,7 +3246,7 @@ export class PropsExplorerPanel extends Component {
 		const guard = validateRevealMutationGuard({
 			expectedTargetPath: overridePath ?? this._revealAdding?.targetPath,
 			expectedOwnerInstanceId: this._revealAdding?.ownerInstanceId,
-			actualTargetPath: path,
+			actualTargetPath: this._revealPath(),
 			actualInstanceId: this.selectionInstanceId,
 			isRevealing: this.isRevealingActiveFile(),
 		});
@@ -3395,8 +3395,7 @@ export class PropsExplorerPanel extends Component {
 			const guard = validateRevealMutationGuard({
 				expectedTargetPath: this._revealAdding.targetPath,
 				expectedOwnerInstanceId: this._revealAdding.ownerInstanceId,
-				actualTargetPath:
-					this._revealAdding.targetPath ?? this._revealPath(),
+				actualTargetPath: this._revealPath(),
 				actualInstanceId: this.selectionInstanceId,
 				isRevealing: this.isRevealingActiveFile(),
 			});

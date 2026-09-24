@@ -217,12 +217,10 @@ export function validateRevealMutationGuard(
 		return { allowed: false, reason: 'target_path_mismatch' };
 	}
 	if (
-		check.expectedOwnerInstanceId &&
-		check.actualInstanceId &&
-		check.expectedOwnerInstanceId !== check.actualInstanceId
+		check.expectedOwnerInstanceId !== undefined &&
+		check.expectedOwnerInstanceId !== (check.actualInstanceId ?? null)
 	) {
 		return { allowed: false, reason: 'owner_instance_mismatch' };
 	}
 	return { allowed: true };
 }
-
