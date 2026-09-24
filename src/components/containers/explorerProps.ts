@@ -226,7 +226,11 @@ import {
 	planValueMoveTypeChanges,
 } from '../../logic/logicValueMoveApply';
 import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
-import { projectActiveFileProps } from '../../logic/logicRevealActiveFileProps';
+import {
+	projectActiveFileProps,
+	resolveRevealTarget,
+	validateRevealMutationGuard,
+} from '../../logic/logicRevealActiveFileProps';
 import { projectFilteredProps } from '../../logic/logicFilteredProps';
 import {
 	OperationSummaryModal,
@@ -329,7 +333,19 @@ export class PropsExplorerPanel extends Component {
 		stage: 'prop' | 'initial_value' | 'subsequent_value';
 		propName?: string;
 		tempId: string;
+		targetPath?: string;
+		ownerInstanceId?: string | null;
 	};
+
+	get revealAddingState(): Readonly<{
+		stage: 'prop' | 'initial_value' | 'subsequent_value';
+		propName?: string;
+		tempId: string;
+		targetPath?: string;
+		ownerInstanceId?: string | null;
+	}> | undefined {
+		return this._revealAdding;
+	}
 	private _optimisticFrontmatter: Record<string, unknown> | null = null;
 	private _optimisticFrontmatterPath: string | null = null;
 
@@ -1705,7 +1721,11 @@ export class PropsExplorerPanel extends Component {
 				) {
 					const targetPropName = this._revealAdding.propName;
 					nodes = nodes.map((propNode) => {
-						if (propNode.meta.propName === targetPropName) {
+						if (
+							propNode.meta.propName === targetPropName ||
+							propNode.meta.propName.toLowerCase() ===
+								targetPropName.toLowerCase()
+						) {
 							const tempChild: TreeNode<PropMeta> = {
 								id: this._revealAdding!.tempId,
 								label: '',
@@ -1720,7 +1740,10 @@ export class PropsExplorerPanel extends Component {
 									rawValue: '',
 								},
 							};
-							const children = [...(propNode.children ?? []), tempChild];
+							const existingChildren = (propNode.children ?? []).filter(
+								(c) => (c.meta.rawValue ?? '') !== '',
+							);
+							const children = [...existingChildren, tempChild];
 							return {
 								...propNode,
 								children,
@@ -2235,6 +2258,7 @@ export class PropsExplorerPanel extends Component {
 			node: import('../../types/typeFilter').FilterNode,
 			isExcluded = false,
 		) => {
+			if (!node) return;
 			if (node.type === 'rule' && node.property) {
 				const isNodeExcluded =
 					isExcluded ||
@@ -2529,6 +2553,9 @@ export class PropsExplorerPanel extends Component {
 
 	/** Last rendered tree — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<PropMeta>[] = [];
+	get lastRenderTree(): readonly TreeNode<PropMeta>[] {
+		return this._lastRenderTree;
+	}
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
 	/** Floating TOC: nodes at a scope level (rootId=null → top level). */
@@ -2889,17 +2916,23 @@ export class PropsExplorerPanel extends Component {
 			filterBubbleLabel: translate('filter.active_descendant'),
 			onCellClick: (id, cellId) => {
 				const node = this._findNode(id, projected);
-				if (!node?.meta.isValueNode || !cellId.startsWith('cell_hover:')) return;
+				if (!node || !cellId.startsWith('cell_hover:')) return;
 				const action = cellId.slice('cell_hover:'.length);
-				if (action === 'open-daily-note') {
-					const day = (node.meta.rawValue ?? '').slice(0, 10);
-					void this.plugin.app.workspace.openLinkText(day, '', false);
-				} else if (action === 'delete-value') {
-					this.plugin.contextMenuService.invokeAction('value.delete', {
-						nodeType: 'value',
-						node,
-						surface: 'panel',
-					});
+				if (node.meta?.isValueNode) {
+					if (action === 'open-daily-note') {
+						const day = (node.meta.rawValue ?? '').slice(0, 10);
+						void this.plugin.app.workspace.openLinkText(day, '', false);
+					} else if (action === 'delete-value') {
+						this.plugin.contextMenuService.invokeAction('value.delete', {
+							nodeType: 'value',
+							node,
+							surface: 'panel',
+						});
+					}
+					return;
+				}
+				if (action === 'new-value' || action === 'add-value') {
+					this.startNewValueForProp(node);
 				}
 			},
 			renderLabel: (container, node) => {
@@ -3206,9 +3239,19 @@ export class PropsExplorerPanel extends Component {
 
 	private _updateRevealFrontmatter(
 		mutator: (fm: Record<string, unknown>) => void,
+		overridePath?: string,
 	): Promise<void> {
-		const path = this._revealPath();
+		const path = overridePath ?? this._revealPath();
 		if (!path) return Promise.resolve();
+		const guard = validateRevealMutationGuard({
+			expectedTargetPath: overridePath ?? this._revealAdding?.targetPath,
+			expectedOwnerInstanceId: this._revealAdding?.ownerInstanceId,
+			actualTargetPath: path,
+			actualInstanceId: this.selectionInstanceId,
+			isRevealing: this.isRevealingActiveFile(),
+		});
+		if (!guard.allowed) return Promise.resolve();
+
 		const file = this.plugin.app.vault.getFileByPath(path);
 		if (!(file instanceof TFile)) return Promise.resolve();
 
@@ -3241,6 +3284,8 @@ export class PropsExplorerPanel extends Component {
 		this._revealAdding = {
 			stage: 'prop',
 			tempId,
+			targetPath: path,
+			ownerInstanceId: this.selectionInstanceId,
 		};
 		this._editingId = tempId;
 		void this._render();
@@ -3265,6 +3310,8 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
+		const targetPath =
+			this._revealAdding?.targetPath ?? this._revealPath() ?? undefined;
 		await this._updateRevealFrontmatter((fm) => {
 			if (!(name in fm)) {
 				const isList = isListType(
@@ -3272,7 +3319,7 @@ export class PropsExplorerPanel extends Component {
 				);
 				fm[name] = isList ? [] : null;
 			}
-		});
+		}, targetPath);
 
 		if (isEnter) {
 			this.expandedIds.add(name);
@@ -3281,6 +3328,8 @@ export class PropsExplorerPanel extends Component {
 				stage: 'initial_value',
 				propName: name,
 				tempId,
+				targetPath,
+				ownerInstanceId: this.selectionInstanceId,
 			};
 			this._editingId = tempId;
 		} else {
@@ -3307,6 +3356,8 @@ export class PropsExplorerPanel extends Component {
 				void this._render();
 				return;
 			}
+			const targetPath =
+				this._revealAdding.targetPath ?? this._revealPath() ?? undefined;
 			await this._updateRevealFrontmatter((fm) => {
 				const isList = isListType(
 					this._effectivePropType({
@@ -3315,13 +3366,15 @@ export class PropsExplorerPanel extends Component {
 					}),
 				);
 				fm[propName] = isList ? [val] : val;
-			});
+			}, targetPath);
 			if (isEnter) {
 				const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
 				this._revealAdding = {
 					stage: 'subsequent_value',
 					propName,
 					tempId: nextTempId,
+					targetPath,
+					ownerInstanceId: this.selectionInstanceId,
 				};
 				this._editingId = nextTempId;
 			} else {
@@ -3339,6 +3392,22 @@ export class PropsExplorerPanel extends Component {
 				void this._render();
 				return;
 			}
+			const guard = validateRevealMutationGuard({
+				expectedTargetPath: this._revealAdding.targetPath,
+				expectedOwnerInstanceId: this._revealAdding.ownerInstanceId,
+				actualTargetPath:
+					this._revealAdding.targetPath ?? this._revealPath(),
+				actualInstanceId: this.selectionInstanceId,
+				isRevealing: this.isRevealingActiveFile(),
+			});
+			if (!guard.allowed) {
+				this._revealAdding = undefined;
+				this._editingId = undefined;
+				void this._render();
+				return;
+			}
+			const targetPath =
+				this._revealAdding.targetPath ?? this._revealPath() ?? undefined;
 			await this._updateRevealFrontmatter((fm) => {
 				const current = fm[propName];
 				if (Array.isArray(current)) {
@@ -3354,13 +3423,15 @@ export class PropsExplorerPanel extends Component {
 					);
 					fm[propName] = isList ? [val] : val;
 				}
-			});
+			}, targetPath);
 			if (isEnter) {
 				const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
 				this._revealAdding = {
 					stage: 'subsequent_value',
 					propName,
 					tempId: nextTempId,
+					targetPath,
+					ownerInstanceId: this.selectionInstanceId,
 				};
 				this._editingId = nextTempId;
 			} else {
@@ -3404,17 +3475,64 @@ export class PropsExplorerPanel extends Component {
 		});
 
 		if (isEnter) {
+			const targetPath = this._revealPath() ?? undefined;
 			const nextTempId = `${propName}::__reveal_new_val_${Date.now()}__`;
 			this._revealAdding = {
 				stage: 'subsequent_value',
 				propName,
 				tempId: nextTempId,
+				targetPath,
+				ownerInstanceId: this.selectionInstanceId,
 			};
 			this._editingId = nextTempId;
 		} else {
 			this._editingId = undefined;
 		}
 		void this._render();
+	}
+
+	/**
+	 * U130-GGC-015: Programmatic and UI entry point for "New value" on a property node in Props Reveal.
+	 */
+	startNewValueForProp(propNameOrNode: string | TreeNode<PropMeta>): boolean {
+		if (!this.isRevealingActiveFile()) return false;
+		const node =
+			typeof propNameOrNode === 'string'
+				? (this._findNode(propNameOrNode, this._lastRenderTree) ??
+					this._findNode(
+						propNameOrNode,
+						this._scopeProjection(this.logic.getTree()),
+					))
+				: propNameOrNode;
+		if (!node || node.meta?.isValueNode) return false;
+		return this._startAddValueInReveal(node);
+	}
+
+	private _startAddValueInReveal(propNode: TreeNode<PropMeta>): boolean {
+		if (!this.isRevealingActiveFile()) return false;
+		const target = resolveRevealTarget(propNode, {
+			isRevealing: this.isRevealingActiveFile(),
+			revealAnchor: this.sortState?.revealAnchor,
+			revealAnchorPath: this.sortState?.revealAnchorPath,
+			currentFilePath: this.revealActivePath,
+			instanceId: this.selectionInstanceId,
+		});
+		if (!target) return false;
+		const file = this.plugin.app.vault.getFileByPath(target.targetPath);
+		if (!(file instanceof TFile)) return false;
+
+		this.expandedIds.add(target.propName);
+		const tempId = `${target.propName}::__reveal_new_val_${Date.now()}__`;
+		this._revealAdding = {
+			stage: 'subsequent_value',
+			propName: target.propName,
+			tempId,
+			targetPath: target.targetPath,
+			ownerInstanceId: target.ownerInstanceId,
+		};
+		this._editingId = tempId;
+		void this._render();
+		return true;
 	}
 
 	/**
@@ -3581,8 +3699,8 @@ export class PropsExplorerPanel extends Component {
 			);
 			// Native parity (`LN`): the core value popover carries
 			// `mod-property-value` and the lowercase key for theming.
-			valueSuggest.popoverEl.addClass('mod-property-value');
-			valueSuggest.popoverEl.setAttr(
+			valueSuggest.popoverEl?.addClass?.('mod-property-value');
+			valueSuggest.popoverEl?.setAttr?.(
 				'data-property-key',
 				propName.toLowerCase(),
 			);
@@ -4592,10 +4710,15 @@ export class PropsExplorerPanel extends Component {
 			const defaultIcon = !meta.isValueNode && !isGroup
 				? this._effectivePropIcon(meta)
 				: undefined;
-			const hoverCell =
-				meta.isValueNode && this.visibleCells.has('cell_hover')
+			const hoverCell = this.visibleCells.has('cell_hover')
+				? meta.isValueNode
 					? this._valueHoverCell(meta, queue)
-					: null;
+					: this.isRevealingActiveFile() &&
+						  !isGroup &&
+						  !meta.isAddPropertyRow
+						? this._propHoverCell()
+						: null
+				: null;
 			const cells: TreeNodeCell[] = hoverCell ? [hoverCell] : [];
 
 			return {
@@ -4609,6 +4732,17 @@ export class PropsExplorerPanel extends Component {
 				children: resolvedChildren,
 			};
 		});
+	}
+
+	private _propHoverCell(): TreeNodeCell | null {
+		const actions: Extract<TreeNodeCell, { kind: 'cell_hover' }>['actions'] = [
+			{
+				id: 'new-value',
+				icon: 'lucide-plus',
+				label: translate('explorer.cell.new_value'),
+			},
+		];
+		return { id: 'cell_hover', kind: 'cell_hover', actions };
 	}
 
 	private _valueHoverCell(

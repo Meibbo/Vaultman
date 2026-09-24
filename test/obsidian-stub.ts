@@ -81,6 +81,11 @@ export class Notice {
 export class FileManager {}
 
 export class AbstractInputSuggest<T> {
+	suggestEl = {
+		addClass: (_cls: string) => {},
+		setAttr: (_attr: string, _val: string) => {},
+	};
+
 	constructor(..._args: unknown[]) {}
 
 	getSuggestions(_inputStr: string): T[] {
@@ -207,6 +212,10 @@ export function setTooltip(
  */
 export function setIcon(el: { createEl?: (tag: string, options?: { cls?: string }) => unknown }, icon: string): void {
 	el.createEl?.('svg', { cls: `svg-icon ${icon}` });
+}
+
+export function getIcon(_icon: string): SVGSVGElement | null {
+	return null;
 }
 
 export function parseYaml(_yaml: string): unknown {

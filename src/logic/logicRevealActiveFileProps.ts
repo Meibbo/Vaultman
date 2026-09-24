@@ -140,3 +140,89 @@ export function projectActiveFileProps(
 
 	return nodes;
 }
+
+export interface RevealTargetContext {
+	isRevealing: boolean;
+	revealAnchor?: 'current-file' | 'pinned';
+	revealAnchorPath?: string | null;
+	currentFilePath: string | null;
+	instanceId?: string | null;
+}
+
+export interface RevealTarget {
+	propName: string;
+	targetPath: string;
+	ownerInstanceId: string | null;
+}
+
+/**
+ * U130-GGC-015: Resolve the target property and note path for Props Reveal New value.
+ * Pinned anchor outranks current workspace file; unpinned follows current file.
+ */
+export function resolveRevealTarget(
+	node: Pick<TreeNode<PropMeta>, 'meta' | 'label' | 'id'>,
+	context: RevealTargetContext,
+): RevealTarget | null {
+	if (!context.isRevealing) return null;
+	const targetPath =
+		context.revealAnchor === 'pinned'
+			? context.revealAnchorPath ?? null
+			: context.currentFilePath;
+	if (!targetPath) return null;
+	if (node.id === '__add_property__') return null;
+	const meta = node.meta as (PropMeta & { isAddPropertyRow?: boolean }) | undefined;
+	if (meta?.isAddPropertyRow || meta?.isValueNode) return null;
+	const propName = meta?.propName || node.label || node.id;
+	if (!propName || propName === '__add_property__') return null;
+	return {
+		propName,
+		targetPath,
+		ownerInstanceId: context.instanceId ?? null,
+	};
+}
+
+export interface RevealMutationGuardCheck {
+	expectedTargetPath?: string | null;
+	expectedOwnerInstanceId?: string | null;
+	actualTargetPath: string | null;
+	actualInstanceId?: string | null;
+	isRevealing: boolean;
+}
+
+export interface RevealMutationGuardResult {
+	allowed: boolean;
+	reason?:
+		| 'not_revealing'
+		| 'no_target_path'
+		| 'target_path_mismatch'
+		| 'owner_instance_mismatch';
+}
+
+/**
+ * U130-GGC-015: Mutation guard preventing cross-instance or mismatched target writes in Props Reveal.
+ */
+export function validateRevealMutationGuard(
+	check: RevealMutationGuardCheck,
+): RevealMutationGuardResult {
+	if (!check.isRevealing) {
+		return { allowed: false, reason: 'not_revealing' };
+	}
+	if (!check.actualTargetPath) {
+		return { allowed: false, reason: 'no_target_path' };
+	}
+	if (
+		check.expectedTargetPath &&
+		check.expectedTargetPath !== check.actualTargetPath
+	) {
+		return { allowed: false, reason: 'target_path_mismatch' };
+	}
+	if (
+		check.expectedOwnerInstanceId &&
+		check.actualInstanceId &&
+		check.expectedOwnerInstanceId !== check.actualInstanceId
+	) {
+		return { allowed: false, reason: 'owner_instance_mismatch' };
+	}
+	return { allowed: true };
+}
+

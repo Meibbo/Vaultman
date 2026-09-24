@@ -902,6 +902,7 @@ export const en: Record<string, string> = {
 	'explorer.ctx.filter_clean': 'Clean this filter',
 	'explorer.cell.open_daily_note': 'Open daily note',
 	'explorer.cell.delete_value': 'Queue delete value',
+	'explorer.cell.new_value': 'New value',
 	'explorer.ctx.tag.coming_soon': 'More options coming soon',
 	'tags.invalid_name': 'That is not a valid tag name',
 	'tags.invalid_name.spaces':

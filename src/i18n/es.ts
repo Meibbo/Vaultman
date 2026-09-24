@@ -925,6 +925,7 @@ export const es: Record<string, string> = {
 	'explorer.ctx.filter_clean': 'Limpiar este filtro',
 	'explorer.cell.open_daily_note': 'Abrir nota diaria',
 	'explorer.cell.delete_value': 'Encolar eliminación del valor',
+	'explorer.cell.new_value': 'Nuevo valor',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
 	'file.ctx.open_window': 'Abrir en nueva ventana',
