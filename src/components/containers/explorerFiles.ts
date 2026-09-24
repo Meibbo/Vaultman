@@ -96,8 +96,10 @@ import {
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
 import {
+	effectiveTaskCellDisplayMode,
 	resolveTaskCellText,
 	resolveTaskGroupingMetric,
+	type TaskCellDisplayMode,
 } from '../../logic/logicTaskMetric';
 import {
 	buildFileRenameChange,
@@ -322,6 +324,16 @@ export class FilesExplorerPanel extends Component {
 	/** BT5-017: descendant-activity index, rebuilt with the projection only. */
 	private bubbleIndex: BubbleIndex<FileMeta> | null = null;
 	private viewMode: FilesViewMode = 'tree';
+	private taskCellDisplayOverride: TaskCellDisplayMode | 'auto' = 'auto';
+	private _taskCellDisplayMode(): TaskCellDisplayMode {
+		return effectiveTaskCellDisplayMode(this.taskCellDisplayOverride, this.plugin.settings.taskCellDisplayMode);
+	}
+
+	setTaskCellDisplayMode(mode: TaskCellDisplayMode | 'auto'): void {
+		if (this.taskCellDisplayOverride === mode) return;
+		this.taskCellDisplayOverride = mode;
+		void this._render();
+	}
 	private _sourceFiles: TFile[] = [];
 	private _currentFiles: TFile[] = [];
 	private hasSourceProjection = false;
@@ -1097,6 +1109,7 @@ export class FilesExplorerPanel extends Component {
 		this._withRenderBatch(() => {
 			this.setViewMode(config.viewMode);
 			this.setVisibleCells(new Set(config.visibleCells));
+			this.setTaskCellDisplayMode(config.taskCellDisplayMode ?? 'auto');
 			this.setSortState(config.sortState);
 			if (config.interactionMode) {
 				this.setInteractionMode(config.interactionMode);
@@ -4214,7 +4227,7 @@ export class FilesExplorerPanel extends Component {
 			node.tasksText =
 				taskStats === null || taskStats.total === 0
 					? undefined
-					: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? undefined;
+					: resolveTaskCellText(taskStats, this._taskCellDisplayMode()) ?? undefined;
 		}
 		if (cells.has('tags')) {
 			const tagCount = this.plugin.statisticsCache.getFileTagCount(file);
@@ -4697,7 +4710,7 @@ export class FilesExplorerPanel extends Component {
 			);
 			if (laterCell) badgeZone.insertBefore(taskCell, laterCell);
 		}
-		const text = resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? '';
+		const text = resolveTaskCellText(taskStats, this._taskCellDisplayMode()) ?? '';
 		if (taskCell.textContent !== text) taskCell.textContent = text;
 		}
 	}
@@ -4727,7 +4740,7 @@ export class FilesExplorerPanel extends Component {
 					node.tasksText =
 						taskStats.total === 0
 							? undefined
-							: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode) ?? undefined;
+							: resolveTaskCellText(taskStats, this._taskCellDisplayMode()) ?? undefined;
 				}
 			}
 		};
@@ -5094,7 +5107,7 @@ export class FilesExplorerPanel extends Component {
 				? resolveTaskCellText({
 						completed: total.tasksCompleted,
 						total: total.tasksTotal,
-					}, this.plugin.settings.taskCellDisplayMode) ?? undefined
+				}, this._taskCellDisplayMode()) ?? undefined
 				: undefined;
 	}
 
@@ -5212,7 +5225,7 @@ export class FilesExplorerPanel extends Component {
 				tasks:
 					taskStats === null || taskStats.total === 0
 						? null
-						: resolveTaskCellText(taskStats, this.plugin.settings.taskCellDisplayMode),
+						: resolveTaskCellText(taskStats, this._taskCellDisplayMode()),
 				count: this._propCountForFile(file),
 			},
 			labels,

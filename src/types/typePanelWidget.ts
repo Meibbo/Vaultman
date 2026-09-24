@@ -70,6 +70,8 @@ export interface ScenePanelWidgetActionPort {
 export interface PanelWidgetExplorerProjectionConfig {
 	sortState: ExplorerSortState;
 	visibleCells: ReadonlySet<string>;
+	/** Effective presentation for Tasks in this instance. */
+	taskCellDisplayMode?: import('../logic/logicTaskMetric').TaskCellDisplayMode | 'auto';
 	viewMode: 'tree' | 'grid' | 'table';
 	interactionMode?: InteractionMode;
 	/** Spec 08 §2: view_options del engine `tree`, per_instance. */
@@ -345,6 +347,7 @@ export interface NavbarPanelWidgetState {
 	/** U130 toolbar alt-cmenu: global `autoRevealActiveFile` para pintar el
 	 * toggle per-instance (el override vive en SceneConfig.autoReveal). */
 	autoRevealGlobal?: boolean;
+	taskCellDisplayGlobal?: import('../logic/logicTaskMetric').TaskCellDisplayMode;
 	savedLayouts?: SavedLayout[];
 	onSaveLayout?: (layout: SavedLayout) => void;
 	onLayoutLoaded?: (layout: SavedLayout) => void;

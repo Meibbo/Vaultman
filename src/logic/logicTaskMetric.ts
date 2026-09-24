@@ -61,6 +61,14 @@ export function normalizeTaskCellDisplayMode(
 	return value === 'pending' ? 'pending' : DEFAULT_TASK_CELL_DISPLAY_MODE;
 }
 
+/** An instance override wins; `auto` keeps the Settings value live. */
+export function effectiveTaskCellDisplayMode(
+	local: TaskCellDisplayMode | 'auto' | undefined,
+	global: TaskCellDisplayMode,
+): TaskCellDisplayMode {
+	return local === 'pending' || local === 'done-total' ? local : global;
+}
+
 /**
  * Read legacy settings without making the UI know about migration details.
  * `undefined` means the pre-toggle default (done/total), while an explicit

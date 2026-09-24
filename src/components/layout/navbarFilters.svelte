@@ -138,6 +138,8 @@ import {
 		type SceneFacets,
 	} from '../../logic/logicSceneConfigPort';
 	import type { SceneConfig } from '../../types/typeInstance';
+	import { effectiveTaskCellDisplayMode } from '../../logic/logicTaskMetric';
+	import type { TaskCellDisplayMode } from '../../logic/logicTaskMetric';
 	import {
 		addCommandId,
 		removeCommandId,
@@ -341,6 +343,7 @@ import {
 		onToggleToolbar,
 		toolbarShown = true,
 		autoRevealGlobal = false,
+		taskCellDisplayGlobal = 'done-total' as TaskCellDisplayMode,
 		savedLayouts = [],
 		onSaveLayout,
 		onLayoutLoaded,
@@ -1980,6 +1983,7 @@ import {
 			visibleCells: string[];
 			sortState: ExplorerSortState;
 			interactionMode?: InteractionMode;
+			taskCellDisplayMode?: TaskCellDisplayMode | 'auto';
 			stickyRows?: boolean;
 			compactFolders?: boolean;
 			indent?: boolean;
@@ -2012,6 +2016,7 @@ import {
 					...(config.interactionMode
 						? { interactionMode: config.interactionMode }
 						: {}),
+					taskCellDisplayMode: config.taskCellDisplayMode,
 					...(config.stickyRows !== undefined
 						? { stickyRows: config.stickyRows }
 						: {}),
@@ -2673,6 +2678,21 @@ import {
 
 	function openNodeAltMenu(localId: string, event: MouseEvent): void {
 		const menu = new Menu();
+		if (localId === 'view' && activeTab === 'files') {
+			const current = effectiveTaskCellDisplayMode(
+				configByTab.files.taskCellDisplayMode,
+				taskCellDisplayGlobal,
+			);
+			menu.addItem((item) => {
+				item
+					.setTitle(`${translate('settings.task_cell_display_mode')}: ${translate(`settings.task_cell_display_mode.${current}`)}`)
+					.setIcon('lucide-list-checks')
+					.onClick(() => commitConfig('files', {
+						taskCellDisplayMode: current === 'pending' ? 'done-total' : 'pending',
+					}));
+			});
+			menu.addSeparator();
+		}
 		if (localId === 'search' && activeTab === 'files') {
 			const nested = effectiveCreateActionsPlacement !== 'toolbar';
 			menu.addItem((item) => {
@@ -3899,6 +3919,7 @@ import {
 		const groupPreset = configByTab[tab].groupPreset;
 		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
 		const groupMemberships = configByTab[tab].groupMemberships;
+		const taskCellDisplayMode = configByTab[tab].taskCellDisplayMode;
 		applyTabProjection(tab, {
 			viewMode,
 			visibleCells: cells,
@@ -3910,6 +3931,7 @@ import {
 			groupPreset,
 			hiddenGroupIds,
 			groupMemberships,
+			taskCellDisplayMode,
 		});
 		if (tab === 'files' && fileList) {
 			fileList.setInteractionModeChangeHandler?.((mode) => {

@@ -365,6 +365,7 @@
 			viewMode: 'tree',
 			interactionMode: DEFAULT_INTERACTION_MODE[scene],
 			visibleCells: defaultVisibleCells(scene, 'tree'),
+			taskCellDisplayMode: 'auto',
 			sortState: normalizeExplorerSortState(scene, null),
 			// El ajuste global de Settings sigue siendo el DEFAULT para instancias
 			// nuevas (spec 08 §1.1); el per_instance lo pisa desde el view_menu.

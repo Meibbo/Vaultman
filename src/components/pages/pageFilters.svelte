@@ -1908,6 +1908,7 @@
 	}
 
 	$effect(() => {
+		void settingsRevision;
 		const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } =
 			{
 				providerId: filtersActiveTab,
@@ -1915,6 +1916,7 @@
 				actionPort: panelWidgetActionPort,
 				activeTab: explorerActiveTab,
 				autoRevealGlobal: plugin.settings.autoRevealActiveFile === true,
+				taskCellDisplayGlobal: plugin.settings.taskCellDisplayMode,
 				filtersSearch,
 				filtersSearchCategory,
 				searchExpanded: panelWidgetSearchExpanded,

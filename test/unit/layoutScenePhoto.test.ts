@@ -33,6 +33,7 @@ const defaults: Required<SceneConfig> = {
 	viewMode: 'tree',
 	interactionMode: 'open',
 	visibleCells: ['name'],
+	taskCellDisplayMode: 'auto',
 	sortState: normalizeExplorerSortState('files', null),
 	stickyRows: true,
 	compactFolders: false,

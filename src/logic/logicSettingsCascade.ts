@@ -32,6 +32,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		viewMode: input.defaults.viewMode,
 		interactionMode: input.defaults.interactionMode,
 		visibleCells: cloneCells(input.defaults.visibleCells),
+		taskCellDisplayMode: input.defaults.taskCellDisplayMode,
 		sortState: cloneExplorerSortState(input.defaults.sortState),
 		stickyRows: input.defaults.stickyRows,
 		compactFolders: input.defaults.compactFolders,
@@ -54,6 +55,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		if (layer.interactionMode !== undefined) out.interactionMode = layer.interactionMode;
 		// Un array NO se fusiona: la capa que lo declara decide la lista entera.
 		if (layer.visibleCells !== undefined) out.visibleCells = cloneCells(layer.visibleCells);
+		if (layer.taskCellDisplayMode !== undefined) out.taskCellDisplayMode = layer.taskCellDisplayMode;
 		if (layer.sortState !== undefined) {
 			out.sortState = cloneExplorerSortState(layer.sortState);
 		}
@@ -112,6 +114,9 @@ export function diffSceneConfig(
 		next.visibleCells.some((cell, i) => cell !== baseline.visibleCells[i])
 	) {
 		patch.visibleCells = cloneCells(next.visibleCells);
+	}
+	if (next.taskCellDisplayMode !== baseline.taskCellDisplayMode) {
+		patch.taskCellDisplayMode = next.taskCellDisplayMode;
 	}
 	if (JSON.stringify(next.sortState) !== JSON.stringify(baseline.sortState)) {
 		patch.sortState = cloneExplorerSortState(next.sortState);

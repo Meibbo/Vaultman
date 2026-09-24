@@ -487,6 +487,7 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		viewMode: 'tree',
 		interactionMode: 'open',
 		visibleCells: ['name'],
+		taskCellDisplayMode: 'auto',
 		sortState: normalizeExplorerSortState('files', null),
 		stickyRows: true,
 		compactFolders: false,

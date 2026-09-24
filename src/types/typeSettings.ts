@@ -41,6 +41,7 @@ export type Language = 'auto' | 'en' | 'es';
 export interface SavedViewConfig {
 	viewMode: string;
 	visibleCells: string[];
+	taskCellDisplayMode?: TaskCellDisplayMode | 'auto';
 	sortState: ExplorerSortState;
 	interactionMode?: InteractionMode;
 	/** U130-09: the custom groups of that scene, groupId -> member URNs. */

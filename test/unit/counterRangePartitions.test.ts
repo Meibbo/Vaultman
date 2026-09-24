@@ -10,6 +10,7 @@ import {
 import { rebalanceCounterRangeEdit } from '../../src/logic/logicCounterRangeEditor';
 import {
 	DEFAULT_TASK_CELL_DISPLAY_MODE,
+	effectiveTaskCellDisplayMode,
 	migrateTaskCellDisplayMode,
 	normalizeTaskCellDisplayMode,
 	resolveTaskCellText,
@@ -300,6 +301,7 @@ const defaults: Required<SceneConfig> = {
 	viewMode: 'tree',
 	interactionMode: 'open',
 	visibleCells: ['name'],
+	taskCellDisplayMode: 'auto',
 	sortState: normalizeExplorerSortState('files', null),
 	stickyRows: true,
 	compactFolders: false,
@@ -348,6 +350,35 @@ function layoutForTab(
 		sceneFacetsByTab: { [tab]: sceneFacetsOf(saved) },
 	};
 }
+
+describe('U130-GGC-008 instance presentation override', () => {
+	it('keeps two instances independent through a layout photo and a global Settings change', async () => {
+		const left = makeTestInstance('vm-tasks-left');
+		const right = makeTestInstance('vm-tasks-right');
+		await left.port.propose('files', {
+			...left.port.read('files'),
+			taskCellDisplayMode: 'pending',
+		});
+		const saved = captureSavedViewConfig(left.port.read('files'));
+		expect(saved.taskCellDisplayMode).toBe('pending');
+		expect(right.port.read('files').taskCellDisplayMode).toBe('auto');
+
+		const stats = { completed: 8, total: 10 };
+		let globalMode: 'pending' | 'done-total' = 'done-total';
+		const textFor = (mode: 'auto' | 'pending' | 'done-total') =>
+			resolveTaskCellText(stats, effectiveTaskCellDisplayMode(mode, globalMode));
+		expect(textFor(left.port.read('files').taskCellDisplayMode)).toBe('2');
+		expect(textFor(right.port.read('files').taskCellDisplayMode)).toBe('8/10');
+		globalMode = 'pending';
+		expect(textFor(right.port.read('files').taskCellDisplayMode)).toBe('2');
+		expect(left.port.read('files').taskCellDisplayMode).toBe('pending');
+		expect(resolveTaskGroupingMetric(stats)).toBe(2);
+
+		const restored = makeTestInstance('vm-tasks-restored');
+		await applyLayoutToPort(restored.port, layoutForTab('files', saved));
+		expect(restored.port.read('files').taskCellDisplayMode).toBe('pending');
+	});
+});
 
 describe('U130-GGC-019 range persistence across layout and scopes', () => {
 	it('materializes counter and date ranges with correct day metrics and tasks', () => {

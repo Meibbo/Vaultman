@@ -63,6 +63,7 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		viewMode: 'tree',
 		interactionMode: 'open',
 		visibleCells: ['name'],
+		taskCellDisplayMode: 'auto',
 		sortState: normalizeExplorerSortState('files', null),
 		stickyRows: true,
 		compactFolders: false,

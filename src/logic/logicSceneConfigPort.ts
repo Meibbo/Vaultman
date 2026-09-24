@@ -87,6 +87,7 @@ export type SceneFacets = Pick<
 	| 'stickyRows'
 	| 'compactFolders'
 	| 'indent'
+	| 'taskCellDisplayMode'
 >;
 
 /** La foto de una scene: copias, nunca referencias al estado vivo. */
@@ -100,6 +101,7 @@ export function captureSceneFacets(
 		stickyRows: config.stickyRows,
 		compactFolders: config.compactFolders,
 		indent: config.indent,
+		taskCellDisplayMode: config.taskCellDisplayMode,
 	};
 }
 
@@ -134,6 +136,7 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 		out.compactFolders = saved.compactFolders;
 	}
 	if (saved.indent !== undefined) out.indent = saved.indent;
+	if (saved.taskCellDisplayMode !== undefined) out.taskCellDisplayMode = saved.taskCellDisplayMode;
 	return out;
 }
 
@@ -171,6 +174,7 @@ export async function applyLayoutToPort(
 			stickyRows: facets.stickyRows ?? current.stickyRows,
 			compactFolders: facets.compactFolders ?? current.compactFolders,
 			indent: facets.indent ?? current.indent,
+			taskCellDisplayMode: facets.taskCellDisplayMode ?? current.taskCellDisplayMode,
 			groupPreset: facets.groupPreset ?? current.groupPreset,
 			hiddenGroupIds: facets.hiddenGroupIds ?? current.hiddenGroupIds,
 			// U130 toolbar alt-cmenu: posterior a `SavedLayoutConfig`, se preserva.

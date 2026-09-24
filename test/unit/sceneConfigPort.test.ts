@@ -20,6 +20,7 @@ const defaults = {
 	viewMode: 'tree' as const,
 	interactionMode: 'open' as const,
 	visibleCells: ['name'],
+	taskCellDisplayMode: 'auto' as const,
 	sortState: normalizeExplorerSortState('files', null),
 	stickyRows: true,
 	compactFolders: false,

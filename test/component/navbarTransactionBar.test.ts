@@ -62,6 +62,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						viewMode: 'tree',
 						interactionMode: 'select',
 						visibleCells: [],
+						taskCellDisplayMode: 'auto',
 						sortState: normalizeExplorerSortState('props', null),
 						stickyRows: true,
 						compactFolders: false,

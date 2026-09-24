@@ -6,6 +6,7 @@ import type {
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';
+import type { TaskCellDisplayMode } from '../logic/logicTaskMetric';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -22,6 +23,8 @@ export interface SceneConfig {
 	viewMode?: ExplorerViewMode;
 	interactionMode?: InteractionMode;
 	visibleCells?: string[];
+	/** Files Tasks presentation in this Scene. `auto` follows Settings. */
+	taskCellDisplayMode?: TaskCellDisplayMode | 'auto';
 	sortState?: ExplorerSortState;
 	/** Spec 08 §2: view_option del engine `tree`, per_instance. */
 	stickyRows?: boolean;
