@@ -3,6 +3,10 @@ import { translate } from '../../i18n/index';
 import type { VaultmanPlugin } from '../../main';
 import { openBasesFilterInteropMenu } from '../../utils/basesFilterInterop';
 import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
+import {
+	currentSelectionToken,
+	selectionKeyFor,
+} from '../../logic/logicGroupSelectionTransaction';
 
 export interface ActiveFilterViewState {
 	id: string;
@@ -394,5 +398,161 @@ export class ActiveFiltersIslandComponent {
 		this.headerEl = null;
 		this.viewToggleBtn = null;
 		this.clearAllBtn = null;
+	}
+}
+
+/**
+ * U130-GGC-030: Extrae una instantánea de nodos seleccionados del explorador activo
+ * respetando el contrato de owner (scene/instancia) y GroupSelectionSnapshot.
+ */
+export function buildExplorerSelectedSnapshot(
+	scene: string,
+	instanceId: string | null | undefined,
+	explorer: any,
+): SelectedNodesSnapshot {
+	const resolvedInstanceId = instanceId ?? 'default';
+	if (!explorer) {
+		return { scene, instanceId: resolvedInstanceId, revision: 0, rows: [] };
+	}
+
+	const selectionKey =
+		typeof explorer._selectionKey === 'function'
+			? explorer._selectionKey()
+			: selectionKeyFor(scene, scene, resolvedInstanceId);
+	const revision = currentSelectionToken(selectionKey);
+
+	switch (scene) {
+		case 'files': {
+			const selectedPaths = explorer.selectedFilePaths;
+			if (selectedPaths instanceof Set && selectedPaths.size > 0) {
+				const rows: SelectedNodeItem[] = Array.from(selectedPaths as Set<string>).map((path) => {
+					const isFolder = path.startsWith('folder:');
+					const cleanPath = isFolder ? path.slice('folder:'.length) : path;
+					const label = cleanPath.split('/').pop() || cleanPath;
+					return {
+						id: path,
+						label,
+						occurrenceId: path,
+						scene: 'files',
+						deselect: () => {
+							if (explorer.selectedFilePaths instanceof Set) {
+								const next = new Set(explorer.selectedFilePaths);
+								next.delete(path);
+								if (typeof explorer._applyFileSelection === 'function') {
+									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
+								} else {
+									explorer.selectedFilePaths = next;
+								}
+							}
+						},
+					};
+				});
+				return { scene, instanceId: resolvedInstanceId, revision, rows };
+			}
+			if (typeof explorer.getSelectedFiles === 'function') {
+				const files = explorer.getSelectedFiles() as Array<{ path: string; name?: string; basename?: string }>;
+				if (Array.isArray(files) && files.length > 0) {
+					const rows: SelectedNodeItem[] = files.map((file) => ({
+						id: file.path,
+						label: file.basename || file.name || file.path,
+						occurrenceId: file.path,
+						scene: 'files',
+						deselect: () => {
+							if (explorer.selectedFilePaths instanceof Set) {
+								const next = new Set(explorer.selectedFilePaths);
+								next.delete(file.path);
+								if (typeof explorer._applyFileSelection === 'function') {
+									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
+								} else {
+									explorer.selectedFilePaths = next;
+								}
+							}
+						},
+					}));
+					return { scene, instanceId: resolvedInstanceId, revision, rows };
+				}
+			}
+			return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+		}
+		case 'props': {
+			const selected = explorer.selectedNodeIds;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id,
+				occurrenceId: id,
+				scene: 'props',
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						if (typeof explorer._applyPropSelection === 'function') {
+							explorer._applyPropSelection(next);
+						} else {
+							explorer.selectedNodeIds = next;
+							explorer._touchSelection?.();
+							explorer._render?.();
+						}
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+		case 'tags': {
+			const selected = explorer.selectedNodeIds;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id.startsWith('#') ? id : `#${id}`,
+				occurrenceId: id,
+				scene: 'tags',
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						explorer.selectedNodeIds = next;
+						explorer._touchSelection?.();
+						explorer._render?.();
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+		case 'snippets':
+		case 'plugins':
+		default: {
+			const selected = explorer.selectedNodeIds ?? explorer.selectedFilePaths;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id,
+				occurrenceId: id,
+				scene,
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						explorer.selectedNodeIds = next;
+						explorer._touchSelection?.();
+						if (typeof explorer.render === 'function') explorer.render();
+						else if (typeof explorer._render === 'function') explorer._render();
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+	}
+}
+
+export function clearExplorerSelection(explorer: any): void {
+	if (!explorer) return;
+	if (typeof explorer.clearSelection === 'function') {
+		explorer.clearSelection();
 	}
 }
