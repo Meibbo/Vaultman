@@ -30,7 +30,10 @@ import {
 	EMPTY_REGISTRY,
 	ensureInstance,
 } from '../../src/logic/logicInstanceRegistry';
-import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
+import {
+	normalizeExplorerSortState,
+	scopeStateFromLegacy,
+} from '../../src/logic/logicScopedSort';
 import type { SceneConfig } from '../../src/types/typeInstance';
 
 const domain = { min: 0, max: 600 };
@@ -448,4 +451,56 @@ describe('U130-GGC-019 range persistence across layout and scopes', () => {
 		expect(saved.sortState.scopeState?.sets?.['level:1']?.groupPreset?.counterRanges?.[0]?.lo).toBe(0);
 		expect(a.port.read('files').sortState.scopeState?.sets?.['level:1']?.groupPreset?.counterRanges?.[0]?.lo).toBe(0);
 	});
+
+	it('migrates legacy layout counter ranges into scopeState.sets.all without data loss', async () => {
+		const b = makeTestInstance('vm-legacy-ranges');
+		const legacySaved = {
+			viewMode: 'tree' as const,
+			visibleCells: ['name'],
+			sortState: normalizeExplorerSortState('files', null),
+			groupPreset: {
+				kind: 'words' as const,
+				direction: 'asc' as const,
+				counterRanges: [
+					{ id: 'w1', lo: 0, hi: 50 },
+					{ id: 'w2', lo: 51, hi: 300 },
+				],
+			},
+		};
+
+		await applyLayoutToPort(b.port, {
+			viewModeByTab: {},
+			interactionModeByTab: {},
+			visibleCellsByTab: {},
+			sortStateByTab: { files: legacySaved.sortState },
+			sceneFacetsByTab: { files: sceneFacetsOf(legacySaved) },
+		});
+
+		const restored = b.port.read('files');
+		expect(restored.groupPreset.counterRanges).toEqual([
+			{ id: 'w1', lo: 0, hi: 50 },
+			{ id: 'w2', lo: 51, hi: 300 },
+		]);
+		// When hydrated into scope space, legacy counter ranges land in sets.all
+		const migratedScope = scopeStateFromLegacy('files', restored.sortState, restored.groupPreset);
+		expect(migratedScope.sets.all?.groupPreset?.counterRanges).toEqual([
+			{ id: 'w1', lo: 0, hi: 50 },
+			{ id: 'w2', lo: 51, hi: 300 },
+		]);
+
+		// Re-saving with the migrated scopeState persists both presets cleanly
+		await b.port.propose('files', {
+			...restored,
+			sortState: { ...restored.sortState, scopeState: migratedScope },
+		});
+		const newPhoto = captureSavedViewConfig(b.port.read('files'));
+		const c = makeTestInstance('vm-legacy-ranges-c');
+		await applyLayoutToPort(c.port, layoutForTab('files', newPhoto));
+		const roundtripRestored = c.port.read('files');
+		expect(roundtripRestored.sortState.scopeState?.sets.all?.groupPreset?.counterRanges).toEqual([
+			{ id: 'w1', lo: 0, hi: 50 },
+			{ id: 'w2', lo: 51, hi: 300 },
+		]);
+	});
+
 });
