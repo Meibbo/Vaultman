@@ -74,6 +74,16 @@ export interface MenuCtx {
 	changeGroupIcon?: () => Promise<unknown> | unknown;
 	/** Opens the bounded min/max editor for a counter/date preset header. */
 	adjustGroupRange?: () => boolean | void;
+	/** Adds or triggers a counter slice for a counter/date preset header. */
+	sliceGroupRange?: () => boolean | void;
+	/** Scene-owned rename mutation for custom/note group headers. */
+	renameGroup?: (groupId: string) => Promise<void> | void;
+	/** Note group: opens the backing note file. */
+	openNodeNote?: () => Promise<void> | void;
+	/** Scope update for group header. */
+	updateGroupScope?: () => Promise<void> | void;
+	/** Creates a copy of the group with enumerated name/ID and snapshot of members. */
+	makeACopy?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
 }
 
 export interface ActionDef {

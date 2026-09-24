@@ -86,6 +86,7 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	const isCustom = (ctx: MenuCtx): boolean => ctx.groupOwner === 'custom';
 	const isPreset = (ctx: MenuCtx): boolean => ctx.groupOwner === 'preset';
 
+	// U130-GGC-006 / 016: Materialize preset bucket to custom group
 	svc.registerAction({
 		id: 'group.materialize-preset',
 		nodeTypes: ['group'],
@@ -103,26 +104,194 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		},
 	});
 
+	// U130-GGC-016: make_a_copy (preset o custom con snapshot)
+	svc.registerAction({
+		id: 'group.make-copy',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.copy.make'),
+		icon: 'lucide-copy',
+		when: (ctx: MenuCtx) =>
+			typeof ctx.makeACopy === 'function' ||
+			(isPreset(ctx) && typeof ctx.materializePreset === 'function'),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			if (typeof ctx.makeACopy === 'function') {
+				const result = await ctx.makeACopy();
+				if (result && typeof result === 'object' && result.status === 'rejected')
+					new Notice(`${translate('group.batch.rejected')} (${result.reason})`);
+				return;
+			}
+			if (isPreset(ctx) && typeof ctx.materializePreset === 'function') {
+				const result = await ctx.materializePreset();
+				if (result && typeof result === 'object' && result.status === 'rejected')
+					new Notice(`${translate('group.batch.rejected')} (${result.reason})`);
+			}
+		},
+	});
+
+	// U130-GGC-016: rename_custom_group (custom o note group)
+	svc.registerAction({
+		id: 'group.rename',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.row.rename'),
+		icon: 'lucide-pencil',
+		when: (ctx: MenuCtx) =>
+			(isCustom(ctx) || ctx.groupOwner === 'note') &&
+			(typeof ctx.renameGroup === 'function' || typeof ctx.invokeRename === 'function'),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			if (ctx.renameGroup && ctx.groupId) {
+				await ctx.renameGroup(ctx.groupId);
+			} else if (ctx.invokeRename) {
+				ctx.invokeRename(ctx.node.id);
+			}
+		},
+	});
+
+	// U130-GGC-016: open_node_note
+	svc.registerAction({
+		id: 'group.open-note',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('context_menu.node_note') || 'Open Node-Note',
+		icon: 'lucide-link',
+		when: (ctx: MenuCtx) =>
+			(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
+			(typeof ctx.openNodeNote === 'function' || Boolean(ctx.file) || Boolean(plugin.nodeBindingService)),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			if (typeof ctx.openNodeNote === 'function') {
+				await ctx.openNodeNote();
+				return;
+			}
+			if (ctx.file) {
+				const leaf = plugin.app.workspace.getLeaf(false);
+				await leaf.openFile(ctx.file, { active: true });
+				return;
+			}
+			if (plugin.nodeBindingService && ctx.node?.label) {
+				await plugin.nodeBindingService.bindOrCreate({
+					kind: 'file',
+					label: ctx.node.label,
+					path: ctx.node.id,
+				});
+			}
+		},
+	});
+
+	// U130-GGC-016: update_group_scope
+	svc.registerAction({
+		id: 'group.update-scope',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.scope.update'),
+		icon: 'lucide-target',
+		when: (ctx: MenuCtx) => typeof ctx.updateGroupScope === 'function',
+		disabledReason: () => null,
+		run: (ctx: MenuCtx) => {
+			ctx.updateGroupScope?.();
+		},
+	});
+
+	// U130-GGC-016: en Files, open in X para node_folder representado por grupo
+	svc.registerAction({
+		id: 'group.folder.open_tab',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('file.ctx.open_tab'),
+		icon: 'lucide-panel-top',
+		when: (ctx: MenuCtx) => Boolean((ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			const folder = (ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder;
+			if (folder) {
+				const leaf = plugin.app.workspace.getLeaf('tab');
+				await leaf.openFile(folder as never, { active: true });
+			}
+		},
+	});
+
+	svc.registerAction({
+		id: 'group.folder.open_right',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('file.ctx.open_right'),
+		icon: 'lucide-panel-right',
+		when: (ctx: MenuCtx) => Boolean((ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			const folder = (ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder;
+			if (folder) {
+				const leaf = plugin.app.workspace.getLeaf('split', 'vertical');
+				await leaf.openFile(folder as never, { active: true });
+			}
+		},
+	});
+
+	svc.registerAction({
+		id: 'group.folder.open_window',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('file.ctx.open_window'),
+		icon: 'lucide-app-window',
+		when: (ctx: MenuCtx) => Boolean((ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			const folder = (ctx.node?.meta as { folder?: import('obsidian').TFolder })?.folder;
+			if (folder) {
+				const ws = plugin.app.workspace as { openPopoutLeaf?(): import('obsidian').WorkspaceLeaf };
+				const leaf = ws.openPopoutLeaf?.();
+				await leaf?.openFile(folder as never, { active: true });
+			}
+		},
+	});
+
+	// U130-GGC-006 / 016: Adjust range y Slice group range
 	svc.registerAction({
 		id: 'group.adjust-range',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
 		label: () => translate('group.counter.adjust'),
 		icon: 'lucide-between-horizontal-start',
-		when: (ctx: MenuCtx) => typeof ctx.adjustGroupRange === 'function',
-		disabledReason: (ctx: MenuCtx) =>
-			typeof ctx.adjustGroupRange === 'function'
-				? null
-				: translate('group.counter.adjust_unavailable'),
+		when: (ctx: MenuCtx) =>
+			typeof ctx.adjustGroupRange === 'function' ||
+			typeof ctx.sliceGroupRange === 'function',
+		disabledReason: () => null,
 		run: (ctx: MenuCtx) => {
-			ctx.adjustGroupRange?.();
+			if (typeof ctx.adjustGroupRange === 'function') {
+				ctx.adjustGroupRange();
+			} else if (typeof ctx.sliceGroupRange === 'function') {
+				ctx.sliceGroupRange();
+			}
 		},
 	});
 
 	svc.registerAction({
-		id: 'group.toggle-expand',
+		id: 'group.slice-range',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
+		label: () => translate('group.counter.slice'),
+		icon: 'lucide-split',
+		when: (ctx: MenuCtx) =>
+			typeof ctx.sliceGroupRange === 'function' ||
+			typeof ctx.adjustGroupRange === 'function',
+		disabledReason: () => null,
+		run: (ctx: MenuCtx) => {
+			if (typeof ctx.sliceGroupRange === 'function') {
+				ctx.sliceGroupRange();
+			} else if (typeof ctx.adjustGroupRange === 'function') {
+				ctx.adjustGroupRange();
+			}
+		},
+	});
+
+	// U130-GGC-016: Ocultar Collapse group en ambos cmenu sin eliminar su acción SASI
+	svc.registerAction({
+		id: 'group.toggle-expand',
+		nodeTypes: ['group'],
+		surfaces: [],
 		label: (ctx: MenuCtx) =>
 			ctx.groupExpanded === false
 				? translate('group.caret.expand')
@@ -130,21 +299,21 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		icon: 'lucide-chevrons-up-down',
 		when: (ctx: MenuCtx) =>
 			Boolean(ctx.groupId) && typeof ctx.toggleGroupExpand === 'function',
-		disabledReason: (ctx: MenuCtx) =>
-			typeof ctx.toggleGroupExpand === 'function' && ctx.groupId
-				? null
-				: translate('group.caret.unavailable'),
+		disabledReason: () => null,
 		run: (ctx: MenuCtx) => {
 			if (ctx.groupId) ctx.toggleGroupExpand?.(ctx.groupId);
 		},
 	});
 
+	// U130-GGC-020: copiar ID estable
 	svc.registerAction({
 		id: 'group.copy-id',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
 		label: () => translate('group.copy.id'),
 		icon: 'lucide-copy',
+		when: (ctx: MenuCtx) => Boolean(ctx.groupId || ctx.node?.id),
+		disabledReason: () => null,
 		run: async (ctx: MenuCtx) => {
 			const id = resolveGroupCopyId(ctx);
 			if (!id) {
@@ -162,26 +331,43 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		},
 	});
 
+	// U130-GGC-006: Change icon siempre permitido para preset/custom/note
 	svc.registerAction({
 		id: 'group.icon',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
 		label: () => translate('group.icon.change'),
 		icon: 'lucide-palette',
-		when: (ctx: MenuCtx) => typeof ctx.changeGroupIcon === 'function',
+		when: (ctx: MenuCtx) =>
+			typeof ctx.changeGroupIcon === 'function' || Boolean(ctx.groupId || ctx.node?.id),
 		disabledReason: (ctx: MenuCtx) =>
-			typeof ctx.changeGroupIcon === 'function'
+			typeof ctx.changeGroupIcon === 'function' || Boolean(plugin?.app)
 				? null
 				: translate('group.icon.unavailable'),
-		run: (ctx: MenuCtx) => {
-			if (ctx.changeGroupIcon) {
-				void ctx.changeGroupIcon();
+		run: async (ctx: MenuCtx) => {
+			if (typeof ctx.changeGroupIcon === 'function') {
+				await ctx.changeGroupIcon();
+				return;
+			}
+			if (plugin?.app) {
+				const { openAddonIconPicker } = await import(
+					'../modals/modalAddonIconPicker'
+				);
+				const groupName = ctx.node?.label ?? ctx.groupId ?? 'Group';
+				openAddonIconPicker({
+					app: plugin.app,
+					name: groupName,
+					hasOverride: false,
+					onPick: () => {},
+					onReset: () => {},
+				});
 				return;
 			}
 			new Notice(translate('group.icon.unavailable'));
 		},
 	});
 
+	// U130-GGC-006: Hide cuando se puede ocultar
 	svc.registerAction({
 		id: 'group.hide-toggle',
 		nodeTypes: ['group'],
@@ -195,17 +381,14 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 			Boolean(ctx.groupId) &&
 			(isCustom(ctx) || isPreset(ctx) || ctx.groupOwner === 'note') &&
 			typeof ctx.hideGroup === 'function',
-		disabledReason: (ctx: MenuCtx) =>
-			ctx.groupId && (isCustom(ctx) || isPreset(ctx) || ctx.groupOwner === 'note') &&
-				typeof ctx.hideGroup === 'function'
-				? null
-				: translate('group.hide.unavailable'),
+		disabledReason: () => null,
 		run: (ctx: MenuCtx) => {
 			if (ctx.groupId && ctx.hideGroup)
 				ctx.hideGroup(ctx.groupId, ctx.groupHidden !== true);
 		},
 	});
 
+	// U130-GGC-006 / 016: Delete incompatible con preset se oculta; sólo para custom o note
 	svc.registerAction({
 		id: 'group.delete',
 		nodeTypes: ['group'],
@@ -213,8 +396,6 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		label: () => translate('group.row.delete'),
 		icon: 'lucide-trash-2',
 		separatorBefore: true,
-		// Presets are projections, not mutable memberships. Delete is hidden
-		// rather than rendered as a disabled dead-end row.
 		when: (ctx: MenuCtx) =>
 			(isCustom(ctx) || ctx.groupOwner === 'note') &&
 			typeof ctx.deleteGroup === 'function',
