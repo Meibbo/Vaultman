@@ -2077,6 +2077,9 @@ export class UnifiedTreeView {
 					cls: 'vaultman-counter-range-editor',
 					attr: { role: 'group', 'aria-label': node.label },
 				});
+				editor.addEventListener('click', (event) => event.stopPropagation());
+				editor.addEventListener('pointerdown', (event) => event.stopPropagation());
+				editor.addEventListener('mousedown', (event) => event.stopPropagation());
 				const createInput = (value: number, label: string): HTMLInputElement => {
 					const domain = node.counterDomain;
 					const input = editor.createEl('input', {
@@ -2138,7 +2141,11 @@ export class UnifiedTreeView {
 						}
 					});
 				}
-				editor.addEventListener('focusout', () => {
+				editor.addEventListener('focusout', (event) => {
+					const related = (event as FocusEvent).relatedTarget;
+					if (related instanceof Node && editor.contains(related)) {
+						return;
+					}
 					queueMicrotask(() => {
 						if (!done && !editor.contains(editor.ownerDocument.activeElement)) commit();
 					});
