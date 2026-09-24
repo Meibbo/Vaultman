@@ -30,6 +30,7 @@ import {
 		ExplorerTabId,
 		ExplorerSortState,
 		ExplorerViewMode,
+		ScopeSet,
 		ScopeTarget,
 	} from '../../types/typeUI';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
@@ -2226,15 +2227,46 @@ import {
 		const level = parentId
 			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
 			: (levelOfScope(target) ?? 1);
-		const effectivePreset = resolveScopeSet(
+		const effective = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
-			{ groupPreset: { kind: 'none', direction: 'asc' } },
-		).groupPreset ?? { kind: 'none', direction: 'asc' };
+			{
+				groupPreset: { kind: 'none', direction: 'asc' },
+				indent: configByTab[tab].indent,
+				stickyRows: configByTab[tab].stickyRows,
+				compactFolders: configByTab[tab].compactFolders,
+				nested: (
+					visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
+				).includes('nested'),
+			},
+		);
+		const effectivePreset =
+			effective.groupPreset ?? { kind: 'none', direction: 'asc' };
 		const nextState = { ...normalizedState, scopeState };
 		commitConfig(tab, { sortState: nextState, groupPreset: effectivePreset });
 		applySortState(tab, nextState);
 		applyGroupPreset(tab, effectivePreset);
+		if (effective.indent !== undefined) applyIndent(tab, effective.indent);
+		if (effective.stickyRows !== undefined)
+			applyStickyRows(tab, effective.stickyRows);
+		if (effective.compactFolders !== undefined)
+			applyCompactFolders(tab, effective.compactFolders);
+		if (effective.nested !== undefined) {
+			const cells =
+				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab]);
+			const nextCells = effective.nested
+				? cells.includes('nested')
+					? cells
+					: [...cells, 'nested']
+				: cells.filter((c) => c !== 'nested');
+			applyVisibleCells(tab, nextCells);
+		}
+		if (
+			effective.viewMode &&
+			isViewModeSelectableForDataSurface(tab, effective.viewMode)
+		) {
+			applyViewMode(tab, effective.viewMode);
+		}
 		onViewFiltersChanged?.();
 	}
 
@@ -2309,8 +2341,25 @@ import {
 		mode: ExplorerViewMode,
 	): boolean {
 		if (!isViewModeSelectableForDataSurface(tab, mode)) return false;
-		if ((configByTab[tab]?.viewMode ?? 'tree') === mode) return true;
-		commitConfig(tab, { viewMode: mode });
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			viewMode: mode,
+		};
+		const nextSort = { ...currentSort, scopeState };
+		commitConfig(tab, { viewMode: mode, sortState: nextSort });
+		applySortState(tab, nextSort);
 		applyViewMode(tab, mode);
 		return true;
 	}
@@ -2365,6 +2414,30 @@ import {
 			else base.delete(id);
 		}
 		return [...base];
+	}
+
+	function effectiveEngineOptionsFor(tab: FiltersTab): ScopeSet {
+		const state = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const target = storageScope(state, state.activeScope) as ScopeTarget;
+		const parentId = parentOfScope(target);
+		const level = parentId
+			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+			: (levelOfScope(target) ?? 1);
+		const defaults: ScopeSet = {
+			nested: (
+				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
+			).includes('nested'),
+			indent: configByTab[tab].indent,
+			stickyRows: configByTab[tab].stickyRows,
+			compactFolders: configByTab[tab].compactFolders,
+			fixedFolders: state.fixedFolders !== false,
+			parentsFirst: state.parentsFirst ?? true,
+			viewMode: viewModeByTab[tab] ?? 'tree',
+		};
+		return resolveScopeSet(state.scopeState, { level, parentId }, defaults);
 	}
 
 	function canToggleIdentity(
@@ -2586,30 +2659,86 @@ import {
 			}),
 		);
 		if (nestedAct && activeTab === 'files') {
-			const parentsFirst = sortState.parentsFirst ?? true;
+			const effectiveOptions = effectiveEngineOptionsFor(activeTab);
+			const parentsFirst =
+				effectiveOptions.parentsFirst ?? (sortState.parentsFirst ?? true);
 			engineChildren.push(
 				nativeMenuItem('view_menu.engines.parents_first', {
 					title: translate('sort.parents_first'),
 					icon: 'lucide-folder-tree',
 					checked: parentsFirst,
-					onClick: () =>
-						handleSortChange({
-							...sortState,
+					onClick: () => {
+						const currentSort = normalizeSortState(
+							activeTab,
+							sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+						);
+						const scopeState = currentSort.scopeState
+							? cloneScopeState(currentSort.scopeState)
+							: scopeStateFromLegacy(
+									activeTab,
+									currentSort,
+									configByTab[activeTab].groupPreset,
+								);
+						const target = storageScope(
+							currentSort,
+							currentSort.activeScope,
+						) as ScopeTarget;
+						scopeState.cursor = target;
+						scopeState.sets[target] = {
+							...(scopeState.sets[target] ?? {}),
 							parentsFirst: !parentsFirst,
-						}),
+						};
+						const nextSort = {
+							...currentSort,
+							...(target === 'all'
+								? { parentsFirst: !parentsFirst }
+								: {}),
+							scopeState,
+						};
+						handleSortChange(nextSort);
+					},
 				}),
 			);
 			if (parentsFirst) {
+				const fixedFolders =
+					effectiveOptions.fixedFolders !== undefined
+						? effectiveOptions.fixedFolders
+						: sortState.fixedFolders !== false;
 				engineChildren.push(
 					nativeMenuItem('view_menu.engines.fixed_folders', {
 						title: translate('sort.level.fixed_folders'),
 						icon: 'lucide-folder-lock',
-						checked: sortState.fixedFolders !== false,
-						onClick: () =>
-							handleSortChange({
-								...sortState,
-								fixedFolders: !(sortState.fixedFolders !== false),
-							}),
+						checked: fixedFolders,
+						onClick: () => {
+							const currentSort = normalizeSortState(
+								activeTab,
+								sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+							);
+							const scopeState = currentSort.scopeState
+								? cloneScopeState(currentSort.scopeState)
+								: scopeStateFromLegacy(
+										activeTab,
+										currentSort,
+										configByTab[activeTab].groupPreset,
+									);
+							const target = storageScope(
+								currentSort,
+								currentSort.activeScope,
+							) as ScopeTarget;
+							scopeState.cursor = target;
+							scopeState.sets[target] = {
+								...(scopeState.sets[target] ?? {}),
+								fixedFolders: !fixedFolders,
+							};
+							const nextSort = {
+								...currentSort,
+								...(target === 'all'
+									? { fixedFolders: !fixedFolders }
+									: {}),
+								scopeState,
+							};
+							handleSortChange(nextSort);
+						},
 					}),
 				);
 			}
@@ -3289,29 +3418,65 @@ import {
 		// sort available).
 		if (!treeCapableFor(tab)) return false;
 		return (
-			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
-		).includes('nested');
+			effectiveEngineOptionsFor(tab).nested ??
+			(
+				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
+			).includes('nested')
+		);
 	}
 
 	function toggleNestedFor(tab: FiltersTab) {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+
+		const currentEffective = nestedActiveFor(tab);
+		const next = !currentEffective;
+
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			nested: next,
+		};
+		const nextSort = { ...currentSort, scopeState };
+
 		const cells =
 			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab]);
-		const next = cells.includes('nested')
-			? cells.filter((cell) => cell !== 'nested')
-			: [...cells, 'nested'];
+		const nextCells = next
+			? cells.includes('nested')
+				? cells
+				: [...cells, 'nested']
+			: cells.filter((cell) => cell !== 'nested');
+
 		measureSceneSync(
 			`scene.action.toggle-nested.${tab}`,
 			{ operations: 1 },
 			() => {
-				commitConfig(tab, { visibleCells: next });
-				applyVisibleCells(tab, next);
+				if (target === 'all') {
+					commitConfig(tab, { visibleCells: nextCells, sortState: nextSort });
+				} else {
+					commitConfig(tab, { sortState: nextSort });
+				}
+				applySortState(tab, nextSort);
+				applyVisibleCells(tab, nextCells);
 				onViewFiltersChanged?.();
 			},
 		);
 	}
 
 	function stickyRowsEnabledFor(tab: FiltersTab): boolean {
-		return configByTab[tab].stickyRows;
+		return (
+			effectiveEngineOptionsFor(tab).stickyRows ??
+			configByTab[tab].stickyRows
+		);
 	}
 
 	function applyStickyRows(tab: FiltersTab, enabled: boolean) {
@@ -3321,7 +3486,9 @@ import {
 	}
 
 	function indentEnabledFor(tab: FiltersTab): boolean {
-		return configByTab[tab].indent;
+		return (
+			effectiveEngineOptionsFor(tab).indent ?? configByTab[tab].indent
+		);
 	}
 
 	function applyIndent(tab: FiltersTab, enabled: boolean) {
@@ -3354,14 +3521,62 @@ import {
 	}
 
 	function toggleIndentFor(tab: FiltersTab) {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+
 		const next = !indentEnabledFor(tab);
-		commitConfig(tab, { indent: next });
+
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			indent: next,
+		};
+		const nextSort = { ...currentSort, scopeState };
+		if (target === 'all') {
+			commitConfig(tab, { indent: next, sortState: nextSort });
+		} else {
+			commitConfig(tab, { sortState: nextSort });
+		}
+		applySortState(tab, nextSort);
 		applyIndent(tab, next);
 	}
 
 	function toggleStickyRowsFor(tab: FiltersTab) {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+
 		const next = !stickyRowsEnabledFor(tab);
-		commitConfig(tab, { stickyRows: next });
+
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			stickyRows: next,
+		};
+		const nextSort = { ...currentSort, scopeState };
+		if (target === 'all') {
+			commitConfig(tab, { stickyRows: next, sortState: nextSort });
+		} else {
+			commitConfig(tab, { sortState: nextSort });
+		}
+		applySortState(tab, nextSort);
 		applyStickyRows(tab, next);
 	}
 
@@ -3389,7 +3604,10 @@ import {
 	}
 
 	function compactFoldersEnabledFor(tab: FiltersTab): boolean {
-		return configByTab[tab].compactFolders;
+		return (
+			effectiveEngineOptionsFor(tab).compactFolders ??
+			configByTab[tab].compactFolders
+		);
 	}
 
 	// TODO(spec-08 §2): solo persiste el flag per_instance -- la compactacion
@@ -3400,8 +3618,32 @@ import {
 	}
 
 	function toggleCompactFoldersFor(tab: FiltersTab) {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const target = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		scopeState.cursor = target;
+
 		const next = !compactFoldersEnabledFor(tab);
-		commitConfig(tab, { compactFolders: next });
+
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			compactFolders: next,
+		};
+		const nextSort = { ...currentSort, scopeState };
+		if (target === 'all') {
+			commitConfig(tab, { compactFolders: next, sortState: nextSort });
+		} else {
+			commitConfig(tab, { sortState: nextSort });
+		}
+		applySortState(tab, nextSort);
 		applyCompactFolders(tab, next);
 	}
 

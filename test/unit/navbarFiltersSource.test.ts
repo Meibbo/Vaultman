@@ -130,7 +130,7 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain('activeScopeSort(tab, sort)');
 		expect(navbarFiltersSource).toContain('captureSavedViewConfig({');
 		expect(sceneConfigPortSource).toContain(
-			'sorts: { ...config.sortState.sorts }',
+			'sortState: cloneExplorerSortState(config.sortState)',
 		);
 		expect(navbarFiltersSource).not.toContain('childLevel');
 	});
