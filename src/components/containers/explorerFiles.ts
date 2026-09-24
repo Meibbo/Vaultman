@@ -293,6 +293,21 @@ export function bubbledFolderCounterValue(
 	return null;
 }
 
+/**
+ * U130-GGC-021: Non-Markdown files (.pdf, .png, etc.) cannot bear frontmatter properties
+ * and must be treated as incompatible (null), routing them strictly to "No group".
+ * Markdown files (.md, .markdown) with zero properties return a compatible 0.
+ */
+export function fileCounterPropertyValue(
+	file: { extension?: string | null } | null | undefined,
+	propCount: number,
+): number | null {
+	if (!file) return null;
+	const ext = file.extension?.toLowerCase();
+	if (ext !== 'md' && ext !== 'markdown') return null;
+	return propCount;
+}
+
 /** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
 export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
@@ -4040,7 +4055,7 @@ export class FilesExplorerPanel extends Component {
 			case 'tasks':
 				return this.plugin.statisticsCache.getFileRemainingTasks(file);
 			case 'props':
-				return this._propCountForFile(file);
+				return fileCounterPropertyValue(file, this._propCountForFile(file));
 			case 'modified':
 				return this.plugin.statisticsCache.getFileTimes(file).mtime;
 			case 'created':
