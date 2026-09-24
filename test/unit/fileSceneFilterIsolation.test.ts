@@ -37,6 +37,8 @@ interface PanelHarness {
 	viewMode: string;
 	nodeTypeFilters: string[];
 	_currentFiles: TestFile[];
+	_filesForDisplay(): TestFile[];
+	_foldersOnlyMode(): boolean;
 	searchName: string;
 	searchFolder: string;
 	_filesForCurrentScope(): TestFile[];
@@ -98,6 +100,42 @@ describe('FileScene filter projection stays local to its instance', () => {
 		).toEqual(['alpha']);
 		expect(filterService.filteredVaultFiles.map((file) => file.path)).toEqual([
 			'alpha/one.md',
+		]);
+	});
+
+	it('ignores stored extension choices when off, while folders-only stays a view', () => {
+		const filterService = {
+			activeFilter: {
+				children: [{ type: 'rule', filterType: 'file_exclude', enabled: true }],
+			},
+			filteredVaultFiles: [{ path: 'alpha/one.md', extension: 'md' }],
+			activeFolderFilterPaths: vi.fn(() => []),
+		};
+		const unfiltered = makePanel(false, filterService);
+		const filtered = makePanel(true, filterService);
+		unfiltered.nodeTypeFilters = ['md', 'folders-only'];
+		filtered.nodeTypeFilters = ['md', 'folders-only'];
+
+		expect(unfiltered._filesForDisplay().map((file) => file.path)).toEqual([
+			'alpha/one.md',
+			'beta/two.png',
+		]);
+		expect(unfiltered._foldersOnlyMode()).toBe(true);
+		expect(unfiltered._foldersForCurrentView().map((folder) => folder.path)).toEqual([
+			'alpha',
+			'beta',
+			'empty',
+		]);
+		expect(filtered._filesForDisplay().map((file) => file.path)).toEqual([
+			'alpha/one.md',
+		]);
+		expect(filtered._foldersOnlyMode()).toBe(true);
+		expect(filtered._foldersForCurrentView().map((folder) => folder.path)).toEqual([
+			'alpha',
+		]);
+		// Both instances are readers of the same FilterScene source, not its owners.
+		expect(filterService.filteredVaultFiles).toEqual([
+			{ path: 'alpha/one.md', extension: 'md' },
 		]);
 	});
 

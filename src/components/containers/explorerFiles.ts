@@ -1861,6 +1861,9 @@ export class FilesExplorerPanel extends Component {
 		// BT5-009: exclusion already ran through the filter pipeline upstream, so
 		// there is no parallel excluded-paths pass here.
 		const files = this._currentFiles;
+		// Extension choices are part of filter projection, unlike the
+		// folders-only view, which remains active when filtering is off.
+		if (this.sortState.filtered !== true) return files;
 		const typeFilters = this.nodeTypeFilters.filter(
 			(type) => type !== 'folders-only',
 		);
@@ -6053,7 +6056,11 @@ export class FilesExplorerPanel extends Component {
 		return (
 			(this.sortState.filtered === true &&
 				this.plugin.filterService.activeFilter.children.length > 0) ||
-			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0)
+			Boolean(
+				this.searchName ||
+					this.searchFolder ||
+					(this.sortState.filtered === true && typeFilters.length > 0),
+			)
 		);
 	}
 
@@ -6062,7 +6069,11 @@ export class FilesExplorerPanel extends Component {
 			(t) => t !== 'folders-only',
 		);
 		return (
-			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0) ||
+			Boolean(
+				this.searchName ||
+					this.searchFolder ||
+					(this.sortState.filtered === true && typeFilters.length > 0),
+			) ||
 			(this.sortState.filtered === true &&
 				this._hasEnabledNonFolderIncludeFilter(
 					this.plugin.filterService.activeFilter,
