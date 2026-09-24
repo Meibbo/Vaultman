@@ -2868,7 +2868,11 @@ export class FilesExplorerPanel extends Component {
 			this._refreshFolderMaxMtime(modelFiles);
 			this._refreshFolderFileCount(modelFiles);
 			this._refreshFolderStatCounts(modelFiles);
-			const rebaseFolderPaths = this._activeFolderFilterPaths();
+			// In folders-only mode the scoped folder itself is a visible node.
+			// Rebasing it to the virtual root would hide that only result.
+			const rebaseFolderPaths = foldersOnly
+				? []
+				: this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
 						'explorer.files.build-tree',
@@ -5522,8 +5526,11 @@ export class FilesExplorerPanel extends Component {
 
 	private _shouldShowEmptyFilteredState(): boolean {
 		return (
+			this.sortState.filtered === true &&
 			this.plugin.filterService.activeFilter.children.length > 0 &&
-			this._currentFiles.length === 0
+			(this._foldersOnlyMode()
+				? this._foldersForCurrentView().length === 0
+				: this._currentFiles.length === 0)
 		);
 	}
 
@@ -5948,12 +5955,19 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _activeFolderFilterPaths(): string[] {
-		return this.plugin.filterService.activeFolderFilterPaths();
+		return this.sortState.filtered === true
+			? this.plugin.filterService.activeFolderFilterPaths()
+			: [];
 	}
 
 	private _syncSearchTermsFromActiveFilters(): void {
 		let name = '';
 		let folder = '';
+		if (this.sortState.filtered !== true) {
+			this.searchName = name;
+			this.searchFolder = folder;
+			return;
+		}
 		const walk = (node: FilterNode): void => {
 			if (node.enabled === false) return;
 			if (node.type === 'rule') {
@@ -6004,14 +6018,26 @@ export class FilesExplorerPanel extends Component {
 		const folders = this._allVaultFolders();
 		const activeFolderPaths = this._activeFolderFilterPaths();
 		if (activeFolderPaths.length > 0) {
-			if (this._hasNarrowingConstraintsBeyondFolderScopes()) return [];
-			return folders.filter((folder) =>
-				activeFolderPaths.some(
-					(path) =>
-						folder.path !== path &&
-						(folder.path === path || folder.path.startsWith(`${path}/`)),
-				),
-			);
+			if (!this._hasNarrowingConstraintsBeyondFolderScopes()) {
+				return folders.filter((folder) =>
+					activeFolderPaths.some((path) =>
+						folder.path === path || folder.path.startsWith(`${path}/`),
+					),
+				);
+			}
+		}
+		// Folders-only hides file rows after filtering. Derive the visible
+		// folders from matching files before that projection removes them.
+		if (this._foldersOnlyMode() && this._hasActiveConstraints()) {
+			const matchingFolderPaths = new Set<string>();
+			for (const file of this._filesForDisplay()) {
+				let path = file.path;
+				while (path.includes('/')) {
+					path = path.slice(0, path.lastIndexOf('/'));
+					matchingFolderPaths.add(path);
+				}
+			}
+			return folders.filter((folder) => matchingFolderPaths.has(folder.path));
 		}
 		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
@@ -6025,7 +6051,8 @@ export class FilesExplorerPanel extends Component {
 			(t) => t !== 'folders-only',
 		);
 		return (
-			this.plugin.filterService.activeFilter.children.length > 0 ||
+			(this.sortState.filtered === true &&
+				this.plugin.filterService.activeFilter.children.length > 0) ||
 			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0)
 		);
 	}
@@ -6036,9 +6063,10 @@ export class FilesExplorerPanel extends Component {
 		);
 		return (
 			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0) ||
-			this._hasEnabledNonFolderIncludeFilter(
-				this.plugin.filterService.activeFilter,
-			)
+			(this.sortState.filtered === true &&
+				this._hasEnabledNonFolderIncludeFilter(
+					this.plugin.filterService.activeFilter,
+				))
 		);
 	}
 

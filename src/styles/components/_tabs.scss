@@ -222,6 +222,13 @@
   background: transparent;
 }
 
+.vaultman-filters-actions .vaultman-toolbar-drop-marker {
+	align-self: stretch;
+	flex: 0 0 2px;
+	background: var(--text-accent);
+	pointer-events: none;
+}
+
 /* BT5-021: horizontal-scroll overflow. Every action node stays on one line;
    the bar scrolls instead of moving nodes into the Tools menu. A right-edge
    fade hints that more actions exist off-screen, and focusing an off-screen

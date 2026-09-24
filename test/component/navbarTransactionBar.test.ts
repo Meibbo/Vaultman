@@ -18,6 +18,7 @@ if (typeof window.ResizeObserver === 'undefined') {
 describe('navbarFilters monta BarTransaction', () => {
 	let target: HTMLElement;
 	let instance: ReturnType<typeof mount> | null = null;
+	let proposedConfigs: Array<{ tab: string; toolbarNodeOrder: string[] }>;
 
 	const icon = (el: HTMLElement, name: string) => {
 		el.setAttribute('data-icon', name);
@@ -40,11 +41,18 @@ describe('navbarFilters monta BarTransaction', () => {
 		rejection: null,
 	};
 
-	type RenderOverrides = Partial<Omit<
-		ComponentProps<typeof NavbarFilters>,
-		'providerId' | 'activeTab' | 'actionPort' | 'filtersSearch' |
-		'filtersSearchCategory' | 'icon' | 'sceneConfigPort'
-	>>;
+	type RenderOverrides = Partial<
+		Omit<
+			ComponentProps<typeof NavbarFilters>,
+			| 'providerId'
+			| 'activeTab'
+			| 'actionPort'
+			| 'filtersSearch'
+			| 'filtersSearchCategory'
+			| 'icon'
+			| 'sceneConfigPort'
+		>
+	>;
 
 	const render = (props: RenderOverrides = {}) => {
 		instance = mount(NavbarFilters, {
@@ -78,7 +86,13 @@ describe('navbarFilters monta BarTransaction', () => {
 						toolbarNodeOrder: [],
 						groupMemberships: {},
 					}),
-					propose: () => Promise.resolve(),
+					propose: (tab, next) => {
+						proposedConfigs.push({
+							tab,
+							toolbarNodeOrder: next.toolbarNodeOrder ?? [],
+						});
+						return Promise.resolve();
+					},
 					readActiveScene: () => 'props',
 					proposeActiveScene: () => Promise.resolve(),
 					readFloatingToc: () => null,
@@ -105,6 +119,7 @@ describe('navbarFilters monta BarTransaction', () => {
 	};
 
 	beforeEach(() => {
+		proposedConfigs = [];
 		target = document.createElement('div');
 		document.body.appendChild(target);
 	});
@@ -129,7 +144,9 @@ describe('navbarFilters monta BarTransaction', () => {
 		});
 		const bar = el.querySelector('.vaultman-transaction-bar');
 		expect(bar).not.toBeNull();
-		expect(bar?.classList.contains('vaultman-transaction-bar--above')).toBe(true);
+		expect(bar?.classList.contains('vaultman-transaction-bar--above')).toBe(
+			true,
+		);
 		expect(bar?.getAttribute('role')).toBe('status');
 	});
 
@@ -143,7 +160,80 @@ describe('navbarFilters monta BarTransaction', () => {
 		});
 		const bar = el.querySelector('.vaultman-transaction-bar');
 		expect(bar).not.toBeNull();
-		expect(bar?.classList.contains('vaultman-transaction-bar--above')).toBe(false);
+		expect(bar?.classList.contains('vaultman-transaction-bar--above')).toBe(
+			false,
+		);
 		expect(bar?.getAttribute('role')).toBe('status');
+	});
+
+	it('previews a toolbar slot and commits it without leaving a drop mark', () => {
+		const el = render();
+		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');
+		const nodes = Array.from(
+			bar?.querySelectorAll<HTMLElement>('[data-panel-widget-node-id]') ?? [],
+		);
+		expect(nodes.length).toBeGreaterThanOrEqual(3);
+		if (!bar || nodes.length < 3) return;
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				right: left + width,
+				top: 0,
+				bottom: 40,
+				width,
+				height: 40,
+			}) as DOMRect;
+		bar.getBoundingClientRect = () => rect(0, 500);
+		nodes.forEach((node, index) => {
+			node.getBoundingClientRect = () => rect(index * 50, 40);
+		});
+		const pointer = (type: string, clientX: number, clientY = 20) => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				button: 0,
+				clientX,
+				clientY,
+			});
+			Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+			return event;
+		};
+		const initialOrder = nodes.map((node) =>
+			node.getAttribute('data-panel-widget-node-id')?.split(':').at(-1),
+		);
+		nodes[0].dispatchEvent(pointer('pointerdown', 20));
+		window.dispatchEvent(pointer('pointermove', 110));
+		flushSync();
+		const marker = bar.querySelector<HTMLElement>(
+			'.vaultman-toolbar-drop-marker',
+		);
+		expect(marker).not.toBeNull();
+		expect(marker?.style.order).toBe('2');
+		expect(Number(nodes[0].style.order)).toBeGreaterThan(
+			Number(nodes[1].style.order),
+		);
+
+		window.dispatchEvent(pointer('pointerup', 110));
+		flushSync();
+		expect(proposedConfigs.at(-1)).toMatchObject({
+			tab: 'props',
+			toolbarNodeOrder: [
+				initialOrder[1],
+				initialOrder[0],
+				...initialOrder.slice(2),
+			],
+		});
+		expect(nodes[0].classList.contains('drag-ghost-hidden')).toBe(false);
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+		expect(document.body.classList.contains('is-grabbing')).toBe(false);
+
+		nodes[0].dispatchEvent(pointer('pointerdown', 20));
+		window.dispatchEvent(pointer('pointermove', 110));
+		window.dispatchEvent(pointer('pointermove', 110, 100));
+		flushSync();
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+		window.dispatchEvent(pointer('pointerup', 110, 100));
+		flushSync();
+		expect(proposedConfigs).toHaveLength(1);
+		expect(document.body.classList.contains('is-grabbing')).toBe(false);
 	});
 });
