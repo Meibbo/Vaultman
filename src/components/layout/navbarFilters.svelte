@@ -153,7 +153,7 @@ import {
 		type GroupPreset,
 	} from '../../types/typeGroupPreset';
 	import {
-		openGroupSuggester,
+		openGroupSuggesterModal,
 		planGroupMembershipBatch,
 	} from '../../modals/modalGroupSuggester';
 	import { resolveCustomGroups } from '../../logic/logicTreeGroupProjection';
@@ -867,68 +867,57 @@ import {
 		const urns = snapshot?.urns ?? [];
 		const groupTarget = currentCustomGroupTarget(tab);
 		/**
-		 * U130 Slice B (spec-03 §41-50): crear-o-añadir. With origins (the
-		 * §3.3 `Create group with selected` path) and existing customs, the
-		 * suggester offers presets + customs of the ACTIVE scene first:
-		 * existing = atomic idempotent add, dismiss = new-name prompt below.
+		 * U130 Slice B & U130-GGC-012: Unified Crear-o-añadir suggester modal.
+		 * Opens a responsive modal with suggestions from existing custom groups
+		 * and filter templates, allowing the user to either pick an existing group
+		 * (atomically adding members) or enter a new group name in a single step.
 		 */
-		if (urns.length > 0) {
-			const customs = customGroupsForMenu(tab, groupTarget);
-			if (customs.length > 0) {
-				const picked = await openGroupSuggester(
-					app,
-					[
-						...customs.map((group) => ({
-							id: group.id,
-							label: group.label,
-							flavor: 'custom' as const,
-							...(group.hidden ? { hidden: true } : {}),
-						})),
-						...GROUP_PRESETS_BY_TAB[tab].map((kind) => ({
-							id: `vaultman.group.preset:${kind}`,
-							label: translate(GROUP_PRESET_META[kind].labelKey),
-							flavor: 'preset' as const,
-						})),
-					],
-					translate('group.suggester.placeholder'),
+		const customs = customGroupsForMenu(tab, groupTarget);
+		const filterTemplates = (
+			(app as unknown as { plugins?: { plugins?: Record<string, { settings?: { filterTemplates?: Array<{ name: string }> } }> } })?.plugins?.plugins?.['vaultman']?.settings?.filterTemplates ?? []
+		).map((t) => t.name);
+
+		const picked = await openGroupSuggesterModal(app, {
+			title: urns.length > 0 ? translate('group.suggester.title') : translate('group.new'),
+			placeholder: translate('group.suggester.placeholder'),
+			customGroups: customs.map((group) => ({
+				id: group.id,
+				label: group.label,
+				flavor: 'custom' as const,
+				...(group.hidden ? { hidden: true } : {}),
+			})),
+			filterTemplates,
+		});
+
+		if (!picked) return { status: 'cancelled' };
+
+		if (picked.kind === 'existing') {
+			if (urns.length === 0)
+				return { status: 'committed', groupId: picked.id, affectedUrns: [] };
+			const plan = planGroupMembershipBatch({
+				memberships: configByTab[tab].groupMemberships,
+				targetId: picked.id,
+				origins: urns,
+				groups: resolveCustomGroups(configByTab[tab].groupMemberships),
+				providerId: tab,
+			});
+			if (!plan.ok) {
+				new Notice(
+					`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
 				);
-				if (picked) {
-					const presetIds = new Set(
-						GROUP_PRESETS_BY_TAB[tab].map(
-							(kind) => `vaultman.group.preset:${kind}`,
-						),
-					);
-					if (presetIds.has(picked.id)) {
-						new Notice(translate('group.preset.locked'));
-						return { status: 'rejected', reason: 'group.preset.locked' };
-					}
-					const plan = planGroupMembershipBatch({
-						memberships: configByTab[tab].groupMemberships,
-						targetId: picked.id,
-						origins: urns,
-						groups: resolveCustomGroups(configByTab[tab].groupMemberships),
-						providerId: tab,
-					});
-					if (!plan.ok) {
-						new Notice(
-							`${translate('group.batch.rejected')} (${plan.failedPairs.length})`,
-						);
-						return { status: 'rejected', reason: 'group.batch.rejected' };
-					}
-					commitConfig(tab, { groupMemberships: plan.next });
-					applyGroupMemberships(tab, plan.next);
-					setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
-					return {
-						status: 'committed',
-						groupId: picked.id,
-						affectedUrns: [...urns],
-					};
-				}
+				return { status: 'rejected', reason: 'group.batch.rejected' };
 			}
+			commitConfig(tab, { groupMemberships: plan.next });
+			applyGroupMemberships(tab, plan.next);
+			setGroupPresetFor(tab, { kind: 'custom', direction: 'asc' });
+			return {
+				status: 'committed',
+				groupId: picked.id,
+				affectedUrns: [...urns],
+			};
 		}
-		const name = (
-			await showInputModal(app, translate('group.new.prompt'))
-		)?.trim();
+
+		const name = picked.name.trim();
 		if (!name)
 			return { status: 'cancelled' };
 		const noteMode =
