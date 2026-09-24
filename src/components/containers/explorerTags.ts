@@ -192,7 +192,7 @@ import {
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
 import {
 	noteSelectionState,
-	reconcileCommittedSelection,
+	reconcileCommittedGroupCreation,
 	selectionKeyFor,
 	snapshotFromProjectedTree,
 	type CreateGroupHandler,
@@ -972,12 +972,13 @@ export class TagsExplorerPanel extends Component {
 				});
 				const result = await handler(snapshot);
 				if (result.status === 'committed') {
-					this.selectedNodeIds = reconcileCommittedSelection(
+					this.selectedNodeIds = reconcileCommittedGroupCreation(
 						snapshot,
 						result,
 						this.selectedNodeIds,
 						{ instanceId: this.selectionInstanceId, revision: this.selectionRevision },
 					);
+					if (this.selectedNodeIds.size === 0) this.selectionAnchorId = null;
 					this._touchSelection();
 					void this._render();
 				}

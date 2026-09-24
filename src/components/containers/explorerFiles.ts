@@ -60,7 +60,7 @@ import {
 } from '../../logic/logicTreeGroupProjection';
 import {
 	noteSelectionState,
-	reconcileCommittedSelection,
+	reconcileCommittedGroupCreation,
 	selectionKeyFor,
 	snapshotFromProjectedTree,
 	type CreateGroupHandler,
@@ -1240,7 +1240,7 @@ export class FilesExplorerPanel extends Component {
 				});
 				const result = await handler(snapshot);
 				if (result.status === 'committed') {
-					const next = reconcileCommittedSelection(
+					const next = reconcileCommittedGroupCreation(
 						snapshot,
 						result,
 						this.selectedFilePaths,
@@ -1251,7 +1251,7 @@ export class FilesExplorerPanel extends Component {
 					);
 					this._applyFileSelection({
 						selectedPaths: next,
-						anchorPath: this.selectionAnchorPath,
+						anchorPath: next.size === 0 ? null : this.selectionAnchorPath,
 					});
 				}
 				return result;

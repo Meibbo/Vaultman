@@ -130,7 +130,7 @@ import {
 } from '../../logic/logicTreeGroupProjection';
 import {
 	noteSelectionState,
-	reconcileCommittedSelection,
+	reconcileCommittedGroupCreation,
 	selectionKeyFor,
 	snapshotFromProjectedTree,
 	type CreateGroupHandler,
@@ -1329,7 +1329,7 @@ export class PropsExplorerPanel extends Component {
 				});
 				const result = await handler(snapshot);
 				if (result.status === 'committed') {
-					const next = reconcileCommittedSelection(
+					const next = reconcileCommittedGroupCreation(
 						snapshot,
 						result,
 						this.selectedNodeIds,
@@ -1338,7 +1338,7 @@ export class PropsExplorerPanel extends Component {
 							revision: this.selectionRevision,
 						},
 					);
-					this._applyPropSelection(next);
+					this._applyPropSelection(next, next.size === 0 ? null : this.selectionAnchorId);
 				}
 				return result;
 			},
