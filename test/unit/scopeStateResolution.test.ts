@@ -3,6 +3,7 @@ import {
 	cloneExplorerSortState,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	normalizeScopeState,
 	replaceActiveScopeSort,
 	resolveScopeSet,
 	scopeStateFromLegacy,
@@ -299,5 +300,203 @@ describe('U130-GGC cumulative scope sets', () => {
 		expect(parent?.label).toBe('Status');
 		expect(parent?.children?.[0]?.label).toBe('Inner');
 		expect(parent?.children?.[0]?.children?.[0]?.label).toBe('Open');
+	});
+
+	it('U130-GGC-027: normalizeScopeState preserves level:1 on add-on explorers (snippets and plugins)', () => {
+		const pluginRawState = {
+			cursor: 'all',
+			sets: {
+				all: { sort: { sortBy: 'name', direction: 'asc' } },
+				'level:1': { groupPreset: { kind: 'custom', direction: 'asc' } },
+			},
+		};
+		const normalizedPlugins = normalizeScopeState('plugins', pluginRawState, {
+			sorts: { all: { sortBy: 'name', direction: 'asc' } },
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+		expect(normalizedPlugins.sets['level:1']).toBeDefined();
+		expect(normalizedPlugins.sets['level:1']?.groupPreset?.kind).toBe('custom');
+
+		const snippetRawState = {
+			cursor: 'all',
+			sets: {
+				all: { sort: { sortBy: 'name', direction: 'asc' } },
+				'level:1': { groupPreset: { kind: 'custom', direction: 'asc' } },
+			},
+		};
+		const normalizedSnippets = normalizeScopeState('snippets', snippetRawState, {
+			sorts: { all: { sortBy: 'name', direction: 'asc' } },
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+		expect(normalizedSnippets.sets['level:1']).toBeDefined();
+		expect(normalizedSnippets.sets['level:1']?.groupPreset?.kind).toBe('custom');
+	});
+
+	it('U130-GGC-003: groups words and modified across All, Level 1/2, and Parent with 3-depth 2-parents-per-level fixture', () => {
+		interface TestMeta {
+			words: number;
+			modified: number;
+		}
+
+		const now = 1700000000000;
+		const DAY = 86400000;
+
+		const createFixture = (): TreeNode<TestMeta>[] => [
+			{
+				id: 'p1',
+				label: 'Parent 1',
+				depth: 0,
+				meta: { words: 50, modified: now - 2 * DAY },
+				children: [
+					{
+						id: 'p1_c1',
+						label: 'Child 1.1',
+						depth: 1,
+						meta: { words: 500, modified: now - 30 * DAY },
+						children: [
+							{ id: 'p1_c1_g1', label: 'Grandchild 1.1.1', depth: 2, meta: { words: 20, modified: now - 1 * DAY } },
+							{ id: 'p1_c1_g2', label: 'Grandchild 1.1.2', depth: 2, meta: { words: 200, modified: now - 50 * DAY } },
+						],
+					},
+					{
+						id: 'p1_c2',
+						label: 'Child 1.2',
+						depth: 1,
+						meta: { words: 80, modified: now - 3 * DAY },
+						children: [
+							{ id: 'p1_c2_g1', label: 'Grandchild 1.2.1', depth: 2, meta: { words: 300, modified: now - 100 * DAY } },
+							{ id: 'p1_c2_g2', label: 'Grandchild 1.2.2', depth: 2, meta: { words: 10, modified: now - 2 * DAY } },
+						],
+					},
+				],
+			},
+			{
+				id: 'p2',
+				label: 'Parent 2',
+				depth: 0,
+				meta: { words: 300, modified: now - 60 * DAY },
+				children: [
+					{
+						id: 'p2_c1',
+						label: 'Child 2.1',
+						depth: 1,
+						meta: { words: 40, modified: now - 1 * DAY },
+						children: [
+							{ id: 'p2_c1_g1', label: 'Grandchild 2.1.1', depth: 2, meta: { words: 50, modified: now - 2 * DAY } },
+							{ id: 'p2_c1_g2', label: 'Grandchild 2.1.2', depth: 2, meta: { words: 600, modified: now - 40 * DAY } },
+						],
+					},
+					{
+						id: 'p2_c2',
+						label: 'Child 2.2',
+						depth: 1,
+						meta: { words: 150, modified: now - 10 * DAY },
+						children: [
+							{ id: 'p2_c2_g1', label: 'Grandchild 2.2.1', depth: 2, meta: { words: 70, modified: now - 4 * DAY } },
+							{ id: 'p2_c2_g2', label: 'Grandchild 2.2.2', depth: 2, meta: { words: 120, modified: now - 15 * DAY } },
+						],
+					},
+				],
+			},
+		];
+
+		const wordsPreset = {
+			kind: 'words' as const,
+			direction: 'asc' as const,
+			counterRanges: [
+				{ id: 'w-low', lo: 0, hi: 100 },
+				{ id: 'w-high', lo: 101, hi: 1000 },
+			],
+		};
+
+		const modifiedPreset = {
+			kind: 'modified' as const,
+			direction: 'asc' as const,
+			counterRanges: [
+				{ id: 'd-recent', lo: 0, hi: 7 },
+				{ id: 'd-old', lo: 8, hi: 365 },
+			],
+		};
+
+		const makeInput = (nodes: TreeNode<TestMeta>[]): GroupProjectionInput<TestMeta> => ({
+			nodes,
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: 'No group',
+			filtered: false,
+			preset: { kind: 'none', direction: 'asc' },
+			presetValueOf: (node, kind) =>
+				kind === 'words' ? node.meta.words : kind === 'modified' ? node.meta.modified : null,
+			now,
+		});
+
+		// 1. All levels groups root and deep branches without hoisting
+		const projectedAll = projectGroupedTreeScopeState(makeInput(createFixture()), {
+			cursor: 'all',
+			sets: { all: { groupPreset: wordsPreset } },
+		});
+		// Root has group headers
+		expect(projectedAll.every((n) => n.isGroupHeader)).toBe(true);
+		expect(projectedAll.map((n) => n.label)).toEqual(['0–100', '101–1000']);
+		const lowHeader = projectedAll.find((n) => n.label === '0–100');
+		const p1InAll = lowHeader?.children?.find((n) => n.id === 'p1');
+		expect(p1InAll).toBeDefined();
+		// Level 2 inside p1 is grouped
+		expect(p1InAll?.children?.every((n) => n.isGroupHeader)).toBe(true);
+		// Level 3 inside child is grouped
+		const p1ChildLowHeader = p1InAll?.children?.find((n) => n.label === '0–100');
+		const child12 = p1ChildLowHeader?.children?.find((n) => n.id === 'p1_c2');
+		expect(child12).toBeDefined();
+		expect(child12?.children?.every((n) => n.isGroupHeader)).toBe(true);
+
+		// 2. Level 2 target groups each branch separately without hoisting
+		const projectedLevel2 = projectGroupedTreeScopeState(makeInput(createFixture()), {
+			cursor: 'level:2',
+			sets: { 'level:2': { groupPreset: wordsPreset } },
+		});
+		// Root is NOT grouped
+		expect(projectedLevel2.map((n) => n.id)).toEqual(['p1', 'p2']);
+		// p1's children are grouped under p1
+		expect(projectedLevel2[0]?.children?.every((n) => n.isGroupHeader)).toBe(true);
+		// p2's children are grouped under p2
+		expect(projectedLevel2[1]?.children?.every((n) => n.isGroupHeader)).toBe(true);
+		// Separate branch headers (distinct ids)
+		expect(projectedLevel2[0]?.children?.[0]?.id).not.toBe(projectedLevel2[1]?.children?.[0]?.id);
+		// Level 3 children are NOT grouped
+		const childInL2 = projectedLevel2[0]?.children?.[0]?.children?.[0];
+		expect(childInL2?.children?.some((n) => n.isGroupHeader)).toBe(false);
+
+		// 3. Parent target groups only direct children of that parent
+		const projectedParent = projectGroupedTreeScopeState(makeInput(createFixture()), {
+			cursor: 'parent:p1',
+			sets: { 'parent:p1': { groupPreset: modifiedPreset } },
+		});
+		// Root is NOT grouped
+		expect(projectedParent.map((n) => n.id)).toEqual(['p1', 'p2']);
+		// p1's children ARE grouped into modified headers
+		expect(projectedParent[0]?.children?.every((n) => n.isGroupHeader)).toBe(true);
+		// p2's children are NOT grouped
+		expect(projectedParent[1]?.children?.every((n) => n.isGroupHeader)).toBe(false);
+		expect(projectedParent[1]?.children?.map((n) => n.id)).toEqual(['p2_c1', 'p2_c2']);
+
+		// 4. Override 'none' shuts off All inheritance for that level without deleting other sets
+		const projectedOverrideNone = projectGroupedTreeScopeState(makeInput(createFixture()), {
+			cursor: 'level:2',
+			sets: {
+				all: { groupPreset: wordsPreset },
+				'level:2': { groupPreset: { kind: 'none', direction: 'asc' } },
+			},
+		});
+		// Level 1 IS grouped (inherits from all)
+		expect(projectedOverrideNone.every((n) => n.isGroupHeader)).toBe(true);
+		const p1UnderOverride = projectedOverrideNone.find((n) => n.label === '0–100')?.children?.find((n) => n.id === 'p1');
+		// Level 2 is UNGROUPED (overridden by none)
+		expect(p1UnderOverride?.children?.every((n) => n.isGroupHeader)).toBe(false);
+		expect(p1UnderOverride?.children?.map((n) => n.id)).toEqual(['p1_c1', 'p1_c2']);
+		// Level 3 IS grouped (inherits from all)
+		expect(p1UnderOverride?.children?.[0]?.children?.every((n) => n.isGroupHeader)).toBe(true);
 	});
 });

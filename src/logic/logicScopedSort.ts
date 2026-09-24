@@ -403,8 +403,8 @@ export function supportsLevelScopes(tab: ExplorerTabId): boolean {
 
 export function isScopeAllowed(tab: ExplorerTabId, scope: string): scope is SortScopeKey {
 	if ((SCOPES_BY_TAB[tab] as readonly string[]).includes(scope)) return true;
-	// Level 0 is the group headers, and groups exist on every tab (§3.2).
-	if (scope === 'level:0') return true;
+	// Level 0 is group headers, and level 1 is item root level (valid on every tab, U130-GGC-027).
+	if (scope === 'level:0' || scope === 'level:1') return true;
 	return supportsLevelScopes(tab) && (isLevelScope(scope) || isParentScope(scope));
 }
 

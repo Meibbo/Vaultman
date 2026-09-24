@@ -104,9 +104,11 @@ export function findScopeParentId<T extends IndexTreeNode>(
 	isParent: (node: T) => boolean = (node) =>
 		(node.children?.length ?? 0) > 0,
 ): string | null {
+	const checkParent = (node: T): boolean =>
+		Boolean((node as any).isGroupHeader) || isParent(node);
 	for (const node of roots ?? []) {
 		if (node.id === id) {
-			return isParent(node) ? node.id : parent;
+			return checkParent(node) ? node.id : parent;
 		}
 		const hit = node.children
 			? findScopeParentId(node.children as T[], id, node.id, isParent)
@@ -116,14 +118,19 @@ export function findScopeParentId<T extends IndexTreeNode>(
 	return null;
 }
 
-/** Whether the rendered source tree contains at least one selectable parent. */
+/**
+ * Whether the rendered source tree contains at least one selectable parent.
+ * U130-GGC-028: node_group is always an eligible parent across all explorers.
+ */
 export function hasScopeParentNodes<T extends IndexTreeNode>(
 	roots: readonly T[] | null | undefined,
 	isParent: (node: T) => boolean = (node) =>
 		(node.children?.length ?? 0) > 0,
 ): boolean {
+	const checkParent = (node: T): boolean =>
+		Boolean((node as any).isGroupHeader) || isParent(node);
 	for (const node of roots ?? []) {
-		if (isParent(node)) return true;
+		if (checkParent(node)) return true;
 		if (node.children && hasScopeParentNodes(node.children as T[], isParent))
 			return true;
 	}
@@ -133,6 +140,8 @@ export function hasScopeParentNodes<T extends IndexTreeNode>(
 /**
  * Spec 08 §3.1 item 3 ("Select a level"): the 1-based level of a node in the
  * rendered tree — root rows are level 1 — or null when it is not there.
+ * U130-GGC-028: root group headers projected above Level 1 are Level 0;
+ * nested group headers preserve the normal structural level of their position.
  */
 export function findNodeLevel<T extends IndexTreeNode>(
 	roots: readonly T[] | null | undefined,
@@ -140,7 +149,9 @@ export function findNodeLevel<T extends IndexTreeNode>(
 	level = 1,
 ): number | null {
 	for (const node of roots ?? []) {
-		if (node.id === id) return level;
+		if (node.id === id) {
+			return Boolean((node as any).isGroupHeader) && level === 1 ? 0 : level;
+		}
 		const hit = node.children
 			? findNodeLevel(node.children as T[], id, level + 1)
 			: null;
