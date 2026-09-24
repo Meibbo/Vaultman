@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	cloneExplorerSortState,
+	cloneScopeState,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
 	normalizeScopeState,
@@ -498,5 +499,64 @@ describe('U130-GGC cumulative scope sets', () => {
 		expect(p1UnderOverride?.children?.map((n) => n.id)).toEqual(['p1_c1', 'p1_c2']);
 		// Level 3 IS grouped (inherits from all)
 		expect(p1UnderOverride?.children?.[0]?.children?.every((n) => n.isGroupHeader)).toBe(true);
+	});
+
+	it('U130-GGC-029: resolves View and Engine options per scope target with parent > level > all cascade', () => {
+		const engineScopeState: ScopeState = {
+			cursor: 'all',
+			sets: {
+				all: {
+					viewMode: 'tree',
+					nested: true,
+					indent: true,
+					stickyRows: true,
+				},
+				'level:2': {
+					indent: false,
+				},
+				'parent:p1': {
+					nested: false,
+					stickyRows: false,
+				},
+			},
+		};
+
+		// 1. Root level (level: 1, parentId: null) inherits from all
+		const rootResolved = resolveScopeSet(engineScopeState, { level: 1, parentId: null });
+		expect(rootResolved.viewMode).toBe('tree');
+		expect(rootResolved.nested).toBe(true);
+		expect(rootResolved.indent).toBe(true);
+		expect(rootResolved.stickyRows).toBe(true);
+
+		// 2. Level 2 under another parent (parentId: 'p2') overrides indent: false, inherits nested: true & stickyRows: true
+		const p2ChildResolved = resolveScopeSet(engineScopeState, { level: 2, parentId: 'p2' });
+		expect(p2ChildResolved.indent).toBe(false);
+		expect(p2ChildResolved.nested).toBe(true);
+		expect(p2ChildResolved.stickyRows).toBe(true);
+
+		// 3. Level 2 under p1 overrides nested: false & stickyRows: false, and overrides indent: false from level:2
+		const p1ChildResolved = resolveScopeSet(engineScopeState, { level: 2, parentId: 'p1' });
+		expect(p1ChildResolved.nested).toBe(false);
+		expect(p1ChildResolved.stickyRows).toBe(false);
+		expect(p1ChildResolved.indent).toBe(false);
+
+		// 4. Changing cursor does not change resolution
+		const cursorChanged = { ...engineScopeState, cursor: 'level:2' as const };
+		expect(resolveScopeSet(cursorChanged, { level: 2, parentId: 'p1' })).toEqual(p1ChildResolved);
+
+		// 5. Roundtrip normalizeScopeState and cloneScopeState preserves engine options
+		const cloned = cloneScopeState(engineScopeState);
+		expect(cloned.sets['parent:p1']?.nested).toBe(false);
+		expect(cloned.sets['level:2']?.indent).toBe(false);
+		expect(cloned.sets.all?.stickyRows).toBe(true);
+
+		const normalized = normalizeScopeState('files', engineScopeState, {
+			sorts: {},
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+		expect(normalized.sets['parent:p1']?.nested).toBe(false);
+		expect(normalized.sets['level:2']?.indent).toBe(false);
+		expect(normalized.sets.all?.stickyRows).toBe(true);
 	});
 });

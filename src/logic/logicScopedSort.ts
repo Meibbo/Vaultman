@@ -53,6 +53,13 @@ function cloneScopeSet(set: ScopeSet | undefined): ScopeSet {
 			: {}),
 		...(set.filterPolicy ? { filterPolicy: set.filterPolicy } : {}),
 		...(set.hidden ? { hidden: true } : {}),
+		...(set.viewMode ? { viewMode: set.viewMode } : {}),
+		...(set.nested !== undefined ? { nested: set.nested } : {}),
+		...(set.indent !== undefined ? { indent: set.indent } : {}),
+		...(set.stickyRows !== undefined ? { stickyRows: set.stickyRows } : {}),
+		...(set.compactFolders !== undefined ? { compactFolders: set.compactFolders } : {}),
+		...(set.fixedFolders !== undefined ? { fixedFolders: set.fixedFolders } : {}),
+		...(set.parentsFirst !== undefined ? { parentsFirst: set.parentsFirst } : {}),
 	};
 }
 
@@ -142,6 +149,18 @@ function normalizeScopeSetValue(
 	}
 	if (value.filterPolicy === 'included') out.filterPolicy = 'included';
 	if (value.hidden === true) out.hidden = true;
+	if (typeof value.viewMode === 'string') {
+		const vm = value.viewMode;
+		if (vm === 'tree' || vm === 'table' || vm === 'dnd' || vm === 'grid' || vm === 'cards') {
+			out.viewMode = vm;
+		}
+	}
+	if (typeof value.nested === 'boolean') out.nested = value.nested;
+	if (typeof value.indent === 'boolean') out.indent = value.indent;
+	if (typeof value.stickyRows === 'boolean') out.stickyRows = value.stickyRows;
+	if (typeof value.compactFolders === 'boolean') out.compactFolders = value.compactFolders;
+	if (typeof value.fixedFolders === 'boolean') out.fixedFolders = value.fixedFolders;
+	if (typeof value.parentsFirst === 'boolean') out.parentsFirst = value.parentsFirst;
 	return out;
 }
 
@@ -254,6 +273,22 @@ export function resolveScopeSet(
 	) {
 		out.filterPolicy = 'included';
 	}
+
+	const viewMode = first('viewMode');
+	if (viewMode) out.viewMode = viewMode;
+	const nested = first('nested');
+	if (nested !== undefined) out.nested = nested;
+	const indent = first('indent');
+	if (indent !== undefined) out.indent = indent;
+	const stickyRows = first('stickyRows');
+	if (stickyRows !== undefined) out.stickyRows = stickyRows;
+	const compactFolders = first('compactFolders');
+	if (compactFolders !== undefined) out.compactFolders = compactFolders;
+	const fixedFolders = first('fixedFolders');
+	if (fixedFolders !== undefined) out.fixedFolders = fixedFolders;
+	const parentsFirst = first('parentsFirst');
+	if (parentsFirst !== undefined) out.parentsFirst = parentsFirst;
+
 	return out;
 }
 

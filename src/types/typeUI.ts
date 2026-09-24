@@ -112,6 +112,20 @@ export interface ScopeSet {
 	filterPolicy?: 'included';
 	/** Hidden targets remain persisted but are ignored by resolution. */
 	hidden?: boolean;
+	/** U130-GGC-029: viewMode override for this target (e.g. tree, table, dnd, grid, cards). */
+	viewMode?: ExplorerViewMode;
+	/** U130-GGC-029: nested hierarchy override for this target. */
+	nested?: boolean;
+	/** U130-GGC-029: indent guide override for this target. */
+	indent?: boolean;
+	/** U130-GGC-029: sticky rows override for this target. */
+	stickyRows?: boolean;
+	/** U130-GGC-029: compact folders override for this target. */
+	compactFolders?: boolean;
+	/** U130-GGC-029: fixed folders override for this target. */
+	fixedFolders?: boolean;
+	/** U130-GGC-029: parents first override for this target. */
+	parentsFirst?: boolean;
 }
 
 /** Per-scene scope space. `cursor` selects the set being edited only. */
