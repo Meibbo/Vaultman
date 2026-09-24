@@ -1186,6 +1186,12 @@ export const en: Record<string, string> = {
 	'filters.popup.rule.enable': 'Enable filter',
 	'filters.popup.rule.disable': 'Disable filter',
 	'filters.popup.rule.delete': 'Remove filter',
+	'filters.island.view_selected': 'Show selected nodes',
+	'filters.island.view_filters': 'Show active filters',
+	'filters.island.selected_nodes': '{count} nodes selected',
+	'filters.island.no_selected': 'No nodes selected',
+	'filters.island.deselect_all': 'Deselect all',
+	'filters.island.deselect_item': 'Deselect',
 	'filters.view_state.files_type': 'Files view type',
 	'filters.view_state.files_type_desc':
 		'Files view is limited to {type} files.',
