@@ -42,8 +42,10 @@ import { renameTargetFromQueue } from '../../logic/logicRenameBadges';
 import {
 	cloneGroupMemberships,
 	formatMembershipUrn,
+	parseMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import { planGroupToFolder, type GroupFolderMember, type GroupFolderPlan } from '../../logic/logicGroupToFolder';
 import {
 	collectGroupMemberIds,
 	entityIdOf,
@@ -373,6 +375,7 @@ export class FilesExplorerPanel extends Component {
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
 			hiddenGroupIds: this.hiddenGroupIds,
+			convertedFolderPaths: this.convertedFolderPaths,
 			urnOf: (node) => this._membershipUrnOf(node),
 			// S07A: la cabecera muestra el agregado burbujeado (identidades,
 			// no ocurrencias) en vez de `children.length`.
@@ -516,6 +519,8 @@ export class FilesExplorerPanel extends Component {
 	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
 	private readonly _seenGroupHeaderIds = new Set<string>();
+	/** U130-GGC-007: folders converted from groups. */
+	private readonly convertedFolderPaths = new Set<string>();
 
 	constructor(
 		containerEl: HTMLElement,
@@ -3211,6 +3216,11 @@ export class FilesExplorerPanel extends Component {
 					// desde aqui quedan disabled con razon.
 					const header = this._findNode(id, projectedTree);
 					const groupId = header ? entityIdOf(header) : id;
+					const groupOwner = this._groupIds.has(groupId) ? 'custom' : 'preset';
+					const conversionPlan = header &&
+						(groupOwner === 'preset' || this.groupDeleteHandler)
+						? this._groupToFolderPlan(header, groupId, groupOwner, projectedTree)
+						: null;
 					this.plugin.contextMenuService.openPanelMenu(
 						{
 							nodeType: 'group',
@@ -3223,7 +3233,10 @@ export class FilesExplorerPanel extends Component {
 							},
 							surface: 'panel',
 							groupId,
-							groupOwner: this._groupIds.has(groupId) ? 'custom' : 'preset',
+							groupOwner,
+							convertGroupToFolder: conversionPlan && header
+								? () => this._previewGroupToFolder(id, groupId, groupOwner, conversionPlan)
+								: undefined,
 							groupHidden: this.hiddenGroupIds.has(groupId),
 							hideGroup: this.groupHideHandler,
 							deleteGroup: this.groupDeleteHandler,
@@ -5597,6 +5610,127 @@ export class FilesExplorerPanel extends Component {
 		this._notifyExpansionChanged();
 		this._render();
 		new Notice(`Created ${path}`);
+	}
+
+	/** Physical parent of a projected group header, ignoring virtual ancestors. */
+	private _groupPhysicalParentPath(
+		nodes: readonly TreeNode<FileMeta>[],
+		id: string,
+		parentPath = '',
+	): string | null {
+		for (const node of nodes) {
+			if (node.id === id) return parentPath;
+			const folder = node.meta?.folder;
+			const nextParent = folder instanceof TFolder && !isGroupHeader(node.id, this._groupIds)
+				? folder.path
+				: parentPath;
+			const found = this._groupPhysicalParentPath(node.children ?? [], id, nextParent);
+			if (found !== null) return found;
+		}
+		return null;
+	}
+
+	/** Custom memberships are authoritative; preset buckets freeze visible children. */
+	private _groupPhysicalMembers(
+		header: TreeNode<FileMeta>,
+		groupId: string,
+		owner: 'custom' | 'preset',
+	): GroupFolderMember[] | null {
+		const paths: GroupFolderMember[] = [];
+		if (owner === 'custom') {
+			const urns = this.groupMemberships[groupId];
+			if (!urns) return null;
+			for (const urn of urns) {
+				const ref = parseMembershipUrn(urn);
+				if (ref?.providerId !== 'files' || (ref.kind !== 'file' && ref.kind !== 'folder'))
+					return null;
+				paths.push({ path: ref.canonicalId, kind: ref.kind });
+			}
+		} else {
+			const visit = (nodes: readonly TreeNode<FileMeta>[]): void => {
+				for (const node of nodes) {
+					if (isGroupHeader(node.id, this._groupIds)) {
+						visit(node.children ?? []);
+						continue;
+					}
+					const folder = node.meta?.folder;
+					if (folder instanceof TFolder) paths.push({ path: folder.path, kind: 'folder' });
+					else if (node.meta?.file instanceof TFile)
+						paths.push({ path: node.meta.file.path, kind: 'file' });
+					visit(node.children ?? []);
+				}
+			};
+			visit(header.children ?? []);
+		}
+		for (const member of paths) {
+			const actual = this.plugin.app.vault.getAbstractFileByPath(member.path);
+			if (member.kind === 'folder' ? !(actual instanceof TFolder) : !(actual instanceof TFile))
+				return null;
+		}
+		return paths;
+	}
+
+	private _groupToFolderPlan(
+		header: TreeNode<FileMeta>,
+		groupId: string,
+		owner: 'custom' | 'preset',
+		projected: readonly TreeNode<FileMeta>[],
+	): GroupFolderPlan | null {
+		const parentPath = this._groupPhysicalParentPath(projected, header.id);
+		if (parentPath === null) return null;
+		const parent = parentPath ? this.plugin.app.vault.getAbstractFileByPath(parentPath) : this.plugin.app.vault.getRoot();
+		if (!(parent instanceof TFolder)) return null;
+		const members = this._groupPhysicalMembers(header, groupId, owner);
+		if (!members) return null;
+		const name = this._safeName(header.label, 'New folder');
+		const targetPath = this._uniquePath(this._joinPath(parentPath, name));
+		const result = planGroupToFolder(targetPath, members);
+		return result.ok ? result.plan : null;
+	}
+
+	private _previewGroupToFolder(
+		headerId: string,
+		groupId: string,
+		owner: 'custom' | 'preset',
+		plan: GroupFolderPlan,
+	): void {
+		const moves = plan.moves.map((move) => `${move.from} → ${move.to}`).join('\n');
+		new ConfirmModal(this.plugin.app, {
+			title: translate('group.folder.convert'),
+			message: translate('group.folder.preview', { folder: plan.targetPath, moves }),
+			ctaLabel: translate('group.folder.confirm'),
+			onConfirm: async () => {
+				const currentTree = this.projectedNodes();
+				const currentHeader = this._findNode(headerId, currentTree);
+				const currentPlan = currentHeader
+					? this._groupToFolderPlan(currentHeader, groupId, owner, currentTree)
+					: null;
+				const same = currentPlan &&
+					currentPlan.moves.length === plan.moves.length &&
+					currentPlan.moves.every((move, index) =>
+						move.from === plan.moves[index]?.from && move.kind === plan.moves[index]?.kind) &&
+					this._parentPath(currentPlan.targetPath) === this._parentPath(plan.targetPath);
+				if (!same) {
+					new Notice(translate('group.folder.failed', { reason: 'Group changed; open the preview again.' }));
+					return;
+				}
+				const result = await this.plugin.queueService.runGroupToFolder(plan);
+				if (!result.ok) {
+					new Notice(translate('group.folder.failed', {
+						reason: [result.reason, ...result.rollbackFailures].join('; '),
+					}));
+					return;
+				}
+				this.convertedFolderPaths.add(plan.targetPath);
+				if (owner === 'custom') this.groupDeleteHandler?.(groupId);
+				this.plugin.filterService.applyFilters();
+				for (const id of this.logic.getAncestorFolderIdsFromPaths([plan.targetPath]))
+					this.expandedIds.add(id);
+				this._notifyExpansionChanged();
+				this._refreshFromFilterService();
+				new Notice(translate('group.folder.done', { folder: plan.targetPath }));
+			},
+		}).open();
 	}
 
 	/**

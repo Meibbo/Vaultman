@@ -126,6 +126,11 @@ export interface GroupProjectionInput<TMeta> {
 	/** Header ids hidden by the scene, including derived preset buckets. */
 	hiddenGroupIds?: ReadonlySet<string>;
 	/**
+	 * U130-GGC-007: folders converted from groups. They project as physical
+	 * `node_folder` items at their slot instead of being grouped into virtual buckets.
+	 */
+	convertedFolderPaths?: ReadonlySet<string>;
+	/**
 	 * Spec 08 §3.2: el group preset seleccionado. `custom` proyecta `groups`
 	 * (pertenencia explicita); el resto son predicados sobre los nodos. Sin
 	 * preset se conserva la derivacion historica: custom si los hay, si no
@@ -404,6 +409,20 @@ function identityKey(ref: MembershipRef): string {
 	return `${ref.providerId}:${ref.kind}:${ref.canonicalId}`;
 }
 
+export function isConvertedFolder<TMeta>(
+	node: TreeNode<TMeta>,
+	convertedFolderPaths?: ReadonlySet<string>,
+): boolean {
+	if (!convertedFolderPaths || convertedFolderPaths.size === 0) return false;
+	const meta = node.meta as { folderPath?: string; folder?: { path?: string }; isFolder?: boolean } | null;
+	const isFolder = meta?.isFolder === true || Boolean(meta?.folder);
+	if (!isFolder) return false;
+	const rawPath = meta?.folderPath ?? meta?.folder?.path ?? (node.id.startsWith('folder:') ? node.id.slice(7) : node.id);
+	if (!rawPath) return false;
+	const clean = rawPath.replace(/^\/+|\/+$/g, '');
+	return convertedFolderPaths.has(clean) || convertedFolderPaths.has(rawPath);
+}
+
 /**
  * B-groupbody (legacy): la entidad detras de un row id opaco. Solo para
  * arboles sin `entityId` explicito; ambiguo por diseno cuando la entidad
@@ -528,6 +547,7 @@ export function projectGroupedTree<TMeta>(
 		enabled = true,
 		groupTotals,
 		hiddenGroupIds,
+		convertedFolderPaths,
 		headerCoreCls,
 		headerMeta,
 		preset,
@@ -639,8 +659,17 @@ export function projectGroupedTree<TMeta>(
 		const orphans = nodes.filter(
 			(node) => !claimed.has(node.entityId ?? node.id),
 		);
-		if (orphans.length > 0 || !filtered) {
-			const reparented = reparent(orphans, NO_GROUP_ID, 1, suffixed, used);
+		const convertedOrphans = convertedFolderPaths && convertedFolderPaths.size > 0
+			? orphans.filter((node) => isConvertedFolder(node, convertedFolderPaths))
+			: [];
+		const unassignedOrphans = convertedOrphans.length > 0
+			? orphans.filter((node) => !isConvertedFolder(node, convertedFolderPaths))
+			: orphans;
+		for (const folder of convertedOrphans) {
+			out.push(folder);
+		}
+		if (unassignedOrphans.length > 0 || !filtered) {
+			const reparented = reparent(unassignedOrphans, NO_GROUP_ID, 1, suffixed, used);
 			out.push(
 				finishHeader(
 					headerNode(
@@ -787,15 +816,29 @@ export function projectGroupedTree<TMeta>(
 	}
 
 	// --- Grupos PRESET: predicado, en memoria, sin tocar settings ------------
-	// Es LA MISMA familia de derivaciones que alimenta el rail del indice
-	// flotante (`letter`); los demas presets son predicados hermanos en
-	// `logicGroupPresets`. Escribir aqui un segundo motor dejaria dos.
+	// U130-GGC-007: Converted physical folders are excluded from preset bucketing
+	// so the newly created folder visibly replaces the virtual group at its slot.
+	const converted = convertedFolderPaths && convertedFolderPaths.size > 0
+		? nodes.filter((node) => isConvertedFolder(node, convertedFolderPaths))
+		: [];
+	const candidateNodes = converted.length > 0
+		? nodes.filter((node) => !isConvertedFolder(node, convertedFolderPaths))
+		: nodes;
+
 	const resolved = buildPresetBuckets(
-		nodes,
+		candidateNodes,
 		preset ?? { kind: 'letter', direction: 'asc' },
 		{ extract: presetValueOf, labels: rangeLabels, now },
 	);
-	if (!resolved || resolved.buckets.length === 0) return nodes;
+	if (!resolved || resolved.buckets.length === 0) {
+		if (converted.length > 0) {
+			const direction = preset?.direction === 'desc' ? -1 : 1;
+			return [...nodes].sort((a, b) =>
+				direction * a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' })
+			);
+		}
+		return nodes;
+	}
 	const visibleBuckets = resolved.buckets.filter(
 		(bucket) => !hiddenGroupIds?.has(`${PRESET_GROUP_PREFIX}${bucket.key}`),
 	);
@@ -803,7 +846,7 @@ export function projectGroupedTree<TMeta>(
 		.filter((bucket) => hiddenGroupIds?.has(`${PRESET_GROUP_PREFIX}${bucket.key}`))
 		.flatMap((bucket) => bucket.members);
 	const ungrouped = [...resolved.ungrouped, ...hiddenMembers];
-	if (visibleBuckets.length === 0 && ungrouped.length === 0) return nodes;
+	if (visibleBuckets.length === 0 && ungrouped.length === 0 && converted.length === 0) return nodes;
 	// Cada nodo cae en exactamente un bucket, asi que nunca hay dos
 	// ocurrencias del mismo id: las filas conservan su identidad, pero llevan
 	// `entityId`/owner para la API canonica.
@@ -811,7 +854,7 @@ export function projectGroupedTree<TMeta>(
 		...visibleBuckets.map((bucket) => `${PRESET_GROUP_PREFIX}${bucket.key}`),
 		NO_GROUP_ID,
 	]);
-	const out = visibleBuckets.map((bucket) => {
+	const bucketHeaders = visibleBuckets.map((bucket) => {
 		const reparented = reparent(
 			bucket.members,
 			`${PRESET_GROUP_PREFIX}${bucket.key}`,
@@ -838,6 +881,24 @@ export function projectGroupedTree<TMeta>(
 			decorateHeader,
 		);
 	});
+
+	type SiblingEntry =
+		| { kind: 'header'; label: string; node: TreeNode<TMeta> }
+		| { kind: 'folder'; label: string; node: TreeNode<TMeta> };
+
+	const entries: SiblingEntry[] = [
+		...bucketHeaders.map((header) => ({ kind: 'header' as const, label: header.label, node: header })),
+		...converted.map((folder) => ({ kind: 'folder' as const, label: folder.label, node: folder })),
+	];
+
+	const direction = preset?.direction === 'desc' ? -1 : 1;
+	entries.sort((a, b) => {
+		const cmp = direction * a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
+		if (cmp !== 0) return cmp;
+		return a.kind === 'folder' ? -1 : 1;
+	});
+
+	const out: TreeNode<TMeta>[] = entries.map((entry) => entry.node);
 	if (ungrouped.length > 0) {
 		const reparented = reparent(
 			ungrouped,

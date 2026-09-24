@@ -84,6 +84,8 @@ export interface MenuCtx {
 	updateGroupScope?: () => Promise<void> | void;
 	/** Creates a copy of the group with enumerated name/ID and snapshot of members. */
 	makeACopy?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
+	/** FilesScene only: preview and commit one physical folder conversion. */
+	convertGroupToFolder?: () => Promise<void> | void;
 }
 
 export interface ActionDef {

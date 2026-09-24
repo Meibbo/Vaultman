@@ -86,6 +86,18 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	const isCustom = (ctx: MenuCtx): boolean => ctx.groupOwner === 'custom';
 	const isPreset = (ctx: MenuCtx): boolean => ctx.groupOwner === 'preset';
 
+	// U130-GGC-007: only Files group headers with a valid physical snapshot
+	// receive this handler. The explorer performs preflight and confirmation.
+	svc.registerAction({
+		id: 'group.convert-to-folder',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.folder.convert'),
+		icon: 'lucide-folder-input',
+		when: (ctx: MenuCtx) => typeof ctx.convertGroupToFolder === 'function',
+		run: async (ctx: MenuCtx) => { await ctx.convertGroupToFolder?.(); },
+	});
+
 	// U130-GGC-006 / 016: Materialize preset bucket to custom group
 	svc.registerAction({
 		id: 'group.materialize-preset',

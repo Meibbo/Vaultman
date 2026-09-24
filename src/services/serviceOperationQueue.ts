@@ -11,6 +11,7 @@ import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
 import { pathReaches, promotionPlan } from '../logic/logicDeletionDecoration';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, COPY_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
+import { executeGroupToFolder, type GroupFolderExecution, type GroupFolderPlan } from '../logic/logicGroupToFolder';
 
 interface InternalApp extends App {
 	fileManager: FileManager & {
@@ -279,7 +280,56 @@ export class OperationQueueService extends Component {
 	}
 
 	readonly queue: PendingChange[] = [];
+	private groupFolderOperationRunning = false;
 	operationMode: 'stage' | 'bypass' = 'stage';
+
+	/** One recoverable queue operation after the group-to-folder preview. */
+	async runGroupToFolder(plan: GroupFolderPlan): Promise<GroupFolderExecution> {
+		if (this.groupFolderOperationRunning)
+			return { ok: false, reason: 'operation_busy', rollbackFailures: [] };
+		const touches = (a: string, b: string): boolean =>
+			a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+		const paths = [plan.targetPath, ...plan.moves.map((move) => move.from)];
+		const queuedConflict = this.queue.some((change) => {
+			const targetFolder = 'targetFolder' in change && typeof change.targetFolder === 'string'
+				? change.targetFolder : null;
+			return change.files.some((file) => paths.some((path) => touches(path, file.path))) ||
+				(targetFolder !== null && paths.some((path) => touches(path, targetFolder)));
+		});
+		if (queuedConflict)
+			return { ok: false, reason: 'pending_queue_conflict', rollbackFailures: [] };
+		this.groupFolderOperationRunning = true;
+		try {
+			const result = await executeGroupToFolder(plan, {
+				stat: (path) => {
+					const found = this.app.vault.getAbstractFileByPath(path);
+					return found instanceof TFolder ? 'folder' : found instanceof TFile ? 'file' : null;
+				},
+				createFolder: async (path) => { await this.app.vault.createFolder(path); },
+				move: async (from, to) => {
+					const found = this.app.vault.getAbstractFileByPath(from);
+					if (!(found instanceof TFile || found instanceof TFolder))
+						throw new Error(`Source disappeared: ${from}`);
+					await this.app.fileManager.renameFile(found, to);
+				},
+				deleteEmptyFolder: async (path) => {
+					const found = this.app.vault.getAbstractFileByPath(path);
+					if (!(found instanceof TFolder) || found.children.length > 0)
+						throw new Error(`Cannot remove nonempty folder: ${path}`);
+					await this.app.vault.delete(found);
+				},
+			});
+			this.events.trigger('executed', {
+				success: result.ok ? 1 : 0,
+				errors: result.ok ? 0 : 1,
+				messages: result.ok ? [] : [result.reason, ...result.rollbackFailures],
+			} satisfies OperationResult);
+			this.events.trigger('changed');
+			return result;
+		} finally {
+			this.groupFolderOperationRunning = false;
+		}
+	}
 	private pluginUpdateItems: readonly Readonly<PluginUpdateItem>[] = [];
 	private pluginUpdateResults: readonly PluginUpdateItemResult[] = [];
 	private pluginUpdateRunning = false;

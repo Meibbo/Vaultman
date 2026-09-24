@@ -35,6 +35,7 @@ export class ConfirmModal extends Modal {
 		
 		const messageEl = contentEl.createDiv({ cls: 'dialog-text' });
 		messageEl.setText(this.message);
+		messageEl.style.whiteSpace = 'pre-wrap';
 
 		if (this.warningLabel) {
 			const warningEl = contentEl.createDiv({ cls: 'dialog-warning' });
