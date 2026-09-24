@@ -219,21 +219,31 @@ export function materializeCounterRanges<T extends { label: string }>(
 	preset: GroupPreset,
 	options: PresetBucketOptions<T> = {},
 ): GroupPreset {
-	if (!isCounterPresetKind(preset.kind) || preset.counterRanges !== undefined)
+	const isCounter = isCounterPresetKind(preset.kind);
+	const isDate = DATE_PRESET_KINDS.includes(preset.kind);
+	if ((!isCounter && !isDate) || preset.counterRanges !== undefined)
 		return cloneGroupPreset(preset);
 	const extract = options.extract;
 	if (!extract) return cloneGroupPreset(preset);
+	const now = options.now ?? Date.now();
 	const values = nodes
-		.map((node) => extract(node, preset.kind))
-		.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-		.map((value) => Math.max(0, Math.floor(value)));
+		.map((node) => {
+			const raw = extract(node, preset.kind);
+			return preset.kind === 'tasks'
+				? resolveTaskGroupingMetric(raw)
+				: typeof raw === 'number' && Number.isFinite(raw)
+					? raw
+					: null;
+		})
+		.filter((value): value is number => value !== null)
+		.map((value) => Math.max(0, Math.floor(isDate ? daysAgo(value, now) : value)));
 	const count = sectionCount(values.length);
 	if (count < 2) return cloneGroupPreset(preset);
 	const min = Math.min(...values);
 	const max = Math.max(...values);
 	const ranges = contiguousCounterRanges(
 		quantileRanges([...values].sort((a, b) => a - b), count).map(
-		(range, index) => ({ ...range, id: counterRangeId(index) }),
+			(range, index) => ({ ...range, id: counterRangeId(index) }),
 		),
 		{ min, max },
 	);
