@@ -3,6 +3,10 @@ import { translate } from '../../i18n/index';
 import type { VaultmanPlugin } from '../../main';
 import { openBasesFilterInteropMenu } from '../../utils/basesFilterInterop';
 import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
+import {
+	currentSelectionToken,
+	selectionKeyFor,
+} from '../../logic/logicGroupSelectionTransaction';
 
 export interface ActiveFilterViewState {
 	id: string;
@@ -12,9 +16,24 @@ export interface ActiveFilterViewState {
 	clear: () => void;
 }
 
+export interface SelectedNodeItem {
+	id: string;
+	label: string;
+	occurrenceId?: string;
+	scene?: string;
+	deselect?: () => void;
+}
+
+export interface SelectedNodesSnapshot {
+	scene?: string;
+	instanceId?: string;
+	revision?: number;
+	rows: readonly SelectedNodeItem[];
+}
+
 /**
- * In-frame floating island showing active filter rules.
- * Mirrors the design of QueueIslandComponent.
+ * In-frame floating island showing active filter rules or actively selected nodes.
+ * U130-GGC-030: Squircle toggle between node_filters and node_selected views per scene/instance.
  */
 export class ActiveFiltersIslandComponent {
 	private containerEl: HTMLElement;
@@ -26,6 +45,10 @@ export class ActiveFiltersIslandComponent {
 	private islandEl: HTMLElement | null = null;
 	private listEl: HTMLElement | null = null;
 	private headerEl: HTMLElement | null = null;
+	private viewToggleBtn: HTMLElement | null = null;
+	private clearAllBtn: HTMLElement | null = null;
+
+	private currentView: 'filters' | 'selected' = 'filters';
 
 	constructor(
 		containerEl: HTMLElement,
@@ -34,6 +57,8 @@ export class ActiveFiltersIslandComponent {
 		viewStates: () => ActiveFilterViewState[] = () => [],
 		onClearAll?: () => void,
 		private readonly getDisplayedCount?: () => { filtered: number; total: number },
+		private readonly getSelectedSnapshot?: () => SelectedNodesSnapshot | readonly SelectedNodeItem[],
+		private readonly onClearSelection?: () => void,
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -57,8 +82,8 @@ export class ActiveFiltersIslandComponent {
 			cls: 'vaultman-squircle-row vaultman-filters-island-btns',
 		});
 
-		// Left: Clear All
-		const clearAllBtn = btnRow.createDiv({
+		// Left: Clear All (Filters or Selected)
+		this.clearAllBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
 				'aria-label': translate('filters.popup.clear_all'),
@@ -66,12 +91,44 @@ export class ActiveFiltersIslandComponent {
 				tabindex: '0',
 			},
 		});
-		setIcon(clearAllBtn, 'lucide-trash-2');
-		clearAllBtn.addEventListener('click', () => {
-			this.onClearAll();
+		setIcon(this.clearAllBtn, 'lucide-trash-2');
+		this.clearAllBtn.addEventListener('click', () => {
+			if (this.currentView === 'selected') {
+				if (this.onClearSelection) {
+					this.onClearSelection();
+				} else {
+					const rows = this.getSelectedRows();
+					for (const row of rows) row.deselect?.();
+				}
+				this.render();
+			} else {
+				this.onClearAll();
+			}
 		});
 
-		// Right: Templates
+		// View Toggle: node_filters <-> node_selected (U130-GGC-030)
+		this.viewToggleBtn = btnRow.createDiv({
+			cls: 'vaultman-squircle vaultman-filters-view-toggle',
+			attr: {
+				'aria-label': translate('filters.island.view_selected'),
+				'aria-pressed': 'false',
+				role: 'button',
+				tabindex: '0',
+			},
+		});
+		setIcon(this.viewToggleBtn, 'lucide-check-square');
+		const handleToggle = () => {
+			this.toggleViewMode();
+		};
+		this.viewToggleBtn.addEventListener('click', handleToggle);
+		this.viewToggleBtn.addEventListener('keydown', (e: KeyboardEvent) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				handleToggle();
+			}
+		});
+
+		// Templates
 		const templateBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
@@ -85,6 +142,7 @@ export class ActiveFiltersIslandComponent {
 			openFilterTemplateMenu(this.plugin, e, this.onClose);
 		});
 
+		// Bases Interop
 		const basesBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
@@ -110,12 +168,70 @@ export class ActiveFiltersIslandComponent {
 
 		this.render();
 
-		window.requestAnimationFrame(() => {
-			this.islandEl?.addClass('is-open');
-		});
+		if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+			window.requestAnimationFrame(() => {
+				this.islandEl?.addClass('is-open');
+			});
+		}
+	}
+
+	private getSelectedRows(): readonly SelectedNodeItem[] {
+		if (!this.getSelectedSnapshot) return [];
+		const raw = this.getSelectedSnapshot();
+		if (!raw) return [];
+		if (Array.isArray(raw)) return raw;
+		return 'rows' in raw ? raw.rows : [];
+	}
+
+	toggleViewMode(target?: 'filters' | 'selected'): void {
+		if (target) {
+			this.currentView = target;
+		} else {
+			this.currentView = this.currentView === 'filters' ? 'selected' : 'filters';
+		}
+		this.updateViewToggleState();
+		this.render();
+	}
+
+	getViewMode(): 'filters' | 'selected' {
+		return this.currentView;
+	}
+
+	private updateViewToggleState(): void {
+		if (!this.viewToggleBtn) return;
+		const isSelected = this.currentView === 'selected';
+		if (typeof this.viewToggleBtn.toggleClass === 'function') {
+			this.viewToggleBtn.toggleClass('is-accent', isSelected);
+		}
+		this.viewToggleBtn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+		const label = isSelected
+			? translate('filters.island.view_filters')
+			: translate('filters.island.view_selected');
+		this.viewToggleBtn.setAttribute('aria-label', label);
+		this.viewToggleBtn.setAttribute('title', label);
+		setIcon(this.viewToggleBtn, isSelected ? 'lucide-filter' : 'lucide-check-square');
+
+		if (this.clearAllBtn) {
+			const clearLabel = isSelected
+				? translate('filters.island.deselect_all')
+				: translate('filters.popup.clear_all');
+			this.clearAllBtn.setAttribute('aria-label', clearLabel);
+			this.clearAllBtn.setAttribute('title', clearLabel);
+		}
 	}
 
 	render(): void {
+		if (!this.listEl || !this.headerEl) return;
+		this.updateViewToggleState();
+
+		if (this.currentView === 'selected') {
+			this.renderSelectedNodesView();
+		} else {
+			this.renderFiltersView();
+		}
+	}
+
+	private renderFiltersView(): void {
 		if (!this.listEl || !this.headerEl) return;
 		const rules = this.plugin.filterService.getFlatRules();
 		const viewStates = this.viewStates();
@@ -141,7 +257,9 @@ export class ActiveFiltersIslandComponent {
 			const row = this.listEl.createDiv({
 				cls: 'vaultman-active-filter-island-row',
 			});
-			row.toggleClass('is-disabled', !rule.enabled);
+			if (typeof row.toggleClass === 'function') {
+				row.toggleClass('is-disabled', !rule.enabled);
+			}
 			row.setAttribute('title', rule.warning ?? rule.description);
 
 			const textEl = row.createSpan({
@@ -218,10 +336,223 @@ export class ActiveFiltersIslandComponent {
 		}
 	}
 
+	private renderSelectedNodesView(): void {
+		if (!this.listEl || !this.headerEl) return;
+		const rows = this.getSelectedRows();
+
+		this.headerEl.setText(
+			translate('filters.island.selected_nodes', { count: rows.length }),
+		);
+
+		this.listEl.empty();
+		if (rows.length === 0) {
+			this.listEl.createDiv({
+				cls: 'vaultman-active-filters-empty',
+				text: translate('filters.island.no_selected'),
+			});
+			return;
+		}
+
+		for (const row of rows) {
+			const itemRow = this.listEl.createDiv({
+				cls: 'vaultman-active-filter-island-row is-selected-node',
+			});
+			itemRow.setAttribute('title', row.occurrenceId ?? row.id);
+
+			const textEl = itemRow.createSpan({
+				cls: 'vaultman-active-filter-row-text',
+			});
+			if (row.scene) {
+				const badge = textEl.createSpan({
+					cls: 'vaultman-active-filter-row-rule',
+					text: row.scene.toUpperCase(),
+				});
+				badge.addClass('is-scene-badge');
+			}
+			textEl.createSpan({
+				cls: 'vaultman-active-filter-row-label',
+				text: row.label || row.id,
+			});
+
+			const actions = itemRow.createDiv({
+				cls: 'vaultman-active-filter-row-actions',
+			});
+
+			const deselectBtn = actions.createDiv({
+				cls: 'vaultman-active-filter-delete clickable-icon',
+				attr: { 'aria-label': translate('filters.island.deselect_item') },
+			});
+			setIcon(deselectBtn, 'lucide-x');
+			deselectBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				row.deselect?.();
+				this.render();
+			});
+		}
+	}
+
 	destroy(): void {
 		this.islandEl?.remove();
 		this.islandEl = null;
 		this.listEl = null;
 		this.headerEl = null;
+		this.viewToggleBtn = null;
+		this.clearAllBtn = null;
+	}
+}
+
+/**
+ * U130-GGC-030: Extrae una instantánea de nodos seleccionados del explorador activo
+ * respetando el contrato de owner (scene/instancia) y GroupSelectionSnapshot.
+ */
+export function buildExplorerSelectedSnapshot(
+	scene: string,
+	instanceId: string | null | undefined,
+	explorer: any,
+): SelectedNodesSnapshot {
+	const resolvedInstanceId = instanceId ?? 'default';
+	if (!explorer) {
+		return { scene, instanceId: resolvedInstanceId, revision: 0, rows: [] };
+	}
+
+	const selectionKey =
+		typeof explorer._selectionKey === 'function'
+			? explorer._selectionKey()
+			: selectionKeyFor(scene, scene, resolvedInstanceId);
+	const revision = currentSelectionToken(selectionKey);
+
+	switch (scene) {
+		case 'files': {
+			const selectedPaths = explorer.selectedFilePaths;
+			if (selectedPaths instanceof Set && selectedPaths.size > 0) {
+				const rows: SelectedNodeItem[] = Array.from(selectedPaths as Set<string>).map((path) => {
+					const isFolder = path.startsWith('folder:');
+					const cleanPath = isFolder ? path.slice('folder:'.length) : path;
+					const label = cleanPath.split('/').pop() || cleanPath;
+					return {
+						id: path,
+						label,
+						occurrenceId: path,
+						scene: 'files',
+						deselect: () => {
+							if (explorer.selectedFilePaths instanceof Set) {
+								const next = new Set(explorer.selectedFilePaths);
+								next.delete(path);
+								if (typeof explorer._applyFileSelection === 'function') {
+									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
+								} else {
+									explorer.selectedFilePaths = next;
+								}
+							}
+						},
+					};
+				});
+				return { scene, instanceId: resolvedInstanceId, revision, rows };
+			}
+			if (typeof explorer.getSelectedFiles === 'function') {
+				const files = explorer.getSelectedFiles() as Array<{ path: string; name?: string; basename?: string }>;
+				if (Array.isArray(files) && files.length > 0) {
+					const rows: SelectedNodeItem[] = files.map((file) => ({
+						id: file.path,
+						label: file.basename || file.name || file.path,
+						occurrenceId: file.path,
+						scene: 'files',
+						deselect: () => {
+							if (explorer.selectedFilePaths instanceof Set) {
+								const next = new Set(explorer.selectedFilePaths);
+								next.delete(file.path);
+								if (typeof explorer._applyFileSelection === 'function') {
+									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
+								} else {
+									explorer.selectedFilePaths = next;
+								}
+							}
+						},
+					}));
+					return { scene, instanceId: resolvedInstanceId, revision, rows };
+				}
+			}
+			return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+		}
+		case 'props': {
+			const selected = explorer.selectedNodeIds;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id,
+				occurrenceId: id,
+				scene: 'props',
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						if (typeof explorer._applyPropSelection === 'function') {
+							explorer._applyPropSelection(next);
+						} else {
+							explorer.selectedNodeIds = next;
+							explorer._touchSelection?.();
+							explorer._render?.();
+						}
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+		case 'tags': {
+			const selected = explorer.selectedNodeIds;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id.startsWith('#') ? id : `#${id}`,
+				occurrenceId: id,
+				scene: 'tags',
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						explorer.selectedNodeIds = next;
+						explorer._touchSelection?.();
+						explorer._render?.();
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+		case 'snippets':
+		case 'plugins':
+		default: {
+			const selected = explorer.selectedNodeIds ?? explorer.selectedFilePaths;
+			if (!(selected instanceof Set) || selected.size === 0) {
+				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
+			}
+			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+				id,
+				label: id,
+				occurrenceId: id,
+				scene,
+				deselect: () => {
+					if (explorer.selectedNodeIds instanceof Set) {
+						const next = new Set(explorer.selectedNodeIds);
+						next.delete(id);
+						explorer.selectedNodeIds = next;
+						explorer._touchSelection?.();
+						if (typeof explorer.render === 'function') explorer.render();
+						else if (typeof explorer._render === 'function') explorer._render();
+					}
+				},
+			}));
+			return { scene, instanceId: resolvedInstanceId, revision, rows };
+		}
+	}
+}
+
+export function clearExplorerSelection(explorer: any): void {
+	if (!explorer) return;
+	if (typeof explorer.clearSelection === 'function') {
+		explorer.clearSelection();
 	}
 }

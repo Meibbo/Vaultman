@@ -29,6 +29,8 @@
 	import {
 		ActiveFiltersIslandComponent,
 		type ActiveFilterViewState,
+		buildExplorerSelectedSnapshot,
+		clearExplorerSelection,
 	} from './components/layout/islandActiveFilters';
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
@@ -1366,6 +1368,13 @@
 					filtered: plugin.filterService.filteredVaultFiles.length,
 					total: plugin.app.vault.getFiles().length,
 				},
+			() =>
+				buildExplorerSelectedSnapshot(
+					filtersActiveTab,
+					sceneInstanceId,
+					activeFloatingTocPanel(),
+				),
+			() => clearExplorerSelection(activeFloatingTocPanel()),
 		);
 		filtersIsland.mount();
 	}
