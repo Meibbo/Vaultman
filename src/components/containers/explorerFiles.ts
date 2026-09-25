@@ -203,8 +203,10 @@ import {
 } from '../../logic/logicNodeSelection';
 import {
 	resolveContextClickSelection,
+	resolveSelectAllInScope,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
+	shouldSelectAllInScopeOnKey,
 } from '../../logic/logicSelectionTargets';
 import {
 	runMultiCreate,
@@ -1354,6 +1356,16 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		// U130-GGC smoke 3.4: Ctrl+A works in any input mode, delimited by the
+		// active scope projection (visible selectable rows only, headers out).
+		if (shouldSelectAllInScopeOnKey(event)) {
+			event.preventDefault();
+			const { selectedIds, anchorId } = resolveSelectAllInScope(
+				this._orderedSelectableIds(),
+			);
+			this._applyFileSelection({ selectedPaths: selectedIds, anchorPath: anchorId });
+			return;
+		}
 		if (!shouldClearExplorerSelectionOnEscape(event)) return;
 		this.clearSelection();
 	};
@@ -2021,8 +2033,40 @@ export class FilesExplorerPanel extends Component {
 		if (action === 'select' && !event?.shiftKey) {
 			selectionGesture = 'toggle';
 		}
+		// U130-GGC-024 smoke 3.2: range order must include folders, otherwise
+		// Shift+Click ending on a folder falls back to a single selection.
+		// Smoke 3.3: Ctrl+Shift unions the new range into the previous
+		// selection instead of replacing it.
+		const isAdditiveRange =
+			(event?.shiftKey === true &&
+				((event as MouseEvent)?.ctrlKey === true ||
+					(event as MouseEvent)?.metaKey === true)) ||
+			((event as KeyboardEvent)?.ctrlKey === true &&
+				event?.shiftKey === true);
+		if (isAdditiveRange && !this._activeNodeMove()) {
+			const ordered = this._orderedSelectableIds();
+			const targetIndex = ordered.indexOf(file.path);
+			const anchorIndex =
+				this.selectionAnchorPath !== null
+					? ordered.indexOf(this.selectionAnchorPath)
+					: -1;
+			if (targetIndex >= 0 && anchorIndex >= 0) {
+				const next = new Set(this.selectedFilePaths);
+				const start = Math.min(anchorIndex, targetIndex);
+				const end = Math.max(anchorIndex, targetIndex);
+				for (let i = start; i <= end; i += 1) {
+					const entry = ordered[i];
+					if (entry !== undefined) next.add(entry);
+				}
+				this._applyFileSelection({
+					selectedPaths: next,
+					anchorPath: this.selectionAnchorPath,
+				});
+				return;
+			}
+		}
 		const orderedPaths =
-			selectionGesture === 'range' ? this._orderedVisibleFilePaths() : [];
+			selectionGesture === 'range' ? this._orderedSelectableIds() : [];
 		const selection = updateFileSelection(
 			{
 				selectedPaths: this.selectedFilePaths,
@@ -3182,19 +3226,110 @@ export class FilesExplorerPanel extends Component {
 							);
 							return;
 						}
-						// In `select` the body of the row selects, the way it does for
-						// a file. Opening and closing stays with the caret, which has
-						// its own handler and stops propagation -- so a folder can do
-						// both, which is what the row was missing.
+						// U130-GGC-024 smoke 3.2/3.5: folders are first-class range
+						// members. In `select`, Shift extends the range over the
+						// selectable order (files + folders, headers excluded);
+						// Ctrl/Meta toggles and Ctrl+Shift unions via the shared
+						// file selection helper. Outside `select`, Ctrl+Click
+						// anchors/toggles and Ctrl+Shift+Click unions the range
+						// without hijacking plain expand/filter clicks.
 						if (action === 'select') {
-							const next = new Set(this.selectedFilePaths);
-							const selected = !next.has(id);
-							if (selected) next.add(id);
-							else next.delete(id);
-							this._applyFileSelection({
-								selectedPaths: next,
-								anchorPath: selected ? id : this.selectionAnchorPath,
-							});
+							const gesture = fileSelectionGesture(event ?? null, true);
+							if (
+								(event?.ctrlKey === true || event?.metaKey === true) &&
+								event?.shiftKey === true
+							) {
+								const ordered = this._orderedSelectableIds();
+								const targetIndex = ordered.indexOf(id);
+								const anchorIndex =
+									this.selectionAnchorPath !== null
+										? ordered.indexOf(this.selectionAnchorPath)
+										: -1;
+								if (targetIndex >= 0 && anchorIndex >= 0) {
+									const next = new Set(this.selectedFilePaths);
+									const start = Math.min(anchorIndex, targetIndex);
+									const end = Math.max(anchorIndex, targetIndex);
+									for (let i = start; i <= end; i += 1) {
+										const entry = ordered[i];
+										if (entry !== undefined) next.add(entry);
+									}
+									this._applyFileSelection({
+										selectedPaths: next,
+										anchorPath: this.selectionAnchorPath,
+									});
+									return;
+								}
+							}
+							const ordered =
+								gesture === 'range' ? this._orderedSelectableIds() : [];
+							if (gesture === 'open') {
+								const next = new Set(this.selectedFilePaths);
+								const selected = !next.has(id);
+								if (selected) next.add(id);
+								else next.delete(id);
+								this._applyFileSelection({
+									selectedPaths: next,
+									anchorPath: selected ? id : this.selectionAnchorPath,
+								});
+								return;
+							}
+							this._applyFileSelection(
+								updateFileSelection(
+									{
+										selectedPaths: this.selectedFilePaths,
+										anchorPath: this.selectionAnchorPath,
+									},
+									ordered,
+									id,
+									gesture,
+								),
+							);
+							return;
+						}
+						if (
+							event?.ctrlKey === true ||
+							event?.metaKey === true ||
+							event?.shiftKey === true
+						) {
+							if (
+								(event?.ctrlKey === true || event?.metaKey === true) &&
+								event?.shiftKey === true
+							) {
+								const ordered = this._orderedSelectableIds();
+								const targetIndex = ordered.indexOf(id);
+								const anchorIndex =
+									this.selectionAnchorPath !== null
+										? ordered.indexOf(this.selectionAnchorPath)
+										: -1;
+								if (targetIndex >= 0 && anchorIndex >= 0) {
+									const next = new Set(this.selectedFilePaths);
+									const start = Math.min(anchorIndex, targetIndex);
+									const end = Math.max(anchorIndex, targetIndex);
+									for (let i = start; i <= end; i += 1) {
+										const entry = ordered[i];
+										if (entry !== undefined) next.add(entry);
+									}
+									this._applyFileSelection({
+										selectedPaths: next,
+										anchorPath: this.selectionAnchorPath,
+									});
+									return;
+								}
+							}
+							const gesture = fileSelectionGesture(event, true);
+							const ordered =
+								gesture === 'range' ? this._orderedSelectableIds() : [];
+							this._applyFileSelection(
+								updateFileSelection(
+									{
+										selectedPaths: this.selectedFilePaths,
+										anchorPath: this.selectionAnchorPath,
+									},
+									ordered,
+									id,
+									gesture,
+								),
+							);
 							return;
 						}
 						if (!this._nestedEnabled()) {
@@ -5585,6 +5720,23 @@ export class FilesExplorerPanel extends Component {
 				this.expandedIds,
 			) as TreeNode<FileMeta>[]
 		).map((node) => node.id);
+	}
+
+	/**
+	 * U130-GGC-024 smoke 3.2/3.4: selectable order for ranges and Ctrl+A.
+	 * Files + folders, group headers excluded (they are not file selection
+	 * targets). The tree is already scope-projected, so this order is
+	 * inherently scope-delimited.
+	 */
+	private _orderedSelectableIds(): string[] {
+		return (
+			flattenVisibleTree(
+				this._lastRenderTree,
+				this.expandedIds,
+			) as TreeNode<FileMeta>[]
+		)
+			.map((node) => node.id)
+			.filter((id) => !isGroupHeader(id, this._groupIds));
 	}
 
 	private _applyFileSelection({

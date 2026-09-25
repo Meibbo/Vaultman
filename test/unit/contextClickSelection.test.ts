@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { resolveContextClickSelection } from '../../src/logic/logicSelectionTargets';
+import {
+	resolveContextClickSelection,
+	resolveSelectAllInScope,
+	shouldSelectAllInScopeOnKey,
+} from '../../src/logic/logicSelectionTargets';
 
 const ORDERED = ['a', 'b', 'c', 'd', 'e'];
 
@@ -23,7 +27,7 @@ describe('resolveContextClickSelection - shared right-click/range policy', () =>
 		expect(out.anchorId).toBe('d');
 	});
 
-	it('plain right-click on the already-selected row keeps exactly that row', () => {
+	it('plain right-click on the already-selected row preserves the whole selection', () => {
 		const out = resolveContextClickSelection({
 			selectedIds: new Set(['in', 'related']),
 			anchorId: 'in',
@@ -31,8 +35,8 @@ describe('resolveContextClickSelection - shared right-click/range policy', () =>
 			invokedId: 'related',
 			modifiers: null,
 		});
-		expect([...out.selectedIds]).toEqual(['related']);
-		expect(out.anchorId).toBe('related');
+		expect([...out.selectedIds].sort()).toEqual(['in', 'related']);
+		expect(out.anchorId).toBe('in');
 	});
 
 	it('Ctrl/Meta toggles: adds a missing row and moves the anchor', () => {
@@ -194,6 +198,23 @@ describe('resolveContextClickSelection - shared right-click/range policy', () =>
 		});
 		expect([...input]).toEqual(['a']);
 	});
+
+	it('Ctrl+A selects the whole scope-projected order, empty stays empty', () => {
+		const full = resolveSelectAllInScope(ORDERED);
+		expect([...full.selectedIds]).toEqual(ORDERED);
+		expect(full.anchorId).toBe('e');
+		const empty = resolveSelectAllInScope([]);
+		expect(empty.selectedIds.size).toBe(0);
+		expect(empty.anchorId).toBeNull();
+	});
+
+	it('Ctrl+A guard needs Ctrl/Meta + A outside editable surfaces', () => {
+		const base = { key: 'a', target: null };
+		expect(shouldSelectAllInScopeOnKey({ ...base, ctrlKey: true, metaKey: false })).toBe(true);
+		expect(shouldSelectAllInScopeOnKey({ ...base, ctrlKey: false, metaKey: true })).toBe(true);
+		expect(shouldSelectAllInScopeOnKey({ ...base, ctrlKey: false, metaKey: false })).toBe(false);
+		expect(shouldSelectAllInScopeOnKey({ key: 'b', ctrlKey: true, metaKey: false, target: null })).toBe(false);
+	});
 });
 
 const source = (name: string): string =>
@@ -255,6 +276,14 @@ describe('U130-GGC-022/024 wiring across scenes', () => {
 			const includeAt = text.indexOf('_includeInvokedInSelection(');
 			expect(includeAt, file).toBeGreaterThanOrEqual(0);
 		}
+	});
+
+	it('Files ranges over selectable files+folders and supports scope Ctrl+A', () => {
+		const files = source('explorerFiles.ts');
+		expect(files).toContain('_orderedSelectableIds');
+		expect(files).toContain('resolveSelectAllInScope');
+		expect(files).toContain('shouldSelectAllInScopeOnKey');
+		expect(files).toContain('isGroupHeader(id, this._groupIds)');
 	});
 
 	it('Files keeps its left-click gesture helper and canonical target rule (no regression)', () => {

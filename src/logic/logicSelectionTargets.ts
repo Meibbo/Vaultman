@@ -59,8 +59,9 @@ export interface ContextClickModifiers {
  * range selection, with a per-instance/scene anchor.
  *
  * Contract:
- * - plain right-click replaces the selection with the invoked row and moves
- *   the anchor there, even under group headers.
+ * - plain right-click on an already-selected row preserves the whole
+ *   selection (batch context actions); otherwise it replaces the selection
+ *   with the invoked row and moves the anchor there, even under headers.
  * - Ctrl/Meta toggles the invoked row (add or remove) and moves the anchor
  *   to it on add; removing the anchor row clears the anchor, otherwise the
  *   anchor is preserved.
@@ -147,7 +148,43 @@ export function resolveContextClickSelection(args: {
 		next.add(invokedId);
 		return { selectedIds: next, anchorId: invokedId };
 	}
+	// U130-GGC-009 / smoke 3.1: right-click on an already-selected row keeps
+	// the multi-selection intact so Group/Degroup act on the batch.
+	if (selectedIds.has(invokedId)) {
+		return { selectedIds: new Set(selectedIds), anchorId: anchorId ?? invokedId };
+	}
 	return { selectedIds: new Set([invokedId]), anchorId: invokedId };
+}
+
+/**
+ * U130-GGC smoke 3.4: Ctrl+A selects everything in the active scope, in any
+ * input mode. The caller passes the scope-projected visible order (already
+ * filtered to selectable row ids, headers excluded), so `all` naturally
+ * covers the explorer while parent/level scopes stay restricted to their
+ * subtree without reading scope state here.
+ */
+export function resolveSelectAllInScope(
+	orderedSelectableIds: readonly string[],
+): { selectedIds: Set<string>; anchorId: string | null } {
+	const selectedIds = new Set(orderedSelectableIds);
+	const anchorId =
+		orderedSelectableIds.length > 0
+			? orderedSelectableIds[orderedSelectableIds.length - 1] ?? null
+			: null;
+	return { selectedIds, anchorId };
+}
+
+/** Ctrl+A gesture guard: Ctrl/Meta + key `a`/`A`, not in an editable surface. */
+export function shouldSelectAllInScopeOnKey(
+	event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'target'>,
+): boolean {
+	if (event.key !== 'a' && event.key !== 'A') return false;
+	if (!(event.ctrlKey || event.metaKey)) return false;
+	const target = event.target as Element | null;
+	if (!target || typeof target.closest !== 'function') return true;
+	return !target.closest(
+		'input, textarea, select, [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]',
+	);
 }
 
 /** Escape belongs to the explorer only when an editor-like surface owns it. */
