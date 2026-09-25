@@ -820,6 +820,96 @@ export function replaceActiveScopeSort(
 	};
 }
 
+/**
+ * U130-GGC-029 (smoke 2026-09-24 §4.3): Delete on a scope row purges the
+ * cumulative `ScopeSet`, not just the flat sort. Deleting only `sorts[target]`
+ * left groups, cells and engine options applied because projection reads
+ * `scopeState.sets`. Deleting `all` empties it (Spec 08d §4): with no override
+ * the scene defaults govern, and the fixed `All levels` row stays visitable.
+ * When the editing cursor pointed at the removed target it returns to `all`.
+ */
+export function deleteScopeTarget(
+	tab: ExplorerTabId,
+	state: ExplorerSortState,
+	target: string,
+): ExplorerSortState {
+	if (!isScopeAllowed(tab, target)) return state;
+	const scopeKey = target as SortScopeKey;
+	const { [scopeKey]: _removed, ...sorts } = state.sorts;
+	const scopeState = state.scopeState
+		? cloneScopeState(state.scopeState)
+		: undefined;
+	if (scopeState) {
+		delete scopeState.sets[scopeKey as ScopeTarget];
+	}
+	const next: ExplorerSortState = {
+		...state,
+		sorts,
+		hiddenScopes: (state.hiddenScopes ?? []).filter(
+			(entry) => entry !== scopeKey,
+		),
+		...(scopeState ? { scopeState } : {}),
+	};
+	if (storageScope(state, state.activeScope) === scopeKey) {
+		next.activeScope = 'all';
+		next.drillNodeId = null;
+		if (scopeState) scopeState.cursor = 'all';
+	}
+	return next;
+}
+
+/**
+ * U130-GGC-029 (smoke 2026-09-24 §4.3): Hide keeps the `ScopeSet` but stops
+ * resolving it, on both layers. `resolveScopeSet` already skips hidden sets and
+ * falls through to `all`/defaults; un-hiding clears both flags, deleting the
+ * set entry when nothing but the flag remains.
+ */
+export function setScopeTargetHidden(
+	tab: ExplorerTabId,
+	state: ExplorerSortState,
+	target: string,
+	hidden: boolean,
+): ExplorerSortState {
+	if (!isScopeAllowed(tab, target)) return state;
+	const scopeKey = target as SortScopeKey;
+	const hiddenScopes = (state.hiddenScopes ?? []).filter(
+		(entry) => entry !== scopeKey,
+	);
+	if (hidden) hiddenScopes.push(scopeKey);
+	const scopeState = state.scopeState
+		? cloneScopeState(state.scopeState)
+		: undefined;
+	if (scopeState) {
+		if (hidden) {
+			scopeState.sets[scopeKey as ScopeTarget] = {
+				...(scopeState.sets[scopeKey as ScopeTarget] ?? {}),
+				hidden: true,
+			};
+		} else {
+			const { hidden: _wasHidden, ...rest } =
+				(scopeState.sets[scopeKey as ScopeTarget] ?? {}) as ScopeSet & {
+					hidden?: boolean;
+				};
+			if (Object.keys(rest).length > 0) {
+				scopeState.sets[scopeKey as ScopeTarget] = rest;
+			} else {
+				delete scopeState.sets[scopeKey as ScopeTarget];
+			}
+		}
+	}
+	const next: ExplorerSortState = {
+		...state,
+		hiddenScopes,
+		...(scopeState ? { scopeState } : {}),
+	};
+	if (hidden && storageScope(state, state.activeScope) === scopeKey) {
+		next.activeScope = 'all';
+		next.drillNodeId = null;
+		if (scopeState) scopeState.cursor = 'all';
+	}
+	return next;
+}
+
 export function sameSortProjection(
 	a: ExplorerSortState,
 	b: ExplorerSortState,

@@ -44,6 +44,7 @@ import {
 	import {
 		activeScopeSort,
 		cloneScopeState,
+		deleteScopeTarget,
 		levelOfScope,
 		levelScope,
 		mergeScopeStates,
@@ -53,6 +54,7 @@ import {
 		resolveScopeSet,
 		sameExplorerSortState,
 		scopeStateFromLegacy,
+		setScopeTargetHidden,
 		storageScope,
 	} from '../../logic/logicScopedSort';
 	import {
@@ -3265,43 +3267,29 @@ import {
 		);
 	}
 
-	/** Spec 08 §4 on a scope row: `hide` keeps the sort but stops resolving it. */
+	/**
+	 * Spec 08 §4 on a scope row: `hide` keeps the ScopeSet but stops resolving
+	 * it, on both the flat layer and `scopeState.sets` (U130-GGC-029 §4.3).
+	 */
 	function setScopeHidden(tab: FiltersTab, key: string, hidden: boolean) {
 		const current = normalizeSortState(
 			tab,
 			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
-		const scopeKey = key as ExplorerSortState['activeScope'];
-		const hiddenScopes = (current.hiddenScopes ?? []).filter(
-			(entry) => entry !== scopeKey,
-		);
-		if (hidden) hiddenScopes.push(scopeKey);
-		handleScopeChangeForTab(tab, {
-			...current,
-			hiddenScopes,
-			...(hidden && storageScope(current, current.activeScope) === scopeKey
-				? { activeScope: 'all', drillNodeId: null }
-				: {}),
-		});
+		handleScopeChangeForTab(tab, setScopeTargetHidden(tab, current, key, hidden));
 	}
 
+	/**
+	 * Spec 08 §4 on a scope row: `delete` purges the ScopeSet, not just the
+	 * flat sort (U130-GGC-029 §4.3). Deleting `all` empties it; the fixed row
+	 * stays visitable and the scene defaults govern.
+	 */
 	function deleteScope(tab: FiltersTab, key: string) {
 		const current = normalizeSortState(
 			tab,
 			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
-		const scopeKey = key as ExplorerSortState['activeScope'];
-		const { [scopeKey]: _removed, ...sorts } = current.sorts;
-		handleScopeChangeForTab(tab, {
-			...current,
-			sorts,
-			hiddenScopes: (current.hiddenScopes ?? []).filter(
-				(entry) => entry !== scopeKey,
-			),
-			...(storageScope(current, current.activeScope) === scopeKey
-				? { activeScope: 'all', drillNodeId: null }
-				: {}),
-		});
+		handleScopeChangeForTab(tab, deleteScopeTarget(tab, current, key));
 	}
 
 	function stopRevealPick() {
