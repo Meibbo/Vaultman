@@ -116,6 +116,10 @@ export function isSettingsSearchActive(term: string): boolean {
 	return term.length > 0;
 }
 
+export function canonicalPluginId(id: string): string {
+	return id.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
 export interface SettingsBridgeInput {
 	/** Nodos legacy ya construidos (mismas celdas/acciones), por pluginId. */
 	pluginNodesById: ReadonlyMap<string, TreeNode<PluginMeta>>;
@@ -141,10 +145,11 @@ export interface SettingsBridgeResult {
  * - `entry.tab` idéntico a un `plugin:<id>` conocido = la MISMA fila legacy
  *   (conserva kind `plugin` y sus celdas toggle/config). Sin fuzzy: la
  *   igualdad es exacta y case-sensitive, como los ids de plugin.
- * - Si el tab no resuelve (caso real: `community-plugins`), `definition.name`
- *   idéntico al `meta.name` de UNA entry conocida = la MISMA fila legacy.
- *   Igualdad exacta y case-sensitive; cero o dos+ candidatas con ese nombre
- *   (duplicado/ambiguo) = fila `node_settings`, nunca adivinar.
+ * - Si el tab no resuelve (caso real: `community-plugins`),
+ *   `definition.name` canonicalizado a espacio de ids (F10:
+ *   `canonicalPluginId`) idéntico al `pluginId` canonicalizado de UNA
+ *   entry conocida = la MISMA fila legacy. Cero o dos+ candidatas
+ *   con ese id canónico = fila `node_settings`, nunca adivinar.
  * - Sin resoluble (tab desconocido, nombre sin candidato único, intercepción
  *   sin identidad canónica, tag sin `tagPath`) = `node_settings` con texto
  *   y SIN celdas (highlight solo si el item trae matches, ver abajo).
@@ -174,9 +179,21 @@ export interface SettingsBridgeResult {
  *   Hijo label = definition.name; type/description disponibles.
  *   Identidad de padre estable: `settings:${tab}::${pagePath}::`.
  *
- * - Resolución de plugin: SOLO cuando el tab nativo es
- *   `community-plugins` o `core-plugins` Y `definition.name`
- *   coincide exactamente (case-sensitive) con UNA entry conocida.
+ * - Resolución de plugin: PRIMERO self-tab (§1 MECH): `group.tab` o
+ *   `entry.tab` estrictamente igual a un pluginId conocido = la fila
+ *   legacy `node_plugin` (padre del grupo, o hija si el tab es de otro
+ *   grupo). SEGUNDO la regla community/core + nombre único (abajo).
+ *   Plugins con grupo self-tab propio son "parent-owned": nunca una
+ *   segunda fila en otro grupo (solo highlight). Tabs desconocidos =
+ *   fila nativa de grupo actual.
+ *
+ * - Resolución de plugin (segundo resolver, F10): SOLO cuando el tab
+ *   nativo es `community-plugins` o `core-plugins` Y `definition.name`
+ *   canonicalizado (`canonicalPluginId`: trim + lowercase + runs de
+ *   espacio/`_` → `-`) coincide con el `pluginId` canonicalizado de
+ *   UNA entry conocida. Comparación en espacio de ids — nunca contra
+ *   `meta.name` (display renombrable/duplicable). Cero o dos+
+ *   candidatas = fila `node_settings`, nunca adivinar.
  *   El plugin resuelto se convierte en hijo del padre native,
  *   conservando celdas (toggle/config/icon). Duplicados → settings.
  *
@@ -201,27 +218,79 @@ export function resolveSettingsBridgeNodes(
 	const emittedPluginIds = new Set<string>();
 	// Dedup global de settings children: una identidad → un hijo.
 	const emittedSettingsIds = new Set<string>();
-	// Intercepción por nombre de definición: índice exacto y case-sensitive
-	// de `meta.name` → filas legacy. Lista por nombre para detectar
-	// duplicados (ambiguo = no adivinar).
-	const nodesByName = new Map<string, TreeNode<PluginMeta>[]>();
+	// F10: resolución por id canónico, NUNCA por display name. Índice
+	// `canonicalPluginId(pluginId)` → filas legacy. Los ids de plugin
+	// son únicos por construcción, así que la ambigüedad por display
+	// name duplicado desaparece; se conserva el guard de unicidad por
+	// seguridad (cero o dos+ candidatas = fila `node_settings`).
+	const nodesByCanonicalId = new Map<string, TreeNode<PluginMeta>[]>();
 	for (const node of input.pluginNodesById.values()) {
-		const list = nodesByName.get(node.meta.name);
+		const key = canonicalPluginId(node.meta.pluginId);
+		const list = nodesByCanonicalId.get(key);
 		if (list) list.push(node);
-		else nodesByName.set(node.meta.name, [node]);
+		else nodesByCanonicalId.set(key, [node]);
 	}
 	const hasRealMatch = (item: {
 		readonly nameMatch: readonly unknown[];
 		readonly descMatch: readonly unknown[];
 	}): boolean => item.nameMatch.length > 0 || item.descMatch.length > 0;
+	/**
+	 * U130 parity MECH §1: self-tab interception (systematic). En 1.13.7
+	 * cada plugin posee su tab (`tabId === pluginId`), así que un grupo
+	 * (o item) nativo con `tab` estrictamente igual a un pluginId CONOCIDO
+	 * (igualdad exacta, case-sensitive, vía `Map.get` sobre
+	 * `pluginNodesById`) resuelve a la fila legacy `node_plugin` (misma
+	 * identidad `plugin:<id>`, CON toggle/config/icon cells) como padre
+	 * del grupo en modo búsqueda, con los hijos nativos page/definition
+	 * debajo. Pre-scan de propiedad: los plugins con al menos un grupo
+	 * emisible (con resultados, o vacío con `tabNameMatch`) son
+	 * "parent-owned": sus ocurrencias en otros grupos no emiten una
+	 * segunda fila (solo aportan highlight al padre), así cada identidad
+	 * plugin aparece UNA vez. Ids de tab desconocidos/obsoletos conservan
+	 * la fila nativa de grupo actual.
+	 */
+	const selfTabOwned = new Set<string>();
+	for (const group of input.groups) {
+		if (!input.pluginNodesById.has(group.tab)) continue;
+		if ((group.results ?? []).length > 0 || group.tabNameMatch.length > 0) {
+			selfTabOwned.add(group.tab);
+		}
+	}
+	// Padres self-tab ya emitidos (pluginId → padre), para fusionar los
+	// grupos repetidos del mismo tab (p. ej. `search("vaultman")` trae un
+	// grupo page-null + N grupos page-X con el mismo tab).
+	const selfTabParents = new Map<string, TreeNode<PluginMeta>>();
 
 	for (const group of input.groups) {
 		const results = group.results ?? [];
 		const groupId = settingsBridgeGroupRowId(group.tab, group.pagePath);
+		// Resolver §1 (padre): tab conocido = fila legacy como padre.
+		const selfPlugin = input.pluginNodesById.get(group.tab) ?? null;
 
 		// Grupo vacío con tabNameMatch → padre sin hijos (terminal gc-node).
 		if (results.length === 0) {
 			if (group.tabNameMatch.length === 0) continue;
+			if (selfPlugin) {
+				// Self-tab vacío: el padre ES el plugin (hoja con celdas,
+				// sin caret); grupos posteriores del mismo tab fusionan
+				// sus hijos aquí (ver merge abajo).
+				const existing = selfTabParents.get(group.tab);
+				if (existing) {
+					highlightIds.add(existing.id);
+				} else {
+					const parent: TreeNode<PluginMeta> = {
+						...selfPlugin,
+						depth: 0,
+						showCaret: false,
+						children: [],
+					};
+					selfTabParents.set(group.tab, parent);
+					emittedPluginIds.add(selfPlugin.meta.pluginId);
+					nodes.push(parent);
+					highlightIds.add(parent.id);
+				}
+				continue;
+			}
 			const tabLabel =
 				group.tabName !== '' ? group.tabName : group.tab;
 			const ref = {
@@ -262,10 +331,40 @@ export function resolveSettingsBridgeNodes(
 		for (const item of results) {
 			const tab = item.entry?.tab ?? '';
 			const definition = item.entry?.definition ?? '';
-			const isPluginTab =
-				tab === 'community-plugins' || tab === 'core-plugins';
-			const candidates =
-				definition !== '' ? nodesByName.get(definition) : undefined;
+			// Resolver §1 (item): `entry.tab` conocido y DISTINTO del tab
+			// del grupo = la fila legacy como hija (con celdas). Cuando
+			// coincide con el padre self-tab, el item pertenece al padre
+			// y cae a fila settings (definition) — nunca un duplicado.
+			const selfTabEntry = input.pluginNodesById.get(tab) ?? null;
+			if (selfTabEntry && !(selfPlugin !== null && tab === group.tab)) {
+				const entryId = selfTabEntry.meta.pluginId;
+				if (emittedPluginIds.has(entryId)) {
+					if (hasRealMatch(item)) highlightIds.add(selfTabEntry.id);
+					continue;
+				}
+				if (selfTabOwned.has(tab)) {
+					// El padre self-tab (anterior o posterior: mismo id
+					// estable `plugin:<id>`) posee la identidad; aquí solo
+					// highlight, sin segunda fila.
+					if (hasRealMatch(item)) highlightIds.add(selfTabEntry.id);
+					continue;
+				}
+				emittedPluginIds.add(entryId);
+				children.push(selfTabEntry);
+				if (hasRealMatch(item)) highlightIds.add(selfTabEntry.id);
+				continue;
+			}
+
+		// F10: tabs agregadores + id canónico único. El display name
+		// (`definition`) se canonicaliza a espacio de ids y se compara
+		// contra `meta.pluginId` canonicalizado — NUNCA contra
+		// `meta.name` (renombres/duplicados de display no resuelven).
+		const isPluginTab =
+			tab === 'community-plugins' || tab === 'core-plugins';
+		const candidates =
+			definition !== ''
+				? nodesByCanonicalId.get(canonicalPluginId(definition))
+				: undefined;
 			const uniquePlugin =
 				isPluginTab && candidates?.length === 1
 					? candidates[0]
@@ -273,6 +372,13 @@ export function resolveSettingsBridgeNodes(
 
 			if (uniquePlugin) {
 				if (emittedPluginIds.has(uniquePlugin.meta.pluginId)) {
+					if (hasRealMatch(item))
+						highlightIds.add(uniquePlugin.id);
+					continue;
+				}
+				if (selfTabOwned.has(uniquePlugin.meta.pluginId)) {
+					// Resolver §2 supeditado al §1: el plugin ya tiene
+					// padre self-tab propio; no adivinar una segunda fila.
 					if (hasRealMatch(item))
 						highlightIds.add(uniquePlugin.id);
 					continue;
@@ -341,6 +447,37 @@ export function resolveSettingsBridgeNodes(
 		// dedupado a otra sección (el grupo nativo sigue existiendo);
 		// "sin grupos vacíos" (F4) aplica al camino de hijos de plugin,
 		// no a las secciones nativas de búsqueda.
+		// Padre self-tab (§1): la fila ES el legacy `node_plugin` (misma
+		// identidad `plugin:<id>`, CON celdas), con los hijos nativos
+		// page/definition debajo. Grupos repetidos del mismo tab fusionan
+		// sus hijos en el primer padre (orden nativo preservado).
+		if (selfPlugin) {
+			const existing = selfTabParents.get(group.tab);
+			if (existing) {
+				for (const child of children) {
+					(existing.children ?? []).push(child);
+				}
+				existing.showCaret = (existing.children?.length ?? 0) > 0;
+				if (group.tabNameMatch.length > 0) {
+					highlightIds.add(existing.id);
+				}
+				continue;
+			}
+			const parent: TreeNode<PluginMeta> = {
+				...selfPlugin,
+				depth: 0,
+				showCaret: children.length > 0,
+				children,
+			};
+			selfTabParents.set(group.tab, parent);
+			emittedPluginIds.add(selfPlugin.meta.pluginId);
+			nodes.push(parent);
+			if (group.tabNameMatch.length > 0) {
+				highlightIds.add(parent.id);
+			}
+			continue;
+		}
+
 		const tabLabel =
 			group.tabName !== '' ? group.tabName : group.tab;
 		if (tabLabel === '') continue; // F4: padre sin label no se emite
@@ -409,6 +546,21 @@ export function resolveSettingsBridgeNodes(
  *   (el plugin ya existe como `node_plugin`; el hijo idéntico no debe
  *   existir). Sin pages tras el filtrado el plugin queda hoja (F4: nada
  *   de grupos vacíos en este camino).
+ * - U130 F9 (regla `page:''`): el contenedor `page:''` (grupo sin
+ *   page ni pagePath) NUNCA se emite como page hija, para ningún tab.
+ *   Sus definiciones no vacías se cosechan como hijas directas del tab
+ *   con `settingsBridgeRowId` (tras las pages, orden nativo). Sin pages
+ *   NI definiciones el plugin queda hoja (F4: nada de grupos vacíos).
+ * - U130 F10 (cobertura core-plugins en term vacío): PROHIBICIÓN
+ *   explícita — los core-plugins no tienen entrada en
+ *   `app.setting.pluginTabs` (solo ids de plugin community la tienen),
+ *   así que `listPluginSettingPages` devuelve `[]` y el nodo queda
+ *   hoja. No se inventan hijos para core ids en este camino.
+ * - U130 F8 (nivelación obligatoria `plugin → tab → page`): el nivel
+ *   tab SIEMPRE se emite — incluido el single-tab homónimo (el tab de
+ *   Vaultman/Toolbox se muestra con su label aunque equal al del
+ *   plugin). Sin colapso: tabs en `baseDepth + 1`, pages/definitions
+ *   en `baseDepth + 2`. Ids/refs intactos (`#tab` / `#page`).
  * - F4: se omite todo hijo cuya label quede vacía tras la cadena
  *   (page → pagePath → tab para pages; tabName → tab para tabs).
  * - Zero highlight ids para este camino (no entran en
@@ -452,20 +604,43 @@ export function resolvePluginSettingsChildren(
 	const tabNameById = new Map<string, string>();
 	const pagesByTab = new Map<string, { page: string; pagePath: string }[]>();
 	const seenPages = new Set<string>();
+	// U130 parity MECH §2: hijos por definición para grupos sin page.
+	// Un grupo con resultados pero `page`/`pagePath` vacíos emite un hijo
+	// `node_settings` por definición bajo su tab (p. ej.
+	// developer-toolbox → tab → "Storage folder", "Enabled", …).
+	const defsByTab = new Map<string, string[]>();
+	const seenDefs = new Set<string>();
 	for (const group of groups) {
 		const tab = group.tab ?? '';
 		if (tab === '') continue; // F4: tab sin identidad no se emite
 		if (!pagesByTab.has(tab)) {
 			tabOrder.push(tab);
 			pagesByTab.set(tab, []);
+			defsByTab.set(tab, []);
 			const tabName = group.tabName !== '' ? group.tabName : tab;
 			tabNameById.set(tab, tabName);
 		}
 		const page = group.page ?? '';
 		const pagePath = group.pagePath ?? '';
-		// Espejo: page idéntica al plugin (tab===pluginId sin page ni
-		// path) no se emite como page; el tab ya representa esa entrada.
-		if (tab === pluginId && page === '' && pagePath === '') continue;
+		// F9: el contenedor `page:''` (sin page ni pagePath) NUNCA se
+		// emite como page hija, para NINGÚN tab. Sus definiciones no
+		// vacías se cosechan como hijas directas del tab con
+		// `settingsBridgeRowId` (tras las pages, orden nativo). El caso
+		// `tab===pluginId` cae en este mismo camino general: la fila
+		// idéntica sin definición nunca existe como fila, pero sus
+		// definiciones sí (el plugin ya existe como `node_plugin`; el
+		// hijo idéntico sin contenido no debe existir).
+		if (page === '' && pagePath === '') {
+			for (const item of group.results ?? []) {
+				const def = item.entry?.definition ?? '';
+				if (def === '') continue; // F4: definition vacía no se emite
+				const defKey = `${tab}::${def}`;
+				if (seenDefs.has(defKey)) continue;
+				seenDefs.add(defKey);
+				defsByTab.get(tab)?.push(def);
+			}
+			continue;
+		}
 		const pageKey = `${tab}::${pagePath || page}`;
 		if (seenPages.has(pageKey)) continue;
 		seenPages.add(pageKey);
@@ -479,7 +654,8 @@ export function resolvePluginSettingsChildren(
 	const tabNodes: TreeNode<PluginMeta>[] = [];
 	for (const tab of tabOrder) {
 		const pages = pagesByTab.get(tab) ?? [];
-		if (pages.length === 0) continue; // F4: tab sin pages = ausente
+		const defs = defsByTab.get(tab) ?? [];
+		if (pages.length === 0 && defs.length === 0) continue; // F4: tab sin contenido = ausente
 		const tabLabel = tabNameById.get(tab) ?? tab;
 		if (tabLabel === '') continue;
 		const tabRef = { tab, page: '', pagePath: '', definition: '' };
@@ -514,14 +690,42 @@ export function resolvePluginSettingsChildren(
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			});
 		}
-		if (pageNodes.length === 0) continue; // F4: sin pages no hay tab
+		// Hijos por definición (§2 MECH): identidad estable
+		// `settingsBridgeRowId` con el nombre real de la definición
+		// (p. ej. `settings:developer-toolbox::::Storage folder`); van
+		// tras las pages (orden de pages nativo intacto) bajo el mismo tab.
+		const defNodes: TreeNode<PluginMeta>[] = [];
+		for (const def of defs) {
+			if (def === '') continue; // F4: nunca filas sin label
+			const defRef = { tab, page: '', pagePath: '', definition: def };
+			defNodes.push({
+				id: settingsBridgeRowId(defRef),
+				label: def,
+				depth: baseDepth + 2,
+				cells: [],
+				showCaret: false,
+				children: [],
+				meta: withSettingsRef(
+					{
+						pluginId: '',
+						name: def,
+						enabled: false,
+						loaded: false,
+						isVaultman: false,
+					},
+					defRef,
+				),
+				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+			});
+		}
+		if (pageNodes.length === 0 && defNodes.length === 0) continue; // F4: sin contenido no hay tab
 		tabNodes.push({
 			id: `${settingsBridgeGroupRowId(tab, '')}#tab`,
 			label: tabLabel,
 			depth: baseDepth + 1,
 			cells: [],
 			showCaret: true,
-			children: pageNodes,
+			children: [...pageNodes, ...defNodes],
 			meta: withSettingsRef(
 				{
 					pluginId: '',
@@ -547,7 +751,8 @@ export function resolvePluginSettingsChildren(
 		];
 	}
 
-	// El padre se mantiene con showCaret: true y los tabs como hijos.
+	// El padre se mantiene con showCaret: true y los tabs como hijos
+	// (F8: nivelación `plugin → tab → page` siempre, sin colapso).
 	return [
 		{
 			...baseNode,

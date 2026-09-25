@@ -156,17 +156,21 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		expect(pages.size).toBeGreaterThanOrEqual(21);
 	});
 
-	it('≥10 page hijos distintos, cero espejos, cero labels vacíos', () => {
+	it('plugin → tab → pages/definitions (F8), cero espejos, cero labels vacíos', () => {
 		const app = vaultmanApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
+		// F8: nivelación `plugin → tab → page` siempre — el single-tab
+		// homónimo TAMBIÉN muestra su nivel `#tab`.
 		const tabs = result[0]?.children ?? [];
-		expect(tabs.length).toBeGreaterThanOrEqual(1);
-		const pages = tabs.flatMap((t) => t.children ?? []);
+		expect(tabs).toHaveLength(1);
+		expect(tabs[0]?.id).toMatch(/#tab$/);
+		expect(tabs[0]?.depth).toBe(base.depth + 1);
+		const pages = tabs[0]?.children ?? [];
 		expect(pages.length).toBeGreaterThanOrEqual(10);
-		const all = collectDescendants(tabs);
+		const all = collectDescendants(pages);
 		const ids = all.map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
 		for (const n of all) {
@@ -175,25 +179,30 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 			expect(n.cells).toEqual([]);
 			const ref = settingsBridgeRefOf(n.meta);
 			expect(ref).not.toBeNull();
-			// Espejo (page hija idéntica al plugin) no se emite; el nodo
-			// tab (nivel 1, page vacía) sí es legítimo: representa el tab.
-			if (n.depth > base.depth + 1) {
-				expect(!(ref?.tab === 'vaultman' && ref.page === '' && ref.pagePath === '')).toBe(true);
+		// Espejo: fila verdaderamente idéntica (sin definición) no se
+		// emite (F9: el contenedor `page:''` nunca se emite para ningún
+		// tab). Una fila CON definición nunca es espejo aunque su page
+		// venga vacía (hijo por definición bajo el tab).
+			if (n.depth >= base.depth + 1) {
+				expect(!(ref?.tab === 'vaultman' && ref.page === '' && ref.pagePath === '' && ref.definition === '')).toBe(true);
 			}
 		}
-		// La page vacía (grupo tab-level) no aparece como page hija
+		// F9: el contenedor `page:''` (grupo tab-level) no aparece como
+		// page hija; hijos por definición (page vacía + definition real)
+		// sí son legítimos bajo el tab.
 		expect(pages.every((p) => {
 			const ref = settingsBridgeRefOf(p.meta);
-			return ref ? !(ref.page === '' && ref.pagePath === '') : true;
+			return ref ? !(ref.page === '' && ref.pagePath === '' && ref.definition === '') : true;
 		})).toBe(true);
 	});
 
-	it('ids hijo con sufijo #tab/#page: estables y sin colisión con búsqueda', () => {
+	it('ids hijo #tab/#page estables (F8), sin colisión con búsqueda', () => {
 		const app = vaultmanApp();
 		const result = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
 		const tabs = result[0]?.children ?? [];
+		expect(tabs).toHaveLength(1);
 		expect(tabs[0]?.id).toMatch(/#tab$/);
-		const pages = tabs.flatMap((t) => t.children ?? []);
+		const pages = tabs[0]?.children ?? [];
 		expect(pages.length).toBeGreaterThan(0);
 		for (const p of pages.slice(0, 5)) expect(p.id).toMatch(/#page$/);
 		// Re-resolver = mismos ids (estables, cache por pluginId)

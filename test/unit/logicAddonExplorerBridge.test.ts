@@ -243,7 +243,7 @@ describe('settings bridge resolution', () => {
 		expect(parent?.children).not.toContain(row);
 	});
 
-	it('falls back to settings rows on near-miss and case-mismatched names', () => {
+	it('canonical id resolves case/space variants; true near-miss falls back (F10)', () => {
 		const row = pluginNode('hot-reload', 'Hot Reload');
 		const byId = new Map([['hot-reload', row]]);
 		const result = resolveSettingsBridgeNodes({
@@ -258,10 +258,32 @@ describe('settings bridge resolution', () => {
 		expect(result.nodes).toHaveLength(1);
 		const parent = result.nodes[0];
 		expect(parent?.children?.length).toBe(2);
-		expect(parent?.children?.every((node) => node.id.startsWith('settings:'))).toBe(
-			true,
+		// F10: 'hot reload' canonicaliza al id 'hot-reload' → resuelve
+		// (la comparación vive en espacio de ids, no de display names);
+		// 'Hot Reloa' no canonicaliza a ningún id → settings.
+		expect(parent?.children).toContain(row);
+		const settingsKids = (parent?.children ?? []).filter((node) =>
+			node.id.startsWith('settings:'),
 		);
-		expect(parent?.children).not.toContain(row);
+		expect(settingsKids).toHaveLength(1);
+		expect(settingsKids[0]?.label).toBe('Hot Reloa');
+	});
+
+	it('resolves by canonical id even when the display name was renamed (F10)', () => {
+		const row = pluginNode('hot-reload', 'Totally Renamed');
+		const byId = new Map([['hot-reload', row]]);
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: byId,
+			groups: [
+				group('community-plugins', [
+					item('community-plugins', 'Hot Reload', 'General', 5, [[0, 3]]),
+				]),
+			],
+		});
+		expect(result.nodes).toHaveLength(1);
+		const kids = result.nodes[0]?.children ?? [];
+		expect(kids).toContain(row);
+		expect(result.highlightIds.has(row.id)).toBe(true);
 	});
 
 	it('never guesses on ambiguous duplicate definition names', () => {
@@ -319,9 +341,16 @@ describe('settings bridge resolution', () => {
 				group('theme', [item('theme', 'Accent color')]),
 			],
 		});
+		// U130 parity MECH §1: self-tab interception — group.tab === known
+		// pluginId resolves to the legacy node_plugin WITH cells, keeping
+		// the native definition children beneath it.
 		expect(result.nodes.map((node) => node.id)).toEqual([
-			'settings:calendar::::',
+			'plugin:calendar',
 			result.nodes[1]?.id,
+		]);
+		expect((result.nodes[0]?.cells ?? []).length).toBeGreaterThan(0);
+		expect(result.nodes[0]?.children?.map((c) => c.label)).toEqual([
+			'Week start',
 		]);
 	});
 

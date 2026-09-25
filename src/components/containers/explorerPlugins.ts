@@ -1155,6 +1155,12 @@ export class PluginsExplorerPanel
 				pluginId: node.meta.pluginId,
 				settingsTab: ref ? ref.tab : '',
 				hasPluginTab,
+				// Coordinator wiring (NAV lane left tab-only): forward the
+				// exact page/definition so execute can land on the precise
+				// setting instead of the tab top. Absent ref = tab-level.
+				settingsPage: ref?.page,
+				settingsPagePath: ref?.pagePath,
+				settingsDefinition: ref?.definition,
 			},
 			settingApiAvailable: hasSettingOpenApi(this.plugin.app),
 		});
