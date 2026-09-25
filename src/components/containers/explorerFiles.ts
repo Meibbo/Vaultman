@@ -2117,13 +2117,27 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	/**
+	 * U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
+	 * never contains derived group headers). Predicate admits folders and
+	 * group headers of this scene/instance; other levels/instances never
+	 * enter because `projectedNodes` only projects this scene's own groups.
+	 */
+	private _scopeTree(): TreeNode<FileMeta>[] {
+		return this.projectedNodes(this._lastRenderTree);
+	}
+
+	private static _isScopeParent(node: TreeNode<FileMeta>): boolean {
+		return node.meta.isFolder || node.isGroupHeader === true;
+	}
+
 	/** Floating TOC: nodes at a scope level (rootId=null → top level). */
 	getIndexNodes(rootId: string | null): IndexNodeRef[] {
 		if (this.viewMode === 'tree') {
 			return indexLevel(
-				this._lastRenderTree,
+				this._scopeTree(),
 				rootId,
-				(node) => node.meta.isFolder,
+				(node) => FilesExplorerPanel._isScopeParent(node),
 			);
 		}
 		// Flat / table / grid have no folder hierarchy: files only.
@@ -2154,16 +2168,16 @@ export class FilesExplorerPanel extends Component {
 	/** Scope root that owns a picked node's level (its parent id, or null). */
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findParentId(this._lastRenderTree, id);
+		return findParentId(this._scopeTree(), id);
 	}
 
 	scopeParentForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findScopeParentId(
-			this._lastRenderTree,
+			this._scopeTree(),
 			id,
 			undefined,
-			(node) => node.meta.isFolder,
+			(node) => FilesExplorerPanel._isScopeParent(node),
 		);
 	}
 
@@ -2171,15 +2185,15 @@ export class FilesExplorerPanel extends Component {
 		return (
 			this.viewMode === 'tree' &&
 			hasScopeParentNodes(
-				this._lastRenderTree,
-				(node) => node.meta.isFolder,
+				this._scopeTree(),
+				(node) => FilesExplorerPanel._isScopeParent(node),
 			)
 		);
 	}
 
 	scopeLevelForNode(id: string): number | null {
 		if (this.viewMode !== 'tree') return null;
-		return findNodeLevel(this._lastRenderTree, id);
+		return findNodeLevel(this._scopeTree(), id);
 	}
 
 	getNodeMoveMode(): NodeMoveModeState | null {
@@ -2555,7 +2569,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	hasSortNode(id: string): boolean {
-		return this._findNode(id, this._lastRenderTree) !== null;
+		return (
+			this._findNode(id, this._lastRenderTree) !== null ||
+			this._findNode(id, this._scopeTree()) !== null
+		);
 	}
 
 	/** D31: the floating index drill can drive the sort scope. */
@@ -2573,7 +2590,11 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	sortNodeLabel(id: string): string | null {
-		return this._findNode(id, this._lastRenderTree)?.label ?? null;
+		return (
+			this._findNode(id, this._scopeTree())?.label ??
+			this._findNode(id, this._lastRenderTree)?.label ??
+			null
+		);
 	}
 
 	/** Expand a node so the scope-drill can reveal its children. */
@@ -3089,7 +3110,9 @@ export class FilesExplorerPanel extends Component {
 				// "si ya hay ALGUNO o todos", no "si estan todos": un p-node con
 				// seleccion parcial se vacia, no se completa.
 				onRecursiveSelect: (id: string) => {
-					const node = this._findNode(id, this._lastRenderTree);
+					const node =
+						this._findNode(id, projectedTree) ??
+						this._findNode(id, this._lastRenderTree);
 					if (!node) return;
 					const ids: string[] = [];
 					const collect = (children?: TreeNode<FileMeta>[]): void => {
@@ -3203,7 +3226,9 @@ export class FilesExplorerPanel extends Component {
 						this._activateGroupRow(id);
 						return;
 					}
-					const node = this._findNode(id, renderTree);
+					const node =
+						this._findNode(id, projectedTree) ??
+						this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
@@ -3417,7 +3442,11 @@ export class FilesExplorerPanel extends Component {
 					);
 					return;
 				}
-					const node = this._findNode(id, renderTree);
+					// U130-GGC-009/026: grouped occurrences live only in the
+					// projected tree (suffixed rowIds); fall back to raw.
+					const node =
+						this._findNode(id, projectedTree) ??
+						this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					const orderedIds = this._orderedVisibleTreeIds();
@@ -5714,9 +5743,11 @@ export class FilesExplorerPanel extends Component {
 	 * dos caminos de ancla son compatibles.
 	 */
 	private _orderedVisibleTreeIds(): string[] {
+		// U130-GGC-009/026: ranges and context-click order must see grouped
+		// occurrences (projected rowIds), not just the raw folder/file model.
 		return (
 			flattenVisibleTree(
-				this._lastRenderTree,
+				this._scopeTree(),
 				this.expandedIds,
 			) as TreeNode<FileMeta>[]
 		).map((node) => node.id);
@@ -5731,7 +5762,7 @@ export class FilesExplorerPanel extends Component {
 	private _orderedSelectableIds(): string[] {
 		return (
 			flattenVisibleTree(
-				this._lastRenderTree,
+				this._scopeTree(),
 				this.expandedIds,
 			) as TreeNode<FileMeta>[]
 		)
