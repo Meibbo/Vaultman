@@ -136,18 +136,91 @@ describe('U130-GGC-004 counter/date partitions', () => {
 		});
 	});
 
-	it('rejects invalid rebalancing causing overlap, gaps, or out of domain boundaries', () => {
-		// r2 moving lo beyond previous slice's lo causes overlap
-		const resOverlap = rebalanceCounterRange(ranges, { id: 'r2', lo: 0, hi: 400 }, domain);
-		expect(resOverlap.ok).toBe(false);
-		if (!resOverlap.ok) expect(resOverlap.reason).toBe('overlap');
+	it('Finding 1.1: splits automatic preceding slice when first slice lo > domain.min', () => {
+		const resSplit = rebalanceCounterRange(ranges, { id: 'r1', lo: 50, hi: 200 }, domain);
+		expect(resSplit).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'counter-range-4', lo: 0, hi: 49 },
+				{ id: 'r1', lo: 50, hi: 200 },
+				{ id: 'r2', lo: 201, hi: 400 },
+				{ id: 'r3', lo: 401, hi: 600 },
+			],
+		});
+		if (resSplit.ok) expect(isCounterRangePartition(resSplit.ranges, domain)).toBe(true);
+	});
 
-		// r1 moving lo away from domain.min causes gap
-		const resGap = rebalanceCounterRange(ranges, { id: 'r1', lo: 50, hi: 200 }, domain);
-		expect(resGap.ok).toBe(false);
-		if (!resGap.ok) expect(resGap.reason).toBe('gap');
+	it('Finding 1.2: absorbs neighboring groups when expanding hi or lo beyond boundaries', () => {
+		// r1 expands hi beyond r2 and into r3 (hi = 450): absorbs r2, adjusts r3.lo to 451
+		const resExpand = rebalanceCounterRange(ranges, { id: 'r1', lo: 0, hi: 450 }, domain);
+		expect(resExpand).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'r1', lo: 0, hi: 450 },
+				{ id: 'r3', lo: 451, hi: 600 },
+			],
+		});
+		if (resExpand.ok) expect(isCounterRangePartition(resExpand.ranges, domain)).toBe(true);
 
-		// out of bounds
+		// r2 expands lo to 0: absorbs r1 completely
+		const resAbsorbLeft = rebalanceCounterRange(ranges, { id: 'r2', lo: 0, hi: 400 }, domain);
+		expect(resAbsorbLeft).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'r2', lo: 0, hi: 400 },
+				{ id: 'r3', lo: 401, hi: 600 },
+			],
+		});
+		if (resAbsorbLeft.ok) expect(isCounterRangePartition(resAbsorbLeft.ranges, domain)).toBe(true);
+
+		// r1 expands hi to domain.max: absorbs r2 and r3 completely
+		const resAbsorbAll = rebalanceCounterRange(ranges, { id: 'r1', lo: 0, hi: 600 }, domain);
+		expect(resAbsorbAll).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'r1', lo: 0, hi: 600 },
+			],
+		});
+		if (resAbsorbAll.ok) expect(isCounterRangePartition(resAbsorbAll.ranges, domain)).toBe(true);
+	});
+
+	it('Finding 1.3: allows unit ranges [X, X] and absorbs across population gaps', () => {
+		// Sparse unit ranges with population gap: [0, 2] and [8, 8] with domain [0, 8]
+		const sparseRanges = [
+			{ id: 'r-small', lo: 0, hi: 2 },
+			{ id: 'r-unit', lo: 8, hi: 8 },
+		];
+		const sparseDomain = { min: 0, max: 8 };
+
+		// Lowering lo of unit range [8, 8] to 0 absorbs [0, 2] and covers domain completely
+		const resAbsorbGap = rebalanceCounterRange(sparseRanges, { id: 'r-unit', lo: 0, hi: 8 }, sparseDomain);
+		expect(resAbsorbGap).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'r-unit', lo: 0, hi: 8 },
+			],
+		});
+		if (resAbsorbGap.ok) expect(isCounterRangePartition(resAbsorbGap.ranges, sparseDomain)).toBe(true);
+
+		// Adjusting lo of unit range [8, 8] to 3 fills gap continuously with preceding [0, 2]
+		const resContigGap = rebalanceCounterRange(sparseRanges, { id: 'r-unit', lo: 3, hi: 8 }, sparseDomain);
+		expect(resContigGap).toEqual({
+			ok: true,
+			ranges: [
+				{ id: 'r-small', lo: 0, hi: 2 },
+				{ id: 'r-unit', lo: 3, hi: 8 },
+			],
+		});
+		if (resContigGap.ok) expect(isCounterRangePartition(resContigGap.ranges, sparseDomain)).toBe(true);
+	});
+
+	it('rejects invalid range values out of domain boundaries or reversed order', () => {
+		// reversed order lo > hi
+		const resReversed = rebalanceCounterRange(ranges, { id: 'r1', lo: 300, hi: 200 }, domain);
+		expect(resReversed.ok).toBe(false);
+		if (!resReversed.ok) expect(resReversed.reason).toBe('invalid_range');
+
+		// out of domain bounds
 		const resBounds = rebalanceCounterRange(ranges, { id: 'r3', lo: 401, hi: 700 }, domain);
 		expect(resBounds.ok).toBe(false);
 		if (!resBounds.ok) expect(resBounds.reason).toBe('invalid_range');

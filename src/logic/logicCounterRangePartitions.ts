@@ -131,47 +131,97 @@ export interface CounterRangeEditBounds {
  * what turns 0–200 / 201–400 / 401–600 + 150–400 into 0–149 / 150–400 /
  * 401–600.
  */
+function nextCounterRangeId(ranges: readonly CounterRange[]): string {
+	const used = new Set(ranges.map((range) => range.id));
+	let index = ranges.length;
+	while (used.has(`counter-range-${index + 1}`)) index += 1;
+	return `counter-range-${index + 1}`;
+}
+
+/**
+ * Apply a range edit while keeping the complete domain covered. The edited
+ * range keeps its id. When boundaries expand into neighbors, those neighbors
+ * are absorbed. When the first slice lo > domain.min, an automatic slice is inserted.
+ */
 export function rebalanceCounterRange(
 	ranges: readonly CounterRange[],
 	edited: CounterRangeEditBounds,
 	domain: CounterDomain,
 ): CounterRangePartitionResult {
-	const checked = validateCounterRangePartition(ranges, domain);
-	if (!checked.ok) return checked;
+	if (!isValidCounterDomain(domain)) return { ok: false, reason: 'invalid_domain' };
 	if (
 		!Number.isInteger(edited.lo) ||
 		!Number.isInteger(edited.hi) ||
 		edited.lo < domain.min ||
 		edited.hi > domain.max ||
 		edited.lo > edited.hi
-	)
+	) {
 		return { ok: false, reason: 'invalid_range' };
-	const index = checked.ranges.findIndex((range) => range.id === edited.id);
-	if (index < 0) return { ok: false, reason: 'unknown_range' };
-	const next = checked.ranges.map((range) => ({ ...range }));
-	const previous = index > 0 ? next[index - 1]! : undefined;
-	const following = index + 1 < next.length ? next[index + 1]! : undefined;
-	if (!previous && edited.lo !== domain.min) return { ok: false, reason: 'gap' };
-	if (!following && edited.hi !== domain.max) return { ok: false, reason: 'gap' };
-	if (previous) {
-		const nextHi = edited.lo - 1;
-		if (nextHi < previous.lo) return { ok: false, reason: 'overlap' };
-		previous.hi = nextHi;
 	}
-	if (following) {
-		const nextLo = edited.hi + 1;
-		if (nextLo > following.hi) return { ok: false, reason: 'overlap' };
-		following.lo = nextLo;
-	}
-	next[index] = { id: edited.id, lo: edited.lo, hi: edited.hi };
-	return validateCounterRangePartition(next, domain);
-}
 
-function nextCounterRangeId(ranges: readonly CounterRange[]): string {
-	const used = new Set(ranges.map((range) => range.id));
-	let index = ranges.length;
-	while (used.has(`counter-range-${index + 1}`)) index += 1;
-	return `counter-range-${index + 1}`;
+	const ordered = sortCounterRanges(ranges);
+	const index = ordered.findIndex((range) => range.id === edited.id);
+	if (index < 0) return { ok: false, reason: 'unknown_range' };
+
+	const next: CounterRange[] = [];
+
+	// 1. Preceding slices (Finding 1.1: split lower bound > 0 when index === 0, or absorb preceding on expansion)
+	if (index === 0 && edited.lo > domain.min) {
+		next.push({
+			id: nextCounterRangeId(ordered),
+			lo: domain.min,
+			hi: edited.lo - 1,
+		});
+	} else if (index > 0) {
+		const preceding = ordered.slice(0, index);
+		for (let i = 0; i < preceding.length; i++) {
+			const p = { ...preceding[i]! };
+			if (p.lo >= edited.lo) {
+				// Completely absorbed by edited.lo
+				continue;
+			}
+			if (i === preceding.length - 1 || p.hi >= edited.lo) {
+				p.hi = edited.lo - 1;
+			}
+			next.push(p);
+		}
+		if (next.length === 0 && edited.lo > domain.min) {
+			next.push({
+				id: nextCounterRangeId([...ordered, ...next]),
+				lo: domain.min,
+				hi: edited.lo - 1,
+			});
+		}
+	}
+
+	// 2. The edited slice
+	next.push({ id: edited.id, lo: edited.lo, hi: edited.hi });
+
+	// 3. Following slices (Finding 1.2: absorption on hi expansion)
+	const following = ordered.slice(index + 1);
+	for (let i = 0; i < following.length; i++) {
+		const f = { ...following[i]! };
+		if (f.hi <= edited.hi) {
+			// Completely absorbed by edited.hi
+			continue;
+		}
+		if (f.lo <= edited.hi) {
+			f.lo = edited.hi + 1;
+		} else if (i === 0 || next[next.length - 1]!.id === edited.id) {
+			f.lo = edited.hi + 1;
+		}
+		next.push(f);
+	}
+
+	if (following.length > 0 && next[next.length - 1]!.id === edited.id && edited.hi < domain.max) {
+		next.push({
+			id: nextCounterRangeId([...ordered, ...next]),
+			lo: edited.hi + 1,
+			hi: domain.max,
+		});
+	}
+
+	return validateCounterRangePartition(next, domain);
 }
 
 export type AddCounterRangeSliceResult =
