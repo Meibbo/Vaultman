@@ -35,6 +35,7 @@ import {
 	normalizeExplorerSortState,
 	scopeStateFromLegacy,
 } from '../../src/logic/logicScopedSort';
+import { fileTaskMetricValue } from '../../src/components/containers/explorerFiles';
 import type { SceneConfig } from '../../src/types/typeInstance';
 
 const domain = { min: 0, max: 600 };
@@ -294,6 +295,39 @@ describe('U130-GGC-008 task cell versus group metric', () => {
 	it('normalizes/migrates persisted cell modes', () => {
 		expect(normalizeTaskCellDisplayMode('pending')).toBe('pending');
 		expect(normalizeTaskCellDisplayMode('bad')).toBe('done-total');
+	});
+
+	it('routes notes without tasks (total === 0) strictly to No group and groups notes with measurable tasks', () => {
+		// fileTaskMetricValue extraction
+		expect(fileTaskMetricValue(null, { completed: 0, total: 5 })).toBeNull();
+		expect(fileTaskMetricValue({ extension: 'png' }, { completed: 0, total: 5 })).toBeNull();
+		expect(fileTaskMetricValue({ extension: 'md' }, null)).toBeNull();
+		expect(fileTaskMetricValue({ extension: 'md' }, { completed: 0, total: 0 })).toBeNull();
+		expect(fileTaskMetricValue({ extension: 'md' }, { completed: 2, total: 5 })).toBe(3);
+		expect(fileTaskMetricValue({ extension: 'md' }, { completed: 4, total: 4 })).toBe(0);
+
+		// resolveTaskGroupingMetric handling
+		expect(resolveTaskGroupingMetric({ completed: 0, total: 0 })).toBeNull();
+		expect(resolveTaskGroupingMetric('0/0')).toBeNull();
+		expect(resolveTaskGroupingMetric({ completed: 5, total: 5 })).toBe(0);
+		expect(resolveTaskGroupingMetric('2/5')).toBe(3);
+
+		// buildPresetBuckets sends total === 0 to ungrouped (No group)
+		const out = buildPresetBuckets(
+			[
+				...Array.from({ length: 10 }, (_, index) => ({
+					id: `has-tasks-${index}`,
+					label: `Has Tasks ${index}`,
+					taskStats: { completed: 1, total: 4 },
+				})),
+				{ id: 'zero-tasks-1', label: 'Zero Tasks 1', taskStats: { completed: 0, total: 0 } },
+				{ id: 'zero-tasks-2', label: 'Zero Tasks 2', taskStats: { completed: 0, total: 0 } },
+			],
+			{ kind: 'tasks', direction: 'asc' },
+			{ extract: (node) => node.taskStats },
+		);
+		expect(out?.ungrouped.map((n) => n.id)).toEqual(['zero-tasks-1', 'zero-tasks-2']);
+		expect(out?.buckets.flatMap((b) => b.members).map((m) => m.id)).toHaveLength(10);
 	});
 });
 

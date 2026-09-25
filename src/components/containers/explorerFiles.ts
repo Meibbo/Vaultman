@@ -312,6 +312,24 @@ export function fileCounterPropertyValue(
 	return propCount;
 }
 
+/**
+ * U130-GGC-008: Non-Markdown files (.pdf, .png, etc.) cannot bear task lists
+ * and must be treated as incompatible (null), routing them strictly to "No group".
+ * Markdown files without any tasks (total === 0) also route strictly to "No group".
+ * Markdown files with measurable tasks (total > 0) return their pending tasks count.
+ */
+export function fileTaskMetricValue(
+	file: { extension?: string | null } | null | undefined,
+	stats: { completed: number; total: number } | null | undefined,
+): number | null {
+	if (!file) return null;
+	const ext = file.extension?.toLowerCase();
+	if (ext !== 'md' && ext !== 'markdown') return null;
+	if (!stats || stats.total === 0) return null;
+	const pending = stats.total - stats.completed;
+	return Number.isFinite(pending) && pending >= 0 ? Math.floor(pending) : null;
+}
+
 /** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
 export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
@@ -3909,6 +3927,8 @@ export class FilesExplorerPanel extends Component {
 			this.visibleCells.has('words') ||
 			this.visibleCells.has('tags') ||
 			this.visibleCells.has('tasks') ||
+			this.groupPreset.kind === 'words' ||
+			this.groupPreset.kind === 'tasks' ||
 			this._usesStatisticsSort()
 		);
 	}
@@ -4079,7 +4099,7 @@ export class FilesExplorerPanel extends Component {
 			case 'words':
 				return this.plugin.statisticsCache.getFileWordCount(file);
 			case 'tasks':
-				return this.plugin.statisticsCache.getFileRemainingTasks(file);
+				return this._taskMetricForFile(file);
 			case 'props':
 				return fileCounterPropertyValue(file, this._propCountForFile(file));
 			case 'modified':
@@ -4091,6 +4111,29 @@ export class FilesExplorerPanel extends Component {
 			default:
 				return null;
 		}
+	}
+
+	private _taskMetricForFile(file: TFile): number | null {
+		const stats =
+			this.plugin.statisticsCache.getFileTaskStats(file) ??
+			this._taskStatsFromMetadataCache(file);
+		return fileTaskMetricValue(file, stats);
+	}
+
+	private _taskStatsFromMetadataCache(
+		file: TFile,
+	): { completed: number; total: number } | null {
+		const cache = this.plugin.app.metadataCache.getFileCache(file);
+		if (!cache?.listItems) return null;
+		let total = 0;
+		let completed = 0;
+		for (const item of cache.listItems) {
+			if (item.task !== undefined) {
+				total += 1;
+				if (item.task !== ' ') completed += 1;
+			}
+		}
+		return { completed, total };
 	}
 
 	/**

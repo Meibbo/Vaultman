@@ -28,7 +28,6 @@ export function resolveTaskMetric(
 	return { completed, total, pending: total - completed };
 }
 
-/** The grouping metric is always pending, regardless of cell presentation. */
 export function resolveTaskGroupingMetric(
 	input: TaskMetricInput | number | string | null | undefined,
 ): number | null {
@@ -37,9 +36,13 @@ export function resolveTaskGroupingMetric(
 		if (/^\d+$/.test(input.trim())) return finiteNonNegative(Number(input.trim()));
 		const match = /^(\d+)\/(\d+)$/.exec(input.trim());
 		if (!match) return null;
-		return resolveTaskMetric({ completed: Number(match[1]), total: Number(match[2]) })?.pending ?? null;
+		const completed = Number(match[1]);
+		const total = Number(match[2]);
+		if (total === 0) return null;
+		return resolveTaskMetric({ completed, total })?.pending ?? null;
 	}
 	if (!input) return null;
+	if (typeof input === 'object' && 'total' in input && input.total === 0) return null;
 	return resolveTaskMetric(input)?.pending ?? null;
 }
 
