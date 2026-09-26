@@ -78,6 +78,7 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		tooltips: true,
 		toolbarNodeOrder: [],
 		groupMemberships: {},
+		showOptionsOverride: 'inherit' as const,
 	};
 
 	it('replaces the list wholesale and diffs only when it changed', () => {

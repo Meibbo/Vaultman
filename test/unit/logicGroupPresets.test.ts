@@ -256,6 +256,7 @@ describe('spec 08 §1 — groupPreset rides the per-instance cascade', () => {
 		tooltips: true,
 		toolbarNodeOrder: [],
 		groupMemberships: {},
+		showOptionsOverride: 'inherit' as const,
 	};
 
 	it('defaults to `none` and lets the scene layer override it', () => {

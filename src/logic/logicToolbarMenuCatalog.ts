@@ -9,6 +9,10 @@ import {
 	sortScopeOptions,
 } from './logicSortMenu';
 import { GROUP_PRESETS_BY_TAB } from '../types/typeGroupPreset';
+import {
+	SHOW_OPTIONS_OVERRIDES,
+	showOptionsMenuActionId,
+} from './logicSettingSceneOptions';
 
 export const TOOLBAR_MENU_KINDS = [
 	'scene_menu',
@@ -111,6 +115,24 @@ const INTERACTION_ICONS: Readonly<Record<InteractionMode, string>> = {
 	select: 'lucide-mouse-pointer-2',
 };
 
+/** U130 spec-02: menú Options de settingScene (solo plugins). Submenu `options`
+ * con los 3 estados; el menú solo propone el override per-instance (el
+ * navbar lo escribe por el port y re-proyecta la scene).
+ */
+const OPTIONS_AVAILABILITY: ToolbarMenuAvailability = { tabs: ['plugins'] };
+const SHOW_OPTIONS_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
+	{ id: 'view_menu.options', labelKey: 'viewmenu.options', icon: 'lucide-sliders', section: 'options', submenu: 'options', requires: NO_REQUIREMENTS, availability: OPTIONS_AVAILABILITY },
+	...SHOW_OPTIONS_OVERRIDES.map((override) => ({
+		id: showOptionsMenuActionId(override),
+		labelKey: `viewmenu.options.${override}`,
+		icon: override === 'show' ? 'lucide-eye' : override === 'plugins-only' ? 'lucide-eye-off' : 'lucide-sliders',
+		section: 'options',
+		submenu: 'options',
+		requires: NO_REQUIREMENTS,
+		availability: OPTIONS_AVAILABILITY,
+	} as const)),
+];
+
 const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'view_menu.interaction', labelKey: 'viewmenu.interaction', icon: 'lucide-mouse-pointer-click', section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	...uniqueByKey(EXPLORER_TABS.flatMap((tab) => interactionModesForTab(tab)), (mode) => mode).map((mode) => ({ id: `view_menu.interaction.${mode}`, labelKey: `viewmenu.interaction.${mode}`, icon: INTERACTION_ICONS[mode], section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: { tabs: EXPLORER_TABS.filter((tab) => interactionModesForTab(tab).includes(mode)) } })),
@@ -127,6 +149,7 @@ const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'view_menu.engines.sticky_rows', labelKey: 'sort.level.sticky_rows', icon: 'lucide-pin', section: 'engines', submenu: 'engines', requires: ['view_menu.engines.nested'], availability: HIERARCHICAL_AVAILABILITY },
 	{ id: 'view_menu.engines.compact_folders', labelKey: 'sort.level.compact_folders', icon: 'lucide-folder-minus', section: 'engines', submenu: 'engines', requires: ['view_menu.engines.nested'], availability: { tabs: ['files'] } },
 	{ id: 'view_menu.engines.tooltips', labelKey: 'sort.level.tooltips', icon: 'lucide-eye', section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	...SHOW_OPTIONS_MENU_ACTIONS,
 ];
 
 const GROUP_PRESETS = uniqueByKey(

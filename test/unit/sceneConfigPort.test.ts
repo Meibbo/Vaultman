@@ -29,6 +29,7 @@ const defaults = {
 	tooltips: true,
 	toolbarNodeOrder: [],
 	groupMemberships: {},
+	showOptionsOverride: 'inherit' as const,
 };
 
 function harness() {

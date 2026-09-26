@@ -48,6 +48,7 @@ const defaults: Required<SceneConfig> = {
 	tooltips: true,
 	toolbarNodeOrder: [],
 	groupMemberships: {},
+	showOptionsOverride: 'inherit' as const,
 };
 
 function instance(id: string) {

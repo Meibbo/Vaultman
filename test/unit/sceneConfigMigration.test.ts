@@ -29,6 +29,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			tooltips: true,
 			toolbarNodeOrder: [],
 			groupMemberships: {},
+			showOptionsOverride: 'inherit' as const,
 		}),
 		propose: async (scene, next) => {
 			calls.push([scene, next]);
