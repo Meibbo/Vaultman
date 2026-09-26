@@ -263,3 +263,133 @@ export function reorderLocalIds(
 	);
 }
 
+export type DropMarkerDirection = 'left' | 'right' | 'up' | 'down';
+export type DropMarkerSide = 'left' | 'right' | 'top' | 'bottom';
+
+export type ToolbarDropMarkerDescriptor = {
+	readonly show: boolean;
+	readonly side: DropMarkerSide;
+	readonly direction: DropMarkerDirection;
+	readonly order: number;
+	readonly currentSlotIndex: number;
+	readonly originalSlotIndex: number;
+};
+
+export type ResolveDropMarkerOptions = {
+	readonly orientation?: 'horizontal' | 'vertical';
+	readonly originalRow?: number;
+	readonly currentRow?: number;
+};
+
+/**
+ * Resuelve la orientación y posición del marcador direccional de drop.
+ * - Si el ítem arrastrado está sobre su slot original: no muestra nada (null).
+ * - Si está a la izquierda del slot original: se muestra en el lado derecho apuntando hacia donde estaba (derecha).
+ * - Si está a la derecha del slot original: se muestra en el lado izquierdo apuntando hacia donde estaba (izquierda).
+ * - En las 4 direcciones (soporte 2D/vertical): si está arriba apunta hacia abajo (lado inferior), si está abajo apunta hacia arriba (lado superior).
+ */
+export function resolveToolbarDropMarker(
+	visibleLocalIds: readonly string[],
+	previewOrder: readonly string[] | null,
+	dragLocalId: string | null,
+	options?: ResolveDropMarkerOptions,
+): ToolbarDropMarkerDescriptor | null {
+	if (!previewOrder || !dragLocalId || visibleLocalIds.length === 0) {
+		return null;
+	}
+	const originalSlotIndex = visibleLocalIds.indexOf(dragLocalId);
+	const currentSlotIndex = previewOrder.indexOf(dragLocalId);
+	if (originalSlotIndex < 0 || currentSlotIndex < 0) {
+		return null;
+	}
+
+	const orientation = options?.orientation ?? 'horizontal';
+	const originalRow = options?.originalRow;
+	const currentRow = options?.currentRow;
+
+	// Soporte bidimensional de 4 direcciones cuando se reportan filas distintas
+	if (
+		originalRow !== undefined &&
+		currentRow !== undefined &&
+		originalRow !== currentRow
+	) {
+		if (currentRow < originalRow) {
+			// El slot actual está arriba del original -> apunta abajo (hacia el original)
+			return {
+				show: true,
+				side: 'bottom',
+				direction: 'down',
+				order: currentSlotIndex * 2 + 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		} else {
+			// El slot actual está abajo del original -> apunta arriba (hacia el original)
+			return {
+				show: true,
+				side: 'top',
+				direction: 'up',
+				order: currentSlotIndex * 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		}
+	}
+
+	if (orientation === 'vertical') {
+		if (currentSlotIndex === originalSlotIndex) {
+			return null;
+		}
+		if (currentSlotIndex < originalSlotIndex) {
+			// Arriba del original -> en el lado inferior apuntando hacia abajo
+			return {
+				show: true,
+				side: 'bottom',
+				direction: 'down',
+				order: currentSlotIndex * 2 + 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		} else {
+			// Abajo del original -> en el lado superior apuntando hacia arriba
+			return {
+				show: true,
+				side: 'top',
+				direction: 'up',
+				order: currentSlotIndex * 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		}
+	}
+
+	// Horizontal (defecto de toolbar)
+	if (currentSlotIndex === originalSlotIndex) {
+		// Sobre el slot original: no se muestra nada
+		return null;
+	}
+
+	if (currentSlotIndex < originalSlotIndex) {
+		// A la izquierda del slot original: se muestra en el lado derecho apuntando hacia donde estaba (derecha)
+		return {
+			show: true,
+			side: 'right',
+			direction: 'right',
+			order: currentSlotIndex * 2 + 2,
+			currentSlotIndex,
+			originalSlotIndex,
+		};
+	} else {
+		// A la derecha del slot original: se muestra en el lado izquierdo apuntando hacia donde estaba (izquierda)
+		return {
+			show: true,
+			side: 'left',
+			direction: 'left',
+			order: currentSlotIndex * 2,
+			currentSlotIndex,
+			originalSlotIndex,
+		};
+	}
+}
+
+

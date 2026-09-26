@@ -123,10 +123,12 @@ import {
 		reorderLocalIds,
 		reorderLocalIdsToSlot,
 		resolvePanelWidgetProjection,
+		resolveToolbarDropMarker,
 		resolveToolbarDropSlot,
 		resolveToolbarHiddenIds,
 		resolveToolbarNodeOrder,
 		type ResolvedToolbarDropSlot,
+		type ToolbarDropMarkerDescriptor,
 		type ToolbarSlotSibling,
 	} from '../../logic/logicPanelWidgetProjection';
 	import {
@@ -1412,6 +1414,15 @@ import {
 					(node) => node.id === panelWidgetNodeId(localId),
 				);
 	};
+	const panelWidgetDropMarker = $derived<ToolbarDropMarkerDescriptor | null>(
+		panelWidgetDrag && panelWidgetPreviewOrder
+			? resolveToolbarDropMarker(
+					panelWidgetDrag.visibleLocalIds,
+					panelWidgetPreviewOrder,
+					panelWidgetDrag.localId,
+				)
+			: null,
+	);
 	// U130 polishing: reorden por arrastre al estilo `Gv` de app.js (el
 	// ribbon nativo): mousedown + umbral 5px + ghost clonado con las clases
 	// de serie (`drag-reorder-ghost`, `mod-dragged-item`, `is-grabbing`,
@@ -4557,12 +4568,15 @@ import {
 							></div>
 						{/if}
 						{/if}
-						{#if panelWidgetPreviewOrder && panelWidgetDrag}
+						{#if panelWidgetDropMarker}
 							<div
 								class="vaultman-toolbar-drop-marker"
-								style:order={panelWidgetPreviewOrder.indexOf(panelWidgetDrag.localId) * 2}
-								data-placement={panelWidgetDrag.dropPlacement}
-								data-slot-index={panelWidgetDrag.dropSlotIndex}
+								style:order={panelWidgetDropMarker.order}
+								data-direction={panelWidgetDropMarker.direction}
+								data-side={panelWidgetDropMarker.side}
+								data-placement={panelWidgetDrag?.dropPlacement}
+								data-slot-index={panelWidgetDropMarker.currentSlotIndex}
+								data-original-index={panelWidgetDropMarker.originalSlotIndex}
 								aria-hidden="true"
 							></div>
 						{/if}

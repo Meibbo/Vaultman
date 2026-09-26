@@ -350,8 +350,10 @@ describe('navbarFilters monta BarTransaction', () => {
 			'.vaultman-toolbar-drop-marker',
 		);
 		expect(marker).not.toBeNull();
-		expect(marker?.style.order).toBe('0');
-		expect(marker?.getAttribute('data-placement')).toBe('before');
+		// Marker a la derecha de nodes[2] (order 2) apuntando a la derecha hacia su posición original
+		expect(marker?.style.order).toBe('2');
+		expect(marker?.getAttribute('data-direction')).toBe('right');
+		expect(marker?.getAttribute('data-side')).toBe('right');
 		expect(marker?.getAttribute('data-slot-index')).toBe('0');
 		expect(Number(nodes[2].style.order)).toBeLessThan(
 			Number(nodes[0].style.order),
@@ -412,27 +414,28 @@ describe('navbarFilters monta BarTransaction', () => {
 
 		nodes[0].dispatchEvent(pointer('pointerdown', 20));
 
-		// Mitad izquierda de nodes[1] (x = 70 < mid 90): slot 0, marker antes de nodes[1]
+		// Mitad izquierda de nodes[1] (x = 70 < mid 90): slot 0 (su slot original: no muestra marker)
 		window.dispatchEvent(pointer('pointermove', 70));
 		flushSync();
 		let marker = bar.querySelector<HTMLElement>('.vaultman-toolbar-drop-marker');
-		expect(marker?.style.order).toBe('0');
-		expect(marker?.getAttribute('data-placement')).toBe('before');
+		expect(marker).toBeNull();
 
-		// Cruza al lado derecho de nodes[1] (x = 105 >= mid 90): preview en vivo, slot 1, marker después de nodes[1]
+		// Cruza al lado derecho de nodes[1] (x = 105 >= mid 90): preview en vivo, slot 1 (a la derecha del original: marker en lado izquierdo apuntando a la izquierda)
 		window.dispatchEvent(pointer('pointermove', 105));
 		flushSync();
 		marker = bar.querySelector<HTMLElement>('.vaultman-toolbar-drop-marker');
 		expect(marker?.style.order).toBe('2');
-		expect(marker?.getAttribute('data-placement')).toBe('after');
+		expect(marker?.getAttribute('data-direction')).toBe('left');
+		expect(marker?.getAttribute('data-side')).toBe('left');
 		expect(Number(nodes[0].style.order)).toBeGreaterThan(Number(nodes[1].style.order));
 
-		// Cruza al lado derecho de nodes[2] (x = 170 >= mid 160): preview en vivo, slot 2, marker después de nodes[2]
+		// Cruza al lado derecho de nodes[2] (x = 170 >= mid 160): preview en vivo, slot 2 (a la derecha del original: marker en lado izquierdo apuntando a la izquierda)
 		window.dispatchEvent(pointer('pointermove', 170));
 		flushSync();
 		marker = bar.querySelector<HTMLElement>('.vaultman-toolbar-drop-marker');
 		expect(marker?.style.order).toBe('4');
-		expect(marker?.getAttribute('data-placement')).toBe('after');
+		expect(marker?.getAttribute('data-direction')).toBe('left');
+		expect(marker?.getAttribute('data-side')).toBe('left');
 		expect(Number(nodes[0].style.order)).toBeGreaterThan(Number(nodes[2].style.order));
 
 		window.dispatchEvent(pointer('pointerup', 170));
@@ -565,6 +568,79 @@ describe('navbarFilters monta BarTransaction', () => {
 		const dragTrailingClick = new MouseEvent('click', { bubbles: true, cancelable: true });
 		nodes[0].dispatchEvent(dragTrailingClick);
 		expect(dragTrailingClick.defaultPrevented).toBe(true);
+	});
+
+	it('drop marker se oculta sobre el slot original e indica dirección hacia la posición original al desplazarse', () => {
+		const el = render();
+		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');
+		const nodes = Array.from(
+			bar?.querySelectorAll<HTMLElement>('[data-panel-widget-node-id]') ?? [],
+		);
+		expect(nodes.length).toBeGreaterThanOrEqual(3);
+		if (!bar || nodes.length < 3) return;
+
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				right: left + width,
+				top: 0,
+				bottom: 40,
+				width,
+				height: 40,
+			}) as DOMRect;
+		bar.getBoundingClientRect = () => rect(0, 500);
+		nodes[0].getBoundingClientRect = () => rect(0, 40);
+		nodes[1].getBoundingClientRect = () => rect(50, 40);
+		nodes[2].getBoundingClientRect = () => rect(100, 40);
+
+		const pointer = (type: string, clientX: number, clientY = 20) => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				button: 0,
+				clientX,
+				clientY,
+			});
+			Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+			return event;
+		};
+
+		// Arrastrando nodes[1] (original en índice 1):
+		nodes[1].dispatchEvent(pointer('pointerdown', 70));
+
+		// (a) Si el puntero se mueve pero sigue en el slot original (slot 1): no se muestra nada
+		window.dispatchEvent(pointer('pointermove', 70));
+		flushSync();
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+
+		// (b) Si se mueve a la izquierda (slot 0): se muestra a la derecha de nodes[1] (order 2) apuntando a la derecha
+		window.dispatchEvent(pointer('pointermove', 10));
+		flushSync();
+		let marker = bar.querySelector<HTMLElement>('.vaultman-toolbar-drop-marker');
+		expect(marker).not.toBeNull();
+		expect(marker?.style.order).toBe('2');
+		expect(marker?.getAttribute('data-direction')).toBe('right');
+		expect(marker?.getAttribute('data-side')).toBe('right');
+		expect(marker?.getAttribute('data-slot-index')).toBe('0');
+		expect(marker?.getAttribute('data-original-index')).toBe('1');
+
+		// (c) Si se mueve a la derecha (slot 2): se muestra a la izquierda de nodes[1] (order 4) apuntando a la izquierda
+		window.dispatchEvent(pointer('pointermove', 130));
+		flushSync();
+		marker = bar.querySelector<HTMLElement>('.vaultman-toolbar-drop-marker');
+		expect(marker).not.toBeNull();
+		expect(marker?.style.order).toBe('4');
+		expect(marker?.getAttribute('data-direction')).toBe('left');
+		expect(marker?.getAttribute('data-side')).toBe('left');
+		expect(marker?.getAttribute('data-slot-index')).toBe('2');
+		expect(marker?.getAttribute('data-original-index')).toBe('1');
+
+		// (d) Al regresar a su posición original (slot 1): vuelve a ocultarse
+		window.dispatchEvent(pointer('pointermove', 70));
+		flushSync();
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+
+		window.dispatchEvent(pointer('pointerup', 70));
+		flushSync();
 	});
 });
 
