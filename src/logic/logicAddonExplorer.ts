@@ -17,6 +17,7 @@ import {
 	listPluginSettingPages,
 } from '../services/serviceSettingSearchAdapter';
 import type { InteractionMode } from './logicInteractionMode';
+import type { GroupPreset } from '../types/typeGroupPreset';
 
 export interface AddonEntryProjection {
 	name: string;
@@ -897,13 +898,149 @@ export interface CanonicalRestRootsInput {
 	pluginNodes: readonly TreeNode<PluginMeta>[];
 	/** Ids de plugin community conocidos (criterio F10: por id). */
 	communityIds: Iterable<string>;
+	/**
+	 * U130-C1 (Defecto 1): el preset de agrupación activo. Con preset
+	 * presente la salida es PLANA (depth 0, sin cabeceras `group:*`):
+	 * la agrupación la gobierna `projectGroupedTree` (preset
+	 * `sections`), no esta función. Ausente = forma canónica legacy
+	 * agrupada core/community (compat con llamadores no migrados).
+	 */
+	groupPreset?: GroupPreset;
 }
 
 /**
- * Raíces canónicas en reposo (term vacío):
+ * Ajustes generales de Obsidian: tabs nativos que no pertenecen a ningún
+ * plugin. Se proyectan como filas `node_settings` (`pluginId: ''`).
+ */
+export const GLOBAL_SETTINGS_TAB_IDS: readonly string[] = [
+	'general',
+	'appearance',
+	'interface',
+	'editor',
+	'files and links',
+	'keychain',
+	'hotkeys',
+];
+
+/** Identidad canónica del grupo de primer orden de ajustes globales. */
+export const GLOBAL_SETTINGS_GROUP_ID = 'group:global-settings';
+
+/** Etiqueta del grupo de primer orden de ajustes globales. */
+export const GLOBAL_SETTINGS_GROUP_LABEL = 'Global settings';
+
+const GLOBAL_SETTINGS_FALLBACK_LABELS: Readonly<Record<string, string>> = {
+	general: 'General',
+	appearance: 'Appearance',
+	interface: 'Interface',
+	editor: 'Editor',
+	'files and links': 'Files and links',
+	keychain: 'Keychain',
+	hotkeys: 'Hotkeys',
+};
+
+export function isGlobalSettingsTab(tab: string): boolean {
+	const key = (tab ?? '').trim().toLowerCase();
+	return GLOBAL_SETTINGS_TAB_IDS.some((id) => id === key);
+}
+
+interface RuntimeSettingTabEntry {
+	id?: unknown;
+	name?: unknown;
+}
+
+function nativeTabLabel(app: unknown, tabId: string): string | null {
+	if (typeof app !== 'object' || app === null) return null;
+	const setting = (app as { setting?: unknown }).setting;
+	if (typeof setting !== 'object' || setting === null) return null;
+	const rawTabs = (setting as Record<string, unknown>)['pluginTabs'];
+	const entries: readonly RuntimeSettingTabEntry[] = Array.isArray(rawTabs)
+		? (rawTabs as readonly RuntimeSettingTabEntry[])
+		: typeof rawTabs === 'object' && rawTabs !== null
+			? Object.values(rawTabs as Record<string, RuntimeSettingTabEntry>)
+			: [];
+	if (entries.length === 0) return null;
+	for (const entry of entries) {
+		if (entry?.id === tabId && typeof entry?.name === 'string' && entry.name !== '') {
+			return entry.name;
+		}
+	}
+	return null;
+}
+
+/**
+ * Filas `node_settings` de profundidad 0 para los ajustes globales que no
+ * son plugins. Omite los ids que colisionan con plugins conocidos
+ * (community o stubs core ya listados): un tab con identidad de plugin
+ * se proyecta como `node_plugin`, nunca duplicado como settings.
+ */
+export function buildGlobalSettingsNodes(
+	app: unknown,
+	communityIds: Iterable<string>,
+): TreeNode<PluginMeta>[] {
+	const known = new Set<string>();
+	for (const id of communityIds) known.add(canonicalPluginId(id));
+	const stubs = listCorePluginStubs(app, communityIds);
+	for (const stub of stubs) known.add(canonicalPluginId(stub.pluginId));
+	const out: TreeNode<PluginMeta>[] = [];
+	for (const tabId of GLOBAL_SETTINGS_TAB_IDS) {
+		if (known.has(canonicalPluginId(tabId))) continue;
+		const label =
+			nativeTabLabel(app, tabId) ?? GLOBAL_SETTINGS_FALLBACK_LABELS[tabId] ?? tabId;
+		if (label === '') continue; // F4: sin label no se emite
+		const ref = { tab: tabId, page: '', pagePath: '', definition: '' };
+		out.push({
+			id: `${settingsBridgeGroupRowId(tabId, '')}#tab`,
+			label,
+			depth: 0,
+			cells: [],
+			showCaret: false,
+			children: [],
+			meta: withSettingsRef(
+				{
+					pluginId: '',
+					name: label,
+					enabled: false,
+					loaded: false,
+					isVaultman: false,
+				},
+				ref,
+			),
+			coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+		});
+	}
+	return out;
+}
+
+function resolveRestPluginNode(
+	app: unknown,
+	node: TreeNode<PluginMeta>,
+	depth: number,
+): TreeNode<PluginMeta> | null {
+	const pluginId = node.meta?.pluginId ?? '';
+	if (pluginId === '') return null; // F4: sin identidad no se agrupa
+	const base: TreeNode<PluginMeta> = { ...node, depth };
+	const resolved = resolvePluginSettingsChildren(app, pluginId, base);
+	return (
+		resolved[0] ?? {
+			...base,
+			showCaret: false,
+			children: [],
+		}
+	);
+}
+
+/**
+ * Raíces canónicas en reposo (term vacío).
  *
- * `node_group` "Core plugins" → `node_plugin` core → tabs/pages +
- * `node_group` "Community plugins" → `node_plugin` community → tabs/pages.
+ * - Sin `groupPreset` (llamadores legacy): `node_group` "Core plugins" →
+ *   `node_plugin` core → tabs/pages + `node_group` "Community plugins" →
+ *   `node_plugin` community → tabs/pages. Intacto para no romper la
+ *   paridad reposo/búsqueda de los tests existentes.
+ * - Con `groupPreset` presente (camino del explorer): árbol PLANO
+ *   (depth 0, sin cabeceras `group:*`): plugins con hijos resueltos +
+ *   `node_settings` globales. La agrupación (`sections`: Core /
+ *   Community / Global settings) la gobierna `projectGroupedTree` vía
+ *   el extractor de la scene (`_groupPresetValue`), no esta función.
  *
  * Cada plugin resuelve sus hijos con `resolvePluginSettingsChildren`
  * (nombres nativos, sin espejos, tabs homónimos hoisteados). Los grupos
@@ -914,18 +1051,23 @@ export interface CanonicalRestRootsInput {
 export function buildCanonicalRestRoots(
 	input: CanonicalRestRootsInput,
 ): TreeNode<PluginMeta>[] {
+	if (input.groupPreset) {
+		const flat: TreeNode<PluginMeta>[] = [];
+		for (const global of buildGlobalSettingsNodes(input.app, input.communityIds)) {
+			flat.push(global);
+		}
+		for (const node of input.pluginNodes) {
+			const withKids = resolveRestPluginNode(input.app, node, 0);
+			if (withKids) flat.push(withKids);
+		}
+		return flat;
+	}
 	const coreKids: TreeNode<PluginMeta>[] = [];
 	const communityKids: TreeNode<PluginMeta>[] = [];
 	for (const node of input.pluginNodes) {
 		const pluginId = node.meta?.pluginId ?? '';
-		if (pluginId === '') continue; // F4: sin identidad no se agrupa
-		const base: TreeNode<PluginMeta> = { ...node, depth: 1 };
-		const resolved = resolvePluginSettingsChildren(input.app, pluginId, base);
-		const withKids = resolved[0] ?? {
-			...base,
-			showCaret: false,
-			children: [],
-		};
+		const withKids = resolveRestPluginNode(input.app, node, 1);
+		if (!withKids) continue;
 		if (pluginCanonicalGroup(pluginId, input.communityIds) === 'core') {
 			coreKids.push(withKids);
 		} else {

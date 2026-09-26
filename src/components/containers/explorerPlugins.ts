@@ -27,10 +27,14 @@ import {
 import {
 	buildAddonHoverInfo,
 	buildCanonicalRestRoots,
+	buildGlobalSettingsNodes,
 	filterAddonEntries,
 	formatAddonTimestamp,
+	GLOBAL_SETTINGS_GROUP_LABEL,
+	isGlobalSettingsTab,
 	isSettingsSearchActive,
 	listCorePluginStubs,
+	pluginCanonicalGroup,
 	resolveSettingsBridgeNodes,
 	sortAddonEntries,
 	type AddonExplorerPanelPort,
@@ -384,6 +388,9 @@ export class PluginsExplorerPanel
 		});
 	}
 
+	/** U130-C1: ids community para el bucket `sections` (core/community por id, F10). */
+	private _communityIds: ReadonlySet<string> = new Set<string>();
+
 	/** Spec 08 §3.3: only in select mode with a selection, and only if someone listens. */
 	private _groupCreationMenuCtx(): Pick<MenuCtx, 'createGroupWithSelected'> {
 		const handler = this.createGroupHandler;
@@ -422,11 +429,21 @@ export class PluginsExplorerPanel
 		if (kind === 'created') return node.meta.installedTime ?? null;
 		if (kind === 'state') return node.meta.enabled ? 'enabled' : 'disabled';
 		if (kind === 'sections') {
-			// For settings bridge nodes, use the native tab from settingsRef
+			// U130-C1: en reposo (term vacío) las filas top-level son
+			// `node_plugin` + `node_settings` globales planas. El bucket
+			// lo gobierna `projectGroupedTree`: plugins → Core/Community
+			// (por id, F10) y settings globales → Global settings.
 			const ref = settingsBridgeRefOf(node.meta);
-			if (ref) return ref.tab;
-			// For plugin nodes, they don't have a section in empty-term mode
-			// (they ARE the top-level entries). Return null to not group.
+			if (ref) {
+				if (isGlobalSettingsTab(ref.tab)) return GLOBAL_SETTINGS_GROUP_LABEL;
+				return ref.tab;
+			}
+			const pluginId = node.meta?.pluginId ?? '';
+			if (pluginId !== '') {
+				return pluginCanonicalGroup(pluginId, this._communityIds) === 'core'
+					? 'Core plugins'
+					: 'Community plugins';
+			}
 			return null;
 		}
 		return null;
@@ -659,9 +676,15 @@ export class PluginsExplorerPanel
 		const communityNodes = this.buildPluginNodes(entries);
 		const coreNodes = this.buildPluginNodes(coreMetas);
 		// U130 parity B (F1): con nesting off, filas planas sin caret.
+		// U130-C1: también planas las globales (mismo orden que el camino anidado).
 		const nestedOn = this._nestedEnabled();
 		if (!nestedOn) {
-			const flat = [...communityNodes, ...coreNodes];
+			this._communityIds = communityIds;
+			const flat = [
+				...buildGlobalSettingsNodes(this.plugin.app, communityIds),
+				...communityNodes,
+				...coreNodes,
+			];
 			for (const node of flat) {
 				node.children = [];
 				node.showCaret = false;
@@ -671,10 +694,15 @@ export class PluginsExplorerPanel
 			this.render();
 			return;
 		}
+		// U130-C1 (Defecto 1): el preset viaja hasta las raíces: con
+		// `none` el árbol es plano (sin cabeceras `group:*`); el
+		// `sections` lo agrupa `projectGroupedTree`, no esta función.
+		this._communityIds = communityIds;
 		this.nodes = buildCanonicalRestRoots({
 			app: this.plugin.app,
 			pluginNodes: [...communityNodes, ...coreNodes],
 			communityIds,
+			groupPreset: this.groupPreset,
 		});
 		this.settingsSearchHighlightIds = new Set<string>();
 		this.render();
