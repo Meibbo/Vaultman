@@ -177,3 +177,24 @@ export function resolveSettingSceneContent(input: {
 	}
 	return { status: 'ready', ...base };
 }
+
+export type {
+	ContentInstance,
+	ContentLocator,
+	GoToRegistryPort,
+	GoToResult,
+	PanelHandle,
+	PanelKind,
+} from '../types/typePanelScene';
+export { PANEL_KINDS } from '../types/typePanelScene';
+
+export {
+	WorkspaceMediatorService,
+	createWorkspaceMediator,
+	createContentLocator,
+	executeGoToSettingContent,
+	executeGoToSettingRow,
+	closeSettingContent,
+	returnToSourceExplorer,
+} from '../services/serviceWorkspaceMediator';
+export type { ExecuteGoToSettingOptions } from '../services/serviceWorkspaceMediator';
