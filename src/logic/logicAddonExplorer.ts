@@ -256,10 +256,13 @@ export function resolveSettingsBridgeNodes(
 			selfTabOwned.add(group.tab);
 		}
 	}
-	// Padres self-tab ya emitidos (pluginId → padre), para fusionar los
+	// Padres self-tab ya emitidos (pluginId → pluginNode), para fusionar los
 	// grupos repetidos del mismo tab (p. ej. `search("vaultman")` trae un
 	// grupo page-null + N grupos page-X con el mismo tab).
-	const selfTabParents = new Map<string, TreeNode<PluginMeta>>();
+	const selfTabPluginParents = new Map<string, TreeNode<PluginMeta>>();
+	// Nodos de tab bajo cada plugin self-tab (pluginId → tabNode), para
+	// agregar pages/definitions al tab correcto.
+	const selfTabTabNodes = new Map<string, TreeNode<PluginMeta>>();
 
 	for (const group of input.groups) {
 		const results = group.results ?? [];
@@ -271,23 +274,69 @@ export function resolveSettingsBridgeNodes(
 		if (results.length === 0) {
 			if (group.tabNameMatch.length === 0) continue;
 			if (selfPlugin) {
-				// Self-tab vacío: el padre ES el plugin (hoja con celdas,
-				// sin caret); grupos posteriores del mismo tab fusionan
-				// sus hijos aquí (ver merge abajo).
-				const existing = selfTabParents.get(group.tab);
-				if (existing) {
-					highlightIds.add(existing.id);
-				} else {
-					const parent: TreeNode<PluginMeta> = {
-						...selfPlugin,
-						depth: 0,
+				// Self-tab vacío: aseguramos que el plugin exista como padre
+				// con un tab hijo (aunque sin páginas). El tab es un contenedor
+				// que permite mantener la jerarquía plugin → tab → page.
+				let pluginParent = selfTabPluginParents.get(group.tab);
+				let tabNode = selfTabTabNodes.get(group.tab);
+				if (!pluginParent) {
+					// Primera vez que vemos este self-tab: crear plugin + tab
+					tabNode = {
+						id: `${settingsBridgeGroupRowId(group.tab, group.pagePath)}#tab`,
+						label: group.tabName !== '' ? group.tabName : group.tab,
+						depth: 1,
+						cells: [],
 						showCaret: false,
 						children: [],
+						meta: withSettingsRef(
+							{
+								pluginId: '',
+								name: group.tabName !== '' ? group.tabName : group.tab,
+								enabled: false,
+								loaded: false,
+								isVaultman: false,
+							},
+							{ tab: group.tab, page: '', pagePath: '', definition: '' },
+						),
+						coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 					};
-					selfTabParents.set(group.tab, parent);
+					pluginParent = {
+						...selfPlugin,
+						depth: 0,
+						showCaret: true,
+						children: [tabNode],
+					};
+					selfTabPluginParents.set(group.tab, pluginParent);
+					selfTabTabNodes.set(group.tab, tabNode);
 					emittedPluginIds.add(selfPlugin.meta.pluginId);
-					nodes.push(parent);
-					highlightIds.add(parent.id);
+					nodes.push(pluginParent);
+				} else if (!tabNode) {
+					// Plugin ya existía pero sin tab (raro, pero por seguridad)
+					tabNode = {
+						id: `${settingsBridgeGroupRowId(group.tab, group.pagePath)}#tab`,
+						label: group.tabName !== '' ? group.tabName : group.tab,
+						depth: 1,
+						cells: [],
+						showCaret: false,
+						children: [],
+						meta: withSettingsRef(
+							{
+								pluginId: '',
+								name: group.tabName !== '' ? group.tabName : group.tab,
+								enabled: false,
+								loaded: false,
+								isVaultman: false,
+							},
+							{ tab: group.tab, page: '', pagePath: '', definition: '' },
+						),
+						coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+					};
+					pluginParent.children = [...(pluginParent.children ?? []), tabNode];
+					selfTabTabNodes.set(group.tab, tabNode);
+				}
+				if (group.tabNameMatch.length > 0) {
+					highlightIds.add(tabNode.id);
+					highlightIds.add(pluginParent.id);
 				}
 				continue;
 			}
@@ -447,33 +496,88 @@ export function resolveSettingsBridgeNodes(
 		// dedupado a otra sección (el grupo nativo sigue existiendo);
 		// "sin grupos vacíos" (F4) aplica al camino de hijos de plugin,
 		// no a las secciones nativas de búsqueda.
-		// Padre self-tab (§1): la fila ES el legacy `node_plugin` (misma
-		// identidad `plugin:<id>`, CON celdas), con los hijos nativos
-		// page/definition debajo. Grupos repetidos del mismo tab fusionan
-		// sus hijos en el primer padre (orden nativo preservado).
+		// Padre self-tab (§1): el plugin legacy `node_plugin` (misma
+		// identidad `plugin:<id>`, CON celdas) es el padre de nivel superior.
+		// Debajo va un nodo `node_setting_tab` (nivel 1) que contiene
+		// los hijos nativos page/definition (nivel 2). Esto preserva
+		// SIEMPRE la jerarquía plugin → tab → page. Grupos repetidos
+		// del mismo tab fusionan sus hijos en el mismo tabNode.
 		if (selfPlugin) {
-			const existing = selfTabParents.get(group.tab);
-			if (existing) {
-				for (const child of children) {
-					(existing.children ?? []).push(child);
+			let pluginParent = selfTabPluginParents.get(group.tab);
+			let tabNode = selfTabTabNodes.get(group.tab);
+			if (!pluginParent) {
+				// Primera vez que vemos este self-tab: crear plugin + tab
+				tabNode = {
+					id: `${settingsBridgeGroupRowId(group.tab, group.pagePath)}#tab`,
+					label: group.tabName !== '' ? group.tabName : group.tab,
+					depth: 1,
+					cells: [],
+					showCaret: children.length > 0,
+					children,
+					...(group.tabIcon ? { icon: group.tabIcon } : {}),
+					...(group.pageDesc !== undefined ? { pageDesc: group.pageDesc } : {}),
+					...(group.pageType !== undefined ? { pageType: group.pageType } : {}),
+					meta: withSettingsRef(
+						{
+							pluginId: '',
+							name: group.tabName !== '' ? group.tabName : group.tab,
+							enabled: false,
+							loaded: false,
+							isVaultman: false,
+						},
+						{ tab: group.tab, page: group.page, pagePath: group.pagePath, definition: '' },
+					),
+					coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+				};
+				pluginParent = {
+					...selfPlugin,
+					depth: 0,
+					showCaret: true,
+					children: [tabNode],
+				};
+				selfTabPluginParents.set(group.tab, pluginParent);
+				selfTabTabNodes.set(group.tab, tabNode);
+				emittedPluginIds.add(selfPlugin.meta.pluginId);
+				nodes.push(pluginParent);
+			} else {
+				// Plugin ya existe: fusionar hijos en el tabNode existente
+				if (!tabNode) {
+					// Plugin existía pero sin tabNode (caso edge: grupo vacío previo)
+					tabNode = {
+						id: `${settingsBridgeGroupRowId(group.tab, group.pagePath)}#tab`,
+						label: group.tabName !== '' ? group.tabName : group.tab,
+						depth: 1,
+						cells: [],
+						showCaret: children.length > 0,
+						children,
+						...(group.tabIcon ? { icon: group.tabIcon } : {}),
+						...(group.pageDesc !== undefined ? { pageDesc: group.pageDesc } : {}),
+						...(group.pageType !== undefined ? { pageType: group.pageType } : {}),
+						meta: withSettingsRef(
+							{
+								pluginId: '',
+								name: group.tabName !== '' ? group.tabName : group.tab,
+								enabled: false,
+								loaded: false,
+								isVaultman: false,
+							},
+							{ tab: group.tab, page: group.page, pagePath: group.pagePath, definition: '' },
+						),
+						coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+					};
+					pluginParent.children = [...(pluginParent.children ?? []), tabNode];
+					selfTabTabNodes.set(group.tab, tabNode);
+				} else {
+					// Agregar hijos al tabNode existente
+					for (const child of children) {
+						(tabNode.children ?? []).push(child);
+					}
+					tabNode.showCaret = (tabNode.children?.length ?? 0) > 0;
 				}
-				existing.showCaret = (existing.children?.length ?? 0) > 0;
-				if (group.tabNameMatch.length > 0) {
-					highlightIds.add(existing.id);
-				}
-				continue;
 			}
-			const parent: TreeNode<PluginMeta> = {
-				...selfPlugin,
-				depth: 0,
-				showCaret: children.length > 0,
-				children,
-			};
-			selfTabParents.set(group.tab, parent);
-			emittedPluginIds.add(selfPlugin.meta.pluginId);
-			nodes.push(parent);
 			if (group.tabNameMatch.length > 0) {
-				highlightIds.add(parent.id);
+				highlightIds.add(tabNode.id);
+				highlightIds.add(pluginParent.id);
 			}
 			continue;
 		}
@@ -751,27 +855,8 @@ export function resolvePluginSettingsChildren(
 		});
 	}
 
-	// Forma canónica 2026-09-25: NINGÚN tab repite el nombre de su
-	// plugin padre. Todo tab homónimo (label nativo igual al nombre del
-	// plugin, trim + case-insensitive) NO se emite como fila: sus
-	// pages/definitions cuelgan DIRECTAS del plugin en baseDepth + 1 (en
-	// orden nativo de tabs). El tab persiste como identidad (cada hijo
-	// lleva su `tab` en el ref). Solo los tabs distintos conservan su
-	// nivel `#tab` (`plugin → tab → page`).
-	const pluginName = baseNode.meta?.name ?? baseNode.label;
-	const topChildren: TreeNode<PluginMeta>[] = [];
-	for (const tab of tabNodes) {
-		if (sameDisplayLabel(tab.label, pluginName)) {
-			for (const child of tab.children ?? []) {
-				topChildren.push({ ...child, depth: baseDepth + 1 });
-			}
-			continue;
-		}
-		topChildren.push(tab);
-	}
-
 	// F4: sin hijos tras el filtrado el plugin queda hoja.
-	if (topChildren.length === 0) {
+	if (tabNodes.length === 0) {
 		return [
 			{
 				...baseNode,
@@ -782,26 +867,14 @@ export function resolvePluginSettingsChildren(
 	}
 
 	// El padre se mantiene con showCaret: true y los hijos canónicos
-	// (tabs distintos + pages/definitions hoisteadas de tabs homónimos).
+	// (tabs en baseDepth + 1, pages/definitions en baseDepth + 2).
 	return [
 		{
 			...baseNode,
 			showCaret: true,
-			children: topChildren,
+			children: tabNodes,
 		} as TreeNode<PluginMeta>,
 	];
-}
-
-/**
- * Igualdad de display para la regla homónima canónica: trim +
- * case-insensitive. Vacío contra cualquier cosa = distinto (F4 ya
- * impide labels vacías, esto es guarda de seguridad).
- */
-function sameDisplayLabel(a: string, b: string): boolean {
-	const left = (a ?? '').trim().toLowerCase();
-	const right = (b ?? '').trim().toLowerCase();
-	if (left === '' || right === '') return false;
-	return left === right;
 }
 
 /**

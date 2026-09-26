@@ -149,46 +149,44 @@ function collectDescendants(nodes: readonly TreeNode<PluginMeta>[]): TreeNode<Pl
 }
 
 describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
-	it('broaden: pluginId query (4) + probe "a" (22) = cobertura completa', () => {
+	it('query por pluginId determinista (sin probe ciego "a")', () => {
 		const groups = listPluginSettingPages(vaultmanApp(), 'vaultman');
 		const pages = new Set(groups.map((g) => g.pagePath || g.page));
-		expect(groups.length).toBeGreaterThanOrEqual(22);
-		expect(pages.size).toBeGreaterThanOrEqual(21);
+		// Ahora solo usamos query por pluginId (determinista), sin broaden.
+		// El resultado es el filtrado nativo por tab === vaultman.
+		expect(groups.length).toBeGreaterThanOrEqual(4);
+		expect(pages.size).toBeGreaterThanOrEqual(3);
 	});
 
-	it('plugin homónimo → pages/definitions directas (canónica), cero espejos, cero labels vacíos', () => {
+	it('plugin homónimo → tab conservado con pages/definitions bajo él', () => {
 		const app = vaultmanApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		// Canónica 2026-09-25: el tab homónimo NO se emite como fila (ni
-		// espejo, ni tab homónimo); 21 pages + 5 definitions directas.
-		const kids = result[0]?.children ?? [];
-		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
-		expect(kids.length).toBeGreaterThanOrEqual(26);
-		const all = collectDescendants(kids);
+		// Canónica corregida: el tab homónimo SÍ se emite como fila (nivel 1),
+		// con pages/definitions bajo él (nivel 2).
+		const tabs = result[0]?.children ?? [];
+		expect(tabs).toHaveLength(1);
+		expect(tabs[0]?.id).toMatch(/#tab$/);
+		expect(tabs[0]?.label).toBe('Vaultman');
+		const pages = tabs[0]?.children ?? [];
+		expect(pages.length).toBeGreaterThanOrEqual(26);
+		const all = collectDescendants(pages);
 		const ids = all.map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
 		for (const n of all) {
-			expect(n.depth).toBe(base.depth + 1);
+			expect(n.depth).toBe(base.depth + 2);
 			expect(n.label.trim()).not.toBe('');
 			expect(n.id).toMatch(/^settings:/);
 			expect(n.cells).toEqual([]);
 			const ref = settingsBridgeRefOf(n.meta);
 			expect(ref).not.toBeNull();
-		// Espejo: fila verdaderamente idéntica (sin definición) no se
-		// emite (F9: el contenedor `page:''` nunca se emite para ningún
-		// tab). Una fila CON definición nunca es espejo aunque su page
-		// venga vacía (hijo por definición bajo el tab).
-			if (n.depth >= base.depth + 1) {
-				expect(!(ref?.tab === 'vaultman' && ref.page === '' && ref.pagePath === '' && ref.definition === '')).toBe(true);
-			}
 		}
 		// F9: el contenedor `page:''` (grupo tab-level) no aparece como
 		// page hija; hijos por definición (page vacía + definition real)
 		// sí son legítimos bajo el tab.
-		expect(kids.every((p) => {
+		expect(pages.every((p) => {
 			const ref = settingsBridgeRefOf(p.meta);
 			return ref ? !(ref.page === '' && ref.pagePath === '' && ref.definition === '') : true;
 		})).toBe(true);
@@ -197,18 +195,17 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 	it('ids hijo #page estables (canónica), sin colisión con búsqueda', () => {
 		const app = vaultmanApp();
 		const result = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		const kids = result[0]?.children ?? [];
-		expect(kids.length).toBeGreaterThan(0);
-		// Sin fila #tab homónima; pages con id estable `#page`.
-		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
-		const pages = kids.filter((k) => k.id.endsWith('#page'));
+		const tabs = result[0]?.children ?? [];
+		expect(tabs).toHaveLength(1);
+		expect(tabs[0]?.id).toMatch(/#tab$/);
+		const pages = tabs[0]?.children ?? [];
 		expect(pages.length).toBeGreaterThan(0);
 		for (const p of pages.slice(0, 5)) expect(p.id).toMatch(/#page$/);
 		// El sufijo `#` nunca aparece en ids del camino de búsqueda.
 		for (const p of pages) expect(p.id).toContain('#page');
 		// Re-resolver = mismos ids (estables, cache por pluginId)
 		const again = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		expect(again[0]?.children?.map((t) => t.id)).toEqual(kids.map((t) => t.id));
+		expect(again[0]?.children?.map((t) => t.id)).toEqual(tabs.map((t) => t.id));
 	});
 });
 

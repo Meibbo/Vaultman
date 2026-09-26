@@ -341,15 +341,24 @@ describe('settings bridge resolution', () => {
 				group('theme', [item('theme', 'Accent color')]),
 			],
 		});
-		// U130 parity MECH §1: self-tab interception — group.tab === known
-		// pluginId resolves to the legacy node_plugin WITH cells, keeping
-		// the native definition children beneath it.
+		// U130 canónica: self-tab interception — group.tab === known
+		// pluginId resuelve al legacy node_plugin CON celdas, PERO la
+		// jerarquía SIEMPRE es plugin → tab → page/definition.
+		// El plugin es el padre de nivel superior, el tab es su hijo (nivel 1),
+		// y las pages/definitions son hijas del tab (nivel 2).
 		expect(result.nodes.map((node) => node.id)).toEqual([
 			'plugin:calendar',
 			result.nodes[1]?.id,
 		]);
 		expect((result.nodes[0]?.cells ?? []).length).toBeGreaterThan(0);
-		expect(result.nodes[0]?.children?.map((c) => c.label)).toEqual([
+		// El plugin tiene un hijo tab (no pages directas)
+		const pluginChildren = result.nodes[0]?.children ?? [];
+		expect(pluginChildren).toHaveLength(1);
+		const tabNode = pluginChildren[0];
+		expect(tabNode.id).toMatch(/^settings:calendar::::#tab$/);
+		expect(tabNode.showCaret).toBe(true);
+		// El tab tiene las pages/definitions como hijas
+		expect(tabNode.children?.map((c) => c.label)).toEqual([
 			'Week start',
 		]);
 	});
