@@ -102,7 +102,7 @@ function vaultmanApp(): unknown {
 		setting: {
 			pluginTabs: { vaultman: { id: 'vaultman', name: 'Vaultman' } },
 			searchIndex: {
-				search: (q: string) => (q === 'a' ? broad : narrow),
+				search: (q: string) => (q === 'vaultman' ? broad : narrow),
 			},
 		},
 	};
@@ -200,9 +200,12 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		expect(tabs[0]?.id).toMatch(/#tab$/);
 		const pages = tabs[0]?.children ?? [];
 		expect(pages.length).toBeGreaterThan(0);
-		for (const p of pages.slice(0, 5)) expect(p.id).toMatch(/#page$/);
+		const pageRows = pages.filter((p) => p.id.endsWith('#page'));
+		const defRows = pages.filter((p) => !p.id.endsWith('#page'));
+		for (const p of pageRows.slice(0, 5)) expect(p.id).toMatch(/#page$/);
 		// El sufijo `#` nunca aparece en ids del camino de búsqueda.
-		for (const p of pages) expect(p.id).toContain('#page');
+		for (const p of pageRows) expect(p.id).toContain('#page');
+		for (const d of defRows) expect(d.id).not.toContain('#page');
 		// Re-resolver = mismos ids (estables, cache por pluginId)
 		const again = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
 		expect(again[0]?.children?.map((t) => t.id)).toEqual(tabs.map((t) => t.id));

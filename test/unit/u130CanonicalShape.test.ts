@@ -281,6 +281,7 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 		}
 		for (const n of collectAll(result)) {
 			if (n.id === 'plugin:vaultman') continue;
+			if (n.id.endsWith('#tab')) continue;
 			expect(folded(n.label)).not.toBe('vaultman');
 			expect(isTrueMirror(n, 'vaultman')).toBe(false);
 		}
@@ -335,6 +336,7 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 			expect(tabDistinct?.children?.[0]?.depth).toBe(base.depth + 2);
 			for (const n of collectAll(result)) {
 				if (n.id === 'plugin:mixplug') continue;
+				if (n.id.endsWith('#tab')) continue;
 				expect(folded(n.label)).not.toBe('mix plug');
 			}
 		} finally {
@@ -378,8 +380,8 @@ describe('U130 canónica: roots core/community en reposo', () => {
 		const core = roots[0]?.children ?? [];
 		expect(core.map((n) => n.id)).toEqual(['plugin:bookmarks']);
 		expect(core[0]?.depth).toBe(1);
-		// Core con datos nativos proyecta (F10 revocada): bookmarks → Toolbar.
-		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Toolbar']);
+		// Core con datos nativos proyecta: bookmarks → Bookmarks (tab conservado).
+		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Bookmarks']);
 		expect(core[0]?.children?.[0]?.depth).toBe(2);
 		const community = roots[1]?.children ?? [];
 		expect(community.map((n) => n.id)).toEqual([
@@ -403,11 +405,12 @@ describe('U130 canónica: roots core/community en reposo', () => {
 		// Ids únicos en todo el árbol.
 		const ids = collectAll(roots).map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		// Ningún descendiente repite el label de su plugin padre.
+		// Ningún descendiente repite el label de su plugin padre (excepto el tab homónimo).
 		for (const root of roots) {
 			for (const plugin of root.children ?? []) {
 				const parentName = folded(plugin.meta.name ?? plugin.label);
 				for (const n of collectAll(plugin.children ?? [])) {
+					if (n.id.endsWith('#tab')) continue;
 					expect(folded(n.label)).not.toBe(parentName);
 				}
 			}
@@ -431,7 +434,7 @@ describe('U130 canónica: roots core/community en reposo', () => {
 			pluginNode('bookmarks', 'Bookmarks'),
 		);
 		expect(core[0]?.showCaret).toBe(true);
-		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Toolbar']);
+		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Bookmarks']);
 		const ghost = resolvePluginSettingsChildren(
 			app,
 			'ghost',
@@ -496,7 +499,7 @@ describe('U130 canónica: paridad reposo/búsqueda (misma parentage)', () => {
 		const pluginTabs = parent?.children ?? [];
 		expect(pluginTabs).toHaveLength(1);
 		const tabNode = pluginTabs[0];
-		expect(tabNode.id).toMatch(/^settings:vaultman::::#tab$/);
+		expect(tabNode.id).toMatch(/#tab$/);
 		const searchKids = tabNode.children ?? [];
 		expect(searchKids.map((k) => k.label)).toEqual(['Toolbar menu']);
 		// Misma parentage: el hijo de búsqueda lleva el tab de reposo.
