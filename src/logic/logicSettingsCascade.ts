@@ -46,6 +46,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		createActionsPlacement: input.defaults.createActionsPlacement,
 		toolbarNodeOrder: cloneCells(input.defaults.toolbarNodeOrder),
 		groupMemberships: cloneGroupMemberships(input.defaults.groupMemberships),
+		showOptionsOverride: input.defaults.showOptionsOverride,
 	};
 	for (const layer of layers) {
 		if (!layer) continue;
@@ -85,6 +86,11 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		// declara decide los grupos enteros de esa scene.
 		if (layer.groupMemberships !== undefined) {
 			out.groupMemberships = cloneGroupMemberships(layer.groupMemberships);
+		}
+		// U130 spec-02: tri-estado concreto (`inherit` es la ausencia); la
+		// capa que lo declara decide, como `sceneLabelMode`.
+		if (layer.showOptionsOverride !== undefined) {
+			out.showOptionsOverride = layer.showOptionsOverride;
 		}
 	}
 	return out;
@@ -172,6 +178,9 @@ export function diffSceneConfig(
 		JSON.stringify(baseline.groupMemberships)
 	) {
 		patch.groupMemberships = cloneGroupMemberships(next.groupMemberships);
+	}
+	if (next.showOptionsOverride !== baseline.showOptionsOverride) {
+		patch.showOptionsOverride = next.showOptionsOverride;
 	}
 	return patch;
 }

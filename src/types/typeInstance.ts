@@ -2,6 +2,7 @@ import type { ExplorerSortState, ExplorerTabId, ExplorerViewMode } from './typeU
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';
+import type { ShowOptionsOverride } from '../logic/logicSettingSceneOptions';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -98,6 +99,14 @@ export interface SceneConfig {
 	 * ahora solo los fotografia (`SavedViewConfig.groupMemberships`).
 	 */
 	groupMemberships?: Record<string, readonly string[]>;
+	/**
+	 * U130 spec-02: override per-instance per-scene de la sección "Options"
+	 * de settingScene (patrón U130-09). `inherit` = cae al global
+	 * `settings.settingScene.showOptionsByDefault`; `show` la fuerza visible;
+	 * `plugins-only` la oculta (solo plugins). Solo lo escribe el menú del
+	 * toolbar de esta scene; la UI de Settings solo toca el global.
+	 */
+	showOptionsOverride?: ShowOptionsOverride;
 }
 
 export interface WorkspaceInstanceRecord {

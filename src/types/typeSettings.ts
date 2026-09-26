@@ -49,6 +49,11 @@ export interface SavedViewConfig {
 	stickyRows?: boolean;
 	compactFolders?: boolean;
 	indent?: boolean;
+	/**
+	 * U130 spec-02: el override Options de esa scene (copia profunda en la
+	 * foto; el legacy sin campo no toca lo vivo al restaurar).
+	 */
+	showOptionsOverride?: import('../logic/logicSettingSceneOptions').ShowOptionsOverride;
 }
 
 /** Floating index state captured with a layout (D40). */
@@ -154,6 +159,15 @@ export interface VaultmanSettings {
 	 * content scene-local (F6). Vive junto a `explorerSearchHighlights`.
 	 */
 	settingSceneGoToTarget: SettingSceneGoToTarget;
+	/**
+	 * U130 spec-02 (camino conceptual `settings.settingScene.showOptionsByDefault`):
+	 * fallback global de la sección "Options" de settingScene. Plano como
+	 * `settingSceneGoToTarget` (precedente vigente, sin objeto anidado).
+	 * `false` (default, opt-in) = solo plugins salvo override `show`;
+	 * `true` = la sección se muestra salvo override `plugins-only`. Solo lo
+	 * escribe la UI de Settings; el toolbar escribe el override per-instance.
+	 */
+	settingSceneShowOptionsByDefault: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
 	/** How to present the File Move UI: inline within the explorer or in a modal */
@@ -522,6 +536,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,
 	settingSceneGoToTarget: 'modal',
+	settingSceneShowOptionsByDefault: false,
 	explorerOperationScope: 'auto',
 	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',
