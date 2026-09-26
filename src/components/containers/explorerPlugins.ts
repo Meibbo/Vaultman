@@ -1226,6 +1226,15 @@ export class PluginsExplorerPanel
 		return null;
 	}
 
+	sortNodeLabel(id: string): string | null {
+		const node = this.findNode(id);
+		return node?.label ?? null;
+	}
+
+	scopeLevelForNode(_id: string): number | null {
+		return null;
+	}
+
 	expandNodeById(_id: string): void {}
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
