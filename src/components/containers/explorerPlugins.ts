@@ -56,6 +56,7 @@ import {
 	executeSettingSceneActivation,
 	hasSettingOpenApi,
 	normalizeSettingSceneGoToTarget,
+	openSettingsTabById,
 	resolveSettingSceneActivation,
 } from '../../logic/logicSettingSceneActivation';
 import {
@@ -1204,6 +1205,11 @@ export class PluginsExplorerPanel
 			return;
 		}
 		this._toggleExpandedGroup(id);
+		if (id === 'group:community-plugins') {
+			openSettingsTabById(this.plugin.app, 'community-plugins');
+		} else if (id === 'group:core-plugins') {
+			openSettingsTabById(this.plugin.app, 'core-plugins');
+		}
 	}
 
 	private tooltip(meta: PluginMeta): string {
