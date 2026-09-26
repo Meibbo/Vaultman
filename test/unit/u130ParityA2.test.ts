@@ -156,24 +156,22 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		expect(pages.size).toBeGreaterThanOrEqual(21);
 	});
 
-	it('plugin → tab → pages/definitions (F8), cero espejos, cero labels vacíos', () => {
+	it('plugin homónimo → pages/definitions directas (canónica), cero espejos, cero labels vacíos', () => {
 		const app = vaultmanApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		// F8: nivelación `plugin → tab → page` siempre — el single-tab
-		// homónimo TAMBIÉN muestra su nivel `#tab`.
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.depth).toBe(base.depth + 1);
-		const pages = tabs[0]?.children ?? [];
-		expect(pages.length).toBeGreaterThanOrEqual(10);
-		const all = collectDescendants(pages);
+		// Canónica 2026-09-25: el tab homónimo NO se emite como fila (ni
+		// espejo, ni tab homónimo); 21 pages + 5 definitions directas.
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		expect(kids.length).toBeGreaterThanOrEqual(26);
+		const all = collectDescendants(kids);
 		const ids = all.map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
 		for (const n of all) {
+			expect(n.depth).toBe(base.depth + 1);
 			expect(n.label.trim()).not.toBe('');
 			expect(n.id).toMatch(/^settings:/);
 			expect(n.cells).toEqual([]);
@@ -190,24 +188,27 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		// F9: el contenedor `page:''` (grupo tab-level) no aparece como
 		// page hija; hijos por definición (page vacía + definition real)
 		// sí son legítimos bajo el tab.
-		expect(pages.every((p) => {
+		expect(kids.every((p) => {
 			const ref = settingsBridgeRefOf(p.meta);
 			return ref ? !(ref.page === '' && ref.pagePath === '' && ref.definition === '') : true;
 		})).toBe(true);
 	});
 
-	it('ids hijo #tab/#page estables (F8), sin colisión con búsqueda', () => {
+	it('ids hijo #page estables (canónica), sin colisión con búsqueda', () => {
 		const app = vaultmanApp();
 		const result = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		const pages = tabs[0]?.children ?? [];
+		const kids = result[0]?.children ?? [];
+		expect(kids.length).toBeGreaterThan(0);
+		// Sin fila #tab homónima; pages con id estable `#page`.
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		const pages = kids.filter((k) => k.id.endsWith('#page'));
 		expect(pages.length).toBeGreaterThan(0);
 		for (const p of pages.slice(0, 5)) expect(p.id).toMatch(/#page$/);
+		// El sufijo `#` nunca aparece en ids del camino de búsqueda.
+		for (const p of pages) expect(p.id).toContain('#page');
 		// Re-resolver = mismos ids (estables, cache por pluginId)
 		const again = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		expect(again[0]?.children?.map((t) => t.id)).toEqual(tabs.map((t) => t.id));
+		expect(again[0]?.children?.map((t) => t.id)).toEqual(kids.map((t) => t.id));
 	});
 });
 

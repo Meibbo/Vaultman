@@ -26,9 +26,11 @@ import {
 } from '../../logic/logicAddonIcons';
 import {
 	buildAddonHoverInfo,
+	buildCanonicalRestRoots,
 	filterAddonEntries,
 	formatAddonTimestamp,
 	isSettingsSearchActive,
+	listCorePluginStubs,
 	resolveSettingsBridgeNodes,
 	sortAddonEntries,
 	type AddonExplorerPanelPort,
@@ -46,9 +48,6 @@ import {
 	pluginSettingTabIds,
 	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
-import {
-	resolvePluginSettingsChildren,
-} from '../../logic/logicAddonExplorer';
 import {
 	executeSettingSceneActivation,
 	hasSettingOpenApi,
@@ -621,47 +620,11 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
-	private readonly _pluginSettingsChildrenCache = new Map<
-		string,
-		{ children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> }
-	>();
-
-	private _getPluginSettingsChildren(
-		pluginId: string,
-		node: TreeNode<PluginMeta>,
-	): { children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> } {
-		const cache = this._pluginSettingsChildrenCache.get(pluginId);
-		const tabIds = pluginSettingTabIds(this.plugin.app);
-		// U130 parity A2: invalidar por enable/disable y por cambio de tabs
-		// (comparación por valor: cada llamada crea un Set nuevo).
-		if (
-			cache &&
-			cache.enabled === node.meta.enabled &&
-			sameIdSet(cache.tabIds, tabIds)
-		) {
-			return cache;
-		}
-		// `resolvePluginSettingsChildren` devuelve el padre completo
-		// ([hoja] o [padre con tabs]); aquí solo se cachean los tabs
-		// (nivel 1). El padre ya lo tiene el llamador (no auto-anidado).
-		const resolved = resolvePluginSettingsChildren(
-			this.plugin.app,
-			pluginId,
-			node,
-		);
-		const tabs = resolved[0]?.children ?? [];
-		this._pluginSettingsChildrenCache.set(pluginId, {
-			children: tabs,
-			enabled: node.meta.enabled,
-			tabIds,
-		});
-		return this._pluginSettingsChildrenCache.get(pluginId)!;
-	}
-
 	private rebuildNodes(): void {
 		// U130 Slice A: término activo = camino nativo (sin `searchText`
 		// local, sin re-sort: el ranking es el orden nativo). Término vacío
-		// = camino legacy idéntico al de antes del puente.
+		// = forma canónica 2026-09-25: grupos core/community → plugins →
+		// tabs/pages en orden nativo. Sin tabs el plugin queda hoja (F4).
 		if (isSettingsSearchActive(this.searchTerm)) {
 			this.rebuildSettingsBridgeNodes();
 			return;
@@ -674,31 +637,45 @@ export class PluginsExplorerPanel
 					.filter(Boolean)
 					.join(' '),
 		);
-		const entries = sortAddonEntries(
-			filtered,
-			activeScopeSort('plugins', this.sortState),
-		);
-		this.nodes = this.buildPluginNodes(entries);
-		// U130 Spec 07 + parity A2 (F3): term vacío conserva el sort de
-		// plugins; cada plugin recibe tabs (nivel 1) → pages (nivel 2) en
-		// orden nativo. Sin tabs el plugin queda hoja (F4).
+		const scopeSort = activeScopeSort('plugins', this.sortState);
+		const entries = sortAddonEntries(filtered, scopeSort);
+		// U130 forma canónica: core por id (nunca display name). Los stubs
+		// core llevan el mismo sort de scope que los community.
+		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
+		const coreMetas: PluginMeta[] = sortAddonEntries(
+			listCorePluginStubs(this.plugin.app, communityIds).map((stub) => ({
+				name: stub.name,
+				enabled: stub.enabled,
+				pluginId: stub.pluginId,
+			})),
+			scopeSort,
+		).map((stub) => ({
+			pluginId: stub.pluginId,
+			name: stub.name,
+			enabled: stub.enabled,
+			loaded: false,
+			isVaultman: false,
+		}));
+		const communityNodes = this.buildPluginNodes(entries);
+		const coreNodes = this.buildPluginNodes(coreMetas);
 		// U130 parity B (F1): con nesting off, filas planas sin caret.
 		const nestedOn = this._nestedEnabled();
-		for (const node of this.nodes) {
-			if (node.meta?.pluginId) {
-				if (!nestedOn) {
-					node.children = [];
-					node.showCaret = false;
-					continue;
-				}
-				const { children: tabNodes } = this._getPluginSettingsChildren(
-					node.meta.pluginId,
-					node,
-				);
-				node.children = tabNodes;
-				node.showCaret = tabNodes.length > 0;
+		if (!nestedOn) {
+			const flat = [...communityNodes, ...coreNodes];
+			for (const node of flat) {
+				node.children = [];
+				node.showCaret = false;
 			}
+			this.nodes = flat;
+			this.settingsSearchHighlightIds = new Set<string>();
+			this.render();
+			return;
 		}
+		this.nodes = buildCanonicalRestRoots({
+			app: this.plugin.app,
+			pluginNodes: [...communityNodes, ...coreNodes],
+			communityIds,
+		});
 		this.settingsSearchHighlightIds = new Set<string>();
 		this.render();
 	}
@@ -1355,13 +1332,6 @@ export class PluginsExplorerPanel
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
 		}
 	}
-}
-
-/** Comparación por valor para la invalidación de la caché de tabs. */
-function sameIdSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
-	if (a.size !== b.size) return false;
-	for (const id of a) if (!b.has(id)) return false;
-	return true;
 }
 
 /**

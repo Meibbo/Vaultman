@@ -317,7 +317,7 @@ describe('U130 parity MECH §2: hijos por definición (page-less)', () => {
 		}
 	});
 
-	it('término vacío: developer-toolbox single same-named tab → plugin → tab → definitions (F8, sin colapso)', () => {
+	it('término vacío: developer-toolbox single homónimo → pages directas, sin fila #tab (canónica, sin duplicado)', () => {
 		const app = mechApp();
 		const base = pluginNode('developer-toolbox', 'Developer Toolbox');
 		const result = resolvePluginSettingsChildren(
@@ -327,20 +327,17 @@ describe('U130 parity MECH §2: hijos por definición (page-less)', () => {
 		);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		// F8: nivelación `plugin → tab → page` siempre — el single-tab
-		// homónimo TAMBIÉN muestra su nivel `#tab`.
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.label).toBe('Developer Toolbox');
-		expect(tabs[0]?.depth).toBe(base.depth + 1);
-		// F9: el contenedor `page:''` nunca se emite; las 9
-		// definiciones cuelgan del tab con `settingsBridgeRowId`.
-		const kids = tabs[0]?.children ?? [];
+		// Canónica 2026-09-25: el tab homónimo NO se emite como fila (ni
+		// espejo, ni tab homónimo con label del plugin); las 9
+		// definiciones cuelgan directas del plugin.
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
 		expect(kids).toHaveLength(9);
 		for (const k of kids) {
 			expect(k.id).not.toMatch(/#tab$/);
-			expect(k.depth).toBe(base.depth + 2);
+			expect(k.depth).toBe(base.depth + 1);
+			// El tab persiste como identidad en el ref.
+			expect(settingsBridgeRefOf(k.meta)?.tab).toBe('developer-toolbox');
 		}
 		const labels = kids.map((k) => k.label);
 		expect(labels).toContain('Storage folder');
@@ -410,19 +407,17 @@ describe('U130 parity MECH §3: vaultman un tab + N pages, sin espejos', () => {
 		};
 	}
 
-	it('un tab homónimo → plugin → tab → pages + definitions (F8, sin colapso), cero espejos', () => {
+	it('un tab homónimo → pages + definitions directas, cero espejos (canónica: sin fila duplicada)', () => {
 		const app = vaultmanApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		// F8: el nivel `#tab` SIEMPRE se emite (single homónimo incluido).
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.depth).toBe(base.depth + 1);
-		const kids = tabs[0]?.children ?? [];
-		for (const k of kids) expect(k.depth).toBe(base.depth + 2);
+		// Canónica 2026-09-25: el tab homónimo no se emite; pages (21) +
+		// definitions tab-level (5) cuelgan directas del plugin.
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		for (const k of kids) expect(k.depth).toBe(base.depth + 1);
 		const pages = kids.filter((k) => k.id.endsWith('#page'));
 		// Todas las pages live (21 sin la vacía) presentes.
 		expect(pages.length).toBeGreaterThanOrEqual(21);
@@ -448,7 +443,7 @@ describe('U130 parity MECH §3: vaultman un tab + N pages, sin espejos', () => {
 	});
 });
 
-describe('U130 F8: nivelación plugin → tab → page siempre (sin colapso)', () => {
+describe('U130 canónica: nivelación plugin → tab → page, homónimos hoisteados (revisión F8)', () => {
 	function navVaultmanApp(): unknown {
 		const pages = ['', 'Context menus', 'Developer tools'];
 		const groups = pages.map((p) =>
@@ -505,32 +500,29 @@ describe('U130 F8: nivelación plugin → tab → page siempre (sin colapso)', (
 		expect(kids[0]?.label).toBe('General');
 	});
 
-	it('single same-named tab keeps its level (F8: no collapse); ids/refs intact, depths +1/+2', () => {
+	it('single same-named tab hoista sus hijos (canónica: sin duplicado); ids/refs intactos, depths +1', () => {
 		const app = navVaultmanApp();
 		const base = pluginNode('vaultman', '  VAULTMAN  ');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
-		// F8: aunque el label equal al del plugin (trimmed,
-		// case-insensitive), el nivel `#tab` se conserva.
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.depth).toBe(base.depth + 1);
-		const kids = tabs[0]?.children ?? [];
+		// Canónica: aunque el label equal al del plugin (trimmed,
+		// case-insensitive), NO hay fila `#tab`: pages directas.
+		const kids = result[0]?.children ?? [];
 		expect(kids.length).toBeGreaterThan(0);
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
 		// Ids/refs/go_to payloads intact: page id extends group id + #page,
-		// depth es +2 bajo el tab, refs carry the native triple.
+		// depth es +1 bajo el plugin, refs carry the native triple.
 		const page = kids.find((k) => k.id.endsWith('#page'));
 		expect(page).toBeDefined();
 		const ref = settingsBridgeRefOf(page!.meta);
 		expect(ref?.tab).toBe('vaultman');
-		expect(page!.depth).toBe(base.depth + 2);
+		expect(page!.depth).toBe(base.depth + 1);
 		expect(page!.id).toBe(
 			`${settingsBridgeGroupRowId(ref!.tab, ref!.pagePath || ref!.page)}#page`,
 		);
 	});
 
-	it('two tabs → tab level survives (no collapse)', () => {
+	it('two tabs: distinto sobrevive; homónimo hoista (canónica: cero duplicados)', () => {
 		const groups = [
 			{
 				tab: 'twoplug',
@@ -565,12 +557,20 @@ describe('U130 F8: nivelación plugin → tab → page siempre (sin colapso)', (
 				base,
 			);
 			expect(result).toHaveLength(1);
-			const tabs = result[0]?.children ?? [];
-			expect(tabs).toHaveLength(2);
-			expect(tabs[0]?.id).toMatch(/#tab$/);
-			expect(tabs[1]?.id).toMatch(/#tab$/);
-			const labels = tabs.map((t) => t.label).sort();
-			expect(labels).toEqual(['Two Plug', 'Two Plug Second']);
+			const kids = result[0]?.children ?? [];
+			// 'Two Plug' homónimo → 'General' hoisteada directa; solo
+			// 'Two Plug Second' conserva su nivel `#tab`.
+			expect(kids.map((k) => k.label).sort()).toEqual([
+				'General',
+				'Two Plug Second',
+			]);
+			const hoisted = kids.find((k) => k.label === 'General');
+			expect(hoisted?.id).toMatch(/#page$/);
+			expect(hoisted?.depth).toBe(base.depth + 1);
+			const kept = kids.find((k) => k.label === 'Two Plug Second');
+			expect(kept?.id).toMatch(/#tab$/);
+			expect(kept?.depth).toBe(base.depth + 1);
+			expect(kept?.children?.map((c) => c.label)).toEqual(['Advanced']);
 		} finally {
 			spy.mockRestore();
 		}
@@ -702,11 +702,17 @@ describe('U130 F9: contenedor page:\'\' nunca se emite (ningún tab)', () => {
 				base,
 			);
 			expect(result).toHaveLength(1);
-			const tabs = result[0]?.children ?? [];
-			expect(tabs).toHaveLength(2);
+			const kids = result[0]?.children ?? [];
+			// Tab ajeno page-less ('Second Tab', distinto): conserva su
+			// nivel con la definición cosechada; tab homónimo ('My Plug'):
+			// 'General' hoisteada directa (canónica: cero duplicados).
+			expect(kids.map((k) => k.label).sort()).toEqual([
+				'General',
+				'Second Tab',
+			]);
 			// Tab ajeno page-less: SIN page contenedor; la definición
 			// cosechada como hija directa del tab con settingsBridgeRowId.
-			const foreign = tabs.find((t) => t.label === 'Second Tab');
+			const foreign = kids.find((t) => t.label === 'Second Tab');
 			expect(foreign).toBeDefined();
 			expect(foreign?.id).toMatch(/#tab$/);
 			const fkids = foreign?.children ?? [];
@@ -721,6 +727,9 @@ describe('U130 F9: contenedor page:\'\' nunca se emite (ningún tab)', () => {
 				}),
 			);
 			expect(fkids[0]?.depth).toBe(base.depth + 2);
+			const hoisted = kids.find((k) => k.label === 'General');
+			expect(hoisted?.depth).toBe(base.depth + 1);
+			expect(hoisted?.id).toMatch(/#page$/);
 			// Ninguna fila idéntica vacía en todo el árbol emitido.
 			for (const n of collectAll(result)) {
 				expect(isTrueMirror(n, 'myplug')).toBe(false);
@@ -731,7 +740,7 @@ describe('U130 F9: contenedor page:\'\' nunca se emite (ningún tab)', () => {
 	});
 });
 
-describe('U130 F10: id canónico + core-plugins prohibido en term vacío', () => {
+describe('U130 F10 REVOCADA 2026-09-25: id canónico + core se proyecta diferenciado', () => {
 	it('canonicalPluginId: trim + lowercase + runs espacio/_ → -', () => {
 		expect(canonicalPluginId('Hot Reload')).toBe('hot-reload');
 		expect(canonicalPluginId('  Calendar ')).toBe('calendar');
@@ -743,8 +752,32 @@ describe('U130 F10: id canónico + core-plugins prohibido en term vacío', () =>
 		);
 	});
 
-	it('core plugin sin entrada en pluginTabs queda hoja (prohibición explícita)', () => {
-		const app = mechApp(); // 16 ids community, ningún core id
+	it('core con contenido nativo proyecta tab → page (no queda hoja)', () => {
+		const raw = rawGroup('bookmarks', 'Toolbar', ['Toolbar button']);
+		const app = {
+			setting: {
+				pluginTabs: [{ id: 'bookmarks', name: 'Bookmarks' }],
+				searchIndex: {
+					search: (q: string) => (q === 'bookmarks' ? [raw] : []),
+				},
+			},
+		};
+		const base = pluginNode('bookmarks', 'Bookmarks');
+		const result = resolvePluginSettingsChildren(app, 'bookmarks', base);
+		expect(result).toHaveLength(1);
+		expect(result[0]?.showCaret).toBe(true);
+		const kids = result[0]?.children ?? [];
+		// Tab homónimo hoisteado (canónica): page directa, sin duplicado.
+		expect(kids.map((k) => k.label)).toEqual(['Toolbar']);
+		expect(kids[0]?.depth).toBe(base.depth + 1);
+		for (const n of collectAll(result)) {
+			if (n.id === 'plugin:bookmarks') continue;
+			expect(isTrueMirror(n, 'bookmarks')).toBe(false);
+		}
+	});
+
+	it('id sin contenido nativo queda hoja (F4, no por ser core)', () => {
+		const app = mechApp(); // 16 ids community, ningún dato para `editor`
 		const base = pluginNode('editor', 'Editor');
 		const result = resolvePluginSettingsChildren(app, 'editor', base);
 		expect(result).toHaveLength(1);
