@@ -207,12 +207,6 @@ export function queryNativeSettingsSearch(
  * group.tab === pluginId, orden nativo, sin re-rank.
  * Ausencia total: [] (plugin hoja, sin hijos inventados, sin scrapeo).
  */
-/**
- * U130 parity A2 (F2): caché por pluginId para la enumeración de pages.
- * Clave de invalidación: firma de `pluginTabs` (ids ordenados). El
- * enable/disable lo invalida el panel (ver `_getPluginSettingsChildren`);
- * aquí se invalida por cambio de tabs (instalación/desinstalación).
- */
 const pluginPagesCache = new Map<string, { tabSig: string; groups: NativeSettingsSearchGroup[] }>();
 
 function pluginTabsSignature(app: unknown): string {
@@ -235,10 +229,6 @@ function pluginTabsSignature(app: unknown): string {
 			.join('|');
 	}
 	return '';
-}
-
-function groupIdentity(g: NativeSettingsSearchGroup): string {
-	return `${g.tab}::${g.pagePath}::${g.page}`;
 }
 
 export function listPluginSettingPages(
@@ -267,36 +257,13 @@ function listPluginSettingPagesUncached(
 	if (hasResults) return declarative;
 
 	// Fallback: búsqueda nativa filtrada por group.tab === pluginId,
-	// orden nativo, sin re-rank.
-	// Paso 1: query por pluginId (precisa, pero incompleta en vivo:
-	// `search("vaultman")` devuelve 4 grupos vaultman frente a 22 con
-	// `search("a")` en Obsidian Help 1.3.0-beta.7).
+	// orden nativo, sin re-rank. Usamos SOLO query por pluginId (determinista),
+	// sin probe ciego `search('a')` que introducía resultados de otros plugins
+	// y dependía de heurísticas de cobertura.
 	const primary = queryNativeSettingsSearch(app, pluginId).filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	// Paso 2 (broaden SOLO hasta cobertura completa): probe de cobertura
-	// con `search("a")` filtrado por tab. Si aporta pages distintas
-	// nuevas, unión en orden nativo (primero primary, luego las nuevas
-	// del probe), sin re-rank. Si no aporta nada, se queda el primary.
-	let broadened: NativeSettingsSearchGroup[] = [];
-	try {
-		broadened = queryNativeSettingsSearch(app, 'a').filter(
-			(candidate) => candidate.tab === pluginId,
-		);
-	} catch {
-		broadened = [];
-	}
-	if (broadened.length === 0) return primary;
-	const seen = new Set(primary.map(groupIdentity));
-	const union = [...primary];
-	for (const candidate of broadened) {
-		const key = groupIdentity(candidate);
-		if (!seen.has(key)) {
-			seen.add(key);
-			union.push(candidate);
-		}
-	}
-	return union;
+	return primary;
 }
 
 /**

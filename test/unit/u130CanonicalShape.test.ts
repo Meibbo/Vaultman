@@ -256,24 +256,28 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 		}
 	});
 
-	it('single-tab homónimo (adapter real): pages directas, sin fila #tab', () => {
+	it('single-tab homónimo (adapter real): tab conservado con pages bajo él', () => {
 		const app = restApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		const kids = result[0]?.children ?? [];
-		// Sin nivel intermedio con el nombre del plugin.
-		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
-		expect(kids.map((k) => k.label).sort()).toEqual([
+		const tabs = result[0]?.children ?? [];
+		// El tab homónimo SÍ se emite como fila (nivel 1), con pages bajo él (nivel 2).
+		expect(tabs).toHaveLength(1);
+		expect(tabs[0]?.id).toMatch(/#tab$/);
+		expect(tabs[0]?.label).toBe('Vaultman');
+		expect(tabs[0]?.depth).toBe(base.depth + 1);
+		const pages = tabs[0]?.children ?? [];
+		expect(pages.map((p) => p.label).sort()).toEqual([
 			'Context menus',
 			'General',
 		]);
-		for (const kid of kids) {
-			expect(kid.depth).toBe(base.depth + 1);
-			expect(kid.id).toMatch(/#page$/);
+		for (const page of pages) {
+			expect(page.depth).toBe(base.depth + 2);
+			expect(page.id).toMatch(/#page$/);
 			// El tab persiste como identidad en el ref.
-			expect(settingsBridgeRefOf(kid.meta)?.tab).toBe('vaultman');
+			expect(settingsBridgeRefOf(page.meta)?.tab).toBe('vaultman');
 		}
 		for (const n of collectAll(result)) {
 			if (n.id === 'plugin:vaultman') continue;
@@ -282,7 +286,7 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 		}
 	});
 
-	it('multi-tab mixto: homónimo hoisteado + distinto conservado', () => {
+	it('multi-tab mixto: ambos tabs conservados con su nivel', () => {
 		const groups = [
 			{
 				tab: 'mixplug',
@@ -313,17 +317,22 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 				'mixplug',
 				base,
 			);
-			const kids = result[0]?.children ?? [];
-			// 'General' hoisteada del tab homónimo; 'Pro' conserva su nivel.
-			expect(kids.map((k) => k.label).sort()).toEqual(['General', 'Pro']);
-			const hoisted = kids.find((k) => k.label === 'General');
-			expect(hoisted?.depth).toBe(base.depth + 1);
-			expect(hoisted?.id).toMatch(/#page$/);
-			const kept = kids.find((k) => k.label === 'Pro');
-			expect(kept?.id).toMatch(/#tab$/);
-			expect(kept?.depth).toBe(base.depth + 1);
-			expect(kept?.children?.map((c) => c.label)).toEqual(['Advanced']);
-			expect(kept?.children?.[0]?.depth).toBe(base.depth + 2);
+			const tabs = result[0]?.children ?? [];
+			// Ambos tabs se conservan: el homónimo y el distinto.
+			expect(tabs).toHaveLength(2);
+			const tabHomonym = tabs.find((t) => t.label === 'Mix Plug');
+			expect(tabHomonym).toBeDefined();
+			expect(tabHomonym?.id).toMatch(/#tab$/);
+			expect(tabHomonym?.depth).toBe(base.depth + 1);
+			// El tab homónimo tiene su page como hija
+			expect(tabHomonym?.children?.map((c) => c.label)).toEqual(['General']);
+			expect(tabHomonym?.children?.[0]?.depth).toBe(base.depth + 2);
+			const tabDistinct = tabs.find((t) => t.label === 'Pro');
+			expect(tabDistinct).toBeDefined();
+			expect(tabDistinct?.id).toMatch(/#tab$/);
+			expect(tabDistinct?.depth).toBe(base.depth + 1);
+			expect(tabDistinct?.children?.map((c) => c.label)).toEqual(['Advanced']);
+			expect(tabDistinct?.children?.[0]?.depth).toBe(base.depth + 2);
 			for (const n of collectAll(result)) {
 				if (n.id === 'plugin:mixplug') continue;
 				expect(folded(n.label)).not.toBe('mix plug');
@@ -377,9 +386,14 @@ describe('U130 canónica: roots core/community en reposo', () => {
 			'plugin:vaultman',
 			'plugin:my-bookmarks',
 		]);
-		// Vaultman homónimo: pages directas en depth 2 (grupo 0 → plugin 1).
-		const vaultKids = community[0]?.children ?? [];
-		expect(vaultKids.map((k) => k.label).sort()).toEqual([
+		// Vaultman homónimo: tab conservado con pages bajo él.
+		const vaultmanPlugin = community[0];
+		const vaultTabs = vaultmanPlugin?.children ?? [];
+		expect(vaultTabs).toHaveLength(1);
+		expect(vaultTabs[0]?.label).toBe('Vaultman');
+		expect(vaultTabs[0]?.id).toMatch(/#tab$/);
+		const vaultPages = vaultTabs[0]?.children ?? [];
+		expect(vaultPages.map((k) => k.label).sort()).toEqual([
 			'Context menus',
 			'General',
 		]);
@@ -477,7 +491,13 @@ describe('U130 canónica: paridad reposo/búsqueda (misma parentage)', () => {
 		const parent = bridge.nodes.find((n) => n.id === 'plugin:vaultman');
 		expect(parent).toBeDefined();
 		expect(parent?.cells?.some((c) => c.kind === 'toggle')).toBe(true);
-		const searchKids = parent?.children ?? [];
+		// En búsqueda, la jerarquía SIEMPRE es plugin → tab → page.
+		// El plugin tiene un hijo tab, y el tab tiene las pages.
+		const pluginTabs = parent?.children ?? [];
+		expect(pluginTabs).toHaveLength(1);
+		const tabNode = pluginTabs[0];
+		expect(tabNode.id).toMatch(/^settings:vaultman::::#tab$/);
+		const searchKids = tabNode.children ?? [];
 		expect(searchKids.map((k) => k.label)).toEqual(['Toolbar menu']);
 		// Misma parentage: el hijo de búsqueda lleva el tab de reposo.
 		expect(settingsBridgeRefOf(searchKids[0].meta)?.tab).toBe('vaultman');
@@ -518,7 +538,9 @@ describe('U130 canónica: paridad reposo/búsqueda (misma parentage)', () => {
 				pluginNode('vaultman', 'Vaultman'),
 			);
 			expect(rest[0]?.id).toBe(parent?.id);
-			const restTab = (rest[0]?.children ?? [])[0];
+			const restTabs = rest[0]?.children ?? [];
+			expect(restTabs).toHaveLength(1);
+			const restTab = restTabs[0];
 			expect(restTab?.label).toBe('Context menus');
 			// El tab de reposo y el ref del hijo de búsqueda comparten tab.
 			const restPage = restTab?.children?.[0];
