@@ -512,4 +512,59 @@ describe('navbarFilters monta BarTransaction', () => {
 		expect(document.body.classList.contains('is-grabbing')).toBe(false);
 		expect(proposedConfigs).toHaveLength(0);
 	});
+
+	it('suprime el evento click posterior al soltar un arrastre, pero permite clicks estáticos', () => {
+		const el = render();
+		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');
+		const nodes = Array.from(
+			bar?.querySelectorAll<HTMLElement>('[data-panel-widget-node-id]') ?? [],
+		);
+		expect(nodes.length).toBeGreaterThanOrEqual(3);
+		if (!bar || nodes.length < 3) return;
+
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				right: left + width,
+				top: 0,
+				bottom: 40,
+				width,
+				height: 40,
+			}) as DOMRect;
+		bar.getBoundingClientRect = () => rect(0, 500);
+		nodes.forEach((node, index) => {
+			node.getBoundingClientRect = () => rect(index * 50, 40);
+		});
+		const pointer = (type: string, clientX: number, clientY = 20) => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				button: 0,
+				clientX,
+				clientY,
+			});
+			Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+			return event;
+		};
+
+		// 1. Click estático (sin superar umbral de 5px): no debe suprimirse
+		nodes[0].dispatchEvent(pointer('pointerdown', 20));
+		window.dispatchEvent(pointer('pointerup', 20));
+		flushSync();
+
+		const staticClick = new MouseEvent('click', { bubbles: true, cancelable: true });
+		nodes[0].dispatchEvent(staticClick);
+		expect(staticClick.defaultPrevented).toBe(false);
+
+		// 2. Click posterior a un arrastre real: debe ser interceptado y suprimido
+		nodes[0].dispatchEvent(pointer('pointerdown', 20));
+		window.dispatchEvent(pointer('pointermove', 110));
+		flushSync();
+		window.dispatchEvent(pointer('pointerup', 110));
+		flushSync();
+
+		const dragTrailingClick = new MouseEvent('click', { bubbles: true, cancelable: true });
+		nodes[0].dispatchEvent(dragTrailingClick);
+		expect(dragTrailingClick.defaultPrevented).toBe(true);
+	});
 });
+

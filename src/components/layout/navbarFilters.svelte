@@ -264,10 +264,14 @@ import {
 						item.setTitle(node.item.value.title);
 						if (node.item.value.icon) item.setIcon(node.item.value.icon);
 						if (node.item.value.checked !== undefined) {
-							item.setChecked(node.item.value.checked);
+							(item as typeof item & { setChecked?: (c: boolean) => void }).setChecked?.(
+								node.item.value.checked,
+							);
 						}
 						if (node.item.value.disabled !== undefined) {
-							item.setDisabled(node.item.value.disabled);
+							(item as typeof item & { setDisabled?: (d: boolean) => void }).setDisabled?.(
+								node.item.value.disabled,
+							);
 						}
 						if (node.item.children) {
 							const submenu = (
@@ -1517,7 +1521,22 @@ import {
 		);
 	}
 
+	let panelWidgetTrailingClickSuppression: ((clickEvent: MouseEvent) => void) | null = null;
+	let panelWidgetTrailingClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function clearPanelWidgetTrailingClickSuppression(): void {
+		if (panelWidgetTrailingClickSuppression) {
+			window.removeEventListener('click', panelWidgetTrailingClickSuppression, true);
+			panelWidgetTrailingClickSuppression = null;
+		}
+		if (panelWidgetTrailingClickTimer !== null) {
+			clearTimeout(panelWidgetTrailingClickTimer);
+			panelWidgetTrailingClickTimer = null;
+		}
+	}
+
 	function onPanelWidgetBarPointerDown(event: PointerEvent): void {
+		clearPanelWidgetTrailingClickSuppression();
 		if (event.pointerType !== 'mouse' || event.button !== 0) return;
 		const target = event.target as HTMLElement | null;
 		if (target?.closest?.('input, textarea, [contenteditable="true"]')) return;
@@ -1640,6 +1659,7 @@ import {
 		const drag = panelWidgetDrag;
 		if (!drag) return;
 		if (event && drag.ghost) panelWidgetDragMove(event);
+		const hadGhost = Boolean(drag.ghost);
 		const dropValid = drag.dropValid;
 		const anchorLocalId = drag.dropAnchor
 			? panelWidgetDragLocalId(drag.dropAnchor)
@@ -1655,8 +1675,23 @@ import {
 		clearPanelWidgetDropMark(drag);
 		panelWidgetPreviewOrder = null;
 		schedulePanelWidgetOverflowMeasure();
+
+		if (hadGhost) {
+			clearPanelWidgetTrailingClickSuppression();
+			panelWidgetTrailingClickSuppression = (clickEvent: MouseEvent): void => {
+				clickEvent.preventDefault();
+				clickEvent.stopPropagation();
+				clickEvent.stopImmediatePropagation();
+				clearPanelWidgetTrailingClickSuppression();
+			};
+			window.addEventListener('click', panelWidgetTrailingClickSuppression, true);
+			panelWidgetTrailingClickTimer = setTimeout(() => {
+				clearPanelWidgetTrailingClickSuppression();
+			}, 50);
+		}
+
 		// Sin ghost fue un click: no tocar nada (el onclick del nodo sigue vivo).
-		if (!commit || !drag.ghost || !dropValid || dropSlotIndex < 0) return;
+		if (!commit || !hadGhost || !dropValid || dropSlotIndex < 0) return;
 		const stored = configByTab[activeTab]?.toolbarNodeOrder ?? [];
 		commitConfig(activeTab, {
 			toolbarNodeOrder: reorderLocalIds(
@@ -1669,7 +1704,10 @@ import {
 		});
 	}
 
-	onDestroy(() => endPanelWidgetDrag(null, false));
+	onDestroy(() => {
+		endPanelWidgetDrag(null, false);
+		clearPanelWidgetTrailingClickSuppression();
+	});
 	const compactPanelWidgetTools = $derived(
 		toolbarOverflowStrategy === 'condensed' && forcedOverflowIds.length > 0,
 	);
