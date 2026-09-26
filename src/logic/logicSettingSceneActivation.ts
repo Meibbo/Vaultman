@@ -188,9 +188,9 @@ export function scrollToSettingTarget(
 	const def = (target.definition ?? '').trim();
 	const pageLabel = (target.page || target.pagePath || '').trim();
 	const query = def || pageLabel;
-	if (!query) return false;
+	if (!query && !target.tab) return false;
 	try {
-		const results = searchIndex.search.call(searchIndex, query);
+		const results = searchIndex.search.call(searchIndex, query || target.tab);
 		if (!Array.isArray(results)) return false;
 		for (const group of results) {
 			if (!group || typeof group !== 'object') continue;
@@ -210,12 +210,15 @@ export function scrollToSettingTarget(
 						return true;
 					}
 				}
-			} else {
+			} else if (pageLabel) {
 				const groupPage = (group as { page?: string })['page'];
 				if (groupPage && groupPage.includes(pageLabel)) {
 					navigate(group);
 					return true;
 				}
+			} else {
+				navigate(group);
+				return true;
 			}
 		}
 		return false;
