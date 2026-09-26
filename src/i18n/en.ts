@@ -423,6 +423,9 @@ export const en: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
+	'settings.toolbar_directional_drop_marker': 'Directional toolbar drag indicator',
+	'settings.toolbar_directional_drop_marker.desc':
+		'Show a directional marker pointing back towards the original position when dragging toolbar items.',
 	'settings.toolbar': 'Widget: Toolbar',
 	'settings.toolbar.desc':
 		'Configure how this navbar and its buttons behaves. Or add custom commands here.',
@@ -1338,6 +1341,8 @@ export const en: Record<string, string> = {
 	'group.preset.words': 'Words',
 	'group.preset.tasks': 'Tasks',
 	'group.preset.props': 'Properties',
+	'group.preset.count': 'Occurrences',
+	'group.preset.childs': 'Sub-elements',
 	'group.preset.modified': 'Modified',
 	'group.preset.opened': 'Opened',
 	'group.preset.created': 'Created',

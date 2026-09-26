@@ -427,6 +427,9 @@ export const es: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
 		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',
+	'settings.toolbar_directional_drop_marker': 'Indicador direccional de arrastre en toolbar',
+	'settings.toolbar_directional_drop_marker.desc':
+		'Muestra un marcador direccional que apunta hacia la posición original al reordenar elementos de la barra.',
 	'settings.toolbar': 'Barra de herramientas',
 	'settings.toolbar.desc':
 		'Configura etiquetas y controles de la barra del explorador.',
@@ -1233,6 +1236,8 @@ export const es: Record<string, string> = {
 	'group.preset.words': 'Palabras',
 	'group.preset.tasks': 'Tareas',
 	'group.preset.props': 'Propiedades',
+	'group.preset.count': 'Ocurrencias',
+	'group.preset.childs': 'Subelementos',
 	'group.preset.modified': 'Modificado',
 	'group.preset.opened': 'Abierto',
 	'group.preset.created': 'Creado',

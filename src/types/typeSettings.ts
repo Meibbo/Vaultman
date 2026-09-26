@@ -330,6 +330,8 @@ export interface VaultmanSettings {
 	countFrontmatterWords: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
+	/** Directional drop marker pointing to original slot during toolbar item drag */
+	toolbarDirectionalDropMarker: boolean;
 	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
 	toolbarOverflowStrategy: import('../logic/logicResponsiveLayout').ToolbarOverflowStrategy;
 	/** BT5-023: command Create File runs; '' or sentinel = Vaultman built-in */
@@ -592,6 +594,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	taskCellDisplayMode: 'done-total',
 	countFrontmatterWords: false,
 	toolbarToolsMenu: false,
+	toolbarDirectionalDropMarker: true,
 	toolbarOverflowStrategy: 'condensed',
 	createFileCommand: '',
 	toolbarCommandActions: [],

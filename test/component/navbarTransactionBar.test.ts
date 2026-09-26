@@ -642,5 +642,52 @@ describe('navbarFilters monta BarTransaction', () => {
 		window.dispatchEvent(pointer('pointerup', 70));
 		flushSync();
 	});
+
+	it('respeta la opción toolbarDirectionalDropMarker=false y no muestra el drop marker', () => {
+		const el = render({ toolbarDirectionalDropMarker: false });
+		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');
+		const nodes = Array.from(
+			bar?.querySelectorAll<HTMLElement>('[data-panel-widget-node-id]') ?? [],
+		);
+		expect(nodes.length).toBeGreaterThanOrEqual(3);
+		if (!bar || nodes.length < 3) return;
+
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				right: left + width,
+				top: 0,
+				bottom: 40,
+				width,
+				height: 40,
+			}) as DOMRect;
+		bar.getBoundingClientRect = () => rect(0, 500);
+		nodes[0].getBoundingClientRect = () => rect(0, 40);
+		nodes[1].getBoundingClientRect = () => rect(50, 40);
+		nodes[2].getBoundingClientRect = () => rect(100, 40);
+
+		const pointer = (type: string, clientX: number, clientY = 20) => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				button: 0,
+				clientX,
+				clientY,
+			});
+			Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+			return event;
+		};
+
+		nodes[1].dispatchEvent(pointer('pointerdown', 70));
+		window.dispatchEvent(pointer('pointermove', 10));
+		flushSync();
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+
+		window.dispatchEvent(pointer('pointermove', 130));
+		flushSync();
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+
+		window.dispatchEvent(pointer('pointerup', 130));
+		flushSync();
+	});
 });
 

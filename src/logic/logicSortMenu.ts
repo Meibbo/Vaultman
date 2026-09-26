@@ -549,6 +549,8 @@ export const GROUP_PRESET_META: Record<
 	words: { icon: 'lucide-whole-word', labelKey: 'group.preset.words' },
 	tasks: { icon: 'lucide-list-checks', labelKey: 'group.preset.tasks' },
 	props: { icon: 'lucide-list', labelKey: 'group.preset.props' },
+	count: { icon: 'lucide-hash', labelKey: 'group.preset.count' },
+	childs: { icon: 'lucide-indent', labelKey: 'group.preset.childs' },
 	modified: { icon: 'lucide-calendar-clock', labelKey: 'group.preset.modified' },
 	opened: { icon: 'lucide-eye', labelKey: 'group.preset.opened' },
 	created: { icon: 'lucide-calendar-plus', labelKey: 'group.preset.created' },

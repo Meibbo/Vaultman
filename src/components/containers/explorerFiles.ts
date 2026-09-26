@@ -279,12 +279,20 @@ export function bubbledFolderCounterValue(
 	_visibleCells: ReadonlySet<string>,
 	bubblingEnabled: boolean,
 ): number | null {
-	if (!node.meta?.isFolder || !bubblingEnabled) return null;
+	if (!node.meta?.isFolder) return null;
+	if (kind === 'childs') {
+		if (node.fileCountText !== undefined) {
+			const parsed = Number(node.fileCountText);
+			if (Number.isFinite(parsed)) return parsed;
+		}
+		return node.children?.length ?? 0;
+	}
+	if (!bubblingEnabled) return null;
 	if (kind === 'words') {
 		const words = node.wordCountValue ?? Number(node.wordCountText ?? 0);
 		return Number.isFinite(words) ? words : null;
 	}
-	if (kind === 'props') {
+	if (kind === 'props' || kind === 'count') {
 		return node.count ?? 0;
 	}
 	if (kind === 'tasks') {
@@ -4047,7 +4055,10 @@ export class FilesExplorerPanel extends Component {
 			case 'tasks':
 				return this.plugin.statisticsCache.getFileRemainingTasks(file);
 			case 'props':
+			case 'count':
 				return this._propCountForFile(file);
+			case 'childs':
+				return 0;
 			case 'modified':
 				return this.plugin.statisticsCache.getFileTimes(file).mtime;
 			case 'created':
@@ -5012,17 +5023,29 @@ export class FilesExplorerPanel extends Component {
 		tags: boolean;
 		tasks: boolean;
 	} | null {
-		const files = this.visibleCells.has('file-count');
-		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
 		const scopedPresets = Object.values(this.sortState.scopeState?.sets ?? {})
 			.filter((set) => set?.hidden !== true)
 			.map((set) => set?.groupPreset?.kind);
+		const files =
+			this.visibleCells.has('file-count') ||
+			this.groupPreset.kind === 'childs' ||
+			scopedPresets.includes('childs');
+		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
 		const flags = {
 			files,
-			count: this.visibleCells.has('count') || this.groupPreset.kind === 'props' || scopedPresets.includes('props'),
-			words: this.visibleCells.has('words') || this.groupPreset.kind === 'words' || scopedPresets.includes('words'),
+			count:
+				this.visibleCells.has('count') ||
+				this.groupPreset.kind === 'props' ||
+				scopedPresets.includes('props'),
+			words:
+				this.visibleCells.has('words') ||
+				this.groupPreset.kind === 'words' ||
+				scopedPresets.includes('words'),
 			tags: this.visibleCells.has('tags'),
-			tasks: this.visibleCells.has('tasks') || this.groupPreset.kind === 'tasks' || scopedPresets.includes('tasks'),
+			tasks:
+				this.visibleCells.has('tasks') ||
+				this.groupPreset.kind === 'tasks' ||
+				scopedPresets.includes('tasks'),
 		};
 		return Object.values(flags).some(Boolean) ? flags : null;
 	}

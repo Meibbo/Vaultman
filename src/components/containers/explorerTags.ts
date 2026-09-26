@@ -2844,11 +2844,13 @@ export class TagsExplorerPanel extends Component {
 			: this.groupPreset.kind !== 'none';
 	}
 
-	/** Spec 08 §3.2: tags offer no value presets (letter/name read the label). */
+	/** Spec 08 §3.2: `count` groups tags by occurrences, `childs` groups by subtags. */
 	private _groupPresetValue(
-		_node: TreeNode<TagMeta>,
-		_kind: GroupPreset['kind'],
+		node: TreeNode<TagMeta>,
+		kind: GroupPreset['kind'],
 	): string | number | null {
+		if (kind === 'count') return node.count ?? 0;
+		if (kind === 'childs') return node.children?.length ?? 0;
 		return null;
 	}
 

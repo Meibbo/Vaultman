@@ -346,6 +346,7 @@ import {
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		toolbarToolsMenu = false,
+		toolbarDirectionalDropMarker = true,
 		toolbarOverflowStrategy = 'condensed' as ToolbarOverflowStrategy,
 		frameWidth = 0,
 		onToggleToolbar,
@@ -1415,7 +1416,7 @@ import {
 				);
 	};
 	const panelWidgetDropMarker = $derived<ToolbarDropMarkerDescriptor | null>(
-		panelWidgetDrag && panelWidgetPreviewOrder
+		toolbarDirectionalDropMarker && panelWidgetDrag && panelWidgetPreviewOrder
 			? resolveToolbarDropMarker(
 					panelWidgetDrag.visibleLocalIds,
 					panelWidgetPreviewOrder,

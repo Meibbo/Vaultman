@@ -1237,6 +1237,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.toolbar_directional_drop_marker'),
+			desc: translate('settings.toolbar_directional_drop_marker.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.toolbarDirectionalDropMarker !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.toolbarDirectionalDropMarker = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		// BT5-023: Create File binding — Vaultman built-in or an Obsidian command.
 		const createBinding = this.plugin.settings.createFileCommand;
 		const createBindingLabel = isVaultmanDefault(createBinding)
