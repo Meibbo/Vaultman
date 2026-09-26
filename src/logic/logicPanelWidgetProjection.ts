@@ -135,28 +135,91 @@ export function dropIndexForPointer(
 }
 
 /**
- * U130 polishing: mueve `draggedLocalId` delante de `anchorLocalId` (al
- * final si el ancla es `null` o ya no se ve) dentro del orden visible y
- * conserva detrás los ids guardados que ya no se ven (sin pérdida al
- * ocultar/mostrar nodos). Puro y probado sin DOM.
+ * Geometry descriptor of a sibling toolbar node at drag start.
  */
-export function reorderLocalIds(
+export type ToolbarSlotSibling = {
+	localId: string;
+	left: number;
+	right: number;
+};
+
+/**
+ * Resolved drop boundary and anchor for a horizontal list with 0..N slots.
+ */
+export type ResolvedToolbarDropSlot = {
+	slotIndex: number;
+	anchorLocalId: string | null;
+	placement: 'before' | 'after';
+};
+
+/**
+ * Resolves insertion slot 0..N for horizontal DnD with pointer and destination
+ * item halves. Derives slot from midpoints, resolving before/after dynamically
+ * for variable width items and slot N after the last item. Pure and deterministic.
+ */
+export function resolveToolbarDropSlot(
+	siblings: readonly ToolbarSlotSibling[],
+	pointerX: number,
+): ResolvedToolbarDropSlot {
+	if (siblings.length === 0) {
+		return { slotIndex: 0, anchorLocalId: null, placement: 'before' };
+	}
+
+	const sorted = [...siblings].sort((a, b) => a.left - b.left);
+	const first = sorted[0];
+	const firstMid = (first.left + first.right) / 2;
+	if (pointerX < firstMid) {
+		return { slotIndex: 0, anchorLocalId: first.localId, placement: 'before' };
+	}
+
+	const last = sorted[sorted.length - 1];
+	const lastMid = (last.left + last.right) / 2;
+	if (pointerX >= lastMid) {
+		return {
+			slotIndex: sorted.length,
+			anchorLocalId: last.localId,
+			placement: 'after',
+		};
+	}
+
+	for (let i = 0; i < sorted.length - 1; i += 1) {
+		const curr = sorted[i];
+		const next = sorted[i + 1];
+		const currMid = (curr.left + curr.right) / 2;
+		const nextMid = (next.left + next.right) / 2;
+		if (pointerX >= currMid && pointerX < nextMid) {
+			const closerToCurr = pointerX - currMid <= nextMid - pointerX;
+			return {
+				slotIndex: i + 1,
+				anchorLocalId: closerToCurr ? curr.localId : next.localId,
+				placement: closerToCurr ? 'after' : 'before',
+			};
+		}
+	}
+
+	return {
+		slotIndex: sorted.length,
+		anchorLocalId: last.localId,
+		placement: 'after',
+	};
+}
+
+/**
+ * Reorders visible local IDs placing `draggedLocalId` at target slot index 0..N,
+ * preserving unrendered stored IDs at the end without loss.
+ */
+export function reorderLocalIdsToSlot(
 	visibleLocalIds: readonly string[],
 	storedIds: readonly string[],
 	draggedLocalId: string,
-	anchorLocalId: string | null,
+	slotIndex: number,
 ): string[] {
 	const without = visibleLocalIds.filter((id) => id !== draggedLocalId);
-	const anchorIndex =
-		anchorLocalId === null ? -1 : without.indexOf(anchorLocalId);
-	const clamped =
-		anchorIndex < 0
-			? without.length
-			: Math.max(0, Math.min(anchorIndex, without.length));
+	const clampedSlot = Math.max(0, Math.min(slotIndex, without.length));
 	const next = [
-		...without.slice(0, clamped),
+		...without.slice(0, clampedSlot),
 		draggedLocalId,
-		...without.slice(clamped),
+		...without.slice(clampedSlot),
 	];
 	const seen = new Set(next);
 	for (const id of storedIds) {
@@ -167,3 +230,36 @@ export function reorderLocalIds(
 	}
 	return next;
 }
+
+/**
+ * U130 polishing: mueve `draggedLocalId` delante o detrás de `anchorLocalId` (al
+ * final si el ancla es `null` o ya no se ve) dentro del orden visible y
+ * conserva detrás los ids guardados que ya no se ven (sin pérdida al
+ * ocultar/mostrar nodos). Puro y probado sin DOM.
+ */
+export function reorderLocalIds(
+	visibleLocalIds: readonly string[],
+	storedIds: readonly string[],
+	draggedLocalId: string,
+	anchorLocalId: string | null,
+	placement: 'before' | 'after' = 'before',
+): string[] {
+	const without = visibleLocalIds.filter((id) => id !== draggedLocalId);
+	const anchorIndex =
+		anchorLocalId === null ? -1 : without.indexOf(anchorLocalId);
+	let slotIndex: number;
+	if (anchorIndex < 0) {
+		slotIndex = without.length;
+	} else if (placement === 'after') {
+		slotIndex = anchorIndex + 1;
+	} else {
+		slotIndex = anchorIndex;
+	}
+	return reorderLocalIdsToSlot(
+		visibleLocalIds,
+		storedIds,
+		draggedLocalId,
+		slotIndex,
+	);
+}
+

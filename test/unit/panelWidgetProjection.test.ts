@@ -4,7 +4,9 @@ import {
 	PANEL_WIDGET_HOST_ID,
 	dropIndexForPointer,
 	reorderLocalIds,
+	reorderLocalIdsToSlot,
 	resolvePanelWidgetProjection,
+	resolveToolbarDropSlot,
 	resolveToolbarNodeOrder,
 } from '../../src/logic/logicPanelWidgetProjection';
 import type { PanelWidgetNode } from '../../src/types/typePanelWidget';
@@ -236,4 +238,81 @@ describe('U130 panelWidget_bar drag reorder (Gv-faithful)', () => {
 		// Ancla desconocida = al final, sin duplicar.
 		expect(reorderLocalIds(['a', 'b'], [], 'a', 'zzz')).toEqual(['b', 'a']);
 	});
+
+	it('resolveToolbarDropSlot resuelve slot N (después del último) al arrastrar el primero más allá del último', () => {
+		// Visible: ['a', 'b', 'c']. Arrastrando 'a'. Hermanos: 'b' (50..100) y 'c' (100..150).
+		const siblings = [
+			{ localId: 'b', left: 50, right: 100 },
+			{ localId: 'c', left: 100, right: 150 },
+		];
+		// Puntero más allá del último (x = 180 > c.mid 125)
+		const res = resolveToolbarDropSlot(siblings, 180);
+		expect(res).toEqual({
+			slotIndex: 2,
+			anchorLocalId: 'c',
+			placement: 'after',
+		});
+		// Reorden resultante sitúa 'a' al final (slot 2)
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'a', res.anchorLocalId, res.placement)).toEqual([
+			'b',
+			'c',
+			'a',
+		]);
+	});
+
+	it('resolveToolbarDropSlot resuelve slot 0 (antes del primero) al arrastrar el último antes del primero', () => {
+		// Visible: ['a', 'b', 'c']. Arrastrando 'c'. Hermanos: 'a' (0..50) y 'b' (50..100).
+		const siblings = [
+			{ localId: 'a', left: 0, right: 50 },
+			{ localId: 'b', left: 50, right: 100 },
+		];
+		// Puntero antes del primero (x = 10 < a.mid 25)
+		const res = resolveToolbarDropSlot(siblings, 10);
+		expect(res).toEqual({
+			slotIndex: 0,
+			anchorLocalId: 'a',
+			placement: 'before',
+		});
+		// Reorden resultante sitúa 'c' al principio (slot 0)
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'c', res.anchorLocalId, res.placement)).toEqual([
+			'c',
+			'a',
+			'b',
+		]);
+	});
+
+	it('resolveToolbarDropSlot discrimina mitad izquierda y derecha con destinos de anchura variable', () => {
+		// Hermanos con anchuras variables: nodeA (100px: 0..100, mid 50), nodeB (40px: 110..150, mid 130)
+		const siblings = [
+			{ localId: 'nodeA', left: 0, right: 100 },
+			{ localId: 'nodeB', left: 110, right: 150 },
+		];
+
+		// Mitad izquierda de nodeA (x = 30 < 50): antes de nodeA (slot 0)
+		const leftA = resolveToolbarDropSlot(siblings, 30);
+		expect(leftA).toEqual({ slotIndex: 0, anchorLocalId: 'nodeA', placement: 'before' });
+
+		// Mitad derecha de nodeA (x = 75 >= 50, < 130): después de nodeA (slot 1)
+		const rightA = resolveToolbarDropSlot(siblings, 75);
+		expect(rightA).toEqual({ slotIndex: 1, anchorLocalId: 'nodeA', placement: 'after' });
+
+		// Mitad izquierda de nodeB (x = 120 < 130): antes de nodeB (slot 1)
+		const leftB = resolveToolbarDropSlot(siblings, 120);
+		expect(leftB).toEqual({ slotIndex: 1, anchorLocalId: 'nodeB', placement: 'before' });
+
+		// Mitad derecha de nodeB (x = 140 >= 130): después de nodeB (slot 2)
+		const rightB = resolveToolbarDropSlot(siblings, 140);
+		expect(rightB).toEqual({ slotIndex: 2, anchorLocalId: 'nodeB', placement: 'after' });
+	});
+
+	it('reorderLocalIdsToSlot y reorderLocalIds con placement ubican con exactitud', () => {
+		const visible = ['a', 'b', 'c', 'd'];
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 0)).toEqual(['a', 'b', 'c', 'd']);
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 1)).toEqual(['b', 'a', 'c', 'd']);
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 3)).toEqual(['b', 'c', 'd', 'a']);
+		expect(reorderLocalIds(visible, [], 'a', 'b', 'after')).toEqual(['b', 'a', 'c', 'd']);
+		expect(reorderLocalIds(visible, [], 'a', 'd', 'after')).toEqual(['b', 'c', 'd', 'a']);
+		expect(reorderLocalIds(visible, [], 'd', 'a', 'before')).toEqual(['d', 'a', 'b', 'c']);
+	});
 });
+
