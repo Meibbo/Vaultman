@@ -424,6 +424,7 @@ const defaults: Required<SceneConfig> = {
 	tooltips: true,
 	toolbarNodeOrder: [],
 	groupMemberships: {},
+	showOptionsOverride: 'inherit',
 };
 
 function makeTestInstance(id: string) {

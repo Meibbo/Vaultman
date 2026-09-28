@@ -3187,6 +3187,7 @@ import {
 		if (tab === 'files') return fileList ?? null;
 		if (tab === 'tags') return tagsExplorer ?? null;
 		if (tab === 'props') return propExplorer ?? null;
+		if (tab === 'plugins') return pluginsExplorer ?? null;
 		return null;
 	}
 

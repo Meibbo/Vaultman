@@ -88,6 +88,7 @@ export type SceneFacets = Pick<
 	| 'compactFolders'
 	| 'indent'
 	| 'taskCellDisplayMode'
+	| 'showOptionsOverride'
 >;
 
 /** La foto de una scene: copias, nunca referencias al estado vivo. */
@@ -102,6 +103,9 @@ export function captureSceneFacets(
 		compactFolders: config.compactFolders,
 		indent: config.indent,
 		taskCellDisplayMode: config.taskCellDisplayMode,
+		// U130 spec-02: tri-estado por valor (string inmutable: la copia es
+		// la asignación); el snapshot nunca referencia lo vivo.
+		showOptionsOverride: config.showOptionsOverride,
 	};
 }
 
@@ -137,6 +141,11 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 	}
 	if (saved.indent !== undefined) out.indent = saved.indent;
 	if (saved.taskCellDisplayMode !== undefined) out.taskCellDisplayMode = saved.taskCellDisplayMode;
+	// U130 spec-02: el legacy sin campo no produce faceta y lo vivo se
+	// preserva en `applyLayoutToPort` (nunca se toca lo que la foto no trae).
+	if (saved.showOptionsOverride !== undefined) {
+		out.showOptionsOverride = saved.showOptionsOverride;
+	}
 	return out;
 }
 
@@ -187,6 +196,9 @@ export async function applyLayoutToPort(
 			toolbarNodeOrder: current.toolbarNodeOrder,
 			tooltips: current.tooltips,
 			groupMemberships: facets.groupMemberships ?? current.groupMemberships,
+			// U130 spec-02: lo que la foto no trae (legacy) se preserva.
+			showOptionsOverride:
+				facets.showOptionsOverride ?? current.showOptionsOverride,
 		};
 	}
 	if (port.proposeScenes) {

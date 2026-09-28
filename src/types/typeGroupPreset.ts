@@ -17,7 +17,9 @@ export type GroupPresetKind =
 	| 'opened'
 	| 'created'
 	| 'custom'
-	| 'note';
+	| 'note'
+	| 'sections'
+	| 'state';
 
 export interface GroupPreset {
 	kind: GroupPresetKind;
@@ -82,12 +84,14 @@ export const GROUP_PRESETS_BY_TAB: Record<
 	props: ['none', 'letter', 'name', 'type', 'custom'],
 	tags: ['none', 'letter', 'name', 'custom'],
 	snippets: ['none', 'letter', 'name', 'modified', 'created', 'custom'],
-	plugins: ['none', 'letter', 'name', 'modified', 'created', 'custom'],
+	plugins: ['none', 'letter', 'name', 'modified', 'created', 'custom', 'sections', 'state'],
 };
 
 export const ALL_GROUP_PRESET_KINDS: readonly GroupPresetKind[] = [
 	...GROUP_PRESETS_BY_TAB.files,
 	'note',
+	'sections',
+	'state',
 ];
 
 export function isGroupPresetKind(value: unknown): value is GroupPresetKind {

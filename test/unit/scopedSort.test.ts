@@ -83,11 +83,15 @@ describe('scoped explorer sort state', () => {
 	it('uses one flat All scope for add-on explorers', () => {
 		for (const tab of ['snippets', 'plugins'] as const) {
 			const state = normalizeExplorerSortState(tab, null);
-			expect(state).toEqual({
+			const expected: Record<string, unknown> = {
 				sorts: {},
 				activeScope: 'all',
 				nodeTypeFilter: null,
-			});
+			};
+			if (tab === 'plugins') {
+				expected['drillNodeId'] = null;
+			}
+			expect(state).toEqual(expected);
 			expect(activeScopeSort(tab, state)).toEqual({
 				sortBy: 'name',
 				direction: 'asc',

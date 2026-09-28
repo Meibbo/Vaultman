@@ -78,6 +78,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						tooltips: true,
 						toolbarNodeOrder: [],
 						groupMemberships: {},
+						showOptionsOverride: 'inherit' as const,
 					}),
 					propose: () => Promise.resolve(),
 					readActiveScene: () => 'props',

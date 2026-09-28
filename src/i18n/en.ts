@@ -288,6 +288,11 @@ export const en: Record<string, string> = {
 	'settings.search_highlights': 'Explorer search highlights',
 	'settings.search_highlights.desc':
 		'Highlight explorer rows that match the current search.',
+	'settings.setting_scene_go_to_target': 'Setting scene go_to target',
+	'settings.setting_scene_go_to_target.desc':
+		'Where row activation in open mode lands in the setting scene: the native settings modal, or the scene-local content mode.',
+	'settings.setting_scene_go_to_target.modal': 'Native modal',
+	'settings.setting_scene_go_to_target.panel_content': 'Panel content',
 	'settings.icon_in_caret_slot': 'Icon in the caret slot',
 	'settings.icon_in_caret_slot.desc':
 		'Nodes that show an icon and reserve no caret draw it in the caret column instead of before the label, so every label lines up with the nodes that have no icon.',
@@ -1350,6 +1355,8 @@ export const en: Record<string, string> = {
 	'group.preset.created': 'Created',
 	'group.preset.custom': 'Custom groups',
 	'group.preset.note': 'Note groups',
+	'group.preset.sections': 'By section',
+	'group.preset.state': 'By state',
 	'group.note.no_file': 'No reveal note is available.',
 	'group.note.duplicate': 'A note group with this name already exists.',
 	'group.new': 'New group',

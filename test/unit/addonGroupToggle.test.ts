@@ -41,6 +41,10 @@ type PluginsHarness = {
 	_seenGroupHeaderIds: Set<string>;
 	expandedIds: Set<string>;
 	_expandedGroupIds: Set<string>;
+	_pluginSettingsChildrenCache: Map<
+		string,
+		{ children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> }
+	>;
 	pendingToggleIds: Set<string>;
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
@@ -187,6 +191,10 @@ function makePluginPanel() {
 	panel._seenGroupHeaderIds = new Set<string>();
 	panel.expandedIds = new Set<string>();
 	panel._expandedGroupIds = new Set<string>();
+	panel._pluginSettingsChildrenCache = new Map<
+		string,
+		{ children: TreeNode<PluginMeta>[]; enabled: boolean; tabIds: Set<string> }
+	>();
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('plugins');
 	panel.groupPreset = PRESET_CUSTOM;

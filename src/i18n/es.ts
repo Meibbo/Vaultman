@@ -290,6 +290,11 @@ export const es: Record<string, string> = {
 	'settings.search_highlights': 'Highlights de busqueda en explorers',
 	'settings.search_highlights.desc':
 		'Resalta filas de explorers que coinciden con la busqueda actual.',
+	'settings.setting_scene_go_to_target': 'Destino del go_to de settingScene',
+	'settings.setting_scene_go_to_target.desc':
+		'Donde aterriza la activación de filas en modo abrir dentro de settingScene: el modal nativo de settings o el modo content local de la scene.',
+	'settings.setting_scene_go_to_target.modal': 'Modal nativo',
+	'settings.setting_scene_go_to_target.panel_content': 'Contenido del panel',
 	'settings.icon_in_caret_slot': 'Icono en el hueco del caret',
 	'settings.icon_in_caret_slot.desc':
 		'Los nodos que muestran icono y no reservan caret lo dibujan en la columna del caret en vez de antes del label, así todos los labels quedan alineados con los nodos sin icono.',
@@ -1245,6 +1250,8 @@ export const es: Record<string, string> = {
 	'group.preset.created': 'Creado',
 	'group.preset.custom': 'Grupos personalizados',
 	'group.preset.note': 'Grupos de nota',
+	'group.preset.sections': 'Por sección',
+	'group.preset.state': 'Por estado',
 	'group.note.no_file': 'No hay una nota reveal disponible.',
 	'group.note.duplicate': 'Ya existe un grupo de nota con ese nombre.',
 	'group.new': 'Nuevo grupo',

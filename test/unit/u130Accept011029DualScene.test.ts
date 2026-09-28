@@ -46,6 +46,7 @@ const defaults = {
 	tooltips: true,
 	toolbarNodeOrder: [] as string[],
 	groupMemberships: {} as Record<string, readonly string[]>,
+	showOptionsOverride: 'inherit' as const,
 };
 
 function twoInstanceHarness() {

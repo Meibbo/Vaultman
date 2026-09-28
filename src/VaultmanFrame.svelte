@@ -396,6 +396,10 @@
 			// U130-09: una scene nace sin grupos custom; los crea el usuario en
 			// esta instancia o los copia un layout al activarse.
 			groupMemberships: {},
+			// U130 spec-02: la sección Options nace heredando (opt-in): el
+			// global `settingSceneShowOptionsByDefault` decide hasta que el
+			// menú del toolbar fije el override de esta scene.
+			showOptionsOverride: 'inherit',
 		}),
 	});
 

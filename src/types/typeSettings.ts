@@ -51,6 +51,11 @@ export interface SavedViewConfig {
 	stickyRows?: boolean;
 	compactFolders?: boolean;
 	indent?: boolean;
+	/**
+	 * U130 spec-02: el override Options de esa scene (copia profunda en la
+	 * foto; el legacy sin campo no toca lo vivo al restaurar).
+	 */
+	showOptionsOverride?: import('../logic/logicSettingSceneOptions').ShowOptionsOverride;
 }
 
 /** Floating index state captured with a layout (D40). */
@@ -76,6 +81,16 @@ export interface SavedLayout {
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
 export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
 export type AddonCellStyle = 'native' | 'badge';
+
+/**
+ * U130 parity C (F5/F6): destino del `go_to` de `input=open` en settingScene.
+ * `modal` abre el modal nativo de settings (tab exacto); `panel_content`
+ * alimenta el modo content scene-local (toggle explorer/content, F6), nunca
+ * una superficie a medio construir.
+ */
+export const SETTING_SCENE_GO_TO_TARGETS = ['modal', 'panel_content'] as const;
+export type SettingSceneGoToTarget =
+	(typeof SETTING_SCENE_GO_TO_TARGETS)[number];
 
 export const PROP_CONFLICT_WARNINGS = ['off', 'badge', 'full'] as const;
 export type PropConflictWarnings = (typeof PROP_CONFLICT_WARNINGS)[number];
@@ -140,6 +155,21 @@ export interface VaultmanSettings {
 	explorerContentSearch: boolean;
 	/** Highlight explorer rows/cards that match the current explorer search */
 	explorerSearchHighlights: boolean;
+	/**
+	 * U130 parity C (F5): destino del `go_to` de `input=open` en settingScene.
+	 * `modal` (default) abre el modal nativo; `panel_content` entra al modo
+	 * content scene-local (F6). Vive junto a `explorerSearchHighlights`.
+	 */
+	settingSceneGoToTarget: SettingSceneGoToTarget;
+	/**
+	 * U130 spec-02 (camino conceptual `settings.settingScene.showOptionsByDefault`):
+	 * fallback global de la sección "Options" de settingScene. Plano como
+	 * `settingSceneGoToTarget` (precedente vigente, sin objeto anidado).
+	 * `false` (default, opt-in) = solo plugins salvo override `show`;
+	 * `true` = la sección se muestra salvo override `plugins-only`. Solo lo
+	 * escribe la UI de Settings; el toolbar escribe el override per-instance.
+	 */
+	settingSceneShowOptionsByDefault: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
 	/**
@@ -516,6 +546,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerShowQueuePreview: true,
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,
+	settingSceneGoToTarget: 'modal',
+	settingSceneShowOptionsByDefault: false,
 	explorerOperationScope: 'auto',
 	scopeDefaultCursor: 'level:1',
 	explorerFileMoveMode: 'inline',

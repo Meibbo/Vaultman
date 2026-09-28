@@ -62,6 +62,7 @@ describe('shared explorer cell registry', () => {
 			'state',
 			'config',
 			'checkbox',
+			'nested',
 		]);
 	});
 
