@@ -422,6 +422,10 @@
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
 	});
+	const toolbarDirectionalDropMarker = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.toolbarDirectionalDropMarker !== false;
+	});
 	const toolbarOverflowStrategy = $derived.by(() => {
 		void settingsRevision;
 		const strategy = plugin.settings.toolbarOverflowStrategy;
@@ -1966,6 +1970,7 @@
 				floatingTocEnabled,
 				onToggleFloatingToc,
 				toolbarToolsMenu,
+				toolbarDirectionalDropMarker,
 				toolbarOverflowStrategy,
 				createActionsPlacement,
 				commandActions,

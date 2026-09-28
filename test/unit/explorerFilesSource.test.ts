@@ -42,13 +42,16 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('new FileMoveModal');
 	});
 
-	it('does not inject empty known folders when Files grouping or other narrowing constraints are active', () => {
+	it('projects matching folders without injecting unrelated empty folders under narrowing constraints', () => {
 		expect(explorerFilesSource).toContain(
 			'private _hasNarrowingConstraintsBeyondFolderScopes()',
 		);
 		expect(explorerFilesSource).toContain('this.nodeTypeFilters.length > 0');
 		expect(explorerFilesSource).toContain(
-			'if (this._hasNarrowingConstraintsBeyondFolderScopes()) return []',
+			'if (!this._hasNarrowingConstraintsBeyondFolderScopes())',
+		);
+		expect(explorerFilesSource).toContain(
+			'const matchingFolderPaths = new Set<string>()',
 		);
 		expect(explorerFilesSource).toContain(
 			"if (node.type === 'rule') return node.filterType !== 'folder'",

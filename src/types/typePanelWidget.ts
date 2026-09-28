@@ -340,6 +340,7 @@ export interface NavbarPanelWidgetState {
 	floatingTocEnabled?: boolean;
 	onToggleFloatingToc?: () => void;
 	toolbarToolsMenu?: boolean;
+	toolbarDirectionalDropMarker?: boolean;
 	toolbarOverflowStrategy?: ToolbarOverflowStrategy;
 	frameWidth?: number;
 	onToggleToolbar?: () => void;

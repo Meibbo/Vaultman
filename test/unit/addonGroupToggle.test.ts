@@ -198,6 +198,7 @@ function makePluginPanel() {
 	panel.pendingToggleIds = new Set<string>();
 	panel.sortState = groupsScope('plugins');
 	panel.groupPreset = PRESET_CUSTOM;
+	panel.visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested']);
 	// U130-09: the scene's map, as `setGroupMemberships` would leave it.
 	panel.groupMemberships = {
 		'grp-addons': ['plugins:plugin:alpha|Alpha', 'plugins:plugin:beta|Beta'],

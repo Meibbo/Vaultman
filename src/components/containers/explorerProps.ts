@@ -4095,13 +4095,16 @@ export class PropsExplorerPanel extends Component {
 			: this.groupPreset.kind !== 'none';
 	}
 
-	/** Spec 08 §3.2: `type` groups property nodes by their declared type. */
+	/** Spec 08 §3.2: `type` groups property nodes by declared type, `count` by occurrences, `childs` by sub-elements. */
 	private _groupPresetValue(
 		node: TreeNode<PropMeta>,
 		kind: GroupPreset['kind'],
 	): string | number | null {
-		if (kind !== 'type' || node.meta?.isValueNode) return null;
-		return node.meta?.propType || null;
+		if (node.meta?.isValueNode) return null;
+		if (kind === 'type') return node.meta?.propType || null;
+		if (kind === 'count') return node.count ?? 0;
+		if (kind === 'childs') return node.children?.length ?? 0;
+		return null;
 	}
 
 	/**

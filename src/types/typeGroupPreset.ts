@@ -13,6 +13,8 @@ export type GroupPresetKind =
 	| 'words'
 	| 'tasks'
 	| 'props'
+	| 'count'
+	| 'childs'
 	| 'modified'
 	| 'opened'
 	| 'created'
@@ -51,6 +53,8 @@ export const COUNTER_PRESET_KINDS: readonly GroupPresetKind[] = [
 	'words',
 	'tasks',
 	'props',
+	'count',
+	'childs',
 ];
 
 /** Dates (§3.2 table): grouped by day-distance range. */
@@ -76,19 +80,32 @@ export const GROUP_PRESETS_BY_TAB: Record<
 		'words',
 		'tasks',
 		'props',
+		'childs',
 		'modified',
 		'opened',
 		'created',
 		'custom',
 	],
-	props: ['none', 'letter', 'name', 'type', 'custom'],
-	tags: ['none', 'letter', 'name', 'custom'],
+	props: ['none', 'letter', 'name', 'type', 'count', 'childs', 'custom'],
+	tags: ['none', 'letter', 'name', 'count', 'childs', 'custom'],
 	snippets: ['none', 'letter', 'name', 'modified', 'created', 'custom'],
 	plugins: ['none', 'letter', 'name', 'modified', 'created', 'custom', 'sections', 'state'],
 };
 
 export const ALL_GROUP_PRESET_KINDS: readonly GroupPresetKind[] = [
-	...GROUP_PRESETS_BY_TAB.files,
+	'none',
+	'letter',
+	'name',
+	'type',
+	'words',
+	'tasks',
+	'props',
+	'count',
+	'childs',
+	'modified',
+	'opened',
+	'created',
+	'custom',
 	'note',
 	'sections',
 	'state',

@@ -4,7 +4,10 @@ import {
 	PANEL_WIDGET_HOST_ID,
 	dropIndexForPointer,
 	reorderLocalIds,
+	reorderLocalIdsToSlot,
 	resolvePanelWidgetProjection,
+	resolveToolbarDropMarker,
+	resolveToolbarDropSlot,
 	resolveToolbarNodeOrder,
 } from '../../src/logic/logicPanelWidgetProjection';
 import type { PanelWidgetNode } from '../../src/types/typePanelWidget';
@@ -131,7 +134,6 @@ describe('Scene-owned Navbar panelWidget projection', () => {
 		expect(projection.nodes.map((n) => n.id)).toEqual(expectedNodes);
 	});
 });
-
 describe('Scene-owned Controller instance isolation and teardown', () => {
 	function mockProjection(providerId: string): import('../../src/types/typePanelWidget').NavbarPanelWidgetState {
 		return {
@@ -235,5 +237,198 @@ describe('U130 panelWidget_bar drag reorder (Gv-faithful)', () => {
 		]);
 		// Ancla desconocida = al final, sin duplicar.
 		expect(reorderLocalIds(['a', 'b'], [], 'a', 'zzz')).toEqual(['b', 'a']);
+	});
+
+	it('resolveToolbarDropSlot resuelve slot N (después del último) al arrastrar el primero más allá del último', () => {
+		// Visible: ['a', 'b', 'c']. Arrastrando 'a'. Hermanos: 'b' (50..100) y 'c' (100..150).
+		const siblings = [
+			{ localId: 'b', left: 50, right: 100 },
+			{ localId: 'c', left: 100, right: 150 },
+		];
+		// Puntero más allá del último (x = 180 > c.mid 125)
+		const res = resolveToolbarDropSlot(siblings, 180);
+		expect(res).toEqual({
+			slotIndex: 2,
+			anchorLocalId: 'c',
+			placement: 'after',
+		});
+		// Reorden resultante sitúa 'a' al final (slot 2)
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'a', res.anchorLocalId, res.placement)).toEqual([
+			'b',
+			'c',
+			'a',
+		]);
+	});
+
+	it('resolveToolbarDropSlot resuelve slot 0 (antes del primero) al arrastrar el último antes del primero', () => {
+		// Visible: ['a', 'b', 'c']. Arrastrando 'c'. Hermanos: 'a' (0..50) y 'b' (50..100).
+		const siblings = [
+			{ localId: 'a', left: 0, right: 50 },
+			{ localId: 'b', left: 50, right: 100 },
+		];
+		// Puntero antes del primero (x = 10 < a.mid 25)
+		const res = resolveToolbarDropSlot(siblings, 10);
+		expect(res).toEqual({
+			slotIndex: 0,
+			anchorLocalId: 'a',
+			placement: 'before',
+		});
+		// Reorden resultante sitúa 'c' al principio (slot 0)
+		expect(reorderLocalIds(['a', 'b', 'c'], [], 'c', res.anchorLocalId, res.placement)).toEqual([
+			'c',
+			'a',
+			'b',
+		]);
+	});
+
+	it('resolveToolbarDropSlot discrimina mitad izquierda y derecha con destinos de anchura variable', () => {
+		// Hermanos con anchuras variables: nodeA (100px: 0..100, mid 50), nodeB (40px: 110..150, mid 130)
+		const siblings = [
+			{ localId: 'nodeA', left: 0, right: 100 },
+			{ localId: 'nodeB', left: 110, right: 150 },
+		];
+
+		// Mitad izquierda de nodeA (x = 30 < 50): antes de nodeA (slot 0)
+		const leftA = resolveToolbarDropSlot(siblings, 30);
+		expect(leftA).toEqual({ slotIndex: 0, anchorLocalId: 'nodeA', placement: 'before' });
+
+		// Mitad derecha de nodeA (x = 75 >= 50, < 130): después de nodeA (slot 1)
+		const rightA = resolveToolbarDropSlot(siblings, 75);
+		expect(rightA).toEqual({ slotIndex: 1, anchorLocalId: 'nodeA', placement: 'after' });
+
+		// Mitad izquierda de nodeB (x = 120 < 130): antes de nodeB (slot 1)
+		const leftB = resolveToolbarDropSlot(siblings, 120);
+		expect(leftB).toEqual({ slotIndex: 1, anchorLocalId: 'nodeB', placement: 'before' });
+
+		// Mitad derecha de nodeB (x = 140 >= 130): después de nodeB (slot 2)
+		const rightB = resolveToolbarDropSlot(siblings, 140);
+		expect(rightB).toEqual({ slotIndex: 2, anchorLocalId: 'nodeB', placement: 'after' });
+	});
+
+	it('reorderLocalIdsToSlot y reorderLocalIds con placement ubican con exactitud', () => {
+		const visible = ['a', 'b', 'c', 'd'];
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 0)).toEqual(['a', 'b', 'c', 'd']);
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 1)).toEqual(['b', 'a', 'c', 'd']);
+		expect(reorderLocalIdsToSlot(visible, [], 'a', 3)).toEqual(['b', 'c', 'd', 'a']);
+		expect(reorderLocalIds(visible, [], 'a', 'b', 'after')).toEqual(['b', 'a', 'c', 'd']);
+		expect(reorderLocalIds(visible, [], 'a', 'd', 'after')).toEqual(['b', 'c', 'd', 'a']);
+		expect(reorderLocalIds(visible, [], 'd', 'a', 'before')).toEqual(['d', 'a', 'b', 'c']);
+	});
+
+	it('resolveToolbarDropMarker no muestra nada si el ítem está sobre su slot original', () => {
+		const visible = ['a', 'b', 'c'];
+		// 'b' está originalmente en índice 1 y su preview está en índice 1
+		expect(resolveToolbarDropMarker(visible, ['a', 'b', 'c'], 'b')).toBeNull();
+		// 'a' está en índice 0
+		expect(resolveToolbarDropMarker(visible, ['a', 'b', 'c'], 'a')).toBeNull();
+		// 'c' está en índice 2
+		expect(resolveToolbarDropMarker(visible, ['a', 'b', 'c'], 'c')).toBeNull();
+	});
+
+	it('resolveToolbarDropMarker muestra en el lado derecho apuntando a la derecha si está a la izquierda del original', () => {
+		const visible = ['a', 'b', 'c'];
+		// 'c' originalmente en índice 2, movido al slot 0 (izquierda del original):
+		// preview: ['c', 'a', 'b'] -> currentSlotIndex = 0, originalSlotIndex = 2.
+		// Debe colocarse en el lado derecho de 'c' (order 2) y apuntar a la derecha (hacia el original).
+		const resC = resolveToolbarDropMarker(visible, ['c', 'a', 'b'], 'c');
+		expect(resC).toEqual({
+			show: true,
+			side: 'right',
+			direction: 'right',
+			order: 2, // currentSlotIndex (0) * 2 + 2 = 2
+			currentSlotIndex: 0,
+			originalSlotIndex: 2,
+		});
+
+		// 'c' movido al slot 1:
+		// preview: ['a', 'c', 'b'] -> currentSlotIndex = 1, originalSlotIndex = 2.
+		// Lado derecho de 'c' (order 4) apuntando a la derecha.
+		expect(resolveToolbarDropMarker(visible, ['a', 'c', 'b'], 'c')).toEqual({
+			show: true,
+			side: 'right',
+			direction: 'right',
+			order: 4, // 1 * 2 + 2 = 4
+			currentSlotIndex: 1,
+			originalSlotIndex: 2,
+		});
+	});
+
+	it('resolveToolbarDropMarker muestra en el lado izquierdo apuntando a la izquierda si está a la derecha del original', () => {
+		const visible = ['a', 'b', 'c'];
+		// 'a' originalmente en índice 0, movido al slot 2 (derecha del original):
+		// preview: ['b', 'c', 'a'] -> currentSlotIndex = 2, originalSlotIndex = 0.
+		// Debe colocarse en el lado izquierdo de 'a' (order 4) y apuntar a la izquierda (hacia el original).
+		const resA = resolveToolbarDropMarker(visible, ['b', 'c', 'a'], 'a');
+		expect(resA).toEqual({
+			show: true,
+			side: 'left',
+			direction: 'left',
+			order: 4, // currentSlotIndex (2) * 2 = 4
+			currentSlotIndex: 2,
+			originalSlotIndex: 0,
+		});
+
+		// 'a' movido al slot 1:
+		// preview: ['b', 'a', 'c'] -> currentSlotIndex = 1, originalSlotIndex = 0.
+		// Lado izquierdo de 'a' (order 2) apuntando a la izquierda.
+		expect(resolveToolbarDropMarker(visible, ['b', 'a', 'c'], 'a')).toEqual({
+			show: true,
+			side: 'left',
+			direction: 'left',
+			order: 2, // 1 * 2 = 2
+			currentSlotIndex: 1,
+			originalSlotIndex: 0,
+		});
+	});
+
+	it('resolveToolbarDropMarker soporta las 4 direcciones (arriba/abajo/izquierda/derecha)', () => {
+		const visible = ['a', 'b', 'c'];
+		// Vertical: 'c' (index 2) movido arriba a index 0 -> lado inferior (bottom) apuntando hacia abajo (down)
+		expect(
+			resolveToolbarDropMarker(visible, ['c', 'a', 'b'], 'c', { orientation: 'vertical' }),
+		).toEqual({
+			show: true,
+			side: 'bottom',
+			direction: 'down',
+			order: 2,
+			currentSlotIndex: 0,
+			originalSlotIndex: 2,
+		});
+
+		// Vertical: 'a' (index 0) movido abajo a index 2 -> lado superior (top) apuntando hacia arriba (up)
+		expect(
+			resolveToolbarDropMarker(visible, ['b', 'c', 'a'], 'a', { orientation: 'vertical' }),
+		).toEqual({
+			show: true,
+			side: 'top',
+			direction: 'up',
+			order: 4,
+			currentSlotIndex: 2,
+			originalSlotIndex: 0,
+		});
+
+		// 2D con filas: originalRow 1, currentRow 0 (arriba) -> apunta hacia abajo (down)
+		expect(
+			resolveToolbarDropMarker(visible, ['c', 'a', 'b'], 'c', { originalRow: 1, currentRow: 0 }),
+		).toEqual({
+			show: true,
+			side: 'bottom',
+			direction: 'down',
+			order: 2,
+			currentSlotIndex: 0,
+			originalSlotIndex: 2,
+		});
+
+		// 2D con filas: originalRow 0, currentRow 1 (abajo) -> apunta hacia arriba (up)
+		expect(
+			resolveToolbarDropMarker(visible, ['b', 'c', 'a'], 'a', { originalRow: 0, currentRow: 1 }),
+		).toEqual({
+			show: true,
+			side: 'top',
+			direction: 'up',
+			order: 4,
+			currentSlotIndex: 2,
+			originalSlotIndex: 0,
+		});
 	});
 });

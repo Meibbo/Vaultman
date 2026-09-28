@@ -217,6 +217,8 @@ export interface MenuItem {
 	onClickCb: (() => void) | undefined;
 	setTitle(t: string): MenuItem;
 	setIcon(i: string): MenuItem;
+	setChecked(c?: boolean): MenuItem;
+	setDisabled(d?: boolean): MenuItem;
 	onClick(cb: () => void): MenuItem;
 	setSubmenu(): Menu;
 }
@@ -235,6 +237,12 @@ export class Menu {
 			},
 			setIcon(i: string) {
 				this.icon = i;
+				return this;
+			},
+			setChecked(_c?: boolean) {
+				return this;
+			},
+			setDisabled(_d?: boolean) {
 				return this;
 			},
 			onClick(c: () => void) {

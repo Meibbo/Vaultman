@@ -285,12 +285,20 @@ export function bubbledFolderCounterValue(
 	_visibleCells: ReadonlySet<string>,
 	bubblingEnabled: boolean,
 ): number | null {
-	if (!node.meta?.isFolder || !bubblingEnabled) return null;
+	if (!node.meta?.isFolder) return null;
+	if (kind === 'childs') {
+		if (node.fileCountText !== undefined) {
+			const parsed = Number(node.fileCountText);
+			if (Number.isFinite(parsed)) return parsed;
+		}
+		return node.children?.length ?? 0;
+	}
+	if (!bubblingEnabled) return null;
 	if (kind === 'words') {
 		const words = node.wordCountValue ?? Number(node.wordCountText ?? 0);
 		return Number.isFinite(words) ? words : null;
 	}
-	if (kind === 'props') {
+	if (kind === 'props' || kind === 'count') {
 		return node.count ?? 0;
 	}
 	if (kind === 'tasks') {
@@ -1924,6 +1932,9 @@ export class FilesExplorerPanel extends Component {
 		// BT5-009: exclusion already ran through the filter pipeline upstream, so
 		// there is no parallel excluded-paths pass here.
 		const files = this._currentFiles;
+		// Extension choices are part of filter projection, unlike the
+		// folders-only view, which remains active when filtering is off.
+		if (this.sortState.filtered !== true) return files;
 		const typeFilters = this.nodeTypeFilters.filter(
 			(type) => type !== 'folders-only',
 		);
@@ -2984,7 +2995,11 @@ export class FilesExplorerPanel extends Component {
 			this._refreshFolderMaxMtime(modelFiles);
 			this._refreshFolderFileCount(modelFiles);
 			this._refreshFolderStatCounts(modelFiles);
-			const rebaseFolderPaths = this._activeFolderFilterPaths();
+			// In folders-only mode the scoped folder itself is a visible node.
+			// Rebasing it to the virtual root would hide that only result.
+			const rebaseFolderPaths = foldersOnly
+				? []
+				: this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
 						'explorer.files.build-tree',
@@ -4266,6 +4281,10 @@ export class FilesExplorerPanel extends Component {
 				return this._taskMetricForFile(file);
 			case 'props':
 				return fileCounterPropertyValue(file, this._propCountForFile(file));
+			case 'count':
+				return this._propCountForFile(file);
+			case 'childs':
+				return 0;
 			case 'modified':
 				return this.plugin.statisticsCache.getFileTimes(file).mtime;
 			case 'created':
@@ -5253,17 +5272,29 @@ export class FilesExplorerPanel extends Component {
 		tags: boolean;
 		tasks: boolean;
 	} | null {
-		const files = this.visibleCells.has('file-count');
-		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
 		const scopedPresets = Object.values(this.sortState.scopeState?.sets ?? {})
 			.filter((set) => set?.hidden !== true)
 			.map((set) => set?.groupPreset?.kind);
+		const files =
+			this.visibleCells.has('file-count') ||
+			this.groupPreset.kind === 'childs' ||
+			scopedPresets.includes('childs');
+		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
 		const flags = {
 			files,
-			count: this.visibleCells.has('count') || this.groupPreset.kind === 'props' || scopedPresets.includes('props'),
-			words: this.visibleCells.has('words') || this.groupPreset.kind === 'words' || scopedPresets.includes('words'),
+			count:
+				this.visibleCells.has('count') ||
+				this.groupPreset.kind === 'props' ||
+				scopedPresets.includes('props'),
+			words:
+				this.visibleCells.has('words') ||
+				this.groupPreset.kind === 'words' ||
+				scopedPresets.includes('words'),
 			tags: this.visibleCells.has('tags'),
-			tasks: this.visibleCells.has('tasks') || this.groupPreset.kind === 'tasks' || scopedPresets.includes('tasks'),
+			tasks:
+				this.visibleCells.has('tasks') ||
+				this.groupPreset.kind === 'tasks' ||
+				scopedPresets.includes('tasks'),
 		};
 		return Object.values(flags).some(Boolean) ? flags : null;
 	}
@@ -5789,8 +5820,11 @@ export class FilesExplorerPanel extends Component {
 
 	private _shouldShowEmptyFilteredState(): boolean {
 		return (
+			this.sortState.filtered === true &&
 			this.plugin.filterService.activeFilter.children.length > 0 &&
-			this._currentFiles.length === 0
+			(this._foldersOnlyMode()
+				? this._foldersForCurrentView().length === 0
+				: this._currentFiles.length === 0)
 		);
 	}
 
@@ -6336,12 +6370,19 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _activeFolderFilterPaths(): string[] {
-		return this.plugin.filterService.activeFolderFilterPaths();
+		return this.sortState.filtered === true
+			? this.plugin.filterService.activeFolderFilterPaths()
+			: [];
 	}
 
 	private _syncSearchTermsFromActiveFilters(): void {
 		let name = '';
 		let folder = '';
+		if (this.sortState.filtered !== true) {
+			this.searchName = name;
+			this.searchFolder = folder;
+			return;
+		}
 		const walk = (node: FilterNode): void => {
 			if (node.enabled === false) return;
 			if (node.type === 'rule') {
@@ -6392,14 +6433,26 @@ export class FilesExplorerPanel extends Component {
 		const folders = this._allVaultFolders();
 		const activeFolderPaths = this._activeFolderFilterPaths();
 		if (activeFolderPaths.length > 0) {
-			if (this._hasNarrowingConstraintsBeyondFolderScopes()) return [];
-			return folders.filter((folder) =>
-				activeFolderPaths.some(
-					(path) =>
-						folder.path !== path &&
-						(folder.path === path || folder.path.startsWith(`${path}/`)),
-				),
-			);
+			if (!this._hasNarrowingConstraintsBeyondFolderScopes()) {
+				return folders.filter((folder) =>
+					activeFolderPaths.some((path) =>
+						folder.path === path || folder.path.startsWith(`${path}/`),
+					),
+				);
+			}
+		}
+		// Folders-only hides file rows after filtering. Derive the visible
+		// folders from matching files before that projection removes them.
+		if (this._foldersOnlyMode() && this._hasActiveConstraints()) {
+			const matchingFolderPaths = new Set<string>();
+			for (const file of this._filesForDisplay()) {
+				let path = file.path;
+				while (path.includes('/')) {
+					path = path.slice(0, path.lastIndexOf('/'));
+					matchingFolderPaths.add(path);
+				}
+			}
+			return folders.filter((folder) => matchingFolderPaths.has(folder.path));
 		}
 		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
@@ -6413,8 +6466,13 @@ export class FilesExplorerPanel extends Component {
 			(t) => t !== 'folders-only',
 		);
 		return (
-			this.plugin.filterService.activeFilter.children.length > 0 ||
-			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0)
+			(this.sortState.filtered === true &&
+				this.plugin.filterService.activeFilter.children.length > 0) ||
+			Boolean(
+				this.searchName ||
+					this.searchFolder ||
+					(this.sortState.filtered === true && typeFilters.length > 0),
+			)
 		);
 	}
 
@@ -6423,10 +6481,15 @@ export class FilesExplorerPanel extends Component {
 			(t) => t !== 'folders-only',
 		);
 		return (
-			Boolean(this.searchName || this.searchFolder || typeFilters.length > 0) ||
-			this._hasEnabledNonFolderIncludeFilter(
-				this.plugin.filterService.activeFilter,
-			)
+			Boolean(
+				this.searchName ||
+					this.searchFolder ||
+					(this.sortState.filtered === true && typeFilters.length > 0),
+			) ||
+			(this.sortState.filtered === true &&
+				this._hasEnabledNonFolderIncludeFilter(
+					this.plugin.filterService.activeFilter,
+				))
 		);
 	}
 

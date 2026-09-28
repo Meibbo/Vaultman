@@ -135,28 +135,91 @@ export function dropIndexForPointer(
 }
 
 /**
- * U130 polishing: mueve `draggedLocalId` delante de `anchorLocalId` (al
- * final si el ancla es `null` o ya no se ve) dentro del orden visible y
- * conserva detrás los ids guardados que ya no se ven (sin pérdida al
- * ocultar/mostrar nodos). Puro y probado sin DOM.
+ * Geometry descriptor of a sibling toolbar node at drag start.
  */
-export function reorderLocalIds(
+export type ToolbarSlotSibling = {
+	localId: string;
+	left: number;
+	right: number;
+};
+
+/**
+ * Resolved drop boundary and anchor for a horizontal list with 0..N slots.
+ */
+export type ResolvedToolbarDropSlot = {
+	slotIndex: number;
+	anchorLocalId: string | null;
+	placement: 'before' | 'after';
+};
+
+/**
+ * Resolves insertion slot 0..N for horizontal DnD with pointer and destination
+ * item halves. Derives slot from midpoints, resolving before/after dynamically
+ * for variable width items and slot N after the last item. Pure and deterministic.
+ */
+export function resolveToolbarDropSlot(
+	siblings: readonly ToolbarSlotSibling[],
+	pointerX: number,
+): ResolvedToolbarDropSlot {
+	if (siblings.length === 0) {
+		return { slotIndex: 0, anchorLocalId: null, placement: 'before' };
+	}
+
+	const sorted = [...siblings].sort((a, b) => a.left - b.left);
+	const first = sorted[0];
+	const firstMid = (first.left + first.right) / 2;
+	if (pointerX < firstMid) {
+		return { slotIndex: 0, anchorLocalId: first.localId, placement: 'before' };
+	}
+
+	const last = sorted[sorted.length - 1];
+	const lastMid = (last.left + last.right) / 2;
+	if (pointerX >= lastMid) {
+		return {
+			slotIndex: sorted.length,
+			anchorLocalId: last.localId,
+			placement: 'after',
+		};
+	}
+
+	for (let i = 0; i < sorted.length - 1; i += 1) {
+		const curr = sorted[i];
+		const next = sorted[i + 1];
+		const currMid = (curr.left + curr.right) / 2;
+		const nextMid = (next.left + next.right) / 2;
+		if (pointerX >= currMid && pointerX < nextMid) {
+			const closerToCurr = pointerX - currMid <= nextMid - pointerX;
+			return {
+				slotIndex: i + 1,
+				anchorLocalId: closerToCurr ? curr.localId : next.localId,
+				placement: closerToCurr ? 'after' : 'before',
+			};
+		}
+	}
+
+	return {
+		slotIndex: sorted.length,
+		anchorLocalId: last.localId,
+		placement: 'after',
+	};
+}
+
+/**
+ * Reorders visible local IDs placing `draggedLocalId` at target slot index 0..N,
+ * preserving unrendered stored IDs at the end without loss.
+ */
+export function reorderLocalIdsToSlot(
 	visibleLocalIds: readonly string[],
 	storedIds: readonly string[],
 	draggedLocalId: string,
-	anchorLocalId: string | null,
+	slotIndex: number,
 ): string[] {
 	const without = visibleLocalIds.filter((id) => id !== draggedLocalId);
-	const anchorIndex =
-		anchorLocalId === null ? -1 : without.indexOf(anchorLocalId);
-	const clamped =
-		anchorIndex < 0
-			? without.length
-			: Math.max(0, Math.min(anchorIndex, without.length));
+	const clampedSlot = Math.max(0, Math.min(slotIndex, without.length));
 	const next = [
-		...without.slice(0, clamped),
+		...without.slice(0, clampedSlot),
 		draggedLocalId,
-		...without.slice(clamped),
+		...without.slice(clampedSlot),
 	];
 	const seen = new Set(next);
 	for (const id of storedIds) {
@@ -166,4 +229,165 @@ export function reorderLocalIds(
 		}
 	}
 	return next;
+}
+
+/**
+ * U130 polishing: mueve `draggedLocalId` delante o detrás de `anchorLocalId` (al
+ * final si el ancla es `null` o ya no se ve) dentro del orden visible y
+ * conserva detrás los ids guardados que ya no se ven (sin pérdida al
+ * ocultar/mostrar nodos). Puro y probado sin DOM.
+ */
+export function reorderLocalIds(
+	visibleLocalIds: readonly string[],
+	storedIds: readonly string[],
+	draggedLocalId: string,
+	anchorLocalId: string | null,
+	placement: 'before' | 'after' = 'before',
+): string[] {
+	const without = visibleLocalIds.filter((id) => id !== draggedLocalId);
+	const anchorIndex =
+		anchorLocalId === null ? -1 : without.indexOf(anchorLocalId);
+	let slotIndex: number;
+	if (anchorIndex < 0) {
+		slotIndex = without.length;
+	} else if (placement === 'after') {
+		slotIndex = anchorIndex + 1;
+	} else {
+		slotIndex = anchorIndex;
+	}
+	return reorderLocalIdsToSlot(
+		visibleLocalIds,
+		storedIds,
+		draggedLocalId,
+		slotIndex,
+	);
+}
+
+export type DropMarkerDirection = 'left' | 'right' | 'up' | 'down';
+export type DropMarkerSide = 'left' | 'right' | 'top' | 'bottom';
+
+export type ToolbarDropMarkerDescriptor = {
+	readonly show: boolean;
+	readonly side: DropMarkerSide;
+	readonly direction: DropMarkerDirection;
+	readonly order: number;
+	readonly currentSlotIndex: number;
+	readonly originalSlotIndex: number;
+};
+
+export type ResolveDropMarkerOptions = {
+	readonly orientation?: 'horizontal' | 'vertical';
+	readonly originalRow?: number;
+	readonly currentRow?: number;
+};
+
+/**
+ * Resuelve la orientación y posición del marcador direccional de drop.
+ * - Si el ítem arrastrado está sobre su slot original: no muestra nada (null).
+ * - Si está a la izquierda del slot original: se muestra en el lado derecho apuntando hacia donde estaba (derecha).
+ * - Si está a la derecha del slot original: se muestra en el lado izquierdo apuntando hacia donde estaba (izquierda).
+ * - En las 4 direcciones (soporte 2D/vertical): si está arriba apunta hacia abajo (lado inferior), si está abajo apunta hacia arriba (lado superior).
+ */
+export function resolveToolbarDropMarker(
+	visibleLocalIds: readonly string[],
+	previewOrder: readonly string[] | null,
+	dragLocalId: string | null,
+	options?: ResolveDropMarkerOptions,
+): ToolbarDropMarkerDescriptor | null {
+	if (!previewOrder || !dragLocalId || visibleLocalIds.length === 0) {
+		return null;
+	}
+	const originalSlotIndex = visibleLocalIds.indexOf(dragLocalId);
+	const currentSlotIndex = previewOrder.indexOf(dragLocalId);
+	if (originalSlotIndex < 0 || currentSlotIndex < 0) {
+		return null;
+	}
+
+	const orientation = options?.orientation ?? 'horizontal';
+	const originalRow = options?.originalRow;
+	const currentRow = options?.currentRow;
+
+	// Soporte bidimensional de 4 direcciones cuando se reportan filas distintas
+	if (
+		originalRow !== undefined &&
+		currentRow !== undefined &&
+		originalRow !== currentRow
+	) {
+		if (currentRow < originalRow) {
+			// El slot actual está arriba del original -> apunta abajo (hacia el original)
+			return {
+				show: true,
+				side: 'bottom',
+				direction: 'down',
+				order: currentSlotIndex * 2 + 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		} else {
+			// El slot actual está abajo del original -> apunta arriba (hacia el original)
+			return {
+				show: true,
+				side: 'top',
+				direction: 'up',
+				order: currentSlotIndex * 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		}
+	}
+
+	if (orientation === 'vertical') {
+		if (currentSlotIndex === originalSlotIndex) {
+			return null;
+		}
+		if (currentSlotIndex < originalSlotIndex) {
+			// Arriba del original -> en el lado inferior apuntando hacia abajo
+			return {
+				show: true,
+				side: 'bottom',
+				direction: 'down',
+				order: currentSlotIndex * 2 + 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		} else {
+			// Abajo del original -> en el lado superior apuntando hacia arriba
+			return {
+				show: true,
+				side: 'top',
+				direction: 'up',
+				order: currentSlotIndex * 2,
+				currentSlotIndex,
+				originalSlotIndex,
+			};
+		}
+	}
+
+	// Horizontal (defecto de toolbar)
+	if (currentSlotIndex === originalSlotIndex) {
+		// Sobre el slot original: no se muestra nada
+		return null;
+	}
+
+	if (currentSlotIndex < originalSlotIndex) {
+		// A la izquierda del slot original: se muestra en el lado derecho apuntando hacia donde estaba (derecha)
+		return {
+			show: true,
+			side: 'right',
+			direction: 'right',
+			order: currentSlotIndex * 2 + 2,
+			currentSlotIndex,
+			originalSlotIndex,
+		};
+	} else {
+		// A la derecha del slot original: se muestra en el lado izquierdo apuntando hacia donde estaba (izquierda)
+		return {
+			show: true,
+			side: 'left',
+			direction: 'left',
+			order: currentSlotIndex * 2,
+			currentSlotIndex,
+			originalSlotIndex,
+		};
+	}
 }
