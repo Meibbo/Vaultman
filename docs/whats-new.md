@@ -20,6 +20,21 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-8"></a>
+
+## 1.3.0-beta.8 — Drops that land where you aim, settings that stay put
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.8 makes drag-and-drop and settings predictable, from directional drop markers to per-instance options that survive reloads.
+
+- **Drops with direction:** The drop marker now points toward the original slot, with dynamic slot resolution and indicator boundaries in the panel widget toolbar.
+- **Settings in two scopes:** Global and per-instance options with a canonical group layout, scopes in sort menus, and go-to navigation that lands on the right setting content.
+- **Grouping decoupled:** Grouping stands apart from hierarchy with a strict three-level tree and native navigation parity.
+- **Quieter toolbar:** Trailing clicks on drag release are suppressed, and toolbar typings stay coherent with the plugin test harness.
+
+[Full changelog](../CHANGELOG.md#130-beta8---2026-09-28)
+
 <a id="v1-3-0-beta-7"></a>
 
 ## 1.3.0-beta.7 — Groups that reveal, menus you own
