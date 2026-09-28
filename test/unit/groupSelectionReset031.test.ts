@@ -5,12 +5,60 @@ import {
 	noteSelectionState,
 	reconcileCommittedGroupCreation,
 	reconcileCommittedSelection,
+	type CreateGroupHandler,
+	type GroupMutationResult,
 } from '../../src/logic/logicGroupSelectionTransaction';
 import { FilesExplorerPanel } from '../../src/components/containers/explorerFiles';
 import { PropsExplorerPanel } from '../../src/components/containers/explorerProps';
 import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
 import { PluginsExplorerPanel } from '../../src/components/containers/explorerPlugins';
 import { SnippetsExplorerPanel } from '../../src/components/containers/explorerSnippets';
+
+interface TestTreeNode {
+	id: string;
+	label: string;
+	depth: number;
+	meta: Record<string, unknown>;
+}
+
+interface GroupCreationPanelHarness {
+	_groupCreationMenuCtx(): {
+		createGroupWithSelected?: () => Promise<GroupMutationResult>;
+	};
+}
+
+function createPanelHarness(
+	prototype: object,
+	isExpectedPanel: (value: unknown) => value is GroupCreationPanelHarness,
+): GroupCreationPanelHarness {
+	const candidate: unknown = Object.create(prototype);
+	if (!isExpectedPanel(candidate)) {
+		throw new TypeError('Panel harness has an unexpected prototype');
+	}
+	return candidate;
+}
+
+function committedHandler(
+	groupId: string,
+	affectedUrns: readonly string[],
+): CreateGroupHandler {
+	return vi.fn(async (): Promise<GroupMutationResult> => ({
+		status: 'committed',
+		groupId,
+		affectedUrns,
+	}));
+}
+
+function requireCreateGroup(
+	context: ReturnType<GroupCreationPanelHarness['_groupCreationMenuCtx']>,
+): () => Promise<GroupMutationResult> {
+	expect(context).toHaveProperty('createGroupWithSelected');
+	const createGroupWithSelected = context.createGroupWithSelected;
+	if (!createGroupWithSelected) {
+		throw new TypeError('Expected createGroupWithSelected to be available');
+	}
+	return createGroupWithSelected;
+}
 
 describe('U130-GGC-031 — Selection reset post Group committed', () => {
 	beforeEach(() => {
@@ -211,35 +259,40 @@ describe('U130-GGC-031 — Selection reset post Group committed', () => {
 
 	describe('Wiring en exploradores', () => {
 		it('FilesExplorerPanel: committed limpia selectedFilePaths y selectionAnchorPath', async () => {
-			const panel = Object.create(FilesExplorerPanel.prototype) as any;
-			panel.selectionInstanceId = 'files-inst';
-			panel.selectionRevision = 1;
-			panel.selectedFilePaths = new Set(['doc1.md', 'doc2.md']);
-			panel.selectionAnchorPath = 'doc1.md';
-			panel._groupIds = new Set();
-			panel._lastRenderTree = [
-				{ id: 'doc1.md', label: 'doc1.md', depth: 0, meta: { file: { path: 'doc1.md' } } },
-				{ id: 'doc2.md', label: 'doc2.md', depth: 0, meta: { file: { path: 'doc2.md' } } },
-			];
-			panel.projectedNodes = (t: any) => t;
-			panel._membershipUrnOf = (n: any) => `files:file:${n.id}|${n.id}`;
-			panel._selectionKey = () => 'files-inst:files:files';
-			panel.tableView = { setSelectedPaths: vi.fn() };
-			panel.cardsView = { setSelectedPaths: vi.fn() };
-			panel._renderTreeSelectionClasses = vi.fn();
-			panel.plugin = { filterService: { setSelectedFiles: vi.fn() } };
-			panel.getSelectedFiles = () => [];
-
-			const handler = vi.fn(async () => ({
-				status: 'committed' as const,
-				groupId: 'FolderGroup',
-				affectedUrns: ['files:file:doc1.md|doc1.md', 'files:file:doc2.md|doc2.md'],
-			}));
-			panel.createGroupHandler = handler;
+			const panel = Object.assign(
+				createPanelHarness(
+					FilesExplorerPanel.prototype,
+					(value): value is GroupCreationPanelHarness =>
+						value instanceof FilesExplorerPanel,
+				),
+				{
+					selectionInstanceId: 'files-inst',
+					selectionRevision: 1,
+					selectedFilePaths: new Set(['doc1.md', 'doc2.md']),
+					selectionAnchorPath: 'doc1.md',
+					_groupIds: new Set<string>(),
+					_lastRenderTree: [
+						{ id: 'doc1.md', label: 'doc1.md', depth: 0, meta: { file: { path: 'doc1.md' } } },
+						{ id: 'doc2.md', label: 'doc2.md', depth: 0, meta: { file: { path: 'doc2.md' } } },
+					] satisfies TestTreeNode[],
+					projectedNodes: (nodes: TestTreeNode[]): TestTreeNode[] => nodes,
+					_membershipUrnOf: (node: TestTreeNode): string =>
+						`files:file:${node.id}|${node.id}`,
+					_selectionKey: (): string => 'files-inst:files:files',
+					tableView: { setSelectedPaths: vi.fn() },
+					cardsView: { setSelectedPaths: vi.fn() },
+					_renderTreeSelectionClasses: vi.fn(),
+					plugin: { filterService: { setSelectedFiles: vi.fn() } },
+					getSelectedFiles: (): never[] => [],
+					createGroupHandler: committedHandler('FolderGroup', [
+						'files:file:doc1.md|doc1.md',
+						'files:file:doc2.md|doc2.md',
+					]),
+				},
+			);
 
 			const ctx = panel._groupCreationMenuCtx();
-			expect(ctx).toHaveProperty('createGroupWithSelected');
-			const result = await ctx.createGroupWithSelected();
+			const result = await requireCreateGroup(ctx)();
 
 			expect(result.status).toBe('committed');
 			expect(panel.selectedFilePaths.size).toBe(0);
@@ -248,31 +301,36 @@ describe('U130-GGC-031 — Selection reset post Group committed', () => {
 		});
 
 		it('PropsExplorerPanel: committed limpia selectedNodeIds y selectionAnchorId', async () => {
-			const panel = Object.create(PropsExplorerPanel.prototype) as any;
-			panel.selectionInstanceId = 'props-inst';
-			panel.selectionRevision = 1;
-			panel.selectedNodeIds = new Set(['propA', 'propB']);
-			panel.selectionAnchorId = 'propA';
-			panel._groupIds = new Set();
-			panel._lastRenderTree = [
-				{ id: 'propA', label: 'propA', depth: 0, meta: { isValueNode: false } },
-				{ id: 'propB', label: 'propB', depth: 0, meta: { isValueNode: false } },
-			];
-			panel.projectedNodes = (t: any) => t;
-			panel._membershipUrnOf = (n: any) => `props:prop:${n.id}|${n.id}`;
-			panel._selectionKey = () => 'props-inst:props:props';
-			panel._render = vi.fn();
-
-			const handler = vi.fn(async () => ({
-				status: 'committed' as const,
-				groupId: 'PropGroup',
-				affectedUrns: ['props:prop:propA|propA', 'props:prop:propB|propB'],
-			}));
-			panel.createGroupHandler = handler;
+			const panel = Object.assign(
+				createPanelHarness(
+					PropsExplorerPanel.prototype,
+					(value): value is GroupCreationPanelHarness =>
+						value instanceof PropsExplorerPanel,
+				),
+				{
+					selectionInstanceId: 'props-inst',
+					selectionRevision: 1,
+					selectedNodeIds: new Set(['propA', 'propB']),
+					selectionAnchorId: 'propA',
+					_groupIds: new Set<string>(),
+					_lastRenderTree: [
+						{ id: 'propA', label: 'propA', depth: 0, meta: { isValueNode: false } },
+						{ id: 'propB', label: 'propB', depth: 0, meta: { isValueNode: false } },
+					] satisfies TestTreeNode[],
+					projectedNodes: (nodes: TestTreeNode[]): TestTreeNode[] => nodes,
+					_membershipUrnOf: (node: TestTreeNode): string =>
+						`props:prop:${node.id}|${node.id}`,
+					_selectionKey: (): string => 'props-inst:props:props',
+					_render: vi.fn(),
+					createGroupHandler: committedHandler('PropGroup', [
+						'props:prop:propA|propA',
+						'props:prop:propB|propB',
+					]),
+				},
+			);
 
 			const ctx = panel._groupCreationMenuCtx();
-			expect(ctx).toHaveProperty('createGroupWithSelected');
-			const result = await ctx.createGroupWithSelected();
+			const result = await requireCreateGroup(ctx)();
 
 			expect(result.status).toBe('committed');
 			expect(panel.selectedNodeIds.size).toBe(0);
@@ -281,32 +339,37 @@ describe('U130-GGC-031 — Selection reset post Group committed', () => {
 		});
 
 		it('TagsExplorerPanel: committed limpia selectedNodeIds y selectionAnchorId', async () => {
-			const panel = Object.create(TagsExplorerPanel.prototype) as any;
-			panel.selectionInstanceId = 'tags-inst';
-			panel.selectionRevision = 1;
-			panel.selectedNodeIds = new Set(['tag1', 'tag2']);
-			panel.selectionAnchorId = 'tag1';
-			panel._groupIds = new Set();
-			panel.groupPreset = { kind: 'none' };
-			panel.projectedNodes = (t: any) => t;
-			panel._lastRenderTree = [
-				{ id: 'tag1', label: 'tag1', depth: 0, meta: {} },
-				{ id: 'tag2', label: 'tag2', depth: 0, meta: {} },
-			];
-			panel._membershipUrnOf = (n: any) => `tags:tag:${n.id}|${n.id}`;
-			panel._selectionKey = () => 'tags-inst:tags:tags';
-			panel._render = vi.fn();
-
-			const handler = vi.fn(async () => ({
-				status: 'committed' as const,
-				groupId: 'TagGroup',
-				affectedUrns: ['tags:tag:tag1|tag1', 'tags:tag:tag2|tag2'],
-			}));
-			panel.createGroupHandler = handler;
+			const panel = Object.assign(
+				createPanelHarness(
+					TagsExplorerPanel.prototype,
+					(value): value is GroupCreationPanelHarness =>
+						value instanceof TagsExplorerPanel,
+				),
+				{
+					selectionInstanceId: 'tags-inst',
+					selectionRevision: 1,
+					selectedNodeIds: new Set(['tag1', 'tag2']),
+					selectionAnchorId: 'tag1',
+					_groupIds: new Set<string>(),
+					groupPreset: { kind: 'none' as const },
+					projectedNodes: (nodes: TestTreeNode[]): TestTreeNode[] => nodes,
+					_lastRenderTree: [
+						{ id: 'tag1', label: 'tag1', depth: 0, meta: {} },
+						{ id: 'tag2', label: 'tag2', depth: 0, meta: {} },
+					] satisfies TestTreeNode[],
+					_membershipUrnOf: (node: TestTreeNode): string =>
+						`tags:tag:${node.id}|${node.id}`,
+					_selectionKey: (): string => 'tags-inst:tags:tags',
+					_render: vi.fn(),
+					createGroupHandler: committedHandler('TagGroup', [
+						'tags:tag:tag1|tag1',
+						'tags:tag:tag2|tag2',
+					]),
+				},
+			);
 
 			const ctx = panel._groupCreationMenuCtx();
-			expect(ctx).toHaveProperty('createGroupWithSelected');
-			const result = await ctx.createGroupWithSelected();
+			const result = await requireCreateGroup(ctx)();
 
 			expect(result.status).toBe('committed');
 			expect(panel.selectedNodeIds.size).toBe(0);
@@ -314,31 +377,37 @@ describe('U130-GGC-031 — Selection reset post Group committed', () => {
 		});
 
 		it('PluginsExplorerPanel: committed limpia selectedNodeIds y selectionAnchorId', async () => {
-			const panel = Object.create(PluginsExplorerPanel.prototype) as any;
-			panel.selectionInstanceId = 'plugins-inst';
-			panel.selectionRevision = 1;
-			panel.selectedNodeIds = new Set(['p1', 'p2']);
-			panel.selectionAnchorId = 'p1';
-			panel._groupIds = new Set();
-			panel._lastProjectedTree = [
+			const projectedTree: TestTreeNode[] = [
 				{ id: 'p1', label: 'p1', depth: 0, meta: {} },
 				{ id: 'p2', label: 'p2', depth: 0, meta: {} },
 			];
-			panel.nodes = panel._lastProjectedTree;
-			panel._membershipUrnOf = (n: any) => `plugins:plugin:${n.id}|${n.id}`;
-			panel._selectionKey = () => 'plugins-inst:plugins:plugins';
-			panel.render = vi.fn();
-
-			const handler = vi.fn(async () => ({
-				status: 'committed' as const,
-				groupId: 'PlugGroup',
-				affectedUrns: ['plugins:plugin:p1|p1', 'plugins:plugin:p2|p2'],
-			}));
-			panel.createGroupHandler = handler;
+			const panel = Object.assign(
+				createPanelHarness(
+					PluginsExplorerPanel.prototype,
+					(value): value is GroupCreationPanelHarness =>
+						value instanceof PluginsExplorerPanel,
+				),
+				{
+					selectionInstanceId: 'plugins-inst',
+					selectionRevision: 1,
+					selectedNodeIds: new Set(['p1', 'p2']),
+					selectionAnchorId: 'p1',
+					_groupIds: new Set<string>(),
+					_lastProjectedTree: projectedTree,
+					nodes: projectedTree,
+					_membershipUrnOf: (node: TestTreeNode): string =>
+						`plugins:plugin:${node.id}|${node.id}`,
+					_selectionKey: (): string => 'plugins-inst:plugins:plugins',
+					render: vi.fn(),
+					createGroupHandler: committedHandler('PlugGroup', [
+						'plugins:plugin:p1|p1',
+						'plugins:plugin:p2|p2',
+					]),
+				},
+			);
 
 			const ctx = panel._groupCreationMenuCtx();
-			expect(ctx).toHaveProperty('createGroupWithSelected');
-			const result = await ctx.createGroupWithSelected();
+			const result = await requireCreateGroup(ctx)();
 
 			expect(result.status).toBe('committed');
 			expect(panel.selectedNodeIds.size).toBe(0);
@@ -346,31 +415,37 @@ describe('U130-GGC-031 — Selection reset post Group committed', () => {
 		});
 
 		it('SnippetsExplorerPanel: committed limpia selectedNodeIds y selectionAnchorId', async () => {
-			const panel = Object.create(SnippetsExplorerPanel.prototype) as any;
-			panel.selectionInstanceId = 'snippets-inst';
-			panel.selectionRevision = 1;
-			panel.selectedNodeIds = new Set(['s1', 's2']);
-			panel.selectionAnchorId = 's1';
-			panel._groupIds = new Set();
-			panel._lastProjectedTree = [
+			const projectedTree: TestTreeNode[] = [
 				{ id: 's1', label: 's1', depth: 0, meta: {} },
 				{ id: 's2', label: 's2', depth: 0, meta: {} },
 			];
-			panel.nodes = panel._lastProjectedTree;
-			panel._membershipUrnOf = (n: any) => `snippets:snippet:${n.id}|${n.id}`;
-			panel._selectionKey = () => 'snippets-inst:snippets:snippets';
-			panel.render = vi.fn();
-
-			const handler = vi.fn(async () => ({
-				status: 'committed' as const,
-				groupId: 'SnipGroup',
-				affectedUrns: ['snippets:snippet:s1|s1', 'snippets:snippet:s2|s2'],
-			}));
-			panel.createGroupHandler = handler;
+			const panel = Object.assign(
+				createPanelHarness(
+					SnippetsExplorerPanel.prototype,
+					(value): value is GroupCreationPanelHarness =>
+						value instanceof SnippetsExplorerPanel,
+				),
+				{
+					selectionInstanceId: 'snippets-inst',
+					selectionRevision: 1,
+					selectedNodeIds: new Set(['s1', 's2']),
+					selectionAnchorId: 's1',
+					_groupIds: new Set<string>(),
+					_lastProjectedTree: projectedTree,
+					nodes: projectedTree,
+					_membershipUrnOf: (node: TestTreeNode): string =>
+						`snippets:snippet:${node.id}|${node.id}`,
+					_selectionKey: (): string => 'snippets-inst:snippets:snippets',
+					render: vi.fn(),
+					createGroupHandler: committedHandler('SnipGroup', [
+						'snippets:snippet:s1|s1',
+						'snippets:snippet:s2|s2',
+					]),
+				},
+			);
 
 			const ctx = panel._groupCreationMenuCtx();
-			expect(ctx).toHaveProperty('createGroupWithSelected');
-			const result = await ctx.createGroupWithSelected();
+			const result = await requireCreateGroup(ctx)();
 
 			expect(result.status).toBe('committed');
 			expect(panel.selectedNodeIds.size).toBe(0);

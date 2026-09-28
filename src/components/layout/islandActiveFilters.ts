@@ -31,6 +31,69 @@ export interface SelectedNodesSnapshot {
 	rows: readonly SelectedNodeItem[];
 }
 
+interface SelectedFileItem {
+	path: string;
+	name?: string;
+	basename?: string;
+}
+
+interface FileSelectionUpdate {
+	selectedPaths: Set<string>;
+	anchorPath: null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function isStringSet(value: unknown): value is Set<string> {
+	return (
+		value instanceof Set &&
+		Array.from(value).every((item) => typeof item === 'string')
+	);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+	return Array.isArray(value);
+}
+
+function isSelectedFileItem(value: unknown): value is SelectedFileItem {
+	return (
+		isRecord(value) &&
+		typeof value.path === 'string' &&
+		(value.name === undefined || typeof value.name === 'string') &&
+		(value.basename === undefined || typeof value.basename === 'string')
+	);
+}
+
+function isSelectedFileList(value: unknown): value is SelectedFileItem[] {
+	return isUnknownArray(value) && value.every(isSelectedFileItem);
+}
+
+function isSelectionKeyReader(value: unknown): value is () => unknown {
+	return typeof value === 'function';
+}
+
+function isSelectedFilesReader(value: unknown): value is () => unknown {
+	return typeof value === 'function';
+}
+
+function isFileSelectionWriter(
+	value: unknown,
+): value is (selection: FileSelectionUpdate) => void {
+	return typeof value === 'function';
+}
+
+function isNodeSelectionWriter(
+	value: unknown,
+): value is (selection: Set<string>) => void {
+	return typeof value === 'function';
+}
+
+function isVoidCallback(value: unknown): value is () => void {
+	return typeof value === 'function';
+}
+
 /**
  * In-frame floating island showing active filter rules or actively selected nodes.
  * U130-GGC-030: Squircle toggle between node_filters and node_selected views per scene/instance.
@@ -179,8 +242,8 @@ export class ActiveFiltersIslandComponent {
 		if (!this.getSelectedSnapshot) return [];
 		const raw = this.getSelectedSnapshot();
 		if (!raw) return [];
-		if (Array.isArray(raw)) return raw;
-		return 'rows' in raw ? raw.rows : [];
+		if ('rows' in raw) return raw.rows;
+		return raw;
 	}
 
 	toggleViewMode(target?: 'filters' | 'selected'): void {
@@ -408,24 +471,28 @@ export class ActiveFiltersIslandComponent {
 export function buildExplorerSelectedSnapshot(
 	scene: string,
 	instanceId: string | null | undefined,
-	explorer: any,
+	explorer: unknown,
 ): SelectedNodesSnapshot {
 	const resolvedInstanceId = instanceId ?? 'default';
-	if (!explorer) {
+	if (!isRecord(explorer)) {
 		return { scene, instanceId: resolvedInstanceId, revision: 0, rows: [] };
 	}
 
-	const selectionKey =
-		typeof explorer._selectionKey === 'function'
+	const candidateSelectionKey =
+		isSelectionKeyReader(explorer._selectionKey)
 			? explorer._selectionKey()
+			: undefined;
+	const selectionKey =
+		typeof candidateSelectionKey === 'string'
+			? candidateSelectionKey
 			: selectionKeyFor(scene, scene, resolvedInstanceId);
 	const revision = currentSelectionToken(selectionKey);
 
 	switch (scene) {
 		case 'files': {
 			const selectedPaths = explorer.selectedFilePaths;
-			if (selectedPaths instanceof Set && selectedPaths.size > 0) {
-				const rows: SelectedNodeItem[] = Array.from(selectedPaths as Set<string>).map((path) => {
+			if (isStringSet(selectedPaths) && selectedPaths.size > 0) {
+				const rows: SelectedNodeItem[] = Array.from(selectedPaths).map((path) => {
 					const isFolder = path.startsWith('folder:');
 					const cleanPath = isFolder ? path.slice('folder:'.length) : path;
 					const label = cleanPath.split('/').pop() || cleanPath;
@@ -435,10 +502,10 @@ export function buildExplorerSelectedSnapshot(
 						occurrenceId: path,
 						scene: 'files',
 						deselect: () => {
-							if (explorer.selectedFilePaths instanceof Set) {
+							if (isStringSet(explorer.selectedFilePaths)) {
 								const next = new Set(explorer.selectedFilePaths);
 								next.delete(path);
-								if (typeof explorer._applyFileSelection === 'function') {
+								if (isFileSelectionWriter(explorer._applyFileSelection)) {
 									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
 								} else {
 									explorer.selectedFilePaths = next;
@@ -449,19 +516,19 @@ export function buildExplorerSelectedSnapshot(
 				});
 				return { scene, instanceId: resolvedInstanceId, revision, rows };
 			}
-			if (typeof explorer.getSelectedFiles === 'function') {
-				const files = explorer.getSelectedFiles() as Array<{ path: string; name?: string; basename?: string }>;
-				if (Array.isArray(files) && files.length > 0) {
+			if (isSelectedFilesReader(explorer.getSelectedFiles)) {
+				const files = explorer.getSelectedFiles();
+				if (isSelectedFileList(files) && files.length > 0) {
 					const rows: SelectedNodeItem[] = files.map((file) => ({
 						id: file.path,
 						label: file.basename || file.name || file.path,
 						occurrenceId: file.path,
 						scene: 'files',
 						deselect: () => {
-							if (explorer.selectedFilePaths instanceof Set) {
+							if (isStringSet(explorer.selectedFilePaths)) {
 								const next = new Set(explorer.selectedFilePaths);
 								next.delete(file.path);
-								if (typeof explorer._applyFileSelection === 'function') {
+								if (isFileSelectionWriter(explorer._applyFileSelection)) {
 									explorer._applyFileSelection({ selectedPaths: next, anchorPath: null });
 								} else {
 									explorer.selectedFilePaths = next;
@@ -476,24 +543,26 @@ export function buildExplorerSelectedSnapshot(
 		}
 		case 'props': {
 			const selected = explorer.selectedNodeIds;
-			if (!(selected instanceof Set) || selected.size === 0) {
+			if (!isStringSet(selected) || selected.size === 0) {
 				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
 			}
-			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+			const rows: SelectedNodeItem[] = Array.from(selected).map((id) => ({
 				id,
 				label: id,
 				occurrenceId: id,
 				scene: 'props',
 				deselect: () => {
-					if (explorer.selectedNodeIds instanceof Set) {
+					if (isStringSet(explorer.selectedNodeIds)) {
 						const next = new Set(explorer.selectedNodeIds);
 						next.delete(id);
-						if (typeof explorer._applyPropSelection === 'function') {
+						if (isNodeSelectionWriter(explorer._applyPropSelection)) {
 							explorer._applyPropSelection(next);
 						} else {
 							explorer.selectedNodeIds = next;
-							explorer._touchSelection?.();
-							explorer._render?.();
+							if (isVoidCallback(explorer._touchSelection)) {
+								explorer._touchSelection();
+							}
+							if (isVoidCallback(explorer._render)) explorer._render();
 						}
 					}
 				},
@@ -502,21 +571,23 @@ export function buildExplorerSelectedSnapshot(
 		}
 		case 'tags': {
 			const selected = explorer.selectedNodeIds;
-			if (!(selected instanceof Set) || selected.size === 0) {
+			if (!isStringSet(selected) || selected.size === 0) {
 				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
 			}
-			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+			const rows: SelectedNodeItem[] = Array.from(selected).map((id) => ({
 				id,
 				label: id.startsWith('#') ? id : `#${id}`,
 				occurrenceId: id,
 				scene: 'tags',
 				deselect: () => {
-					if (explorer.selectedNodeIds instanceof Set) {
+					if (isStringSet(explorer.selectedNodeIds)) {
 						const next = new Set(explorer.selectedNodeIds);
 						next.delete(id);
 						explorer.selectedNodeIds = next;
-						explorer._touchSelection?.();
-						explorer._render?.();
+						if (isVoidCallback(explorer._touchSelection)) {
+							explorer._touchSelection();
+						}
+						if (isVoidCallback(explorer._render)) explorer._render();
 					}
 				},
 			}));
@@ -526,22 +597,24 @@ export function buildExplorerSelectedSnapshot(
 		case 'plugins':
 		default: {
 			const selected = explorer.selectedNodeIds ?? explorer.selectedFilePaths;
-			if (!(selected instanceof Set) || selected.size === 0) {
+			if (!isStringSet(selected) || selected.size === 0) {
 				return { scene, instanceId: resolvedInstanceId, revision, rows: [] };
 			}
-			const rows: SelectedNodeItem[] = Array.from(selected as Set<string>).map((id) => ({
+			const rows: SelectedNodeItem[] = Array.from(selected).map((id) => ({
 				id,
 				label: id,
 				occurrenceId: id,
 				scene,
 				deselect: () => {
-					if (explorer.selectedNodeIds instanceof Set) {
+					if (isStringSet(explorer.selectedNodeIds)) {
 						const next = new Set(explorer.selectedNodeIds);
 						next.delete(id);
 						explorer.selectedNodeIds = next;
-						explorer._touchSelection?.();
-						if (typeof explorer.render === 'function') explorer.render();
-						else if (typeof explorer._render === 'function') explorer._render();
+						if (isVoidCallback(explorer._touchSelection)) {
+							explorer._touchSelection();
+						}
+						if (isVoidCallback(explorer.render)) explorer.render();
+						else if (isVoidCallback(explorer._render)) explorer._render();
 					}
 				},
 			}));
@@ -550,9 +623,9 @@ export function buildExplorerSelectedSnapshot(
 	}
 }
 
-export function clearExplorerSelection(explorer: any): void {
-	if (!explorer) return;
-	if (typeof explorer.clearSelection === 'function') {
+export function clearExplorerSelection(explorer: unknown): void {
+	if (!isRecord(explorer)) return;
+	if (isVoidCallback(explorer.clearSelection)) {
 		explorer.clearSelection();
 	}
 }

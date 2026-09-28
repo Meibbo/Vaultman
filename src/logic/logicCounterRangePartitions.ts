@@ -73,10 +73,10 @@ export function validateCounterRangePartition(
 	}
 	const ordered = sortCounterRanges(ranges);
 	if (ordered.length === 0) return { ok: false, reason: 'gap' };
-	if (ordered[0]!.lo !== domain.min) return { ok: false, reason: 'gap' };
+	if (ordered[0].lo !== domain.min) return { ok: false, reason: 'gap' };
 	for (let index = 1; index < ordered.length; index += 1) {
-		const previous = ordered[index - 1]!;
-		const current = ordered[index]!;
+		const previous = ordered[index - 1];
+		const current = ordered[index];
 		if (current.lo <= previous.hi) return { ok: false, reason: 'overlap' };
 		if (current.lo !== previous.hi + 1) return { ok: false, reason: 'gap' };
 	}
@@ -114,7 +114,7 @@ export function contiguousCounterRanges(
 	// The provisional hi above is the observed quantile hi. Expand each slice
 	// to the next slice's lower boundary; this preserves disjointness.
 	for (let index = 0; index + 1 < out.length; index += 1) {
-		out[index]!.hi = out[index + 1]!.lo - 1;
+		out[index].hi = out[index + 1].lo - 1;
 	}
 	return out;
 }
@@ -175,7 +175,7 @@ export function rebalanceCounterRange(
 	} else if (index > 0) {
 		const preceding = ordered.slice(0, index);
 		for (let i = 0; i < preceding.length; i++) {
-			const p = { ...preceding[i]! };
+			const p = { ...preceding[i] };
 			if (p.lo >= edited.lo) {
 				// Completely absorbed by edited.lo
 				continue;
@@ -200,20 +200,20 @@ export function rebalanceCounterRange(
 	// 3. Following slices (Finding 1.2: absorption on hi expansion)
 	const following = ordered.slice(index + 1);
 	for (let i = 0; i < following.length; i++) {
-		const f = { ...following[i]! };
+		const f = { ...following[i] };
 		if (f.hi <= edited.hi) {
 			// Completely absorbed by edited.hi
 			continue;
 		}
 		if (f.lo <= edited.hi) {
 			f.lo = edited.hi + 1;
-		} else if (i === 0 || next[next.length - 1]!.id === edited.id) {
+		} else if (i === 0 || next[next.length - 1].id === edited.id) {
 			f.lo = edited.hi + 1;
 		}
 		next.push(f);
 	}
 
-	if (following.length > 0 && next[next.length - 1]!.id === edited.id && edited.hi < domain.max) {
+	if (following.length > 0 && next[next.length - 1].id === edited.id && edited.hi < domain.max) {
 		next.push({
 			id: nextCounterRangeId([...ordered, ...next]),
 			lo: edited.hi + 1,
@@ -249,7 +249,7 @@ export function addCounterRangeSlice(
 		// uncovered segment, yielding a complete partition in one operation.
 		if (valid.reason !== 'gap') return valid;
 		for (let index = 1; index < ordered.length; index += 1) {
-			if (ordered[index]!.lo <= ordered[index - 1]!.hi)
+			if (ordered[index].lo <= ordered[index - 1].hi)
 				return { ok: false, reason: 'overlap' };
 		}
 		const gaps: Array<{ lo: number; hi: number }> = [];
@@ -272,11 +272,11 @@ export function addCounterRangeSlice(
 	}
 	let splitIndex = 0;
 	for (let index = 1; index < ordered.length; index += 1) {
-		const width = ordered[index]!.hi - ordered[index]!.lo;
-		const bestWidth = ordered[splitIndex]!.hi - ordered[splitIndex]!.lo;
+		const width = ordered[index].hi - ordered[index].lo;
+		const bestWidth = ordered[splitIndex].hi - ordered[splitIndex].lo;
 		if (width > bestWidth) splitIndex = index;
 	}
-	const source = ordered[splitIndex]!;
+	const source = ordered[splitIndex];
 	if (source.lo === source.hi) return { ok: false, reason: 'no_slice_available' };
 	const midpoint = Math.floor((source.lo + source.hi) / 2);
 	const addedId = nextCounterRangeId(ordered);
@@ -304,8 +304,8 @@ export function removeCounterRangeSlice(
 	if (index < 0) return { ok: false, reason: 'unknown_range' };
 	if (checked.ranges.length === 1) return { ok: false, reason: 'last_slice' };
 	const next = checked.ranges.map((range) => ({ ...range }));
-	if (index > 0) next[index - 1]!.hi = next[index]!.hi;
-	else next[index + 1]!.lo = next[index]!.lo;
+	if (index > 0) next[index - 1].hi = next[index].hi;
+	else next[index + 1].lo = next[index].lo;
 	next.splice(index, 1);
 	return validateCounterRangePartition(next, domain);
 }

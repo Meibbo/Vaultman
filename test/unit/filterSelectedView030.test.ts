@@ -8,6 +8,26 @@ import {
 } from '../../src/components/layout/islandActiveFilters';
 import type { VaultmanPlugin } from '../../src/main';
 
+interface MockElement {
+	cls: string;
+	attributes: Map<string, string>;
+	classes: Set<string>;
+	innerText: string;
+	listeners: Array<{ type: string; listener: () => void }>;
+	setAttribute: (key: string, value: string) => void;
+	getAttribute: (key: string) => string | null;
+	addClass: (className: string) => void;
+	removeClass: (className: string) => void;
+	toggleClass: (className: string, force?: boolean) => void;
+	empty: () => void;
+	setText: (text: string) => void;
+	createEl: () => MockElement;
+	createDiv: (options?: { cls?: string; attr?: Record<string, string> }) => MockElement;
+	createSpan: (options?: { cls?: string; text?: string }) => MockElement;
+	addEventListener: (type: string, listener: () => void) => void;
+	remove: () => void;
+}
+
 describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle toggle', () => {
 	function createMockPlugin() {
 		return {
@@ -34,51 +54,63 @@ describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle tog
 		} as unknown as VaultmanPlugin;
 	}
 
-	function createMockElement(cls = '', attr: Record<string, string> = {}) {
-		const el: any = {
+	function createMockElement(
+		cls = '',
+		attr: Record<string, string> = {},
+		elements: MockElement[] = [],
+	): MockElement {
+		const attributes = new Map<string, string>(Object.entries(attr));
+		const classes = new Set<string>(cls.split(' ').filter(Boolean));
+		const listeners: MockElement['listeners'] = [];
+		const element: MockElement = {
 			cls,
-			attributes: new Map<string, string>(Object.entries(attr)),
-			classes: new Set<string>(cls.split(' ').filter(Boolean)),
+			attributes,
+			classes,
 			innerText: '',
-			setAttribute(k: string, v: string) {
-				this.attributes.set(k, v);
+			listeners,
+			setAttribute(key: string, value: string) {
+				attributes.set(key, value);
 			},
-			getAttribute(k: string) {
-				return this.attributes.get(k) ?? null;
+			getAttribute(key: string) {
+				return attributes.get(key) ?? null;
 			},
-			addClass(c: string) {
-				this.classes.add(c);
+			addClass(className: string) {
+				classes.add(className);
 			},
-			removeClass(c: string) {
-				this.classes.delete(c);
+			removeClass(className: string) {
+				classes.delete(className);
 			},
-			toggleClass(c: string, force?: boolean) {
-				const next = force !== undefined ? force : !this.classes.has(c);
-				if (next) this.classes.add(c);
-				else this.classes.delete(c);
+			toggleClass(className: string, force?: boolean) {
+				const next = force !== undefined ? force : !classes.has(className);
+				if (next) classes.add(className);
+				else classes.delete(className);
 			},
 			empty: vi.fn(),
-			setText(t: string) {
-				this.innerText = t;
+			setText(text: string) {
+				element.innerText = text;
 			},
-			createEl: vi.fn(() => createMockElement()),
+			createEl: vi.fn(() => createMockElement('', {}, elements)),
 			createDiv: vi.fn((opts?: { cls?: string; attr?: Record<string, string> }) =>
-				createMockElement(opts?.cls ?? '', opts?.attr ?? {}),
+				createMockElement(opts?.cls ?? '', opts?.attr ?? {}, elements),
 			),
 			createSpan: vi.fn((opts?: { cls?: string; text?: string }) => {
-				const span = createMockElement(opts?.cls ?? '');
+				const span = createMockElement(opts?.cls ?? '', {}, elements);
 				span.innerText = opts?.text ?? '';
 				return span;
 			}),
-			addEventListener: vi.fn(),
+			addEventListener(type: string, listener: () => void) {
+				listeners.push({ type, listener });
+			},
 			remove: vi.fn(),
 		};
-		return el;
+		elements.push(element);
+		return element;
 	}
 
 	function createMockContainer() {
-		const container = createMockElement();
-		return { container: container as unknown as HTMLElement };
+		const elements: MockElement[] = [];
+		const container = createMockElement('', {}, elements);
+		return { container: container as unknown as HTMLElement, elements };
 	}
 
 	it('mounts with default filters view and aria-pressed=false', () => {
@@ -154,7 +186,7 @@ describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle tog
 
 	it('clearing in selected view invokes onClearSelection callback', () => {
 		const plugin = createMockPlugin();
-		const { container } = createMockContainer();
+		const { container, elements } = createMockContainer();
 		const onClearSelectionSpy = vi.fn();
 		const onClearAllFiltersSpy = vi.fn();
 
@@ -175,17 +207,17 @@ describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle tog
 		island.mount();
 
 		// In filters mode: clear calls onClearAll
-		const clearBtn = (island as any).clearAllBtn;
-		expect(clearBtn).toBeDefined();
+		const clearBtn = elements.find((element) =>
+			element.listeners.some(({ type }) => type === 'click'),
+		);
+		if (!clearBtn) throw new Error('Expected the mounted island to register a clear button');
 
 		// Switch to selected mode
 		island.toggleViewMode('selected');
 
 		// Simulate clear click in selected mode
-		const clickHandler = clearBtn.addEventListener.mock.calls.find(
-			(call: [string, ...any[]]) => call[0] === 'click',
-		)?.[1];
-		expect(clickHandler).toBeDefined();
+		const clickHandler = clearBtn.listeners.find(({ type }) => type === 'click')?.listener;
+		if (!clickHandler) throw new Error('Expected the clear button to register a click handler');
 		clickHandler();
 
 		expect(onClearSelectionSpy).toHaveBeenCalledTimes(1);
@@ -236,8 +268,8 @@ describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle tog
 		islandA.toggleViewMode('selected');
 		islandB.toggleViewMode('selected');
 
-		expect((islandA as any).getSelectedRows()).toHaveLength(1);
-		expect((islandB as any).getSelectedRows()).toHaveLength(0);
+		expect(islandA['getSelectedRows']()).toHaveLength(1);
+		expect(islandB['getSelectedRows']()).toHaveLength(0);
 	});
 
 	it('buildExplorerSelectedSnapshot builds snapshot for files scene with paths and folder labels', () => {
