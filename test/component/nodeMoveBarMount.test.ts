@@ -67,6 +67,7 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 			proposeFloatingToc: () => Promise.resolve(),
 			setInstanceId: () => {},
 			onInstanceChange: () => () => {},
+			readInstanceRecord: () => null,
 		},
 		icon,
 		minimalStyle: true,
