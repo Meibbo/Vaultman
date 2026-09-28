@@ -112,6 +112,11 @@ export interface PanelWidgetExplorerPort {
 	setIndentEnabled?(enabled: boolean): void;
 	/** Owner-local hover outline while choosing a parent or level scope. */
 	setScopePickMode?(mode: 'parent' | 'level' | null): void;
+	/** Optional scope-tree capabilities; flat explorers may omit them. */
+	scopeParentForNode?(id: string): string | null;
+	hasScopeParentNodes?(): boolean;
+	scopeLevelForNode?(id: string): number | null;
+	sortNodeLabel?(id: string): string | null;
 	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
 	setTooltipsEnabled?(enabled: boolean): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */

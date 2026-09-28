@@ -122,9 +122,7 @@ import {
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
 	import {
-		dropIndexForPointer,
 		reorderLocalIds,
-		reorderLocalIdsToSlot,
 		resolvePanelWidgetProjection,
 		resolveToolbarDropMarker,
 		resolveToolbarDropSlot,
@@ -132,7 +130,6 @@ import {
 		resolveToolbarNodeOrder,
 		type ResolvedToolbarDropSlot,
 		type ToolbarDropMarkerDescriptor,
-		type ToolbarSlotSibling,
 	} from '../../logic/logicPanelWidgetProjection';
 	import {
 		resolveCondensedPanelWidgetOverflow,
@@ -1410,15 +1407,6 @@ import {
 					(node) => node.id === panelWidgetNodeId(localId),
 				);
 	};
-	const panelWidgetDropMarker = $derived<ToolbarDropMarkerDescriptor | null>(
-		toolbarDirectionalDropMarker && panelWidgetDrag && panelWidgetPreviewOrder
-			? resolveToolbarDropMarker(
-					panelWidgetDrag.visibleLocalIds,
-					panelWidgetPreviewOrder,
-					panelWidgetDrag.localId,
-				)
-			: null,
-	);
 	// U130 polishing: reorden por arrastre al estilo `Gv` de app.js (el
 	// ribbon nativo): mousedown + umbral 5px + ghost clonado con las clases
 	// de serie (`drag-reorder-ghost`, `mod-dragged-item`, `is-grabbing`,
@@ -1449,6 +1437,15 @@ import {
 		cleanup: (() => void) | null;
 	};
 	let panelWidgetDrag = $state<PanelWidgetDragState | null>(null);
+	const panelWidgetDropMarker = $derived<ToolbarDropMarkerDescriptor | null>(
+		toolbarDirectionalDropMarker && panelWidgetDrag && panelWidgetPreviewOrder
+			? resolveToolbarDropMarker(
+					panelWidgetDrag.visibleLocalIds,
+					panelWidgetPreviewOrder,
+					panelWidgetDrag.localId,
+				)
+			: null,
+	);
 
 	function panelWidgetDragLocalId(element: HTMLElement | null): string | null {
 		const node = element?.closest?.('[data-panel-widget-node-id]');
@@ -3295,7 +3292,7 @@ import {
 				stopDrillPick();
 				return;
 			}
-			const parentId = panel?.scopeParentForNode(nodeId) ?? null;
+			const parentId = panel?.scopeParentForNode?.(nodeId) ?? null;
 			handleScopeChangeForTab(
 				tab,
 				parentId

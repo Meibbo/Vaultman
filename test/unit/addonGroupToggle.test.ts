@@ -49,6 +49,7 @@ type PluginsHarness = {
 	sortState: ExplorerSortState;
 	groupPreset: GroupPreset;
 	groupMemberships: Record<string, string[]>;
+	visibleCells: Set<string>;
 	searchTerm: string;
 	cellStyle: string;
 	destroyed: boolean;
