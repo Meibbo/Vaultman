@@ -25,6 +25,8 @@ import {
 } from '../../src/logic/logicSceneConfigPort';
 import { ensureInstance } from '../../src/logic/logicInstanceRegistry';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
+import type { SavedViewConfig } from '../../src/types/typeSettings';
+import type { ExplorerViewMode } from '../../src/types/typeUI';
 
 const defaults = {
 	viewMode: 'tree' as const,
@@ -57,7 +59,7 @@ function twoInstanceHarness() {
 	const persist = vi.fn(async () => {});
 	const portFor = (instanceId: string) =>
 		createSceneConfigPort({
-			instanceId: instanceId as never,
+			instanceId,
 			readRegistry: () => registry,
 			writeRegistry: (next) => {
 				registry = next;
@@ -144,10 +146,10 @@ describe('U130-GGC-011/029 acceptance: misma Scene en dos instancias', () => {
 		for (const live of [liveA, liveB]) {
 			const photo = captureSavedViewConfig(live);
 			const json = JSON.stringify(photo);
-			const revived = JSON.parse(json);
+			const revived = JSON.parse(json) as SavedViewConfig;
 			const fresh = twoInstanceHarness();
 			await applyLayoutToPort(fresh.portFor('vm-A'), {
-				viewModeByTab: { props: revived.viewMode },
+				viewModeByTab: { props: revived.viewMode as ExplorerViewMode },
 				interactionModeByTab: { props: revived.interactionMode },
 				visibleCellsByTab: { props: revived.visibleCells },
 				sortStateByTab: { props: revived.sortState },
@@ -289,10 +291,10 @@ describe('U130-GGC-011/029 acceptance: misma Scene en dos instancias', () => {
 
 		// Reload/layout: foto -> JSON (data.json) -> puerto fresco preserva TODO.
 		const photo = captureSavedViewConfig(live);
-		const revived = JSON.parse(JSON.stringify(photo));
+		const revived = JSON.parse(JSON.stringify(photo)) as SavedViewConfig;
 		const fresh = twoInstanceHarness();
 		await applyLayoutToPort(fresh.portFor('vm-A'), {
-			viewModeByTab: { props: revived.viewMode },
+			viewModeByTab: { props: revived.viewMode as ExplorerViewMode },
 			interactionModeByTab: { props: revived.interactionMode },
 			visibleCellsByTab: { props: revived.visibleCells },
 			sortStateByTab: { props: revived.sortState },

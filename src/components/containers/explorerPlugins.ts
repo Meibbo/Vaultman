@@ -1201,8 +1201,8 @@ export class PluginsExplorerPanel
 				}
 				// U130-GGC-024: Shift/Ctrl+Shift range over the logical visible
 				// order; plain click keeps the explicit toggle outcome.
-				if ((event as MouseEvent | undefined)?.shiftKey === true) {
-					const mouse = event as MouseEvent;
+				if (event?.shiftKey === true) {
+					const mouse = event;
 					const { selectedIds, anchorId } = resolveContextClickSelection({
 						selectedIds: this.selectedNodeIds,
 						anchorId: this.selectionAnchorId,

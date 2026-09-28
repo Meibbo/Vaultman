@@ -90,7 +90,7 @@ describe('U130-GGC-029 scope config Delete/Hide purges the ScopeSet', () => {
 		const shown = setScopeTargetHidden('files', hidden, 'level:2', false);
 		expect(shown.hiddenScopes).not.toContain('level:2');
 		expect(
-			(shown.scopeState?.sets['level:2' as never] as { hidden?: boolean } | undefined)
+			(shown.scopeState?.sets['level:2' as never])
 				?.hidden,
 		).not.toBe(true);
 	});

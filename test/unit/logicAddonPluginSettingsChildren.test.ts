@@ -217,7 +217,7 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 			setting: {
 				pluginTabs: {
 					otherplugin: { id: 'otherplugin', name: 'Other' },
-				} as any,
+				},
 			},
 		};
 

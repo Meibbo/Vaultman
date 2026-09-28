@@ -60,7 +60,7 @@ describe('U130 Slice C SASI settingScene catalog', () => {
 					labelKey: 'sasi.settingScene.unavailable.content_executor',
 				},
 			},
-		}),
+		}) as unknown,
 		available: false,
 		});
 	});

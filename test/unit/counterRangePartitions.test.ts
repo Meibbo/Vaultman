@@ -586,7 +586,7 @@ describe('U130-GGC-019 range persistence across layout and scopes', () => {
 		]);
 
 		// Reference isolation check: mutating restored does not affect saved or source instance
-		(restored.sortState.scopeState!.sets!['level:1']!.groupPreset!.counterRanges![0] as { lo: number }).lo = 999;
+		(restored.sortState.scopeState!.sets['level:1']!.groupPreset!.counterRanges![0]).lo = 999;
 		expect(saved.sortState.scopeState?.sets?.['level:1']?.groupPreset?.counterRanges?.[0]?.lo).toBe(0);
 		expect(a.port.read('files').sortState.scopeState?.sets?.['level:1']?.groupPreset?.counterRanges?.[0]?.lo).toBe(0);
 	});

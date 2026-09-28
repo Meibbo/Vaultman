@@ -2497,8 +2497,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					} else {
 						setting.setName(labels.get(item.id) ?? item.id);
 						if (item.parent) {
-							setting.settingEl.addClass('vaultman-context-menu-child-row');
-							setting.settingEl.style.paddingInlineStart = '2em';
+						setting.settingEl.addClass('vaultman-context-menu-child-row', 'ps-[2em]');
 							setting.setDesc(
 								`${labels.get(item.id) ?? item.id} · ${submenuById.get(item.parent)?.label ?? item.parent}`,
 							);

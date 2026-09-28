@@ -71,7 +71,7 @@ export interface MenuCtx {
 	/** Scene-owned affordances the explorer cannot resolve itself. */
 	toggleGroupExpand?: (groupId: string) => void;
 	/** Scene-projected group icon mutation. */
-	changeGroupIcon?: () => Promise<unknown> | unknown;
+	changeGroupIcon?: () => unknown;
 	/** Opens the bounded min/max editor for a counter/date preset header. */
 	adjustGroupRange?: () => boolean | void;
 	/** Adds or triggers a counter slice for a counter/date preset header. */

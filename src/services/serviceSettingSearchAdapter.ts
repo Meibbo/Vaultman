@@ -280,7 +280,7 @@ function listPluginSettingPagesDeclarative(
 	if (typeof setting !== 'object' || setting === null) return [];
 
 	// Normalizar a array de tabs para tratamiento unificado
-	let pluginTabs: readonly { id?: string; name?: string }[] = [];
+	let pluginTabs: readonly { id?: string; name?: string }[];
 	// Cast to access pluginTabs property safely
 	const settingRecord = setting as Record<string, unknown>;
 	if (typeof settingRecord.pluginTabs === 'object' && settingRecord.pluginTabs !== null) {

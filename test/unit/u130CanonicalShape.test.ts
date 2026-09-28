@@ -52,7 +52,7 @@ function rawGroup(
 				page: page === null ? null : { name: page },
 				pagePath: page ?? null,
 			},
-			nameMatch: { matches: (withMatch ? [[0, 1]] : []) as unknown[] },
+			nameMatch: { matches: (withMatch ? [[0, 1]] : []) },
 			descMatch: { matches: [] as unknown[] },
 			score: 1,
 		})),

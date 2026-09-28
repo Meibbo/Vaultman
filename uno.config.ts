@@ -61,6 +61,8 @@ export default defineConfig({
 		'obsidian-mimic-property',
 		'vm-theme-native',
 		'vm-theme-vaultman',
+		'whitespace-pre-wrap',
+		'ps-[2em]',
 	],
 	shortcuts: allShortcuts,
 	rules: [

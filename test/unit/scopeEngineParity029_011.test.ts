@@ -123,7 +123,7 @@ describe('U130-GGC-029: Scoped View and Engine Options Parity', () => {
 		expect(saved.sortState?.scopeState?.sets['parent:special']?.nested).toBe(false);
 
 		// Verify clone preserves everything
-		const cloned = cloneScopeState(saved.sortState!.scopeState!);
+		const cloned = cloneScopeState(saved.sortState.scopeState!);
 		expect(cloned.sets['level:2']?.stickyRows).toBe(false);
 		expect(cloned.sets['parent:special']?.nested).toBe(false);
 	});
