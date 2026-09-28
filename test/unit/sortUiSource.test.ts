@@ -94,7 +94,7 @@ describe('explorer sort UI source', () => {
 		expect(navbarSource).not.toContain('new LongPressGesture()');
 		expect(navbarSource).toContain("closest<HTMLElement>('[data-id]')");
 		// Parent pick uses the p-node itself; leaves resolve to their parent.
-		expect(navbarSource).toContain('panel?.scopeParentForNode(nodeId)');
+		expect(navbarSource).toContain('panel?.scopeParentForNode?.(nodeId)');
 		expect(navbarSource).toContain("closest<HTMLElement>('.vaultman-pages-viewport')");
 		expect(navbarSource).toContain('const availability = scopePickAvailabilityFor(tab)');
 		expect(navbarSource).toContain('if (!availability[mode]) return;');
