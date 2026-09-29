@@ -680,7 +680,7 @@ export class UnifiedTreeView {
 		});
 		this._scopePreviewLevels.clear();
 		for (let index = 0; index < this._scopePreviewRows.length; index += 1) {
-			const depth = this._scopePreviewRows[index]!.depth;
+			const depth = this._scopePreviewRows[index].depth;
 			const indexes = this._scopePreviewLevels.get(depth);
 			if (indexes) indexes.push(index);
 			else this._scopePreviewLevels.set(depth, [index]);
@@ -947,7 +947,6 @@ export class UnifiedTreeView {
 		const drawer = doc.createElement('div');
 		drawer.className = 'vaultman-tree-drawer';
 		drawer.style.top = `${drawerTop}px`;
-		drawer.style.height = '0px';
 		this._contentEl.appendChild(drawer);
 
 		// Move child row elements into the drawer, adjusting top to be
@@ -2142,7 +2141,7 @@ export class UnifiedTreeView {
 					});
 				}
 				editor.addEventListener('focusout', (event) => {
-					const related = (event as FocusEvent).relatedTarget;
+					const related = event.relatedTarget;
 					if (related instanceof Node && editor.contains(related)) {
 						return;
 					}

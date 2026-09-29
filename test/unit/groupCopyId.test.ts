@@ -9,7 +9,7 @@ import type { ActionDef, MenuCtx } from '../../src/types/typeCMenu';
 import type { TreeNode } from '../../src/types/typeTree';
 
 vi.mock('obsidian', async (importOriginal) => {
-	const actual = await importOriginal() as Record<string, unknown>;
+	const actual: Record<string, unknown> = { ...(await importOriginal()) };
 	const store: string[] = [];
 	(globalThis as unknown as { __copyNotices?: string[] }).__copyNotices = store;
 	class MockNotice {
@@ -52,9 +52,9 @@ describe('U130-GGC-020 — Copy group id usa el ID estable invocado', () => {
 
 	afterEach(() => {
 		if (navDesc) Object.defineProperty(globalThis, 'navigator', navDesc);
-		else Reflect.deleteProperty(globalThis as object, 'navigator');
+		else Reflect.deleteProperty(globalThis, 'navigator');
 		if (docDesc) Object.defineProperty(globalThis, 'document', docDesc);
-		else Reflect.deleteProperty(globalThis as object, 'document');
+		else Reflect.deleteProperty(globalThis, 'document');
 		notices().length = 0;
 	});
 

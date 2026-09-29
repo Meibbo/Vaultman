@@ -87,13 +87,13 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 	};
 
 	const openScopeDrawer = (el: HTMLElement) => {
-		const toggle = el.querySelector(
+		const toggle = el.querySelector<HTMLElement>(
 			'.vaultman-sort-vertcol-btn',
-		) as HTMLElement | null;
+		);
 		expect(toggle).not.toBeNull();
 		toggle!.click();
 		flushSync();
-		return el.querySelector('.vaultman-sort-vertcol-drawer') as HTMLElement | null;
+		return el.querySelector('.vaultman-sort-vertcol-drawer');
 	};
 
 	beforeEach(() => {
@@ -136,7 +136,7 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 		flushSync();
 		const confirm = drawer!.querySelector(
 			'.vaultman-sort-drawer-confirm',
-		) as HTMLElement | null;
+		);
 		expect(confirm).not.toBeNull();
 		const buttons = [...confirm!.querySelectorAll('button')];
 		// select + hide + delete + cancel.
@@ -165,8 +165,8 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 		const buttons = [...confirm.querySelectorAll('button')];
 		buttons[2].click();
 		flushSync();
-		const next = onDeleteScope.mock.results[0].value;
-		expect(next.scopeState.sets['level:2']).toBeUndefined();
+		const next = onDeleteScope.mock.results[0].value as ReturnType<typeof setScopeTargetHidden>;
+		expect(next.scopeState!.sets['level:2']).toBeUndefined();
 		expect(resolveScopeSet(next.scopeState, { level: 2 }).groupPreset?.kind).toBe(
 			'letter',
 		);
@@ -191,9 +191,9 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 		buttons[1].click();
 		flushSync();
 		expect(onHideScope).toHaveBeenCalledWith('level:2', true);
-		const next = onHideScope.mock.results[0].value;
-		expect(next.scopeState.sets['level:2']).toMatchObject({ hidden: true });
-		expect(next.scopeState.sets['level:2'].groupPreset?.kind).toBe('words');
+		const next = onHideScope.mock.results[0].value as ReturnType<typeof setScopeTargetHidden>;
+		expect(next.scopeState!.sets['level:2']).toMatchObject({ hidden: true });
+		expect(next.scopeState!.sets['level:2']!.groupPreset?.kind).toBe('words');
 		expect(resolveScopeSet(next.scopeState, { level: 2 }).groupPreset?.kind).toBe(
 			'letter',
 		);

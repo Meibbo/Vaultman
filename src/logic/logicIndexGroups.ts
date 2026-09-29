@@ -105,7 +105,7 @@ export function findScopeParentId<T extends IndexTreeNode>(
 		(node.children?.length ?? 0) > 0,
 ): string | null {
 	const checkParent = (node: T): boolean =>
-		Boolean((node as any).isGroupHeader) || isParent(node);
+		Boolean(('isGroupHeader' in node && node.isGroupHeader)) || isParent(node);
 	for (const node of roots ?? []) {
 		if (node.id === id) {
 			return checkParent(node) ? node.id : parent;
@@ -128,7 +128,7 @@ export function hasScopeParentNodes<T extends IndexTreeNode>(
 		(node.children?.length ?? 0) > 0,
 ): boolean {
 	const checkParent = (node: T): boolean =>
-		Boolean((node as any).isGroupHeader) || isParent(node);
+		Boolean(('isGroupHeader' in node && node.isGroupHeader)) || isParent(node);
 	for (const node of roots ?? []) {
 		if (checkParent(node)) return true;
 		if (node.children && hasScopeParentNodes(node.children as T[], isParent))
@@ -150,7 +150,7 @@ export function findNodeLevel<T extends IndexTreeNode>(
 ): number | null {
 	for (const node of roots ?? []) {
 		if (node.id === id) {
-			return Boolean((node as any).isGroupHeader) && level === 1 ? 0 : level;
+			return Boolean(('isGroupHeader' in node && node.isGroupHeader)) && level === 1 ? 0 : level;
 		}
 		const hit = node.children
 			? findNodeLevel(node.children as T[], id, level + 1)

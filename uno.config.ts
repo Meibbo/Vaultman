@@ -63,6 +63,8 @@ export default defineConfig({
 		'vm-theme-vaultman',
 		'whitespace-pre-wrap',
 		'ps-[2em]',
+		'fixed',
+		'opacity-0',
 	],
 	shortcuts: allShortcuts,
 	rules: [

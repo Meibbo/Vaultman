@@ -203,7 +203,7 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		when: (ctx: MenuCtx) => typeof ctx.updateGroupScope === 'function',
 		disabledReason: () => null,
 		run: (ctx: MenuCtx) => {
-			ctx.updateGroupScope?.();
+			void ctx.updateGroupScope?.();
 		},
 	});
 
@@ -475,8 +475,7 @@ function legacyCopyGroupId(text: string): boolean {
 		const area = doc.createElement('textarea');
 		area.value = text;
 		area.setAttribute('readonly', '');
-		area.style.position = 'fixed';
-		area.style.opacity = '0';
+		area.className = 'fixed opacity-0';
 		doc.body?.appendChild(area);
 		area.select();
 		try {

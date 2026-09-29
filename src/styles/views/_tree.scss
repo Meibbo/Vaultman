@@ -936,6 +936,7 @@ body.vaultman-resizing {
   position: absolute;
   left: 0;
   right: 0;
+  height: 0;
   overflow: hidden;
   will-change: height;
   contain: paint;
@@ -957,6 +958,7 @@ body.vaultman-resizing {
   position: absolute;
   left: 0;
   right: 0;
+  height: 0;
   overflow: hidden;
   will-change: height;
   contain: paint;
