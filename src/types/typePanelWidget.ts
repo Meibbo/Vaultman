@@ -59,7 +59,7 @@ export interface PanelWidgetProjection {
 
 export interface PanelWidgetActionInvocation {
 	actionId: string;
-	origin: 'pointer' | 'keyboard' | 'menu' | 'programmatic';
+	origin: 'pointer' | 'keyboard' | 'menu' | 'programmatic' | 'command';
 	payload?: Readonly<Record<string, unknown>>;
 }
 

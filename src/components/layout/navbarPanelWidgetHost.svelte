@@ -31,6 +31,7 @@
 			tab: SceneEngineSurface,
 			mode: ExplorerViewMode,
 		) => boolean;
+		invokeToolbarSasiAction?: (actionId: string) => Promise<boolean>;
 	} | null = $state(null);
 
 	export function setSceneEngine(

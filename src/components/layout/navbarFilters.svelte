@@ -85,7 +85,6 @@ import {
 	import { shouldFaintRevealNode } from '../../logic/logicRevealFaint';
 	import {
 		byLevelModel,
-		GROUP_PRESET_META,
 		groupMenuModel,
 		nextGroupPreset,
 		NODE_TYPE_MENU_OPTIONS,
@@ -154,7 +153,6 @@ import {
 	import { listObsidianCommands } from '../../utils/obsidianCommands';
 	import { openCommandPicker } from '../../modals/modalCommandPicker';
 	import {
-		GROUP_PRESETS_BY_TAB,
 		cloneGroupPreset,
 		isCounterPresetKind,
 		type CounterRange,
@@ -396,6 +394,20 @@ import {
 				? 'lucide-tag'
 				: 'lucide-plus',
 	);
+	// Orden textual: TABS/configByTab/effectiveCreateActionsPlacement preceden
+	// a `canCreateSearchTarget`, que los lee en su expresión $derived.
+	const TABS: FiltersTab[] = ['props', 'tags', 'files', 'snippets', 'plugins'];
+	let configByTab = $state<Record<FiltersTab, Required<SceneConfig>>>(
+		Object.fromEntries(
+			TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+		) as Record<FiltersTab, Required<SceneConfig>>,
+	);
+	const effectiveCreateActionsPlacement = $derived.by(() => {
+		const override = configByTab[activeTab]?.createActionsPlacement;
+		return override === 'toolbar' || override === 'searchbox'
+			? override
+			: createActionsPlacement;
+	});
 	const canCreateSearchTarget = $derived(
 		// BT5-022: with Create moved to the toolbar, the Files searchbox no longer
 		// carries its own create button; Props and Tags keep theirs.
@@ -483,12 +495,6 @@ import {
 	};
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
-	const TABS: FiltersTab[] = ['props', 'tags', 'files', 'snippets', 'plugins'];
-	let configByTab = $state<Record<FiltersTab, Required<SceneConfig>>>(
-		Object.fromEntries(
-			TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
-		) as Record<FiltersTab, Required<SceneConfig>>,
-	);
 	const viewModeByTab = $derived(
 		Object.fromEntries(
 			TABS.map((tab) => [tab, configByTab[tab].viewMode]),
@@ -1215,15 +1221,6 @@ import {
 	});
 	// U130 polishing: override per-instance de la ubicación de creación.
 	// `auto` (defecto) = el setting global que llega por prop; explícito =
-	// esta scene decide. Se lee aquí (tras `configByTab`) y se consume en
-	// `canCreateSearchTarget` y en los nodos create-*: esos $derived solo se
-	// evalúan al renderizar, cuando todo el setup ya corrió.
-	const effectiveCreateActionsPlacement = $derived.by(() => {
-		const override = configByTab[activeTab]?.createActionsPlacement;
-		return override === 'toolbar' || override === 'searchbox'
-			? override
-			: createActionsPlacement;
-	});
 	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
 		const nodes: PanelWidgetNode[] = [];
 		const append = (
@@ -2131,6 +2128,8 @@ import {
 			stickyRows?: boolean;
 			compactFolders?: boolean;
 			indent?: boolean;
+			/** U130 polishing: view_option `tooltips`, per_instance. */
+			tooltips?: boolean;
 			groupPreset?: GroupPreset;
 			hiddenGroupIds?: readonly string[];
 			/** U130-09: the custom groups of this scene (`SceneConfig.groupMemberships`). */
