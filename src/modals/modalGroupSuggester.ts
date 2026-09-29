@@ -229,7 +229,7 @@ export class GroupSuggesterModal extends Modal {
 		new Setting(contentEl)
 			.setName(translate('group.new.prompt'))
 			.addText((text) => {
-				this.textInputComponent = text as unknown as TextComponent;
+				this.textInputComponent = text;
 				text
 					.setPlaceholder(this.options.placeholder || translate('group.suggester.enter_name'))
 					.setValue(this.enteredName)
@@ -257,7 +257,7 @@ export class GroupSuggesterModal extends Modal {
 
 		new Setting(contentEl)
 			.addButton((btn) => {
-				this.ctaButtonComponent = btn as unknown as ButtonComponent;
+				this.ctaButtonComponent = btn;
 				btn.setCta();
 				btn.onClick(() => this.submit());
 			})

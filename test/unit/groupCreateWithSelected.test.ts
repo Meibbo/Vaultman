@@ -128,7 +128,7 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 			groupHidden: false, hideGroup: hidden,
 		};
 		expect(hide.disabledReason?.(preset)).toBeNull();
-		hide.run(preset);
+		void hide.run(preset);
 		expect(hidden).toHaveBeenCalledWith('vaultman.group.preset:A', true);
 		expect(remove.disabledReason?.(preset)).toBe('Preset groups cannot be deleted');
 		expect(icon.disabledReason?.(preset)).toBe('Group icons are not configurable yet');
@@ -138,7 +138,7 @@ describe('spec 08 §3.3 — `Create group with selected` on the cmenu', () => {
 			...preset, groupId: 'Work', groupOwner: 'custom', deleteGroup: deleted,
 		};
 		expect(remove.disabledReason?.(custom)).toBeNull();
-		remove.run(custom);
+		void remove.run(custom);
 		expect(deleted).toHaveBeenCalledWith('Work');
 	});
 

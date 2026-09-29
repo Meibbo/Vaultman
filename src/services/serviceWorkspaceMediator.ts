@@ -154,7 +154,7 @@ export function createContentLocator(params: {
 				settingTabs.some((t) => {
 					if (typeof t === 'string') return t === params.tabId;
 					if (t && typeof t === 'object' && 'id' in t) {
-						return (t as { id: unknown }).id === params.tabId;
+						return t.id === params.tabId;
 					}
 					return false;
 				})
@@ -167,7 +167,7 @@ export function createContentLocator(params: {
 				pluginTabs.some((t) => {
 					if (typeof t === 'string') return t === params.tabId;
 					if (t && typeof t === 'object' && 'id' in t) {
-						return (t as { id: unknown }).id === params.tabId;
+						return t.id === params.tabId;
 					}
 					return false;
 				})

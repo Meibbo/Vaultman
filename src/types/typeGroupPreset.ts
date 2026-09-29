@@ -205,7 +205,7 @@ export function normalizeCounterRanges(
 	}
 	const ordered = [...ranges].sort((a, b) => a.lo - b.lo || a.hi - b.hi);
 	for (let index = 1; index < ordered.length; index += 1) {
-		if (ordered[index - 1]!.hi >= ordered[index]!.lo) return undefined;
+		if (ordered[index - 1].hi >= ordered[index].lo) return undefined;
 	}
 	return ranges.map((range) => ({ ...range }));
 }
