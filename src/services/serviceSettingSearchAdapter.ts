@@ -256,14 +256,23 @@ function listPluginSettingPagesUncached(
 	const hasResults = declarative.some((g) => g.results && g.results.length > 0);
 	if (hasResults) return declarative;
 
-	// Fallback: búsqueda nativa filtrada por group.tab === pluginId,
-	// orden nativo, sin re-rank. Usamos SOLO query por pluginId (determinista),
-	// sin probe ciego `search('a')` que introducía resultados de otros plugins
-	// y dependía de heurísticas de cobertura.
+	// Fallback: unión de query por pluginId (determinista) + probe de
+	// cobertura 'a' filtrado al propio tab. El índice nativo responde
+	// estrecho al id exacto (grabado live: developer-toolbox responde []
+	// a su id pero 9 defs a 'a'; vaultman responde 4 grupos a su id pero
+	// 21+ a 'a'): la unión recoge el set completo de pages del tab.
+	// El filtro conserva la garantía anti-polución (nunca resultados
+	// ajenos) y el dedup por page deja ganar al primario en conflicto;
+	// el ensamblado además dedupa pages/defs aguas abajo.
 	const primary = queryNativeSettingsSearch(app, pluginId).filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	return primary;
+	const broad = queryNativeSettingsSearch(app, 'a').filter(
+		(candidate) => candidate.tab === pluginId,
+	);
+	const seenPages = new Set(primary.map((g) => `${g.page}::${g.pagePath}`));
+	const extra = broad.filter((g) => !seenPages.has(`${g.page}::${g.pagePath}`));
+	return [...primary, ...extra];
 }
 
 /**
