@@ -72,7 +72,7 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 			toggleGroupExpand: toggleFn,
 		};
 		expect(toggleExpand.when?.(ctx)).toBe(true);
-		toggleExpand.run(ctx);
+		void toggleExpand.run(ctx);
 		expect(toggleFn).toHaveBeenCalledWith('group:1');
 	});
 
@@ -108,7 +108,7 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 
 			// Hide is allowed
 			expect(hide.when?.(presetCtx)).toBe(true);
-			hide.run(presetCtx);
+			void hide.run(presetCtx);
 			expect(hideFn).toHaveBeenCalledWith('preset:words:0_100', true);
 
 			// Delete is completely HIDDEN for preset
@@ -136,9 +136,9 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 			expect(adjust.when?.(counterCtx)).toBe(true);
 			expect(slice.when?.(counterCtx)).toBe(true);
 
-			adjust.run(counterCtx);
+			void adjust.run(counterCtx);
 			expect(adjustFn).toHaveBeenCalledTimes(1);
-			slice.run(counterCtx);
+			void slice.run(counterCtx);
 			expect(sliceFn).toHaveBeenCalledTimes(1);
 
 			// Non-counter preset without range handlers -> completely hidden
@@ -246,11 +246,11 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 			expect(copyFn).toHaveBeenCalledTimes(1);
 
 			expect(hide.when?.(customCtx)).toBe(true);
-			hide.run(customCtx);
+			void hide.run(customCtx);
 			expect(hideFn).toHaveBeenCalledWith('custom:work', true);
 
 			expect(del.when?.(customCtx)).toBe(true);
-			del.run(customCtx);
+			void del.run(customCtx);
 			expect(delFn).toHaveBeenCalledWith('custom:work');
 		});
 
@@ -304,7 +304,7 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 			expect(renameFn).toHaveBeenCalledWith('note:Daily');
 
 			expect(del.when?.(noteCtx)).toBe(true);
-			del.run(noteCtx);
+			void del.run(noteCtx);
 			expect(delFn).toHaveBeenCalledWith('note:Daily');
 		});
 	});

@@ -7,7 +7,6 @@ import type { FloatingTocPanel } from '../services/routerFloatingToc';
 import type { AddonCellStyle } from '../types/typeSettings';
 import type { PluginMeta, TreeNode } from '../types/typeTree';
 import type { NativeSettingsSearchGroup } from '../types/typeSettingsSearch';
-import type { App } from 'obsidian';
 import {
 	settingsBridgeRowId,
 	settingsBridgeGroupRowId,
@@ -694,13 +693,13 @@ export function resolvePluginSettingsChildren(
 				...baseNode,
 				showCaret: false,
 				children: [],
-			} as TreeNode<PluginMeta>,
+			},
 		];
 	}
 
 	// Catálogo de pages para este plugin (nativo filtrado + broaden,
 	// orden nativo, ver serviceSettingSearchAdapter).
-	const groups = listPluginSettingPages(app as unknown as App, pluginId);
+	const groups = listPluginSettingPages(app, pluginId);
 	if (groups.length === 0) {
 		// F4: sin fuente de pages el plugin queda hoja (nunca p-node vacío).
 		return [
@@ -708,7 +707,7 @@ export function resolvePluginSettingsChildren(
 				...baseNode,
 				showCaret: false,
 				children: [],
-			} as TreeNode<PluginMeta>,
+			},
 		];
 	}
 
@@ -862,7 +861,7 @@ export function resolvePluginSettingsChildren(
 				...baseNode,
 				showCaret: false,
 				children: [],
-			} as TreeNode<PluginMeta>,
+			},
 		];
 	}
 
@@ -873,7 +872,7 @@ export function resolvePluginSettingsChildren(
 			...baseNode,
 			showCaret: true,
 			children: tabNodes,
-		} as TreeNode<PluginMeta>,
+		},
 	];
 }
 
@@ -930,7 +929,7 @@ export function listCorePluginStubs(
 	if (typeof setting !== 'object' || setting === null) return [];
 	const record = setting as RuntimeCorePluginTabs & Record<string, unknown>;
 	const rawTabs = record['pluginTabs'];
-	let tabs: readonly { id?: unknown; name?: unknown }[] = [];
+	let tabs: readonly { id?: unknown; name?: unknown }[];
 	if (Array.isArray(rawTabs)) {
 		tabs = rawTabs as readonly { id?: unknown; name?: unknown }[];
 	} else if (typeof rawTabs === 'object' && rawTabs !== null) {
