@@ -134,7 +134,10 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 		});
 		expect(ok).toBe(true);
 		expect(navigate).toHaveBeenCalledOnce();
-		const [group, item] = navigate.mock.calls[0];
+		const [group, item] = navigate.mock.calls[0] as [
+			ReturnType<typeof nativeGroup>,
+			ReturnType<typeof nativeItem>,
+		];
 		expect(group.tab).toBe('developer-toolbox');
 		expect(item.entry.definition).toBe('Storage folder');
 	});
@@ -153,7 +156,9 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 			definition: 'Shared label',
 		});
 		expect(navigate).toHaveBeenCalledOnce();
-		expect(navigate.mock.calls[0][0].tab).toBe('tab-b');
+		expect(
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+		).toBe('tab-b');
 	});
 
 	it('finds page label and calls navigateToSearchResult (group only)', () => {
@@ -173,7 +178,9 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 		});
 		expect(ok).toBe(true);
 		expect(navigate).toHaveBeenCalledOnce();
-		expect(navigate.mock.calls[0][0].tab).toBe('developer-toolbox');
+		expect(
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+		).toBe('developer-toolbox');
 	});
 
 	it('page label repeated across tabs: matches correct tab only', () => {
@@ -190,7 +197,9 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 			definition: '',
 		});
 		expect(navigate).toHaveBeenCalledOnce();
-		expect(navigate.mock.calls[0][0].tab).toBe('tab-y');
+		expect(
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+		).toBe('tab-y');
 	});
 
 	it('row-not-found returns false (caller falls back to tab-only)', () => {

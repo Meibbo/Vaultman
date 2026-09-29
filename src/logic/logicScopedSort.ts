@@ -241,7 +241,7 @@ export function resolveScopeSet(
 	};
 
 	const sort = first('sort');
-	if (sort) out.sort = cloneScopeSort(sort as ScopeSort);
+	if (sort) out.sort = cloneScopeSort(sort);
 	const groupPreset = first('groupPreset');
 	if (groupPreset) {
 		out.groupPreset = {
@@ -480,7 +480,7 @@ export function normalizeScopeDefaultCursor(value: unknown): ScopeDefaultCursor 
 
 export function defaultScopeForTab(
 	tab: ExplorerTabId,
-	preferred?: ScopeDefaultCursor | string,
+	preferred?: string,
 ): ScopeTarget {
 	if (preferred === 'all' || preferred === 'level:1') {
 		if (isScopeAllowed(tab, preferred)) return preferred;
@@ -799,7 +799,7 @@ export function replaceActiveScopeSort(
 		? state.activeScope
 		: DEFAULT_SCOPE_BY_TAB[tab];
 	const key = storageScope(state, scope);
-	const scopeTarget = key === 'drill' ? 'all' : (key as ScopeTarget);
+	const scopeTarget = key === 'drill' ? 'all' : key;
 	const scopeState = state.scopeState
 		? cloneScopeState(state.scopeState)
 		: scopeStateFromLegacy(tab, state);
@@ -834,7 +834,7 @@ export function deleteScopeTarget(
 	target: string,
 ): ExplorerSortState {
 	if (!isScopeAllowed(tab, target)) return state;
-	const scopeKey = target as SortScopeKey;
+	const scopeKey = target;
 	const { [scopeKey]: _removed, ...sorts } = state.sorts;
 	const scopeState = state.scopeState
 		? cloneScopeState(state.scopeState)
@@ -871,7 +871,7 @@ export function setScopeTargetHidden(
 	hidden: boolean,
 ): ExplorerSortState {
 	if (!isScopeAllowed(tab, target)) return state;
-	const scopeKey = target as SortScopeKey;
+	const scopeKey = target;
 	const hiddenScopes = (state.hiddenScopes ?? []).filter(
 		(entry) => entry !== scopeKey,
 	);

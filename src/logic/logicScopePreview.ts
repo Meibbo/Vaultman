@@ -77,7 +77,7 @@ function sortedPosition(values: readonly number[], value: number): number {
 	let high = values.length - 1;
 	while (low <= high) {
 		const middle = (low + high) >> 1;
-		const current = values[middle]!;
+		const current = values[middle];
 		if (current === value) return middle;
 		if (current < value) low = middle + 1;
 		else high = middle - 1;
@@ -90,7 +90,7 @@ function sortedPositionAtOrAfter(values: readonly number[], value: number): numb
 	let high = values.length;
 	while (low < high) {
 		const middle = (low + high) >> 1;
-		if (values[middle]! < value) low = middle + 1;
+		if (values[middle] < value) low = middle + 1;
 		else high = middle;
 	}
 	return low;
@@ -181,13 +181,13 @@ export function scopePreviewGeometry(
 	const width = Math.max(0, safeNumber(input.contentWidth));
 	const segments: ScopePreviewSegment[] = [];
 	for (let position = 0; position < visibleTargetIndices.length; position += 1) {
-		const index = visibleTargetIndices[position]!;
+		const index = visibleTargetIndices[position];
 		const rawTop = index * rowHeight - scrollTop;
 		const rawBottom = rawTop + rowHeight;
 		if (rawBottom <= 0 || rawTop >= viewportHeight) continue;
 		const top = Math.max(0, rawTop);
 		const bottom = Math.min(viewportHeight, rawBottom);
-		const row = input.rows[index]!;
+		const row = input.rows[index];
 		const left = Math.min(width, leftForRow(row, input));
 		const right = Math.max(left, width - Math.max(0, input.rowInset));
 		const fullPosition = allTargetIndices
