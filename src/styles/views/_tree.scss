@@ -977,10 +977,10 @@ body.vaultman-resizing {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual,
-  .vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-drawer,
-  .vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-row--virtual {
-    transition: none !important;
+  .vaultman-tree-virtual-viewport.vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual,
+  .vaultman-tree-virtual-viewport.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-drawer,
+  .vaultman-tree-virtual-viewport.vaultman-tree-virtual-viewport.vaultman-tree-drawer-animating .vaultman-tree-row--virtual {
+    transition: none;
   }
 }
 
