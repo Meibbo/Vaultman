@@ -362,7 +362,8 @@ export class FilesExplorerPanel extends Component {
 	setTaskCellDisplayMode(mode: TaskCellDisplayMode | 'auto'): void {
 		if (this.taskCellDisplayOverride === mode) return;
 		this.taskCellDisplayOverride = mode;
-		void this._render();
+		this._scheduleLiveRender();
+		this._patchVisibleStatisticsCells();
 	}
 	private _sourceFiles: TFile[] = [];
 	private _currentFiles: TFile[] = [];

@@ -559,4 +559,101 @@ describe('U130-GGC cumulative scope sets', () => {
 		expect(normalized.sets['level:2']?.indent).toBe(false);
 		expect(normalized.sets.all?.stickyRows).toBe(true);
 	});
+
+	it('U130: parent-specific counter range partition targets parent and allows independent sibling scopes', () => {
+		interface FileTestMeta {
+			words: number;
+		}
+		const p1Children: TreeNode<FileTestMeta>[] = Array.from({ length: 10 }, (_, i) => ({
+			id: `p1_f${i}`,
+			label: `File 1.${i}`,
+			depth: 1,
+			meta: { words: (i + 1) * 10 }, // 10 to 100
+		}));
+		const p2Children: TreeNode<FileTestMeta>[] = Array.from({ length: 10 }, (_, i) => ({
+			id: `p2_f${i}`,
+			label: `File 2.${i}`,
+			depth: 1,
+			meta: { words: (i + 1) * 1000 }, // 1000 to 10000
+		}));
+
+		const tree: TreeNode<FileTestMeta>[] = [
+			{
+				id: 'p1',
+				label: 'Folder 1',
+				depth: 0,
+				meta: { words: 0 },
+				children: p1Children,
+			},
+			{
+				id: 'p2',
+				label: 'Folder 2',
+				depth: 0,
+				meta: { words: 0 },
+				children: p2Children,
+			},
+		];
+
+		const input: GroupProjectionInput<FileTestMeta> = {
+			nodes: tree,
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: 'No group',
+			filtered: false,
+			preset: { kind: 'none', direction: 'asc' },
+			presetValueOf: (node, kind) => (kind === 'words' ? node.meta.words : null),
+		};
+
+		// 1. When level:2 groups by words without explicit ranges, headers inside p1 and p2
+		// target their respective parentTarget ('parent:p1', 'parent:p2')
+		const projected = projectGroupedTreeScopeState(input, {
+			cursor: 'level:2',
+			sets: {
+				'level:2': { groupPreset: { kind: 'words', direction: 'asc' } },
+			},
+		});
+
+		const p1Headers = projected[0]?.children?.filter((n) => n.isGroupHeader) ?? [];
+		expect(p1Headers.length).toBeGreaterThan(0);
+		for (const h of p1Headers) {
+			expect(h.groupScopeTarget).toBe('parent:p1');
+		}
+
+		const p2Headers = projected[1]?.children?.filter((n) => n.isGroupHeader) ?? [];
+		expect(p2Headers.length).toBeGreaterThan(0);
+		for (const h of p2Headers) {
+			expect(h.groupScopeTarget).toBe('parent:p2');
+		}
+
+		// p1 domain is 10..100, p2 domain is 1000..10000
+		expect(p1Headers[0]?.counterDomain).toEqual({ min: 10, max: 100 });
+		expect(p2Headers[0]?.counterDomain).toEqual({ min: 1000, max: 10000 });
+
+		// 2. When p1 has explicit custom ranges partitioned on it, p2 continues
+		// to partition independently using its own domain and values
+		const projectedWithP1Override = projectGroupedTreeScopeState(input, {
+			cursor: 'level:2',
+			sets: {
+				'level:2': { groupPreset: { kind: 'words', direction: 'asc' } },
+				'parent:p1': {
+					groupPreset: {
+						kind: 'words',
+						direction: 'asc',
+						counterRanges: [
+							{ id: 'custom-1', lo: 0, hi: 50 },
+							{ id: 'custom-2', lo: 51, hi: 200 },
+						],
+					},
+				},
+			},
+		});
+
+		const p1CustomHeaders = projectedWithP1Override[0]?.children?.filter((n) => n.isGroupHeader) ?? [];
+		expect(p1CustomHeaders.map((h) => h.label)).toEqual(['0–50', '51–200']);
+
+		const p2DynamicHeaders = projectedWithP1Override[1]?.children?.filter((n) => n.isGroupHeader) ?? [];
+		// p2 was NOT forced to use 0..50 and 51..200; it still has its 1000..10000 domain
+		expect(p2DynamicHeaders[0]?.counterDomain).toEqual({ min: 1000, max: 10000 });
+	});
 });

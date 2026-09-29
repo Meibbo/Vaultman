@@ -376,7 +376,7 @@ export function scopeMenuModel(
 		kind: 'scope-row',
 		id: 'all',
 		icon: SCOPE_META.all.icon,
-		label: scene.allLevelsLabel?.() ?? 'All levels',
+		label: scene.allLevelsLabel?.() ?? 'All',
 		sortLabel: sortLabelFor('all'),
 		checked: active === 'all',
 		hidden: hidden.has('all'),

@@ -988,7 +988,7 @@ export const es: Record<string, string> = {
 		'Alcance por defecto para operaciones del explorador',
 	'settings.default_scope': 'Cursor de alcance por defecto',
 	'settings.default_scope.desc':
-		'Alcance con el que abre una escena nueva (Nivel 1 o Todos los niveles). Solo elige el cursor inicial y nunca reescribe sorts, grupos ni celdas guardados.',
+		'Alcance con el que abre una escena nueva (Nivel 1 o Todos). Solo elige el cursor inicial y nunca reescribe sorts, grupos ni celdas guardados.',
 	'settings.scope.auto': 'Auto (seleccionados > filtrados > todos)',
 	'settings.scope.selected': 'Solo archivos seleccionados',
 	'settings.scope.filtered': 'Archivos filtrados',
@@ -1234,7 +1234,7 @@ export const es: Record<string, string> = {
 		'El scope drill del índice flotante también selecciona el scope del sort; cerrar el índice restaura el scope por defecto.',
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
-	'sort.level.all': 'Todos los niveles',
+	'sort.level.all': 'Todos',
 	// Spec 08 §3.1: el submenú `Scope: <variable>`.
 	'sort.level.select_level': 'Elegir un nivel',
 	'sort.level.pick_level_hint':

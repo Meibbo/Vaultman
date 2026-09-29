@@ -171,6 +171,8 @@ export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPo
 
 export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplorerPort {
 	autoRevealActiveFile(): void;
+	/** U130 view menu alt-cmenu: live update of task metric display mode */
+	setTaskCellDisplayMode?(mode: import('../logic/logicTaskMetric').TaskCellDisplayMode | 'auto'): void;
 	/** U130 toolbar alt-cmenu: override per-instance del "always reveal"
 	 * (`undefined` = setting global). Lo empuja el navbar. */
 	setAutoRevealOverride?(value: boolean | undefined): void;

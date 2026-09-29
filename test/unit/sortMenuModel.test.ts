@@ -91,6 +91,15 @@ describe('BT5-007 shared sort menu model', () => {
 		// Gated picks hide without moving the fixed entries or orphaning the divider.
 		expect(constrained?.items.map((item) => item.id)).toEqual(['all', 'level:1']);
 
+		// Without allLevelsLabel hook, the label defaults to 'All'
+		const defaultAll = scopeMenuModel('files', stateFor('files'), {
+			...scene,
+			allLevelsLabel: undefined,
+		});
+		expect(defaultAll?.items.find((item) => item.id === 'all')).toMatchObject({
+			label: 'All',
+		});
+
 		// A picked parent titles the submenu after it and lists it as a row.
 		const picked = scopeMenuModel(
 			'files',

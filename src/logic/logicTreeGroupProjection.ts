@@ -1007,6 +1007,7 @@ export function projectGroupedTreeScopeState<TMeta>(
 		);
 		const owner = parentId === null ? `level:${level}:root` : `parent:${parentId}`;
 		const depth = nested[0]?.depth ?? level - 1;
+		const headerScopeTarget: ScopeTarget = parentTarget ?? sourceTarget;
 		return projectGroupedTree({
 			...input,
 			nodes: nested,
@@ -1022,7 +1023,7 @@ export function projectGroupedTreeScopeState<TMeta>(
 				...node,
 				id: rowId,
 				entityId: entityIdOf(node),
-				groupScopeTarget: sourceTarget,
+				groupScopeTarget: headerScopeTarget,
 				depth,
 				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
 				...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),

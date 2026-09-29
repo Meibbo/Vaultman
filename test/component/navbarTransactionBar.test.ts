@@ -239,6 +239,76 @@ describe('navbarFilters monta BarTransaction', () => {
 		expect(document.body.classList.contains('is-grabbing')).toBe(false);
 	});
 
+	it('supports drag-and-drop with touch pointers on mobile', () => {
+		const el = render();
+		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');
+		const nodes = Array.from(
+			bar?.querySelectorAll<HTMLElement>('[data-panel-widget-node-id]') ?? [],
+		);
+		expect(nodes.length).toBeGreaterThanOrEqual(3);
+		if (!bar || nodes.length < 3) return;
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				right: left + width,
+				top: 0,
+				bottom: 40,
+				width,
+				height: 40,
+			}) as DOMRect;
+		bar.getBoundingClientRect = () => rect(0, 500);
+		nodes.forEach((node, index) => {
+			node.getBoundingClientRect = () => rect(index * 50, 40);
+		});
+		let captured = false;
+		nodes[0].setPointerCapture = () => {
+			captured = true;
+		};
+		nodes[0].hasPointerCapture = () => captured;
+		nodes[0].releasePointerCapture = () => {
+			captured = false;
+		};
+
+		const touchPointer = (type: string, clientX: number, clientY = 20) => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				button: 0,
+				clientX,
+				clientY,
+			});
+			Object.defineProperty(event, 'pointerType', { value: 'touch' });
+			Object.defineProperty(event, 'pointerId', { value: 42 });
+			return event;
+		};
+
+		const initialOrder = nodes.map((node) =>
+			node.getAttribute('data-panel-widget-node-id')?.split(':').at(-1),
+		);
+		nodes[0].dispatchEvent(touchPointer('pointerdown', 20));
+		expect(captured).toBe(true);
+
+		window.dispatchEvent(touchPointer('pointermove', 110));
+		flushSync();
+		const marker = bar.querySelector<HTMLElement>(
+			'.vaultman-toolbar-drop-marker',
+		);
+		expect(marker).not.toBeNull();
+		expect(marker?.style.order).toBe('2');
+
+		window.dispatchEvent(touchPointer('pointerup', 110));
+		flushSync();
+		expect(captured).toBe(false);
+		expect(proposedConfigs.at(-1)).toMatchObject({
+			tab: 'props',
+			toolbarNodeOrder: [
+				initialOrder[1],
+				initialOrder[0],
+				...initialOrder.slice(2),
+			],
+		});
+		expect(bar.querySelector('.vaultman-toolbar-drop-marker')).toBeNull();
+	});
+
 	it('arrastrar primero más allá del último resuelve slot N (después del último) y limpia marker', () => {
 		const el = render();
 		const bar = el.querySelector<HTMLElement>('.vaultman-filters-actions');

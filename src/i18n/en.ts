@@ -968,7 +968,7 @@ export const en: Record<string, string> = {
 	'settings.operation_scope.desc': 'Default scope for explorer operations',
 	'settings.default_scope': 'Default scope cursor',
 	'settings.default_scope.desc':
-		'Scope a new scene opens with (Level 1 or All levels). It only selects the initial cursor and never rewrites saved sorts, groups or cells.',
+		'Scope a new scene opens with (Level 1 or All). It only selects the initial cursor and never rewrites saved sorts, groups or cells.',
 	'settings.scope.auto': 'Auto (selected > filtered > all)',
 	'settings.scope.selected': 'Selected files only',
 	'settings.scope.filtered': 'Filtered files',
@@ -1340,7 +1340,7 @@ export const en: Record<string, string> = {
 		'The floating index scope drill also selects the sort scope; closing the index restores the default sort scope.',
 	'sort.level.properties': 'Properties',
 	'sort.level.values': 'Values',
-	'sort.level.all': 'All levels',
+	'sort.level.all': 'All',
 	// Spec 08 §3.1: the `Scope: <variable>` submenu.
 	'sort.level.select_level': 'Select a level',
 	'sort.level.pick_level_hint': 'Click a row to sort every parent of its level',

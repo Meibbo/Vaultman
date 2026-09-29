@@ -135,4 +135,15 @@ describe('U121-027 LivreUI cell refresh', () => {
 		// Skipped entirely when no clock-driven cell is on screen.
 		expect(handler).toContain('this._timeCellVisible()');
 	});
+
+	it('subscribes task cell display mode changes to the live render coalescer and patches cells', () => {
+		const method = sliceBetween(
+			"setTaskCellDisplayMode(mode: TaskCellDisplayMode | 'auto'): void {",
+			'private _sourceFiles:',
+		);
+		expect(method).not.toBe('');
+		expect(method).toContain('this._scheduleLiveRender()');
+		expect(method).toContain('this._patchVisibleStatisticsCells()');
+		expect(method).not.toContain('this._render()');
+	});
 });

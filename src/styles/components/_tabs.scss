@@ -220,6 +220,10 @@
   min-width: 0;
   overflow: hidden;
   background: transparent;
+
+  [data-panel-widget-node-id] {
+    touch-action: none;
+  }
 }
 
 .vaultman-filters-actions .vaultman-toolbar-drop-marker {

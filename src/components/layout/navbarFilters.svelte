@@ -792,12 +792,29 @@
 		const scopeState = currentSort.scopeState
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
-		const preset = scopeState.sets[target]?.groupPreset;
-		if (!preset) return;
+		const targetParentId = parentOfScope(target);
+		const targetLevel = targetParentId
+			? (treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0) + 1
+			: (levelOfScope(target) ?? 1);
+		const preset =
+			scopeState.sets[target]?.groupPreset ??
+			resolveScopeSet(
+				scopeState,
+				{ level: targetLevel, parentId: targetParentId },
+				{ groupPreset: { kind: 'none', direction: 'asc' } },
+			).groupPreset;
+		if (!preset || preset.kind === 'none') return;
 		if (
-			!['words', 'tasks', 'props', 'modified', 'created', 'opened'].includes(
-				preset.kind,
-			)
+			![
+				'words',
+				'tasks',
+				'props',
+				'modified',
+				'created',
+				'opened',
+				'count',
+				'childs',
+			].includes(preset.kind)
 		)
 			return;
 		scopeState.sets[target] = {
@@ -1601,7 +1618,7 @@
 
 	function onPanelWidgetBarPointerDown(event: PointerEvent): void {
 		clearPanelWidgetTrailingClickSuppression();
-		if (event.pointerType !== 'mouse' || event.button !== 0) return;
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
 		const target = event.target as HTMLElement | null;
 		if (target?.closest?.('input, textarea, [contenteditable="true"]')) return;
 		const node = target?.closest?.('[data-panel-widget-node-id]');
@@ -1610,6 +1627,9 @@
 		if (localId === null) return;
 		if (panelWidgetDragSiblings().length < 2) return;
 		const rect = node.getBoundingClientRect();
+		try {
+			node.setPointerCapture?.(event.pointerId);
+		} catch {}
 		const onMove = (move: PointerEvent): void => panelWidgetDragMove(move);
 		const onUp = (up: PointerEvent): void => endPanelWidgetDrag(up, true);
 		const onCancel = (): void => endPanelWidgetDrag(null, false);
@@ -1637,6 +1657,11 @@
 			slots: [],
 			visibleLocalIds: [],
 			cleanup: () => {
+				try {
+					if (node.hasPointerCapture?.(event.pointerId)) {
+						node.releasePointerCapture?.(event.pointerId);
+					}
+				} catch {}
 				window.removeEventListener('pointermove', onMove);
 				window.removeEventListener('pointerup', onUp);
 				window.removeEventListener('pointercancel', onCancel);
@@ -2270,6 +2295,8 @@
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
 				if (config.groupMemberships)
 					applyGroupMemberships(tab, config.groupMemberships);
+				if (config.taskCellDisplayMode !== undefined)
+					fileList.setTaskCellDisplayMode?.(config.taskCellDisplayMode);
 			}
 			return;
 		}
@@ -3049,12 +3076,14 @@
 						`${translate('settings.task_cell_display_mode')}: ${translate(`settings.task_cell_display_mode.${current}`)}`,
 					)
 					.setIcon('lucide-list-checks')
-					.onClick(() =>
+					.onClick(() => {
+						const next =
+							current === 'pending' ? 'done-total' : 'pending';
 						commitConfig('files', {
-							taskCellDisplayMode:
-								current === 'pending' ? 'done-total' : 'pending',
-						}),
-					);
+							taskCellDisplayMode: next,
+						});
+						fileList?.setTaskCellDisplayMode?.(next);
+					});
 			});
 			menu.addSeparator();
 		}
