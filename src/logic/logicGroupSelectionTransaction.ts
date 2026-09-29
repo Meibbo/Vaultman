@@ -87,7 +87,8 @@ export function noteSelectionState(
 	const next = (keyEpoch.get(selectionKey) ?? 0) + 1;
 	keyEpoch.set(selectionKey, next);
 	const live = liveIds(selectionKey);
-	const current = currentIds instanceof Set ? currentIds : new Set(currentIds);
+	const current: ReadonlySet<string> =
+		currentIds instanceof Set ? currentIds : new Set(currentIds);
 	for (const id of current) {
 		if (!live.has(id)) live.set(id, next);
 	}

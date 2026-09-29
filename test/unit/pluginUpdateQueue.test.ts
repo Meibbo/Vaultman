@@ -19,11 +19,11 @@ function adapterFor(
 	available: Record<string, boolean> = {},
 ): PluginUpdateAdapter {
 	return {
-		hasUpdate: vi.fn(async (id) => available[id] ?? true),
-		installPlugin: vi.fn(async (id) => {
+		hasUpdate: vi.fn(async (id: string) => available[id] ?? true),
+		installPlugin: vi.fn(async (id: string) => {
 			versions[id] = '2.0.0';
 		}),
-		getInstalledVersion: vi.fn(async (id) => versions[id]),
+		getInstalledVersion: vi.fn(async (id: string) => versions[id]),
 	};
 }
 

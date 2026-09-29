@@ -180,8 +180,8 @@ describe('U130 Spec 01: identidad por ocurrencia', () => {
 		expect(p1?.children?.[0].children).toHaveLength(1);
 		expect(p2?.children?.[0].children).toHaveLength(1);
 		// Entidad original conservada en raiz y descendientes.
-		expect(entityIdOf(p1?.children?.[0]!)).toBe('c1');
-		expect(entityIdOf(p1?.children?.[0].children?.[0]!)).toBe('n1');
+		expect(entityIdOf(p1!.children![0])).toBe('c1');
+		expect(entityIdOf(p1!.children![0].children![0])).toBe('n1');
 		// Hijos clonados con rowIds unicos derivados de owner+root+ruta.
 		const childIds = [
 			p1?.children?.[0].id,
@@ -192,7 +192,7 @@ describe('U130 Spec 01: identidad por ocurrencia', () => {
 		expect(new Set(childIds).size).toBe(childIds.length);
 		expect(p1?.children?.[0].id).toContain('@g1');
 		expect(p2?.children?.[0].id).toContain('@g2');
-		expect(occurrenceOwnerOf(p1?.children?.[0]!)).toBe('g1');
+		expect(occurrenceOwnerOf(p1!.children![0])).toBe('g1');
 		expect(p1?.children?.[0].occurrenceRoot).toBe('p1');
 		// Depth desplazado exactamente una vez en todo el subarbol.
 		expect(p1?.depth).toBe(1);

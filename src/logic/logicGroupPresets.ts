@@ -305,7 +305,7 @@ export function materializePresetAsCustom<
 			seen.add(identity);
 			urns.push(input.urnOf(node));
 		}
-		memberships[names[index]!] = urns;
+		memberships[names[index]] = urns;
 	}
 	return {
 		status: 'committed',
@@ -504,7 +504,7 @@ export function buildPresetBuckets<T extends { label: string }>(
 	for (const { node, value } of valued) {
 		const index = ranges.findIndex((r) => value >= r.lo && value <= r.hi);
 		if (index === -1) ungrouped.push(node);
-		else buckets[index]!.members.push(node);
+		else buckets[index].members.push(node);
 	}
 	const rangeById = new Map(ranges.map((range) => [range.id, range] as const));
 	const byIndexOrder = (a: PresetBucket<T>, b: PresetBucket<T>) => {

@@ -1004,7 +1004,7 @@ export function projectGroupedTreeScopeState<TMeta>(
 					state.sets[levelTarget]?.groupPreset !== undefined
 					? levelTarget
 					: 'all'
-		) as ScopeTarget;
+		);
 		const owner = parentId === null ? `level:${level}:root` : `parent:${parentId}`;
 		const depth = nested[0]?.depth ?? level - 1;
 		return projectGroupedTree({
@@ -1095,7 +1095,7 @@ export function projectGroupedTreeInScope<TMeta>(
 	}
 
 	if (!Number.isInteger(scope.level) || scope.level < 1)
-		return input.nodes as TreeNode<TMeta>[];
+		return input.nodes;
 	const visitLevel = (
 		nodes: readonly TreeNode<TMeta>[],
 		level: number,
