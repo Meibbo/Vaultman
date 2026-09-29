@@ -423,7 +423,7 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	files: ['all', 'drill'],
 	tags: ['all', 'drill'],
 	snippets: ['all'],
-	plugins: ['all', 'drill'],
+	plugins: ['all'],
 };
 
 /** U130-03: the named scopes of a tab. Menus derive from this, never from a copy. */
