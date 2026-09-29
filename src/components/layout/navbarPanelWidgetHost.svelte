@@ -41,7 +41,9 @@
 		return navbarRef?.setSceneEngine?.(surface, mode) ?? false;
 	}
 
-	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+	export async function invokeToolbarSasiAction(
+		actionId: string,
+	): Promise<boolean> {
 		return navbarRef?.invokeToolbarSasiAction?.(actionId) ?? false;
 	}
 </script>

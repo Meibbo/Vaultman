@@ -104,7 +104,7 @@
 					{icon}
 					{translate}
 					{onInvoke}
-					tooltipsEnabled={tooltipsEnabled}
+					{tooltipsEnabled}
 				/>
 			{/each}
 		</div>

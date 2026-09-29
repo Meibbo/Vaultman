@@ -21,7 +21,6 @@
 	}
 
 	let {
-
 		state,
 
 		resolve,
@@ -33,7 +32,6 @@
 		onToggleMoveKind,
 
 		tooltipsEnabled = true,
-
 	}: Props = $props();
 
 	const TOGGLE_ID = 'vaultman.move.toggleMoveKind';
@@ -84,7 +82,7 @@
 				{resolve}
 				{icon}
 				{translate}
-				tooltipsEnabled={tooltipsEnabled}
+				{tooltipsEnabled}
 				onInvoke={() =>
 					onToggleMoveKind(state.moveKind === 'node' ? 'group' : 'node')}
 			/>

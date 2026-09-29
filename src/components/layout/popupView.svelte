@@ -72,11 +72,10 @@
 	const currentPillDefs = $derived(
 		viewMenuCells(activeTab, activeView, activePills, {
 			selectionCheckboxPosition,
-		})
-			.map((definition) => ({
-				id: definition.id,
-				labelKey: cellLabelKey(definition, activeTab, activeView),
-			})),
+		}).map((definition) => ({
+			id: definition.id,
+			labelKey: cellLabelKey(definition, activeTab, activeView),
+		})),
 	);
 	const currentViewModes = $derived(viewModesForDataSurface(activeTab));
 

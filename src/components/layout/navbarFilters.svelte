@@ -18,7 +18,7 @@
 		SEARCH_CREATE_TARGET_ID,
 		SEARCH_CYCLE_CATEGORY_ID,
 	} from '../../logic/logicSasiSearchActions';
-import {
+	import {
 		TOOLBAR_FOCUS_SEARCH_ID,
 		TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 		TOOLBAR_SEARCHBOX_ID,
@@ -199,12 +199,20 @@ import {
 		pluginsExplorer?: PanelWidgetExplorerPort;
 	};
 
-	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
-		if (actionId === TOOLBAR_SEARCHBOX_ID || actionId === TOOLBAR_FOCUS_SEARCH_ID) {
+	export async function invokeToolbarSasiAction(
+		actionId: string,
+	): Promise<boolean> {
+		if (
+			actionId === TOOLBAR_SEARCHBOX_ID ||
+			actionId === TOOLBAR_FOCUS_SEARCH_ID
+		) {
 			expandSearch();
 			return true;
 		}
-		if (actionId === SEARCH_CYCLE_CATEGORY_ID || actionId === SEARCH_CREATE_TARGET_ID) {
+		if (
+			actionId === SEARCH_CYCLE_CATEGORY_ID ||
+			actionId === SEARCH_CREATE_TARGET_ID
+		) {
 			runSearchCell(actionId);
 			return true;
 		}
@@ -214,7 +222,10 @@ import {
 				: actionId === TOOLBAR_TOGGLE_EXPANSION_ID
 					? 'toggle-expansion'
 					: actionId;
-		return (await actionPort.invoke({ actionId: localId, origin: 'command' })) === true;
+		return (
+			(await actionPort.invoke({ actionId: localId, origin: 'command' })) ===
+			true
+		);
 	}
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone' | 'row';
@@ -266,14 +277,14 @@ import {
 						item.setTitle(node.item.value.title);
 						if (node.item.value.icon) item.setIcon(node.item.value.icon);
 						if (node.item.value.checked !== undefined) {
-							(item as typeof item & { setChecked?: (c: boolean) => void }).setChecked?.(
-								node.item.value.checked,
-							);
+							(
+								item as typeof item & { setChecked?: (c: boolean) => void }
+							).setChecked?.(node.item.value.checked);
 						}
 						if (node.item.value.disabled !== undefined) {
-							(item as typeof item & { setDisabled?: (d: boolean) => void }).setDisabled?.(
-								node.item.value.disabled,
-							);
+							(
+								item as typeof item & { setDisabled?: (d: boolean) => void }
+							).setDisabled?.(node.item.value.disabled);
 						}
 						if (node.item.children) {
 							const submenu = (
@@ -669,10 +680,13 @@ import {
 	 * is a photo that `loadLayout` copied into the scene, not the owner.
 	 */
 	function currentCustomGroupTarget(tab: FiltersTab): ScopedCustomTarget {
-		const state = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const state = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
 		const target = storageScope(state, state.activeScope);
 		// Level 0 sorts group headers; it is not a member-bearing sibling list.
-		return target === 'level:0' ? 'all' : target as ScopedCustomTarget;
+		return target === 'level:0' ? 'all' : (target as ScopedCustomTarget);
 	}
 	function customGroupStorageId(
 		memberships: Readonly<Record<string, readonly string[]>>,
@@ -688,10 +702,15 @@ import {
 			return name;
 		return makeScopedGroupKey(target, name);
 	}
-	function customGroupScopeLabel(tab: FiltersTab, target: ScopedCustomTarget): string {
+	function customGroupScopeLabel(
+		tab: FiltersTab,
+		target: ScopedCustomTarget,
+	): string {
 		if (target === 'all') return translate('sort.level.all');
 		if (target.startsWith('level:'))
-			return translate('sort.scope.level_n', { n: Number(target.slice('level:'.length)) });
+			return translate('sort.scope.level_n', {
+				n: Number(target.slice('level:'.length)),
+			});
 		const parentId = target.slice('parent:'.length);
 		return `lvl: ${treePanelForTab(tab)?.sortNodeLabel?.(parentId) ?? parentId}`;
 	}
@@ -704,13 +723,15 @@ import {
 		return Object.keys(memberships).flatMap((id) => {
 			const parsed = parseScopedGroupKey(id);
 			if (selectedTarget && parsed.target !== selectedTarget) return [];
-			return [{
-				id,
-				label: selectedTarget
-					? parsed.name
-					: `${parsed.name} · ${customGroupScopeLabel(tab, parsed.target)}`,
-				hidden: hidden.has(id),
-			}];
+			return [
+				{
+					id,
+					label: selectedTarget
+						? parsed.name
+						: `${parsed.name} · ${customGroupScopeLabel(tab, parsed.target)}`,
+					hidden: hidden.has(id),
+				},
+			];
 		});
 	}
 	/** Spec 08 §4 `hide`: per instance, reversible; the group survives in the layout. */
@@ -773,17 +794,24 @@ import {
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
 		const preset = scopeState.sets[target]?.groupPreset;
 		if (!preset) return;
-		if (!['words', 'tasks', 'props', 'modified', 'created', 'opened'].includes(preset.kind))
+		if (
+			!['words', 'tasks', 'props', 'modified', 'created', 'opened'].includes(
+				preset.kind,
+			)
+		)
 			return;
 		scopeState.sets[target] = {
 			...(scopeState.sets[target] ?? {}),
 			groupPreset: {
-			kind: preset.kind,
-			direction: preset.direction,
-			counterRanges: ranges.map((range) => ({ ...range })),
+				kind: preset.kind,
+				direction: preset.direction,
+				counterRanges: ranges.map((range) => ({ ...range })),
 			},
 		};
-		const cursor = storageScope(currentSort, currentSort.activeScope) as ScopeTarget;
+		const cursor = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
 		const parentId = parentOfScope(cursor);
 		const level = parentId
 			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
@@ -816,7 +844,11 @@ import {
 		if (!name) return { status: 'cancelled' };
 		const current = configByTab[tab];
 		const target = snapshot.scopeTarget ?? currentCustomGroupTarget(tab);
-		const groupId = customGroupStorageId(current.groupMemberships, target, name);
+		const groupId = customGroupStorageId(
+			current.groupMemberships,
+			target,
+			name,
+		);
 		if (Object.prototype.hasOwnProperty.call(current.groupMemberships, groupId))
 			return { status: 'rejected', reason: 'group_name_collision' };
 		const nextMemberships = {
@@ -827,7 +859,10 @@ import {
 			kind: 'custom',
 			direction: current.groupPreset.direction,
 		};
-		const currentSort = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
 		const scopeState = currentSort.scopeState
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, current.groupPreset);
@@ -838,9 +873,10 @@ import {
 		delete targetSet.hidden;
 		scopeState.sets[target] = targetSet;
 		const sortState = { ...currentSort, scopeState };
-		const cursorPreset = target === currentCustomGroupTarget(tab)
-			? nextPreset
-			: current.groupPreset;
+		const cursorPreset =
+			target === currentCustomGroupTarget(tab)
+				? nextPreset
+				: current.groupPreset;
 		// One SceneConfig patch: membership and the target preset become visible atomically.
 		commitConfig(tab, {
 			groupMemberships: nextMemberships,
@@ -894,11 +930,23 @@ import {
 		 */
 		const customs = customGroupsForMenu(tab, groupTarget);
 		const filterTemplates = (
-			(app as unknown as { plugins?: { plugins?: Record<string, { settings?: { filterTemplates?: Array<{ name: string }> } }> } })?.plugins?.plugins?.['vaultman']?.settings?.filterTemplates ?? []
+			(
+				app as unknown as {
+					plugins?: {
+						plugins?: Record<
+							string,
+							{ settings?: { filterTemplates?: Array<{ name: string }> } }
+						>;
+					};
+				}
+			)?.plugins?.plugins?.['vaultman']?.settings?.filterTemplates ?? []
 		).map((t) => t.name);
 
 		const picked = await openGroupSuggesterModal(app, {
-			title: urns.length > 0 ? translate('group.suggester.title') : translate('group.new'),
+			title:
+				urns.length > 0
+					? translate('group.suggester.title')
+					: translate('group.new'),
 			placeholder: translate('group.suggester.placeholder'),
 			customGroups: customs.map((group) => ({
 				id: group.id,
@@ -938,8 +986,7 @@ import {
 		}
 
 		const name = picked.name.trim();
-		if (!name)
-			return { status: 'cancelled' };
+		if (!name) return { status: 'cancelled' };
 		const noteMode =
 			revealActive &&
 			(tab === 'props' || tab === 'tags') &&
@@ -987,7 +1034,10 @@ import {
 				],
 			});
 			if (!result.ok)
-				return { status: 'rejected', reason: result.error ?? 'group.note.write_failed' };
+				return {
+					status: 'rejected',
+					reason: result.error ?? 'group.note.write_failed',
+				};
 			return { status: 'committed', groupId: name, affectedUrns: [...urns] };
 		}
 		const memberships = configByTab[tab].groupMemberships;
@@ -1309,7 +1359,10 @@ import {
 				30,
 			);
 		}
-		if (activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar') {
+		if (
+			activeTab === 'files' &&
+			effectiveCreateActionsPlacement === 'toolbar'
+		) {
 			append(
 				'create-file',
 				translate('folder.ctx.new_note'),
@@ -1455,7 +1508,9 @@ import {
 	function panelWidgetDragSiblings(): { el: HTMLElement; localId: string }[] {
 		if (!actionsEl) return [];
 		const out: { el: HTMLElement; localId: string }[] = [];
-		for (const el of actionsEl.querySelectorAll('[data-panel-widget-node-id]')) {
+		for (const el of actionsEl.querySelectorAll(
+			'[data-panel-widget-node-id]',
+		)) {
 			if (!(el instanceof HTMLElement)) continue;
 			const localId = panelWidgetDragLocalId(el);
 			if (localId === null) continue;
@@ -1463,7 +1518,9 @@ import {
 		}
 		// Orden visual (el DOM es fijo; lo visual lo da `order` de la proyección).
 		const rank = new Map(
-			panelWidgetProjection.nodes.map((node, index) => [node.id, index] as const),
+			panelWidgetProjection.nodes.map(
+				(node, index) => [node.id, index] as const,
+			),
 		);
 		out.sort(
 			(a, b) =>
@@ -1522,12 +1579,18 @@ import {
 		);
 	}
 
-	let panelWidgetTrailingClickSuppression: ((clickEvent: MouseEvent) => void) | null = null;
-	let panelWidgetTrailingClickTimer: ReturnType<typeof setTimeout> | null = null;
+	let panelWidgetTrailingClickSuppression:
+		((clickEvent: MouseEvent) => void) | null = null;
+	let panelWidgetTrailingClickTimer: ReturnType<typeof setTimeout> | null =
+		null;
 
 	function clearPanelWidgetTrailingClickSuppression(): void {
 		if (panelWidgetTrailingClickSuppression) {
-			window.removeEventListener('click', panelWidgetTrailingClickSuppression, true);
+			window.removeEventListener(
+				'click',
+				panelWidgetTrailingClickSuppression,
+				true,
+			);
 			panelWidgetTrailingClickSuppression = null;
 		}
 		if (panelWidgetTrailingClickTimer !== null) {
@@ -1656,7 +1719,10 @@ import {
 		markPanelWidgetDrop(drag, slot, anchorEl);
 	}
 
-	function endPanelWidgetDrag(event: PointerEvent | null, commit: boolean): void {
+	function endPanelWidgetDrag(
+		event: PointerEvent | null,
+		commit: boolean,
+	): void {
 		const drag = panelWidgetDrag;
 		if (!drag) return;
 		if (event && drag.ghost) panelWidgetDragMove(event);
@@ -1685,7 +1751,11 @@ import {
 				clickEvent.stopImmediatePropagation();
 				clearPanelWidgetTrailingClickSuppression();
 			};
-			window.addEventListener('click', panelWidgetTrailingClickSuppression, true);
+			window.addEventListener(
+				'click',
+				panelWidgetTrailingClickSuppression,
+				true,
+			);
 			panelWidgetTrailingClickTimer = setTimeout(() => {
 				clearPanelWidgetTrailingClickSuppression();
 			}, 50);
@@ -1836,9 +1906,10 @@ import {
 			const file = path ? app?.vault.getFileByPath(path) : null;
 			if (!(file instanceof TFile))
 				return { status: 'rejected', reason: 'group.note.no_file' };
-			const target =
-				scopeToNoteGroupTarget(state.activeScope, state.drillNodeId) ??
-				{ kind: 'level', level: 1 };
+			const target = scopeToNoteGroupTarget(
+				state.activeScope,
+				state.drillNodeId,
+			) ?? { kind: 'level', level: 1 };
 			const scene = tab === 'props' ? 'prop' : 'tag';
 			const current = parseFrontmatterNoteGroups(
 				(app?.metadataCache.getFileCache(file)?.frontmatter ?? {}) as Record<
@@ -1850,21 +1921,22 @@ import {
 			);
 			const ownerMembers = current.memberships[owner];
 			if (!ownerMembers)
-				return { status: 'rejected', reason: 'group.degroup.unavailable_preset' };
+				return {
+					status: 'rejected',
+					reason: 'group.degroup.unavailable_preset',
+				};
 			const selectedMembers = new Set(
-				noteGroupMemberIdsFromMemberships(
-					snapshot.urns,
-					scene,
-					target,
-				),
+				noteGroupMemberIdsFromMemberships(snapshot.urns, scene, target),
 			);
-			const doomed = new Set(ownerMembers.filter((member) => selectedMembers.has(member)));
+			const doomed = new Set(
+				ownerMembers.filter((member) => selectedMembers.has(member)),
+			);
 			const nextGroups = current.groups.map((group) => ({
 				name: group.id,
 				members:
 					group.id === owner
 						? ownerMembers.filter((member) => !doomed.has(member))
-						: current.memberships[group.id] ?? [],
+						: (current.memberships[group.id] ?? []),
 			}));
 			const result = await writeNoteGroups({
 				app: app!,
@@ -1874,7 +1946,10 @@ import {
 				groups: nextGroups,
 			});
 			if (!result.ok)
-				return { status: 'rejected', reason: result.error ?? 'group.note.write_failed' };
+				return {
+					status: 'rejected',
+					reason: result.error ?? 'group.note.write_failed',
+				};
 			const affectedUrns = snapshot.urns.filter((urn) => {
 				const members = noteGroupMemberIdsFromMemberships([urn], scene, target);
 				return members.some((member) => doomed.has(member));
@@ -2167,7 +2242,9 @@ import {
 						? { compactFolders: config.compactFolders }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
-					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
+					...(config.tooltips !== undefined
+						? { tooltips: config.tooltips }
+						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2210,7 +2287,9 @@ import {
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
-					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
+					...(config.tooltips !== undefined
+						? { tooltips: config.tooltips }
+						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2251,7 +2330,9 @@ import {
 						? { stickyRows: config.stickyRows }
 						: {}),
 					...(config.indent !== undefined ? { indent: config.indent } : {}),
-					...(config.tooltips !== undefined ? { tooltips: config.tooltips } : {}),
+					...(config.tooltips !== undefined
+						? { tooltips: config.tooltips }
+						: {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2382,8 +2463,10 @@ import {
 				).includes('nested'),
 			},
 		);
-		const effectivePreset =
-			effective.groupPreset ?? { kind: 'none', direction: 'asc' };
+		const effectivePreset = effective.groupPreset ?? {
+			kind: 'none',
+			direction: 'asc',
+		};
 		const nextState = { ...normalizedState, scopeState };
 		commitConfig(tab, { sortState: nextState, groupPreset: effectivePreset });
 		applySortState(tab, nextState);
@@ -2517,8 +2600,15 @@ import {
 				);
 				const scopeState = current.scopeState
 					? cloneScopeState(current.scopeState)
-					: scopeStateFromLegacy(activeTab, current, configByTab[activeTab].groupPreset);
-				const target = storageScope(current, current.activeScope) as ScopeTarget;
+					: scopeStateFromLegacy(
+							activeTab,
+							current,
+							configByTab[activeTab].groupPreset,
+						);
+				const target = storageScope(
+					current,
+					current.activeScope,
+				) as ScopeTarget;
 				const before = new Set(visibleCellsForScope(activeTab));
 				const after = new Set(cells);
 				const toggles = { ...(scopeState.sets[target]?.cellToggles ?? {}) };
@@ -2541,16 +2631,19 @@ import {
 		const base = new Set(
 			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab]),
 		);
-		const state = normalizeSortState(tab, sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]);
+		const state = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
 		const level = parentId
 			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
 			: (levelOfScope(target) ?? 1);
-		const resolved = resolveScopeSet(
-			state.scopeState,
-			{ level, parentId },
-		).cellToggles;
+		const resolved = resolveScopeSet(state.scopeState, {
+			level,
+			parentId,
+		}).cellToggles;
 		for (const [id, enabled] of Object.entries(resolved ?? {})) {
 			if (enabled) base.add(id);
 			else base.delete(id);
@@ -2803,7 +2896,7 @@ import {
 		if (nestedAct && activeTab === 'files') {
 			const effectiveOptions = effectiveEngineOptionsFor(activeTab);
 			const parentsFirst =
-				effectiveOptions.parentsFirst ?? (sortState.parentsFirst ?? true);
+				effectiveOptions.parentsFirst ?? sortState.parentsFirst ?? true;
 			engineChildren.push(
 				nativeMenuItem('view_menu.engines.parents_first', {
 					title: translate('sort.parents_first'),
@@ -2832,9 +2925,7 @@ import {
 						};
 						const nextSort = {
 							...currentSort,
-							...(target === 'all'
-								? { parentsFirst: !parentsFirst }
-								: {}),
+							...(target === 'all' ? { parentsFirst: !parentsFirst } : {}),
 							scopeState,
 						};
 						handleSortChange(nextSort);
@@ -2874,9 +2965,7 @@ import {
 							};
 							const nextSort = {
 								...currentSort,
-								...(target === 'all'
-									? { fixedFolders: !fixedFolders }
-									: {}),
+								...(target === 'all' ? { fixedFolders: !fixedFolders } : {}),
 								scopeState,
 							};
 							handleSortChange(nextSort);
@@ -2956,11 +3045,16 @@ import {
 			);
 			menu.addItem((item) => {
 				item
-					.setTitle(`${translate('settings.task_cell_display_mode')}: ${translate(`settings.task_cell_display_mode.${current}`)}`)
+					.setTitle(
+						`${translate('settings.task_cell_display_mode')}: ${translate(`settings.task_cell_display_mode.${current}`)}`,
+					)
 					.setIcon('lucide-list-checks')
-					.onClick(() => commitConfig('files', {
-						taskCellDisplayMode: current === 'pending' ? 'done-total' : 'pending',
-					}));
+					.onClick(() =>
+						commitConfig('files', {
+							taskCellDisplayMode:
+								current === 'pending' ? 'done-total' : 'pending',
+						}),
+					);
 			});
 			menu.addSeparator();
 		}
@@ -3417,7 +3511,10 @@ import {
 			tab,
 			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
-		handleScopeChangeForTab(tab, setScopeTargetHidden(tab, current, key, hidden));
+		handleScopeChangeForTab(
+			tab,
+			setScopeTargetHidden(tab, current, key, hidden),
+		);
 	}
 
 	/**
@@ -3603,8 +3700,7 @@ import {
 
 	function stickyRowsEnabledFor(tab: FiltersTab): boolean {
 		return (
-			effectiveEngineOptionsFor(tab).stickyRows ??
-			configByTab[tab].stickyRows
+			effectiveEngineOptionsFor(tab).stickyRows ?? configByTab[tab].stickyRows
 		);
 	}
 
@@ -3615,9 +3711,7 @@ import {
 	}
 
 	function indentEnabledFor(tab: FiltersTab): boolean {
-		return (
-			effectiveEngineOptionsFor(tab).indent ?? configByTab[tab].indent
-		);
+		return effectiveEngineOptionsFor(tab).indent ?? configByTab[tab].indent;
 	}
 
 	function applyIndent(tab: FiltersTab, enabled: boolean) {
@@ -3916,17 +4010,17 @@ import {
 				);
 				continue;
 			}
-		if (entry.kind === 'new-group') {
-			groupChildren.push(
-				nativeMenuItem('sort_menu.groups.new', {
-					title: translate(entry.labelKey),
-					icon: entry.icon,
-					disabled: entry.disabled,
-					onClick: () => createGroupForPreset(activeTab),
-				}),
-			);
-			continue;
-		}
+			if (entry.kind === 'new-group') {
+				groupChildren.push(
+					nativeMenuItem('sort_menu.groups.new', {
+						title: translate(entry.labelKey),
+						icon: entry.icon,
+						disabled: entry.disabled,
+						onClick: () => createGroupForPreset(activeTab),
+					}),
+				);
+				continue;
+			}
 			groupChildren.push(
 				nativeMenuItem(
 					`sort_menu.groups.custom.${entry.id}`,
@@ -4316,7 +4410,9 @@ import {
 		const port = explorerPortForTab(tab);
 		const scope = selectionScopeFor(tab);
 		port?.setSelectionScope?.(scope);
-		port?.setCreateGroupHandler?.((snapshot) => createCustomGroup(tab, snapshot));
+		port?.setCreateGroupHandler?.((snapshot) =>
+			createCustomGroup(tab, snapshot),
+		);
 		port?.setDegroupSelectedHandler?.((snapshot, owner) =>
 			degroupSelected(tab, snapshot, owner),
 		);
@@ -4329,9 +4425,7 @@ import {
 		port?.setGroupHideHandler?.((groupId, hidden) =>
 			setGroupHidden(tab, groupId, hidden),
 		);
-		port?.setGroupDeleteHandler?.((groupId) =>
-			deleteCustomGroup(tab, groupId),
-		);
+		port?.setGroupDeleteHandler?.((groupId) => deleteCustomGroup(tab, groupId));
 		port?.setCounterRangesChangeHandler?.((ranges, target) =>
 			setCounterRangesFor(tab, ranges, target),
 		);
@@ -4674,9 +4768,7 @@ import {
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_note')}
-									title={toolbarNodeTitle(
-										translate('folder.ctx.new_note'),
-									)}
+									title={toolbarNodeTitle(translate('folder.ctx.new_note'))}
 									onclick={(event) =>
 										invokeSceneAction('create-file', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -4708,9 +4800,7 @@ import {
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_folder')}
-									title={toolbarNodeTitle(
-										translate('folder.ctx.new_folder'),
-									)}
+									title={toolbarNodeTitle(translate('folder.ctx.new_folder'))}
 									onclick={(event) =>
 										invokeSceneAction('create-folder', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -4751,7 +4841,10 @@ import {
 									title={toolbarNodeTitle(
 										command.available
 											? command.label
-											: translate('command.unavailable').replace('{id}', command.id),
+											: translate('command.unavailable').replace(
+													'{id}',
+													command.id,
+												),
 									)}
 									onclick={() => {
 										if (command.available) {
@@ -4806,20 +4899,20 @@ import {
 								use:icon={'lucide-tool-case'}
 							></div>
 						{/if}
-						{/if}
-						{#if panelWidgetDropMarker}
-							<div
-								class="vaultman-toolbar-drop-marker"
-								style:order={panelWidgetDropMarker.order}
-								data-direction={panelWidgetDropMarker.direction}
-								data-side={panelWidgetDropMarker.side}
-								data-placement={panelWidgetDrag?.dropPlacement}
-								data-slot-index={panelWidgetDropMarker.currentSlotIndex}
-								data-original-index={panelWidgetDropMarker.originalSlotIndex}
-								aria-hidden="true"
-							></div>
-						{/if}
-					</div>
+					{/if}
+					{#if panelWidgetDropMarker}
+						<div
+							class="vaultman-toolbar-drop-marker"
+							style:order={panelWidgetDropMarker.order}
+							data-direction={panelWidgetDropMarker.direction}
+							data-side={panelWidgetDropMarker.side}
+							data-placement={panelWidgetDrag?.dropPlacement}
+							data-slot-index={panelWidgetDropMarker.currentSlotIndex}
+							data-original-index={panelWidgetDropMarker.originalSlotIndex}
+							aria-hidden="true"
+						></div>
+					{/if}
+				</div>
 				<!-- U121-029: the expanded search field as a second row under the
 				     toolbar, whenever the action row cannot spare a usable width for
 				     it. A sibling of the action row rather than a wrapped flex item,

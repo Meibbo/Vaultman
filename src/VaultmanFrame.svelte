@@ -143,7 +143,9 @@
 		return panelWidgetHostRef?.setSceneEngine?.(surface, mode) ?? false;
 	}
 
-	export async function invokeToolbarSasiAction(actionId: string): Promise<boolean> {
+	export async function invokeToolbarSasiAction(
+		actionId: string,
+	): Promise<boolean> {
 		return panelWidgetHostRef?.invokeToolbarSasiAction?.(actionId) ?? false;
 	}
 
