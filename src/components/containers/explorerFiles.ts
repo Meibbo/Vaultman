@@ -2218,6 +2218,11 @@ export class FilesExplorerPanel extends Component {
 			this.interactionMode,
 			false,
 		);
+		if (action === 'input') {
+			this._editingId = file.path;
+			this._render();
+			return;
+		}
 		if (action === 'filter') {
 			const folderPath =
 				file.parent?.path === '/' ? '' : (file.parent?.path ?? '');
