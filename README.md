@@ -12,11 +12,16 @@ Each explorer shows its data in a node/cells based structure. Where you can choo
 
 You can navigate, apply filters to your files, tags, properties or content and select what you want to change, queue batch operations and then apply everything at once.
 
+### Statistics
+
+[What is this all about](https://forum.obsidian.md/t/the-vaultman-initiative-a-component-library-for-your-workspace/118253) || [Watch more detailed plugin info](https://www.moritzjung.dev/obsidian-stats/plugins/vaultman) || [Search for similar plugins](https://plugins.semiautonomous.org/plugin/vaultman)
+
+![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
+
 # Table of Contents
 
 - [1. Installation](#obsidian-community-plugins)
   - [1.1 Testing](#via-brat)
-  - [1.2 Statistics](#statistics)
 - [2. Features](#features)
   - [2.1 Providers](#providers)
   - [2.2 Explorers](#explorer-panels)
@@ -51,12 +56,6 @@ I'm also releasing experimental versions for those who want to check the project
 5. Enable **Vaultman** in Settings → Community Plugins.
 
 > Beta versions are more prone to bugs and performance issues, and can break your vault. Use them at your own risk, and always make backups before updating or using them.
-
-### Statistics
-
-[What is this all about](https://forum.obsidian.md/t/the-vaultman-initiative-a-component-library-for-your-workspace/118253) || [Watch more detailed plugin info](https://www.moritzjung.dev/obsidian-stats/plugins/vaultman) || [Search for similar plugins](https://plugins.semiautonomous.org/plugin/vaultman)
-
-![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
 
 ## Features
 
