@@ -86,6 +86,8 @@ export interface MenuCtx {
 	makeACopy?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
 	/** FilesScene only: preview and commit one physical folder conversion. */
 	convertGroupToFolder?: () => Promise<void> | void;
+	/** Opens group creation modal prefilled to create a subgroup under this group. */
+	createSubgroup?: (parentLabel: string) => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
 }
 
 export interface ActionDef {

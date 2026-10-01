@@ -1415,6 +1415,7 @@ export const en: Record<string, string> = {
 	'group.folder.done': 'Created folder {folder}',
 	'group.copy.failed': 'Could not copy the group id.',
 	'group.row.rename': 'Rename group',
+	'group.subgroup.new': 'Create subgroup',
 	'group.scope.update': 'Update group scope',
 	'group.counter.slice': 'Slice group range',
 	'group.icon.change': 'Change icon',

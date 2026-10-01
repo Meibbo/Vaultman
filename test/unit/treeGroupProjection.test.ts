@@ -610,4 +610,82 @@ describe('resolveCustomGroups', () => {
 			scope: 'all',
 		});
 	});
+
+	describe('Subgrupos jerárquicos con notación de barra (Scheme/Time)', () => {
+		it('anida subgrupos bajo la cabecera padre y ajusta su profundidad', () => {
+			const fileNodes: TreeNode<unknown>[] = [
+				{ id: 'f1', label: 'note1.md', depth: 0 },
+				{ id: 'f2', label: 'note2.md', depth: 0 },
+			];
+			const out = projectGroupedTree({
+				nodes: fileNodes,
+				groups: [
+					{ id: 'g1', flavor: 'custom', label: 'Scheme', parentId: null, scope: 'all' },
+					{ id: 'g2', flavor: 'custom', label: 'Scheme/Time', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					g1: ['files:file:f1|note1.md'],
+					g2: ['files:file:f2|note2.md'],
+				},
+				providerId: 'files',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				urnOf: (n) => `files:file:${n.id}|${n.label}`,
+			});
+
+			const scheme = out.find((h) => h.id === 'g1');
+			expect(scheme).toBeDefined();
+			expect(scheme?.label).toBe('Scheme');
+			expect(scheme?.depth).toBe(0);
+
+			// scheme.children debe contener el subgrupo Time y el miembro directo f1
+			const schemeChildren = scheme?.children ?? [];
+			expect(schemeChildren).toHaveLength(2);
+
+			const timeSubgroup = schemeChildren.find((c) => c.label === 'Time');
+			expect(timeSubgroup).toBeDefined();
+			expect(timeSubgroup?.isGroupHeader).toBe(true);
+			expect(timeSubgroup?.depth).toBe(1);
+
+			// El miembro de Time (f2) debe tener depth 2
+			expect(timeSubgroup?.children).toHaveLength(1);
+			expect(timeSubgroup?.children?.[0]?.label).toBe('note2.md');
+			expect(timeSubgroup?.children?.[0]?.depth).toBe(2);
+
+			// El miembro directo de Scheme (f1) debe tener depth 1
+			const directMember = schemeChildren.find((c) => c.label === 'note1.md');
+			expect(directMember).toBeDefined();
+			expect(directMember?.depth).toBe(1);
+		});
+
+		it('crea cabecera padre sintética si solo existe el subgrupo Scheme/Time', () => {
+			const fileNodes: TreeNode<unknown>[] = [
+				{ id: 'f2', label: 'note2.md', depth: 0 },
+			];
+			const out = projectGroupedTree({
+				nodes: fileNodes,
+				groups: [
+					{ id: 'g2', flavor: 'custom', label: 'Scheme/Time', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					g2: ['files:file:f2|note2.md'],
+				},
+				providerId: 'files',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				urnOf: (n) => `files:file:${n.id}|${n.label}`,
+			});
+
+			const scheme = out.find((h) => h.label === 'Scheme');
+			expect(scheme).toBeDefined();
+			expect(scheme?.depth).toBe(0);
+
+			const timeSubgroup = scheme?.children?.[0];
+			expect(timeSubgroup?.label).toBe('Time');
+			expect(timeSubgroup?.id).toBe('g2');
+			expect(timeSubgroup?.depth).toBe(1);
+			expect(timeSubgroup?.children?.[0]?.depth).toBe(2);
+		});
+	});
 });
+

@@ -144,6 +144,27 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		},
 	});
 
+	// U130: Crear subgrupo para node_group
+	svc.registerAction({
+		id: 'group.create-subgroup',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.subgroup.new') || 'Create subgroup',
+		icon: 'lucide-folder-plus',
+		when: (ctx: MenuCtx) =>
+			(isCustom(ctx) || ctx.groupOwner === 'custom' || typeof ctx.createSubgroup === 'function') &&
+			Boolean(ctx.node?.label || ctx.groupId),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			const label = ctx.node?.label ?? ctx.groupId ?? '';
+			if (typeof ctx.createSubgroup === 'function') {
+				await ctx.createSubgroup(label);
+			} else if (typeof ctx.createGroupWithSelected === 'function') {
+				await ctx.createGroupWithSelected();
+			}
+		},
+	});
+
 	// U130-GGC-016: rename_custom_group (custom o note group)
 	svc.registerAction({
 		id: 'group.rename',

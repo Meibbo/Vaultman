@@ -408,6 +408,16 @@ function reparent<TMeta>(
 	});
 }
 
+function shiftDepth<TMeta>(nodes: readonly TreeNode<TMeta>[], by: number): void {
+	if (by === 0) return;
+	for (const node of nodes) {
+		node.depth += by;
+		if (node.children?.length) {
+			shiftDepth(node.children, by);
+		}
+	}
+}
+
 const NO_SUFFIX: ReadonlySet<string> = new Set<string>();
 
 /**
@@ -645,28 +655,105 @@ export function projectGroupedTree<TMeta>(
 		]);
 		const claimed = new Set<string>();
 		const out: TreeNode<TMeta>[] = [];
-		ownGroups.forEach((group, index) => {
-			const members = membersPerGroup[index] ?? [];
-			for (const member of members) claimed.add(member.entityId ?? member.id);
-			// Poda normal del pipeline, no inmunidad.
-			if (members.length === 0 && filtered) return;
-			const reparented = reparent(members, group.id, 1, suffixed, used);
-			out.push(
-				finishHeader(
-					headerNode(
-						group.id,
-						group.label,
+		const hasSlashHierarchy = ownGroups.some((g) => g.label.includes('/'));
+		if (!hasSlashHierarchy) {
+			ownGroups.forEach((group, index) => {
+				const members = membersPerGroup[index] ?? [];
+				for (const member of members) claimed.add(member.entityId ?? member.id);
+				// Poda normal del pipeline, no inmunidad.
+				if (members.length === 0 && filtered) return;
+				const reparented = reparent(members, group.id, 1, suffixed, used);
+				out.push(
+					finishHeader(
+						headerNode(
+							group.id,
+							group.label,
+							reparented,
+							ownMeta,
+							groupTotals?.get(group.id),
+							headerCoreCls,
+						),
 						reparented,
-						ownMeta,
-						groupTotals?.get(group.id),
-						headerCoreCls,
+						expandedIds,
+						decorateHeader,
 					),
-					reparented,
-					expandedIds,
-					decorateHeader,
-				),
-			);
-		});
+				);
+			});
+		} else {
+			interface GroupEntry {
+				group?: NodeGroupDef;
+				reparentedMembers: TreeNode<TMeta>[];
+				children: Map<string, GroupEntry>;
+			}
+			const rootEntries = new Map<string, GroupEntry>();
+
+			const getOrCreateEntry = (segments: string[]): GroupEntry => {
+				let currentMap = rootEntries;
+				let currentEntry: GroupEntry | null = null;
+				for (const segment of segments) {
+					let entry = currentMap.get(segment);
+					if (!entry) {
+						entry = {
+							reparentedMembers: [],
+							children: new Map(),
+						};
+						currentMap.set(segment, entry);
+					}
+					currentEntry = entry;
+					currentMap = entry.children;
+				}
+				return currentEntry!;
+			};
+
+			ownGroups.forEach((group, index) => {
+				const members = membersPerGroup[index] ?? [];
+				for (const member of members) claimed.add(member.entityId ?? member.id);
+				if (members.length === 0 && filtered) return;
+				const reparented = reparent(members, group.id, 1, suffixed, used);
+				const segments = group.label.split('/').map((s) => s.trim()).filter(Boolean);
+				const entry = getOrCreateEntry(segments.length > 0 ? segments : [group.label]);
+				entry.group = group;
+				entry.reparentedMembers = reparented;
+			});
+
+			const resolveEntry = (
+				segment: string,
+				entry: GroupEntry,
+				depth: number,
+				pathPrefix: string,
+			): TreeNode<TMeta> | null => {
+				const currentPath = pathPrefix ? `${pathPrefix}/${segment}` : segment;
+				const subHeaders: TreeNode<TMeta>[] = [];
+				for (const [childSegment, childEntry] of entry.children) {
+					const resolvedChild = resolveEntry(childSegment, childEntry, depth + 1, currentPath);
+					if (resolvedChild) subHeaders.push(resolvedChild);
+				}
+				if (filtered && subHeaders.length === 0 && entry.reparentedMembers.length === 0) {
+					return null;
+				}
+				const groupId = entry.group?.id ?? claimRowId(`vaultman.group:${currentPath}`, used);
+				const directMembers = entry.reparentedMembers;
+				if (depth > 0) {
+					shiftDepth(directMembers, depth);
+				}
+				const allChildren = [...subHeaders, ...directMembers];
+				const header = headerNode(
+					groupId,
+					segment,
+					allChildren,
+					ownMeta,
+					entry.group ? groupTotals?.get(entry.group.id) : undefined,
+					headerCoreCls,
+				);
+				header.depth = depth;
+				return finishHeader(header, allChildren, expandedIds, decorateHeader);
+			};
+
+			for (const [segment, entry] of rootEntries) {
+				const header = resolveEntry(segment, entry, 0, '');
+				if (header) out.push(header);
+			}
+		}
 		// `no group` es el COMPLEMENTO, no un grupo mas: no se borra ni se
 		// renombra, y por eso no lleva id de grupo custom.
 		const orphans = nodes.filter(

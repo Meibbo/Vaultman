@@ -34,6 +34,7 @@ export interface GroupSelectionSnapshot {
 
 export type CreateGroupHandler = (
 	snapshot: GroupSelectionSnapshot,
+	initialName?: string,
 ) => Promise<GroupMutationResult>;
 
 export type DegroupSelectedHandler = (

@@ -1074,6 +1074,7 @@
 	async function createCustomGroup(
 		tab: FiltersTab,
 		snapshot?: GroupSelectionSnapshot,
+		initialName?: string,
 	): Promise<GroupMutationResult> {
 		if (!app) return { status: 'rejected', reason: 'group.selected.no_app' };
 		if (snapshot?.rowIds.includes(ADD_PROPERTY_ROW_ID))
@@ -1106,6 +1107,7 @@
 					? translate('group.suggester.title')
 					: translate('group.new'),
 			placeholder: translate('group.suggester.placeholder'),
+			initialValue: initialName ?? '',
 			customGroups: customs.map((group) => ({
 				id: group.id,
 				label: group.label,
@@ -4602,8 +4604,8 @@
 		const port = explorerPortForTab(tab);
 		const scope = selectionScopeFor(tab);
 		port?.setSelectionScope?.(scope);
-		port?.setCreateGroupHandler?.((snapshot) =>
-			createCustomGroup(tab, snapshot),
+		port?.setCreateGroupHandler?.((snapshot, initialName) =>
+			createCustomGroup(tab, snapshot, initialName),
 		);
 		port?.setDegroupSelectedHandler?.((snapshot, owner) =>
 			degroupSelected(tab, snapshot, owner),

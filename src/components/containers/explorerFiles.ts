@@ -3662,6 +3662,21 @@ export class FilesExplorerPanel extends Component {
 											this._makeACopyOfGroup(groupId);
 										}
 									: undefined,
+							createSubgroup: (parentLabel: string) => {
+								if (!this.createGroupHandler) return;
+								const snapshot = snapshotFromProjectedTree({
+									tree: projectedTree,
+									selectedIds: this.selectedFilePaths,
+									urnOf: (node) => this._membershipUrnOf(node),
+									providerId: 'files',
+									scene: 'files',
+									instanceId: this.selectionInstanceId,
+									revision: this.selectionRevision,
+									selectionKey: this._selectionKey(),
+									customGroupIds: this._groupIds,
+								});
+								return this.createGroupHandler(snapshot, `${parentLabel}/`);
+							},
 							renameGroup:
 								groupOwner === 'custom' || groupOwner === 'note'
 									? (targetId: string) => this._renameCustomGroup(targetId)

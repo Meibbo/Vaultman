@@ -3474,6 +3474,21 @@ export class PropsExplorerPanel extends Component {
 										this._makeACopyOfGroup(groupId);
 									}
 								: undefined,
+						createSubgroup: (parentLabel: string) => {
+							if (!this.createGroupHandler) return;
+							const snapshot = snapshotFromProjectedTree({
+								tree: projected,
+								selectedIds: this.selectedNodeIds,
+								urnOf: (node) => this._membershipUrnOf(node),
+								providerId: 'props',
+								scene: 'props',
+								instanceId: this.selectionInstanceId,
+								revision: this.selectionRevision,
+								selectionKey: this._selectionKey(),
+								customGroupIds: this._groupIds,
+							});
+							return this.createGroupHandler(snapshot, `${parentLabel}/`);
+						},
 						renameGroup:
 							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
 								? (targetId: string) => this._renameCustomGroup(targetId)

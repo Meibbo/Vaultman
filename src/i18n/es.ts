@@ -1311,6 +1311,7 @@ export const es: Record<string, string> = {
 	'group.folder.done': 'Carpeta creada: {folder}',
 	'group.copy.failed': 'No se pudo copiar el id del grupo.',
 	'group.row.rename': 'Renombrar grupo',
+	'group.subgroup.new': 'Crear subgrupo',
 	'group.scope.update': 'Actualizar ámbito de grupo',
 	'group.counter.slice': 'Partir rango de grupo',
 	'group.icon.change': 'Cambiar icono',
