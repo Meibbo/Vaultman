@@ -656,4 +656,60 @@ describe('U130-GGC cumulative scope sets', () => {
 		// p2 was NOT forced to use 0..50 and 51..200; it still has its 1000..10000 domain
 		expect(p2DynamicHeaders[0]?.counterDomain).toEqual({ min: 1000, max: 10000 });
 	});
+
+	it('propaga scopeIndent y cellToggles a los hijos del parent configurado', () => {
+		const tree: TreeNode<unknown>[] = [
+			{
+				id: '+',
+				label: '+',
+				depth: 0,
+				children: [
+					{ id: '+/file1.md', label: 'file1.md', depth: 1 },
+					{ id: '+/file2.md', label: 'file2.md', depth: 1 },
+				],
+			},
+			{
+				id: 'other',
+				label: 'other',
+				depth: 0,
+				children: [
+					{ id: 'other/file3.md', label: 'file3.md', depth: 1 },
+				],
+			},
+		];
+
+		const input: GroupProjectionInput<unknown> = {
+			nodes: tree,
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: 'Sin grupo',
+			filtered: false,
+		};
+
+		const projected = projectGroupedTreeScopeState(input, {
+			cursor: 'parent:+',
+			sets: {
+				all: { indent: true },
+				'parent:+': {
+					indent: false,
+					cellToggles: { checkbox: false, format: false },
+				},
+			},
+		});
+
+		const plusNode = projected.find((n) => n.id === '+');
+		expect(plusNode).toBeDefined();
+		expect(plusNode?.scopeIndent).toBe(true);
+
+		const plusChildren = plusNode?.children ?? [];
+		expect(plusChildren).toHaveLength(2);
+		expect(plusChildren[0]?.scopeIndent).toBe(false);
+		expect(plusChildren[1]?.scopeIndent).toBe(false);
+		expect(plusChildren[0]?.scopeCellToggles).toEqual({ checkbox: false, format: false });
+
+		const otherNode = projected.find((n) => n.id === 'other');
+		expect(otherNode?.children?.[0]?.scopeIndent).toBe(true);
+	});
 });
+

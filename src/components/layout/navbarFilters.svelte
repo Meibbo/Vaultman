@@ -2791,7 +2791,12 @@
 				};
 				scopeState.cursor = target;
 				const next = { ...current, scopeState };
-				commitConfig(activeTab, { sortState: next });
+				if (target === 'all') {
+					commitConfig(activeTab, { visibleCells: cells, sortState: next });
+					applyVisibleCells(activeTab, cells);
+				} else {
+					commitConfig(activeTab, { sortState: next });
+				}
 				applySortState(activeTab, next);
 			},
 		);
@@ -3958,11 +3963,12 @@
 		const nextSort = { ...currentSort, scopeState };
 		if (target === 'all') {
 			commitConfig(tab, { indent: next, sortState: nextSort });
+			applySortState(tab, nextSort);
+			applyIndent(tab, next);
 		} else {
 			commitConfig(tab, { sortState: nextSort });
+			applySortState(tab, nextSort);
 		}
-		applySortState(tab, nextSort);
-		applyIndent(tab, next);
 	}
 
 	function toggleStickyRowsFor(tab: FiltersTab) {

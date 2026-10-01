@@ -994,16 +994,19 @@ export function projectGroupedTreeScopeState<TMeta>(
 		const cellToggles = resolved.cellToggles
 			? { ...resolved.cellToggles }
 			: undefined;
+		const scopeIndent = resolved.indent;
 		const nested: TreeNode<TMeta>[] = nodes.map((node) =>
 			node.children?.length
 				? {
 						...node,
 						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+						...(scopeIndent !== undefined ? { scopeIndent } : {}),
 						children: [...visit(node.children, node.id, level + 1)],
 					}
 				: {
 						...node,
 						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+						...(scopeIndent !== undefined ? { scopeIndent } : {}),
 					},
 		);
 		const preset = resolved.groupPreset;

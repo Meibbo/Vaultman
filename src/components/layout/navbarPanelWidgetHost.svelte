@@ -11,12 +11,14 @@
 		sceneConfigPort,
 		visible = true,
 		peeking = false,
+		onPointerEnter,
 		onPointerLeave,
 	}: {
 		providerState: NavbarPanelWidgetState | null;
 		sceneConfigPort: SceneConfigPort;
 		visible?: boolean;
 		peeking?: boolean;
+		onPointerEnter?: () => void;
 		onPointerLeave?: () => void;
 	} = $props();
 
@@ -54,6 +56,7 @@
 	class:is-hidden-mode={!visible}
 	class:is-peeking={peeking}
 	data-panel-widget-host-id={PANEL_WIDGET_HOST_ID}
+	onpointerenter={onPointerEnter}
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}

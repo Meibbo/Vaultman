@@ -93,6 +93,7 @@ export class StatisticsCacheService extends Component {
 	private storageInitialized = false;
 	private storageInitPromise: Promise<void> | null = null;
 	private readonly fileStatsRefreshTimers = new Map<string, number>();
+	private readonly liveMetadataTimers = new Map<string, number>();
 	private countFrontmatterWords: boolean;
 
 	constructor(app: App, options: StatisticsCacheServiceOptions = {}) {
@@ -109,7 +110,7 @@ export class StatisticsCacheService extends Component {
 		void this.initializeStorage();
 		this.registerEvent(
 			this.app.metadataCache.on('changed', (file) => {
-				if (file instanceof TFile) this.invalidateFile(file);
+				if (file instanceof TFile) this.refreshFileMetadataLive(file);
 			}),
 		);
 		this.registerEvent(
@@ -145,6 +146,8 @@ export class StatisticsCacheService extends Component {
 			window.clearTimeout(timer);
 		}
 		this.fileStatsRefreshTimers.clear();
+		for (const t of this.liveMetadataTimers.values()) window.clearTimeout(t);
+		this.liveMetadataTimers.clear();
 		this.storage?.close?.();
 	}
 
@@ -173,6 +176,39 @@ export class StatisticsCacheService extends Component {
 				void this.refreshFileStats(file.path);
 			}, 120),
 		);
+	}
+
+	private refreshFileMetadataLive(file: TFile): void {
+		if (file.extension !== 'md') return;
+		const cached = this.fileStatsCache.get(file.path);
+		if (cached) {
+			const meta = this.collectFileMetadata(file);
+			cached.tags = [...meta.tags];
+			cached.props = [...meta.props];
+			cached.values = [...meta.values];
+			cached.links = meta.links;
+			const stale = this.staleFileStatsCache.get(file.path);
+			if (stale) {
+				stale.tags = [...meta.tags];
+				stale.props = [...meta.props];
+				stale.values = [...meta.values];
+				stale.links = meta.links;
+			}
+			const existing = this.liveMetadataTimers.get(file.path);
+			if (existing !== undefined) window.clearTimeout(existing);
+			this.liveMetadataTimers.set(
+				file.path,
+				window.setTimeout(() => {
+					this.liveMetadataTimers.delete(file.path);
+					this.invalidateAggregates({
+						kind: 'file-stats-refreshed',
+						paths: [file.path],
+					});
+				}, 120),
+			);
+			return;
+		}
+		this.invalidateFile(file);
 	}
 
 	private async refreshFileStats(path: string): Promise<void> {

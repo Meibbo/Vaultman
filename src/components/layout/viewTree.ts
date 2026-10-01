@@ -1636,7 +1636,8 @@ export class UnifiedTreeView {
 		// doesn't — collapses to the flat 4px gutter. A p-node keeps the real
 		// formula unconditionally, at any depth, so its caret still marks the
 		// level it actually sits at.
-		if (opts.indent === false && !showCaret) {
+		const effectiveIndent = node.scopeIndent ?? opts.indent;
+		if (effectiveIndent === false && !showCaret) {
 			row.setCssProps({
 				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
 				'--vaultman-tree-indent-unit': '0px',
@@ -1796,6 +1797,7 @@ export class UnifiedTreeView {
 		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
 		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
 			if (!opts.onSelectionToggle || !isNodeSelectable) return;
+			if (visibleCells && !visibleCells.has('checkbox')) return;
 			const checkbox = row.createEl('input', {
 				type: 'checkbox',
 				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,

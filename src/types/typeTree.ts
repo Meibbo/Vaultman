@@ -112,6 +112,8 @@ export interface TreeNode<TMeta = unknown> {
 	groupScopeTarget?: ScopeTarget;
 	/** Resolved per-scope cell overrides carried with this projected row. */
 	scopeCellToggles?: Partial<Record<string, boolean>>;
+	/** Resolved per-scope indent override carried with this projected row. */
+	scopeIndent?: boolean;
 	/**
 	 * B-groupbody: marca puesta SOLO por `headerNode` de
 	 * `logicTreeGroupProjection`. El motor (`UnifiedTreeView`) reconoce por

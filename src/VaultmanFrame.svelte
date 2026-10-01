@@ -483,6 +483,23 @@
 	});
 	let activePanelWidgetEnvelope = $state<ScenePanelWidgetEnvelope | null>(null);
 	let panelWidgetPeek = $state(false);
+	let peekLeaveTimer: number | null = null;
+
+	function onToolbarPointerEnter() {
+		if (peekLeaveTimer !== null) {
+			window.clearTimeout(peekLeaveTimer);
+			peekLeaveTimer = null;
+		}
+		panelWidgetPeek = true;
+	}
+
+	function onToolbarPointerLeave() {
+		if (peekLeaveTimer !== null) window.clearTimeout(peekLeaveTimer);
+		peekLeaveTimer = window.setTimeout(() => {
+			peekLeaveTimer = null;
+			panelWidgetPeek = false;
+		}, 350);
+	}
 
 	const activePanelWidgetState = $derived(
 		activePanelWidgetEnvelope?.projection ?? null,
@@ -1582,13 +1599,14 @@
 		{sceneConfigPort}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
-		onPointerLeave={() => (panelWidgetPeek = false)}
+		onPointerEnter={onToolbarPointerEnter}
+		onPointerLeave={onToolbarPointerLeave}
 	/>
 	{#if !panelWidgetVisible}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="vaultman-toolbar-peek"
-			onpointerenter={() => (panelWidgetPeek = true)}
+			onpointerenter={onToolbarPointerEnter}
 		></div>
 	{/if}
 	<div
