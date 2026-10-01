@@ -160,6 +160,7 @@ import {
 	activeScopeSort,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	parseScopeLevel,
 	siblingScopeSort,
 	replaceActiveScopeSort,
 	sameExplorerSortState,
@@ -1229,7 +1230,10 @@ export class FilesExplorerPanel extends Component {
 		const candidates: ScopeTarget[] = [target];
 		if (target.startsWith('parent:')) {
 			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
-			if (parentLevel !== null) candidates.push(`level:${parentLevel + 1}`);
+			if (parentLevel !== null) {
+				const nextLevel = parseScopeLevel(parentLevel).base + 1;
+				candidates.push(`level:${nextLevel}`);
+			}
 		}
 		if (target !== 'all') candidates.push('all');
 		const projected = this.projectedNodes(this._lastRenderTree);
@@ -2211,7 +2215,7 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
-	scopeLevelForNode(id: string): number | null {
+	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findNodeLevel(this._scopeTree(), id);
 	}
@@ -5321,13 +5325,18 @@ export class FilesExplorerPanel extends Component {
 			this.visibleCells.has('file-count') ||
 			this.groupPreset.kind === 'childs' ||
 			scopedPresets.includes('childs');
-		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
+		const isGroupingActive =
+			this.groupPreset.kind !== 'none' ||
+			scopedPresets.some((p) => p && p !== 'none');
+		if (this.plugin.settings.folderAggregateCells !== true && !files && !isGroupingActive) return null;
 		const flags = {
 			files,
 			count:
 				this.visibleCells.has('count') ||
 				this.groupPreset.kind === 'props' ||
-				scopedPresets.includes('props'),
+				this.groupPreset.kind === 'count' ||
+				scopedPresets.includes('props') ||
+				scopedPresets.includes('count'),
 			words:
 				this.visibleCells.has('words') ||
 				this.groupPreset.kind === 'words' ||

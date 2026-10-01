@@ -89,6 +89,7 @@ export type SortScopeKey =
 	| 'all'
 	| 'drill'
 	| `level:${number}`
+	| `level:${number}+${number}`
 	| `parent:${string}`;
 
 /**
@@ -96,7 +97,11 @@ export type SortScopeKey =
  * part of this type: it was the old, cursor-shaped spelling for a picked
  * parent and is accepted only by the sort-state migration layer.
  */
-export type ScopeTarget = 'all' | `level:${number}` | `parent:${string}`;
+export type ScopeTarget =
+	| 'all'
+	| `level:${number}`
+	| `level:${number}+${number}`
+	| `parent:${string}`;
 
 /** The independent configuration carried by one scope target. */
 export interface ScopeSet {

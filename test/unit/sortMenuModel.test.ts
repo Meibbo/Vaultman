@@ -63,40 +63,42 @@ describe('BT5-007 shared sort menu model', () => {
 			parentLevel: (id: string) => (id === 'folder:Projects' ? 1 : null),
 			sortLabel: (sort: { sortBy: string; direction: string }) =>
 				`${sort.sortBy} ${sort.direction}`,
-			levelLabel: (level: number) => `Level ${level}`,
+			levelLabel: (level: number | string) => `Level ${level}`,
 			allLevelsLabel: () => 'All levels',
 			canPickParent: true,
 			canPickLevel: true,
 		};
-		// U130-GGC-025: fresh hierarchical scenes open on `level:1`; the fixed
-		// order is picks, divider, All, L1, rest — no `all` pick on top.
 		const fresh = scopeMenuModel('files', stateFor('files'), scene);
 		expect(fresh?.titleKind).toBe('level');
 		expect(fresh?.titleArg).toBe('Level 1');
 		expect(fresh?.items.map((item) => item.id)).toEqual([
+			'all',
 			'drill',
 			'level',
-			'scope-rows-separator',
-			'all',
-			'level:1',
 		]);
-		expect(fresh?.items.find((item) => item.id === 'level:1')).toMatchObject({
-			checked: true,
+		expect(fresh?.items.find((item) => item.id === 'all')).toMatchObject({
+			kind: 'pick',
+			checked: false,
 		});
 		const constrained = scopeMenuModel('files', stateFor('files'), {
 			...scene,
 			canPickParent: false,
 			canPickLevel: false,
 		});
-		// Gated picks hide without moving the fixed entries or orphaning the divider.
-		expect(constrained?.items.map((item) => item.id)).toEqual(['all', 'level:1']);
+		expect(constrained?.items.map((item) => item.id)).toEqual(['all']);
 
 		// Without allLevelsLabel hook, the label defaults to 'All'
-		const defaultAll = scopeMenuModel('files', stateFor('files'), {
-			...scene,
-			allLevelsLabel: undefined,
-		});
-		expect(defaultAll?.items.find((item) => item.id === 'all')).toMatchObject({
+		const defaultAll = scopeMenuModel(
+			'files',
+			stateFor('files', {
+				sorts: { all: { sortBy: 'name', direction: 'asc' } },
+			}),
+			{
+				...scene,
+				allLevelsLabel: undefined,
+			},
+		);
+		expect(defaultAll?.items.find((item) => item.kind === 'scope-row' && item.id === 'all')).toMatchObject({
 			label: 'All',
 		});
 
@@ -116,11 +118,11 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(picked?.titleKind).toBe('parent');
 		expect(picked?.titleArg).toBe('Projects');
 		expect(picked?.items.map((item) => item.id)).toEqual([
+			'all',
 			'drill',
 			'level',
 			'scope-rows-separator',
 			'all',
-			'level:1',
 			'parent:folder:Projects',
 		]);
 		expect(picked?.items.at(-1)).toMatchObject({

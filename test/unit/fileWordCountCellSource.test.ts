@@ -33,6 +33,7 @@ describe('Files word count cell source guards', () => {
 			'format',
 			'name',
 			'ext',
+			'filters',
 			'nested',
 		]);
 	});

@@ -1488,7 +1488,7 @@ export class PluginsExplorerPanel
 		return node?.label ?? null;
 	}
 
-	scopeLevelForNode(_id: string): number | null {
+	scopeLevelForNode(_id: string): number | string | null {
 		return null;
 	}
 

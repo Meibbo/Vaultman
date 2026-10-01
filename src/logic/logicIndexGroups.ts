@@ -139,23 +139,42 @@ export function hasScopeParentNodes<T extends IndexTreeNode>(
 
 /**
  * Spec 08 §3.1 item 3 ("Select a level"): the 1-based level of a node in the
- * rendered tree — root rows are level 1 — or null when it is not there.
- * U130-GGC-028: root group headers projected above Level 1 are Level 0;
- * nested group headers preserve the normal structural level of their position.
+ * rendered tree — root natural rows are Level 1 — or null when it is not there.
+ * Group headers represent virtual groupings: Level 0 is the explorer root `/`.
+ * Root group headers are Level 0+1 (subgroups 0+2); nested groups inside a
+ * parent at Level N are Level N+1 (subgroups N+2), while natural children are
+ * Level N+1.
  */
 export function findNodeLevel<T extends IndexTreeNode>(
 	roots: readonly T[] | null | undefined,
 	id: string,
-	level = 1,
-): number | null {
+	parentPNodeLevel = 0,
+	groupDepth = 0,
+): number | string | null {
 	for (const node of roots ?? []) {
+		const isGroup = Boolean(('isGroupHeader' in node && node.isGroupHeader));
+		const currentLevel: number | string = isGroup
+			? `${parentPNodeLevel}+${groupDepth + 1}`
+			: parentPNodeLevel + 1;
 		if (node.id === id) {
-			return Boolean(('isGroupHeader' in node && node.isGroupHeader)) && level === 1 ? 0 : level;
+			return currentLevel;
 		}
-		const hit = node.children
-			? findNodeLevel(node.children as T[], id, level + 1)
-			: null;
-		if (hit !== null) return hit;
+		if (node.children?.length) {
+			const hit = isGroup
+				? findNodeLevel(
+						node.children as T[],
+						id,
+						parentPNodeLevel,
+						groupDepth + 1,
+				  )
+				: findNodeLevel(
+						node.children as T[],
+						id,
+						typeof currentLevel === 'number' ? currentLevel : parentPNodeLevel + 1,
+						0,
+				  );
+			if (hit !== null) return hit;
+		}
 	}
 	return null;
 }

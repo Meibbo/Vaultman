@@ -2,7 +2,9 @@ import type {
 	ExplorerSortDirection,
 	ExplorerSortState,
 	ExplorerTabId,
+	ScopeSet,
 	ScopeSort,
+	ScopeTarget,
 	SortScopeKey,
 } from '../types/typeUI';
 import {
@@ -12,6 +14,7 @@ import {
 } from '../types/typeGroupPreset';
 import {
 	activeScopeSort,
+	compareScopeLevels,
 	isScopeAllowed,
 	isSortOptionVisible,
 	levelOfScope,
@@ -231,7 +234,7 @@ interface SortScopeMenuOption {
  * ordena mal y sin que nada en la interfaz lo diga).
  */
 const SCOPE_META: Record<'all' | 'drill', { icon: string; labelKey: string }> = {
-	all: { icon: 'lucide-layers', labelKey: 'sort.level.all' },
+	all: { icon: 'lucide-layers', labelKey: 'sort.level.select_all' },
 	// Spec 08 §5: renamed to "Select a parent" in the UI; the symbol
 	// (`SortScopeKey = 'drill'`) and this labelKey are NOT reimplemented,
 	// only the icon and the translated string change.
@@ -306,11 +309,11 @@ export interface ScopeMenuScene {
 	/** Label of a parent node, null when the node is gone. */
 	parentLabel: (id: string) => string | null;
 	/** 1-based level of a parent node, null when unknown. */
-	parentLevel: (id: string) => number | null;
+	parentLevel: (id: string) => number | string | null;
 	/** `name ↑` for a sort. */
 	sortLabel: (sort: ScopeSort) => string;
 	/** `Level N` for a level. */
-	levelLabel: (level: number) => string;
+	levelLabel: (level: number | string) => string;
 	/** `All levels` label; defaults to English when the caller omits it. */
 	allLevelsLabel?: () => string;
 	/** Runtime availability of the two row-picking entries. */
@@ -336,16 +339,13 @@ export function scopeMenuModel(
 				? scene.levelLabel(activeLevel)
 				: '';
 
-	// U130-GGC-025: fixed visual order — `Select a parent`, `Select a level`,
-	// divider, fixed `All levels` with its config, fixed `Level 1` with its
-	// own, then the remaining configured targets (parents before other
-	// levels). The visual order never changes field resolution, which stays
-	// `parent > level > all > defaults` in `resolveScopeSet`/`siblingScopeSort`.
-	// Picks hide per the projection gate, but All/L1 stay visitable; no
-	// orphan divider is rendered when both picks are hidden.
 	const items: ScopeMenuItem[] = [];
-	// The Scope submenu itself remains present for every hierarchical tab; the
-	// scene only withdraws picks that cannot describe the current projection.
+	items.push({
+		kind: 'pick',
+		id: 'all',
+		...SCOPE_META.all,
+		checked: active === 'all',
+	});
 	if (scene.canPickParent) {
 		items.push({
 			kind: 'pick',
@@ -362,53 +362,51 @@ export function scopeMenuModel(
 			checked: activeLevel !== null,
 		});
 	}
-	if (items.length > 0) {
-		items.push({ kind: 'separator', id: 'scope-rows-separator' });
-	}
 
 	const hidden = new Set(state.hiddenScopes ?? []);
 	const sortLabelFor = (scope: SortScopeKey): string =>
 		scene.sortLabel(activeScopeSort(tab, state, scope));
 
-	// Fixed entries: always visitable even when their set carries no
-	// overrides yet, so a fresh scene can land on either cursor.
-	const fixedAll: ScopeSortRowItem = {
-		kind: 'scope-row',
-		id: 'all',
-		icon: SCOPE_META.all.icon,
-		label: scene.allLevelsLabel?.() ?? 'All',
-		sortLabel: sortLabelFor('all'),
-		checked: active === 'all',
-		hidden: hidden.has('all'),
+	const hasConfig = (key: SortScopeKey): boolean => {
+		if (hidden.has(key)) return true;
+		if (state.sorts[key] !== undefined) return true;
+		const set = (state.scopeState?.sets as Record<string, ScopeSet | undefined> | undefined)?.[key as ScopeTarget];
+		if (!set) return false;
+		if (set.hidden) return true;
+		if (set.sort !== undefined) return true;
+		if (set.groupPreset !== undefined) return true;
+		if (set.cellToggles !== undefined && Object.keys(set.cellToggles).length > 0) return true;
+		if (set.nodeTypeFilters !== undefined && set.nodeTypeFilters.length > 0) return true;
+		if (set.filterPolicy !== undefined) return true;
+		if (set.viewMode !== undefined) return true;
+		if (set.nested !== undefined) return true;
+		if (set.indent !== undefined) return true;
+		if (set.stickyRows !== undefined) return true;
+		if (set.compactFolders !== undefined) return true;
+		if (set.fixedFolders !== undefined) return true;
+		if (set.parentsFirst !== undefined) return true;
+		return false;
 	};
-	const fixedLevel1: ScopeSortRowItem = {
-		kind: 'scope-row',
-		id: 'level:1',
-		icon: LEVEL_PICK_META.icon,
-		label: scene.levelLabel(1),
-		sortLabel: sortLabelFor('level:1'),
-		checked: active === 'level:1',
-		hidden: hidden.has('level:1'),
-	};
-	items.push(fixedAll, fixedLevel1);
 
-	// Remaining configured targets: union of the flat `sorts` and the
-	// cumulative `scopeState.sets`, minus the two fixed entries. Parents
-	// precede other levels; levels sort numerically; `level:0` (group
-	// headers) is not a visitable scope row.
-	const seen = new Set<string>(['all', 'level:1', 'drill']);
+	const seen = new Set<string>(['drill']);
+	let hasAllRow = false;
 	const parentKeys: string[] = [];
 	const levelKeys: string[] = [];
 	const consider = (key: string) => {
 		if (seen.has(key)) return;
 		seen.add(key);
 		if (key === 'drill' || !isScopeAllowed(tab, key)) return;
+		if (!hasConfig(key as SortScopeKey)) return;
+		if (key === 'all') {
+			hasAllRow = true;
+			return;
+		}
 		if (parentOfScope(key) !== null) {
 			parentKeys.push(key);
 			return;
 		}
 		const level = levelOfScope(key);
-		if (level !== null && level > 1) levelKeys.push(key);
+		if (level !== null) levelKeys.push(key);
 	};
 	for (const key of Object.keys(state.sorts) as SortScopeKey[]) {
 		if (state.sorts[key]) consider(key);
@@ -416,9 +414,23 @@ export function scopeMenuModel(
 	for (const key of Object.keys(state.scopeState?.sets ?? {})) {
 		if ((state.scopeState?.sets as Record<string, unknown>)[key]) consider(key);
 	}
-	levelKeys.sort((a, b) => (levelOfScope(a) ?? 0) - (levelOfScope(b) ?? 0));
+	for (const key of (state.hiddenScopes ?? [])) {
+		consider(key);
+	}
+	levelKeys.sort((a, b) => compareScopeLevels(levelOfScope(a), levelOfScope(b)));
 
 	const rows: ScopeSortRowItem[] = [];
+	if (hasAllRow) {
+		rows.push({
+			kind: 'scope-row',
+			id: 'all',
+			icon: SCOPE_META.all.icon,
+			label: scene.allLevelsLabel?.() ?? 'All',
+			sortLabel: sortLabelFor('all'),
+			checked: active === 'all',
+			hidden: hidden.has('all'),
+		});
+	}
 	for (const key of [...parentKeys, ...levelKeys] as SortScopeKey[]) {
 		const sort = state.sorts[key];
 		const parentId = parentOfScope(key);
@@ -438,7 +450,7 @@ export function scopeMenuModel(
 				checked: key === active,
 				hidden: hidden.has(key),
 			});
-		} else if (level !== null && level > 0) {
+		} else if (level !== null) {
 			rows.push({
 				kind: 'scope-row',
 				id: key,
@@ -452,7 +464,10 @@ export function scopeMenuModel(
 			});
 		}
 	}
-	items.push(...rows);
+	if (rows.length > 0) {
+		items.push({ kind: 'separator', id: 'scope-rows-separator' });
+		items.push(...rows);
+	}
 	return { titleKind, titleArg, items };
 }
 

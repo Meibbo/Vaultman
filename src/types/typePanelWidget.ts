@@ -115,7 +115,7 @@ export interface PanelWidgetExplorerPort {
 	/** Optional scope-tree capabilities; flat explorers may omit them. */
 	scopeParentForNode?(id: string): string | null;
 	hasScopeParentNodes?(): boolean;
-	scopeLevelForNode?(id: string): number | null;
+	scopeLevelForNode?(id: string): number | string | null;
 	sortNodeLabel?(id: string): string | null;
 	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
 	setTooltipsEnabled?(enabled: boolean): void;
@@ -187,7 +187,7 @@ export interface PanelWidgetFilesExplorerPort extends PanelWidgetExpandableExplo
 	/** True when the current projected tree contains a selectable p-node. */
 	hasScopeParentNodes?(): boolean;
 	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
-	scopeLevelForNode?(id: string): number | null;
+	scopeLevelForNode?(id: string): number | string | null;
 	sortNodeLabel(id: string): string | null;
 	setInteractionMode(mode: InteractionMode): void;
 	setSortStateChangeHandler(handler?: (state: ExplorerSortState) => void): void;
@@ -209,7 +209,7 @@ export interface PanelWidgetTreeExplorerPort extends PanelWidgetExpandableExplor
 	/** True when the current projected tree contains a selectable p-node. */
 	hasScopeParentNodes?(): boolean;
 	/** Spec 08 §3.1: the row's 1-based level, for "Select a level". */
-	scopeLevelForNode?(id: string): number | null;
+	scopeLevelForNode?(id: string): number | string | null;
 	sortNodeLabel?(id: string): string | null;
 	setInteractionMode(
 		mode: InteractionMode,

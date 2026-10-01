@@ -815,9 +815,11 @@
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
 		const targetParentId = parentOfScope(target);
-		const targetLevel = targetParentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const targetLevel = target === 'all'
+			? undefined
+			: targetParentId
+				? (treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0) + 1
+				: (levelOfScope(target) ?? undefined);
 		const preset =
 			scopeState.sets[target]?.groupPreset ??
 			resolveScopeSet(
@@ -852,9 +854,11 @@
 			currentSort.activeScope,
 		) as ScopeTarget;
 		const parentId = parentOfScope(cursor);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(cursor) ?? 1);
+		const level = cursor === 'all'
+			? undefined
+			: parentId
+				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -2496,9 +2500,11 @@
 		) as ScopeTarget;
 		scopeState.cursor = target;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				: (levelOfScope(target) ?? undefined);
 		const effective = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -2686,9 +2692,11 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				: (levelOfScope(target) ?? undefined);
 		const resolved = resolveScopeSet(state.scopeState, {
 			level,
 			parentId,
@@ -2707,9 +2715,11 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				: (levelOfScope(target) ?? undefined);
 		const defaults: ScopeSet = {
 			nested: (
 				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
@@ -3998,10 +4008,6 @@
 					continue;
 				}
 				const rowChildren: NativeMenuNode[] = [
-					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.confirm`, {
-						title: translate('group.row.confirm'),
-						disabled: true,
-					}),
 					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.select`, {
 						title: entry.label,
 						icon: entry.icon,
@@ -4019,10 +4025,6 @@
 						title: translate('group.row.delete'),
 						icon: 'lucide-trash-2',
 						onClick: () => deleteScope(activeTab, entry.id),
-					}),
-					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.cancel`, {
-						title: translate('group.row.cancel'),
-						icon: 'lucide-x',
 					}),
 				];
 				scopeChildren.push(

@@ -975,9 +975,9 @@ export function projectGroupedTreeScopeState<TMeta>(
 			state,
 			{ level, parentId },
 			{
-				groupPreset: {
+				groupPreset: input.preset ?? {
 					kind: 'none',
-					direction: input.preset?.direction ?? 'asc',
+					direction: 'asc',
 				},
 			},
 		);
@@ -1012,6 +1012,16 @@ export function projectGroupedTreeScopeState<TMeta>(
 		const owner = parentId === null ? `level:${level}:root` : `parent:${parentId}`;
 		const depth = nested[0]?.depth ?? level - 1;
 		const headerScopeTarget: ScopeTarget = parentTarget ?? sourceTarget;
+		const headerResolved = resolveScopeSet(
+			state,
+			{
+				level: parentId === null ? 0 : level - 1,
+				parentId,
+			},
+		);
+		const headerCellToggles = headerResolved.cellToggles
+			? { ...headerResolved.cellToggles }
+			: undefined;
 		return projectGroupedTree({
 			...input,
 			nodes: nested,
@@ -1030,7 +1040,7 @@ export function projectGroupedTreeScopeState<TMeta>(
 				groupScopeTarget: headerScopeTarget,
 				depth,
 				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
-				...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+				...(headerCellToggles ? { scopeCellToggles: { ...headerCellToggles } } : {}),
 			};
 		});
 	};

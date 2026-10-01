@@ -1236,6 +1236,7 @@ export const es: Record<string, string> = {
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos',
+	'sort.level.select_all': 'Seleccionar todos',
 	// Spec 08 §3.1: el submenú `Scope: <variable>`.
 	'sort.level.select_level': 'Elegir un nivel',
 	'sort.level.pick_level_hint':

@@ -17,8 +17,8 @@ const DEFAULT_SORT: ScopeSort = { sortBy: 'name', direction: 'asc' };
 
 /** Minimal structural information needed by the scope resolver. */
 export interface ScopeResolutionNode {
-	/** Preferred explicit 1-based p-node level. */
-	level?: number;
+	/** Preferred explicit 1-based p-node level or compound group level. */
+	level?: number | string;
 	/** TreeNode depth is zero-based, so it is translated to level + 1. */
 	depth?: number;
 	/** Canonical id of the direct p-node parent, when one exists. */
@@ -190,10 +190,10 @@ export function normalizeScopeState(
 	return { sets, cursor, levelBase: 1 };
 }
 
-function scopeNodeLevel(node: ScopeResolutionNode): number {
-	if (Number.isInteger(node.level) && node.level! >= 0) return node.level!;
+function scopeNodeLevel(node: ScopeResolutionNode): number | string | null {
+	if (node.level !== undefined && node.level !== null) return node.level;
 	if (Number.isInteger(node.depth) && node.depth! >= 0) return node.depth! + 1;
-	return 1;
+	return null;
 }
 
 function scopeNodeParent(node: ScopeResolutionNode): string | null {
@@ -225,9 +225,10 @@ export function resolveScopeSet(
 	const sets = state?.sets ?? {};
 	const parent = scopeNodeParent(node);
 	const level = scopeNodeLevel(node);
+	const lvlScope = level !== null ? levelScope(level) : null;
 	const candidates: Array<ScopeSet | undefined> = [
 		parent ? sets[parentScope(parent) as ScopeTarget] : undefined,
-		sets[levelScope(level) as ScopeTarget],
+		lvlScope ? sets[lvlScope as ScopeTarget] : undefined,
 		sets.all,
 	];
 	const active = candidates.map((set) => (set?.hidden ? undefined : set));
@@ -389,24 +390,50 @@ export const migrateScopeState = scopeStateFromLegacy;
 
 // --- Spec 08 §3.1.bis: scopes are levels -------------------------------------
 
-export function levelScope(level: number): SortScopeKey {
-	return `level:${level}`;
+export function levelScope(level: number | string): SortScopeKey {
+	return `level:${level}` as SortScopeKey;
 }
 
 export function parentScope(id: string): SortScopeKey {
 	return `parent:${id}`;
 }
 
-export function isLevelScope(scope: string): scope is `level:${number}` {
-	return /^level:\d+$/.test(scope);
+export function isLevelScope(
+	scope: string,
+): scope is `level:${number}` | `level:${number}+${number}` {
+	return /^level:\d+(\+\d+)?$/.test(scope);
 }
 
 export function isParentScope(scope: string): scope is `parent:${string}` {
 	return scope.startsWith('parent:') && scope.length > 'parent:'.length;
 }
 
-export function levelOfScope(scope: string): number | null {
-	return isLevelScope(scope) ? Number(scope.slice('level:'.length)) : null;
+export function levelOfScope(scope: string): number | string | null {
+	if (!isLevelScope(scope)) return null;
+	const val = scope.slice('level:'.length);
+	return /^\d+$/.test(val) ? Number(val) : val;
+}
+
+export function parseScopeLevel(
+	level: number | string | null | undefined,
+): { base: number; offset: number } {
+	if (level === null || level === undefined) return { base: 0, offset: 0 };
+	if (typeof level === 'number') return { base: level, offset: 0 };
+	const match = /^(\d+)(?:\+(\d+))?$/.exec(level);
+	if (!match) return { base: 0, offset: 0 };
+	const base = Number(match[1]);
+	const offset = match[2] ? Number(match[2]) : 0;
+	return { base, offset };
+}
+
+export function compareScopeLevels(
+	a: number | string | null | undefined,
+	b: number | string | null | undefined,
+): number {
+	const pa = parseScopeLevel(a);
+	const pb = parseScopeLevel(b);
+	if (pa.base !== pb.base) return pa.base - pb.base;
+	return pa.offset - pb.offset;
 }
 
 export function parentOfScope(scope: string): string | null {

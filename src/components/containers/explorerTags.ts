@@ -147,6 +147,7 @@ import {
 	activeScopeSort,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	parseScopeLevel,
 	sameExplorerSortState,
 	siblingScopeSort,
 	sortWithScopes,
@@ -903,7 +904,10 @@ export class TagsExplorerPanel extends Component {
 		const candidates: ScopeTarget[] = [target];
 		if (target.startsWith('parent:')) {
 			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
-			if (parentLevel !== null) candidates.push(`level:${parentLevel + 1}`);
+			if (parentLevel !== null) {
+				const nextLevel = parseScopeLevel(parentLevel).base + 1;
+				candidates.push(`level:${nextLevel}`);
+			}
 		}
 		if (target !== 'all') candidates.push('all');
 		const projected = this.projectedNodes(this._lastRenderTree);
@@ -1726,7 +1730,7 @@ export class TagsExplorerPanel extends Component {
 		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
 	}
 
-	scopeLevelForNode(id: string): number | null {
+	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findNodeLevel(this._lastRenderTree, id);
 	}

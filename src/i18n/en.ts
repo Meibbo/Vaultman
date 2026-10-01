@@ -1342,6 +1342,7 @@ export const en: Record<string, string> = {
 	'sort.level.properties': 'Properties',
 	'sort.level.values': 'Values',
 	'sort.level.all': 'All',
+	'sort.level.select_all': 'Select all',
 	// Spec 08 §3.1: the `Scope: <variable>` submenu.
 	'sort.level.select_level': 'Select a level',
 	'sort.level.pick_level_hint': 'Click a row to sort every parent of its level',

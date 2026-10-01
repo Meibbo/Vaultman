@@ -103,10 +103,10 @@ describe('U130-GGC-028 Files Select-a-parent over the projected tree', () => {
 		);
 	});
 
-	it('root headers are Level 0, nested headers keep structural depth', () => {
+	it('root headers are Level 0+1, nested headers keep compound depth', () => {
 		expect(
 			findNodeLevel(projectedL1, 'vaultman.group.header:level%3A1:Team'),
-		).toBe(0);
+		).toBe('0+1');
 		const nested: FileNode[] = [
 			{
 				id: 'vaultman.group.header:level%3A1:Team',
@@ -137,7 +137,7 @@ describe('U130-GGC-028 Files Select-a-parent over the projected tree', () => {
 			findScopeParentId(nested, 'x.md', null, filesIsScopeParent),
 		).toBe('vaultman.group.header:level%3A2:Nested');
 		expect(findNodeLevel(nested, 'vaultman.group.header:level%3A2:Nested')).toBe(
-			3,
+			'1+1',
 		);
 		// A group id from another level/instance that is not in this tree
 		// never resolves: no cross-level or cross-instance leak.
@@ -147,7 +147,7 @@ describe('U130-GGC-028 Files Select-a-parent over the projected tree', () => {
 		expect(findParentId(nested, 'vaultman.group.header:level%3A1:Team')).toBeNull();
 	});
 
-	it('historic headers (meta.isFolder, no mark) stay eligible; clean baseline marks Level 0', () => {
+	it('historic headers (meta.isFolder, no mark) stay eligible; clean baseline marks Level 0+1', () => {
 		expect(hasScopeParentNodes(historicHeader, filesIsScopeParent)).toBe(true);
 		expect(
 			findScopeParentId(
@@ -157,12 +157,12 @@ describe('U130-GGC-028 Files Select-a-parent over the projected tree', () => {
 				filesIsScopeParent,
 			),
 		).toBe('vaultman.group.header:level%3A1:Team');
-		// Clean baseline with the mark resolves Level 0; historic without the
+		// Clean baseline with the mark resolves Level 0+1; historic without the
 		// mark still offers the parent (Level 1) instead of hiding the picker.
 		expect(findNodeLevel(historicHeader, 'vaultman.group.header:level%3A1:Team')).toBe(1);
 		expect(
 			findNodeLevel(projectedL1, 'vaultman.group.header:level%3A1:Team'),
-		).toBe(0);
+		).toBe('0+1');
 	});
 
 	it('historic sort state normalizes like a clean baseline (no data.json rewrite)', () => {
