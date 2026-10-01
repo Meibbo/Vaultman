@@ -676,7 +676,7 @@ export class UnifiedTreeView {
 			const meta = node.meta as { isFolder?: unknown } | null;
 			return {
 				id: node.id,
-				depth: node.depth,
+				depth: Math.max(0, node.depth - 1),
 				hasCaret,
 				isParent:
 					hasCaret ||
@@ -1645,7 +1645,9 @@ export class UnifiedTreeView {
 		row.tabIndex = 0;
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
-		row.style.setProperty('--depth', String(node.depth));
+		// The first logical level establishes a shared cell baseline. Only later
+		// levels add indentation, so p-nodes and c-nodes line up together.
+		row.style.setProperty('--depth', String(Math.max(0, node.depth - 1)));
 		// view_option `indent` off: only a row with no caret — it has nothing
 		// to disclose, so its depth carries no information the caret already
 		// doesn't — collapses to the flat 4px gutter. A p-node keeps the real
@@ -2410,8 +2412,20 @@ export class UnifiedTreeView {
 			// Frequency counter second
 			if (!usesActivationOrder) emitCount(badgeZone);
 		}
-		if (opts.caretPosition === 'end') emitCaret('end');
 		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox('end');
+		if (opts.caretPosition === 'end') emitCaret('end');
+		const indentAnchor = row.querySelector<HTMLElement>(
+			'.vaultman-selection-checkbox--start, .vaultman-tree-icon, .vaultman-tree-label, .vaultman-tree-input',
+		);
+		if (indentAnchor) {
+			const isRtl = this._treeWindow().getComputedStyle(row).direction === 'rtl';
+			const start = isRtl
+				? row.clientWidth - indentAnchor.offsetLeft - indentAnchor.offsetWidth
+				: indentAnchor.offsetLeft;
+			row.style.setProperty('--vaultman-tree-guide-start', `${Math.max(0, start)}px`);
+		} else {
+			row.style.removeProperty('--vaultman-tree-guide-start');
+		}
 
 		return row;
 	}

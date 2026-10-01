@@ -1844,8 +1844,8 @@ export class TagsExplorerPanel extends Component {
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
 	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
 	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
-	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value):
-	 * fallback a open, nunca el veto.
+	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value).
+	 * Solo `open` permite expandir desde el cuerpo; el caret sigue disponible.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -1862,6 +1862,7 @@ export class TagsExplorerPanel extends Component {
 			void this._render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpanded(id);
 		void this._render();
 	}

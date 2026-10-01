@@ -4196,9 +4196,8 @@ export class FilesExplorerPanel extends Component {
 	 * - `select`: conmuta la seleccion de todos los descendientes (ids de
 	 *   entidad, sin el sufijo `@grupo` de las filas multi-grupo), nunca el
 	 *   id del grupo, que no es un path y no significa nada en la seleccion.
-	 * - `filter`/`add`/`open`: colapsa/expande. Un grupo no puede ser
-	 *   criterio de filtro (`serviceFilter.getFilterState` solo acepta
-	 *   folder/tag/prop/value), asi que el fallback es open, nunca el veto.
+	 * - `open`: colapsa/expande. En los demás modos el cuerpo no altera la
+	 *   expansión; el caret conserva su acción directa en todos los modos.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -4219,6 +4218,7 @@ export class FilesExplorerPanel extends Component {
 			});
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleFolderWithStickyAnchor(id);
 	}
 

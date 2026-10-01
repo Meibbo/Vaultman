@@ -3522,14 +3522,19 @@
 		ownerPanel?.setScopePickMode?.(mode);
 		// D29 drill UX: one click selects the requested parent/level scope.
 		pane.classList.add('vaultman-sort-pick-mode');
+		const isCaretPointer = (event: Event): boolean =>
+			event.target instanceof Element &&
+			Boolean(event.target.closest('.vaultman-tree-row .vaultman-tree-toggle'));
 		const suppressEvent = (event: Event) => {
+			if (isCaretPointer(event)) return;
 			event.preventDefault();
 			event.stopImmediatePropagation();
 		};
 		const onPick = (event: PointerEvent) => {
+			if (isCaretPointer(event)) return;
 			const target =
 				event.target instanceof Element
-					? event.target.closest<HTMLElement>('[data-id]')
+					? event.target.closest<HTMLElement>('.vaultman-tree-row[data-id]')
 					: null;
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;
