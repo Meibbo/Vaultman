@@ -3076,6 +3076,7 @@
 						`${translate('settings.task_cell_display_mode')}: ${translate(`settings.task_cell_display_mode.${current}`)}`,
 					)
 					.setIcon('lucide-list-checks')
+					.setChecked(current === 'done-total')
 					.onClick(() => {
 						const next =
 							current === 'pending' ? 'done-total' : 'pending';

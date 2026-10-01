@@ -510,6 +510,7 @@ export const es: Record<string, string> = {
 	'settings.task_cell_display_mode': 'Presentación de la celda Tasks',
 	'settings.task_cell_display_mode.desc': 'Alterna tareas pendientes y hechas/total. La agrupación siempre usa pendientes.',
 	'settings.task_cell_display_mode.done_total': 'Hechas / total',
+	'settings.task_cell_display_mode.done-total': 'Hechas / total',
 	'settings.task_cell_display_mode.pending': 'Tareas pendientes',
 	'settings.cell_words_include_frontmatter': 'Contar palabras del frontmatter',
 	'settings.cell_words_include_frontmatter.desc':

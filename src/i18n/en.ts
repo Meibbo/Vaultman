@@ -506,6 +506,7 @@ export const en: Record<string, string> = {
 	'settings.task_cell_display_mode': 'Tasks cell display',
 	'settings.task_cell_display_mode.desc': 'Choose pending tasks or completed/total. Task grouping always uses pending tasks.',
 	'settings.task_cell_display_mode.done_total': 'Completed / total',
+	'settings.task_cell_display_mode.done-total': 'Completed / total',
 	'settings.task_cell_display_mode.pending': 'Pending tasks',
 	'settings.cell_words_include_frontmatter': 'Count frontmatter words',
 	'settings.cell_words_include_frontmatter.desc':

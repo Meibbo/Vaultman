@@ -184,4 +184,14 @@ describe('U130 toolbar alt-cmenus', () => {
 			expect(es[key], `es!=en: ${key}`).not.toBe(en[key]);
 		}
 	});
+
+	it('el nodo view ofrece toggle de presentación de tasks con setChecked y traducción i18n', () => {
+		expect(navbarSource).toContain("if (localId === 'view' && activeTab === 'files')");
+		expect(navbarSource).toContain(".setChecked(current === 'done-total')");
+		expect(navbarSource).toContain('fileList?.setTaskCellDisplayMode?.(next)');
+		expect(en['settings.task_cell_display_mode.done-total']).toBe('Completed / total');
+		expect(es['settings.task_cell_display_mode.done-total']).toBe('Hechas / total');
+		expect(en['settings.task_cell_display_mode.pending']).toBe('Pending tasks');
+		expect(es['settings.task_cell_display_mode.pending']).toBe('Tareas pendientes');
+	});
 });
