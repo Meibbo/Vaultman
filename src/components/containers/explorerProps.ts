@@ -114,6 +114,10 @@ import {
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
@@ -147,6 +151,7 @@ import {
 import {
 	addCounterRangeSlice,
 	rebalanceCounterRange,
+	sliceCounterRange,
 } from '../../logic/logicCounterRangePartitions';
 import {
 	parseFrontmatterNoteGroups,
@@ -1409,16 +1414,61 @@ export class PropsExplorerPanel extends Component {
 		};
 	}
 
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<PropMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
+		const noteGroup = this.groupPreset.kind === 'note';
+		const walk = (nodes: readonly TreeNode<PropMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
 	private _degroupMenuCtx(
 		invoked: TreeNode<PropMeta>,
 	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
 		const handler = this.degroupSelectedHandler;
-		const owner = occurrenceOwnerOf(invoked);
+		if (!handler || this.selectedNodeIds.size === 0) return {};
 		const noteGroup = this.groupPreset.kind === 'note';
-		if (!handler || !owner || (!noteGroup && !this._groupIds.has(owner))) return {};
-		if (this.selectedNodeIds.size === 0) return {};
+		const invokedOwner = occurrenceOwnerOf(invoked);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
+			membershipOwner: resolvedOwner,
 			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(invoked),
 			degroupSelected: () => {
@@ -1433,9 +1483,110 @@ export class PropsExplorerPanel extends Component {
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this._render();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -2795,10 +2946,10 @@ export class PropsExplorerPanel extends Component {
 		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
 			this._decorateNodeNotes(nodesWithIcons);
 		}
-		// In reveal the list always ends (or starts) with the synthetic
-		// "+ Add property" row, so an empty note still offers the action
-		// in place instead of an empty state plus a detached button.
-		if (nodesWithIcons.length === 0 && !this.isRevealingActiveFile()) {
+		// Reveal with an empty note shows the contextual landing (with its
+		// switch/add buttons) instead of the bare list, unless an add flow
+		// is already composing its temp row (which makes the list non-empty).
+		if (nodesWithIcons.length === 0 && !this._revealAdding) {
 			this._renderEmptyState();
 			return;
 		}
@@ -2971,15 +3122,22 @@ export class PropsExplorerPanel extends Component {
 			filterBubbleLabel: translate('filter.active_descendant'),
 			counterRangeBoundLabel: (bound) =>
 				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-			onCounterRangeCommit: (_id, range) => {
+			onCounterRangeCommit: (_id, range, mode) => {
 				const header = this._findNode(_id, projected);
 				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 					return false;
-				const result = rebalanceCounterRange(
-					header.counterRanges,
-					range,
-					header.counterDomain,
-				);
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
 				if (!result.ok) {
 					new Notice(translate('group.counter.invalid'));
 					return false;
@@ -3256,7 +3414,7 @@ export class PropsExplorerPanel extends Component {
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(groupId)
+								: this._isCustomGroupId(groupId)
 									? 'custom'
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(groupId),
@@ -3265,15 +3423,15 @@ export class PropsExplorerPanel extends Component {
 						groupExpanded: this.expandedIds.has(id),
 						adjustGroupRange:
 							header?.counterRange && header.counterDomain
-								? () => this.view?.beginCounterRangeEdit(id)
+								? () => this.view?.beginCounterRangeEdit(id, 'adjust')
 								: undefined,
 						sliceGroupRange:
 							header?.counterRange && header.counterDomain
-								? () => this.createCounterRangeSlice()
+								? () => this.view?.beginCounterRangeEdit(id, 'slice')
 								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(groupId) ||
+							this._isCustomGroupId(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -3285,6 +3443,24 @@ export class PropsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
+						makeACopy:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										this._makeACopyOfGroup(groupId);
+									}
+								: undefined,
+						renameGroup:
+							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
+								? (targetId: string) => this._renameCustomGroup(targetId)
+								: undefined,
+						updateGroupScope:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										this._updateCustomGroupScope(groupId);
+									}
+								: undefined,
 						toggleGroupExpand: () => {
 							this._toggleExpanded(id);
 						},
@@ -4631,15 +4807,71 @@ export class PropsExplorerPanel extends Component {
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',
 		});
+		// 1. Búsqueda sin resultados: títulos existentes.
+		if (this.searchTerm) {
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.props.empty_title'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.props.empty_search_desc'),
+			});
+			return;
+		}
+		// 2. Modo Reveal activo.
+		if (this.isRevealingActiveFile()) {
+			const revealPath = this._revealPath();
+			if (!revealPath) {
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.ctx.reveal_this_file.no_active_file'),
+				});
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate(
+						'explorer.ctx.reveal_this_file.no_active_file_desc',
+					),
+				});
+				const actionsEl = emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-actions',
+				});
+				const backBtn = actionsEl.createEl('button', {
+					text: translate('explorer.ctx.reveal_this_file.switch_general'),
+				});
+				backBtn.onclick = () => this.toggleRevealActiveFile();
+				return;
+			}
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.ctx.reveal_this_file.empty'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.ctx.reveal_this_file.empty_desc_props'),
+			});
+			const actionsEl = emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-actions',
+			});
+			const backBtn = actionsEl.createEl('button', {
+				text: translate('explorer.ctx.reveal_this_file.switch_general'),
+			});
+			backBtn.onclick = () => this.toggleRevealActiveFile();
+			const addBtn = actionsEl.createEl('button', {
+				cls: 'mod-cta',
+				text: translate('ops.add_property'),
+			});
+			addBtn.onclick = () => this._startAddPropertyInReveal();
+			return;
+		}
+		// 3. Modo normal general.
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-title',
 			text: translate('explorer.props.empty_title'),
 		});
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-desc',
-			text: this.searchTerm
-				? translate('explorer.props.empty_search_desc')
-				: translate('filter.prop_browser.empty'),
+			text: translate('filter.prop_browser.empty'),
 		});
 	}
 

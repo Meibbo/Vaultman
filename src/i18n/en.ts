@@ -765,6 +765,15 @@ export const en: Record<string, string> = {
 	'explorer.ctx.add_to_files.empty': 'No files match the current filter',
 	'explorer.ctx.reveal_this_file': 'Reveal this file',
 	'explorer.ctx.reveal_this_file.empty': 'This file has no properties',
+	'explorer.ctx.reveal_this_file.empty_tags': 'This file has no tags',
+	'explorer.ctx.reveal_this_file.no_active_file': 'No active file to reveal',
+	'explorer.ctx.reveal_this_file.no_active_file_desc':
+		'Open a note to reveal its content here.',
+	'explorer.ctx.reveal_this_file.empty_desc_props':
+		'Add a property to this note or return to the full list.',
+	'explorer.ctx.reveal_this_file.empty_desc_tags':
+		'This note has no tags yet. Return to the full list to browse everything.',
+	'explorer.ctx.reveal_this_file.switch_general': 'Show all',
 	'explorer.ctx.move_to_prop': 'Move to prop...',
 	'explorer.ctx.move_to_prop.proceed': 'Proceed with selected',
 	'explorer.ctx.move_to_prop.cancel': 'Cancel',
@@ -1390,6 +1399,10 @@ export const en: Record<string, string> = {
 	'group.counter.lower': 'Lower bound',
 	'group.counter.upper': 'Upper bound',
 	'group.counter.no_slice': 'No counter slice can be added inside the fetched range.',
+	'group.counter.slice_under_min': "Don't slice under min",
+	'group.counter.slice_above_max': 'Above max',
+	'group.counter.adjust_under_min': 'Under min',
+	'group.counter.adjust_above_max': 'Above max',
 	'group.caret.expand': 'Expand group',
 	'group.caret.collapse': 'Collapse group',
 	'group.caret.unavailable': 'No expander on this surface',

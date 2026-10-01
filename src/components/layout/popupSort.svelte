@@ -97,6 +97,9 @@
 		/** Spec 08 §4: the hide/delete row pattern of the custom groups. */
 		onHideGroup?: (id: string, hidden: boolean) => void;
 		onDeleteGroup?: (id: string) => void;
+		onRenameGroup?: (id: string) => void;
+		onCopyGroup?: (id: string) => void;
+		onUpdateGroupScope?: (id: string) => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
@@ -374,11 +377,17 @@
 		} else confirmRow.arm(item.id);
 	}
 
-	function answerConfirmRow(id: string, answer: 'hide' | 'delete' | 'cancel') {
+	function answerConfirmRow(
+		id: string,
+		answer: 'rename' | 'copy' | 'scope' | 'hide' | 'delete' | 'cancel',
+	) {
 		const group = customGroups.find((entry) => entry.id === id);
 		confirmRow.disarm();
 		if (!group) return;
-		if (answer === 'hide') onHideGroup?.(id, !(group.hidden ?? false));
+		if (answer === 'rename') onRenameGroup?.(id);
+		else if (answer === 'copy') onCopyGroup?.(id);
+		else if (answer === 'scope') onUpdateGroupScope?.(id);
+		else if (answer === 'hide') onHideGroup?.(id, !(group.hidden ?? false));
 		else if (answer === 'delete') onDeleteGroup?.(id);
 	}
 
@@ -540,6 +549,27 @@
 							role="group"
 							aria-label={translate('group.row.confirm')}
 						>
+							<button
+								class="vaultman-sort-drawer-item"
+								aria-label={translate('group.row.rename')}
+								title={translate('group.row.rename')}
+								onclick={() => answerConfirmRow(opt.id, 'rename')}
+								use:icon={'lucide-pencil'}
+							></button>
+							<button
+								class="vaultman-sort-drawer-item"
+								aria-label={translate('group.copy.make')}
+								title={translate('group.copy.make')}
+								onclick={() => answerConfirmRow(opt.id, 'copy')}
+								use:icon={'lucide-copy'}
+							></button>
+							<button
+								class="vaultman-sort-drawer-item"
+								aria-label={translate('group.scope.update')}
+								title={translate('group.scope.update')}
+								onclick={() => answerConfirmRow(opt.id, 'scope')}
+								use:icon={'lucide-target'}
+							></button>
 							<button
 								class="vaultman-sort-drawer-item"
 								aria-label={translate(

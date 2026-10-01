@@ -224,6 +224,53 @@ export function rebalanceCounterRange(
 	return validateCounterRangePartition(next, domain);
 }
 
+/**
+ * Shrink the target slice toward `[edited.lo, edited.hi]`, turning the
+ * leftover gaps into new slices. Other ranges are left untouched.
+ */
+export function sliceCounterRange(
+	ranges: readonly CounterRange[],
+	edited: CounterRangeEditBounds,
+	domain: CounterDomain,
+): CounterRangePartitionResult {
+	const ordered = sortCounterRanges(ranges);
+	const index = ordered.findIndex((range) => range.id === edited.id);
+	if (index < 0) return { ok: false, reason: 'unknown_range' };
+	const target = ordered[index];
+	if (
+		!Number.isInteger(edited.lo) ||
+		!Number.isInteger(edited.hi) ||
+		edited.lo < target.lo ||
+		edited.hi > target.hi ||
+		edited.lo > edited.hi
+	) {
+		return { ok: false, reason: 'invalid_range' };
+	}
+	const next: CounterRange[] = [];
+	for (let i = 0; i < index; i += 1) {
+		next.push({ ...ordered[i] });
+	}
+	if (edited.lo > target.lo) {
+		next.push({
+			id: nextCounterRangeId([...ordered, ...next]),
+			lo: target.lo,
+			hi: edited.lo - 1,
+		});
+	}
+	next.push({ id: edited.id, lo: edited.lo, hi: edited.hi });
+	if (edited.hi < target.hi) {
+		next.push({
+			id: nextCounterRangeId([...ordered, ...next]),
+			lo: edited.hi + 1,
+			hi: target.hi,
+		});
+	}
+	for (let i = index + 1; i < ordered.length; i += 1) {
+		next.push({ ...ordered[i] });
+	}
+	return validateCounterRangePartition(next, domain);
+}
+
 export type AddCounterRangeSliceResult =
 	| { ok: true; ranges: CounterRange[]; addedId: string }
 	| { ok: false; reason: CounterRangePartitionReason };

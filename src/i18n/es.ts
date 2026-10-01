@@ -783,6 +783,16 @@ export const es: Record<string, string> = {
 	'explorer.ctx.add_to_files.empty': 'Ningún archivo coincide con el filtro',
 	'explorer.ctx.reveal_this_file': 'Revelar este archivo',
 	'explorer.ctx.reveal_this_file.empty': 'Este archivo no tiene propiedades',
+	'explorer.ctx.reveal_this_file.empty_tags': 'Este archivo no tiene etiquetas',
+	'explorer.ctx.reveal_this_file.no_active_file':
+		'Ningún archivo activo para revelar',
+	'explorer.ctx.reveal_this_file.no_active_file_desc':
+		'Abre una nota para revelar su contenido aquí.',
+	'explorer.ctx.reveal_this_file.empty_desc_props':
+		'Añade una propiedad a esta nota o vuelve a la lista completa.',
+	'explorer.ctx.reveal_this_file.empty_desc_tags':
+		'Esta nota aún no tiene etiquetas. Vuelve a la lista completa para verlas todas.',
+	'explorer.ctx.reveal_this_file.switch_general': 'Mostrar todo',
 	'explorer.ctx.move_to_prop': 'Mover a propiedad...',
 	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
 	'explorer.ctx.move_to_prop.cancel': 'Cancelar',
@@ -1285,6 +1295,10 @@ export const es: Record<string, string> = {
 	'group.counter.lower': 'Límite inferior',
 	'group.counter.upper': 'Límite superior',
 	'group.counter.no_slice': 'No se puede añadir otro slice dentro del rango fetcheado.',
+	'group.counter.slice_under_min': 'No reducir bajo el mínimo',
+	'group.counter.slice_above_max': 'Por encima del máximo',
+	'group.counter.adjust_under_min': 'Bajo el mínimo',
+	'group.counter.adjust_above_max': 'Por encima del máximo',
 	'group.caret.expand': 'Expandir grupo',
 	'group.caret.collapse': 'Colapsar grupo',
 	'group.caret.unavailable': 'Sin expansor en esta superficie',

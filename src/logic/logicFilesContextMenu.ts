@@ -106,6 +106,8 @@ export const FILES_MENU_DEFAULT_ORDER: readonly string[] = [
 	'folder.filter_include',
 	'folder.filter_exclude',
 	'filters.clear-selection',
+	'vaultman.group.selected',
+	'vaultman.group.degroup-selected',
 	'queue.apply',
 	DIVIDER_MARK,
 	'file.delete',
