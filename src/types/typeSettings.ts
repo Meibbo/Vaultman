@@ -380,9 +380,10 @@ export interface VaultmanSettings {
 	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
 	addonIconOverrides: AddonIconOverrides;
 	/** Render cells in the order they were switched on instead of a fixed rank */
-	orderCellsByActivation: boolean;
-	/** BT5-015: put the node icon in the caret slot when nothing can expand */
-	iconInCaretSlot: boolean;
+	/** BT5-015: deprecated — replaced by cell_caret and caretPosition */
+	iconInCaretSlot?: boolean;
+	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
+	caretPosition: 'start' | 'end' | 'hidden';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
 	selectionCheckboxPosition: 'start' | 'end' | 'hidden';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
@@ -636,7 +637,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
-	iconInCaretSlot: false,
+	caretPosition: 'start',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,

@@ -945,7 +945,8 @@ export function sameSortProjection(
 		JSON.stringify(a.sorts) === JSON.stringify(b.sorts) &&
 		JSON.stringify(a.scopeState ?? null) === JSON.stringify(b.scopeState ?? null) &&
 		a.parentsFirst === b.parentsFirst &&
-		a.fixedFolders === b.fixedFolders
+		a.fixedFolders === b.fixedFolders &&
+		(a.addPropertyFirst === true) === (b.addPropertyFirst === true)
 	);
 }
 

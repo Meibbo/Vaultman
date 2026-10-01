@@ -176,12 +176,8 @@ export interface TreeViewOptions {
 	 * have no corresponding option and therefore keep their own Cell anatomy.
 	 */
 	coreMetadata?: CoreMetadataTreeAnatomy;
-	/**
-	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
-	 * there instead of leaving a dimmed placeholder plus a separate icon.
-	 * Expandable nodes are untouched — their caret keeps its affordance.
-	 */
-	iconInCaretSlot?: boolean;
+	/** Position of the tree expander caret: 'start' | 'end' | 'hidden'. */
+	caretPosition?: 'start' | 'end' | 'hidden';
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
 	/**
@@ -840,11 +836,6 @@ export class UnifiedTreeView {
 		block: ScrollLogicalPosition = 'center',
 		behavior: ScrollBehavior = 'auto',
 	): void {
-		const row = this.rowEls.get(id);
-		if (row) {
-			row.scrollIntoView({ block, inline: 'nearest', behavior });
-			return;
-		}
 		const index = this._indexById.get(id);
 		if (index !== undefined) {
 			this.containerEl.scrollTo({
@@ -859,6 +850,11 @@ export class UnifiedTreeView {
 			}
 			this._pendingScroll = null;
 			vaultmanPerfMonitor.recordAction('tree', 'scrollToId', { id, index });
+			return;
+		}
+		const row = this.rowEls.get(id);
+		if (row) {
+			row.scrollIntoView({ block, inline: 'nearest', behavior });
 			return;
 		}
 		this._pendingScroll = { id, block, behavior };
@@ -1351,7 +1347,7 @@ export class UnifiedTreeView {
 			counterRangeEditing ? 'counter-range-editing' : '',
 			counterRangeEditMode,
 			cellOrder,
-			opts.iconInCaretSlot ? '1' : '0',
+			opts.caretPosition ?? 'start',
 			opts.onSelectionToggle ? 'selection' : '',
 			(opts.isNodeSelectable?.(node) ?? true) ? 'selectable' : 'action-only',
 			opts.selectionCheckboxPosition ?? 'start',
@@ -1498,6 +1494,19 @@ export class UnifiedTreeView {
 		}
 	}
 
+	private _stickyRowsAbove(index: number, rowHeight: number): number {
+		if (!this._opts?.stickyParentRows || rowHeight <= 0) return 0;
+		const sticky = stickyTreeRows(this._rows, {
+			rowHeight,
+			scrollTop: index * rowHeight,
+			viewportHeight: this.containerEl.clientHeight,
+			maxFraction: this._opts?.stickyMaxFraction,
+			parentIndex: this._parentIndex ?? undefined,
+			subtreeEnd: this._subtreeEnd ?? undefined,
+		}).filter((s) => s.index !== index);
+		return sticky.length;
+	}
+
 	private _scrollTopForIndex(
 		index: number,
 		block: ScrollLogicalPosition,
@@ -1510,12 +1519,18 @@ export class UnifiedTreeView {
 		const currentBottom = currentTop + viewportHeight;
 		let target = currentTop;
 		if (block === 'start') {
-			target = rowTop;
+			const stickyCount = this._stickyRowsAbove(index, rowHeight);
+			target = Math.max(0, (index - stickyCount) * rowHeight);
 		} else if (block === 'end') {
 			target = rowBottom - viewportHeight;
 		} else if (block === 'nearest') {
-			if (rowTop < currentTop) target = rowTop;
-			else if (rowBottom > currentBottom) target = rowBottom - viewportHeight;
+			const stickyCount = this._stickyRowsAbove(index, rowHeight);
+			const effectiveTop = currentTop + stickyCount * rowHeight;
+			if (rowTop < effectiveTop) {
+				target = Math.max(0, (index - stickyCount) * rowHeight);
+			} else if (rowBottom > currentBottom) {
+				target = rowBottom - viewportHeight;
+			}
 		} else {
 			target = rowTop - viewportHeight / 2 + rowHeight / 2;
 		}
@@ -1567,7 +1582,6 @@ export class UnifiedTreeView {
 		rowMap: Map<string, HTMLElement> = this.rowEls,
 	): HTMLElement {
 		const hasChildren = (node.children?.length ?? 0) > 0;
-		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
 		const highlight = this.resolveRowHighlight(node.id, opts);
 		const isActive = highlight.inclusive;
@@ -1586,6 +1600,11 @@ export class UnifiedTreeView {
 		const isSelected =
 			isNodeSelectable && (opts.selectedIds?.has(node.id) ?? false);
 		const visibleCells = this._visibleCellsForNode(node, opts.visibleCells);
+		const showCaretCell = visibleCells ? visibleCells.has('caret') : true;
+		const showCaret =
+			(hasChildren || Boolean(node.showCaret)) &&
+			showCaretCell &&
+			opts.caretPosition !== 'hidden';
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
 			? visibleCells.has('text') || visibleCells.has('name')
@@ -1778,19 +1797,6 @@ export class UnifiedTreeView {
 
 		rowMap.set(node.id, row);
 
-		// BT5-015: the row is a flex line, so an icon ADDS width and shifts the
-		// label. Siblings that carry no icon therefore sit further left — the
-		// misalignment the option exists to remove. When it is on, a row that
-		// renders an icon and reserves no caret takes the icon out of flow into
-		// the caret column, so every label lands at the same x. Rows with a
-		// caret keep today's geometry (the caret already owns that column), and
-		// table and cards render no caret at all: not applicable.
-		const iconFillsCaretSlot =
-			opts.iconInCaretSlot === true &&
-			showIcon &&
-			Boolean(node.icon) &&
-			!showCaret;
-		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
 		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
 			if (!opts.onSelectionToggle || !isNodeSelectable) return;
 			if (visibleCells && !visibleCells.has('checkbox')) return;
@@ -1843,11 +1849,13 @@ export class UnifiedTreeView {
 			emitSelectionCheckbox('start');
 		}
 
-		if (showCaret) {
+		const emitCaret = (position: 'start' | 'end'): void => {
+			if (!showCaret) return;
 			const toggleEl = row.createDiv({
-				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
+				cls: `vaultman-tree-toggle tree-item-icon collapse-icon vaultman-tree-caret--${position}`,
 			});
 			setIcon(toggleEl, 'right-triangle');
+			toggleEl.setAttribute('aria-hidden', 'true');
 			if (hasChildren || showCaret) {
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
@@ -1860,6 +1868,10 @@ export class UnifiedTreeView {
 			} else {
 				toggleEl.addClass('vaultman-tree-toggle--empty');
 			}
+		};
+
+		if ((opts.caretPosition ?? 'start') === 'start') {
+			emitCaret('start');
 		}
 
 		this.applyMutableRowState({
@@ -2114,6 +2126,12 @@ export class UnifiedTreeView {
 							step: '1',
 						},
 					});
+					const updateWidth = (): void => {
+						const len = Math.max(5, input.value.length + 2);
+						input.style.inlineSize = `${len}ch`;
+					};
+					updateWidth();
+					input.addEventListener('input', updateWidth);
 					input.addEventListener('click', (event) => event.stopPropagation());
 					return input;
 				};
@@ -2129,22 +2147,24 @@ export class UnifiedTreeView {
 				const validateLo = (): void => {
 					const value = Number(loInput.value);
 					if (mode === 'slice') {
-						if (Number.isFinite(value) && value < node.counterRange!.lo) {
+						if (!Number.isFinite(value) || value < node.counterRange!.lo) {
 							loInput.classList.add('is-invalid');
 							loInput.title = translate('group.counter.slice_under_min');
+						} else if (Number.isFinite(Number(hiInput.value)) && value > Number(hiInput.value)) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.slice_above_max');
 						} else {
 							loInput.classList.remove('is-invalid');
 							loInput.removeAttribute('title');
 						}
 					} else {
-						const min = node.counterDomain?.min;
-						if (
-							Number.isFinite(value) &&
-							min !== undefined &&
-							value < min
-						) {
+						const min = node.counterDomain?.min ?? 0;
+						if (!Number.isFinite(value) || value < min) {
 							loInput.classList.add('is-invalid');
 							loInput.title = translate('group.counter.adjust_under_min');
+						} else if (Number.isFinite(Number(hiInput.value)) && value > Number(hiInput.value)) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.adjust_above_max');
 						} else {
 							loInput.classList.remove('is-invalid');
 							loInput.removeAttribute('title');
@@ -2154,38 +2174,47 @@ export class UnifiedTreeView {
 				const validateHi = (): void => {
 					const value = Number(hiInput.value);
 					if (mode === 'slice') {
-						if (Number.isFinite(value) && value > node.counterRange!.hi) {
+						if (!Number.isFinite(value) || value > node.counterRange!.hi) {
 							hiInput.classList.add('is-invalid');
 							hiInput.title = translate('group.counter.slice_above_max');
+						} else if (Number.isFinite(Number(loInput.value)) && value < Number(loInput.value)) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.slice_under_min');
 						} else {
 							hiInput.classList.remove('is-invalid');
 							hiInput.removeAttribute('title');
 						}
 					} else {
 						const max = node.counterDomain?.max;
-						if (
-							Number.isFinite(value) &&
-							max !== undefined &&
-							value > max
-						) {
+						if (!Number.isFinite(value) || (max !== undefined && value > max)) {
 							hiInput.classList.add('is-invalid');
 							hiInput.title = translate('group.counter.adjust_above_max');
+						} else if (Number.isFinite(Number(loInput.value)) && value < Number(loInput.value)) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.adjust_under_min');
 						} else {
 							hiInput.classList.remove('is-invalid');
 							hiInput.removeAttribute('title');
 						}
 					}
 				};
-				loInput.addEventListener('input', validateLo);
-				hiInput.addEventListener('input', validateHi);
+				loInput.addEventListener('input', () => {
+					validateLo();
+					validateHi();
+				});
+				hiInput.addEventListener('input', () => {
+					validateLo();
+					validateHi();
+				});
 				let done = false;
 				const commit = (): void => {
 					if (done) return;
+					validateLo();
+					validateHi();
 					if (
 						loInput.classList.contains('is-invalid') ||
 						hiInput.classList.contains('is-invalid')
 					) {
-						opts.onCounterRangeError?.(node.id, 'invalid_range');
 						return;
 					}
 					const result = validateCounterRangeEdit(
@@ -2194,7 +2223,6 @@ export class UnifiedTreeView {
 						node.counterDomain,
 					);
 					if (!result.ok) {
-						opts.onCounterRangeError?.(node.id, result.reason);
 						return;
 					}
 					const accepted = opts.onCounterRangeCommit?.(node.id, result.range, mode);
@@ -2382,6 +2410,7 @@ export class UnifiedTreeView {
 			// Frequency counter second
 			if (!usesActivationOrder) emitCount(badgeZone);
 		}
+		if (opts.caretPosition === 'end') emitCaret('end');
 		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox('end');
 
 		return row;

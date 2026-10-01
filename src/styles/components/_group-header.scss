@@ -21,29 +21,37 @@
 }
 
 .vaultman-counter-range-editor input[type='number'] {
-	inline-size: 5.5ch;
-	min-inline-size: 0;
+	min-inline-size: 6ch;
+	max-inline-size: 16ch;
+	box-sizing: border-box;
 	block-size: 22px;
 	padding-block: 0;
 	padding-inline: var(--size-4-1, 4px);
 	font: inherit;
 	font-variant-numeric: tabular-nums;
 	text-align: end;
+	color: var(--text-normal);
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
 }
 
+.vaultman-counter-range-editor input[type='number']:focus,
 .vaultman-counter-range-editor input[type='number']:focus-visible {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: 1px;
+	outline: 1px solid var(--background-modifier-border-hover);
+	border-color: var(--background-modifier-border-hover);
+	color: var(--text-normal);
 }
 
 .vaultman-counter-range-separator {
 	flex: 0 0 auto;
 	user-select: none;
+	color: var(--text-muted);
 }
 
 .vaultman-counter-range-editor input.is-invalid {
 	border: 1px solid var(--text-error, #e53935) !important;
-	background: rgba(229, 57, 53, 0.08);
+	background: rgba(229, 57, 53, 0.08) !important;
+	outline: none !important;
 }
 
 .vaultman-cell-text-status {
@@ -53,7 +61,7 @@
 	font-weight: 600;
 	padding: 1px 6px;
 	border-radius: 4px;
-	color: var(--text-accent);
+	color: var(--text-muted);
 	background: var(--background-modifier-hover);
 	margin-left: auto;
 }

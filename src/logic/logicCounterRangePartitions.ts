@@ -213,10 +213,10 @@ export function rebalanceCounterRange(
 		next.push(f);
 	}
 
-	if (following.length > 0 && next[next.length - 1].id === edited.id && edited.hi < domain.max) {
+	if (next.length > 0 && next[next.length - 1].hi < domain.max) {
 		next.push({
 			id: nextCounterRangeId([...ordered, ...next]),
-			lo: edited.hi + 1,
+			lo: next[next.length - 1].hi + 1,
 			hi: domain.max,
 		});
 	}

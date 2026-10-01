@@ -293,9 +293,12 @@ export const en: Record<string, string> = {
 		'Where row activation in open mode lands in the setting scene: the native settings modal, or the scene-local content mode.',
 	'settings.setting_scene_go_to_target.modal': 'Native modal',
 	'settings.setting_scene_go_to_target.panel_content': 'Panel content',
-	'settings.icon_in_caret_slot': 'Icon in the caret slot',
-	'settings.icon_in_caret_slot.desc':
-		'Nodes that show an icon and reserve no caret draw it in the caret column instead of before the label, so every label lines up with the nodes that have no icon.',
+	'settings.caret_position': 'Caret position',
+	'settings.caret_position.desc':
+		'Where to display the expander caret on tree nodes, or hide it.',
+	'settings.caret_position.start': 'Start',
+	'settings.caret_position.end': 'End',
+	'settings.caret_position.hidden': 'Hidden',
 	'settings.selection_checkbox_position': 'Selection Checkbox position',
 	'settings.selection_checkbox_position.desc':
 		'Where to display the selection checkbox on the file or item.',
@@ -1474,6 +1477,7 @@ export const en: Record<string, string> = {
 	'viewmode.mode.table': 'Table',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icon',
+	'viewmode.pill.caret': 'Caret',
 	'viewmode.pill.checkbox': 'Checkbox',
 	'viewmode.pill.text': 'Text',
 	'viewmode.pill.count': 'Count',

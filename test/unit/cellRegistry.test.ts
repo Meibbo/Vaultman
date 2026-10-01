@@ -26,6 +26,7 @@ describe('shared explorer cell registry', () => {
 	// flat projection exactly as it was and leaves hiding the ancestry opt-in.
 	it('preserves the current visible-cell defaults exactly', () => {
 		expect(defaultVisibleCells('props', 'tree')).toEqual([
+			'caret',
 			'icon',
 			'format',
 			'text',
@@ -35,6 +36,7 @@ describe('shared explorer cell registry', () => {
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
+			'caret',
 			'icon',
 			'format',
 			'text',
@@ -43,12 +45,14 @@ describe('shared explorer cell registry', () => {
 			'nested',
 		]);
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			'caret',
 			'format',
 			'name',
 			'ext',
 			'nested',
 		]);
 		expect(defaultVisibleCells('snippets', 'tree')).toEqual([
+			'caret',
 			'icon',
 			'format',
 			'text',
@@ -56,6 +60,7 @@ describe('shared explorer cell registry', () => {
 			'checkbox',
 		]);
 		expect(defaultVisibleCells('plugins', 'tree')).toEqual([
+			'caret',
 			'icon',
 			'format',
 			'text',
@@ -78,6 +83,7 @@ describe('shared explorer cell registry', () => {
 			// U121-081: `files` was the only explorer without the selection
 			// checkbox, which is why fileScene never offered the option. It ships
 			// off by default and ranks last among view-menu cells.
+			'caret',
 			'icon',
 			'format',
 			'path',
@@ -114,6 +120,7 @@ describe('shared explorer cell registry', () => {
 		expect(
 			viewMenuCells('files', 'tree').map((definition) => definition.id),
 		).toEqual([
+			'caret',
 			'icon',
 			'format',
 			'name',

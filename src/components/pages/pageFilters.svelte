@@ -418,6 +418,11 @@
 		const position = plugin.settings.selectionCheckboxPosition;
 		return position === 'end' || position === 'hidden' ? position : 'start';
 	});
+	const caretPosition = $derived.by(() => {
+		void settingsRevision;
+		const position = plugin.settings.caretPosition;
+		return position === 'end' || position === 'hidden' ? position : 'start';
+	});
 	const toolbarToolsMenu = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
@@ -1979,6 +1984,7 @@
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
 				orderCellsByActivation,
 				selectionCheckboxPosition,
+				caretPosition,
 				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 				frameWidth,
 				onToggleToolbar: toggleToolbar,

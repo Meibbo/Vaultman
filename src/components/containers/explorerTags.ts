@@ -70,8 +70,7 @@ export interface PanelPluginCtx {
 		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
-		/** BT5-015 */
-		iconInCaretSlot?: boolean;
+		caretPosition?: 'start' | 'end' | 'hidden';
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
@@ -270,6 +269,9 @@ export class TagsExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
 	private counterRangesChangeHandler?: (
 		ranges: readonly CounterRange[],
 		target: ScopeTarget,
@@ -896,6 +898,18 @@ export class TagsExplorerPanel extends Component {
 
 	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
 		this.groupDeleteHandler = handler;
+	}
+
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
 	}
 
 	setCounterRangesChangeHandler(
@@ -2243,14 +2257,12 @@ export class TagsExplorerPanel extends Component {
 								header.counterDomain,
 							);
 				if (!result.ok) {
-					new Notice(translate('group.counter.invalid'));
 					return false;
 				}
 				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 				return true;
 			},
-			onCounterRangeError: () =>
-				new Notice(translate('group.counter.invalid')),
+			onCounterRangeError: () => {},
 			renderLabel: (row, node) => {
 				const queue = this.plugin.queueService.queue;
 				const target = renameTargetFromQueue(queue, node.id);
@@ -2261,6 +2273,42 @@ export class TagsExplorerPanel extends Component {
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
+				}
+				if (node.isGroupHeader === true) {
+					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+						const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+						const hasBoundNote =
+							aliasSet.has(node.label) ||
+							Boolean(groupMeta?.file) ||
+							Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+						if (hasBoundNote) {
+							const label = row.createSpan({
+								cls: 'vaultman-tree-label vaultman-node-note-link',
+								text: node.label,
+							});
+							if (node.labelColor) label.style.color = node.labelColor;
+							label.onclick = (e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								if (groupMeta?.file) {
+									const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+									void leaf.openFile(groupMeta.file, { active: true });
+								} else {
+									void this.plugin.nodeBindingService?.bindOrCreate(
+										{
+											kind: 'group',
+											label: node.label,
+											path: node.id,
+										},
+										{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									);
+								}
+							};
+							return true;
+						}
+					}
+					return false;
 				}
 				if (
 					this.visibleCells.has('format') &&
@@ -2284,7 +2332,7 @@ export class TagsExplorerPanel extends Component {
 				}
 				return false;
 			},
-			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
 				inclusive: activeFilterIds,
 				exclusive: excludedFilterIds,
@@ -2401,7 +2449,8 @@ export class TagsExplorerPanel extends Component {
 							this._isCustomGroupId(groupId) &&
 							this.groupPreset.kind !== 'note'
 								? () => {
-										this._makeACopyOfGroup(groupId);
+										if (this.groupCopyHandler) this.groupCopyHandler(groupId);
+										else this._makeACopyOfGroup(groupId);
 									}
 								: undefined,
 						createSubgroup: (parentLabel: string) => {
@@ -2421,13 +2470,17 @@ export class TagsExplorerPanel extends Component {
 						},
 						renameGroup:
 							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
-								? (targetId: string) => this._renameCustomGroup(targetId)
+								? async (targetId: string) => {
+										if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+										else await this._renameCustomGroup(targetId);
+									}
 								: undefined,
 						updateGroupScope:
 							this._isCustomGroupId(groupId) &&
 							this.groupPreset.kind !== 'note'
 								? () => {
-										this._updateCustomGroupScope(groupId);
+										if (this.groupScopeHandler) this.groupScopeHandler(groupId);
+										else this._updateCustomGroupScope(groupId);
 									}
 								: undefined,
 						toggleGroupExpand: () => {
@@ -2851,13 +2904,6 @@ export class TagsExplorerPanel extends Component {
 						'explorer.ctx.reveal_this_file.no_active_file_desc',
 					),
 				});
-				const actionsEl = emptyEl.createDiv({
-					cls: 'vaultman-explorer-empty-actions',
-				});
-				const backBtn = actionsEl.createEl('button', {
-					text: translate('explorer.ctx.reveal_this_file.switch_general'),
-				});
-				backBtn.onclick = () => this.toggleRevealActiveFile();
 				return;
 			}
 			emptyEl.createDiv({
@@ -2868,13 +2914,6 @@ export class TagsExplorerPanel extends Component {
 				cls: 'vaultman-explorer-empty-desc',
 				text: translate('explorer.ctx.reveal_this_file.empty_desc_tags'),
 			});
-			const actionsEl = emptyEl.createDiv({
-				cls: 'vaultman-explorer-empty-actions',
-			});
-			const backBtn = actionsEl.createEl('button', {
-				text: translate('explorer.ctx.reveal_this_file.switch_general'),
-			});
-			backBtn.onclick = () => this.toggleRevealActiveFile();
 			return;
 		}
 		// 3. Modo normal general.
