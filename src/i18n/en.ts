@@ -659,7 +659,7 @@ export const en: Record<string, string> = {
 	'toolbar.alt.reveal_now': 'Reveal now',
 	'toolbar.alt.always_reveal': 'Always reveal here',
 	'toolbar.alt.change_icon': 'Change icon',
-	'toolbar.alt.add_command': 'Add command node here',
+	'toolbar.alt.add_command': 'Add command',
 	'toolbar.alt.remove_from_instance': 'Remove from this instance',
 	'toolbar.alt.nest_create': 'Nest creation in searchbox',
 	'toolbar.instance_info': 'Instance info',

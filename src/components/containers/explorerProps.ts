@@ -59,6 +59,7 @@ export interface PanelPluginCtx {
 		keepPropertyWhenLastValueDeleted?: boolean;
 		/** Opt-in drawer animation for expand/collapse. */
 		treeExpansionAnimation?: boolean;
+		groupNodeTooltips?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -120,6 +121,7 @@ import {
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
+	collectGroupOccurrenceIds,
 	entityIdOf,
 	expandNewGroupHeaders,
 	findCounterGroupHeader,
@@ -784,6 +786,8 @@ export class PropsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
 	private selectionAnchorId: string | null = null;
+	/** Exact tree projection shown to the user, including duplicate occurrences. */
+	private _lastProjectedTree: TreeNode<PropMeta>[] = [];
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
@@ -948,9 +952,15 @@ export class PropsExplorerPanel extends Component {
 	 * U130-p2: visible tree node IDs in render order for selection resolution.
 	 */
 	private _orderedVisibleTreeIds(): string[] {
-		const tree = this.logic.getTree();
-		if (!tree) return [];
-		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
+		const tree =
+			this.viewMode === 'tree' ? this._lastProjectedTree : this._lastRenderTree;
+		return flattenVisibleTree(tree, this.expandedIds)
+			.filter(
+				(node) =>
+					node.isGroupHeader !== true &&
+					!(node.meta as PropMeta | undefined)?.isAddPropertyRow,
+			)
+			.map((node) => node.id);
 	}
 
 	/**
@@ -1494,6 +1504,8 @@ export class PropsExplorerPanel extends Component {
 					revision: this.selectionRevision,
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
+					membershipOwner: resolvedOwner,
+					selectionStateIds: this.selectedNodeIds,
 				});
 				return handler(snapshot, resolvedOwner);
 			},
@@ -1705,7 +1717,8 @@ export class PropsExplorerPanel extends Component {
 			property: propName,
 			action: 'add',
 			details: `Add property "${propName}"`,
-			files: this.plugin.filterService.filteredFiles,
+			files:
+				this._mutationScope() ?? this.plugin.filterService.filteredFiles,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				if (propName in fm) return null;
@@ -3189,6 +3202,7 @@ export class PropsExplorerPanel extends Component {
 		const projected = this._withAddPropertyRow(
 			this.projectedNodes(nodesWithIcons),
 		);
+		this._lastProjectedTree = projected;
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(projected);
 		}
@@ -3202,7 +3216,7 @@ export class PropsExplorerPanel extends Component {
 			tooltipsEnabled: this.tooltipsOverride ?? true,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			rowTooltip: (node) => {
-				if (node.isGroupHeader !== true || this.plugin.settings.groupNodeTooltips === false) return '';
+				if (node.isGroupHeader !== true || this.plugin.settings?.groupNodeTooltips === false) return '';
 				const count = collectGroupMemberIds(node.children ?? []).length;
 				return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
 			},
@@ -3490,11 +3504,15 @@ export class PropsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
 			onRowDoubleClick: (id: string) =>
-				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
+				resolveRecursiveInteractionAction(this.interactionMode) ===
+				'select-descendants'
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
+			onRecursiveSelect: (id: string) =>
+				this._toggleDescendantSelection(id, projected),
 			onRowClick: (id: string, event) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {
 					this._startAddPropertyInReveal();
@@ -3506,7 +3524,7 @@ export class PropsExplorerPanel extends Component {
 					this._activateGroupRow(id);
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
@@ -3608,23 +3626,23 @@ export class PropsExplorerPanel extends Component {
 				);
 				return;
 			}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._openNodeMenu(node, e);
 			},
 			onDragStart: (id: string, event: DragEvent) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._setPropDragPayload(node, activeFilterIds, event);
 			},
 			onDragOver: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handlePropDragOver(node, event);
 			},
 			onDrop: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handlePropDrop(node, event);
 			},
@@ -4430,8 +4448,11 @@ export class PropsExplorerPanel extends Component {
 	 * descendant of the node in this instance's own selection. Never opens,
 	 * never expands, never queues a file operation.
 	 */
-	private _toggleDescendantSelection(id: string): void {
-		const node = this._findNode(id, this._lastRenderTree);
+	private _toggleDescendantSelection(
+		id: string,
+		tree: TreeNode<PropMeta>[] = this._lastProjectedTree,
+	): void {
+		const node = this._findNode(id, tree);
 		if (!node?.children?.length) return;
 		this.selectedNodeIds = toggleDescendantSelection(
 			node,
@@ -4443,10 +4464,11 @@ export class PropsExplorerPanel extends Component {
 
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
-	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
+	 * `select` conmuta las ocurrencias visibles del grupo (ids de fila, unicos
+	 * por grupo aunque la misma entidad aparezca en varios);
 	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
-	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value):
-	 * fallback a open, nunca el veto.
+	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value).
+	 * Solo `open` permite expandir desde el cuerpo; el caret sigue disponible.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -4455,7 +4477,7 @@ export class PropsExplorerPanel extends Component {
 				this.projectedNodes(this._lastRenderTree),
 			);
 			if (!node?.children?.length) return;
-			const members = collectGroupMemberIds(node.children);
+			const members = collectGroupOccurrenceIds(node.children);
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
@@ -4463,6 +4485,7 @@ export class PropsExplorerPanel extends Component {
 			void this._render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpanded(id);
 		void this._render();
 	}

@@ -9,6 +9,7 @@ import {
 	dropPristineInstance,
 	ensureInstance,
 	mintInstanceId,
+	setInstanceSurfacePosition,
 } from './logic/logicInstanceRegistry';
 import {
 	measureSceneAsync,
@@ -45,6 +46,7 @@ export class VaultmanFrame extends ItemView {
 	private plugin: VaultmanPlugin;
 	private svelteApp: VaultmanFrameSvelteApi | null = null;
 	private viewportRefreshFrame: number | null = null;
+	private surfacePositionFrame: number | null = null;
 	private viewportRefreshWindow: Window | null = null;
 	private _showToolbar: boolean | null = null;
 	workspaceInstanceId: string | null = null;
@@ -57,6 +59,11 @@ export class VaultmanFrame extends ItemView {
 				if (isSameWorkspaceLeaf(activeLeaf, this.leaf)) {
 					this.scheduleViewportRefresh();
 				}
+			}),
+		);
+		this.registerEvent(
+			this.app.workspace.on('layout-change', () => {
+				this.scheduleSurfacePositionSync();
 			}),
 		);
 	}
@@ -97,6 +104,7 @@ export class VaultmanFrame extends ItemView {
 				this.plugin.settings.instanceRegistry = ensured.registry;
 				if (ensured.created || trimmed !== before) await this.plugin.saveSettings();
 				this.svelteApp?.reanchorInstance?.(anchored);
+				this.scheduleSurfacePositionSync();
 			}
 		}
 		if (
@@ -165,6 +173,7 @@ export class VaultmanFrame extends ItemView {
 		});
 
 		const workspaceInstanceId = instanceId;
+		this.scheduleSurfacePositionSync();
 
 		this.svelteApp = measureSceneSync(
 			'scene.lifecycle.open.mount',
@@ -266,6 +275,38 @@ export class VaultmanFrame extends ItemView {
 		});
 	}
 
+	private scheduleSurfacePositionSync(): void {
+		if (this.surfacePositionFrame !== null) return;
+		const ownerWindow = this.contentEl.ownerDocument.defaultView;
+		if (!ownerWindow) return;
+		this.surfacePositionFrame = ownerWindow.requestAnimationFrame(() => {
+			this.surfacePositionFrame = null;
+			let current = this.leaf.parent;
+			let surfacePosition: 'left-sidebar' | 'right-sidebar' | 'main-leaf' = 'main-leaf';
+			while (current) {
+				if (current === this.app.workspace.leftSplit) {
+					surfacePosition = 'left-sidebar';
+					break;
+				}
+				if (current === this.app.workspace.rightSplit) {
+					surfacePosition = 'right-sidebar';
+					break;
+				}
+				if (current === this.app.workspace.rootSplit) break;
+				current = current.parent;
+			}
+			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
+			const next = setInstanceSurfacePosition(
+				registry,
+				this.workspaceInstanceId ?? '',
+				surfacePosition,
+			);
+			if (next === registry) return;
+			this.plugin.settings.instanceRegistry = next;
+			void this.plugin.saveSettings();
+		});
+	}
+
 	private cancelViewportRefresh(): void {
 		if (this.viewportRefreshFrame !== null && this.viewportRefreshWindow) {
 			this.viewportRefreshWindow.cancelAnimationFrame(
@@ -274,5 +315,11 @@ export class VaultmanFrame extends ItemView {
 		}
 		this.viewportRefreshFrame = null;
 		this.viewportRefreshWindow = null;
+		if (this.surfacePositionFrame !== null) {
+			this.contentEl.ownerDocument.defaultView?.cancelAnimationFrame(
+				this.surfacePositionFrame,
+			);
+		}
+		this.surfacePositionFrame = null;
 	}
 }

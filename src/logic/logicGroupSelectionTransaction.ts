@@ -131,6 +131,7 @@ export function selectionKeyFor(
 export function captureGroupSelectionSnapshot(args: {
 	selectionKey: string;
 	rowIds: readonly string[];
+	selectionStateIds?: ReadonlySet<string> | readonly string[];
 	entityIds: readonly string[];
 	urns: readonly string[];
 	providerId: string;
@@ -139,7 +140,10 @@ export function captureGroupSelectionSnapshot(args: {
 	revision?: number | null;
 	affectedEntityIds?: readonly string[];
 }): GroupSelectionSnapshot {
-	const token = noteSelectionState(args.selectionKey, args.rowIds);
+	const token = noteSelectionState(
+		args.selectionKey,
+		args.selectionStateIds ?? args.rowIds,
+	);
 	const entityIds = [...new Set(args.entityIds)];
 	return Object.freeze({
 		selectionKey: args.selectionKey,
@@ -170,6 +174,10 @@ export function snapshotFromProjectedTree<TMeta>(args: {
 	revision?: number | null;
 	selectionKey?: string;
 	customGroupIds?: ReadonlySet<string>;
+	/** Restrict rows to one exact group occurrence owner. */
+	membershipOwner?: string;
+	/** Preserve the full live selection epoch while snapshotting a subset. */
+	selectionStateIds?: ReadonlySet<string> | readonly string[];
 }): GroupSelectionSnapshot {
 	const key =
 		args.selectionKey ??
@@ -185,8 +193,12 @@ export function snapshotFromProjectedTree<TMeta>(args: {
 				continue;
 			}
 			const entity = entityIdOf(node);
+			const owner = occurrenceOwnerOf(node);
+			const ownerScoped = args.membershipOwner !== undefined;
 			if (
-				(args.selectedIds.has(node.id) || args.selectedIds.has(entity)) &&
+				(args.selectedIds.has(node.id) ||
+					(!ownerScoped && args.selectedIds.has(entity))) &&
+				(!ownerScoped || owner === args.membershipOwner) &&
 				!seen.has(entity)
 			) {
 				seen.add(entity);
@@ -201,6 +213,7 @@ export function snapshotFromProjectedTree<TMeta>(args: {
 	return captureGroupSelectionSnapshot({
 		selectionKey: key,
 		rowIds,
+		selectionStateIds: args.selectionStateIds,
 		entityIds,
 		urns,
 		providerId: args.providerId,

@@ -364,9 +364,19 @@ export class VaultmanPlugin extends Plugin {
 				void this.activateView();
 			},
 		);
+		this.registerDomEvent(
+			ribbonIconEl,
+			'click',
+			(event) => {
+				if (event.button === 0) return;
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			},
+			{ capture: true },
+		);
 		this.registerDomEvent(ribbonIconEl, 'contextmenu', (event) => {
 			this.openRibbonLocationMenu(event);
-		});
+		}, { capture: true });
 
 		this.registerView(
 			VAULTMAN_FRAME_TYPE,
@@ -1048,7 +1058,7 @@ export class VaultmanPlugin extends Plugin {
 	 */
 	private openRibbonLocationMenu(event: MouseEvent): void {
 		event.preventDefault();
-		event.stopPropagation();
+		event.stopImmediatePropagation();
 		const menu = new Menu();
 		menu.addItem((item) => {
 			item

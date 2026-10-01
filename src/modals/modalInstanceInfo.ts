@@ -20,7 +20,7 @@ export interface InstanceInfoModel {
 	revision: number;
 	tombstoned: boolean;
 	activeScene: string | null;
-	self: SceneConfig;
+	self: SceneConfig & { surfacePosition?: WorkspaceInstanceRecord['surfacePosition'] };
 	selfOverrideKeys: readonly string[];
 	scenes: readonly InstanceInfoSceneEntry[];
 }
@@ -43,6 +43,10 @@ export function buildInstanceInfoModel(
 		...SCENE_ORDER.filter((scene) => stored.includes(scene)),
 		...stored.filter((scene) => !SCENE_ORDER.includes(scene)).sort(),
 	];
+	const self = {
+		...record.self,
+		...(record.surfacePosition ? { surfacePosition: record.surfacePosition } : {}),
+	};
 	return {
 		id: record.id,
 		createdAt: record.createdAt,
@@ -50,8 +54,8 @@ export function buildInstanceInfoModel(
 		revision: record.revision,
 		tombstoned: record.tombstoned,
 		activeScene,
-		self: { ...record.self },
-		selfOverrideKeys: Object.keys(record.self ?? {}).sort(),
+		self,
+		selfOverrideKeys: Object.keys(self).sort(),
 		scenes: ordered.map((scene) => {
 			const overrides =
 				(record.scenes as Record<string, SceneConfig>)[scene] ?? {};

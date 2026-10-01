@@ -1165,8 +1165,8 @@ export class SnippetsExplorerPanel
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
 	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`
-	 * de las filas multi-grupo), nunca el id del grupo; en el resto
-	 * colapsa/expande como una carpeta.
+	 * de las filas multi-grupo), nunca el id del grupo; solo `open` colapsa o
+	 * expande desde el cuerpo. El caret conserva su acción directa.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -1184,6 +1184,7 @@ export class SnippetsExplorerPanel
 			this.render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpandedGroup(id);
 	}
 

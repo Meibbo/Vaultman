@@ -123,6 +123,8 @@ export interface WorkspaceInstanceRecord {
 	/** epoch ms del último toque de actividad; la reconciliación usa esto para LRU.
 	 * Migración: si falta (registro persisted de antes de esta fecha), se usa `createdAt`. */
 	lastActiveAt: number;
+	/** Current workspace location, shown under instance overrides in Instance info. */
+	surfacePosition?: 'left-sidebar' | 'right-sidebar' | 'main-leaf';
 	/** sube en cada commit; la reconciliación la usa para detectar escrituras interrumpidas. */
 	revision: number;
 	tombstoned: boolean;

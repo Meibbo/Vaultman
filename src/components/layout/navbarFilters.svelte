@@ -3321,7 +3321,45 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.instance_info'))
+				.setIcon('lucide-info')
+				.onClick(() => {
+					if (!app) return;
+					const record = sceneConfigPort.readInstanceRecord();
+					if (!record) return;
+					const records = Object.values(
+						plugin.settings.instanceRegistry?.instances ?? {},
+					).filter((candidate) => !candidate.tombstoned);
+					new InstanceInfoModal(
+						app,
+						record,
+						records,
+						onSwitchInstance,
+					).open();
+				});
+		});
+		const providedNodes = panelWidgetNodes.filter((node) => {
+			const prefix = `${providerId}:`;
+			return node.id.startsWith(prefix) &&
+				!node.id.slice(prefix.length).startsWith('command:');
+		});
+		if (providedNodes.length > 0) {
+			menu.addSeparator();
+			for (const node of providedNodes) {
+				const localId = node.id.slice(`${providerId}:`.length);
+				menu.addItem((item) => {
+					item
+						.setTitle(node.label)
+						.setIcon(node.icon)
+						.setChecked(toolbarNodeVisible(localId))
+						.onClick(() => toggleToolbarNodeVisibility(localId));
+				});
+			}
+		}
 		if (onToggleToolbar) {
+			menu.addSeparator();
 			menu.addItem((item) => {
 				item
 					.setTitle(translate('viewmenu.toolbar'))
@@ -3329,8 +3367,8 @@
 					.setChecked(toolbarShown)
 					.onClick(() => onToggleToolbar?.());
 			});
-			menu.addSeparator();
 		}
+		menu.addSeparator();
 		// U130 polishing: añadir nodos con comandos bindeados directamente
 		// per-instance (scene). Los `command:*` globales se gestionan en
 		// Settings; aquí solo entra la lista de esta scene.
@@ -3351,42 +3389,6 @@
 							});
 						},
 					});
-				});
-		});
-		menu.addSeparator();
-		// Solo nodos provided: los `command:*` los gestiona el usuario donde
-		// los agregó, no desde aquí.
-		for (const node of panelWidgetNodes) {
-			const prefix = `${providerId}:`;
-			if (!node.id.startsWith(prefix)) continue;
-			const localId = node.id.slice(prefix.length);
-			if (localId.startsWith('command:')) continue;
-			menu.addItem((item) => {
-				item
-					.setTitle(node.label)
-					.setIcon(node.icon)
-					.setChecked(toolbarNodeVisible(localId))
-					.onClick(() => toggleToolbarNodeVisibility(localId));
-			});
-		}
-		menu.addSeparator();
-		menu.addItem((item) => {
-			item
-				.setTitle(translate('toolbar.instance_info'))
-				.setIcon('lucide-info')
-				.onClick(() => {
-					if (!app) return;
-					const record = sceneConfigPort.readInstanceRecord();
-					if (!record) return;
-					const records = Object.values(
-						plugin.settings.instanceRegistry?.instances ?? {},
-					).filter((candidate) => !candidate.tombstoned);
-					new InstanceInfoModal(
-						app,
-						record,
-						records,
-						onSwitchInstance,
-					).open();
 				});
 		});
 		menu.showAtMouseEvent(event);
@@ -3532,14 +3534,19 @@
 		ownerPanel?.setScopePickMode?.(mode);
 		// D29 drill UX: one click selects the requested parent/level scope.
 		pane.classList.add('vaultman-sort-pick-mode');
+		const isCaretPointer = (event: Event): boolean =>
+			event.target instanceof Element &&
+			Boolean(event.target.closest('.vaultman-tree-row .vaultman-tree-toggle'));
 		const suppressEvent = (event: Event) => {
+			if (isCaretPointer(event)) return;
 			event.preventDefault();
 			event.stopImmediatePropagation();
 		};
 		const onPick = (event: PointerEvent) => {
+			if (isCaretPointer(event)) return;
 			const target =
 				event.target instanceof Element
-					? event.target.closest<HTMLElement>('[data-id]')
+					? event.target.closest<HTMLElement>('.vaultman-tree-row[data-id]')
 					: null;
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;

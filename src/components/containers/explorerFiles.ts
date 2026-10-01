@@ -4162,8 +4162,8 @@ export class FilesExplorerPanel extends Component {
 		if (entries.length === 0) return;
 		const draggable =
 			entries.length === 1 && entries[0] instanceof TFile
-				? dragManager.dragFile?.(event, entries[0], 'vaultman')
-				: dragManager.dragFiles?.(event, entries, 'vaultman');
+				? dragManager.dragFile?.(event, entries[0], 'file-explorer')
+				: dragManager.dragFiles?.(event, entries, 'file-explorer');
 		if (draggable !== undefined) dragManager.draggable = draggable;
 	}
 
@@ -4198,9 +4198,8 @@ export class FilesExplorerPanel extends Component {
 	 * - `select`: conmuta la seleccion de todos los descendientes (ids de
 	 *   entidad, sin el sufijo `@grupo` de las filas multi-grupo), nunca el
 	 *   id del grupo, que no es un path y no significa nada en la seleccion.
-	 * - `filter`/`add`/`open`: colapsa/expande. Un grupo no puede ser
-	 *   criterio de filtro (`serviceFilter.getFilterState` solo acepta
-	 *   folder/tag/prop/value), asi que el fallback es open, nunca el veto.
+	 * - `open`: colapsa/expande. En los demás modos el cuerpo no altera la
+	 *   expansión; el caret conserva su acción directa en todos los modos.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -4221,6 +4220,7 @@ export class FilesExplorerPanel extends Component {
 			});
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleFolderWithStickyAnchor(id);
 	}
 

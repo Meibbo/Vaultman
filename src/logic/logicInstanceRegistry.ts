@@ -276,6 +276,21 @@ export function setActiveScene(
 	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
 }
 
+/** Record the live dock/root location without touching scene-level settings. */
+export function setInstanceSurfacePosition(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	surfacePosition: NonNullable<WorkspaceInstanceRecord['surfacePosition']>,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record || record.surfacePosition === surfacePosition) return registry;
+	const nextRecord: WorkspaceInstanceRecord = {
+		...record,
+		surfacePosition,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
+}
+
 /** Guarda el estado del índice flotante para la instancia. Sin efecto si el id no existe. */
 export function setInstanceFloatingToc(
 	registry: InstanceRegistryData,

@@ -665,7 +665,7 @@ export const es: Record<string, string> = {
 	'toolbar.alt.reveal_now': 'Revelar ahora',
 	'toolbar.alt.always_reveal': 'Revelar siempre aquí',
 	'toolbar.alt.change_icon': 'Cambiar icono',
-	'toolbar.alt.add_command': 'Añadir nodo de comando aquí',
+	'toolbar.alt.add_command': 'Añadir comando',
 	'toolbar.alt.remove_from_instance': 'Quitar de esta instancia',
 	'toolbar.alt.nest_create': 'Anidar creación en el searchbox',
 	'toolbar.instance_info': 'Info de la instancia',
