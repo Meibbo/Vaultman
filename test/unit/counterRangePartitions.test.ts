@@ -5,6 +5,7 @@ import {
 	isCounterRangePartition,
 	removeCounterRangeSlice,
 	rebalanceCounterRange,
+	sliceCounterRange,
 	validateCounterRangePartition,
 } from '../../src/logic/logicCounterRangePartitions';
 import { rebalanceCounterRangeEdit } from '../../src/logic/logicCounterRangeEditor';
@@ -267,6 +268,31 @@ describe('U130-GGC-004 counter/date partitions', () => {
 				{ id: 'd-week', lo: 1, hi: 14 },
 				{ id: 'd-month', lo: 15, hi: 30 },
 			]);
+		}
+	});
+
+	it('shrinks Nmax from 9000 to 6000 and creates a new group 6001–9000 for both adjust and slice', () => {
+		const domain = { min: 0, max: 9000 };
+		const singleRange = [{ id: 'all-9000', lo: 0, hi: 9000 }];
+
+		// 1. Slice: shrinks all-9000 to 0–6000 and creates new range 6001–9000
+		const sliced = sliceCounterRange(singleRange, { id: 'all-9000', lo: 0, hi: 6000 }, domain);
+		expect(sliced.ok).toBe(true);
+		if (sliced.ok) {
+			expect(sliced.ranges).toHaveLength(2);
+			expect(sliced.ranges[0]).toEqual({ id: 'all-9000', lo: 0, hi: 6000 });
+			expect(sliced.ranges[1].lo).toBe(6001);
+			expect(sliced.ranges[1].hi).toBe(9000);
+		}
+
+		// 2. Adjust: shrinks all-9000 to 0–6000 and automatically creates trailing partition 6001–9000
+		const adjusted = rebalanceCounterRange(singleRange, { id: 'all-9000', lo: 0, hi: 6000 }, domain);
+		expect(adjusted.ok).toBe(true);
+		if (adjusted.ok) {
+			expect(adjusted.ranges).toHaveLength(2);
+			expect(adjusted.ranges[0]).toEqual({ id: 'all-9000', lo: 0, hi: 6000 });
+			expect(adjusted.ranges[1].lo).toBe(6001);
+			expect(adjusted.ranges[1].hi).toBe(9000);
 		}
 	});
 

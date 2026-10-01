@@ -149,6 +149,12 @@ export interface PanelWidgetExplorerPort {
 	setGroupHideHandler?(handler?: GroupHideHandler): void;
 	/** Scene-owned deletion mutation for custom group headers. */
 	setGroupDeleteHandler?(handler?: GroupDeleteHandler): void;
+	/** Scene-owned rename mutation for custom group headers. */
+	setGroupRenameHandler?(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void;
+	/** Scene-owned copy mutation for custom group headers. */
+	setGroupCopyHandler?(handler?: (groupId: string) => void): void;
+	/** Scene-owned scope change mutation for custom group headers. */
+	setGroupScopeHandler?(handler?: (groupId: string) => void): void;
 	/** Persist the complete explicit range set after one header edit. */
 	setCounterRangesChangeHandler?(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,

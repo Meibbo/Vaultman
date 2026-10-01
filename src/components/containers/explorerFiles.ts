@@ -545,6 +545,9 @@ export class FilesExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
 	private counterRangesChangeHandler?: (
 		ranges: readonly CounterRange[],
 		target: ScopeTarget,
@@ -1222,6 +1225,18 @@ export class FilesExplorerPanel extends Component {
 
 	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
 		this.groupDeleteHandler = handler;
+	}
+
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
 	}
 
 	/**
@@ -2990,14 +3005,12 @@ export class FilesExplorerPanel extends Component {
 								header.counterDomain,
 							);
 				if (!result.ok) {
-					new Notice(translate('group.counter.invalid'));
 					return false;
 				}
 				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 				return true;
 			},
-			onCounterRangeError: () =>
-				new Notice(translate('group.counter.invalid')),
+			onCounterRangeError: () => {},
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
 		this.treeView.render({
@@ -3293,24 +3306,29 @@ export class FilesExplorerPanel extends Component {
 				selectionCheckboxPosition: this._selectionCheckboxPosition(),
 				counterRangeBoundLabel: (bound) =>
 					translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-				onCounterRangeCommit: (id, range) => {
+				onCounterRangeCommit: (id, range, mode) => {
 					const header = this._findNode(id, projectedTree);
 					if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 						return false;
-					const result = rebalanceCounterRange(
-						header.counterRanges,
-						range,
-						header.counterDomain,
-					);
+					const result =
+						mode === 'slice'
+							? sliceCounterRange(
+									header.counterRanges,
+									range,
+									header.counterDomain,
+								)
+							: rebalanceCounterRange(
+									header.counterRanges,
+									range,
+									header.counterDomain,
+								);
 					if (!result.ok) {
-						new Notice(translate('group.counter.invalid'));
 						return false;
 					}
 					this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 					return true;
 				},
-				onCounterRangeError: () =>
-					new Notice(translate('group.counter.invalid')),
+				onCounterRangeError: () => {},
 				// U121-106: mantener pulsado el checkbox de un p-node actua sobre
 				// toda su descendencia. La regla de apagado que pidio el dev es
 				// "si ya hay ALGUNO o todos", no "si estan todos": un p-node con
@@ -3655,17 +3673,22 @@ export class FilesExplorerPanel extends Component {
 							makeACopy:
 								groupOwner === 'custom'
 									? () => {
-											this._makeACopyOfGroup(groupId);
+											if (this.groupCopyHandler) this.groupCopyHandler(groupId);
+											else this._makeACopyOfGroup(groupId);
 										}
 									: undefined,
 							renameGroup:
 								groupOwner === 'custom' || groupOwner === 'note'
-									? (targetId: string) => this._renameCustomGroup(targetId)
+									? async (targetId: string) => {
+											if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+											else await this._renameCustomGroup(targetId);
+										}
 									: undefined,
 							updateGroupScope:
 								groupOwner === 'custom'
 									? () => {
-											this._updateCustomGroupScope(groupId);
+											if (this.groupScopeHandler) this.groupScopeHandler(groupId);
+											else this._updateCustomGroupScope(groupId);
 										}
 									: undefined,
 							toggleGroupExpand: () => {
@@ -3862,6 +3885,43 @@ export class FilesExplorerPanel extends Component {
 			});
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
+		}
+
+		if (node.isGroupHeader === true) {
+			if (this.visibleCells.has("format") && this.plugin.nodeBindingService) {
+				const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+				const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+				const hasBoundNote =
+					aliasSet.has(node.label) ||
+					Boolean(groupMeta?.file) ||
+					Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+				if (hasBoundNote) {
+					const linkEl = container.createSpan({
+						cls: "vaultman-tree-label vaultman-node-note-link",
+						text: node.label,
+					});
+					if (node.labelColor) linkEl.style.color = node.labelColor;
+					linkEl.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						if (groupMeta?.file) {
+							const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+							void leaf.openFile(groupMeta.file, { active: true });
+						} else {
+							void this.plugin.nodeBindingService?.bindOrCreate(
+								{
+									kind: "group",
+									label: node.label,
+									path: node.id,
+								},
+								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+							);
+						}
+					};
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// O(1) pure read: When format cell is visible and node was decorated with a Node-Note

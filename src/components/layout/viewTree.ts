@@ -844,11 +844,6 @@ export class UnifiedTreeView {
 		block: ScrollLogicalPosition = 'center',
 		behavior: ScrollBehavior = 'auto',
 	): void {
-		const row = this.rowEls.get(id);
-		if (row) {
-			row.scrollIntoView({ block, inline: 'nearest', behavior });
-			return;
-		}
 		const index = this._indexById.get(id);
 		if (index !== undefined) {
 			this.containerEl.scrollTo({
@@ -863,6 +858,11 @@ export class UnifiedTreeView {
 			}
 			this._pendingScroll = null;
 			vaultmanPerfMonitor.recordAction('tree', 'scrollToId', { id, index });
+			return;
+		}
+		const row = this.rowEls.get(id);
+		if (row) {
+			row.scrollIntoView({ block, inline: 'nearest', behavior });
 			return;
 		}
 		this._pendingScroll = { id, block, behavior };
@@ -1502,6 +1502,19 @@ export class UnifiedTreeView {
 		}
 	}
 
+	private _stickyRowsAbove(index: number, rowHeight: number): number {
+		if (!this._opts?.stickyParentRows || rowHeight <= 0) return 0;
+		const sticky = stickyTreeRows(this._rows, {
+			rowHeight,
+			scrollTop: index * rowHeight,
+			viewportHeight: this.containerEl.clientHeight,
+			maxFraction: this._opts?.stickyMaxFraction,
+			parentIndex: this._parentIndex ?? undefined,
+			subtreeEnd: this._subtreeEnd ?? undefined,
+		}).filter((s) => s.index !== index);
+		return sticky.length;
+	}
+
 	private _scrollTopForIndex(
 		index: number,
 		block: ScrollLogicalPosition,
@@ -1514,12 +1527,18 @@ export class UnifiedTreeView {
 		const currentBottom = currentTop + viewportHeight;
 		let target = currentTop;
 		if (block === 'start') {
-			target = rowTop;
+			const stickyCount = this._stickyRowsAbove(index, rowHeight);
+			target = Math.max(0, (index - stickyCount) * rowHeight);
 		} else if (block === 'end') {
 			target = rowBottom - viewportHeight;
 		} else if (block === 'nearest') {
-			if (rowTop < currentTop) target = rowTop;
-			else if (rowBottom > currentBottom) target = rowBottom - viewportHeight;
+			const stickyCount = this._stickyRowsAbove(index, rowHeight);
+			const effectiveTop = currentTop + stickyCount * rowHeight;
+			if (rowTop < effectiveTop) {
+				target = Math.max(0, (index - stickyCount) * rowHeight);
+			} else if (rowBottom > currentBottom) {
+				target = rowBottom - viewportHeight;
+			}
 		} else {
 			target = rowTop - viewportHeight / 2 + rowHeight / 2;
 		}
@@ -2116,6 +2135,12 @@ export class UnifiedTreeView {
 							step: '1',
 						},
 					});
+					const updateWidth = (): void => {
+						const len = Math.max(5, input.value.length + 2);
+						input.style.inlineSize = `${len}ch`;
+					};
+					updateWidth();
+					input.addEventListener('input', updateWidth);
 					input.addEventListener('click', (event) => event.stopPropagation());
 					return input;
 				};
@@ -2131,22 +2156,24 @@ export class UnifiedTreeView {
 				const validateLo = (): void => {
 					const value = Number(loInput.value);
 					if (mode === 'slice') {
-						if (Number.isFinite(value) && value < node.counterRange!.lo) {
+						if (!Number.isFinite(value) || value < node.counterRange!.lo) {
 							loInput.classList.add('is-invalid');
 							loInput.title = translate('group.counter.slice_under_min');
+						} else if (Number.isFinite(Number(hiInput.value)) && value > Number(hiInput.value)) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.slice_above_max');
 						} else {
 							loInput.classList.remove('is-invalid');
 							loInput.removeAttribute('title');
 						}
 					} else {
-						const min = node.counterDomain?.min;
-						if (
-							Number.isFinite(value) &&
-							min !== undefined &&
-							value < min
-						) {
+						const min = node.counterDomain?.min ?? 0;
+						if (!Number.isFinite(value) || value < min) {
 							loInput.classList.add('is-invalid');
 							loInput.title = translate('group.counter.adjust_under_min');
+						} else if (Number.isFinite(Number(hiInput.value)) && value > Number(hiInput.value)) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.adjust_above_max');
 						} else {
 							loInput.classList.remove('is-invalid');
 							loInput.removeAttribute('title');
@@ -2156,38 +2183,47 @@ export class UnifiedTreeView {
 				const validateHi = (): void => {
 					const value = Number(hiInput.value);
 					if (mode === 'slice') {
-						if (Number.isFinite(value) && value > node.counterRange!.hi) {
+						if (!Number.isFinite(value) || value > node.counterRange!.hi) {
 							hiInput.classList.add('is-invalid');
 							hiInput.title = translate('group.counter.slice_above_max');
+						} else if (Number.isFinite(Number(loInput.value)) && value < Number(loInput.value)) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.slice_under_min');
 						} else {
 							hiInput.classList.remove('is-invalid');
 							hiInput.removeAttribute('title');
 						}
 					} else {
 						const max = node.counterDomain?.max;
-						if (
-							Number.isFinite(value) &&
-							max !== undefined &&
-							value > max
-						) {
+						if (!Number.isFinite(value) || (max !== undefined && value > max)) {
 							hiInput.classList.add('is-invalid');
 							hiInput.title = translate('group.counter.adjust_above_max');
+						} else if (Number.isFinite(Number(loInput.value)) && value < Number(loInput.value)) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.adjust_under_min');
 						} else {
 							hiInput.classList.remove('is-invalid');
 							hiInput.removeAttribute('title');
 						}
 					}
 				};
-				loInput.addEventListener('input', validateLo);
-				hiInput.addEventListener('input', validateHi);
+				loInput.addEventListener('input', () => {
+					validateLo();
+					validateHi();
+				});
+				hiInput.addEventListener('input', () => {
+					validateLo();
+					validateHi();
+				});
 				let done = false;
 				const commit = (): void => {
 					if (done) return;
+					validateLo();
+					validateHi();
 					if (
 						loInput.classList.contains('is-invalid') ||
 						hiInput.classList.contains('is-invalid')
 					) {
-						opts.onCounterRangeError?.(node.id, 'invalid_range');
 						return;
 					}
 					const result = validateCounterRangeEdit(
@@ -2196,7 +2232,6 @@ export class UnifiedTreeView {
 						node.counterDomain,
 					);
 					if (!result.ok) {
-						opts.onCounterRangeError?.(node.id, result.reason);
 						return;
 					}
 					const accepted = opts.onCounterRangeCommit?.(node.id, result.range, mode);

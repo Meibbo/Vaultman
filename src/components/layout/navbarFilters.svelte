@@ -812,17 +812,20 @@
 		commitConfig(tab, { groupMemberships: next });
 		applyGroupMemberships(tab, next);
 	}
-	/** U130-GGC-016: rename desde el sort drawer. Modal de texto, renombra clave preservando target. */
-	async function renameCustomGroup(tab: FiltersTab, id: string) {
+	/** U130-GGC-016: rename desde el sort drawer o cmenu. Modal de texto, renombra clave preservando target. */
+	async function renameCustomGroup(tab: FiltersTab, id: string, nextNameParam?: string) {
 		const memberships = configByTab[tab].groupMemberships;
 		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
-		if (!app) return;
 		const parsed = parseScopedGroupKey(id);
-		const nextName = (
-			await showInputModal(app, translate('group.row.rename'), {
-				initialValue: parsed.name,
-			})
-		)?.trim();
+		let nextName = nextNameParam?.trim();
+		if (!nextName) {
+			if (!app) return;
+			nextName = (
+				await showInputModal(app, translate('group.row.rename'), {
+					initialValue: parsed.name,
+				})
+			)?.trim();
+		}
 		if (!nextName || nextName === parsed.name) return;
 		const nextId = parsed.legacy
 			? nextName
@@ -4603,6 +4606,11 @@
 			setGroupHidden(tab, groupId, hidden),
 		);
 		port?.setGroupDeleteHandler?.((groupId) => deleteCustomGroup(tab, groupId));
+		port?.setGroupRenameHandler?.((groupId, nextName) =>
+			renameCustomGroup(tab, groupId, nextName),
+		);
+		port?.setGroupCopyHandler?.((groupId) => copyCustomGroup(tab, groupId));
+		port?.setGroupScopeHandler?.((groupId) => updateCustomGroupScope(tab, groupId));
 		port?.setCounterRangesChangeHandler?.((ranges, target) =>
 			setCounterRangesFor(tab, ranges, target),
 		);

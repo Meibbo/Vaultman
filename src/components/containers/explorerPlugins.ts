@@ -177,6 +177,9 @@ export class PluginsExplorerPanel
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 
@@ -428,6 +431,18 @@ export class PluginsExplorerPanel
 
 	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
 		this.groupDeleteHandler = handler;
+	}
+
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
 	}
 
 	setSelectionScope(scope: { instanceId: string | null; revision: number | null; scene: string }): void {
@@ -1304,6 +1319,42 @@ export class PluginsExplorerPanel
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			renderLabel: (row, node) => {
+				if (node.isGroupHeader === true) {
+					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+						const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+						const hasBoundNote =
+							aliasSet.has(node.label) ||
+							Boolean(groupMeta?.file) ||
+							Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+						if (hasBoundNote) {
+							const label = row.createSpan({
+								cls: 'vaultman-tree-label vaultman-node-note-link',
+								text: node.label,
+							});
+							if (node.labelColor) label.style.color = node.labelColor;
+							label.onclick = (e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								if (groupMeta?.file) {
+									const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+									void leaf.openFile(groupMeta.file, { active: true });
+								} else {
+									void this.plugin.nodeBindingService?.bindOrCreate(
+										{
+											kind: 'group',
+											label: node.label,
+											path: node.id,
+										},
+										{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									);
+								}
+							};
+							return true;
+						}
+					}
+					return false;
+				}
 				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
 						cls: 'vaultman-tree-label vaultman-node-note-link',
@@ -1447,15 +1498,20 @@ export class PluginsExplorerPanel
 										),
 							makeACopy: this._isCustomGroupId(id)
 								? () => {
-										this._makeACopyOfGroup(id);
+										if (this.groupCopyHandler) this.groupCopyHandler(id);
+										else this._makeACopyOfGroup(id);
 									}
 								: undefined,
 							renameGroup: this._isCustomGroupId(id)
-								? (targetId: string) => this._renameCustomGroup(targetId)
+								? async (targetId: string) => {
+										if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+										else await this._renameCustomGroup(targetId);
+									}
 								: undefined,
 							updateGroupScope: this._isCustomGroupId(id)
 								? () => {
-										this._updateCustomGroupScope(id);
+										if (this.groupScopeHandler) this.groupScopeHandler(id);
+										else this._updateCustomGroupScope(id);
 									}
 								: undefined,
 							toggleGroupExpand: (groupId: string) => {
