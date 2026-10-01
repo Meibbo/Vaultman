@@ -155,6 +155,15 @@
 		},
 	);
 
+	function hasScopeConfig(key: SortScopeKey): boolean {
+		if (key === 'all') {
+			const sorts = sortState.sorts as Record<string, unknown> | undefined;
+			const sets = sortState.scopeState?.sets as Record<string, unknown> | undefined;
+			return Boolean(sorts?.['all'] || sets?.['all']);
+		}
+		return true;
+	}
+
 	function activateScopeItem(item: ScopeMenuItem) {
 		if (item.kind === 'separator') return;
 		if (item.kind === 'pick') {
@@ -162,6 +171,11 @@
 			if (item.id === 'drill') onRequestDrillPick?.();
 			else if (item.id === 'level') onRequestLevelPick?.();
 			else selectScope('all');
+			return;
+		}
+		if (item.id === 'all' && !hasScopeConfig('all')) {
+			selectScope('all');
+			onActivateScope?.('all');
 			return;
 		}
 		scopeConfirmRow.arm(item.id);
@@ -433,17 +447,19 @@
 									onclick={() => answerScopeRow(opt.id, 'select')}
 									use:icon={opt.icon}
 								></button>
-								<button
-									class="vaultman-sort-drawer-item"
-									aria-label={translate(
-										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
-									)}
-									title={translate(
-										opt.hidden ? 'group.row.unhide' : 'group.row.hide',
-									)}
-									onclick={() => answerScopeRow(opt.id, 'hide')}
-									use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
-								></button>
+								{#if opt.id !== 'all'}
+									<button
+										class="vaultman-sort-drawer-item"
+										aria-label={translate(
+											opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+										)}
+										title={translate(
+											opt.hidden ? 'group.row.unhide' : 'group.row.hide',
+										)}
+										onclick={() => answerScopeRow(opt.id, 'hide')}
+										use:icon={opt.hidden ? 'lucide-eye' : 'lucide-eye-off'}
+									></button>
+								{/if}
 								<button
 									class="vaultman-sort-drawer-item"
 									aria-label={translate('group.row.delete')}

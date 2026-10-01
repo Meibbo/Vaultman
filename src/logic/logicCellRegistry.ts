@@ -100,6 +100,17 @@ const FILE_CARD_MODES = ['cards', 'grid'] as const;
 
 export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 	{
+		id: 'filters',
+		role: 'control',
+		labelKey: 'viewmode.pill.filters',
+		icon: 'lucide-filter',
+		supports: [
+			{ explorer: 'files', fixedRank: 998, defaultOn: true },
+			{ explorer: 'props', fixedRank: 998, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 998, defaultOn: true },
+		],
+	},
+	{
 		id: 'checkbox',
 		role: 'control',
 		labelKey: 'viewmode.pill.checkbox',

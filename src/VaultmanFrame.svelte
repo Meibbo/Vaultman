@@ -362,7 +362,7 @@
 		writeRegistry: (next) => {
 			plugin.settings.instanceRegistry = next;
 		},
-		persist: () => plugin.saveSettings(),
+		persist: () => plugin.saveSettings({ notify: false }),
 		defaultsFor: (scene) => ({
 			viewMode: 'tree',
 			interactionMode: DEFAULT_INTERACTION_MODE[scene],

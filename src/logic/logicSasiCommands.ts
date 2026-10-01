@@ -58,11 +58,24 @@ function isCheckable(
 	return handler.length >= 1;
 }
 
+export interface SasiCommandPublisherOptions {
+	onPublishedChange?: (publishedIds: readonly string[]) => void;
+}
+
 export function createSasiCommandPublisher(
 	plugin: PluginLike,
+	options?: SasiCommandPublisherOptions,
 ): SasiCommandPublisher {
 	const commands = new Map<string, PublishedCommand>();
 	const descriptors = new Map<string, SasiCommandDescriptor>();
+
+	const getPublishedIds = (): string[] => {
+		const ids: string[] = [];
+		for (const entry of commands.values()) {
+			if (entry.published) ids.push(entry.id);
+		}
+		return ids;
+	};
 
 	const publish = (entry: PublishedCommand): void => {
 		if (
@@ -116,26 +129,29 @@ export function createSasiCommandPublisher(
 			}
 			if (published && !entry.published) {
 				publish(entry);
+				options?.onPublishedChange?.(getPublishedIds());
 			} else if (!published && entry.published) {
 				unpublish(entry);
+				options?.onPublishedChange?.(getPublishedIds());
 			}
 		},
 		isPublished(id) {
 			return commands.get(id)?.published ?? false;
 		},
 		publishedIds() {
-			const ids: string[] = [];
-			for (const entry of commands.values()) {
-				if (entry.published) ids.push(entry.id);
-			}
-			return ids;
+			return getPublishedIds();
 		},
 		revokeAll() {
+			let changed = false;
 			for (const entry of commands.values()) {
 				if (entry.published) {
 					plugin.removeCommand(entry.descriptor.id);
 					entry.published = false;
+					changed = true;
 				}
+			}
+			if (changed) {
+				options?.onPublishedChange?.([]);
 			}
 		},
 		snapshot() {

@@ -1475,6 +1475,7 @@ export const en: Record<string, string> = {
 	'tags.source.inline': 'inline',
 	'tags.source.both': 'both',
 	'viewmode.pill.format': 'Format',
+	'viewmode.pill.filters': 'Filters',
 	'viewmode.pill.cell_hover': 'Hover actions',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',

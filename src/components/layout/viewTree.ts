@@ -553,6 +553,10 @@ export class UnifiedTreeView {
 		this._scopePreviewEl?.removeClass('is-active');
 	}
 
+	scheduleScopePreview(nodeId: string): void {
+		this._scheduleScopePreview(nodeId);
+	}
+
 	private _scheduleScopePreview(nodeId: string): void {
 		if (!this._activeScopePickMode()) return;
 		this._scopePreviewNodeId = nodeId;

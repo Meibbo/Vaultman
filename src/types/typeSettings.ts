@@ -465,12 +465,14 @@ export interface VaultmanSettings {
 	nodeNotePluginPattern: string;
 	nodeNotePropPattern: string;
 	/** Folder where new node-notes are created (empty = vault root) */
+	/** U130: Persisted list of SASI commands published to Obsidian's command palette */
+	publishedSasiCommands?: string[];
 	}
 
 /** Minimal interface used by VaultmanSettingsTab — breaks the main.ts circular import. */
 export interface iVaultmanPlugin extends Plugin {
 	settings: VaultmanSettings;
-	saveSettings(): Promise<void>;
+	saveSettings(options?: { notify?: boolean }): Promise<void>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
 	queueService?: {
@@ -655,4 +657,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuShowInMoreOptions: true,
 	contextMenuHideRules: [],
 	instanceRegistry: { schema: 1, instances: {} },
+	publishedSasiCommands: [],
 };

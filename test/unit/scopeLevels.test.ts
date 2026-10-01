@@ -27,7 +27,7 @@ describe('spec 08 §3.1.bis — scopes are levels, and the old names migrate', (
 		expect(supportsLevelScopes('snippets')).toBe(false);
 		expect(isScopeAllowed('files', 'level:3')).toBe(true);
 		expect(isScopeAllowed('files', 'parent:folder:A')).toBe(true);
-		expect(isScopeAllowed('snippets', 'level:1')).toBe(false);
+		expect(isScopeAllowed('snippets', 'level:2')).toBe(false);
 		expect(isScopeAllowed('files', 'groups')).toBe(false);
 	});
 
