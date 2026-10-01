@@ -35,7 +35,7 @@ describe('BT5-032 one tooltip owner per row', () => {
 		expect(viewTreeSource).toContain('private _hoveredRowId');
 		expect(viewTreeSource).toContain('this._hoveredRowId = node.id;');
 		expect(viewTreeSource).toContain(
-			'if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);',
+			'if (this._hoveredRowId === node.id) {\n\t\t\tthis._scheduleScopePreview(node.id);\n\t\t\topts.onRowHover?.(node.id, row);\n\t\t}',
 		);
 	});
 

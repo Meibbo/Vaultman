@@ -125,12 +125,17 @@ describe('settings bridge resolution', () => {
 		const byId = new Map([['calendar', pluginNode('calendar', 'Calendar')]]);
 		const result = resolveSettingsBridgeNodes({
 			pluginNodesById: byId,
-			groups: [group('community-plugins', [item('community-plugins', 'Calendar', 'General', 1, [[0, 4]])], 1, 'community-plugins', [[0, 4]])],
+			groups: [{
+				...group('community-plugins', [item('community-plugins', 'Calendar', 'General', 1, [[0, 4]])], 1, 'community-plugins', [[0, 4]]),
+				tabIcon: 'lucide-blocks',
+			}],
 		});
 		expect(result.nodes).toHaveLength(1);
 		const parent = result.nodes[0];
-		expect(parent?.id).toBe('settings:community-plugins::::');
-		expect(parent?.label).toBe('community-plugins');
+		expect(parent?.id).toBe('group:community-plugins');
+		expect(parent?.label).toBe('Community plugins');
+		expect(parent?.isGroupHeader).toBe(true);
+		expect(parent?.icon).toBe('lucide-blocks');
 		expect(parent?.cells).toEqual([]);
 		expect(parent?.showCaret).toBe(true);
 		expect(parent?.children?.length).toBe(1);
@@ -151,8 +156,9 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes).toHaveLength(1);
 		const parent = result.nodes[0];
-		expect(parent?.id).toBe('settings:theme::::');
-		expect(parent?.label).toBe('theme');
+		expect(parent?.id).toBe('group:global-settings');
+		expect(parent?.label).toBe('Global settings');
+		expect(parent?.isGroupHeader).toBe(true);
 		expect(parent?.children?.length).toBe(1);
 		const row = parent?.children?.[0];
 		expect(row?.id.startsWith('settings:')).toBe(true);
@@ -177,7 +183,7 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes).toHaveLength(1);
 		const parent = result.nodes[0];
-		expect(parent?.id).toBe('settings:Calendar::::');
+		expect(parent?.id).toBe('group:global-settings');
 		expect(parent?.children?.length).toBe(1);
 		expect(parent?.children?.[0]?.id.startsWith('settings:')).toBe(true);
 		expect(result.nodes).not.toContain(row);
@@ -217,9 +223,9 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes).toHaveLength(1);
 		const parent = result.nodes[0];
-		expect(parent?.id).toBe('settings:community-plugins::::');
+		expect(parent?.id).toBe('group:community-plugins');
 		expect(parent?.children?.length).toBe(1);
-		expect(parent?.children?.[0]).toBe(row);
+		expect(parent?.children?.[0]).toMatchObject({ id: row.id, depth: 1 });
 		expect(parent?.children?.[0]?.id).toBe('plugin:hot-reload');
 		expect(parent?.children?.[0]?.cells).toHaveLength(1);
 		expect(result.highlightIds.has(row.id)).toBe(true);
@@ -261,7 +267,7 @@ describe('settings bridge resolution', () => {
 		// F10: 'hot reload' canonicaliza al id 'hot-reload' → resuelve
 		// (la comparación vive en espacio de ids, no de display names);
 		// 'Hot Reloa' no canonicaliza a ningún id → settings.
-		expect(parent?.children).toContain(row);
+		expect(parent?.children?.some((node) => node.id === row.id)).toBe(true);
 		const settingsKids = (parent?.children ?? []).filter((node) =>
 			node.id.startsWith('settings:'),
 		);
@@ -282,7 +288,23 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes).toHaveLength(1);
 		const kids = result.nodes[0]?.children ?? [];
-		expect(kids).toContain(row);
+		expect(kids.some((node) => node.id === row.id)).toBe(true);
+		expect(result.highlightIds.has(row.id)).toBe(true);
+	});
+
+	it('resolves a core-plugin row by canonical id instead of its renamed display label', () => {
+		const row = pluginNode('bookmarks', 'My Saved Links');
+		const result = resolveSettingsBridgeNodes({
+			pluginNodesById: new Map([['bookmarks', row]]),
+			groups: [
+				group('core-plugins', [
+					item('core-plugins', 'Bookmarks', 'Core plugins', 5, [[0, 4]]),
+				]),
+			],
+		});
+
+		expect(result.nodes.map((node) => node.id)).toEqual(['group:core-plugins']);
+		expect(result.nodes[0]?.children).toEqual([{ ...row, depth: 1 }]);
 		expect(result.highlightIds.has(row.id)).toBe(true);
 	});
 
@@ -316,7 +338,8 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes.length).toBeGreaterThanOrEqual(1);
 		const parent = result.nodes[0];
-		expect(parent?.label).toBe('Hotkeys');
+		expect(parent?.id).toBe('group:global-settings');
+		expect(parent?.label).toBe('Global settings');
 		expect(parent?.cells).toEqual([]);
 		expect(parent?.children).toEqual([]);
 		expect(parent?.meta.pluginId).toBe('');
@@ -341,26 +364,23 @@ describe('settings bridge resolution', () => {
 				group('theme', [item('theme', 'Accent color')]),
 			],
 		});
-		// U130 canónica: self-tab interception — group.tab === known
-		// pluginId resuelve al legacy node_plugin CON celdas, PERO la
-		// jerarquía SIEMPRE es plugin → tab → page/definition.
-		// El plugin es el padre de nivel superior, el tab es su hijo (nivel 1),
-		// y las pages/definitions son hijas del tab (nivel 2).
+		// U130 canónica (absorción 2026-09-25): self-tab interception —
+		// group.tab === known pluginId resuelve al legacy node_plugin
+		// CON celdas; el tab homónimo NO se emite como fila (cero
+		// duplicados): las pages/definitions cuelgan directas.
 		expect(result.nodes.map((node) => node.id)).toEqual([
 			'plugin:calendar',
 			result.nodes[1]?.id,
 		]);
 		expect((result.nodes[0]?.cells ?? []).length).toBeGreaterThan(0);
-		// El plugin tiene un hijo tab (no pages directas)
+		// El plugin tiene las pages directas (tab homónimo absorbido)
 		const pluginChildren = result.nodes[0]?.children ?? [];
 		expect(pluginChildren).toHaveLength(1);
-		const tabNode = pluginChildren[0];
-		expect(tabNode.id).toMatch(/^settings:calendar::::#tab$/);
-		expect(tabNode.showCaret).toBe(true);
-		// El tab tiene las pages/definitions como hijas
-		expect(tabNode.children?.map((c) => c.label)).toEqual([
-			'Week start',
-		]);
+		const pageNode = pluginChildren[0];
+		expect(pageNode.id).toBe('settings:calendar::General::Week start');
+		// La definition es hoja directa (sin texto filtrado local)
+		expect(pageNode.label).toBe('Week start');
+		expect(pageNode.children ?? []).toEqual([]);
 	});
 
 	it('keeps native ranking across groups and items', () => {
@@ -375,9 +395,10 @@ describe('settings bridge resolution', () => {
 				group('first', [item('a-plug', 'A setting', 'General', 3)]),
 			],
 		});
-		expect(result.nodes.map((node) => node.id)).toEqual([
-			'settings:second::::',
-			'settings:first::::',
+		expect(result.nodes.map((node) => node.id)).toEqual(['group:global-settings']);
+		expect(result.nodes[0]?.children?.map((node) => node.label)).toEqual([
+			'B Plug',
+			'A Plug',
 		]);
 	});
 
@@ -393,7 +414,7 @@ describe('settings bridge resolution', () => {
 		});
 		expect(result.nodes).toHaveLength(2);
 		expect(result.nodes[0]?.children?.length).toBe(1);
-		expect(result.nodes[0]?.children?.[0]).toBe(row);
+		expect(result.nodes[0]?.children?.[0]).toEqual({ ...row, depth: 1 });
 		expect(result.nodes[1]?.children).toEqual([]);
 	});
 
@@ -405,9 +426,8 @@ describe('settings bridge resolution', () => {
 				group('two', [item('theme', 'Accent color')]),
 			],
 		});
-		expect(result.nodes).toHaveLength(2);
+		expect(result.nodes).toHaveLength(1);
 		expect(result.nodes[0]?.children?.length).toBe(1);
-		expect(result.nodes[1]?.children).toEqual([]);
 	});
 
 	it('falls back from definition to page to tab for the row text', () => {
@@ -598,8 +618,6 @@ describe('bridge rows through grouping and flattening', () => {
 			}
 		};
 		walk(grouped);
-		expect([...rows].sort()).toEqual(
-			['plugin:calendar', 'settings:community-plugins::::'].sort(),
-		);
+		expect(rows).toEqual(['plugin:calendar']);
 	});
 });

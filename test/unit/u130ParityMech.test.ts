@@ -219,7 +219,7 @@ describe('U130 parity MECH §1: self-tab interception en búsqueda', () => {
 		expect(kids[0]?.cells).toEqual([]);
 	});
 
-	it('tab desconocido/obsoleto conserva la fila nativa de grupo', () => {
+	it('tab desconocido/obsoleto se absorbe en Global settings (fila nativa preservada)', () => {
 		const byId = new Map<string, TreeNode<PluginMeta>>();
 		byId.set('vaultman', pluginNode('vaultman', 'Vaultman', {}, true));
 		const raw = {
@@ -251,9 +251,14 @@ describe('U130 parity MECH §1: self-tab interception en búsqueda', () => {
 			groups,
 		});
 		expect(bridge.nodes).toHaveLength(1);
-		expect(bridge.nodes[0]?.id).toMatch(/^settings:/);
-		expect(bridge.nodes[0]?.label).toBe('Obsolete Tab');
-		expect(bridge.nodes[0]?.cells).toEqual([]);
+		expect(bridge.nodes[0]?.id).toBe('group:global-settings');
+		// La fila de definición se preserva como hija (label por cadena
+		// definition → page → tab; el tab nativo persiste en el ref,
+		// sin fila duplicada).
+		const gkids = bridge.nodes[0]?.children ?? [];
+		expect(gkids).toHaveLength(1);
+		expect(gkids[0]?.label).toBe('Something');
+		expect(gkids[0]?.cells).toEqual([]);
 	});
 
 	it('grupos repetidos del mismo self-tab fusionan hijos en un padre', () => {
@@ -626,7 +631,7 @@ describe('U130 parity MECH: regla community único/duplicado intacta', () => {
 		});
 		expect(bridge.nodes).toHaveLength(1);
 		const parent = bridge.nodes[0];
-		expect(parent?.id).toMatch(/^settings:/);
+		expect(parent?.id).toBe('group:community-plugins');
 		const kids = parent?.children ?? [];
 		const vaultKid = kids.find((k) => k.id === 'plugin:vaultman');
 		expect(vaultKid).toBeDefined();

@@ -30,8 +30,8 @@ import {
 	buildGlobalSettingsNodes,
 	filterAddonEntries,
 	formatAddonTimestamp,
+	GLOBAL_SETTINGS_GROUP_ID,
 	GLOBAL_SETTINGS_GROUP_LABEL,
-	isGlobalSettingsTab,
 	isSettingsSearchActive,
 	listCorePluginStubs,
 	pluginCanonicalGroup,
@@ -588,14 +588,17 @@ export class PluginsExplorerPanel
 			// (por id, F10) y settings globales → Global settings.
 			const ref = settingsBridgeRefOf(node.meta);
 			if (ref) {
-				if (isGlobalSettingsTab(ref.tab)) return GLOBAL_SETTINGS_GROUP_LABEL;
-				return ref.tab;
+				return ref.tab === 'core-plugins'
+						? 'core-plugins'
+						: ref.tab === 'community-plugins'
+							? 'community-plugins'
+							: 'global-settings';
 			}
 			const pluginId = node.meta?.pluginId ?? '';
 			if (pluginId !== '') {
 				return pluginCanonicalGroup(pluginId, this._communityIds) === 'core'
-					? 'Core plugins'
-					: 'Community plugins';
+					? 'core-plugins'
+					: 'community-plugins';
 			}
 			return null;
 		}
@@ -877,8 +880,20 @@ export class PluginsExplorerPanel
 			this.entries,
 			activeScopeSort('plugins', this.sortState),
 		);
+		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
+		this._communityIds = communityIds;
+		const coreMetas: PluginMeta[] = listCorePluginStubs(
+			this.plugin.app,
+			communityIds,
+		).map((stub) => ({
+			pluginId: stub.pluginId,
+			name: stub.name,
+			enabled: stub.enabled,
+			loaded: false,
+			isVaultman: false,
+		}));
 		const byId = new Map<string, TreeNode<PluginMeta>>();
-		for (const node of this.buildPluginNodes(ordered)) {
+		for (const node of this.buildPluginNodes([...ordered, ...coreMetas])) {
 			byId.set(node.meta.pluginId, node);
 		}
 		const bridge = resolveSettingsBridgeNodes({
@@ -1007,7 +1022,12 @@ export class PluginsExplorerPanel
 				// Padres nativos (grupo `settings:tab::pagePath::`) y
 				// cualquier fila puente top-level (`settings:…`, incl.
 				// hijos con `#tab`/`#page` si alguna vez suben a raíz).
-				if (node.id.startsWith('settings:')) {
+				if (
+					node.id.startsWith('settings:') ||
+					node.id === 'group:core-plugins' ||
+					node.id === 'group:community-plugins' ||
+					node.id === GLOBAL_SETTINGS_GROUP_ID
+				) {
 					protectedIds.add(node.id);
 				}
 			}
@@ -1044,6 +1064,25 @@ export class PluginsExplorerPanel
 			enabled: this.groupPreset.kind !== 'none',
 			preset: this.groupPreset,
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
+			decorateHeader: (header) => {
+				if (this.groupPreset.kind !== 'sections') return;
+				if (
+					header.id === 'group:core-plugins' ||
+					header.id === 'vaultman.group.preset:core-plugins'
+				) {
+					header.label = 'Core plugins';
+				} else if (
+					header.id === 'group:community-plugins' ||
+					header.id === 'vaultman.group.preset:community-plugins'
+				) {
+					header.label = 'Community plugins';
+				} else if (
+					header.id === GLOBAL_SETTINGS_GROUP_ID ||
+					header.id === 'vaultman.group.preset:global-settings'
+				) {
+					header.label = GLOBAL_SETTINGS_GROUP_LABEL;
+				}
+			},
 			rangeLabels: translatedRangeLabels(),
 			// Dev 2026-09-14: la cabecera colapsada burbujea los badges como un p-node.
 			expandedIds: this._expandedGroupIds,
@@ -1376,11 +1415,14 @@ export class PluginsExplorerPanel
 		if (!node) return;
 		const ref = settingsBridgeRefOf(node.meta);
 		const hasPluginTab =
+			!ref &&
 			node.meta.pluginId !== '' &&
 			pluginSettingTabIds(this.plugin.app).has(node.meta.pluginId);
 		const activation = resolveSettingSceneActivation({
 			row: {
-				pluginId: node.meta.pluginId,
+				// A bridge ref identifies node_setting even when metadata keeps
+				// the owning plugin id (including General and Files & links).
+				pluginId: ref ? '' : node.meta.pluginId,
 				settingsTab: ref ? ref.tab : '',
 				hasPluginTab,
 				// Coordinator wiring (NAV lane left tab-only): forward the
@@ -1401,7 +1443,8 @@ export class PluginsExplorerPanel
 			this.setSettingSceneMode('content');
 			return;
 		}
-		if (executeSettingSceneActivation(this.plugin.app, activation)) return;
+		const outcome = executeSettingSceneActivation(this.plugin.app, activation);
+		if (outcome.status !== 'failed') return;
 		this._toggleRowSelection(id);
 	}
 

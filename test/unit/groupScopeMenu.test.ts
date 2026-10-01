@@ -48,12 +48,11 @@ describe('U130-03: el scope groups esta en los TRES sitios', () => {
 		}
 	});
 
-	it('snippets y plugins son listas planas: sin selector de scope, pero con el de grupos', () => {
+	it('snippets queda plano y plugins restaura el selector de scope', () => {
 		// Spec 08 §3.2: la agrupacion es un preset, no un scope; el drawer de
 		// grupos del popup no depende de supportsByLevel (ver el guard de abajo).
-		for (const tab of ['snippets', 'plugins'] as const) {
-			expect(supportsByLevel(tab)).toBe(false);
-		}
+		expect(supportsByLevel('snippets')).toBe(false);
+		expect(supportsByLevel('plugins')).toBe(true);
 		expect(popupSortSource).toContain("use:icon={'lucide-group'}");
 	});
 

@@ -256,38 +256,33 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 		}
 	});
 
-	it('single-tab homónimo (adapter real): tab conservado con pages bajo él', () => {
+	it('single-tab homónimo (adapter real): pages directas, cero espejos (absorción)', () => {
 		const app = restApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		const tabs = result[0]?.children ?? [];
-		// El tab homónimo SÍ se emite como fila (nivel 1), con pages bajo él (nivel 2).
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.label).toBe('Vaultman');
-		expect(tabs[0]?.depth).toBe(base.depth + 1);
-		const pages = tabs[0]?.children ?? [];
-		expect(pages.map((p) => p.label).sort()).toEqual([
+		// Absorción: el tab homónimo NO se emite como fila; pages directas.
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		expect(kids.map((p) => p.label).sort()).toEqual([
 			'Context menus',
 			'General',
 		]);
-		for (const page of pages) {
-			expect(page.depth).toBe(base.depth + 2);
+		for (const page of kids) {
+			expect(page.depth).toBe(base.depth + 1);
 			expect(page.id).toMatch(/#page$/);
 			// El tab persiste como identidad en el ref.
 			expect(settingsBridgeRefOf(page.meta)?.tab).toBe('vaultman');
 		}
 		for (const n of collectAll(result)) {
 			if (n.id === 'plugin:vaultman') continue;
-			if (n.id.endsWith('#tab')) continue;
 			expect(folded(n.label)).not.toBe('vaultman');
 			expect(isTrueMirror(n, 'vaultman')).toBe(false);
 		}
 	});
 
-	it('multi-tab mixto: ambos tabs conservados con su nivel', () => {
+	it('multi-tab mixto: homónimo hoisteado, distinto conserva su nivel', () => {
 		const groups = [
 			{
 				tab: 'mixplug',
@@ -319,15 +314,14 @@ describe('U130 canónica: reposo vaultman → tab real → page real', () => {
 				base,
 			);
 			const tabs = result[0]?.children ?? [];
-			// Ambos tabs se conservan: el homónimo y el distinto.
-			expect(tabs).toHaveLength(2);
+			// Homónimo 'Mix Plug' hoisteado ('General' directa); solo
+			// 'Pro' conserva su nivel `#tab`.
 			const tabHomonym = tabs.find((t) => t.label === 'Mix Plug');
-			expect(tabHomonym).toBeDefined();
-			expect(tabHomonym?.id).toMatch(/#tab$/);
-			expect(tabHomonym?.depth).toBe(base.depth + 1);
-			// El tab homónimo tiene su page como hija
-			expect(tabHomonym?.children?.map((c) => c.label)).toEqual(['General']);
-			expect(tabHomonym?.children?.[0]?.depth).toBe(base.depth + 2);
+			expect(tabHomonym).toBeUndefined();
+			const hoisted = tabs.find((t) => t.label === 'General');
+			expect(hoisted).toBeDefined();
+			expect(hoisted?.id).toMatch(/#page$/);
+			expect(hoisted?.depth).toBe(base.depth + 1);
 			const tabDistinct = tabs.find((t) => t.label === 'Pro');
 			expect(tabDistinct).toBeDefined();
 			expect(tabDistinct?.id).toMatch(/#tab$/);
@@ -380,22 +374,20 @@ describe('U130 canónica: roots core/community en reposo', () => {
 		const core = roots[0]?.children ?? [];
 		expect(core.map((n) => n.id)).toEqual(['plugin:bookmarks']);
 		expect(core[0]?.depth).toBe(1);
-		// Core con datos nativos proyecta: bookmarks → Bookmarks (tab conservado).
-		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Bookmarks']);
+		// Core con datos nativos proyecta: bookmarks → page directa
+		// (tab homónimo absorbido).
+		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Toolbar']);
 		expect(core[0]?.children?.[0]?.depth).toBe(2);
 		const community = roots[1]?.children ?? [];
 		expect(community.map((n) => n.id)).toEqual([
 			'plugin:vaultman',
 			'plugin:my-bookmarks',
 		]);
-		// Vaultman homónimo: tab conservado con pages bajo él.
+		// Vaultman homónimo: pages directas, sin fila tab duplicada.
 		const vaultmanPlugin = community[0];
-		const vaultTabs = vaultmanPlugin?.children ?? [];
-		expect(vaultTabs).toHaveLength(1);
-		expect(vaultTabs[0]?.label).toBe('Vaultman');
-		expect(vaultTabs[0]?.id).toMatch(/#tab$/);
-		const vaultPages = vaultTabs[0]?.children ?? [];
-		expect(vaultPages.map((k) => k.label).sort()).toEqual([
+		const vaultKids = vaultmanPlugin?.children ?? [];
+		expect(vaultKids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		expect(vaultKids.map((k) => k.label).sort()).toEqual([
 			'Context menus',
 			'General',
 		]);
@@ -405,12 +397,11 @@ describe('U130 canónica: roots core/community en reposo', () => {
 		// Ids únicos en todo el árbol.
 		const ids = collectAll(roots).map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		// Ningún descendiente repite el label de su plugin padre (excepto el tab homónimo).
+		// Ningún descendiente repite el label de su plugin padre.
 		for (const root of roots) {
 			for (const plugin of root.children ?? []) {
 				const parentName = folded(plugin.meta.name ?? plugin.label);
 				for (const n of collectAll(plugin.children ?? [])) {
-					if (n.id.endsWith('#tab')) continue;
 					expect(folded(n.label)).not.toBe(parentName);
 				}
 			}
@@ -434,7 +425,7 @@ describe('U130 canónica: roots core/community en reposo', () => {
 			pluginNode('bookmarks', 'Bookmarks'),
 		);
 		expect(core[0]?.showCaret).toBe(true);
-		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Bookmarks']);
+		expect((core[0]?.children ?? []).map((c) => c.label)).toEqual(['Toolbar']);
 		const ghost = resolvePluginSettingsChildren(
 			app,
 			'ghost',
@@ -489,19 +480,18 @@ describe('U130 canónica: paridad reposo/búsqueda (misma parentage)', () => {
 			pluginNodesById: byId,
 			groups,
 		});
-		// Ranking nativo intacto: el grupo hotkeys va primero.
-		expect(bridge.nodes[0]?.id).toMatch(/^settings:hotkeys/);
+		// Ranking nativo intacto: Global settings conserva el hit hotkeys primero.
+		expect(bridge.nodes[0]?.id).toBe('group:global-settings');
+		expect(bridge.nodes[0]?.children?.[0]?.label).toBe('Shortcuts');
 		const parent = bridge.nodes.find((n) => n.id === 'plugin:vaultman');
 		expect(parent).toBeDefined();
 		expect(parent?.cells?.some((c) => c.kind === 'toggle')).toBe(true);
-		// En búsqueda, la jerarquía SIEMPRE es plugin → tab → page.
-		// El plugin tiene un hijo tab, y el tab tiene las pages.
+		// En búsqueda, el tab homónimo se absorbe: pages directas del
+		// plugin, sin fila `#tab` duplicada.
 		const pluginTabs = parent?.children ?? [];
-		expect(pluginTabs).toHaveLength(1);
-		const tabNode = pluginTabs[0];
-		expect(tabNode.id).toMatch(/#tab$/);
-		const searchKids = tabNode.children ?? [];
-		expect(searchKids.map((k) => k.label)).toEqual(['Toolbar menu']);
+		expect(pluginTabs.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		expect(pluginTabs.map((k) => k.label)).toEqual(['Toolbar menu']);
+		const searchKids = pluginTabs;
 		// Misma parentage: el hijo de búsqueda lleva el tab de reposo.
 		expect(settingsBridgeRefOf(searchKids[0].meta)?.tab).toBe('vaultman');
 		// Solo filtra + highlights: match real → highlight.

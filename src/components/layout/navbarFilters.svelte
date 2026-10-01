@@ -57,7 +57,6 @@
 		setScopeTargetHidden,
 		storageScope,
 	} from '../../logic/logicScopedSort';
-	import { inputDetector } from '../../services/serviceInputDetector';
 	import {
 		isHierarchicalViewMode,
 		isViewModeSelectableForDataSurface,
@@ -215,27 +214,6 @@
 			actionId === SEARCH_CREATE_TARGET_ID
 		) {
 			runSearchCell(actionId);
-			return true;
-		}
-		if (
-			actionId === 'sort_menu.scope.drill' ||
-			actionId === 'vaultman.scope.drill.begin'
-		) {
-			beginDrillPick(activeTab);
-			return true;
-		}
-		if (
-			actionId === 'sort_menu.scope.all' ||
-			actionId === 'vaultman.scope.all'
-		) {
-			activateScopeRow(activeTab, 'all');
-			return true;
-		}
-		if (
-			actionId === 'sort_menu.scope.level' ||
-			actionId === 'vaultman.scope.level.begin'
-		) {
-			beginLevelPick(activeTab);
 			return true;
 		}
 		const localId =
@@ -3100,8 +3078,7 @@
 					.setIcon('lucide-list-checks')
 					.setChecked(current === 'done-total')
 					.onClick(() => {
-						const next =
-							current === 'pending' ? 'done-total' : 'pending';
+						const next = current === 'pending' ? 'done-total' : 'pending';
 						commitConfig('files', {
 							taskCellDisplayMode: next,
 						});
@@ -3413,7 +3390,6 @@
 			event.preventDefault();
 			event.stopImmediatePropagation();
 		};
-		let pendingTouchNodeId: string | null = null;
 		const onPick = (event: PointerEvent) => {
 			const target =
 				event.target instanceof Element
@@ -3422,18 +3398,6 @@
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;
 			suppressEvent(event);
-
-			const isTouch =
-				inputDetector.isTouch() ||
-				event.pointerType === 'touch' ||
-				event.pointerType === 'pen';
-
-			if (isTouch && pendingTouchNodeId !== nodeId) {
-				pendingTouchNodeId = nodeId;
-				ownerPanel?.previewScopePick?.(nodeId);
-				return;
-			}
-
 			const panel = treePanelForTab(tab);
 			const current = normalizeSortState(
 				tab,

@@ -15,7 +15,7 @@ function makeApp({
 	open,
 }: {
 	navigateToSearchResult?: (group: unknown, item?: unknown) => void;
-	searchIndex?: { search?: (query: string) => unknown[] } | null;
+	searchIndex?: { search?: (query: string) => unknown } | null;
 	openTabById?: (id: string) => unknown;
 	open?: () => void;
 } = {}) {
@@ -30,11 +30,20 @@ function makeApp({
 }
 
 function nativeGroup(tab: string, page: string, results: unknown[] = []) {
-	return { tab, page, pagePath: '', results };
+	return {
+		tab: { id: tab, name: tab },
+		page: page === '' ? undefined : { id: page.toLowerCase().replaceAll(' ', '-'), name: page },
+		pagePath: page === '' ? [] : [page],
+		results,
+	};
 }
 
 function nativeItem(definition: string) {
-	return { entry: { definition, tab: '', page: '', pagePath: '' } };
+	return {
+		entry: { definition: { name: definition }, tab: undefined, page: undefined, pagePath: [] },
+		nameMatch: { score: 1, matches: [[0, definition.length]] },
+		descMatch: { score: 0, matches: [] },
+	};
 }
 
 beforeEach(() => {
@@ -73,6 +82,18 @@ describe('U130 parity NAV: resolution', () => {
 				settingApiAvailable: true,
 			}),
 		).toEqual({ kind: 'open-settings-tab', tab: 'editor' });
+	});
+
+	it.each([
+		['general', 'general'],
+		['files and links', 'files'],
+	])('maps the global row %s to native tab %s', (settingsTab, nativeTab) => {
+		expect(
+			resolveSettingSceneActivation({
+				row: { pluginId: '', settingsTab, hasPluginTab: false },
+				settingApiAvailable: true,
+			}),
+		).toEqual({ kind: 'open-settings-tab', tab: nativeTab });
 	});
 
 	it('settings without tab stays select-only even with definition', () => {
@@ -138,8 +159,8 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 			ReturnType<typeof nativeGroup>,
 			ReturnType<typeof nativeItem>,
 		];
-		expect(group.tab).toBe('developer-toolbox');
-		expect(item.entry.definition).toBe('Storage folder');
+		expect(group.tab.id).toBe('developer-toolbox');
+		expect(item.entry.definition.name).toBe('Storage folder');
 	});
 
 	it('definition duplicate across tabs: matches correct tab only', () => {
@@ -157,11 +178,11 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 		});
 		expect(navigate).toHaveBeenCalledOnce();
 		expect(
-			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab.id,
 		).toBe('tab-b');
 	});
 
-	it('finds page label and calls navigateToSearchResult (group only)', () => {
+	it('finds the exact native page identity and calls navigateToSearchResult (group only)', () => {
 		const navigate = vi.fn();
 		const search = vi.fn(() => [
 			nativeGroup('developer-toolbox', 'Context menus', [
@@ -179,7 +200,7 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 		expect(ok).toBe(true);
 		expect(navigate).toHaveBeenCalledOnce();
 		expect(
-			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab.id,
 		).toBe('developer-toolbox');
 	});
 
@@ -198,8 +219,48 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 		});
 		expect(navigate).toHaveBeenCalledOnce();
 		expect(
-			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab,
+			(navigate.mock.calls[0][0] as ReturnType<typeof nativeGroup>).tab.id,
 		).toBe('tab-y');
+	});
+
+	it('does not approximate a page label with substring matching', () => {
+		const navigate = vi.fn();
+		const groups = [
+			nativeGroup('general', 'General settings'),
+			nativeGroup('general', 'General'),
+		];
+		const search = vi.fn(() => groups);
+		const app = makeApp({ navigateToSearchResult: navigate, searchIndex: { search } });
+		expect(
+			scrollToSettingTarget(app, {
+				tab: 'general',
+				page: 'General',
+				pagePath: 'General',
+				definition: '',
+			}),
+		).toBe(true);
+		expect(navigate).toHaveBeenCalledWith(groups[1]);
+	});
+
+	it('routes the Files and links legacy row identity to the native files tab', () => {
+		const navigate = vi.fn();
+		const groups = [
+			nativeGroup('files', 'Files and links', [nativeItem('Default location for new notes')]),
+		];
+		const search = vi.fn(() => groups);
+		const app = makeApp({ navigateToSearchResult: navigate, searchIndex: { search } });
+		expect(
+			scrollToSettingTarget(app, {
+				tab: 'files and links',
+				page: 'Files and links',
+				pagePath: 'Files and links',
+				definition: 'Default location for new notes',
+			}),
+		).toBe(true);
+		expect(navigate).toHaveBeenCalledWith(
+			groups[0],
+			groups[0]?.results[0],
+		);
 	});
 
 	it('row-not-found returns false (caller falls back to tab-only)', () => {
@@ -233,9 +294,10 @@ describe('U130 parity NAV: scrollToSettingTarget (native API)', () => {
 	});
 
 	it('non-array search result → false', () => {
+		const search = () => 'not-array';
 		const app = makeApp({
 			navigateToSearchResult: vi.fn(),
-			searchIndex: { search: vi.fn(() => 'not-array') as unknown as (query: string) => unknown[] },
+			searchIndex: { search },
 		});
 		expect(
 			scrollToSettingTarget(app, {
@@ -264,11 +326,12 @@ describe('U130 parity NAV: execute never dead-clicks', () => {
 			tab: 'developer-toolbox',
 			target: { tab: 'developer-toolbox', page: '', pagePath: '', definition: 'Storage folder' },
 		});
-		expect(ok).toBe(true);
+		expect(ok).toEqual({ status: 'success', destination: 'settings-row' });
 		expect(navigate).toHaveBeenCalledOnce();
+		expect(openTabById).not.toHaveBeenCalled();
 	});
 
-	it('navigate fails → still true (tab-only fallback, never dead)', () => {
+	it('navigate fails → reports degraded after tab-only fallback', () => {
 		const open = vi.fn();
 		const openTabById = vi.fn();
 		const navigate = vi.fn(() => { throw new Error('native crash'); });
@@ -279,8 +342,9 @@ describe('U130 parity NAV: execute never dead-clicks', () => {
 			tab: 'developer-toolbox',
 			target: { tab: 'developer-toolbox', page: '', pagePath: '', definition: 'Storage folder' },
 		});
-		expect(ok).toBe(true);
+		expect(ok).toEqual({ status: 'degraded', reason: 'native-navigation-failed' });
 		expect(open).toHaveBeenCalledOnce();
+		expect(openTabById).toHaveBeenCalledWith('developer-toolbox');
 	});
 
 	it('tab-only (no target) → true, no native search', () => {
@@ -292,7 +356,7 @@ describe('U130 parity NAV: execute never dead-clicks', () => {
 			kind: 'open-settings-tab',
 			tab: 'developer-toolbox',
 		});
-		expect(ok).toBe(true);
+		expect(ok).toEqual({ status: 'success', destination: 'settings-tab' });
 		expect(open).toHaveBeenCalledOnce();
 		expect(openTabById).toHaveBeenCalledWith('developer-toolbox');
 		expect(navigate).not.toHaveBeenCalled();
@@ -304,10 +368,10 @@ describe('U130 parity NAV: execute never dead-clicks', () => {
 			kind: 'select-only',
 			reason: 'settings-api-missing',
 		});
-		expect(ok).toBe(false);
+		expect(ok).toEqual({ status: 'failed' });
 	});
 
-	it('row-not-found in native search → true (tab-only degraded)', () => {
+	it('row-not-found in native search → degraded tab-only fallback', () => {
 		const open = vi.fn();
 		const openTabById = vi.fn();
 		const navigate = vi.fn();
@@ -318,7 +382,7 @@ describe('U130 parity NAV: execute never dead-clicks', () => {
 			tab: 'developer-toolbox',
 			target: { tab: 'developer-toolbox', page: '', pagePath: '', definition: 'Missing XYZ' },
 		});
-		expect(ok).toBe(true);
+		expect(ok).toEqual({ status: 'degraded', reason: 'target-not-found' });
 		expect(open).toHaveBeenCalledOnce();
 		expect(navigate).not.toHaveBeenCalled();
 	});

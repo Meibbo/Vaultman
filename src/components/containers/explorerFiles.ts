@@ -1444,11 +1444,6 @@ export class FilesExplorerPanel extends Component {
 		this.treeView?.setScopePickMode(mode);
 	}
 
-	previewScopePick(nodeId: string): void {
-		if (this.viewMode !== 'tree') return;
-		this.treeView?.scheduleScopePreview?.(nodeId);
-	}
-
 	setViewMode(mode: FilesViewMode): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
@@ -3089,8 +3084,6 @@ export class FilesExplorerPanel extends Component {
 		// header up in the raw source tree made materialization disappear from
 		// the universal group menu.
 		const projectedTree = this.projectedNodes(renderTree);
-		const { activeFilterIds, excludedFilterIds } =
-			this._fileFilterHighlight(renderTree);
 		this._treeRenderOpts = {
 			surface: 'files',
 			nodes: renderTree,
@@ -3107,15 +3100,7 @@ export class FilesExplorerPanel extends Component {
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
-				highlightIds: {
-					inclusive: this.visibleCells.has('filters')
-						? activeFilterIds
-						: undefined,
-					exclusive: this.visibleCells.has('filters')
-						? excludedFilterIds
-						: undefined,
-					deletion: this._deletionHighlightIds,
-				},
+				highlightIds: { deletion: this._deletionHighlightIds },
 				// U121-081: fileScene never passed this, so even with the cell on
 				// there was nothing to render.
 				selectionCheckboxPosition: this._selectionCheckboxPosition(),
@@ -3574,44 +3559,25 @@ export class FilesExplorerPanel extends Component {
 		}
 	}
 
-	private _fileFilterHighlight(
-		nodes: readonly TreeNode<FileMeta>[],
-	): { activeFilterIds: Set<string>; excludedFilterIds: Set<string> } {
-		const activeFilterIds = new Set<string>();
-		const excludedFilterIds = new Set<string>();
-		const filterService = this.plugin.filterService;
-		if (!filterService) return { activeFilterIds, excludedFilterIds };
-
-		const visit = (node: TreeNode<FileMeta>) => {
-			const meta = node.meta;
-			if (meta?.isFolder) {
-				const folderPath = meta.folderPath ?? node.id;
-				const state = filterService.getFilterState('folder', folderPath);
-				if (state === 'included') activeFilterIds.add(node.id);
-				else if (state === 'excluded') excludedFilterIds.add(node.id);
-			} else if (meta?.file) {
-				const filePath = meta.file.path;
-				if (isFileExcluded(filterService.activeFilter, filePath)) {
-					excludedFilterIds.add(node.id);
-				}
-			}
-			for (const child of node.children ?? []) {
-				visit(child);
-			}
-		};
-		for (const node of nodes) {
-			visit(node);
-		}
-		return { activeFilterIds, excludedFilterIds };
-	}
-
+	
 	private _decorateTreeWithNodeNotes(nodes: TreeNode<FileMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet =
-			this.plugin.nodeBindingService?.getVaultAliasSet() ??
-			new Set<string>();
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === "string") aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === "string") {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
 
 		const visit = (list: TreeNode<FileMeta>[]) => {
 			for (const node of list) {

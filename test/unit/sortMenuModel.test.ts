@@ -145,10 +145,21 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(level?.titleArg).toBe('Level 2');
 		expect(level?.items.at(-1)).toMatchObject({ id: 'level:2', hidden: true });
 
-		// Flat add-on lists have no levels to pick from.
+		// Snippets stays flat; Plugins restores parent/level drill scope.
 		expect(scopeMenuModel('snippets', stateFor('snippets'), scene)).toBeNull();
 		expect(byLevelModel('snippets', stateFor('snippets'))).toBeNull();
-		expect(byLevelModel('plugins', stateFor('plugins'))).toBeNull();
+		expect(
+			scopeMenuModel('plugins', stateFor('plugins'), scene)?.items.map(
+				(item) => item.id,
+			),
+		).toEqual([
+			'drill',
+			'level',
+			'scope-rows-separator',
+			'all',
+			'level:1',
+		]);
+		expect(byLevelModel('plugins', stateFor('plugins'))?.items).toEqual([]);
 	});
 
 	it('pins the add-property toggle to the reveal drawer, last by default', () => {

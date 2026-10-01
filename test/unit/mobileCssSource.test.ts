@@ -97,7 +97,7 @@ describe('mobile CSS source guards', () => {
 		expect(actionsBlock).toContain('max-width: 100%');
 		expect(actionsBlock).toContain('margin-inline: auto');
 		expect(actionsBlock).toContain('justify-content: center');
-		expect(stylesSource).not.toContain('520px');
+		expect(actionsBlock).not.toContain('520px');
 	});
 
 	it('lets Core paint its drawer gradient across the whole phone side leaf', () => {

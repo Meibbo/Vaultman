@@ -76,10 +76,19 @@ function createMockApp(opts: {
 	const navigateToSearchResult = vi.fn();
 	const searchFn = vi.fn((_query: string) => opts.searchIndexResults ?? [
 		{
-			tab: 'editor',
+			tab: { id: 'editor', name: 'Editor' },
+			pagePath: [],
 			results: [
-				{ entry: { definition: 'Font size', tab: 'editor' } },
-				{ entry: { definition: 'Line numbers', tab: 'editor' } },
+				{
+					entry: { definition: { name: 'Font size' }, tab: { id: 'editor', name: 'Editor' } },
+					nameMatch: { score: 1, matches: [[0, 9]] },
+					descMatch: { score: 0, matches: [] },
+				},
+				{
+					entry: { definition: { name: 'Line numbers' }, tab: { id: 'editor', name: 'Editor' } },
+					nameMatch: { score: 1, matches: [[0, 12]] },
+					descMatch: { score: 0, matches: [] },
+				},
 			],
 		},
 	]);

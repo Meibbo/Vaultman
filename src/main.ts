@@ -228,12 +228,7 @@ export class VaultmanPlugin extends Plugin {
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
 		this.sasiProvider = sasi.provider;
-		this.sasiCommandPublisher = createSasiCommandPublisher(this, {
-			onPublishedChange: (ids) => {
-				this.settings.publishedSasiCommands = [...ids];
-				void this.saveSettings({ notify: false });
-			},
-		});
+		this.sasiCommandPublisher = createSasiCommandPublisher(this);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -259,21 +254,6 @@ export class VaultmanPlugin extends Plugin {
 				});
 			},
 		});
-		this.registerEvent(
-			this.app.metadataCache.on('changed', () => {
-				this.nodeBindingService.invalidateAliasCache();
-			}),
-		);
-		this.registerEvent(
-			this.app.vault.on('rename', () => {
-				this.nodeBindingService.invalidateAliasCache();
-			}),
-		);
-		this.registerEvent(
-			this.app.vault.on('delete', () => {
-				this.nodeBindingService.invalidateAliasCache();
-			}),
-		);
 		this.nativeSurfaceBindingService = new NativeSurfaceBindingService({
 			plugin: this,
 			app: this.app,
@@ -519,33 +499,6 @@ export class VaultmanPlugin extends Plugin {
 		});
 		this.sasiCommandPublisher.setPublished(id, true);
 	}
-
-		this.sasiCommandPublisher.register({
-			id: 'sort_menu.scope.drill',
-			name: translate('sort.scope.select_parent'),
-			handler: () => {
-				void this.invokeToolbarSasiAction('sort_menu.scope.drill');
-			},
-		});
-		this.sasiCommandPublisher.register({
-			id: 'sort_menu.scope.all',
-			name: translate('sort.scope.all'),
-			handler: () => {
-				void this.invokeToolbarSasiAction('sort_menu.scope.all');
-			},
-		});
-
-		if (this.settings.publishedSasiCommands?.length) {
-			for (const cmdId of this.settings.publishedSasiCommands) {
-				try {
-					if (!this.sasiCommandPublisher.isPublished(cmdId)) {
-						this.sasiCommandPublisher.setPublished(cmdId, true);
-					}
-				} catch {
-					// Ignore obsolete or unrecognised command id
-				}
-			}
-		}
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -919,12 +872,10 @@ export class VaultmanPlugin extends Plugin {
 		}
 	}
 
-	async saveSettings(options?: { notify?: boolean }): Promise<void> {
+	async saveSettings(): Promise<void> {
 		// Notify listeners first so UI reacts immediately; persist in the
 		// background (the in-memory settings are already the source of truth).
-		if (options?.notify ?? true) {
-			this.notifySettingsChanged();
-		}
+		this.notifySettingsChanged();
 		await this.saveData(this.settings);
 	}
 

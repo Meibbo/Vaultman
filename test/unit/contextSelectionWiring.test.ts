@@ -161,7 +161,7 @@ describe('U130-GGC context selection', () => {
 		expect(menu).toContain("(isCustom(ctx) || ctx.groupOwner === 'note')");
 		expect(menu).toContain('typeof ctx.deleteGroup === \'function\'');
 		expect(menu).toContain(
-			'when: (ctx: MenuCtx) => typeof ctx.changeGroupIcon === \'function\'',
+			"typeof ctx.changeGroupIcon === 'function' || Boolean(ctx.groupId || ctx.node?.id)",
 		);
 		const iconBlock = menu.slice(menu.indexOf("id: 'group.icon'"), menu.indexOf("id: 'group.hide-toggle'"));
 		expect(iconBlock).not.toContain("'preset'");

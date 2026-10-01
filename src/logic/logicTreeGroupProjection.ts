@@ -11,7 +11,6 @@ import type { GroupPreset } from '../types/typeGroupPreset';
 import type { TreeNode } from '../types/typeTree';
 import type { ScopeState, ScopeTarget, SortScopeKey } from '../types/typeUI';
 import { resolveScopeSet } from './logicScopedSort';
-import { GROUP_PRESET_META } from './logicSortMenu';
 
 export const NO_GROUP_ID = 'vaultman.group.none';
 export const PRESET_GROUP_PREFIX = 'vaultman.group.preset:';
@@ -211,7 +210,6 @@ function headerNode<TMeta>(
 	range?: import('../types/typeGroupPreset').CounterRange,
 	ranges?: readonly import('../types/typeGroupPreset').CounterRange[],
 	domain?: import('../types/typeGroupPreset').CounterDomain,
-	icon?: string,
 ): TreeNode<TMeta> {
 	return {
 		id,
@@ -236,7 +234,6 @@ function headerNode<TMeta>(
 		...(range ? { counterRange: { ...range } } : {}),
 		...(ranges ? { counterRanges: ranges.map((item) => ({ ...item })) } : {}),
 		...(domain ? { counterDomain: { ...domain } } : {}),
-		...(icon ? { icon } : {}),
 	};
 }
 
@@ -878,7 +875,6 @@ export function projectGroupedTree<TMeta>(
 					item.range ? [item.range] : [],
 				),
 				resolved.counterDomain,
-				preset?.kind ? GROUP_PRESET_META[preset.kind]?.icon : undefined,
 			),
 			reparented,
 			expandedIds,
