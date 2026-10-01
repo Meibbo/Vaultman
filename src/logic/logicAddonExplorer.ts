@@ -119,6 +119,29 @@ export function canonicalPluginId(id: string): string {
 	return id.trim().toLowerCase().replace(/[\s_]+/g, '-');
 }
 
+const NATIVE_PLUGIN_SECTIONS = {
+	'core-plugins': {
+		id: 'group:core-plugins',
+		label: 'Core plugins',
+	},
+	'community-plugins': {
+		id: 'group:community-plugins',
+		label: 'Community plugins',
+	},
+} as const;
+
+const GLOBAL_SETTINGS_SECTION = {
+	id: 'group:global-settings',
+	label: 'Global settings',
+} as const;
+
+function nativePluginSection(tab: string) {
+	if (tab === 'core-plugins') return NATIVE_PLUGIN_SECTIONS['core-plugins'];
+	if (tab === 'community-plugins')
+		return NATIVE_PLUGIN_SECTIONS['community-plugins'];
+	return null;
+}
+
 export interface SettingsBridgeInput {
 	/** Nodos legacy ya construidos (mismas celdas/acciones), por pluginId. */
 	pluginNodesById: ReadonlyMap<string, TreeNode<PluginMeta>>;
@@ -217,6 +240,9 @@ export function resolveSettingsBridgeNodes(
 	const emittedPluginIds = new Set<string>();
 	// Dedup global de settings children: una identidad → un hijo.
 	const emittedSettingsIds = new Set<string>();
+	// Native plugin sections may arrive split across multiple pages. They
+	// share one canonical group identity and absorb all matching children.
+	const nativeSectionParents = new Map<string, TreeNode<PluginMeta>>();
 	// F10: resolución por id canónico, NUNCA por display name. Índice
 	// `canonicalPluginId(pluginId)` → filas legacy. Los ids de plugin
 	// son únicos por construcción, así que la ambigüedad por display
@@ -265,13 +291,31 @@ export function resolveSettingsBridgeNodes(
 
 	for (const group of input.groups) {
 		const results = group.results ?? [];
-		const groupId = settingsBridgeGroupRowId(group.tab, group.pagePath);
-		// Resolver §1 (padre): tab conocido = fila legacy como padre.
+		const pluginSection = nativePluginSection(group.tab);
 		const selfPlugin = input.pluginNodesById.get(group.tab) ?? null;
+		const nativeSection = selfPlugin ? null : (pluginSection ?? (group.tab !== '' ? GLOBAL_SETTINGS_SECTION : null));
+		const groupId =
+			nativeSection?.id ??
+			settingsBridgeGroupRowId(group.tab, group.pagePath);
+		// Resolver §1 (padre): tab conocido = fila legacy como padre.
 
 		// Grupo vacío con tabNameMatch → padre sin hijos (terminal gc-node).
 		if (results.length === 0) {
 			if (group.tabNameMatch.length === 0) continue;
+			if (nativeSection) {
+				const existing = nativeSectionParents.get(nativeSection.id);
+				if (!existing) {
+					const parent = {
+					...canonicalGroupRoot(nativeSection.id, nativeSection.label, []),
+					showCaret: false,
+					...(group.tabIcon ? { icon: group.tabIcon } : {}),
+					};
+					nativeSectionParents.set(nativeSection.id, parent);
+					nodes.push(parent);
+				}
+				highlightIds.add(nativeSection.id);
+				continue;
+			}
 			if (selfPlugin) {
 				// Self-tab vacío: aseguramos que el plugin exista como padre
 				// con un tab hijo (aunque sin páginas). El tab es un contenedor
@@ -379,6 +423,7 @@ export function resolveSettingsBridgeNodes(
 		for (const item of results) {
 			const tab = item.entry?.tab ?? '';
 			const definition = item.entry?.definition ?? '';
+			const itemPluginSection = nativePluginSection(tab);
 			// Resolver §1 (item): `entry.tab` conocido y DISTINTO del tab
 			// del grupo = la fila legacy como hija (con celdas). Cuando
 			// coincide con el padre self-tab, el item pertenece al padre
@@ -403,20 +448,22 @@ export function resolveSettingsBridgeNodes(
 				continue;
 			}
 
-		// F10: tabs agregadores + id canónico único. El display name
-		// (`definition`) se canonicaliza a espacio de ids y se compara
-		// contra `meta.pluginId` canonicalizado — NUNCA contra
-		// `meta.name` (renombres/duplicados de display no resuelven).
-		const isPluginTab =
-			tab === 'community-plugins' || tab === 'core-plugins';
-		const candidates =
-			definition !== ''
-				? nodesByCanonicalId.get(canonicalPluginId(definition))
-				: undefined;
-			const uniquePlugin =
-				isPluginTab && candidates?.length === 1
-					? candidates[0]
+			// Native plugin sections prefer an exact canonical entity id. The
+			// resulting row is the existing `node_plugin`, never a settings copy.
+			const exactPlugin =
+				itemPluginSection && definition !== ''
+					? (input.pluginNodesById.get(definition) ?? null)
 					: null;
+			// TODO(U130 canonical-id): NativeSettingsSearchEntry currently exposes
+			// no plugin-id sidecar for aggregate core/community rows. Keep the
+			// established definition fallback until the adapter can supply that id;
+			// do not compare against mutable `meta.name` display values.
+			const candidates =
+				itemPluginSection && definition !== ''
+					? nodesByCanonicalId.get(canonicalPluginId(definition))
+					: undefined;
+			const uniquePlugin =
+				exactPlugin ?? (candidates?.length === 1 ? candidates[0] : null);
 
 			if (uniquePlugin) {
 				if (emittedPluginIds.has(uniquePlugin.meta.pluginId)) {
@@ -504,6 +551,40 @@ export function resolveSettingsBridgeNodes(
 		if (selfPlugin) {
 			let pluginParent = selfTabPluginParents.get(group.tab);
 			let tabNode = selfTabTabNodes.get(group.tab);
+			// Canónica 2026-09-25 (absorción, cero duplicados): tab
+			// homónimo (label nativo igual al nombre del plugin) NO se
+			// emite como fila; los hijos cuelgan directos del plugin.
+			const selfTabLabel =
+				group.tabName !== '' ? group.tabName : group.tab;
+			const selfPluginName = (selfPlugin.meta?.name ?? '').trim().toLowerCase();
+			const selfHomonym =
+				selfTabLabel.trim().toLowerCase() !== '' &&
+				selfTabLabel.trim().toLowerCase() === selfPluginName;
+			if (selfHomonym) {
+				const direct = children.map((child) => ({ ...child, depth: 1 }));
+				if (!pluginParent) {
+					pluginParent = {
+						...selfPlugin,
+						depth: 0,
+						showCaret: direct.length > 0,
+						children: direct,
+					};
+					selfTabPluginParents.set(group.tab, pluginParent);
+					emittedPluginIds.add(selfPlugin.meta.pluginId);
+					nodes.push(pluginParent);
+				} else {
+					pluginParent.children = [
+						...(pluginParent.children ?? []),
+						...direct,
+					];
+					pluginParent.showCaret =
+						(pluginParent.children?.length ?? 0) > 0;
+				}
+				if (group.tabNameMatch.length > 0) {
+					highlightIds.add(pluginParent.id);
+				}
+				continue;
+			}
 			if (!pluginParent) {
 				// Primera vez que vemos este self-tab: crear plugin + tab
 				tabNode = {
@@ -577,6 +658,30 @@ export function resolveSettingsBridgeNodes(
 			if (group.tabNameMatch.length > 0) {
 				highlightIds.add(tabNode.id);
 				highlightIds.add(pluginParent.id);
+			}
+			continue;
+		}
+
+		if (nativeSection) {
+			const sectionChildren = children.map((child) => ({ ...child, depth: 1 }));
+			const existing = nativeSectionParents.get(nativeSection.id);
+			if (existing) {
+				existing.children = [...(existing.children ?? []), ...sectionChildren];
+				existing.showCaret = existing.children.length > 0;
+			} else {
+				const parent = {
+					...canonicalGroupRoot(
+						nativeSection.id,
+						nativeSection.label,
+						sectionChildren,
+					),
+					...(group.tabIcon ? { icon: group.tabIcon } : {}),
+				};
+				nativeSectionParents.set(nativeSection.id, parent);
+				nodes.push(parent);
+			}
+			if (group.tabNameMatch.length > 0) {
+				highlightIds.add(nativeSection.id);
 			}
 			continue;
 		}
@@ -765,7 +870,15 @@ export function resolvePluginSettingsChildren(
 	}
 
 	// Tabs sin label visible no se emiten (F4: nada de grupos vacíos).
-	const tabNodes: TreeNode<PluginMeta>[] = [];
+	// Canónica 2026-09-25 (absorción, cero duplicados): ningún nodo
+	// repite el nombre de su plugin padre. Tab homónimo (label nativo
+	// igual al nombre del plugin, trim + case-insensitive) NO se emite
+	// como fila: sus pages/definitions cuelgan DIRECTAS del plugin en
+	// `baseDepth + 1` (el tab persiste como identidad en cada ref).
+	// Con tab distinto la nivelación plugin → tab → page se conserva.
+	const pluginName =
+		(baseNode.meta?.name ?? '').trim().toLowerCase();
+	const childNodes: TreeNode<PluginMeta>[] = [];
 	for (const tab of tabOrder) {
 		const pages = pagesByTab.get(tab) ?? [];
 		const defs = defsByTab.get(tab) ?? [];
@@ -833,7 +946,19 @@ export function resolvePluginSettingsChildren(
 			});
 		}
 		if (pageNodes.length === 0 && defNodes.length === 0) continue; // F4: sin contenido no hay tab
-		tabNodes.push({
+		const homonymLabel = tabNameById.get(tab) ?? tab;
+		if (
+			homonymLabel.trim().toLowerCase() !== '' &&
+			homonymLabel.trim().toLowerCase() === pluginName
+		) {
+			// Absorción homónima: pages/definitions directas del plugin
+			// en baseDepth + 1, sin fila tab duplicada.
+			for (const n of [...pageNodes, ...defNodes]) {
+				childNodes.push({ ...n, depth: baseDepth + 1 });
+			}
+			continue;
+		}
+		childNodes.push({
 			id: `${settingsBridgeGroupRowId(tab, '')}#tab`,
 			label: tabLabel,
 			depth: baseDepth + 1,
@@ -855,7 +980,7 @@ export function resolvePluginSettingsChildren(
 	}
 
 	// F4: sin hijos tras el filtrado el plugin queda hoja.
-	if (tabNodes.length === 0) {
+	if (childNodes.length === 0) {
 		return [
 			{
 				...baseNode,
@@ -871,7 +996,7 @@ export function resolvePluginSettingsChildren(
 		{
 			...baseNode,
 			showCaret: true,
-			children: tabNodes,
+			children: childNodes,
 		},
 	];
 }
@@ -1148,11 +1273,13 @@ export function buildCanonicalRestRoots(
 	}
 	const roots: TreeNode<PluginMeta>[] = [];
 	if (coreKids.length > 0) {
-		roots.push(canonicalGroupRoot('group:core-plugins', 'Core plugins', coreKids));
+		const section = NATIVE_PLUGIN_SECTIONS['core-plugins'];
+		roots.push(canonicalGroupRoot(section.id, section.label, coreKids));
 	}
 	if (communityKids.length > 0) {
+		const section = NATIVE_PLUGIN_SECTIONS['community-plugins'];
 		roots.push(
-			canonicalGroupRoot('group:community-plugins', 'Community plugins', communityKids),
+			canonicalGroupRoot(section.id, section.label, communityKids),
 		);
 	}
 	return roots;
@@ -1168,6 +1295,7 @@ function canonicalGroupRoot(
 		label,
 		depth: 0,
 		cells: [],
+		isGroupHeader: true,
 		showCaret: true,
 		children,
 		meta: {

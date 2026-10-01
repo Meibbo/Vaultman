@@ -330,34 +330,7 @@ export async function ensureFolderExists(app: App, folderPath: string): Promise<
 }
 
 export class NodeBindingService {
-	private cachedAliasSet: Set<string> | null = null;
-
 	constructor(private deps: NodeBindingDeps) {}
-
-	invalidateAliasCache(): void {
-		this.cachedAliasSet = null;
-	}
-
-	getVaultAliasSet(): Set<string> {
-		if (this.cachedAliasSet) return this.cachedAliasSet;
-		const app = this.deps.app;
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault?.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
-		this.cachedAliasSet = aliasSet;
-		return aliasSet;
-	}
 
 	/**
 	 * Resolve binding for a node. Returns a `BindingResult`.

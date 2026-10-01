@@ -50,6 +50,7 @@ type SnippetsHarness = {
 
 type PluginsHarness = {
 	_groupIds: Set<string>;
+	_communityIds: ReadonlySet<string>;
 	hiddenGroupIds: Set<string>;
 	_seenGroupHeaderIds: Set<string>;
 	expandedIds: Set<string>;
@@ -248,6 +249,21 @@ describe('U130-03 / Task 3.3: Los 5 explorers aplican la proyeccion de grupos', 
 		expect(noGroup).toBeDefined();
 		if (!noGroup) throw new Error('NO_GROUP not found');
 		expect(noGroup.children?.[0]?.label).toBe('Dataview');
+
+		panel.groupMemberships = {};
+		panel._communityIds = new Set(['obsidian-git']);
+		panel.groupPreset = { kind: 'sections', direction: 'asc' };
+		const sections = panel.projectedNodes();
+		expect(sections.map((group) => group.id).sort()).toEqual([
+			'vaultman.group.preset:community-plugins',
+			'vaultman.group.preset:core-plugins',
+		].sort());
+		expect(sections.find((group) => group.id === 'vaultman.group.preset:community-plugins')?.label).toBe(
+			'Community plugins',
+		);
+		expect(sections.find((group) => group.id === 'vaultman.group.preset:core-plugins')?.label).toBe(
+			'Core plugins',
+		);
 	});
 
 	it('TagsExplorerPanel: proyecta grupos custom con kind tag y tagPath', () => {

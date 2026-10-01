@@ -160,8 +160,6 @@ export interface PanelWidgetExplorerPort {
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
-	setScopePickMode?(mode: 'parent' | 'level' | null): void;
-	previewScopePick?(nodeId: string): void;
 }
 
 export interface PanelWidgetExpandableExplorerPort extends PanelWidgetExplorerPort {

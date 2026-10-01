@@ -108,7 +108,7 @@ import {
 	toNativePropType,
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
-import { compareExplorerText, normalizeExplorerSortBy } from '../../logic/logicSort';
+import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
 	cloneGroupMemberships,
 	formatMembershipUrn,
@@ -304,7 +304,6 @@ export class PropsExplorerPanel extends Component {
 	private expandedIds = new Set<string>();
 	private searchTerm = '';
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
-	private _hasRendered = false;
 	private sortState = normalizeExplorerSortState('props', null);
 	private searchMode = 0;
 	private nodeTypeFilters: string[] = [];
@@ -759,11 +758,7 @@ export class PropsExplorerPanel extends Component {
 			);
 		}
 
-		queueMicrotask(() => {
-			if (!this._hasRendered) {
-				this._render();
-			}
-		});
+		this._render();
 	}
 
 	onunload(): void {
@@ -1610,11 +1605,6 @@ export class PropsExplorerPanel extends Component {
 	setScopePickMode(mode: 'parent' | 'level' | null): void {
 		if (this.viewMode !== 'tree') return;
 		this.view.setScopePickMode(mode);
-	}
-
-	previewScopePick(nodeId: string): void {
-		if (this.viewMode !== 'tree') return;
-		this.view.scheduleScopePreview(nodeId);
 	}
 
 	setSortState(state: ExplorerSortState): void {
@@ -2651,24 +2641,16 @@ export class PropsExplorerPanel extends Component {
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
 		if (node.id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-		this._includeInvokedInSelection(
-			node.id,
-			e,
-			e.shiftKey ? this._orderedVisibleTreeIds() : undefined,
-		);
+		const orderedIds = this._orderedVisibleTreeIds();
+		this._includeInvokedInSelection(node.id, e, orderedIds);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
-		const self = this;
 		this.plugin.contextMenuService.openPanelMenu(
 			{
 				nodeType,
 				node,
 				surface: 'panel',
 				selectedIds: this.selectedNodeIds,
-				get orderedIds(): string[] | undefined {
-					return self.selectedNodeIds.size > 1
-						? self._orderedVisibleTreeIds()
-						: undefined;
-				},
+				orderedIds,
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(node),
 				invokeRename: (targetId: string) => {
@@ -2862,13 +2844,24 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
-	private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
+		private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet =
-			this.plugin.nodeBindingService?.getVaultAliasSet() ??
-			new Set<string>();
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
 
 		const visit = (list: TreeNode<PropMeta>[]) => {
 			for (const node of list) {
@@ -2907,7 +2900,6 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
-		this._hasRendered = true;
 		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
 			this._renderGrid();
@@ -2991,12 +2983,8 @@ export class PropsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: this.visibleCells.has('filters')
-						? activeFilterIds
-						: undefined,
-					exclusive: this.visibleCells.has('filters')
-						? excludedFilterIds
-						: undefined,
+					inclusive: activeFilterIds,
+					exclusive: excludedFilterIds,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -3284,12 +3272,8 @@ export class PropsExplorerPanel extends Component {
 			},
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
-				inclusive: this.visibleCells.has('filters')
-					? activeFilterIds
-					: undefined,
-				exclusive: this.visibleCells.has('filters')
-					? excludedFilterIds
-					: undefined,
+				inclusive: activeFilterIds,
+				exclusive: excludedFilterIds,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
@@ -4492,7 +4476,13 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return dir * compareExplorerText(a.label, b.label);
+		return (
+			dir *
+			a.label.localeCompare(b.label, undefined, {
+				numeric: true,
+				sensitivity: 'base',
+			})
+		);
 	}
 
 	/**
@@ -4531,20 +4521,6 @@ export class PropsExplorerPanel extends Component {
 					)
 				: null;
 
-		const valuesSortCache = new Map<
-			string,
-			{ sort: ScopeSort; timeIndex: PropTimeIndex | null }
-		>();
-		const getValuesSort = (parentId: string) => {
-			let entry = valuesSortCache.get(parentId);
-			if (!entry) {
-				const sort = siblingScopeSort('props', this.sortState, parentId, 2);
-				entry = { sort, timeIndex: timeIndexFor(sort) };
-				valuesSortCache.set(parentId, entry);
-			}
-			return entry;
-		};
-
 		return sortTwoLevel(
 			nodes,
 			(a, b) =>
@@ -4556,8 +4532,8 @@ export class PropsExplorerPanel extends Component {
 					propertiesTypeIndex,
 				),
 			(a, b, parent) => {
-				const { sort, timeIndex } = getValuesSort(parent.id);
-				return this._compareNodes(a, b, sort, timeIndex);
+				const valuesSort = siblingScopeSort('props', this.sortState, parent.id, 2);
+				return this._compareNodes(a, b, valuesSort, timeIndexFor(valuesSort));
 			},
 		);
 	}
@@ -4665,9 +4641,8 @@ export class PropsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			const showFilters = this.visibleCells.has('filters');
-			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
+			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass(
@@ -5073,10 +5048,10 @@ export class PropsExplorerPanel extends Component {
 			}
 
 			const isGroup = isGroupHeader(node.id, this._groupIds);
-			const iconic = !isGroup
+			const iconic = !meta.isValueNode && !isGroup
 				? this.plugin.iconicService?.getIcon(meta.propName)
 				: null;
-			const defaultIcon = !isGroup
+			const defaultIcon = !meta.isValueNode && !isGroup
 				? this._effectivePropIcon(meta)
 				: undefined;
 			const hoverCell = this.visibleCells.has('cell_hover')

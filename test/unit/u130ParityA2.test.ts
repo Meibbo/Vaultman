@@ -158,34 +158,31 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		expect(pages.size).toBeGreaterThanOrEqual(3);
 	});
 
-	it('plugin homónimo → tab conservado con pages/definitions bajo él', () => {
+	it('plugin homónimo → pages/definitions directas, cero espejos (absorción 2026-09-25)', () => {
 		const app = vaultmanApp();
 		const base = pluginNode('vaultman', 'Vaultman');
 		const result = resolvePluginSettingsChildren(app, 'vaultman', base);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(true);
-		// Canónica corregida: el tab homónimo SÍ se emite como fila (nivel 1),
-		// con pages/definitions bajo él (nivel 2).
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		expect(tabs[0]?.label).toBe('Vaultman');
-		const pages = tabs[0]?.children ?? [];
-		expect(pages.length).toBeGreaterThanOrEqual(26);
-		const all = collectDescendants(pages);
+		// Absorción: el tab homónimo NO se emite como fila (ni espejo
+		// ni tab con label del plugin); pages/definitions directas.
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		expect(kids.length).toBeGreaterThanOrEqual(26);
+		const pages = kids.filter((k) => k.id.endsWith('#page'));
+		expect(pages.length).toBeGreaterThanOrEqual(21);
+		const all = collectDescendants(kids);
 		const ids = all.map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
 		for (const n of all) {
-			expect(n.depth).toBe(base.depth + 2);
+			expect(n.depth).toBe(base.depth + 1);
 			expect(n.label.trim()).not.toBe('');
 			expect(n.id).toMatch(/^settings:/);
 			expect(n.cells).toEqual([]);
 			const ref = settingsBridgeRefOf(n.meta);
 			expect(ref).not.toBeNull();
 		}
-		// F9: el contenedor `page:''` (grupo tab-level) no aparece como
-		// page hija; hijos por definición (page vacía + definition real)
-		// sí son legítimos bajo el tab.
+		// F9: el contenedor `page:''` no aparece como page hija.
 		expect(pages.every((p) => {
 			const ref = settingsBridgeRefOf(p.meta);
 			return ref ? !(ref.page === '' && ref.pagePath === '' && ref.definition === '') : true;
@@ -195,20 +192,19 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 	it('ids hijo #page estables (canónica), sin colisión con búsqueda', () => {
 		const app = vaultmanApp();
 		const result = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		const tabs = result[0]?.children ?? [];
-		expect(tabs).toHaveLength(1);
-		expect(tabs[0]?.id).toMatch(/#tab$/);
-		const pages = tabs[0]?.children ?? [];
+		const kids = result[0]?.children ?? [];
+		expect(kids.some((k) => k.id.endsWith('#tab'))).toBe(false);
+		const pages = kids.filter((k) => k.id.endsWith('#page'));
 		expect(pages.length).toBeGreaterThan(0);
 		const pageRows = pages.filter((p) => p.id.endsWith('#page'));
-		const defRows = pages.filter((p) => !p.id.endsWith('#page'));
+		const defRows = kids.filter((k) => !k.id.endsWith('#page'));
 		for (const p of pageRows.slice(0, 5)) expect(p.id).toMatch(/#page$/);
 		// El sufijo `#` nunca aparece en ids del camino de búsqueda.
 		for (const p of pageRows) expect(p.id).toContain('#page');
 		for (const d of defRows) expect(d.id).not.toContain('#page');
 		// Re-resolver = mismos ids (estables, cache por pluginId)
 		const again = resolvePluginSettingsChildren(app, 'vaultman', pluginNode('vaultman', 'Vaultman'));
-		expect(again[0]?.children?.map((t) => t.id)).toEqual(tabs.map((t) => t.id));
+		expect(again[0]?.children?.map((t) => t.id)).toEqual(kids.map((t) => t.id));
 	});
 });
 
@@ -248,11 +244,13 @@ describe('U130 parity A2: community/core replacement (F2)', () => {
 	it('nombre único → node_plugin con cells; duplicado → settings', () => {
 		const { byId, groups } = communityFixture();
 		const bridge = resolveSettingsBridgeNodes({ pluginNodesById: byId, groups });
-		// Un solo padre nativo (orden nativo), plugin matched como HIJO
+		// Un solo padre sección (absorción F2: el grupo absorbe al tab
+		// nativo; sin duplicado community_plugins/tab). Plugin matched
+		// como HIJO con sus cells.
 		expect(bridge.nodes).toHaveLength(1);
 		const parent = bridge.nodes[0];
 		expect(parent).toBeDefined();
-		expect(parent?.id).toMatch(/^settings:/);
+		expect(parent?.id).toBe('group:community-plugins');
 		const kids = parent?.children ?? [];
 		// Vaultman único: misma fila legacy con cells
 		const vaultKid = kids.find((k) => k.id === 'plugin:vaultman');
@@ -275,7 +273,7 @@ describe('U130 parity A2: community/core replacement (F2)', () => {
 		const bridge = resolveSettingsBridgeNodes({ pluginNodesById: byId, groups });
 		// El padre sección va primero; el plugin es hijo, no raíz previa
 		const topIds = bridge.nodes.map((n) => n.id);
-		expect(topIds[0]).toMatch(/^settings:/);
+		expect(topIds[0]).toBe('group:community-plugins');
 		expect(topIds).not.toContain('plugin:vaultman');
 	});
 });

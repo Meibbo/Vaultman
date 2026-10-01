@@ -128,7 +128,7 @@ describe('U130 parity C (F5): open-mode activation routing', () => {
 				kind: 'open-plugin-tab',
 				pluginId: 'alpha',
 			}),
-		).toBe(true);
+		).toEqual({ status: 'success', destination: 'plugin-tab' });
 		expect(open).toHaveBeenCalledOnce();
 		expect(openTabById).toHaveBeenCalledWith('alpha');
 	});
@@ -140,7 +140,7 @@ describe('U130 parity C (F5): open-mode activation routing', () => {
 				kind: 'open-settings-tab',
 				tab: 'editor',
 			}),
-		).toBe(true);
+		).toEqual({ status: 'success', destination: 'settings-tab' });
 		expect(open).toHaveBeenCalledOnce();
 		expect(openTabById).toHaveBeenCalledWith('editor');
 	});
@@ -154,12 +154,12 @@ describe('U130 parity C (F5): open-mode activation routing', () => {
 				kind: 'open-plugin-tab',
 				pluginId: 'alpha',
 			}),
-		).toBe(false);
+		).toEqual({ status: 'failed' });
 		expect(open).not.toHaveBeenCalled();
 		expect(openTabById).not.toHaveBeenCalled();
 		expect(
 			executeSettingSceneActivation(app, { kind: 'select-only', reason: 'plugin-without-tab' }),
-		).toBe(false);
+		).toEqual({ status: 'failed' });
 	});
 
 	it('opens settings tabs only with a resolvable target', () => {

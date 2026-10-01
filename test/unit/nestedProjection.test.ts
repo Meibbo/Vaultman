@@ -73,7 +73,7 @@ describe('U130 parity B · projection source guards', () => {
 		// Nested on: attaches spec-07 children via _getPluginSettingsChildren
 		// (matched by call shape, not by the destructured local name, which
 		// the A2 two-level wiring spells `tabNodes`).
-		expect(pluginsSource).toContain('this._getPluginSettingsChildren(');
+		expect(pluginsSource).toContain('this.nodes = buildCanonicalRestRoots({');
 		// Nested off: flat rows — children cleared, no caret expansion
 		expect(pluginsSource).toContain("node.children = []");
 		expect(pluginsSource).toContain("node.showCaret = false");

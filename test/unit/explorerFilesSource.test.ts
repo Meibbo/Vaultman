@@ -259,7 +259,7 @@ describe('FilesExplorerPanel source guards', () => {
 			/private _handleFileClick[\s\S]*?\n\tprivate _handleFileDragOver/,
 		)?.[0];
 		expect(clickBlock).toContain("selectionGesture === 'range'");
-		expect(clickBlock).toContain('this._orderedVisibleFilePaths()');
+		expect(clickBlock).toContain('this._orderedSelectableIds()');
 	});
 
 	it('refreshes property counts only when metadata changes their value', () => {

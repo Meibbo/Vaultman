@@ -6,12 +6,8 @@ import { openPluginSettings } from './logicAddonCells';
 interface RuntimeSettingManager {
 	open?: () => void;
 	openTabById?: (id: string) => unknown;
-	/** Helper nativo del spike: reveal de fila exacta en settings search. */
 	navigateToSearchResult?: (group: unknown, item?: unknown) => void;
-	/** Helper nativo del spike: scroll a definition por identidad. */
-	scrollToDefinition?: (tab: unknown, definition: unknown) => void;
-	/** Índice nativo de settings (re-búsqueda en activación, sin perder identidad). */
-	searchIndex?: { search?: (query: string) => unknown[] } | null;
+	searchIndex?: { search?: (query: string) => unknown } | null;
 }
 
 interface AppWithRuntimeSettings extends App {
@@ -20,6 +16,10 @@ interface AppWithRuntimeSettings extends App {
 
 function runtimeSettings(app: App): RuntimeSettingManager | undefined {
 	return (app as AppWithRuntimeSettings).setting;
+}
+
+function nativeSettingsTabId(tabId: string): string {
+	return tabId.trim().toLowerCase() === 'files and links' ? 'files' : tabId;
 }
 
 /**
@@ -56,7 +56,7 @@ export function openSettingsTabById(app: App, tabId: string): boolean {
 	const settings = runtimeSettings(app);
 	if (!settings?.open || !settings.openTabById) return false;
 	settings.open();
-	settings.openTabById(tabId);
+	settings.openTabById(nativeSettingsTabId(tabId));
 	return true;
 }
 
@@ -146,13 +146,14 @@ export function resolveSettingSceneActivation(input: {
 	const page = input.row.settingsPage ?? '';
 	const pagePath = input.row.settingsPagePath ?? '';
 	const definition = input.row.settingsDefinition ?? '';
+	const tab = nativeSettingsTabId(input.row.settingsTab);
 	if (page === '' && pagePath === '' && definition === '') {
-		return { kind: 'open-settings-tab', tab: input.row.settingsTab };
+		return { kind: 'open-settings-tab', tab };
 	}
 	return {
 		kind: 'open-settings-tab',
-		tab: input.row.settingsTab,
-		target: { tab: input.row.settingsTab, page, pagePath, definition },
+		tab,
+		target: { tab, page, pagePath, definition },
 	};
 }
 
@@ -162,103 +163,131 @@ export function hasSettingOpenApi(app: App): boolean {
 	return !!settings?.open && !!settings.openTabById;
 }
 
-/**
- * U130 parity NAV (spike Help PASS): localiza la fila exacta dentro del
- * tab ya abierto usando el helper nativo del spike
- * (`navigateToSearchResult` / `scrollToDefinition`), con identidad
- * cruda de `searchIndex.search` (no strings del adaptador).
- *
- * - Con `definition` no vacía: busca nativamente el grupo + item,
- *   llama `navigateToSearchResult(group, item)` (reveal exacto).
- * - Sin definition pero con page/pagePath: busca el grupo nativo,
- *   llama `navigateToSearchResult(group)` (tab+page, sin reveal).
- * - Sin nada que buscar → `false` (el llamador ya abrió el tab:
- *   cae a tab-only, nunca un click muerto).
- * - Sin API nativa o sin resultados → `false` (degradado: el tab
- *   ya quedó abierto por el llamador).
- */
+type NativeNavigationResult = 'exact' | 'not-found' | 'error';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function nativeId(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	return typeof value['id'] === 'string' ? value['id'] : '';
+}
+
+function nativeName(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (!isRecord(value)) return '';
+	return typeof value['name'] === 'string' ? value['name'] : '';
+}
+
+function nativePagePath(value: unknown): readonly string[] {
+	if (!Array.isArray(value)) return [];
+	return value.map(nativeName).filter((part) => part !== '');
+}
+
+function navigateToSettingTarget(
+	app: App,
+	target: SettingSceneTarget,
+): NativeNavigationResult {
+	const settings = runtimeSettings(app);
+	const navigate = settings?.navigateToSearchResult;
+	const searchIndex = settings?.searchIndex;
+	if (!navigate || !searchIndex?.search) return 'not-found';
+	const def = target.definition.trim();
+	const pageNames = new Set(
+		[target.page.trim(), target.pagePath.trim()].filter((value) => value !== ''),
+	);
+	const queries = def !== '' ? [def] : [...pageNames];
+	if (queries.length === 0) return 'not-found';
+	try {
+		for (const query of queries) {
+			const results = searchIndex.search.call(searchIndex, query);
+			if (!Array.isArray(results)) continue;
+			for (const group of results) {
+				if (!isRecord(group)) continue;
+				if (nativeId(group['tab']) !== nativeSettingsTabId(target.tab)) continue;
+				const pagePath = nativePagePath(group['pagePath']);
+				if (
+					def === '' &&
+					pageNames.size > 0 &&
+					!pageNames.has(nativeId(group['page'])) &&
+					!pageNames.has(nativeName(group['page'])) &&
+					!pageNames.has(pagePath.at(-1) ?? '')
+				) {
+					continue;
+				}
+				const rawResults = group['results'];
+				if (def !== '') {
+					if (!Array.isArray(rawResults)) continue;
+					for (const item of rawResults) {
+						if (!isRecord(item)) continue;
+						const entry = item['entry'];
+						if (!isRecord(entry)) continue;
+						if (nativeName(entry['definition']) !== def) continue;
+						navigate(group, item);
+						return 'exact';
+					}
+					continue;
+				}
+				navigate(group);
+				return 'exact';
+			}
+		}
+		return 'not-found';
+	} catch {
+		return 'error';
+	}
+}
+
 export function scrollToSettingTarget(
 	app: App,
 	target: SettingSceneTarget,
 ): boolean {
-	const settings = runtimeSettings(app);
-	const navigate = settings?.navigateToSearchResult;
-	const searchIndex = settings?.searchIndex;
-	if (!navigate || !searchIndex?.search) return false;
-	const def = (target.definition ?? '').trim();
-	const pageLabel = (target.page || target.pagePath || '').trim();
-	const query = def || pageLabel;
-	if (!query && !target.tab) return false;
-	try {
-		const results = searchIndex.search.call(searchIndex, query || target.tab);
-		if (!Array.isArray(results)) return false;
-		for (const group of results) {
-			if (!group || typeof group !== 'object') continue;
-			const groupTab = (group as { tab?: string })['tab'];
-			if (!groupTab) continue;
-			if (target.tab && groupTab !== target.tab) continue;
-			const rawResults = (group as { results?: unknown[] })['results'];
-			if (!Array.isArray(rawResults)) continue;
-			if (def) {
-				for (const item of rawResults) {
-					if (!item || typeof item !== 'object') continue;
-					const entry = (item as { entry?: unknown })['entry'];
-					if (!entry || typeof entry !== 'object') continue;
-					const entryDef = (entry as { definition?: string })['definition'];
-					if (entryDef === def) {
-						navigate(group, item);
-						return true;
-					}
-				}
-			} else if (pageLabel) {
-				const groupPage = (group as { page?: string })['page'];
-				if (groupPage && groupPage.includes(pageLabel)) {
-					navigate(group);
-					return true;
-				}
-			} else {
-				navigate(group);
-				return true;
-			}
-		}
-		return false;
-	} catch {
-		return false;
-	}
+	return navigateToSettingTarget(app, target) === 'exact';
 }
 
-/**
- * U130 parity C (F5) + NAV exact-destination: ejecuta la activación
- * resuelta. Devuelve `true` si abrió el modal nativo, `false` si el
- * llamador debe aplicar el fallback de selección (`select-only` o
- * apertura fallida: nunca un click muerto).
- *
- * - `open-settings-tab` con `target`: abre el tab y luego intenta el
- *   scroll+highlight exacto (best-effort); row-not-found → tab-only
- *   abierto (`true` igualmente, nunca un click muerto).
- * - File/folder/secret: mismo path modal (el content los mantiene como
- *   `unsupported-surface`; aquí siempre modal nativo).
- *
- * `logicAddonCells.openPluginSettings` se reutiliza tal cual (keep intact).
- */
+export type SettingSceneActivationOutcome =
+	| {
+			status: 'success';
+			destination: 'plugin-tab' | 'settings-tab' | 'settings-row';
+	  }
+	| {
+			status: 'degraded';
+			reason: 'target-not-found' | 'native-navigation-failed';
+	  }
+	| { status: 'failed' };
+
 export function executeSettingSceneActivation(
 	app: App,
 	activation: SettingSceneActivation,
-): boolean {
+): SettingSceneActivationOutcome {
 	if (activation.kind === 'open-plugin-tab') {
-		return openPluginSettings(app, activation.pluginId);
+		return openPluginSettings(app, activation.pluginId)
+			? { status: 'success', destination: 'plugin-tab' }
+			: { status: 'failed' };
 	}
 	if (activation.kind === 'open-settings-tab') {
-		const opened = openSettingsTabById(app, activation.tab);
-		if (!opened) return false;
-		if (activation.target) {
-			try {
-				scrollToSettingTarget(app, activation.target);
-			} catch {
-				// Best-effort: el tab ya quedó abierto.
-			}
+		if (!activation.target) {
+			return openSettingsTabById(app, activation.tab)
+				? { status: 'success', destination: 'settings-tab' }
+				: { status: 'failed' };
 		}
-		return true;
+		const settings = runtimeSettings(app);
+		if (!settings?.open || !settings.openTabById) return { status: 'failed' };
+		settings.open();
+		const navigation = navigateToSettingTarget(app, activation.target);
+		if (navigation === 'exact') {
+			return { status: 'success', destination: 'settings-row' };
+		}
+		settings.openTabById(nativeSettingsTabId(activation.tab));
+		return {
+			status: 'degraded',
+			reason:
+				navigation === 'error'
+					? 'native-navigation-failed'
+					: 'target-not-found',
+		};
 	}
-	return false;
+	return { status: 'failed' };
 }

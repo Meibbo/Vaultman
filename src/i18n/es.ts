@@ -1384,7 +1384,6 @@ export const es: Record<string, string> = {
 	'tags.source.inline': 'cuerpo',
 	'tags.source.both': 'ambos',
 	'viewmode.pill.format': 'Formato',
-	'viewmode.pill.filters': 'Filtros',
 	'viewmode.pill.cell_hover': 'Acciones al pasar',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',

@@ -33,7 +33,7 @@ Vaultman 1.3.0-beta.8 makes drag-and-drop and settings predictable, from directi
 - **Grouping decoupled:** Grouping stands apart from hierarchy with a strict three-level tree and native navigation parity.
 - **Quieter toolbar:** Trailing clicks on drag release are suppressed, and toolbar typings stay coherent with the plugin test harness.
 
-[Full changelog](../CHANGELOG.md#130-beta8---2026-09-29)
+[Full changelog](../CHANGELOG.md#130-beta8---2026-10-01)
 
 <a id="v1-3-0-beta-7"></a>
 

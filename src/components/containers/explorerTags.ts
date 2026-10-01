@@ -1232,11 +1232,6 @@ export class TagsExplorerPanel extends Component {
 		this.view.setScopePickMode(mode);
 	}
 
-	previewScopePick(nodeId: string): void {
-		if (this.viewMode !== 'tree') return;
-		this.view.scheduleScopePreview(nodeId);
-	}
-
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
@@ -1625,9 +1620,20 @@ export class TagsExplorerPanel extends Component {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet =
-			this.plugin.nodeBindingService?.getVaultAliasSet() ??
-			new Set<string>();
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
 
 		const visit = (list: TreeNode<TagMeta>[]) => {
 			for (const node of list) {
@@ -2115,12 +2121,8 @@ export class TagsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: this.visibleCells.has('filters')
-						? activeFilterIds
-						: undefined,
-					exclusive: this.visibleCells.has('filters')
-						? excludedFilterIds
-						: undefined,
+					inclusive: activeFilterIds,
+					exclusive: excludedFilterIds,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -2284,12 +2286,8 @@ export class TagsExplorerPanel extends Component {
 			},
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
-				inclusive: this.visibleCells.has('filters')
-					? activeFilterIds
-					: undefined,
-				exclusive: this.visibleCells.has('filters')
-					? excludedFilterIds
-					: undefined,
+				inclusive: activeFilterIds,
+				exclusive: excludedFilterIds,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
@@ -2646,9 +2644,8 @@ export class TagsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			const showFilters = this.visibleCells.has('filters');
-			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
+			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass('is-selected', this.selectedNodeIds.has(node.id));
 			card.setAttribute('role', 'button');

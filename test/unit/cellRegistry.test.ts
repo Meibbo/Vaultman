@@ -32,7 +32,6 @@ describe('shared explorer cell registry', () => {
 			'parent',
 			'count',
 			'cell_hover',
-			'filters',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
@@ -41,14 +40,12 @@ describe('shared explorer cell registry', () => {
 			'text',
 			'parent',
 			'count',
-			'filters',
 			'nested',
 		]);
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
 			'format',
 			'name',
 			'ext',
-			'filters',
 			'nested',
 		]);
 		expect(defaultVisibleCells('snippets', 'tree')).toEqual([
@@ -94,7 +91,6 @@ describe('shared explorer cell registry', () => {
 			'tags',
 			'file-count',
 			'count',
-			'filters',
 			'checkbox',
 			'nested',
 		]);
@@ -112,7 +108,6 @@ describe('shared explorer cell registry', () => {
 			'mtime',
 			'ctime',
 			'opened',
-			'filters',
 			'checkbox',
 			'nested',
 		]);
@@ -131,7 +126,6 @@ describe('shared explorer cell registry', () => {
 			'tags',
 			'file-count',
 			'count',
-			'filters',
 			'checkbox',
 		]);
 	});
