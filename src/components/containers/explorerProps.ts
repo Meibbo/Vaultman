@@ -3027,11 +3027,9 @@ export class PropsExplorerPanel extends Component {
 					'select-descendants'
 						? this._toggleDescendantSelection(id)
 						: this._expandSubtree(id, nodesWithIcons),
+				onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 				onRowDoubleClick: (id: string) =>
-					resolveRecursiveInteractionAction(this.interactionMode) ===
-					'select-descendants'
-						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, nodesWithIcons),
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					// B-groupbody: la tabla no proyecta cabeceras; este veto era
 					// codigo muerto. Fuera.
@@ -3203,6 +3201,11 @@ export class PropsExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			rowTooltip: (node) => {
+				if (node.isGroupHeader !== true || this.plugin.settings.groupNodeTooltips === false) return '';
+				const count = collectGroupMemberIds(node.children ?? []).length;
+				return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
+			},
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -3490,10 +3493,7 @@ export class PropsExplorerPanel extends Component {
 					? this._toggleDescendantSelection(id)
 					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRowDoubleClick: (id: string) =>
-				resolveRecursiveInteractionAction(this.interactionMode) ===
-				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+				this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
 			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 			onRowClick: (id: string, event) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {

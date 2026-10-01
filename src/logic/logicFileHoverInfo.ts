@@ -3,6 +3,28 @@ import {
 	type FileHoverInfoId,
 } from './logicCellRegistry';
 
+export const FOLDER_HOVER_INFO_FIELDS = [
+	'files',
+	'folders',
+	'words',
+	'tags',
+	'tasks',
+] as const;
+export type FolderHoverInfoField = (typeof FOLDER_HOVER_INFO_FIELDS)[number];
+export const DEFAULT_FOLDER_HOVER_INFO: readonly FolderHoverInfoField[] = [
+	'files',
+	'folders',
+	'words',
+];
+
+export function normalizeFolderHoverInfo(value: unknown): FolderHoverInfoField[] {
+	if (!Array.isArray(value)) return [...DEFAULT_FOLDER_HOVER_INFO];
+	const allowed = new Set<string>(FOLDER_HOVER_INFO_FIELDS);
+	return [...new Set(value.filter((field): field is FolderHoverInfoField =>
+		typeof field === 'string' && allowed.has(field),
+	))];
+}
+
 export interface FileHoverInfoData {
 	[id: string]: string | number | null | undefined;
 	label: string;

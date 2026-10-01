@@ -194,6 +194,8 @@ import {
 import {
 	buildFileHoverInfo,
 	filesHoverNeedsStatistics,
+	normalizeFolderHoverInfo,
+	type FolderHoverInfoField,
 } from '../../logic/logicFileHoverInfo';
 import {
 	collectExpandableSubtreeIds,
@@ -476,6 +478,7 @@ export class FilesExplorerPanel extends Component {
 	private pendingStatsPaths = new Set<string>();
 	private propertyCountCache = new Map<string, number>();
 	private pendingHoverStats = new Map<string, Set<HTMLElement>>();
+	private pendingFolderHoverStats = new Map<string, Set<HTMLElement>>();
 	private statisticsWarmSignature = '';
 	private statisticsWarmup: Promise<void> = Promise.resolve();
 	private statisticsRetrySignature = '';
@@ -1122,6 +1125,7 @@ export class FilesExplorerPanel extends Component {
 		this.pendingStatsPaths.clear();
 		this.propertyCountCache.clear();
 		this.pendingHoverStats.clear();
+		this.pendingFolderHoverStats.clear();
 		this.plugin.queueService.off('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.off('changed', this._handleStatsChange);
 		this.containerEl.removeEventListener(
@@ -3282,6 +3286,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			rowTooltip: (node) => this._groupHoverText(node),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -3428,10 +3433,7 @@ export class FilesExplorerPanel extends Component {
 						? this._toggleDescendantSelection(id)
 						: this._expandSubtree(id, projectedTree),
 				onRowDoubleClick: (id: string) =>
-					resolveRecursiveInteractionAction(this.interactionMode) ===
-					'select-descendants'
-						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, projectedTree),
+					this._expandSubtree(id, projectedTree),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) {
 						// B-groupbody: el motor ya no trae el cuerpo por aqui
@@ -5076,6 +5078,7 @@ export class FilesExplorerPanel extends Component {
 		if (action === 'patch') {
 			const pathSet = new Set(paths);
 			this._patchVisibleStatisticsCells(pathSet);
+			this._patchFolderAggregateStatistics(pathSet);
 			this._patchVisibleTimeCells(pathSet);
 			return;
 		}
@@ -5274,6 +5277,73 @@ export class FilesExplorerPanel extends Component {
 			}
 		};
 		visit(this._lastRenderTree);
+	}
+
+	/** Refresh only folder aggregate roots containing files whose stats changed. */
+	private _patchFolderAggregateStatistics(paths: ReadonlySet<string>): void {
+		if (
+			paths.size === 0 ||
+			this.viewMode !== 'tree' ||
+			!this.treeView ||
+			!this._treeRenderOpts
+		) return;
+		const flags = this._folderAggregateFlags();
+		if (!flags) return;
+
+		const folderNodes = new Map<string, TreeNode<FileMeta>>();
+		const visit = (nodes: readonly TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (node.meta.isFolder) folderNodes.set(node.meta.folderPath, node);
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(this._lastRenderTree);
+
+		const affectedPaths = new Set<string>();
+		for (const filePath of paths) {
+			const parts = filePath.split('/');
+			parts.pop();
+			for (let depth = 1; depth <= parts.length; depth += 1) {
+				affectedPaths.add(parts.slice(0, depth).join('/'));
+			}
+		}
+		const roots: TreeNode<FileMeta>[] = [];
+		for (const path of affectedPaths) {
+			const node = folderNodes.get(path);
+			if (!node) continue;
+			const segments = path.split('/');
+			let covered = false;
+			while (segments.length > 1) {
+				segments.pop();
+				if (folderNodes.has(segments.join('/'))) {
+					covered = true;
+					break;
+				}
+			}
+			if (!covered) roots.push(node);
+		}
+		if (roots.length === 0) return;
+
+		for (const root of roots) {
+			const totals = this._folderAggregateTotals([root], flags);
+			const apply = (nodes: TreeNode<FileMeta>[]): void => {
+				for (const node of nodes) {
+					const total = node.meta.isFolder ? totals.get(node.id) : undefined;
+					if (total) this._applyAggregateCells(node, total, flags);
+					if (node.children?.length) apply(node.children);
+				}
+			};
+			apply([root]);
+		}
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const decorateGroups = (nodes: TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (node.isGroupHeader) this._decorateGroupHeader(node);
+				if (node.children?.length) decorateGroups(node.children);
+			}
+		};
+		decorateGroups(projected);
+		this.treeView.render({ ...this._treeRenderOpts, nodes: projected });
 	}
 
 	/**
@@ -5834,48 +5904,81 @@ export class FilesExplorerPanel extends Component {
 			.finally(() => this.pendingHoverStats.delete(file.path));
 	}
 
-	/**
-	 * U130 polishing: folders get hover tooltips like files — same native
-	 * mechanism (`setTooltip`, like the native ones) and same field
-	 * flexibility (`filesHoverInfo` order + labels). Aggregates bubble at
-	 * render, so no stats warmup is needed. Fields without folder meaning
-	 * (ext/opened/ctime/characters/count) stay null and are skipped.
-	 */
+	private _folderHoverFields(): FolderHoverInfoField[] {
+		return normalizeFolderHoverInfo(this.plugin.settings.folderHoverInfo);
+	}
+
+	private _folderDescendantFiles(folderPath: string): TFile[] {
+		const prefix = `${folderPath.replace(/\/$/, '')}/`;
+		return (this.plugin.app.vault.getMarkdownFiles?.() ?? []).filter((file) =>
+			file.path.startsWith(prefix),
+		);
+	}
+
+	private _folderHoverStats(folderPath: string): {
+		words: number | null;
+		tags: number | null;
+		tasks: number | null;
+	} {
+		const files = this._folderDescendantFiles(folderPath);
+		const sum = (read: (file: TFile) => number | null): number | null => {
+			let total = 0;
+			for (const file of files) {
+				const value = read(file);
+				if (value === null) return null;
+				total += value;
+			}
+			return total;
+		};
+		return {
+			words: sum((file) => this.plugin.statisticsCache.getFileWordCount(file)),
+			tags: sum((file) => this.plugin.statisticsCache.getFileTagCount(file)),
+			tasks: sum((file) => this.plugin.statisticsCache.getFileRemainingTasks(file)),
+		};
+	}
+
+	/** Folder counts follow the vault tree; requested statistics warm on hover. */
 	private _folderHoverText(
 		folderPath: string,
-		fields: readonly FileHoverInfoId[] = this._filesHoverFields(),
+		fields: readonly FolderHoverInfoField[] = this._folderHoverFields(),
 	): string {
-		const labels = Object.fromEntries(
-			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
-		) as Record<FileHoverInfoId, string>;
-		const name = folderPath.split('/').filter(Boolean).pop() ?? folderPath;
-		const maxMtime = this._folderMaxMtime.get(folderPath) ?? 0;
-		return buildFileHoverInfo(
-			fields,
-			{
-				label: name,
-				path: folderPath,
-				opened: null,
-				mtime:
-					maxMtime > 0 ? (this._formatHoverDateCell(maxMtime) ?? null) : null,
-				ctime: null,
-				ext: '',
-				words: this._folderWordCount.get(folderPath) ?? 0,
-				characters: null,
-				tasks: this._folderTaskCount.get(folderPath) ?? 0,
-				count: null,
-			},
-			labels,
-		);
+		const loaded = this.plugin.app.vault.getAllLoadedFiles?.() ?? [];
+		const prefix = `${folderPath.replace(/\/$/, '')}/`;
+		const descendants = loaded.filter((file) => file.path.startsWith(prefix));
+		const fileCount = descendants.filter((file) => file instanceof TFile).length;
+		const folderCount = descendants.filter((file) => file instanceof TFolder).length;
+		const stats = this._folderHoverStats(folderPath);
+		const lines: string[] = [];
+		const hasFiles = fields.includes('files');
+		const hasFolders = fields.includes('folders');
+		if (hasFiles && hasFolders) {
+			lines.push(
+				`${fileCount} ${translate(fileCount === 1 ? 'settings.folder_hover.file_noun' : 'settings.folder_hover.files_noun')}, ${folderCount} ${translate(folderCount === 1 ? 'settings.folder_hover.folder_noun' : 'settings.folder_hover.folders_noun')}`,
+			);
+		} else if (hasFiles) {
+			lines.push(`${fileCount} ${translate(fileCount === 1 ? 'settings.folder_hover.file_noun' : 'settings.folder_hover.files_noun')}`);
+		} else if (hasFolders) {
+			lines.push(`${folderCount} ${translate(folderCount === 1 ? 'settings.folder_hover.folder_noun' : 'settings.folder_hover.folders_noun')}`);
+		}
+		for (const field of fields) {
+			if (field === 'files' || field === 'folders') continue;
+			const value = stats[field];
+			if (value === null) continue;
+			lines.push(`${translate(`settings.folder_hover.${field}`)}: ${value}`);
+		}
+		return lines.join('\n');
 	}
 
 	private _applyFolderHoverTooltip(
 		folderPath: string,
 		element: HTMLElement,
-		fields: readonly FileHoverInfoId[],
+		fields: readonly FolderHoverInfoField[],
 	): void {
 		element.removeAttribute('title');
-		if (this.tooltipsOverride === false) return;
+		if (
+			this.tooltipsOverride === false ||
+			this.plugin.settings.folderNodeTooltips === false
+		) return;
 		const text = this._folderHoverText(folderPath, fields);
 		if (text)
 			setTooltip(element, text, {
@@ -5886,11 +5989,56 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _handleFolderHover(folderPath: string, element: HTMLElement): void {
-		this._applyFolderHoverTooltip(
-			folderPath,
-			element,
-			this._filesHoverFields(),
+		const fields = this._folderHoverFields();
+		this._applyFolderHoverTooltip(folderPath, element, fields);
+		if (
+			this.tooltipsOverride === false ||
+			this.plugin.settings.folderNodeTooltips === false
+		) return;
+		const statsFields = fields.filter((field) =>
+			field === 'words' || field === 'tags' || field === 'tasks',
 		);
+		if (statsFields.length === 0) return;
+		const files = this._folderDescendantFiles(folderPath);
+		const missing = files.some((file) =>
+			statsFields.some((field) => {
+				if (field === 'words') return this.plugin.statisticsCache.getFileWordCount(file) === null;
+				if (field === 'tags') return this.plugin.statisticsCache.getFileTagCount(file) === null;
+				return this.plugin.statisticsCache.getFileRemainingTasks(file) === null;
+			}),
+		);
+		if (!missing) return;
+		const waiting = this.pendingFolderHoverStats.get(folderPath);
+		if (waiting) {
+			waiting.add(element);
+			return;
+		}
+		this.pendingFolderHoverStats.set(folderPath, new Set([element]));
+		void this.plugin.statisticsCache.ensureFileStats(files)
+			.then(() => {
+				for (const row of this.pendingFolderHoverStats.get(folderPath) ?? []) {
+					if (row.isConnected && row.dataset.path === folderPath) {
+						this._applyFolderHoverTooltip(
+							folderPath,
+							row,
+							this._folderHoverFields(),
+						);
+					}
+				}
+			})
+			.catch((error: unknown) => {
+				console.warn(`Vaultman could not load folder hover stats for ${folderPath}`, error);
+			})
+			.finally(() => this.pendingFolderHoverStats.delete(folderPath));
+	}
+
+	private _groupHoverText(node: TreeNode): string {
+		if (
+			node.isGroupHeader !== true ||
+			this.plugin.settings.groupNodeTooltips === false
+		) return '';
+		const count = collectGroupMemberIds(node.children ?? []).length;
+		return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
 	}
 
 	/**

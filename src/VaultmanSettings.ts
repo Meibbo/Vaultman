@@ -1,11 +1,14 @@
 import { normalizeOpenMode } from './logic/logicFrameActivation';
 import { normalizeSettingSceneGoToTarget } from './logic/logicSettingSceneActivation';
+import { interactionModesForTab, type InteractionTab } from './logic/logicInteractionMode';
 import {
 	PluginSettingTab,
 	Setting,
 	type App,
 	Platform,
 	type SettingDefinitionItem,
+	type SettingDefinitionGroup,
+	type SettingGroupItem,
 } from 'obsidian';
 import {
 	DEFAULT_SETTINGS,
@@ -76,12 +79,50 @@ import {
 	type NodeNotePrefixes,
 } from './services/serviceNodeBinding';
 import { planAliasPrefixMigration } from './logic/logicNodeNotePrefixMigration';
+import {
+	FOLDER_HOVER_INFO_FIELDS,
+	normalizeFolderHoverInfo,
+} from './logic/logicFileHoverInfo';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
 	buildFilterTemplatePreview,
 	buildQueueTemplatePreview,
 	buildSavedLayoutPreview,
 } from './logic/logicPayloadPreview';
+
+type SettingSectionMarker = {
+	readonly type: 'vaultman-setting-section';
+	readonly heading: string;
+};
+
+type SettingPageEntry = SettingGroupItem | SettingSectionMarker;
+
+function settingSection(heading: string): SettingSectionMarker {
+	return { type: 'vaultman-setting-section', heading };
+}
+
+function isSettingSection(entry: SettingPageEntry): entry is SettingSectionMarker {
+	return 'type' in entry && entry.type === 'vaultman-setting-section';
+}
+
+/** Turn section boundaries into Obsidian groups while preserving custom rows. */
+function groupSettingSections(entries: SettingPageEntry[]): SettingDefinitionItem[] {
+	const definitions: SettingDefinitionItem[] = [];
+	let currentGroup: SettingDefinitionGroup | undefined;
+
+	for (const entry of entries) {
+		if (isSettingSection(entry)) {
+			currentGroup = { type: 'group', heading: entry.heading, items: [] };
+			definitions.push(currentGroup);
+			continue;
+		}
+
+		if (currentGroup) currentGroup.items?.push(entry);
+		else definitions.push(entry);
+	}
+
+	return definitions;
+}
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
@@ -111,7 +152,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			| 'nodeNoteTagPattern'
 			| 'nodeNoteSnippetPattern'
 			| 'nodeNotePluginPattern'
-			| 'nodeNotePropPattern',
+			| 'nodeNotePropPattern'
+			| 'nodeNoteGroupPattern'
+			| 'nodeNoteFolderPattern'
+			| 'nodeNoteFilePattern',
 		nameKey: string,
 		descKey: string,
 		placeholder: string,
@@ -210,14 +254,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			'search-selection': translate('settings.action.search_selection'),
 			none: translate('settings.action.none'),
 		};
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.native_surface_click'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		const items: SettingPageEntry[] = [
+			settingSection(translate('settings.native_surface_click.native_section')),
+		];
 
 		items.push({
 			name: translate('settings.native_surface_click_primary'),
@@ -279,17 +318,36 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		return items;
+		items.push(settingSection(translate('settings.native_surface_click.global_input_section')));
+		for (const tab of ['files', 'props', 'tags', 'snippets', 'plugins'] as const satisfies readonly InteractionTab[]) {
+			items.push({
+				name: translate(`settings.global_input.${tab}`),
+				desc: translate('settings.global_input.desc'),
+				render: (setting: Setting) => {
+					setting.addDropdown((dropdown) => {
+						for (const mode of interactionModesForTab(tab)) {
+							dropdown.addOption(mode, translate(`viewmenu.interaction.${mode}`));
+						}
+						const mode = this.plugin.settings.defaultInteractionModeByTab?.[tab];
+						return dropdown
+							.setValue(mode && interactionModesForTab(tab).includes(mode) ? mode : 'open')
+							.onChange(async (value) => {
+								const next = interactionModesForTab(tab).find((candidate) => candidate === value) ?? 'open';
+								this.plugin.settings.defaultInteractionModeByTab = {
+									...this.plugin.settings.defaultInteractionModeByTab,
+									[tab]: next,
+								};
+								await this.plugin.saveSettings();
+							});
+					});
+				},
+			});
+		}
+		return groupSettingSections(items);
 	}
 
 	private getNodeNotePrefixPageItems(): SettingDefinitionItem[] {
 		return [
-			{
-				name: translate('settings.node_note_prefixes'),
-				render: (setting: Setting) => {
-					setting.setHeading();
-				},
-			},
 			this.prefixItem(
 				'nodeNoteTagPattern',
 				'settings.node_note_tag_pattern',
@@ -314,6 +372,24 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				'settings.node_note_prop_pattern.desc',
 				'[name]',
 			),
+			this.prefixItem(
+				'nodeNoteGroupPattern',
+				'settings.node_note_group_pattern',
+				'settings.node_note_group_pattern.desc',
+				'name',
+			),
+			this.prefixItem(
+				'nodeNoteFolderPattern',
+				'settings.node_note_folder_pattern',
+				'settings.node_note_folder_pattern.desc',
+				'name',
+			),
+			this.prefixItem(
+				'nodeNoteFilePattern',
+				'settings.node_note_file_pattern',
+				'settings.node_note_file_pattern.desc',
+				'name',
+			),
 		];
 	}
 
@@ -324,7 +400,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 * buttons used to be, so a user's muscle memory survives the port.
 	 */
 	private getRootItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
+		const items: SettingPageEntry[] = [];
 
 		items.push({
 			name: translate('settings.bypass_operations'),
@@ -471,12 +547,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		// 	},
 		// });
 
-		items.push({
-			name: translate('settings.style_config'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		items.push(settingSection(translate('settings.style_config')));
 
 		items.push({
 			type: 'page',
@@ -490,6 +561,28 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			name: translate('settings.floating_toc'),
 			desc: translate('settings.floating_toc.desc'),
 			items: this.getFloatingTocPageItems(),
+		});
+
+		items.push({
+			type: 'page',
+			name: translate('settings.panel_content'),
+			desc: translate('settings.panel_content.desc'),
+			items: [
+				{
+					name: translate('settings.text_search_intercepts'),
+					desc: translate('settings.text_search_intercepts.desc'),
+					render: (setting: Setting) => {
+						setting.addToggle((toggle) =>
+							toggle
+								.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
+								.onChange(async (value) => {
+									this.plugin.settings.textSearchInterceptsCoreSearch = value;
+									await this.plugin.saveSettings();
+								}),
+						);
+					},
+				},
+			],
 		});
 
 		items.push({
@@ -528,12 +621,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			items: this.getFilesHoverPageItems(),
     });
 
-		items.push({
-			name: translate('settings.workspace_config'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-    });
+		items.push(settingSection(translate('settings.workspace_config')));
 
 		items.push({
 			type: 'page',
@@ -601,12 +689,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		items.push({
-			name: translate('settings.vaultman_sets'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-    });
+		items.push(settingSection(translate('settings.vaultman_sets')));
 
 		items.push({
 			type: 'page',
@@ -629,13 +712,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			items: this.getSavedLayoutItems(),
 		});
 
-		items.push({
-			name: translate('settings.addons'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
-
+		items.push(settingSection(translate('settings.addons')));
 		items.push({
 			name: translate('settings.addons.iconic'),
 			desc: translate('settings.addons.iconic.desc'),
@@ -652,12 +729,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		items.push({
-			name: translate('settings.developer_tools'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		items.push(settingSection(translate('settings.developer_tools')));
 
 		items.push({
 			name: translate('settings.performance_monitor'),
@@ -681,34 +753,12 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			items: this.getDeveloperPageItems(),
 		});
 
-		items.push({
-			name: translate('settings.text_search_intercepts'),
-			desc: translate('settings.text_search_intercepts.desc'),
-			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
-						.onChange(async (value) => {
-							this.plugin.settings.textSearchInterceptsCoreSearch = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-			},
-		});
-
-		return items;
+		return groupSettingSections(items);
 	}
 
 	/** Saved filter templates: preview the payload or drop the template. */
 	private getFilterTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.templates'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		const templates = this.plugin.settings.filterTemplates;
 		if (templates.length === 0) {
@@ -763,13 +813,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	/** Saved compositions of the explorer view. */
 	private getSavedLayoutItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.saved_view_config'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		const layouts = this.plugin.settings.savedLayouts ?? [];
 		if (layouts.length === 0) {
@@ -840,13 +883,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	/** Operation sets and their queue-warning toggles. */
 	private getQueueTemplateItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('queue.template.templates'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		items.push({
 			name: translate('settings.bulk_operation_warning'),
@@ -1043,7 +1079,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 * ocultas; con paneles abiertos no pasa nada.
 	 */
 	private getChromeHoverPageItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
+		const items: SettingPageEntry[] = [];
 		// U130 C4: el hover de cromo requiere puntero y probe() lo rechaza en
 		// movil (mobile:no-pointer). No se insertan los controles: se muestra
 		// un aviso informativo simple en is-mobile / is-phone / mod-mobile o
@@ -1054,7 +1090,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				desc: translate('settings.chrome_hover.mobile_notice'),
 				render: () => {},
 			});
-			return items;
+			return groupSettingSections(items);
 		}
 		const hs = () => this.plugin.settings.hoverSurfaces;
 		const apply = async (): Promise<void> => {
@@ -1103,12 +1139,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			'statusbar',
 		] as const;
 		for (const surface of surfaces) {
-			items.push({
-				name: translate(`settings.chrome_hover.${surface}`),
-				render: (setting: Setting) => {
-					setting.setHeading();
-				},
-			});
+			items.push(settingSection(translate(`settings.chrome_hover.${surface}`)));
 			for (const kind of ['hide', 'hover', 'pin'] as const) {
 				items.push({
 					name: translate(`settings.chrome_hover.${surface}.${kind}`),
@@ -1130,6 +1161,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			}
 		}
 
+		items.push(settingSection(translate('settings.chrome_hover.behavior_section')));
 		items.push({
 			name: translate('settings.chrome_hover.lock'),
 			desc: translate('settings.chrome_hover.lock.desc'),
@@ -1156,19 +1188,11 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		return items;
+		return groupSettingSections(items);
 	}
 
 	private getToolbarPageItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.toolbar'),
-			desc: translate('settings.toolbar.desc'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		items.push({
 			name: translate('settings.filters_show_tab_labels'),
@@ -1451,14 +1475,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	}
 
 	private getExplorerPageItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.explorer_page'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		const items: SettingPageEntry[] = [];
 
 		items.push({
 			name: translate('settings.persist_interaction_mode'),
@@ -1478,16 +1495,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
-		// U121-027: the cell-shaping settings gather under one heading. This is not
-		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
-		// fields and the grid column options still live on their own pages; moving
-		// those is a separate UX call.
-		items.push({
-			name: translate('settings.cells_section'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		// U121-027: the first block shapes which cells appear in the tree.
+		items.push(settingSection(translate('settings.cells_section')));
 
 		// BT5-040: folders can show the recursive sum of their files' cells.
 		items.push({
@@ -1540,6 +1549,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push(settingSection(translate('settings.explorer.tree_section')));
 		items.push({
 			name: translate('settings.sticky_parent_rows_fraction'),
 			desc: translate('settings.sticky_parent_rows_fraction.desc'),
@@ -1610,6 +1620,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push(settingSection(translate('settings.explorer.timestamps_section')));
 		// U121-027. saveSettings() notifies the settings listeners and the explorer
 		// now subscribes, so toggling this repaints the visible cells immediately.
 		items.push({
@@ -1665,6 +1676,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		// BT5-033: node icon scope lives in the Explorer menu now (was in Add-ons).
+		items.push(settingSection(translate('settings.explorer.cell_appearance_section')));
 		items.push({
 			name: translate('settings.node_icon_scope'),
 			desc: translate('settings.node_icon_scope.desc'),
@@ -1804,6 +1816,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push(settingSection(translate('settings.explorer.behavior_section')));
 		// U121-083: the rail's widgets are a navbar, so they behave like one.
 		items.push({
 			name: translate('settings.floating_toc_sticky_actions'),
@@ -1930,6 +1943,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push(settingSection(translate('settings.explorer.search_navigation_section')));
 		items.push({
 			name: translate('settings.search_highlights'),
 			desc: translate('settings.search_highlights.desc'),
@@ -1980,6 +1994,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		// BT5-025: the Explorer glyph color uses the shared palette. The legacy
 		// Rainbow folders toggle is gone from the UI; its setting/code stay for
 		// deferred snippet parity.
+		items.push(settingSection(translate('settings.explorer.glyphs_section')));
 		items.push({
 			name: translate('settings.explorer_glyph_color'),
 			desc: translate('settings.explorer_glyph_color.desc'),
@@ -2052,18 +2067,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 		// BT5-009: file exclusion is a filter node now, restored by removing its
 		// chip like exclude-folder, so it no longer has a settings section.
-		return items;
+		return groupSettingSections(items);
 	}
 
 	private getContextMenusPageItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
+		const items: SettingPageEntry[] = [];
 
-		items.push({
-			name: translate('settings.context_menu'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		items.push(settingSection(translate('settings.context_menu.node_menus')));
 
 		// BT5-018/036: normal node context menus stay together; the move actions
 		// live on their own experimental pages because they can strand an explorer
@@ -2079,12 +2089,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		items.push({
-			name: translate('settings.context_menu.toolbar'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		items.push(settingSection(translate('settings.context_menu.toolbar')));
 		for (const kind of TOOLBAR_MENU_KINDS) {
 			items.push({
 				type: 'page',
@@ -2094,12 +2099,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		items.push({
-			name: translate('settings.context_menu.experimental'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		items.push(settingSection(translate('settings.context_menu.experimental')));
 
 		for (const kind of PANEL_MENU_KINDS) {
 			if (!experimentalKinds.has(kind)) continue;
@@ -2111,6 +2111,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
+		items.push(settingSection(translate('settings.context_menu.locations_section')));
 		items.push({
 			name: translate('settings.context_menu.file_menu'),
 			desc: translate('settings.context_menu.file_menu.desc'),
@@ -2156,19 +2157,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
     });
 
-		return items;
+		return groupSettingSections(items);
 	}
 
 	private getFilesHoverPageItems(): SettingDefinitionItem[] {
-		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.files_hover_info'),
-			desc: translate('settings.files_hover_info.desc'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
+		const items: SettingPageEntry[] = [
+			settingSection(translate('settings.files_hover.fields_section')),
+		];
 
 		const entries = new Map(
 			fileHoverEntries().map((entry) => [entry.id, entry]),
@@ -2245,14 +2240,70 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			});
 		}
 
-		// U121-027 (QA 2026-07-31): the tooltip's relative-time options live
-		// here, split from the Cells-section trio, which shapes only the cells.
+		items.push(settingSection(translate('settings.folder_hover.section')));
 		items.push({
-			name: translate('settings.tooltip_time_section'),
+			name: translate('settings.folder_hover.enabled'),
+			desc: translate('settings.folder_hover.enabled.desc'),
 			render: (setting: Setting) => {
-				setting.setHeading();
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.folderNodeTooltips !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.folderNodeTooltips = value;
+							await this.plugin.saveSettings();
+						}),
+				);
 			},
 		});
+		for (const field of FOLDER_HOVER_INFO_FIELDS) {
+			items.push({
+				name: translate(`settings.folder_hover.${field}`),
+				render: (setting: Setting) => {
+					setting.addToggle((toggle) =>
+						toggle
+							.setValue(
+								normalizeFolderHoverInfo(
+									this.plugin.settings.folderHoverInfo,
+								).includes(field),
+							)
+							.onChange(async (value) => {
+								const selected = new Set(
+									normalizeFolderHoverInfo(
+										this.plugin.settings.folderHoverInfo,
+									),
+								);
+								if (value) selected.add(field);
+								else selected.delete(field);
+								this.plugin.settings.folderHoverInfo =
+									FOLDER_HOVER_INFO_FIELDS.filter((candidate) =>
+										selected.has(candidate),
+									);
+								await this.plugin.saveSettings();
+							}),
+					);
+				},
+			});
+		}
+
+		items.push(settingSection(translate('settings.group_hover.section')));
+		items.push({
+			name: translate('settings.group_hover.enabled'),
+			desc: translate('settings.group_hover.enabled.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.groupNodeTooltips !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.groupNodeTooltips = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		// U121-027 (QA 2026-07-31): the tooltip's relative-time options live
+		// here, split from the Cells-section trio, which shapes only the cells.
+		items.push(settingSection(translate('settings.tooltip_time_section')));
 
 		items.push({
 			name: translate('settings.timestamp_format'),
@@ -2308,7 +2359,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
 		});
-		return items;
+		return groupSettingSections(items);
 	}
 
 	/**
@@ -2320,13 +2371,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		kind: (typeof PANEL_MENU_KINDS)[number] | ToolbarMenuKind,
 	): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-		items.push({
-			name: translate(`settings.context_menu_kind.${kind}`),
-			desc: translate('settings.files_context_menu.desc'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		const catalog = PANEL_MENU_KINDS.includes(
 			kind as (typeof PANEL_MENU_KINDS)[number],
@@ -2598,13 +2642,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 	private getFloatingTocPageItems(): SettingDefinitionItem[] {
 		const items: SettingDefinitionItem[] = [];
-
-		items.push({
-			name: translate('settings.floating_toc'),
-			render: (setting: Setting) => {
-				setting.setHeading();
-			},
-		});
 
 		items.push({
 			name: translate('settings.floating_toc_enable'),

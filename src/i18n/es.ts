@@ -1,18 +1,18 @@
 export const es: Record<string, string> = {
-	'settings.native_surface_click': 'Acciones de click nativo',
+	'settings.native_surface_click': 'Acciones de click',
 	'settings.native_surface_click.desc':
 		'Configura las acciones para click primario, Alt y modificadores.',
 	'settings.workspace_config': 'Configuración del espacio de trabajo',
-	'settings.node_note_prefixes': 'Prefijos de node-notes',
+	'settings.node_note_prefixes': 'Patrones de node-notes',
 	'settings.node_note_prefixes.desc':
-		'Configura los patrones usados para identificar node-notes.',
-	'settings.native_surface_click_primary': 'Acción de Click Primario Nativo',
+		'Configura los patrones para vincular notas con tags, props, grupos, carpetas, archivos, snippets y plugins.',
+	'settings.native_surface_click_primary': 'Acción de click primario',
 	'settings.native_surface_click_primary.desc':
 		'Acción al hacer click en elementos nativos de Obsidian (breadcrumbs, tags, carpetas).',
-	'settings.native_surface_click_alt': 'Acción de Alt+Click Nativo',
+	'settings.native_surface_click_alt': 'Acción de Alt+Click',
 	'settings.native_surface_click_alt.desc':
 		'Acción al hacer Alt+Click en elementos nativos de Obsidian.',
-	'settings.native_surface_click_mod': 'Acción de Mod+Click Nativo',
+	'settings.native_surface_click_mod': 'Acción de Mod+Click',
 	'settings.native_surface_click_mod.desc':
 		'Acción al hacer Ctrl/Cmd-Click o click central en elementos nativos de Obsidian.',
 	'settings.node_note_tag_pattern': 'Patrón node-note para tags',
@@ -27,6 +27,24 @@ export const es: Record<string, string> = {
 	'settings.node_note_prop_pattern': 'Patrón node-note para props',
 	'settings.node_note_prop_pattern.desc':
 		'Patrón para bindings de props. Usa "name" como placeholder. Por defecto "[name]". Cambiarlo prepara renames de alias para revisar.',
+	'settings.node_note_group_pattern': 'Patrón node-note para grupos',
+	'settings.node_note_group_pattern.desc':
+		'Patrón para bindings de grupos. Usa "name" como placeholder. Por defecto "name".',
+	'settings.node_note_folder_pattern': 'Patrón node-note para carpetas',
+	'settings.node_note_folder_pattern.desc':
+		'Patrón para bindings de carpetas. Usa "name" como placeholder para la ruta. Por defecto "name".',
+	'settings.node_note_file_pattern': 'Patrón node-note para archivos',
+	'settings.node_note_file_pattern.desc':
+		'Patrón para bindings de archivos. Usa "name" como placeholder para la ruta. Por defecto "name".',
+	'settings.native_surface_click.native_section': 'Clicks en superficies de Obsidian',
+	'settings.native_surface_click.global_input_section': 'Valores globales de input=',
+	'settings.global_input.desc':
+		'Modo predeterminado de click primario para esta pestaña cuando ningún layout guardado lo sobrescribe.',
+	'settings.global_input.files': 'Explorer de archivos',
+	'settings.global_input.props': 'Explorer de propiedades',
+	'settings.global_input.tags': 'Explorer de tags',
+	'settings.global_input.snippets': 'Explorer de snippets',
+	'settings.global_input.plugins': 'Explorer de plugins',
 	'settings.node_note_prefix_migrated':
 		'Se prepararon {count} renames de alias para revisar',
 	'settings.action.reveal_in_vaultman': 'Revelar en Vaultman Explorer',
@@ -266,12 +284,20 @@ export const es: Record<string, string> = {
 	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
 	'settings.explorer_page': 'Panel: Explorer',
+	'settings.panel_content': 'Panel: Content',
+	'settings.panel_content.desc': 'Comportamiento del panel de contenido y búsqueda de texto.',
 	'settings.explorer_file_move_mode': 'Modo de IU para Move To',
 	'settings.explorer_file_move_mode.desc':
 		'Cómo se presenta la función de mover a carpeta en el File Scene.',
 	'settings.explorer_file_move_mode.inline': 'Inline (Modo Árbol)',
 	'settings.explorer_file_move_mode.modal': 'Modal Clásico',
 	'settings.cells_section': 'Celdas',
+	'settings.explorer.tree_section': 'Comportamiento del árbol',
+	'settings.explorer.timestamps_section': 'Marcas de tiempo',
+	'settings.explorer.cell_appearance_section': 'Apariencia de nodos y celdas',
+	'settings.explorer.behavior_section': 'Comportamiento del explorer',
+	'settings.explorer.search_navigation_section': 'Búsqueda y navegación',
+	'settings.explorer.glyphs_section': 'Glyphs del explorer',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
 	'settings.persist_interaction_mode': 'Recordar el modo de interacción',
@@ -458,6 +484,8 @@ export const es: Record<string, string> = {
 		'Configura las acciones, el orden, la visibilidad, los separadores y los submenús predeterminados del menú de ordenación.',
 	'settings.context_menu.experimental': 'Experimental',
 	'settings.context_menu.toolbar': 'Menús de la barra de herramientas',
+	'settings.context_menu.node_menus': 'Menús contextuales de nodos',
+	'settings.context_menu.locations_section': 'Ubicación de los menús',
 	'settings.files_context_menu': 'Menú contextual de Files',
 	'settings.files_context_menu.desc':
 		'Elige qué acciones muestra el menú contextual de los nodos de Files, en qué orden, y agrúpalas con separadores y submenús.',
@@ -472,7 +500,24 @@ export const es: Record<string, string> = {
 	'settings.files_context_menu.no_submenu': 'Nivel principal',
 	'settings.files_context_menu.remove': 'Eliminar',
 	'settings.files_context_menu.reset': 'Restaurar el orden por defecto',
-	'settings.files_hover_info': 'Tooltip de Files',
+	'settings.files_hover_info': 'Tooltips de nodos',
+	'settings.files_hover.fields_section': 'Campos al pasar el cursor',
+	'settings.folder_hover.section': 'Node folders',
+	'settings.folder_hover.enabled': 'Mostrar tooltips de carpetas',
+	'settings.folder_hover.enabled.desc': 'Mostrar información agregada al pasar el cursor sobre una carpeta.',
+	'settings.folder_hover.files': 'Archivos en la carpeta',
+	'settings.folder_hover.folders': 'Carpetas interiores',
+	'settings.folder_hover.words': 'Palabras en la carpeta',
+	'settings.folder_hover.tags': 'Tags en la carpeta',
+	'settings.folder_hover.tasks': 'Tareas pendientes en la carpeta',
+	'settings.folder_hover.file_noun': 'archivo',
+	'settings.folder_hover.files_noun': 'archivos',
+	'settings.folder_hover.folder_noun': 'carpeta',
+	'settings.folder_hover.folders_noun': 'carpetas',
+	'settings.group_hover.section': 'Node groups',
+	'settings.group_hover.enabled': 'Mostrar tooltips de grupos',
+	'settings.group_hover.enabled.desc': 'Mostrar el nombre y la cantidad de miembros al pasar el cursor sobre un grupo.',
+	'settings.group_hover.members': 'miembros del grupo',
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
 	'settings.files_hover_info.path': 'Ruta',
@@ -633,6 +678,9 @@ export const es: Record<string, string> = {
 	'toolbar.instance_info.self': 'Overrides de la instancia',
 	'toolbar.instance_info.scenes': 'Overrides por scene',
 	'toolbar.instance_info.empty': 'Sin overrides',
+	'toolbar.instance_info.switch_heading': 'Usar otra instancia registrada',
+	'toolbar.instance_info.switch_empty': 'No hay otras instancias registradas disponibles.',
+	'toolbar.instance_info.switch_action': 'Cambiar este panel',
 	'viewmenu.layouts': 'Composiciones de vista',
 	'viewmenu.options': 'Opciones',
 	'viewmenu.options.inherit': 'Heredar',
@@ -853,6 +901,7 @@ export const es: Record<string, string> = {
 		'El hover del chrome necesita puntero y no está disponible en dispositivos táctiles.',
 	'settings.chrome_hover.enable.desc':
 		'Interruptor maestro. Apagado ni siquiera se registra el adapter: sin listeners, sin clases, nada que revertir.',
+	'settings.chrome_hover.behavior_section': 'Comportamiento general',
 	'settings.chrome_hover.sidebars': 'Sidebars',
 	'settings.chrome_hover.sidebars.hide': 'Ocultar los sidebars',
 	'settings.chrome_hover.sidebars.hide.desc':

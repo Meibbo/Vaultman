@@ -176,6 +176,10 @@ export class VaultmanFrame extends ItemView {
 						plugin: this.plugin,
 						workspaceInstanceId,
 						initialShowToolbar: this._showToolbar,
+						onWorkspaceInstanceChange: (id: string) => {
+							this.workspaceInstanceId = id;
+							this.app.workspace.requestSaveLayout();
+						},
 						onShowToolbarChange: (val: boolean) => {
 							this._showToolbar = val;
 							this.app.workspace.requestSaveLayout();

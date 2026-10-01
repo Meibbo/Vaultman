@@ -13,6 +13,7 @@
 		peeking = false,
 		onPointerEnter,
 		onPointerLeave,
+		onSwitchInstance,
 	}: {
 		providerState: NavbarPanelWidgetState | null;
 		sceneConfigPort: SceneConfigPort;
@@ -20,6 +21,7 @@
 		peeking?: boolean;
 		onPointerEnter?: () => void;
 		onPointerLeave?: () => void;
+		onSwitchInstance?: (id: string) => void;
 	} = $props();
 
 	const mountedState = $derived(providerState);
@@ -60,6 +62,11 @@
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}
-		<NavbarFilters bind:this={navbarRef} {...mountedState} {sceneConfigPort} />
+		<NavbarFilters
+			bind:this={navbarRef}
+			{...mountedState}
+			{sceneConfigPort}
+			{onSwitchInstance}
+		/>
 	{/if}
 </div>

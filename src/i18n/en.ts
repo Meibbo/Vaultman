@@ -1,18 +1,18 @@
 export const en: Record<string, string> = {
-	'settings.native_surface_click': 'Native click actions',
+	'settings.native_surface_click': 'Click actions',
 	'settings.native_surface_click.desc':
 		'Configure actions for primary, Alt and modifier clicks.',
 	'settings.workspace_config': 'Workspace Configs',
-	'settings.node_note_prefixes': 'Node-note prefixes',
+	'settings.node_note_prefixes': 'Node-note patterns',
 	'settings.node_note_prefixes.desc':
-		'Configure the patterns used to identify node-notes.',
-	'settings.native_surface_click_primary': 'Native Primary Click Action',
+		'Configure the patterns used to bind notes to tags, properties, groups, folders, files, snippets and plugins.',
+	'settings.native_surface_click_primary': 'Primary Click Action',
 	'settings.native_surface_click_primary.desc':
 		'Action when clicking native Obsidian elements (breadcrumbs, tags, folders).',
-	'settings.native_surface_click_alt': 'Native Alt+Click Action',
+	'settings.native_surface_click_alt': 'Alt+Click Action',
 	'settings.native_surface_click_alt.desc':
 		'Action when Alt-clicking native Obsidian elements.',
-	'settings.native_surface_click_mod': 'Native Mod+Click Action',
+	'settings.native_surface_click_mod': 'Mod+Click Action',
 	'settings.native_surface_click_mod.desc':
 		'Action when Ctrl/Cmd-clicking or middle-clicking native Obsidian elements.',
 	'settings.node_note_tag_pattern': 'Node-Note tag pattern',
@@ -27,6 +27,24 @@ export const en: Record<string, string> = {
 	'settings.node_note_prop_pattern': 'Node-Note property pattern',
 	'settings.node_note_prop_pattern.desc':
 		'Pattern for property bindings. Use "name" as placeholder. Default "[name]". Changing it stages alias renames for review.',
+	'settings.node_note_group_pattern': 'Node-Note group pattern',
+	'settings.node_note_group_pattern.desc':
+		'Pattern for group bindings. Use "name" as placeholder. Default "name".',
+	'settings.node_note_folder_pattern': 'Node-Note folder pattern',
+	'settings.node_note_folder_pattern.desc':
+		'Pattern for folder bindings. Use "name" as placeholder for the folder path. Default "name".',
+	'settings.node_note_file_pattern': 'Node-Note file pattern',
+	'settings.node_note_file_pattern.desc':
+		'Pattern for file bindings. Use "name" as placeholder for the file path. Default "name".',
+	'settings.native_surface_click.native_section': 'Obsidian surface clicks',
+	'settings.native_surface_click.global_input_section': 'Global input= defaults',
+	'settings.global_input.desc':
+		'Default primary-click mode for this explorer tab when no saved layout overrides it.',
+	'settings.global_input.files': 'Files Explorer',
+	'settings.global_input.props': 'Properties Explorer',
+	'settings.global_input.tags': 'Tags Explorer',
+	'settings.global_input.snippets': 'Snippets Explorer',
+	'settings.global_input.plugins': 'Plugins Explorer',
 	'settings.node_note_prefix_migrated':
 		'Staged {count} alias rename(s) for review',
 	'settings.action.reveal_in_vaultman': 'Reveal in Vaultman Explorer',
@@ -264,12 +282,20 @@ export const en: Record<string, string> = {
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
 	'settings.explorer_page': 'Panel: Explorer',
+	'settings.panel_content': 'Panel: Content',
+	'settings.panel_content.desc': 'Content panel behavior and text search.',
 	'settings.explorer_file_move_mode': 'File Move UI Mode',
 	'settings.explorer_file_move_mode.desc':
 		'How the move-to-folder feature is presented in the File Scene.',
 	'settings.explorer_file_move_mode.inline': 'Inline (Tree Mode)',
 	'settings.explorer_file_move_mode.modal': 'Classic Modal',
 	'settings.cells_section': 'Cells',
+	'settings.explorer.tree_section': 'Tree behavior',
+	'settings.explorer.timestamps_section': 'Timestamps',
+	'settings.explorer.cell_appearance_section': 'Node and cell appearance',
+	'settings.explorer.behavior_section': 'Explorer behavior',
+	'settings.explorer.search_navigation_section': 'Search and navigation',
+	'settings.explorer.glyphs_section': 'Explorer glyphs',
 	'settings.explorer_page.desc':
 		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
 	'settings.persist_interaction_mode': 'Remember interaction mode',
@@ -454,6 +480,8 @@ export const en: Record<string, string> = {
 		'Configure the global default actions, order, visibility, dividers, and submenus for the Sort menu.',
 	'settings.context_menu.experimental': 'Experimental',
 	'settings.context_menu.toolbar': 'Toolbar menus',
+	'settings.context_menu.node_menus': 'Node context menus',
+	'settings.context_menu.locations_section': 'Menu locations',
 	'settings.files_context_menu': 'Files context menu',
 	'settings.files_context_menu.desc':
 		'Choose which actions the Files node context menu shows, in which order, and group them with dividers and submenus.',
@@ -468,7 +496,24 @@ export const en: Record<string, string> = {
 	'settings.files_context_menu.no_submenu': 'Top level',
 	'settings.files_context_menu.remove': 'Remove',
 	'settings.files_context_menu.reset': 'Restore the default order',
-	'settings.files_hover_info': 'Files tooltip',
+	'settings.files_hover_info': 'Node tooltips',
+	'settings.files_hover.fields_section': 'Hover fields',
+	'settings.folder_hover.section': 'Node folders',
+	'settings.folder_hover.enabled': 'Show folder tooltips',
+	'settings.folder_hover.enabled.desc': 'Show aggregate information when hovering over a folder node.',
+	'settings.folder_hover.files': 'Files in folder',
+	'settings.folder_hover.folders': 'Folders inside',
+	'settings.folder_hover.words': 'Words in folder',
+	'settings.folder_hover.tags': 'Tags in folder',
+	'settings.folder_hover.tasks': 'Pending tasks in folder',
+	'settings.folder_hover.file_noun': 'file',
+	'settings.folder_hover.files_noun': 'files',
+	'settings.folder_hover.folder_noun': 'folder',
+	'settings.folder_hover.folders_noun': 'folders',
+	'settings.group_hover.section': 'Node groups',
+	'settings.group_hover.enabled': 'Show group tooltips',
+	'settings.group_hover.enabled.desc': 'Show the group name and member count when hovering over a group node.',
+	'settings.group_hover.members': 'group members',
 	'settings.files_hover_info.desc':
 		'Choose which cached metadata and reading statistics appear when hovering a Files node.',
 	'settings.files_hover_info.path': 'Path',
@@ -627,6 +672,9 @@ export const en: Record<string, string> = {
 	'toolbar.instance_info.self': 'Instance overrides',
 	'toolbar.instance_info.scenes': 'Scene overrides',
 	'toolbar.instance_info.empty': 'No overrides',
+	'toolbar.instance_info.switch_heading': 'Use another registered instance',
+	'toolbar.instance_info.switch_empty': 'No other registered instances are available.',
+	'toolbar.instance_info.switch_action': 'Switch this panel',
 	'viewmenu.layouts': 'Layout',
 	'viewmenu.options': 'Options',
 	'viewmenu.options.inherit': 'Inherit',
@@ -838,6 +886,7 @@ export const en: Record<string, string> = {
 	'settings.chrome_hover.enable': 'Enable chrome hover module',
 	'settings.chrome_hover.enable.desc':
 		'Master switch. Off means the adapter is not even registered: no listeners, no classes, nothing to revert.',
+	'settings.chrome_hover.behavior_section': 'General behavior',
 	'settings.chrome_hover.sidebars': 'Sidebars',
 	'settings.chrome_hover.sidebars.hide': 'Hide sidebars',
 	'settings.chrome_hover.sidebars.hide.desc':

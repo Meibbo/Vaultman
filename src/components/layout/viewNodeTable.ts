@@ -55,6 +55,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
 	onRecursiveExpand?: (id: string) => void;
+	onRecursiveSelect?: (id: string) => void;
 	onRowDoubleClick?: (id: string, event: MouseEvent) => void;
 	onRowClick: (id: string, event?: MouseEvent | KeyboardEvent) => void;
 	onContextMenu: (id: string, event: MouseEvent) => void;
@@ -492,7 +493,7 @@ export class NodeTableView<TMeta = unknown> {
 			}
 			opts.onRowClick(node.id, event);
 		};
-		row.ondblclick = opts.onRowDoubleClick
+		row.ondblclick = opts.onRowDoubleClick || opts.onRecursiveSelect
 			? (event) => {
 					if (this.recursiveExpandGesture.isActivationSuppressed()) {
 						event.preventDefault();
@@ -501,7 +502,16 @@ export class NodeTableView<TMeta = unknown> {
 					}
 					if (isEditableDblClickTarget(event.target)) return;
 					if (!node.children?.length) return;
-					opts.onRowDoubleClick?.(node.id, event);
+					const target = event.target instanceof Element ? event.target : null;
+					if (target?.closest('.vaultman-selection-checkbox, .cell_checkbox')) {
+						opts.onRecursiveSelect?.(node.id);
+						return;
+					}
+					if (
+						target?.closest('.vaultman-node-table-toggle, .cell_caret')
+					) {
+						opts.onRowDoubleClick?.(node.id, event);
+					}
 				}
 			: null;
 		row.ondragstart = (event) => {

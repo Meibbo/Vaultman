@@ -67,12 +67,14 @@
 		workspaceInstanceId: string;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
+		onWorkspaceInstanceChange?: (id: string) => void;
 	}
 	let {
 		plugin,
 		workspaceInstanceId,
 		initialShowToolbar = null,
 		onShowToolbarChange,
+		onWorkspaceInstanceChange,
 	}: Props = $props();
 	let frameShowToolbar = $state(
 		untrack(() =>
@@ -91,6 +93,13 @@
 	/** U121-109: el ancla de la hoja llega despues de montar; se adopta aqui. */
 	export function reanchorInstance(id: string): void {
 		sceneConfigPort.setInstanceId(id);
+	}
+
+	function switchWorkspaceInstance(id: string): void {
+		const target = plugin.settings.instanceRegistry?.instances[id];
+		if (!target || target.tombstoned || id === sceneConfigPort.readInstanceRecord()?.id) return;
+		sceneConfigPort.setInstanceId(id);
+		onWorkspaceInstanceChange?.(id);
 	}
 
 	export function setShowToolbar(val: boolean): void {
@@ -1597,6 +1606,7 @@
 		bind:this={panelWidgetHostRef}
 		providerState={activePanelWidgetState}
 		{sceneConfigPort}
+		onSwitchInstance={switchWorkspaceInstance}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
 		onPointerEnter={onToolbarPointerEnter}

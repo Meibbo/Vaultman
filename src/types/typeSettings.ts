@@ -26,6 +26,7 @@ import type {
 	RelativeTimeCutoffs,
 	TimestampRelativeWindow,
 } from '../logic/logicRelativeTime';
+import type { FolderHoverInfoField } from '../logic/logicFileHoverInfo';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -377,6 +378,10 @@ export interface VaultmanSettings {
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
 	filesHoverInfoOrder?: FileHoverInfoId[];
+	/** Fields shown on folder node tooltips. */
+	folderHoverInfo: FolderHoverInfoField[];
+	folderNodeTooltips: boolean;
+	groupNodeTooltips: boolean;
 	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
 	addonIconOverrides: AddonIconOverrides;
 	/** Render cells in the order they were switched on instead of a fixed rank */
@@ -466,6 +471,9 @@ export interface VaultmanSettings {
 	nodeNoteSnippetPattern: string;
 	nodeNotePluginPattern: string;
 	nodeNotePropPattern: string;
+	nodeNoteGroupPattern: string;
+	nodeNoteFolderPattern: string;
+	nodeNoteFilePattern: string;
 	/** Folder where new node-notes are created (empty = vault root) */
 	}
 
@@ -538,6 +546,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	nodeNoteSnippetPattern: '$name',
 	nodeNotePluginPattern: '%name',
 	nodeNotePropPattern: '[name]',
+	nodeNoteGroupPattern: 'name',
+	nodeNoteFolderPattern: 'name',
+	nodeNoteFilePattern: 'name',
 		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
@@ -636,6 +647,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	createActionsPlacement: 'searchbox',
 	tooltipPlacement: 'side',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
+	folderHoverInfo: ['files', 'folders', 'words'],
+	folderNodeTooltips: true,
+	groupNodeTooltips: true,
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	caretPosition: 'start',

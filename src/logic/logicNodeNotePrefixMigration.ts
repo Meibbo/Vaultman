@@ -23,6 +23,26 @@ function mapAlias(alias: string, oldP: NodeNotePrefixes, newP: NodeNotePrefixes)
 		const next = newP.propPrefix + inner + newP.propSuffix;
 		return next === alias ? null : next;
 	}
+	const affixes: Array<[string, string, string, string]> = [
+		[oldP.tagPrefix, oldP.tagSuffix, newP.tagPrefix, newP.tagSuffix],
+		[oldP.snippetPrefix, oldP.snippetSuffix, newP.snippetPrefix, newP.snippetSuffix],
+		[oldP.pluginPrefix, oldP.pluginSuffix, newP.pluginPrefix, newP.pluginSuffix],
+		[oldP.groupPrefix, oldP.groupSuffix, newP.groupPrefix, newP.groupSuffix],
+		[oldP.folderPrefix, oldP.folderSuffix, newP.folderPrefix, newP.folderSuffix],
+		[oldP.filePrefix, oldP.fileSuffix, newP.filePrefix, newP.fileSuffix],
+	];
+	for (const [oldHead, oldTail, newHead, newTail] of affixes) {
+		if (
+			(oldHead !== "" || oldTail !== "") &&
+			alias.startsWith(oldHead) &&
+			alias.endsWith(oldTail) &&
+			alias.length > oldHead.length + oldTail.length
+		) {
+			const inner = alias.slice(oldHead.length, alias.length - oldTail.length || undefined);
+			const next = newHead + inner + newTail;
+			if (next !== alias) return next;
+		}
+	}
 	const heads: Array<[string, string]> = [
 		[oldP.tagPrefix, newP.tagPrefix],
 		[oldP.snippetPrefix, newP.snippetPrefix],

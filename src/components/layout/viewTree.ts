@@ -69,6 +69,10 @@ export function isEditableDblClickTarget(target: EventTarget | null): boolean {
 		tagName?: string;
 	};
 	if (typeof el.closest === 'function') {
+		const input = el.closest('input') as HTMLInputElement | null;
+		if (input && (input.type === 'checkbox' || input.type === 'radio')) {
+			return false;
+		}
 		const hit = el.closest(
 			'input, textarea, [contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"]',
 		);
@@ -1695,7 +1699,7 @@ export class UnifiedTreeView {
 			}
 			opts.onRowClick(node.id, event as unknown as MouseEvent);
 		};
-		row.ondblclick = opts.onRowDoubleClick
+		row.ondblclick = opts.onRowDoubleClick || opts.onRecursiveSelect
 			? (event) => {
 					if (this._recursiveExpandGesture.isActivationSuppressed()) {
 						event.preventDefault();
@@ -1705,7 +1709,18 @@ export class UnifiedTreeView {
 					// A13: dblclick in an editable field only moves the caret.
 					if (isEditableDblClickTarget(event.target)) return;
 					if (!hasChildren) return;
-					opts.onRowDoubleClick?.(node.id, event);
+					const target = event.target instanceof Element ? event.target : null;
+					if (target?.closest('.vaultman-selection-checkbox, .cell_checkbox')) {
+						opts.onRecursiveSelect?.(node.id);
+						return;
+					}
+					if (
+						target?.closest(
+							'.vaultman-tree-caret--start, .vaultman-tree-caret--end, .cell_caret',
+						)
+					) {
+						opts.onRowDoubleClick?.(node.id, event);
+					}
 				}
 			: null;
 		row.onpointerenter = () => {

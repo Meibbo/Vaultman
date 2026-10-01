@@ -193,6 +193,7 @@
 	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
+		onSwitchInstance?: (id: string) => void;
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
@@ -378,6 +379,7 @@
 		createActionsPlacement = 'searchbox',
 		pvpuiConfig = {},
 		sceneConfigPort,
+		onSwitchInstance,
 	}: NavbarRendererState = $props();
 
 	function invokeSceneAction(
@@ -3319,18 +3321,6 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
-		menu.addItem((item) => {
-			item
-				.setTitle(translate('toolbar.instance_info'))
-				.setIcon('lucide-info')
-				.onClick(() => {
-					if (!app) return;
-					const record = sceneConfigPort.readInstanceRecord();
-					if (!record) return;
-					new InstanceInfoModal(app, record).open();
-				});
-		});
-		menu.addSeparator();
 		if (onToggleToolbar) {
 			menu.addItem((item) => {
 				item
@@ -3379,6 +3369,26 @@
 					.onClick(() => toggleToolbarNodeVisibility(localId));
 			});
 		}
+		menu.addSeparator();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('toolbar.instance_info'))
+				.setIcon('lucide-info')
+				.onClick(() => {
+					if (!app) return;
+					const record = sceneConfigPort.readInstanceRecord();
+					if (!record) return;
+					const records = Object.values(
+						plugin.settings.instanceRegistry?.instances ?? {},
+					).filter((candidate) => !candidate.tombstoned);
+					new InstanceInfoModal(
+						app,
+						record,
+						records,
+						onSwitchInstance,
+					).open();
+				});
+		});
 		menu.showAtMouseEvent(event);
 	}
 
