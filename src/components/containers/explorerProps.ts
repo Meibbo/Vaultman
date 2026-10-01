@@ -119,6 +119,7 @@ import {
 	collectGroupMemberIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	findCounterGroupHeader,
 	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
@@ -140,8 +141,13 @@ import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
+	type CounterRange,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	addCounterRangeSlice,
+	rebalanceCounterRange,
+} from '../../logic/logicCounterRangePartitions';
 import {
 	parseFrontmatterNoteGroups,
 	scopeToNoteGroupTarget,
@@ -161,7 +167,7 @@ import {
 	siblingScopeSort,
 	sortTwoLevel,
 } from '../../logic/logicScopedSort';
-import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort, ScopeTarget } from '../../types/typeUI';
 import {
 	findNodeLevel,
 	findParentId,
@@ -321,6 +327,10 @@ export class PropsExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private counterRangesChangeHandler?: (
+		ranges: readonly CounterRange[],
+		target: ScopeTarget,
+	) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -1230,6 +1240,35 @@ export class PropsExplorerPanel extends Component {
 
 	setGroupDeleteHandler(handler?: (groupId: string) => void): void {
 		this.groupDeleteHandler = handler;
+	}
+
+	setCounterRangesChangeHandler(
+		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
+	): void {
+		this.counterRangesChangeHandler = handler;
+	}
+
+	createCounterRangeSlice(): boolean {
+		if (!this.counterRangesChangeHandler) return false;
+		const target = this.sortState.scopeState?.cursor ?? 'all';
+		const candidates: ScopeTarget[] = [target];
+		if (target.startsWith('parent:')) {
+			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
+			if (parentLevel !== null) candidates.push(`level:${parentLevel + 1}`);
+		}
+		if (target !== 'all') candidates.push('all');
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const header = candidates
+			.map((candidate) => findCounterGroupHeader(projected, candidate))
+			.find((candidate) => candidate !== undefined);
+		if (!header?.counterDomain || !header.counterRanges) return false;
+		const result = addCounterRangeSlice(
+			header.counterRanges,
+			header.counterDomain,
+		);
+		if (!result.ok) return false;
+		this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+		return true;
 	}
 
 	setSelectionScope(scope: {
@@ -2926,6 +2965,26 @@ export class PropsExplorerPanel extends Component {
 			expansionAnimation: this.plugin.settings?.treeExpansionAnimation === true,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			counterRangeBoundLabel: (bound) =>
+				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
+			onCounterRangeCommit: (_id, range) => {
+				const header = this._findNode(_id, projected);
+				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
+					return false;
+				const result = rebalanceCounterRange(
+					header.counterRanges,
+					range,
+					header.counterDomain,
+				);
+				if (!result.ok) {
+					new Notice(translate('group.counter.invalid'));
+					return false;
+				}
+				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+				return true;
+			},
+			onCounterRangeError: () =>
+				new Notice(translate('group.counter.invalid')),
 			onCellClick: (id, cellId) => {
 				const node = this._findNode(id, projected);
 				if (!node || !cellId.startsWith('cell_hover:')) return;
@@ -3200,6 +3259,14 @@ export class PropsExplorerPanel extends Component {
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
+						adjustGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.view?.beginCounterRangeEdit(id)
+								: undefined,
+						sliceGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.createCounterRangeSlice()
+								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
 							this._groupIds.has(groupId) ||

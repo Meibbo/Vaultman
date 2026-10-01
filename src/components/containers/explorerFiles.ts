@@ -3457,6 +3457,10 @@ export class FilesExplorerPanel extends Component {
 								header?.counterRange && header.counterDomain
 									? () => this.treeView?.beginCounterRangeEdit(id)
 									: undefined,
+							sliceGroupRange:
+								header?.counterRange && header.counterDomain
+									? () => this.createCounterRangeSlice()
+									: undefined,
 							materializePreset:
 								this._groupIds.has(groupId) || !header || !this.materializePresetHandler
 									? undefined
