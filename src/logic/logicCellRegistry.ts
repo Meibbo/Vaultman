@@ -221,19 +221,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 		],

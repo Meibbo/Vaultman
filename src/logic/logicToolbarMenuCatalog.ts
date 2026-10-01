@@ -133,12 +133,55 @@ const SHOW_OPTIONS_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	} as const)),
 ];
 
+// This is the default order used by the toolbar menu layout catalog. Keep the
+// union in the same relative order requested for each explorer; unavailable
+// cells are filtered by tab, so Files-only and add-on cells can share one list.
+const VIEW_MENU_CELL_ORDER: readonly string[] = [
+	'icon',
+	'name',
+	'text',
+	'path',
+	'format',
+	'ext',
+	'type',
+	'ctime',
+	'parent',
+	'mtime',
+	'opened',
+	'file-count',
+	'sub',
+	'words',
+	'tasks',
+	'tags',
+	'count',
+	'state',
+	'config',
+	'installed',
+	'updated',
+	'cell_hover',
+	'checkbox',
+	'caret',
+];
+const VIEW_MENU_CELL_DEFS = [
+	...uniqueByKey(
+		EXPLORER_CELL_DEFS.filter((definition) => definition.role !== 'topology'),
+		(definition) => definition.id,
+	),
+].sort((left, right) => {
+	const leftRank = VIEW_MENU_CELL_ORDER.indexOf(left.id);
+	const rightRank = VIEW_MENU_CELL_ORDER.indexOf(right.id);
+	return (
+		(leftRank < 0 ? Number.MAX_SAFE_INTEGER : leftRank) -
+			(rightRank < 0 ? Number.MAX_SAFE_INTEGER : rightRank)
+	);
+});
+
 const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'view_menu.interaction', labelKey: 'viewmenu.interaction', icon: 'lucide-mouse-pointer-click', section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	...uniqueByKey(EXPLORER_TABS.flatMap((tab) => interactionModesForTab(tab)), (mode) => mode).map((mode) => ({ id: `view_menu.interaction.${mode}`, labelKey: `viewmenu.interaction.${mode}`, icon: INTERACTION_ICONS[mode], section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: { tabs: EXPLORER_TABS.filter((tab) => interactionModesForTab(tab).includes(mode)) } })),
 	{ id: 'view_menu.layouts', labelKey: 'viewmenu.layouts', icon: 'lucide-layout-template', section: 'layouts', submenu: 'layouts', requires: NO_REQUIREMENTS, availability: { ...ALL_TABS_AVAILABILITY, runtimeChildren: 'saved-layouts' } },
 	{ id: 'view_menu.layouts.save', labelKey: 'viewmenu.save_layout', icon: 'lucide-save', section: 'layouts', submenu: 'layouts', requires: NO_REQUIREMENTS, availability: { ...ALL_TABS_AVAILABILITY, requiresSavedLayout: true } },
-	...uniqueByKey(EXPLORER_CELL_DEFS.filter((definition) => definition.role !== 'topology'), (definition) => definition.id).map((definition) => ({ id: `view_menu.cells.${definition.id}`, labelKey: definition.labelKey, icon: definition.icon, section: 'cells', requires: NO_REQUIREMENTS, availability: availabilityForCell(definition) })),
+	...VIEW_MENU_CELL_DEFS.map((definition) => ({ id: `view_menu.cells.${definition.id}`, labelKey: definition.labelKey, icon: definition.icon, section: 'cells', requires: NO_REQUIREMENTS, availability: availabilityForCell(definition) })),
 	{ id: 'view_menu.add_property_first', labelKey: 'sort.level.add_property_first', icon: 'lucide-list-plus', section: 'cells', requires: NO_REQUIREMENTS, availability: { tabs: ['props'], requiresRevealAnchor: true } },
 	{ id: 'view_menu.engines', labelKey: 'viewmenu.engines', icon: 'lucide-layout', section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	...uniqueByKey(EXPLORER_TABS.flatMap((tab) => viewModesForDataSurface(tab)), (option) => option.id).map((option) => ({ id: `view_menu.engines.${option.id}`, labelKey: option.labelKey, icon: option.icon, section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: { tabs: EXPLORER_TABS.filter((tab) => viewModesForDataSurface(tab).some((candidate) => candidate.id === option.id)), ...(option.id === 'dnd' ? { unavailableInMinimalStyle: true } : {}) } })),
