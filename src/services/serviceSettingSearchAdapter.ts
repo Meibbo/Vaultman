@@ -216,15 +216,16 @@ function pluginTabsSignature(app: unknown): string {
 	const tabs = record['pluginTabs'];
 	if (Array.isArray(tabs)) {
 		return tabs
-			.map((t) => (t as { id?: unknown })?.id)
-			.filter((id): id is string => typeof id === 'string')
+			.map((t) => {
+				const tab = t as { id?: unknown; name?: unknown; icon?: unknown };
+				return `${String(tab?.id ?? '')}:${String(tab?.name ?? '')}:${String(tab?.icon ?? '')}`;
+			})
 			.sort()
 			.join('|');
 	}
 	if (typeof tabs === 'object' && tabs !== null) {
-		return Object.values(tabs as Record<string, { id?: unknown }>)
-			.map((t) => t?.id)
-			.filter((id): id is string => typeof id === 'string')
+		return Object.values(tabs as Record<string, { id?: unknown; name?: unknown; icon?: unknown }>)
+			.map((tab) => `${String(tab?.id ?? '')}:${String(tab?.name ?? '')}:${String(tab?.icon ?? '')}`)
 			.sort()
 			.join('|');
 	}
@@ -289,7 +290,7 @@ function listPluginSettingPagesDeclarative(
 	if (typeof setting !== 'object' || setting === null) return [];
 
 	// Normalizar a array de tabs para tratamiento unificado
-	let pluginTabs: readonly { id?: string; name?: string }[];
+	let pluginTabs: readonly { id?: string; name?: string; icon?: string }[];
 	// Cast to access pluginTabs property safely
 	const settingRecord = setting as Record<string, unknown>;
 	if (typeof settingRecord.pluginTabs === 'object' && settingRecord.pluginTabs !== null) {
@@ -298,7 +299,7 @@ function listPluginSettingPagesDeclarative(
 		} else {
 			// Record<string, RuntimePluginSettingTab>
 			pluginTabs = Object.values(
-				settingRecord.pluginTabs as Record<string, { id?: string; name?: string }>
+				settingRecord.pluginTabs as Record<string, { id?: string; name?: string; icon?: string }>
 			);
 		}
 	} else {
@@ -322,7 +323,7 @@ function listPluginSettingPagesDeclarative(
 		results: [],
 		bestScore: 0,
 		// Datos canónicos del runtime nativo (1.13.7+).
-		tabIcon: tabInfo.name !== undefined ? undefined : undefined,
+		tabIcon: toTabIcon(tabInfo),
 		pageDesc: undefined,
 		pageType: undefined,
 	};

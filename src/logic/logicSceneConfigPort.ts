@@ -89,6 +89,13 @@ export type SceneFacets = Pick<
 	| 'indent'
 	| 'taskCellDisplayMode'
 	| 'showOptionsOverride'
+	| 'sceneLabelMode'
+	| 'autoRevealMode'
+	| 'hiddenToolbarNodes'
+	| 'toolbarNodeIcons'
+	| 'toolbarCommandActions'
+	| 'createActionsPlacement'
+	| 'toolbarNodeOrder'
 >;
 
 /** La foto de una scene: copias, nunca referencias al estado vivo. */
@@ -106,6 +113,13 @@ export function captureSceneFacets(
 		// U130 spec-02: tri-estado por valor (string inmutable: la copia es
 		// la asignación); el snapshot nunca referencia lo vivo.
 		showOptionsOverride: config.showOptionsOverride,
+		sceneLabelMode: config.sceneLabelMode,
+		autoRevealMode: config.autoRevealMode,
+		hiddenToolbarNodes: [...config.hiddenToolbarNodes],
+		toolbarNodeIcons: { ...config.toolbarNodeIcons },
+		toolbarCommandActions: [...config.toolbarCommandActions],
+		createActionsPlacement: config.createActionsPlacement,
+		toolbarNodeOrder: [...config.toolbarNodeOrder],
 	};
 }
 
@@ -118,12 +132,29 @@ export function captureSceneFacets(
 export function captureSavedViewConfig(
 	config: Required<SceneConfig>,
 ): SavedViewConfig {
+	const facets = captureSceneFacets(config);
 	return {
 		viewMode: config.viewMode,
 		visibleCells: [...config.visibleCells],
 		interactionMode: config.interactionMode,
 		sortState: cloneExplorerSortState(config.sortState),
-		...captureSceneFacets(config),
+		groupMemberships: facets.groupMemberships,
+		groupPreset: facets.groupPreset,
+		hiddenGroupIds: facets.hiddenGroupIds,
+		stickyRows: facets.stickyRows,
+		compactFolders: facets.compactFolders,
+		indent: facets.indent,
+		taskCellDisplayMode: facets.taskCellDisplayMode,
+		showOptionsOverride: facets.showOptionsOverride,
+		navigationComposer: {
+			sceneLabelMode: facets.sceneLabelMode,
+			autoRevealMode: facets.autoRevealMode,
+			hiddenToolbarNodes: facets.hiddenToolbarNodes,
+			toolbarNodeIcons: facets.toolbarNodeIcons,
+			toolbarCommandActions: facets.toolbarCommandActions,
+			createActionsPlacement: facets.createActionsPlacement,
+			toolbarNodeOrder: facets.toolbarNodeOrder,
+		},
 	};
 }
 
@@ -145,6 +176,26 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 	// preserva en `applyLayoutToPort` (nunca se toca lo que la foto no trae).
 	if (saved.showOptionsOverride !== undefined) {
 		out.showOptionsOverride = saved.showOptionsOverride;
+	}
+	const composer = saved.navigationComposer;
+	if (composer) {
+		if (composer.sceneLabelMode !== undefined) out.sceneLabelMode = composer.sceneLabelMode;
+		if (composer.autoRevealMode !== undefined) out.autoRevealMode = composer.autoRevealMode;
+		if (composer.hiddenToolbarNodes !== undefined) {
+			out.hiddenToolbarNodes = [...composer.hiddenToolbarNodes];
+		}
+		if (composer.toolbarNodeIcons !== undefined) {
+			out.toolbarNodeIcons = { ...composer.toolbarNodeIcons };
+		}
+		if (composer.toolbarCommandActions !== undefined) {
+			out.toolbarCommandActions = [...composer.toolbarCommandActions];
+		}
+		if (composer.createActionsPlacement !== undefined) {
+			out.createActionsPlacement = composer.createActionsPlacement;
+		}
+		if (composer.toolbarNodeOrder !== undefined) {
+			out.toolbarNodeOrder = [...composer.toolbarNodeOrder];
+		}
 	}
 	return out;
 }
@@ -187,13 +238,13 @@ export async function applyLayoutToPort(
 			groupPreset: facets.groupPreset ?? current.groupPreset,
 			hiddenGroupIds: facets.hiddenGroupIds ?? current.hiddenGroupIds,
 			// U130 toolbar alt-cmenu: posterior a `SavedLayoutConfig`, se preserva.
-			sceneLabelMode: current.sceneLabelMode,
-			autoRevealMode: current.autoRevealMode,
-			hiddenToolbarNodes: current.hiddenToolbarNodes,
-			toolbarNodeIcons: current.toolbarNodeIcons,
-			toolbarCommandActions: current.toolbarCommandActions,
-			createActionsPlacement: current.createActionsPlacement,
-			toolbarNodeOrder: current.toolbarNodeOrder,
+			sceneLabelMode: facets.sceneLabelMode ?? current.sceneLabelMode,
+			autoRevealMode: facets.autoRevealMode ?? current.autoRevealMode,
+			hiddenToolbarNodes: facets.hiddenToolbarNodes ?? current.hiddenToolbarNodes,
+			toolbarNodeIcons: facets.toolbarNodeIcons ?? current.toolbarNodeIcons,
+			toolbarCommandActions: facets.toolbarCommandActions ?? current.toolbarCommandActions,
+			createActionsPlacement: facets.createActionsPlacement ?? current.createActionsPlacement,
+			toolbarNodeOrder: facets.toolbarNodeOrder ?? current.toolbarNodeOrder,
 			tooltips: current.tooltips,
 			groupMemberships: facets.groupMemberships ?? current.groupMemberships,
 			// U130 spec-02: lo que la foto no trae (legacy) se preserva.
