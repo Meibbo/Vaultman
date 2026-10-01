@@ -50,6 +50,7 @@
 		mergeScopeStates,
 		normalizeExplorerSortState,
 		parentOfScope,
+		parseScopeLevel,
 		replaceActiveScopeSort,
 		resolveScopeSet,
 		sameExplorerSortState,
@@ -932,7 +933,7 @@
 		const targetLevel = target === 'all'
 			? undefined
 			: targetParentId
-				? (treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0) + 1
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0).base + 1
 				: (levelOfScope(target) ?? undefined);
 		const preset =
 			scopeState.sets[target]?.groupPreset ??
@@ -971,7 +972,7 @@
 		const level = cursor === 'all'
 			? undefined
 			: parentId
-				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
 				: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
@@ -2617,7 +2618,7 @@
 		const level = target === 'all'
 			? undefined
 			: parentId
-				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
 				: (levelOfScope(target) ?? undefined);
 		const effective = resolveScopeSet(
 			scopeState,
@@ -2809,7 +2810,7 @@
 		const level = target === 'all'
 			? undefined
 			: parentId
-				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
 				: (levelOfScope(target) ?? undefined);
 		const resolved = resolveScopeSet(state.scopeState, {
 			level,
@@ -2832,7 +2833,7 @@
 		const level = target === 'all'
 			? undefined
 			: parentId
-				? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
 				: (levelOfScope(target) ?? undefined);
 		const defaults: ScopeSet = {
 			nested: (
@@ -3493,6 +3494,12 @@
 				? {
 						isValidDrillNode: (id: string) =>
 							tagsExplorer.hasSortNode?.(id) ?? false,
+					}
+				: {}),
+			...(validateDrill && tab === 'props' && propExplorer
+				? {
+						isValidDrillNode: (id: string) =>
+							propExplorer?.hasSortNode?.(id) ?? false,
 					}
 				: {}),
 		});

@@ -1863,6 +1863,12 @@ export class TagsExplorerPanel extends Component {
 		return this.viewMode === 'tree';
 	}
 
+	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
+	 * never contains derived group headers). */
+	private _scopeTree(): TreeNode<TagMeta>[] {
+		return this.projectedNodes(this._lastRenderTree);
+	}
+
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
@@ -1870,16 +1876,16 @@ export class TagsExplorerPanel extends Component {
 
 	scopeParentForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findScopeParentId(this._lastRenderTree, id);
+		return findScopeParentId(this._scopeTree(), id);
 	}
 
 	hasScopeParentNodes(): boolean {
-		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
+		return this.viewMode === 'tree' && hasScopeParentNodes(this._scopeTree());
 	}
 
 	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findNodeLevel(this._lastRenderTree, id);
+		return findNodeLevel(this._scopeTree(), id);
 	}
 
 	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
@@ -1941,7 +1947,10 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	hasSortNode(id: string): boolean {
-		return this._findNode(id, this._lastRenderTree) !== null;
+		return (
+			this._findNode(id, this._lastRenderTree) !== null ||
+			this._findNode(id, this._scopeTree()) !== null
+		);
 	}
 
 	/** D31: the floating index drill can drive the sort scope. */
@@ -1958,7 +1967,11 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	sortNodeLabel(id: string): string | null {
-		return this._findNode(id, this._lastRenderTree)?.label ?? null;
+		return (
+			this._findNode(id, this._scopeTree())?.label ??
+			this._findNode(id, this._lastRenderTree)?.label ??
+			null
+		);
 	}
 
 	expandNodeById(id: string): void {
@@ -2191,6 +2204,9 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		const projected = this.projectedNodes(nodesWithIcons);
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(projected);
+		}
 		this.view.render({
 			surface: 'tags',
 			nodes: projected,

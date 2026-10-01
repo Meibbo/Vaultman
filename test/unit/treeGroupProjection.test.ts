@@ -56,7 +56,11 @@ describe('U130-03: cabeceras de grupo en el arbol', () => {
 		expect(header.showCaret).toBe(true);
 		expect(header.cls).toContain('vaultman-tree-row--group-header');
 		expect(header.depth).toBe(0);
-		expect(header.count).toBe(2);
+		// `count` (cell `count`) es ocurrencias agregadas, nunca hijos: sin
+		// conteos en los hijos queda indefinido y el n. de hijos viaja en
+		// `subCountText` (cell `sub`).
+		expect(header.count).toBeUndefined();
+		expect(header.subCountText).toBe('2');
 	});
 
 	it('los hijos bajan un nivel de profundidad', () => {

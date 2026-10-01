@@ -230,7 +230,17 @@ function headerNode<TMeta>(
 		// resto de p-nodes, lo que tuerce la ventana virtualizada.
 		...(coreCls ? { coreCls } : {}),
 		showCaret: true,
-		count: count ?? children.length,
+		// `count` (cell `count` / `cell_occurrences`) es el agregado de
+		// ocurrencias de los hijos, NUNCA `children.length` (ese es el
+		// numero de hijos: `subCountText` / cell `sub` / `cell_childs`).
+		...(count !== undefined
+			? { count }
+			: children.some((child) => typeof child.count === 'number')
+				? {
+						count: children.reduce((acc, child) => acc + (child.count ?? 0), 0),
+					}
+				: {}),
+		subCountText: children.length > 0 ? String(children.length) : undefined,
 		children,
 		meta,
 		...(range ? { counterRange: { ...range } } : {}),

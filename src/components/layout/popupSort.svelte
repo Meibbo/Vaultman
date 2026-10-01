@@ -476,13 +476,6 @@
 									onclick={() => answerScopeRow(opt.id, 'delete')}
 									use:icon={'lucide-trash-2'}
 								></button>
-								<button
-									class="vaultman-sort-drawer-item"
-									aria-label={translate('group.row.cancel')}
-									title={translate('group.row.cancel')}
-									onclick={() => answerScopeRow(opt.id, 'cancel')}
-									use:icon={'lucide-x'}
-								></button>
 							</div>
 						{:else}
 							<button

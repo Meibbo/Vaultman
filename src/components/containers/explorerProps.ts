@@ -2801,6 +2801,12 @@ export class PropsExplorerPanel extends Component {
 		this.deferredRender.activate(() => this._render());
 	}
 
+	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
+	 * never contains derived group headers). */
+	private _scopeTree(): TreeNode<PropMeta>[] {
+		return this.projectedNodes(this._lastRenderTree);
+	}
+
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
@@ -2808,16 +2814,31 @@ export class PropsExplorerPanel extends Component {
 
 	scopeParentForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findScopeParentId(this._lastRenderTree, id);
+		return findScopeParentId(this._scopeTree(), id);
 	}
 
 	hasScopeParentNodes(): boolean {
-		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
+		return this.viewMode === 'tree' && hasScopeParentNodes(this._scopeTree());
 	}
 
 	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findNodeLevel(this._lastRenderTree, id);
+		return findNodeLevel(this._scopeTree(), id);
+	}
+
+	hasSortNode(id: string): boolean {
+		return (
+			this._findNode(id, this._lastRenderTree) !== null ||
+			this._findNode(id, this._scopeTree()) !== null
+		);
+	}
+
+	sortNodeLabel(id: string): string | null {
+		return (
+			this._findNode(id, this._scopeTree())?.label ??
+			this._findNode(id, this._lastRenderTree)?.label ??
+			null
+		);
 	}
 
 	expandNodeById(id: string): void {
@@ -3105,6 +3126,9 @@ export class PropsExplorerPanel extends Component {
 		const projected = this._withAddPropertyRow(
 			this.projectedNodes(nodesWithIcons),
 		);
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(projected);
+		}
 		this.view.render({
 			surface: 'props',
 			nodes: projected,
