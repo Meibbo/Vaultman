@@ -483,6 +483,34 @@ export function collectGroupMemberIds<TMeta>(
 }
 
 /**
+ * Collect selectable row occurrences below a rendered group. A member can
+ * appear in more than one group, so selection uses each projected row id;
+ * actions can still deduplicate the underlying entity when they execute.
+ */
+export function collectGroupOccurrenceIds<TMeta>(
+	children: readonly TreeNode<TMeta>[] | undefined,
+): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const walk = (rows: readonly TreeNode<TMeta>[] | undefined): void => {
+		for (const row of rows ?? []) {
+			if (
+				row.isGroupHeader !== true &&
+				(row.meta as { isAddPropertyRow?: boolean } | undefined)
+					?.isAddPropertyRow !== true &&
+				!seen.has(row.id)
+			) {
+				seen.add(row.id);
+				out.push(row.id);
+			}
+			walk(row.children);
+		}
+	};
+	walk(children);
+	return out;
+}
+
+/**
  * B-groupbody: toggle a member block as one unit. Any member selected → the
  * whole block is dropped; none selected → the whole block is added.
  */

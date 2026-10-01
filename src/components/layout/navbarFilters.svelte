@@ -3330,8 +3330,26 @@
 					new InstanceInfoModal(app, record).open();
 				});
 		});
-		menu.addSeparator();
+		const providedNodes = panelWidgetNodes.filter((node) => {
+			const prefix = `${providerId}:`;
+			return node.id.startsWith(prefix) &&
+				!node.id.slice(prefix.length).startsWith('command:');
+		});
+		if (providedNodes.length > 0) {
+			menu.addSeparator();
+			for (const node of providedNodes) {
+				const localId = node.id.slice(`${providerId}:`.length);
+				menu.addItem((item) => {
+					item
+						.setTitle(node.label)
+						.setIcon(node.icon)
+						.setChecked(toolbarNodeVisible(localId))
+						.onClick(() => toggleToolbarNodeVisibility(localId));
+				});
+			}
+		}
 		if (onToggleToolbar) {
+			menu.addSeparator();
 			menu.addItem((item) => {
 				item
 					.setTitle(translate('viewmenu.toolbar'))
@@ -3339,8 +3357,8 @@
 					.setChecked(toolbarShown)
 					.onClick(() => onToggleToolbar?.());
 			});
-			menu.addSeparator();
 		}
+		menu.addSeparator();
 		// U130 polishing: añadir nodos con comandos bindeados directamente
 		// per-instance (scene). Los `command:*` globales se gestionan en
 		// Settings; aquí solo entra la lista de esta scene.
@@ -3363,22 +3381,6 @@
 					});
 				});
 		});
-		menu.addSeparator();
-		// Solo nodos provided: los `command:*` los gestiona el usuario donde
-		// los agregó, no desde aquí.
-		for (const node of panelWidgetNodes) {
-			const prefix = `${providerId}:`;
-			if (!node.id.startsWith(prefix)) continue;
-			const localId = node.id.slice(prefix.length);
-			if (localId.startsWith('command:')) continue;
-			menu.addItem((item) => {
-				item
-					.setTitle(node.label)
-					.setIcon(node.icon)
-					.setChecked(toolbarNodeVisible(localId))
-					.onClick(() => toggleToolbarNodeVisibility(localId));
-			});
-		}
 		menu.showAtMouseEvent(event);
 	}
 

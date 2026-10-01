@@ -113,7 +113,7 @@ import {
 import { showInputModal } from '../../utils/inputModal';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
-	collectGroupMemberIds,
+	collectGroupOccurrenceIds,
 	entityIdOf,
 	expandNewGroupHeaders,
 	findCounterGroupHeader,
@@ -520,6 +520,8 @@ export class TagsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
 	private selectionAnchorId: string | null = null;
+	/** Exact tree projection shown to the user, including duplicate occurrences. */
+	private _lastProjectedTree: TreeNode<TagMeta>[] = [];
 	private _selectionKey(): string {
 		return selectionKeyFor('tags', 'tags', this.selectionInstanceId);
 	}
@@ -672,9 +674,11 @@ export class TagsExplorerPanel extends Component {
 	 * U130-p2: visible tree node IDs in render order for selection resolution.
 	 */
 	private _orderedVisibleTreeIds(): string[] {
-		const tree = this.logic.getTree();
-		if (!tree) return [];
-		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
+		const tree =
+			this.viewMode === 'tree' ? this._lastProjectedTree : this._lastRenderTree;
+		return flattenVisibleTree(tree, this.expandedIds)
+			.filter((node) => node.isGroupHeader !== true)
+			.map((node) => node.id);
 	}
 
 	private _renderCardSelectionCheckbox(
@@ -1116,6 +1120,8 @@ export class TagsExplorerPanel extends Component {
 					revision: this.selectionRevision,
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
+					membershipOwner: resolvedOwner,
+					selectionStateIds: this.selectedNodeIds,
 				});
 				return handler(snapshot, resolvedOwner);
 			},
@@ -1829,8 +1835,11 @@ export class TagsExplorerPanel extends Component {
 	 * descendant of the node in this instance's own selection. Never opens,
 	 * never expands, never queues a file operation.
 	 */
-	private _toggleDescendantSelection(id: string): void {
-		const node = this._findNode(id, this._lastRenderTree);
+	private _toggleDescendantSelection(
+		id: string,
+		tree: TreeNode<TagMeta>[] = this._lastProjectedTree,
+	): void {
+		const node = this._findNode(id, tree);
 		if (!node?.children?.length) return;
 		this.selectedNodeIds = toggleDescendantSelection(
 				node,
@@ -1842,7 +1851,8 @@ export class TagsExplorerPanel extends Component {
 
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
-	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
+	 * `select` conmuta las ocurrencias visibles del grupo (ids de fila, unicos
+	 * por grupo aunque la misma entidad aparezca en varios);
 	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
 	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value).
 	 * Solo `open` permite expandir desde el cuerpo; el caret sigue disponible.
@@ -1854,7 +1864,7 @@ export class TagsExplorerPanel extends Component {
 				this.projectedNodes(this._lastRenderTree),
 			);
 			if (!node?.children?.length) return;
-			const members = collectGroupMemberIds(node.children);
+			const members = collectGroupOccurrenceIds(node.children);
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
@@ -2242,6 +2252,7 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		const projected = this.projectedNodes(nodesWithIcons);
+		this._lastProjectedTree = projected;
 		if (this.visibleCells.has('sub')) {
 			this._decorateSubCounts(projected);
 		}
@@ -2363,7 +2374,7 @@ export class TagsExplorerPanel extends Component {
 			statusDotLabel: () => translate('filter.active_descendant'),
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
-			onRename: (id, newLabel) => {
+				onRename: (id, newLabel) => {
 				newLabel = newLabel.replace(
 					/\{date\}|\[fecha\]/gi,
 					new Date().toISOString().slice(0, 10),
@@ -2378,7 +2389,7 @@ export class TagsExplorerPanel extends Component {
 					void this._render();
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (node) void this._renameTag(node.meta.tagPath, check.name);
 				this.editingId = null;
 				void this._render();
@@ -2399,14 +2410,15 @@ export class TagsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
 			onRowDoubleClick: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
+			onRecursiveSelect: (id: string) =>
+				this._toggleDescendantSelection(id, projected),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// B-groupbody: el motor ya no trae el cuerpo por aqui
@@ -2414,7 +2426,7 @@ export class TagsExplorerPanel extends Component {
 					this._activateGroupRow(id);
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
@@ -2513,7 +2525,7 @@ export class TagsExplorerPanel extends Component {
 				);
 				return;
 			}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				const orderedIds = this._orderedVisibleTreeIds();
 				this._includeInvokedInSelection(id, e, orderedIds);
@@ -2535,7 +2547,7 @@ export class TagsExplorerPanel extends Component {
 				);
 			},
 			onDragStart: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				setVaultmanDragPayload(
 					event,
@@ -2550,12 +2562,12 @@ export class TagsExplorerPanel extends Component {
 				);
 			},
 			onDragOver: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleTagDragOver(node, event);
 			},
 			onDrop: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleTagDrop(node, event);
 			},
