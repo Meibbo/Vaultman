@@ -393,6 +393,7 @@
 		showTabLabels = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
+		caretPosition = 'start' as 'start' | 'end' | 'hidden',
 		toolbarMenuLayouts,
 		commandActions = [],
 		createActionsPlacement = 'searchbox',
@@ -5158,6 +5159,7 @@
 				<ViewModePopup
 					{activeTab}
 					{selectionCheckboxPosition}
+					{caretPosition}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}

@@ -46,8 +46,7 @@ export interface PanelPluginCtx {
 		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
-		/** BT5-015 */
-		iconInCaretSlot?: boolean;
+		caretPosition?: 'start' | 'end' | 'hidden';
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-003: how far a type-incompatibility warning decorates its node. */
@@ -367,6 +366,7 @@ export class PropsExplorerPanel extends Component {
 	}
 	private _optimisticFrontmatter: Record<string, unknown> | null = null;
 	private _optimisticFrontmatterPath: string | null = null;
+	private emptyEl: HTMLElement | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -777,6 +777,8 @@ export class PropsExplorerPanel extends Component {
 		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
+		this.emptyEl?.remove();
+		this.emptyEl = null;
 		this.view.destroy();
 		this.tableView?.destroy();
 		super.onunload();
@@ -2957,10 +2959,18 @@ export class PropsExplorerPanel extends Component {
 		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
 			this._decorateNodeNotes(nodesWithIcons);
 		}
-		// Reveal with an empty note shows the contextual landing (with its
-		// switch/add buttons) instead of the bare list, unless an add flow
-		// is already composing its temp row (which makes the list non-empty).
-		if (nodesWithIcons.length === 0 && !this._revealAdding) {
+		this.emptyEl?.remove();
+		this.emptyEl = null;
+
+		// In normal mode, or in reveal mode when no active file exists,
+		// an empty node list renders the empty state landing.
+		// In reveal mode with an active file, the adopted widget "+ Add property"
+		// row is preserved in the tree, even when the note has no properties
+		// or when a search returns 0 matching properties.
+		if (
+			nodesWithIcons.length === 0 &&
+			(!this.isRevealingActiveFile() || !this._revealPath())
+		) {
 			this._renderEmptyState();
 			return;
 		}
@@ -3145,6 +3155,19 @@ export class PropsExplorerPanel extends Component {
 					return this._renderPropertyValueLabel(container, node);
 				},
 			});
+			if (nodesWithIcons.length === 0 && this.searchTerm) {
+				this.emptyEl = this.containerEl.createDiv({
+					cls: 'vaultman-explorer-empty-landing',
+				});
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.props.empty_title'),
+				});
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate('explorer.props.empty_search_desc'),
+				});
+			}
 			this._renderAddPropertyButtonIfNeeded();
 			return;
 		}
@@ -3339,7 +3362,7 @@ export class PropsExplorerPanel extends Component {
 					node as TreeNode<PropMeta>,
 				);
 			},
-			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
 				inclusive: this.visibleCells.has('filters')
 					? activeFilterIds
@@ -3584,6 +3607,22 @@ export class PropsExplorerPanel extends Component {
 		// Tree path renders "+ Add property" as an in-list row (see
 		// _withAddPropertyRow); the fixed container button survives only for
 		// the table branch, which keeps its own call below.
+		if (nodesWithIcons.length === 0 && this.searchTerm) {
+			this.emptyEl = this.containerEl.createDiv({
+				cls: 'vaultman-explorer-empty-landing',
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.props.empty_title'),
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.props.empty_search_desc'),
+			});
+			if (this.sortState?.addPropertyFirst !== true) {
+				this.containerEl.prepend(this.emptyEl);
+			}
+		}
 	}
 
 	private _updateRevealFrontmatter(
@@ -4890,16 +4929,16 @@ export class PropsExplorerPanel extends Component {
 		this.view.destroy();
 		this.tableView?.destroy();
 		this.containerEl.empty();
-		const emptyEl = this.containerEl.createDiv({
+		this.emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',
 		});
 		// 1. Búsqueda sin resultados: títulos existentes.
 		if (this.searchTerm) {
-			emptyEl.createDiv({
+			this.emptyEl.createDiv({
 				cls: 'vaultman-explorer-empty-title',
 				text: translate('explorer.props.empty_title'),
 			});
-			emptyEl.createDiv({
+			this.emptyEl.createDiv({
 				cls: 'vaultman-explorer-empty-desc',
 				text: translate('explorer.props.empty_search_desc'),
 			});
@@ -4909,53 +4948,34 @@ export class PropsExplorerPanel extends Component {
 		if (this.isRevealingActiveFile()) {
 			const revealPath = this._revealPath();
 			if (!revealPath) {
-				emptyEl.createDiv({
+				this.emptyEl.createDiv({
 					cls: 'vaultman-explorer-empty-title',
 					text: translate('explorer.ctx.reveal_this_file.no_active_file'),
 				});
-				emptyEl.createDiv({
+				this.emptyEl.createDiv({
 					cls: 'vaultman-explorer-empty-desc',
 					text: translate(
 						'explorer.ctx.reveal_this_file.no_active_file_desc',
 					),
 				});
-				const actionsEl = emptyEl.createDiv({
-					cls: 'vaultman-explorer-empty-actions',
-				});
-				const backBtn = actionsEl.createEl('button', {
-					text: translate('explorer.ctx.reveal_this_file.switch_general'),
-				});
-				backBtn.onclick = () => this.toggleRevealActiveFile();
 				return;
 			}
-			emptyEl.createDiv({
+			this.emptyEl.createDiv({
 				cls: 'vaultman-explorer-empty-title',
 				text: translate('explorer.ctx.reveal_this_file.empty'),
 			});
-			emptyEl.createDiv({
+			this.emptyEl.createDiv({
 				cls: 'vaultman-explorer-empty-desc',
 				text: translate('explorer.ctx.reveal_this_file.empty_desc_props'),
 			});
-			const actionsEl = emptyEl.createDiv({
-				cls: 'vaultman-explorer-empty-actions',
-			});
-			const backBtn = actionsEl.createEl('button', {
-				text: translate('explorer.ctx.reveal_this_file.switch_general'),
-			});
-			backBtn.onclick = () => this.toggleRevealActiveFile();
-			const addBtn = actionsEl.createEl('button', {
-				cls: 'mod-cta',
-				text: translate('ops.add_property'),
-			});
-			addBtn.onclick = () => this._startAddPropertyInReveal();
 			return;
 		}
 		// 3. Modo normal general.
-		emptyEl.createDiv({
+		this.emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-title',
 			text: translate('explorer.props.empty_title'),
 		});
-		emptyEl.createDiv({
+		this.emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-desc',
 			text: translate('filter.prop_browser.empty'),
 		});

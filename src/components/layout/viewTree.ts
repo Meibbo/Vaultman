@@ -176,12 +176,8 @@ export interface TreeViewOptions {
 	 * have no corresponding option and therefore keep their own Cell anatomy.
 	 */
 	coreMetadata?: CoreMetadataTreeAnatomy;
-	/**
-	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
-	 * there instead of leaving a dimmed placeholder plus a separate icon.
-	 * Expandable nodes are untouched — their caret keeps its affordance.
-	 */
-	iconInCaretSlot?: boolean;
+	/** Position of the tree expander caret: 'start' | 'end' | 'hidden'. */
+	caretPosition?: 'start' | 'end' | 'hidden';
 	/** Keep expanded parent rows visible above the virtualized tree window. */
 	stickyParentRows?: boolean;
 	/**
@@ -1355,7 +1351,7 @@ export class UnifiedTreeView {
 			counterRangeEditing ? 'counter-range-editing' : '',
 			counterRangeEditMode,
 			cellOrder,
-			opts.iconInCaretSlot ? '1' : '0',
+			opts.caretPosition ?? 'start',
 			opts.onSelectionToggle ? 'selection' : '',
 			(opts.isNodeSelectable?.(node) ?? true) ? 'selectable' : 'action-only',
 			opts.selectionCheckboxPosition ?? 'start',
@@ -1590,7 +1586,6 @@ export class UnifiedTreeView {
 		rowMap: Map<string, HTMLElement> = this.rowEls,
 	): HTMLElement {
 		const hasChildren = (node.children?.length ?? 0) > 0;
-		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
 		const highlight = this.resolveRowHighlight(node.id, opts);
 		const isActive = highlight.inclusive;
@@ -1609,6 +1604,11 @@ export class UnifiedTreeView {
 		const isSelected =
 			isNodeSelectable && (opts.selectedIds?.has(node.id) ?? false);
 		const visibleCells = this._visibleCellsForNode(node, opts.visibleCells);
+		const showCaretCell = visibleCells ? visibleCells.has('caret') : true;
+		const showCaret =
+			(hasChildren || Boolean(node.showCaret)) &&
+			showCaretCell &&
+			opts.caretPosition !== 'hidden';
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
 			? visibleCells.has('text') || visibleCells.has('name')
@@ -1800,19 +1800,6 @@ export class UnifiedTreeView {
 
 		rowMap.set(node.id, row);
 
-		// BT5-015: the row is a flex line, so an icon ADDS width and shifts the
-		// label. Siblings that carry no icon therefore sit further left — the
-		// misalignment the option exists to remove. When it is on, a row that
-		// renders an icon and reserves no caret takes the icon out of flow into
-		// the caret column, so every label lands at the same x. Rows with a
-		// caret keep today's geometry (the caret already owns that column), and
-		// table and cards render no caret at all: not applicable.
-		const iconFillsCaretSlot =
-			opts.iconInCaretSlot === true &&
-			showIcon &&
-			Boolean(node.icon) &&
-			!showCaret;
-		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
 		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
 			if (!opts.onSelectionToggle || !isNodeSelectable) return;
 			const checkbox = row.createEl('input', {
@@ -1864,11 +1851,13 @@ export class UnifiedTreeView {
 			emitSelectionCheckbox('start');
 		}
 
-		if (showCaret) {
+		const emitCaret = (position: 'start' | 'end'): void => {
+			if (!showCaret) return;
 			const toggleEl = row.createDiv({
-				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
+				cls: `vaultman-tree-toggle tree-item-icon collapse-icon vaultman-tree-caret--${position}`,
 			});
 			setIcon(toggleEl, 'right-triangle');
+			toggleEl.setAttribute('aria-hidden', 'true');
 			if (hasChildren || showCaret) {
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
@@ -1881,6 +1870,10 @@ export class UnifiedTreeView {
 			} else {
 				toggleEl.addClass('vaultman-tree-toggle--empty');
 			}
+		};
+
+		if ((opts.caretPosition ?? 'start') === 'start') {
+			emitCaret('start');
 		}
 
 		this.applyMutableRowState({
@@ -2419,6 +2412,7 @@ export class UnifiedTreeView {
 			// Frequency counter second
 			if (!usesActivationOrder) emitCount(badgeZone);
 		}
+		if (opts.caretPosition === 'end') emitCaret('end');
 		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox('end');
 
 		return row;

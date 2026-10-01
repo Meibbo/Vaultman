@@ -1104,6 +1104,11 @@ body:not(.is-grabbing) .vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is
   flex-shrink: 0;
 }
 
+.vaultman-tree-toggle.vaultman-tree-caret--end {
+  margin-inline-start: auto;
+  margin-inline-end: var(--size-4-1, 4px);
+}
+
 .vaultman-tree-row::before {
   content: '';
   position: absolute;

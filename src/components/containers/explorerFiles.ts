@@ -3289,7 +3289,7 @@ export class FilesExplorerPanel extends Component {
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
-				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings.caretPosition ?? 'start',
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
 				highlightIds: {

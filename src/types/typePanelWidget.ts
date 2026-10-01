@@ -372,6 +372,7 @@ export interface NavbarPanelWidgetState {
 	orderCellsByActivation?: boolean;
 	/** U121-108: edge of the select-mode checkbox; `hidden` hides its view_option. */
 	selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
+	caretPosition?: 'start' | 'end' | 'hidden';
 	/** U130-110: global layouts for the catalog-backed native toolbar menus. */
 	toolbarMenuLayouts?: Partial<Record<ToolbarMenuKind, FilesMenuItem[]>>;
 	commandActions?: ResolvedCommandAction[];

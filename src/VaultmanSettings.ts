@@ -1718,14 +1718,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
-			name: translate('settings.icon_in_caret_slot'),
-			desc: translate('settings.icon_in_caret_slot.desc'),
+			name: translate('settings.caret_position'),
+			desc: translate('settings.caret_position.desc'),
 			render: (setting: Setting) => {
-				setting.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.iconInCaretSlot === true)
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('start', translate('settings.caret_position.start'))
+						.addOption('end', translate('settings.caret_position.end'))
+						.addOption('hidden', translate('settings.caret_position.hidden'))
+						.setValue(this.plugin.settings.caretPosition ?? 'start')
 						.onChange(async (value) => {
-							this.plugin.settings.iconInCaretSlot = value;
+							this.plugin.settings.caretPosition = value as
+								'start' | 'end' | 'hidden';
 							await this.plugin.saveSettings();
 						}),
 				);

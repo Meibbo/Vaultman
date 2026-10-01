@@ -982,7 +982,7 @@ export class SnippetsExplorerPanel
 				}
 				return false;
 			},
-			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings.caretPosition ?? 'start',
 			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
 			expandedIds: this._expandedGroupIds,
 			selectedIds: this.selectedNodeIds,

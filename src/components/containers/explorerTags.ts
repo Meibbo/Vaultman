@@ -70,8 +70,7 @@ export interface PanelPluginCtx {
 		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
-		/** BT5-015 */
-		iconInCaretSlot?: boolean;
+		caretPosition?: 'start' | 'end' | 'hidden';
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
@@ -2311,7 +2310,7 @@ export class TagsExplorerPanel extends Component {
 				}
 				return false;
 			},
-			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
 				inclusive: this.visibleCells.has('filters')
 					? activeFilterIds
@@ -2873,13 +2872,6 @@ export class TagsExplorerPanel extends Component {
 						'explorer.ctx.reveal_this_file.no_active_file_desc',
 					),
 				});
-				const actionsEl = emptyEl.createDiv({
-					cls: 'vaultman-explorer-empty-actions',
-				});
-				const backBtn = actionsEl.createEl('button', {
-					text: translate('explorer.ctx.reveal_this_file.switch_general'),
-				});
-				backBtn.onclick = () => this.toggleRevealActiveFile();
 				return;
 			}
 			emptyEl.createDiv({
@@ -2890,13 +2882,6 @@ export class TagsExplorerPanel extends Component {
 				cls: 'vaultman-explorer-empty-desc',
 				text: translate('explorer.ctx.reveal_this_file.empty_desc_tags'),
 			});
-			const actionsEl = emptyEl.createDiv({
-				cls: 'vaultman-explorer-empty-actions',
-			});
-			const backBtn = actionsEl.createEl('button', {
-				text: translate('explorer.ctx.reveal_this_file.switch_general'),
-			});
-			backBtn.onclick = () => this.toggleRevealActiveFile();
 			return;
 		}
 		// 3. Modo normal general.

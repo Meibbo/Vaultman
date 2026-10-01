@@ -48,6 +48,7 @@ export interface FileHoverEntry {
  * checkbox from every scene AND from the view menu — it is not a position.
  */
 export type SelectionCheckboxPosition = 'start' | 'end' | 'hidden';
+export type TreeCaretPosition = 'start' | 'end' | 'hidden';
 
 export interface ViewMenuCellOptions {
 	/**
@@ -55,6 +56,10 @@ export interface ViewMenuCellOptions {
 	 * Undefined keeps the historical behaviour (checkbox offered).
 	 */
 	selectionCheckboxPosition?: SelectionCheckboxPosition;
+	/**
+	 * When `hidden`, the `caret` view_option is not offered.
+	 */
+	caretPosition?: TreeCaretPosition;
 }
 
 /**
@@ -63,6 +68,12 @@ export interface ViewMenuCellOptions {
  * so a stale persisted choice never loses the option silently.
  */
 export function shouldOfferCheckboxViewOption(
+	position?: string,
+): boolean {
+	return position !== 'hidden';
+}
+
+export function shouldOfferCaretViewOption(
 	position?: string,
 ): boolean {
 	return position !== 'hidden';
@@ -108,6 +119,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{ explorer: 'files', fixedRank: 998, defaultOn: true },
 			{ explorer: 'props', fixedRank: 998, defaultOn: true },
 			{ explorer: 'tags', fixedRank: 998, defaultOn: true },
+		],
+	},
+	{
+		id: 'caret',
+		role: 'control',
+		labelKey: 'viewmode.pill.caret',
+		icon: 'lucide-chevron-right',
+		supports: [
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 5, defaultOn: true },
+			{ explorer: 'props', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 5, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 5, defaultOn: true },
 		],
 	},
 	{
@@ -803,6 +827,13 @@ export function createExplorerCellRegistry(
 						definition.id !== 'checkbox' ||
 						shouldOfferCheckboxViewOption(
 							options?.selectionCheckboxPosition,
+						),
+				)
+				.filter(
+					(definition) =>
+						definition.id !== 'caret' ||
+						shouldOfferCaretViewOption(
+							options?.caretPosition,
 						),
 				);
 		},

@@ -295,9 +295,12 @@ export const es: Record<string, string> = {
 		'Donde aterriza la activación de filas en modo abrir dentro de settingScene: el modal nativo de settings o el modo content local de la scene.',
 	'settings.setting_scene_go_to_target.modal': 'Modal nativo',
 	'settings.setting_scene_go_to_target.panel_content': 'Contenido del panel',
-	'settings.icon_in_caret_slot': 'Icono en el hueco del caret',
-	'settings.icon_in_caret_slot.desc':
-		'Los nodos que muestran icono y no reservan caret lo dibujan en la columna del caret en vez de antes del label, así todos los labels quedan alineados con los nodos sin icono.',
+	'settings.caret_position': 'Posición del expansor / caret',
+	'settings.caret_position.desc':
+		'Coloca el caret de los nodos al inicio o al final de la fila, u ocúltalo.',
+	'settings.caret_position.start': 'Inicio / izquierda',
+	'settings.caret_position.end': 'Final / derecha',
+	'settings.caret_position.hidden': 'Oculto',
 	'settings.selection_checkbox_position': 'Posición de la casilla de selección',
 	'settings.selection_checkbox_position.desc':
 		'Coloca el cell_checkbox del modo seleccionar al inicio o al final de los nodos.',
@@ -1364,6 +1367,7 @@ export const es: Record<string, string> = {
 	'viewmode.mode.table': 'Tabla',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icono',
+	'viewmode.pill.caret': 'Caret',
 	'viewmode.pill.checkbox': 'Casilla',
 	'viewmode.pill.text': 'Texto',
 	'viewmode.pill.count': 'Cantidad',
