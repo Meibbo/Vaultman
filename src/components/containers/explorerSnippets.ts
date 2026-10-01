@@ -53,6 +53,11 @@ import {
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
+import { showInputModal } from '../../utils/inputModal';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
@@ -139,6 +144,8 @@ export class SnippetsExplorerPanel
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	private stickyRowsOverride: boolean | undefined = undefined;
+	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -428,18 +435,158 @@ export class SnippetsExplorerPanel
 		};
 	}
 
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<SnippetMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
+		const noteGroup = this.groupPreset.kind === 'note';
+		const walk = (nodes: readonly TreeNode<SnippetMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this.rebuildNodes();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+	}
+
 	private _degroupMenuCtx(node: TreeNode<SnippetMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
-		const owner = occurrenceOwnerOf(node);
-		if (
-			!owner ||
-			!this.degroupSelectedHandler ||
-			this.selectedNodeIds.size === 0 ||
-			!this._groupIds.has(owner)
-		)
-			return {};
+		if (!this.degroupSelectedHandler || this.selectedNodeIds.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(node);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(this._lastProjectedTree);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
-			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			membershipOwner: resolvedOwner,
+			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(node),
 			degroupSelected: async () => {
 				const snapshot = snapshotFromProjectedTree({
@@ -450,7 +597,7 @@ export class SnippetsExplorerPanel
 					instanceId: this.selectionInstanceId, revision: this.selectionRevision,
 					selectionKey: this._selectionKey(), customGroupIds: this._groupIds,
 				});
-				return this.degroupSelectedHandler?.(snapshot, owner) ?? { status: 'cancelled' };
+				return this.degroupSelectedHandler?.(snapshot, resolvedOwner) ?? { status: 'cancelled' };
 			},
 		};
 	}
@@ -504,6 +651,18 @@ export class SnippetsExplorerPanel
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
+		this.render();
+	}
+
+	setStickyRowsEnabled(enabled: boolean): void {
+		if (this.stickyRowsOverride === enabled) return;
+		this.stickyRowsOverride = enabled;
+		this.render();
+	}
+
+	setCompactFoldersEnabled(enabled: boolean): void {
+		if (this.compactFoldersOverride === enabled) return;
+		this.compactFoldersOverride = enabled;
 		this.render();
 	}
 
@@ -749,6 +908,8 @@ export class SnippetsExplorerPanel
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
 			renderLabel: (row, node) => {
 				if (this.visibleCells.has('format') && (node.meta as SnippetMeta)?.hasNodeNote === true) {
@@ -869,13 +1030,13 @@ export class SnippetsExplorerPanel
 						},
 						surface: 'panel',
 						groupId: id,
-						groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
+						groupOwner: this._isCustomGroupId(id) ? 'custom' : 'preset',
 						groupHidden: this.hiddenGroupIds.has(id),
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this._expandedGroupIds.has(id),
 						materializePreset:
-							this._groupIds.has(id) ||
+							this._isCustomGroupId(id) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -887,6 +1048,19 @@ export class SnippetsExplorerPanel
 											this.selectionRevision,
 										),
 									),
+						makeACopy: this._isCustomGroupId(id)
+							? () => {
+									this._makeACopyOfGroup(id);
+								}
+							: undefined,
+						renameGroup: this._isCustomGroupId(id)
+							? (targetId: string) => this._renameCustomGroup(targetId)
+							: undefined,
+						updateGroupScope: this._isCustomGroupId(id)
+							? () => {
+									this._updateCustomGroupScope(id);
+								}
+							: undefined,
 						toggleGroupExpand: (groupId: string) => {
 							this._toggleExpandedGroup(groupId);
 						},

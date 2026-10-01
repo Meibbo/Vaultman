@@ -778,6 +778,120 @@
 		applyGroupMemberships(tab, rest);
 		setGroupHidden(tab, id, false);
 	}
+	/** U130-GGC-016: make_a_copy desde el sort drawer. Copia enumerada con mismos miembros. */
+	function copyCustomGroup(tab: FiltersTab, id: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		const members = memberships[id] ?? [];
+		const parsed = parseScopedGroupKey(id);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${id} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, nextId) &&
+				n < 1000
+			);
+		}
+		const next = { ...memberships, [nextId!]: [...members] };
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+	}
+	/** U130-GGC-016: rename desde el sort drawer. Modal de texto, renombra clave preservando target. */
+	async function renameCustomGroup(tab: FiltersTab, id: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		if (!app) return;
+		const parsed = parseScopedGroupKey(id);
+		const nextName = (
+			await showInputModal(app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(memberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [id]: members, ...rest } = memberships;
+		const next = { ...rest, [nextId]: [...(members ?? [])] };
+		const wasHidden = configByTab[tab].hiddenGroupIds.includes(id);
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+		if (wasHidden) {
+			setGroupHidden(tab, id, false);
+			setGroupHidden(tab, nextId, true);
+		}
+	}
+	/** U130-GGC-016: change scope desde el sort drawer. Mueve la clave al target actual. */
+	function updateCustomGroupScope(tab: FiltersTab, id: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		const parsed = parseScopedGroupKey(id);
+		const target = currentCustomGroupTarget(tab);
+		if (!parsed.legacy && parsed.target === target) return;
+		let nextId: string;
+		try {
+			nextId = parsed.legacy
+				? makeScopedGroupKey(target, parsed.name)
+				: makeScopedGroupKey(target, parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(memberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey(target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [id]: members, ...rest } = memberships;
+		const wasHidden = configByTab[tab].hiddenGroupIds.includes(id);
+		const next = { ...rest, [nextId]: [...(members ?? [])] };
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+		if (wasHidden) {
+			setGroupHidden(tab, id, false);
+			setGroupHidden(tab, nextId, true);
+		}
+	}
 	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
 		const currentSort = normalizeSortState(
 			tab,
@@ -3140,12 +3254,6 @@
 			menu.addSeparator();
 		}
 		if (localId === 'reveal-active-file') {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('toolbar.alt.reveal_now'))
-					.setIcon('lucide-gallery-vertical')
-					.onClick(() => revealActiveExplorerFile('menu', event));
-			});
 			const revealMode = configByTab.files?.autoRevealMode ?? 'auto';
 			const alwaysReveal =
 				revealMode === 'auto' ? autoRevealGlobal : revealMode === 'on';
@@ -3773,6 +3881,8 @@
 		if (tab === 'files') fileList?.setStickyRowsEnabled?.(enabled);
 		if (tab === 'props') propExplorer?.setStickyRowsEnabled?.(enabled);
 		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'snippets') snippetsExplorer?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'plugins') pluginsExplorer?.setStickyRowsEnabled?.(enabled);
 	}
 
 	function indentEnabledFor(tab: FiltersTab): boolean {
@@ -3903,6 +4013,8 @@
 	// esta implementada en el arbol.
 	function applyCompactFolders(tab: FiltersTab, enabled: boolean) {
 		if (tab === 'files') fileList?.setCompactFoldersEnabled?.(enabled);
+		if (tab === 'snippets') snippetsExplorer?.setCompactFoldersEnabled?.(enabled);
+		if (tab === 'plugins') pluginsExplorer?.setCompactFoldersEnabled?.(enabled);
 	}
 
 	function toggleCompactFoldersFor(tab: FiltersTab) {
@@ -5023,6 +5135,9 @@
 					onNewGroup={() => createGroupForPreset(activeTab)}
 					onHideGroup={(id, hidden) => setGroupHidden(activeTab, id, hidden)}
 					onDeleteGroup={(id) => deleteCustomGroup(activeTab, id)}
+					onRenameGroup={(id) => void renameCustomGroup(activeTab, id)}
+					onCopyGroup={(id) => copyCustomGroup(activeTab, id)}
+					onUpdateGroupScope={(id) => updateCustomGroupScope(activeTab, id)}
 					{icon}
 				/>
 			</div>

@@ -99,10 +99,12 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	// U130-GGC-006 / 016: Materialize preset bucket to custom group
+	// Oculta del panel cmenu (solo SASI) para evitar duplicado/colisión con
+	// 'group.make-copy': el panel muestra SOLO make-copy.
 	svc.registerAction({
 		id: 'group.materialize-preset',
 		nodeTypes: ['group'],
-		surfaces: ['panel'],
+		surfaces: [],
 		label: () => translate('group.preset.materialize'),
 		icon: 'lucide-copy-plus',
 		when: (ctx: MenuCtx) => isPreset(ctx) && typeof ctx.materializePreset === 'function',
@@ -163,15 +165,23 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	// U130-GGC-016: open_node_note
+	// Disponible para cualquier node_group cuando nodeBindingService existe;
+	// si no, solo note groups o grupos con file/openNodeNote.
 	svc.registerAction({
 		id: 'group.open-note',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
 		label: () => translate('context_menu.node_note') || 'Open Node-Note',
 		icon: 'lucide-link',
-		when: (ctx: MenuCtx) =>
-			(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
-			(typeof ctx.openNodeNote === 'function' || Boolean(ctx.file) || Boolean(plugin.nodeBindingService)),
+		when: (ctx: MenuCtx) => {
+			if (Boolean(plugin.nodeBindingService)) return true;
+			return (
+				(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
+				(typeof ctx.openNodeNote === 'function' ||
+					Boolean(ctx.file) ||
+					Boolean(plugin.nodeBindingService))
+			);
+		},
 		disabledReason: () => null,
 		run: async (ctx: MenuCtx) => {
 			if (typeof ctx.openNodeNote === 'function') {
@@ -185,9 +195,9 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 			}
 			if (plugin.nodeBindingService && ctx.node?.label) {
 				await plugin.nodeBindingService.bindOrCreate({
-					kind: 'file',
+					kind: 'group',
 					label: ctx.node.label,
-					path: ctx.node.id,
+					path: ctx.groupId ?? ctx.node.id,
 				});
 			}
 		},

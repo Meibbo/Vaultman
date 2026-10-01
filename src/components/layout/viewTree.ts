@@ -9,6 +9,7 @@ import type {
 import type { ExplorerTabId } from '../../types/typeUI';
 import type { CounterRange } from '../../types/typeGroupPreset';
 import { validateCounterRangeEdit } from '../../logic/logicCounterRangeEditor';
+import { translate } from '../../i18n/index';
 import { applyCellTooltip as applySharedCellTooltip } from '../../logic/logicCellTooltip';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import {
@@ -117,7 +118,11 @@ export interface TreeViewOptions {
 	onCancelRename?: () => void;
 	onOpenRichRename?: (id: string, currentValue: string) => void;
 	/** Structured editor for counter preset headers. */
-	onCounterRangeCommit?: (id: string, range: CounterRange) => boolean | void;
+	onCounterRangeCommit?: (
+		id: string,
+		range: CounterRange,
+		mode?: 'adjust' | 'slice',
+	) => boolean | void;
 	onCounterRangeError?: (id: string, reason: string) => void;
 	counterRangeBoundLabel?: (bound: 'lower' | 'upper') => string;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
@@ -263,6 +268,8 @@ export class UnifiedTreeView {
 	private _scopePreviewRaf: number | null = null;
 	private _scopePreviewEl: HTMLElement | null = null;
 	private _editingCounterRangeId: string | null = null;
+	private _editingCounterRange: { id: string; mode: 'adjust' | 'slice' } | null =
+		null;
 	/** Emitted with the rows so the sticky stack can walk up to the ancestors
 	 * of the first visible row instead of scanning everything above it. */
 	private _parentIndex: number[] | null = null;
@@ -322,10 +329,13 @@ export class UnifiedTreeView {
 	}
 
 	/** Open the structured editor only after the group context-menu action. */
-	beginCounterRangeEdit(id: string): boolean {
+	beginCounterRangeEdit(id: string): boolean;
+	beginCounterRangeEdit(id: string, mode: 'adjust' | 'slice'): boolean;
+	beginCounterRangeEdit(id: string, mode: 'adjust' | 'slice' = 'adjust'): boolean {
 		const node = this._rows.find((candidate) => candidate.id === id);
 		if (!node?.counterRange || !node.counterDomain || !this._opts?.onCounterRangeCommit)
 			return false;
+		this._editingCounterRange = { id, mode };
 		this._editingCounterRangeId = id;
 		this._renderWindow();
 		this._treeWindow().requestAnimationFrame(() => {
@@ -845,7 +855,12 @@ export class UnifiedTreeView {
 				top: this._scrollTopForIndex(index, block),
 				behavior,
 			});
-			this._scheduleWindowRender();
+			if (behavior === 'auto') {
+				this._cancelWindowRender();
+				this._renderWindow();
+			} else {
+				this._scheduleWindowRender();
+			}
 			this._pendingScroll = null;
 			vaultmanPerfMonitor.recordAction('tree', 'scrollToId', { id, index });
 			return;
@@ -1257,6 +1272,10 @@ export class UnifiedTreeView {
 			? Array.from(resolvedVisibleCells).sort().join(',')
 			: 'default';
 		const counterRangeEditing = this._editingCounterRangeId === node.id;
+		const counterRangeEditMode =
+			this._editingCounterRange?.id === node.id
+				? this._editingCounterRange.mode
+				: '';
 		const badges = (node.badges ?? [])
 			.map((badge) =>
 				[
@@ -1334,6 +1353,7 @@ export class UnifiedTreeView {
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
 			counterRangeEditing ? 'counter-range-editing' : '',
+			counterRangeEditMode,
 			cellOrder,
 			opts.iconInCaretSlot ? '1' : '0',
 			opts.onSelectionToggle ? 'selection' : '',
@@ -2073,9 +2093,10 @@ export class UnifiedTreeView {
 			if (
 				node.counterRange &&
 				opts.onCounterRangeCommit &&
-				this._editingCounterRangeId === node.id
+				this._editingCounterRange?.id === node.id
 			) {
 				const range = node.counterRange;
+				const mode = this._editingCounterRange?.mode ?? 'adjust';
 				const editor = row.createSpan({
 					cls: 'vaultman-counter-range-editor',
 					attr: { role: 'group', 'aria-label': node.label },
@@ -2107,9 +2128,68 @@ export class UnifiedTreeView {
 					range.hi,
 					opts.counterRangeBoundLabel?.('upper') ?? `${node.label} upper bound`,
 				);
+				const validateLo = (): void => {
+					const value = Number(loInput.value);
+					if (mode === 'slice') {
+						if (Number.isFinite(value) && value < node.counterRange!.lo) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.slice_under_min');
+						} else {
+							loInput.classList.remove('is-invalid');
+							loInput.removeAttribute('title');
+						}
+					} else {
+						const min = node.counterDomain?.min;
+						if (
+							Number.isFinite(value) &&
+							min !== undefined &&
+							value < min
+						) {
+							loInput.classList.add('is-invalid');
+							loInput.title = translate('group.counter.adjust_under_min');
+						} else {
+							loInput.classList.remove('is-invalid');
+							loInput.removeAttribute('title');
+						}
+					}
+				};
+				const validateHi = (): void => {
+					const value = Number(hiInput.value);
+					if (mode === 'slice') {
+						if (Number.isFinite(value) && value > node.counterRange!.hi) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.slice_above_max');
+						} else {
+							hiInput.classList.remove('is-invalid');
+							hiInput.removeAttribute('title');
+						}
+					} else {
+						const max = node.counterDomain?.max;
+						if (
+							Number.isFinite(value) &&
+							max !== undefined &&
+							value > max
+						) {
+							hiInput.classList.add('is-invalid');
+							hiInput.title = translate('group.counter.adjust_above_max');
+						} else {
+							hiInput.classList.remove('is-invalid');
+							hiInput.removeAttribute('title');
+						}
+					}
+				};
+				loInput.addEventListener('input', validateLo);
+				hiInput.addEventListener('input', validateHi);
 				let done = false;
 				const commit = (): void => {
 					if (done) return;
+					if (
+						loInput.classList.contains('is-invalid') ||
+						hiInput.classList.contains('is-invalid')
+					) {
+						opts.onCounterRangeError?.(node.id, 'invalid_range');
+						return;
+					}
 					const result = validateCounterRangeEdit(
 						{ id: range.id, lo: loInput.value, hi: hiInput.value },
 						[],
@@ -2119,15 +2199,17 @@ export class UnifiedTreeView {
 						opts.onCounterRangeError?.(node.id, result.reason);
 						return;
 					}
-					const accepted = opts.onCounterRangeCommit?.(node.id, result.range);
+					const accepted = opts.onCounterRangeCommit?.(node.id, result.range, mode);
 					if (accepted === false) return;
 					done = true;
+					this._editingCounterRange = null;
 					this._editingCounterRangeId = null;
 					this._renderWindow();
 				};
 				const cancel = (): void => {
 					if (done) return;
 					done = true;
+					this._editingCounterRange = null;
 					this._editingCounterRangeId = null;
 					this._renderWindow();
 				};
@@ -2152,6 +2234,10 @@ export class UnifiedTreeView {
 					queueMicrotask(() => {
 						if (!done && !editor.contains(editor.ownerDocument.activeElement)) commit();
 					});
+				});
+				row.createSpan({
+					cls: 'vaultman-cell-text-status',
+					text: mode === 'slice' ? 'Slice' : 'Adjust',
 				});
 				return row;
 			}

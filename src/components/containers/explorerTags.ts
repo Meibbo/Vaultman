@@ -107,6 +107,11 @@ import {
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
+import { showInputModal } from '../../utils/inputModal';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
@@ -132,6 +137,7 @@ import {
 import {
 	addCounterRangeSlice,
 	rebalanceCounterRange,
+	sliceCounterRange,
 } from '../../logic/logicCounterRangePartitions';
 import {
 	parseFrontmatterNoteGroups,
@@ -1026,19 +1032,59 @@ export class TagsExplorerPanel extends Component {
 		};
 	}
 
-	private _degroupMenuCtx(node: TreeNode<TagMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
-		const owner = occurrenceOwnerOf(node);
-		const handler = this.degroupSelectedHandler;
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<TagMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
 		const noteGroup = this.groupPreset.kind === 'note';
-		if (
-			!owner ||
-			!handler ||
-			this.selectedNodeIds.size === 0 ||
-			(!noteGroup && !this._groupIds.has(owner))
-		)
-			return {};
+		const walk = (nodes: readonly TreeNode<TagMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
+	private _degroupMenuCtx(node: TreeNode<TagMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const handler = this.degroupSelectedHandler;
+		if (!handler || this.selectedNodeIds.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(node);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
+			membershipOwner: resolvedOwner,
 			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(node),
 			degroupSelected: async () => {
@@ -1053,9 +1099,110 @@ export class TagsExplorerPanel extends Component {
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			void this._render();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -2057,15 +2204,22 @@ export class TagsExplorerPanel extends Component {
 			filterBubbleLabel: translate('filter.active_descendant'),
 			counterRangeBoundLabel: (bound) =>
 				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-			onCounterRangeCommit: (_id, range) => {
+			onCounterRangeCommit: (_id, range, mode) => {
 				const header = this._findNode(_id, projected);
 				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 					return false;
-				const result = rebalanceCounterRange(
-					header.counterRanges,
-					range,
-					header.counterDomain,
-				);
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
 				if (!result.ok) {
 					new Notice(translate('group.counter.invalid'));
 					return false;
@@ -2196,7 +2350,7 @@ export class TagsExplorerPanel extends Component {
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(groupId)
+								: this._isCustomGroupId(groupId)
 									? 'custom'
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(groupId),
@@ -2205,15 +2359,15 @@ export class TagsExplorerPanel extends Component {
 						groupExpanded: this.expandedIds.has(id),
 						adjustGroupRange:
 							header?.counterRange && header.counterDomain
-								? () => this.view?.beginCounterRangeEdit(id)
+								? () => this.view?.beginCounterRangeEdit(id, 'adjust')
 								: undefined,
 						sliceGroupRange:
 							header?.counterRange && header.counterDomain
-								? () => this.createCounterRangeSlice()
+								? () => this.view?.beginCounterRangeEdit(id, 'slice')
 								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(groupId) ||
+							this._isCustomGroupId(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -2225,6 +2379,24 @@ export class TagsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
+						makeACopy:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										this._makeACopyOfGroup(groupId);
+									}
+								: undefined,
+						renameGroup:
+							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
+								? (targetId: string) => this._renameCustomGroup(targetId)
+								: undefined,
+						updateGroupScope:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										this._updateCustomGroupScope(groupId);
+									}
+								: undefined,
 						toggleGroupExpand: () => {
 							this._toggleExpanded(id);
 						},
@@ -2621,15 +2793,66 @@ export class TagsExplorerPanel extends Component {
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',
 		});
+		// 1. Búsqueda sin resultados: títulos existentes.
+		if (this.searchTerm) {
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.tags.empty_title'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.tags.empty_search_desc'),
+			});
+			return;
+		}
+		// 2. Modo Reveal activo.
+		if (this.isRevealingActiveFile()) {
+			const revealPath = this._revealPath();
+			if (!revealPath) {
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.ctx.reveal_this_file.no_active_file'),
+				});
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate(
+						'explorer.ctx.reveal_this_file.no_active_file_desc',
+					),
+				});
+				const actionsEl = emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-actions',
+				});
+				const backBtn = actionsEl.createEl('button', {
+					text: translate('explorer.ctx.reveal_this_file.switch_general'),
+				});
+				backBtn.onclick = () => this.toggleRevealActiveFile();
+				return;
+			}
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.ctx.reveal_this_file.empty_tags'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.ctx.reveal_this_file.empty_desc_tags'),
+			});
+			const actionsEl = emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-actions',
+			});
+			const backBtn = actionsEl.createEl('button', {
+				text: translate('explorer.ctx.reveal_this_file.switch_general'),
+			});
+			backBtn.onclick = () => this.toggleRevealActiveFile();
+			return;
+		}
+		// 3. Modo normal general.
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-title',
 			text: translate('explorer.tags.empty_title'),
 		});
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-desc',
-			text: this.searchTerm
-				? translate('explorer.tags.empty_search_desc')
-				: translate('explorer.tags.empty_desc'),
+			text: translate('explorer.tags.empty_desc'),
 		});
 	}
 

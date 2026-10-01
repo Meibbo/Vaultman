@@ -45,6 +45,10 @@ import {
 	parseMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
 import { planGroupToFolder, type GroupFolderMember, type GroupFolderPlan } from '../../logic/logicGroupToFolder';
 import {
 	collectGroupMemberIds,
@@ -77,10 +81,13 @@ import {
 } from '../../types/typeGroupPreset';
 import {
 	addCounterRangeSlice,
-	rebalanceCounterRange,
 	snapshotPresetBucket,
 	type MaterializePresetHandler,
 } from '../../logic/logicGroupPresets';
+import {
+	rebalanceCounterRange,
+	sliceCounterRange,
+} from '../../logic/logicCounterRangePartitions';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
@@ -1217,6 +1224,127 @@ export class FilesExplorerPanel extends Component {
 		this.groupDeleteHandler = handler;
 	}
 
+	/**
+	 * U130-GGC-016: make_a_copy para custom groups. Crea una copia enumerada
+	 * ("Grupo (1)", "Grupo (2)") con los mismos miembros en `groupMemberships`.
+	 * Preserva el target del scoped key; en legacy usa sufijo plano.
+	 */
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				const nextName = `${parsed.name} (${n})`;
+				try {
+					nextId = makeScopedGroupKey(parsed.target, nextName);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		const finalId = nextId!;
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[finalId]: [...members],
+		});
+	}
+
+	/**
+	 * U130-GGC-016: rename para custom groups. Pide nuevo nombre vía modal de
+	 * texto y renombra la clave en `groupMemberships` preservando target.
+	 */
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const currentName = parsed.name;
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: currentName,
+			})
+		)?.trim();
+		if (!nextName || nextName === currentName) return;
+		let nextId: string;
+		if (parsed.legacy) {
+			nextId = nextName;
+		} else {
+			try {
+				nextId = makeScopedGroupKey(parsed.target, nextName);
+			} catch {
+				new Notice(translate('group.batch.rejected'));
+				return;
+			}
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({
+			...rest,
+			[nextId]: [...(members ?? [])],
+		});
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this._render();
+		}
+	}
+
+	/**
+	 * U130-GGC-016: change scope para custom groups. Mueve la clave al target
+	 * `all` preservando el nombre (con enumeración si colisiona).
+	 */
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({
+			...rest,
+			[nextId]: [...(members ?? [])],
+		});
+	}
+
 	setCounterRangesChangeHandler(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
@@ -1387,16 +1515,63 @@ export class FilesExplorerPanel extends Component {
 	 * miembros del owner invocado. El owner viaja desde la metadata de la
 	 * ocurrencia miembro; preset sin handler.
 	 */
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<FileMeta>[],
+	): string | undefined {
+		const selected = this.selectedFilePaths;
+		const walk = (nodes: readonly TreeNode<FileMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (this.groupPreset.kind === 'note' || this._isCustomGroupId(owner)))
+						return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
 	private _degroupMenuCtx(
 		invoked: TreeNode<FileMeta>,
 	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
 		const handler = this.degroupSelectedHandler;
-		const owner = occurrenceOwnerOf(invoked);
-		if (!handler || !owner || !this._groupIds.has(owner)) return {};
-		if (this.selectedFilePaths.size === 0) return {};
+		if (!handler || this.selectedFilePaths.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(invoked);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
+		const resolvedGroupOwner = noteGroup ? 'note' : 'custom';
 		return {
-			membershipOwner: owner,
-			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			membershipOwner: resolvedOwner,
+			groupOwner: resolvedGroupOwner,
 			occurrenceEntityId: entityIdOf(invoked),
 			degroupSelected: () => {
 				const snapshot = snapshotFromProjectedTree({
@@ -1410,7 +1585,7 @@ export class FilesExplorerPanel extends Component {
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
 	}
@@ -1674,17 +1849,7 @@ export class FilesExplorerPanel extends Component {
 			this._notifyExpansionChanged();
 			this._refreshCompleteTreeExpansion(changedFolderIds);
 		}
-		window.requestAnimationFrame(() => {
-			if (this.viewMode === 'table') {
-				this.tableView?.scrollToPath(file.path);
-				return;
-			}
-			if (this.viewMode === 'grid') {
-				this.gridView?.scrollToPath(file.path);
-				return;
-			}
-			this.treeView?.scrollToId(file.path);
-		});
+		this.revealNode(file.path, { behavior: 'auto' });
 	}
 
 	async createFromSearch(category: number, term: string): Promise<void> {
@@ -2808,15 +2973,22 @@ export class FilesExplorerPanel extends Component {
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			counterRangeBoundLabel: (bound) =>
 				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-			onCounterRangeCommit: (_id, range) => {
+			onCounterRangeCommit: (_id, range, mode) => {
 				const header = this._findNode(_id, projectedTree);
 				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 					return false;
-				const result = rebalanceCounterRange(
-					header.counterRanges,
-					range,
-					header.counterDomain,
-				);
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
 				if (!result.ok) {
 					new Notice(translate('group.counter.invalid'));
 					return false;
@@ -3428,10 +3600,18 @@ export class FilesExplorerPanel extends Component {
 					// desde aqui quedan disabled con razon.
 					const header = this._findNode(id, projectedTree);
 					const groupId = header ? entityIdOf(header) : id;
-					const groupOwner = this._groupIds.has(groupId) ? 'custom' : 'preset';
+					const groupOwner =
+						this.groupPreset.kind === 'note'
+							? 'note'
+							: this._isCustomGroupId(groupId)
+								? 'custom'
+								: 'preset';
+					const folderOwner =
+						groupOwner === 'note' ? null : (groupOwner as 'custom' | 'preset');
 					const conversionPlan = header &&
-						(groupOwner === 'preset' || this.groupDeleteHandler)
-						? this._groupToFolderPlan(header, groupId, groupOwner, projectedTree)
+						folderOwner &&
+						(folderOwner === 'preset' || this.groupDeleteHandler)
+						? this._groupToFolderPlan(header, groupId, folderOwner, projectedTree)
 						: null;
 					this.plugin.contextMenuService.openPanelMenu(
 						{
@@ -3446,8 +3626,8 @@ export class FilesExplorerPanel extends Component {
 							surface: 'panel',
 							groupId,
 							groupOwner,
-							convertGroupToFolder: conversionPlan && header
-								? () => this._previewGroupToFolder(id, groupId, groupOwner, conversionPlan)
+							convertGroupToFolder: conversionPlan && header && folderOwner
+								? () => this._previewGroupToFolder(id, groupId, folderOwner, conversionPlan)
 								: undefined,
 							groupHidden: this.hiddenGroupIds.has(groupId),
 							hideGroup: this.groupHideHandler,
@@ -3455,14 +3635,14 @@ export class FilesExplorerPanel extends Component {
 							groupExpanded: this.expandedIds.has(id),
 							adjustGroupRange:
 								header?.counterRange && header.counterDomain
-									? () => this.treeView?.beginCounterRangeEdit(id)
+									? () => this.treeView?.beginCounterRangeEdit(id, 'adjust')
 									: undefined,
 							sliceGroupRange:
 								header?.counterRange && header.counterDomain
-									? () => this.createCounterRangeSlice()
+									? () => this.treeView?.beginCounterRangeEdit(id, 'slice')
 									: undefined,
 							materializePreset:
-								this._groupIds.has(groupId) || !header || !this.materializePresetHandler
+								this._isCustomGroupId(groupId) || !header || !this.materializePresetHandler
 									? undefined
 									: () =>
 										this.materializePresetHandler!(
@@ -3472,6 +3652,22 @@ export class FilesExplorerPanel extends Component {
 												this.selectionRevision,
 											),
 										),
+							makeACopy:
+								groupOwner === 'custom'
+									? () => {
+											this._makeACopyOfGroup(groupId);
+										}
+									: undefined,
+							renameGroup:
+								groupOwner === 'custom' || groupOwner === 'note'
+									? (targetId: string) => this._renameCustomGroup(targetId)
+									: undefined,
+							updateGroupScope:
+								groupOwner === 'custom'
+									? () => {
+											this._updateCustomGroupScope(groupId);
+										}
+									: undefined,
 							toggleGroupExpand: () => {
 								this._toggleExpanded(id);
 							},

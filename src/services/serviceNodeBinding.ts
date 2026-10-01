@@ -172,7 +172,8 @@ export type BindingNodeKind =	| "tag"
 	| "file"
 	| "snippet"
 	| "template"
-	| "plugin";
+	| "plugin"
+	| "group";
 
 export interface BindingNodeInput {
 	kind: BindingNodeKind;
