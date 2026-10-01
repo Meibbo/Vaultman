@@ -614,8 +614,8 @@ describe('resolveCustomGroups', () => {
 	describe('Subgrupos jerárquicos con notación de barra (Scheme/Time)', () => {
 		it('anida subgrupos bajo la cabecera padre y ajusta su profundidad', () => {
 			const fileNodes: TreeNode<unknown>[] = [
-				{ id: 'f1', label: 'note1.md', depth: 0 },
-				{ id: 'f2', label: 'note2.md', depth: 0 },
+				{ id: 'f1', label: 'note1.md', depth: 0, meta: null },
+				{ id: 'f2', label: 'note2.md', depth: 0, meta: null },
 			];
 			const out = projectGroupedTree({
 				nodes: fileNodes,
@@ -660,7 +660,7 @@ describe('resolveCustomGroups', () => {
 
 		it('crea cabecera padre sintética si solo existe el subgrupo Scheme/Time', () => {
 			const fileNodes: TreeNode<unknown>[] = [
-				{ id: 'f2', label: 'note2.md', depth: 0 },
+				{ id: 'f2', label: 'note2.md', depth: 0, meta: null },
 			];
 			const out = projectGroupedTree({
 				nodes: fileNodes,
@@ -685,6 +685,113 @@ describe('resolveCustomGroups', () => {
 			expect(timeSubgroup?.id).toBe('g2');
 			expect(timeSubgroup?.depth).toBe(1);
 			expect(timeSubgroup?.children?.[0]?.depth).toBe(2);
+		});
+
+		it('invierte el orden de grupos custom cuando preset.direction es desc', () => {
+			const fileNodes: TreeNode<unknown>[] = [
+				{ id: 'f1', label: 'note1.md', depth: 0, meta: null },
+				{ id: 'f2', label: 'note2.md', depth: 0, meta: null },
+			];
+			const asc = projectGroupedTree({
+				nodes: fileNodes,
+				groups: [
+					{ id: 'g1', flavor: 'custom', label: 'Alpha', parentId: null, scope: 'all' },
+					{ id: 'g2', flavor: 'custom', label: 'Beta', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					g1: ['files:file:f1|note1.md'],
+					g2: ['files:file:f2|note2.md'],
+				},
+				providerId: 'files',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				preset: { kind: 'custom', direction: 'asc' },
+				urnOf: (n) => `files:file:${n.id}|${n.label}`,
+			});
+			expect(asc.filter((n) => n.id !== NO_GROUP_ID).map((n) => n.label)).toEqual(['Alpha', 'Beta']);
+
+			const desc = projectGroupedTree({
+				nodes: fileNodes,
+				groups: [
+					{ id: 'g1', flavor: 'custom', label: 'Alpha', parentId: null, scope: 'all' },
+					{ id: 'g2', flavor: 'custom', label: 'Beta', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					g1: ['files:file:f1|note1.md'],
+					g2: ['files:file:f2|note2.md'],
+				},
+				providerId: 'files',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				preset: { kind: 'custom', direction: 'desc' },
+				urnOf: (n) => `files:file:${n.id}|${n.label}`,
+			});
+			expect(desc.filter((n) => n.id !== NO_GROUP_ID).map((n) => n.label)).toEqual(['Beta', 'Alpha']);
+		});
+
+		it('invierte subgrupos jerárquicos cuando preset.direction es desc', () => {
+			const fileNodes: TreeNode<unknown>[] = [
+				{ id: 'f1', label: 'note1.md', depth: 0, meta: null },
+				{ id: 'f2', label: 'note2.md', depth: 0, meta: null },
+			];
+			const desc = projectGroupedTree({
+				nodes: fileNodes,
+				groups: [
+					{ id: 'g1', flavor: 'custom', label: 'Scheme/Time', parentId: null, scope: 'all' },
+					{ id: 'g2', flavor: 'custom', label: 'Scheme/Space', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					g1: ['files:file:f1|note1.md'],
+					g2: ['files:file:f2|note2.md'],
+				},
+				providerId: 'files',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				preset: { kind: 'custom', direction: 'desc' },
+				urnOf: (n) => `files:file:${n.id}|${n.label}`,
+			});
+			const scheme = desc.find((h) => h.label === 'Scheme');
+			expect(scheme?.children?.map((c) => c.label)).toEqual(['Space', 'Time']);
+		});
+
+		it('invierte los miembros ordenados por nota cuando preset.direction es desc', () => {
+			const propNodes: TreeNode<unknown>[] = [
+				{ id: 'p1', label: 'Status', depth: 0, meta: { propName: 'Status' } },
+				{ id: 'p2', label: 'Type', depth: 0, meta: { propName: 'Type' } },
+			];
+			const asc = projectGroupedTree({
+				nodes: propNodes,
+				groups: [
+					{ id: 'note-group', flavor: 'note', label: 'NoteGroup', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					'note-group': ['Status', 'Type'],
+				},
+				providerId: 'props',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				preset: { kind: 'note', direction: 'asc' },
+				sortByNote: true,
+				memberKeyOf: (n: any) => n.meta?.propName ?? n.label,
+			});
+			expect(asc[0]?.children?.map((c) => c.label)).toEqual(['Status', 'Type']);
+
+			const desc = projectGroupedTree({
+				nodes: propNodes,
+				groups: [
+					{ id: 'note-group', flavor: 'note', label: 'NoteGroup', parentId: null, scope: 'all' },
+				],
+				memberships: {
+					'note-group': ['Status', 'Type'],
+				},
+				providerId: 'props',
+				noGroupLabel: 'Sin grupo',
+				filtered: false,
+				preset: { kind: 'note', direction: 'desc' },
+				sortByNote: true,
+				memberKeyOf: (n: any) => n.meta?.propName ?? n.label,
+			});
+			expect(desc[0]?.children?.map((c) => c.label)).toEqual(['Type', 'Status']);
 		});
 	});
 });

@@ -1739,7 +1739,7 @@ export class TagsExplorerPanel extends Component {
 			}
 			return index;
 		};
-		return sortWithScopes(
+		const sorted = sortWithScopes(
 			nodes,
 			(parentId, level) =>
 				siblingScopeSort('tags', this.sortState, parentId, level),
@@ -1748,6 +1748,21 @@ export class TagsExplorerPanel extends Component {
 				return (a, b) => this._compareNodes(a, b, sort, timeIndex);
 			},
 		);
+
+		const reverseLevel = (siblings: TreeNode<TagMeta>[], parentId: string | null, level: number): TreeNode<TagMeta>[] => {
+			const sort = siblingScopeSort('tags', this.sortState, parentId, level);
+			const sortBy = normalizeExplorerSortBy(sort.sortBy);
+			const list = (sortBy === 'note' || sortBy === 'anchor') && sort.direction === 'desc'
+				? [...siblings].reverse()
+				: siblings;
+			return list.map((node) =>
+				node.children?.length
+					? { ...node, children: reverseLevel(node.children, node.id, level + 1) }
+					: node,
+			);
+		};
+
+		return reverseLevel(sorted, null, 1);
 	}
 
 	private _buildTagTimeIndex(sortBy: DateSortId): Map<string, number> {
@@ -1883,10 +1898,15 @@ export class TagsExplorerPanel extends Component {
 		return this.viewMode === 'tree';
 	}
 
+	private _cachedScopeTree: TreeNode<TagMeta>[] | null = null;
+
 	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
 	 * never contains derived group headers). */
 	private _scopeTree(): TreeNode<TagMeta>[] {
-		return this.projectedNodes(this._lastRenderTree);
+		if (!this._cachedScopeTree) {
+			this._cachedScopeTree = this.projectedNodes(this._lastRenderTree);
+		}
+		return this._cachedScopeTree;
 	}
 
 	scopeRootForNode(id: string): string | null {
@@ -2035,6 +2055,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this._cachedScopeTree = null;
 		this.deferredRender.satisfy();
 		// Reveal narrows the snapshot before anything else reads it, so search,
 		// the type filters and every sort work on the same tree instead of each
@@ -2457,7 +2478,7 @@ export class TagsExplorerPanel extends Component {
 							if (!this.createGroupHandler) return;
 							const snapshot = snapshotFromProjectedTree({
 								tree: projected,
-								selectedIds: this.selectedTagIds,
+								selectedIds: this.selectedNodeIds,
 								urnOf: (node) => this._membershipUrnOf(node),
 								providerId: 'tags',
 								scene: 'tags',

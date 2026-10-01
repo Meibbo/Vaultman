@@ -107,7 +107,7 @@ import {
 	toNativePropType,
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
-import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { compareExplorerText, normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
 	cloneGroupMemberships,
 	formatMembershipUrn,
@@ -2658,16 +2658,24 @@ export class PropsExplorerPanel extends Component {
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
 		if (node.id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-		const orderedIds = this._orderedVisibleTreeIds();
-		this._includeInvokedInSelection(node.id, e, orderedIds);
+		this._includeInvokedInSelection(
+			node.id,
+			e,
+			e.shiftKey ? this._orderedVisibleTreeIds() : undefined,
+		);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
+		const self = this;
 		this.plugin.contextMenuService.openPanelMenu(
 			{
 				nodeType,
 				node,
 				surface: 'panel',
 				selectedIds: this.selectedNodeIds,
-				orderedIds,
+				get orderedIds(): string[] | undefined {
+					return self.selectedNodeIds.size > 1
+						? self._orderedVisibleTreeIds()
+						: undefined;
+				},
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(node),
 				invokeRename: (targetId: string) => {
@@ -2800,10 +2808,15 @@ export class PropsExplorerPanel extends Component {
 		this.deferredRender.activate(() => this._render());
 	}
 
+	private _cachedScopeTree: TreeNode<PropMeta>[] | null = null;
+
 	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
 	 * never contains derived group headers). */
 	private _scopeTree(): TreeNode<PropMeta>[] {
-		return this.projectedNodes(this._lastRenderTree);
+		if (!this._cachedScopeTree) {
+			this._cachedScopeTree = this.projectedNodes(this._lastRenderTree);
+		}
+		return this._cachedScopeTree;
 	}
 
 	scopeRootForNode(id: string): string | null {
@@ -2861,24 +2874,13 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
-		private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
+	private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
 
 		const visit = (list: TreeNode<PropMeta>[]) => {
 			for (const node of list) {
@@ -2917,6 +2919,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this._cachedScopeTree = null;
 		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
 			this._renderGrid();
@@ -4605,13 +4608,7 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return (
-			dir *
-			a.label.localeCompare(b.label, undefined, {
-				numeric: true,
-				sensitivity: 'base',
-			})
-		);
+		return dir * compareExplorerText(a.label, b.label);
 	}
 
 	/**
@@ -4650,7 +4647,21 @@ export class PropsExplorerPanel extends Component {
 					)
 				: null;
 
-		return sortTwoLevel(
+		const valuesSortCache = new Map<
+			string,
+			{ sort: ScopeSort; timeIndex: PropTimeIndex | null }
+		>();
+		const getValuesSort = (parentId: string) => {
+			let entry = valuesSortCache.get(parentId);
+			if (!entry) {
+				const sort = siblingScopeSort('props', this.sortState, parentId, 2);
+				entry = { sort, timeIndex: timeIndexFor(sort) };
+				valuesSortCache.set(parentId, entry);
+			}
+			return entry;
+		};
+
+		let sorted = sortTwoLevel(
 			nodes,
 			(a, b) =>
 				this._compareNodes(
@@ -4661,10 +4672,30 @@ export class PropsExplorerPanel extends Component {
 					propertiesTypeIndex,
 				),
 			(a, b, parent) => {
-				const valuesSort = siblingScopeSort('props', this.sortState, parent.id, 2);
-				return this._compareNodes(a, b, valuesSort, timeIndexFor(valuesSort));
+				const { sort, timeIndex } = getValuesSort(parent.id);
+				return this._compareNodes(a, b, sort, timeIndex);
 			},
 		);
+
+		if (
+			(propertiesSortBy === 'note' || propertiesSortBy === 'anchor') &&
+			propertiesSort.direction === 'desc'
+		) {
+			sorted = sorted.reverse();
+		}
+
+		return sorted.map((node) => {
+			const { sort } = getValuesSort(node.id);
+			const valuesSortBy = normalizeExplorerSortBy(sort.sortBy);
+			if (
+				(valuesSortBy === 'note' || valuesSortBy === 'anchor') &&
+				sort.direction === 'desc' &&
+				node.children?.length
+			) {
+				return { ...node, children: [...node.children].reverse() };
+			}
+			return node;
+		});
 	}
 
 	private _buildPropTimeIndex(sortBy: DateSortId): PropTimeIndex {

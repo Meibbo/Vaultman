@@ -329,6 +329,7 @@ export class VaultmanPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
+				this.nodeBindingService.invalidateAliasCache();
 				this.filterService.scheduleMetadataRefresh();
 			}),
 		);
@@ -342,11 +343,13 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
+				this.nodeBindingService.invalidateAliasCache();
 				this.lastOpenedService.handleRename(file.path, oldPath);
 			}),
 		);
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
+				this.nodeBindingService.invalidateAliasCache();
 				this.lastOpenedService.handleDelete(file.path);
 			}),
 		);

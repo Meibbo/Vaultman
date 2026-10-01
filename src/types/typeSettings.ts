@@ -380,6 +380,7 @@ export interface VaultmanSettings {
 	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
 	addonIconOverrides: AddonIconOverrides;
 	/** Render cells in the order they were switched on instead of a fixed rank */
+	orderCellsByActivation: boolean;
 	/** BT5-015: deprecated — replaced by cell_caret and caretPosition */
 	iconInCaretSlot?: boolean;
 	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
