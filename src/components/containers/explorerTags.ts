@@ -3129,12 +3129,18 @@ export class TagsExplorerPanel extends Component {
 			new Notice('Select a tag to stage it');
 			return;
 		}
+		let files = this.plugin.filterService.filteredFiles;
+		if (this.isRevealingActiveFile()) {
+			const path = this._revealPath();
+			const file = path ? this.plugin.app.vault.getFileByPath(path) : null;
+			files = file instanceof TFile ? [file] : [];
+		}
 		this.plugin.queueService.addOrRun({
 			type: 'tag',
 			tag: tagPath,
 			action: 'add',
 			details: `Add tag "#${tagPath}"`,
-			files: this.plugin.filterService.filteredFiles,
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				const raw: unknown = fm.tags;

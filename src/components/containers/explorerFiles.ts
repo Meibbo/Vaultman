@@ -4160,8 +4160,8 @@ export class FilesExplorerPanel extends Component {
 		if (entries.length === 0) return;
 		const draggable =
 			entries.length === 1 && entries[0] instanceof TFile
-				? dragManager.dragFile?.(event, entries[0], 'vaultman')
-				: dragManager.dragFiles?.(event, entries, 'vaultman');
+				? dragManager.dragFile?.(event, entries[0], 'file-explorer')
+				: dragManager.dragFiles?.(event, entries, 'file-explorer');
 		if (draggable !== undefined) dragManager.draggable = draggable;
 	}
 

@@ -791,8 +791,16 @@ export class UnifiedTreeView {
 		opts: TreeViewOptions,
 		nextExpanded: Set<string>,
 	): string | null {
-		if (!opts.stickyParentRows || !this._opts) return null;
-		const prevExpanded = this._opts.expandedIds;
+		if (
+			!opts.stickyParentRows ||
+			!this._hasRenderedExpandedState ||
+			!this._lastExpandedIds
+		)
+			return null;
+		// Instance owners often mutate their Set in place before calling render.
+		// `_opts.expandedIds` can therefore already be the next state; compare
+		// against the immutable snapshot captured after the previous projection.
+		const prevExpanded = this._lastExpandedIds;
 		let found: string | null = null;
 		for (const id of this._stickyTwinIds) {
 			if (!prevExpanded.has(id) || nextExpanded.has(id)) continue;

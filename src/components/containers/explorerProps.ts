@@ -1705,7 +1705,8 @@ export class PropsExplorerPanel extends Component {
 			property: propName,
 			action: 'add',
 			details: `Add property "${propName}"`,
-			files: this.plugin.filterService.filteredFiles,
+			files:
+				this._mutationScope() ?? this.plugin.filterService.filteredFiles,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				if (propName in fm) return null;
