@@ -25,7 +25,7 @@ export const DEFAULT_INTERACTION_MODE: Record<InteractionTab, InteractionMode> =
 	};
 
 const INTERACTION_MODES: Record<InteractionTab, readonly InteractionMode[]> = {
-	files: ['open', 'filter', 'add', 'select'],
+	files: ['open', 'filter', 'add', 'select', 'input'],
 	props: ['open', 'filter', 'add', 'select', 'input'],
 	tags: ['open', 'filter', 'add', 'select'],
 	snippets: ['open', 'select'],
@@ -95,4 +95,3 @@ export function resolveDefaultInteractionMode(
 	if (!stored) return DEFAULT_INTERACTION_MODE[tab];
 	return normalizeInteractionMode(tab, stored);
 }
-

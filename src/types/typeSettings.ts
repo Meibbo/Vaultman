@@ -47,6 +47,16 @@ export interface SavedViewConfig {
 	taskCellDisplayMode?: TaskCellDisplayMode | 'auto';
 	sortState: ExplorerSortState;
 	interactionMode?: InteractionMode;
+	/** Toolbar composition captured with the rest of this layout photo. */
+	navigationComposer?: {
+		sceneLabelMode?: 'auto' | 'on' | 'off';
+		autoRevealMode?: 'auto' | 'on' | 'off';
+		hiddenToolbarNodes?: string[];
+		toolbarNodeIcons?: Record<string, string>;
+		toolbarCommandActions?: string[];
+		createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
+		toolbarNodeOrder?: string[];
+	};
 	/** U130-09: the custom groups of that scene, groupId -> member URNs. */
 	groupMemberships?: Record<string, readonly string[]>;
 	groupPreset?: GroupPreset;

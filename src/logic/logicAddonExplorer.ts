@@ -821,6 +821,7 @@ export function resolvePluginSettingsChildren(
 	const baseDepth = baseNode.depth;
 	const tabOrder: string[] = [];
 	const tabNameById = new Map<string, string>();
+	const tabIconById = new Map<string, string>();
 	const pagesByTab = new Map<string, { page: string; pagePath: string }[]>();
 	const seenPages = new Set<string>();
 	// U130 parity MECH §2: hijos por definición para grupos sin page.
@@ -838,6 +839,7 @@ export function resolvePluginSettingsChildren(
 			defsByTab.set(tab, []);
 			const tabName = group.tabName !== '' ? group.tabName : tab;
 			tabNameById.set(tab, tabName);
+			if (group.tabIcon) tabIconById.set(tab, group.tabIcon);
 		}
 		const page = group.page ?? '';
 		const pagePath = group.pagePath ?? '';
@@ -961,6 +963,7 @@ export function resolvePluginSettingsChildren(
 		childNodes.push({
 			id: `${settingsBridgeGroupRowId(tab, '')}#tab`,
 			label: tabLabel,
+			...(tabIconById.get(tab) ? { icon: tabIconById.get(tab) } : {}),
 			depth: baseDepth + 1,
 			cells: [],
 			showCaret: true,
@@ -1143,23 +1146,44 @@ export function isGlobalSettingsTab(tab: string): boolean {
 interface RuntimeSettingTabEntry {
 	id?: unknown;
 	name?: unknown;
+	icon?: unknown;
 }
 
-function nativeTabLabel(app: unknown, tabId: string): string | null {
-	if (typeof app !== 'object' || app === null) return null;
+function nativeTabEntries(app: unknown): RuntimeSettingTabEntry[] {
+	if (typeof app !== 'object' || app === null) return [];
 	const setting = (app as { setting?: unknown }).setting;
-	if (typeof setting !== 'object' || setting === null) return null;
-	const rawTabs = (setting as Record<string, unknown>)['pluginTabs'];
-	const entries: readonly RuntimeSettingTabEntry[] = Array.isArray(rawTabs)
-		? (rawTabs as readonly RuntimeSettingTabEntry[])
-		: typeof rawTabs === 'object' && rawTabs !== null
-			? Object.values(rawTabs as Record<string, RuntimeSettingTabEntry>)
-			: [];
-	if (entries.length === 0) return null;
-	for (const entry of entries) {
-		if (entry?.id === tabId && typeof entry?.name === 'string' && entry.name !== '') {
-			return entry.name;
+	if (typeof setting !== 'object' || setting === null) return [];
+	const record = setting as Record<string, unknown>;
+	const entries: RuntimeSettingTabEntry[] = [];
+	for (const key of ['settingTabs', 'pluginTabs']) {
+		const rawTabs = record[key];
+		if (Array.isArray(rawTabs)) {
+			entries.push(...(rawTabs as RuntimeSettingTabEntry[]));
+		} else if (typeof rawTabs === 'object' && rawTabs !== null) {
+			for (const [id, raw] of Object.entries(
+				rawTabs as Record<string, RuntimeSettingTabEntry>,
+			)) {
+				entries.push({ ...raw, id: raw?.id ?? id });
+			}
 		}
+	}
+	return entries;
+}
+
+function nativeTabInfo(
+	app: unknown,
+	tabId: string,
+): { name?: string; icon?: string } | null {
+	for (const entry of nativeTabEntries(app)) {
+		if (entry?.id !== tabId) continue;
+		return {
+			...(typeof entry.name === 'string' && entry.name !== ''
+				? { name: entry.name }
+				: {}),
+			...(typeof entry.icon === 'string' && entry.icon !== ''
+				? { icon: entry.icon }
+				: {}),
+		};
 	}
 	return null;
 }
@@ -1181,13 +1205,15 @@ export function buildGlobalSettingsNodes(
 	const out: TreeNode<PluginMeta>[] = [];
 	for (const tabId of GLOBAL_SETTINGS_TAB_IDS) {
 		if (known.has(canonicalPluginId(tabId))) continue;
+		const tabInfo = nativeTabInfo(app, tabId);
 		const label =
-			nativeTabLabel(app, tabId) ?? GLOBAL_SETTINGS_FALLBACK_LABELS[tabId] ?? tabId;
+			tabInfo?.name ?? GLOBAL_SETTINGS_FALLBACK_LABELS[tabId] ?? tabId;
 		if (label === '') continue; // F4: sin label no se emite
 		const ref = { tab: tabId, page: '', pagePath: '', definition: '' };
 		out.push({
 			id: `${settingsBridgeGroupRowId(tabId, '')}#tab`,
 			label,
+			...(tabInfo?.icon ? { icon: tabInfo.icon } : {}),
 			depth: 0,
 			cells: [],
 			showCaret: false,

@@ -240,6 +240,18 @@
 		readonly disabled?: boolean;
 		readonly onClick?: () => void;
 	};
+	let activeToolbarMenu: Menu | null = null;
+
+	/** Keep fast successive toolbar context-menu openings mutually exclusive. */
+	function showToolbarMenu(menu: Menu, event: MouseEvent): void {
+		activeToolbarMenu?.hide();
+		activeToolbarMenu = menu;
+		menu.onHide(() => {
+			if (activeToolbarMenu === menu) activeToolbarMenu = null;
+		});
+		menu.showAtMouseEvent(event);
+	}
+
 	type NativeMenuNode = ToolbarMenuNode<NativeMenuValue>;
 
 	function nativeMenuItem(
@@ -2878,6 +2890,10 @@
 	function openNativeViewMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const activeView = viewModeByTab[activeTab] ?? 'tree';
+		const currentSortState = normalizeSortState(
+			activeTab,
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+		);
 		const minimalNativeViewModes = minimalStyle
 			? viewModesForDataSurface(activeTab).filter(
 					(option) => option.id !== 'dnd',
@@ -2937,10 +2953,10 @@
 						),
 					);
 				}
-				layoutChildren.push(
-					nativeMenuDivider('view_menu.layouts.divider.saved'),
-				);
 			}
+			layoutChildren.push(
+				nativeMenuDivider('view_menu.layouts.divider.save'),
+			);
 			layoutChildren.push(
 				nativeMenuItem('view_menu.layouts.save', {
 					title: translate('viewmenu.save_layout'),
@@ -2961,7 +2977,6 @@
 			);
 		}
 
-		nodes.push(nativeMenuDivider('view_menu.divider.cells'));
 		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
 		// first, then the rest at their canonical rank.
@@ -2990,22 +3005,22 @@
 			);
 		}
 
-		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
-		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
-		// El segundo divider reserva el sitio del control de dimensiones
-		// del stream proto_design.
-		nodes.push(nativeMenuDivider('view_menu.divider.toolbar'));
-		if (onToggleToolbar) {
+		if (activeTab === 'props' && revealActive) {
+			nodes.push(nativeMenuDivider('view_menu.divider.add_property_first'));
 			nodes.push(
-				nativeMenuItem('view_menu.toolbar', {
-					title: translate('viewmenu.toolbar'),
-					icon: 'lucide-panel-top',
-					checked: toolbarShown,
-					onClick: () => onToggleToolbar?.(),
+				nativeMenuItem('view_menu.add_property_first', {
+					title: translate('sort.level.add_property_first'),
+					icon: 'lucide-list-plus',
+					checked: currentSortState.addPropertyFirst === true,
+					onClick: () =>
+						handleSortChange({
+							...currentSortState,
+							addPropertyFirst: currentSortState.addPropertyFirst !== true,
+						}),
 				}),
 			);
-			nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		}
+		nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
 		// fixed-folders, sticky rows, compact folders). Those options are modes
@@ -3038,7 +3053,6 @@
 		// a flat padding override (4px, no per-depth sangria) that applies
 		// whether or not there is anything to nest or group, so it is gated
 		// only by the engine being `tree`, not by `nestedAct`.
-		engineChildren.push(nativeMenuDivider('view_menu.engines.divider.options'));
 		engineChildren.push(
 			nativeMenuItem('view_menu.engines.nested', {
 				title: translate('sort.level.nested'),
@@ -3047,6 +3061,7 @@
 				onClick: () => toggleNestedFor(activeTab),
 			}),
 		);
+		engineChildren.push(nativeMenuDivider('view_menu.engines.divider.options'));
 		if (treeCapableFor(activeTab)) {
 			engineChildren.push(
 				nativeMenuItem('view_menu.engines.indent', {
@@ -3180,7 +3195,7 @@
 			),
 		);
 		renderNativeMenuNodes(menu, projectNativeMenu('view_menu', nodes));
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	// U130 toolbar alt-cmenus (right-click): overrides per-instance. Los
@@ -3323,7 +3338,7 @@
 					});
 				});
 		});
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
@@ -3400,7 +3415,7 @@
 					});
 				});
 		});
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function openNativeSceneMenu(event: MouseEvent) {
@@ -3458,8 +3473,6 @@
 		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
 		}
-		if (!showDock && statisticsAction)
-			nodes.push(tabActionNode(statisticsAction));
 		for (const option of addonTabOptions) {
 			nodes.push(
 				nativeMenuItem(`scene_menu.tab.${option.id}`, {
@@ -3469,8 +3482,10 @@
 				}),
 			);
 		}
+		if (!showDock && statisticsAction)
+			nodes.push(tabActionNode(statisticsAction));
 		renderNativeMenuNodes(menu, projectNativeMenu('scene_menu', nodes));
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function nextSortState(id: string): ExplorerSortState {
@@ -4278,6 +4293,8 @@
 			);
 			const byLevelChildren: NativeMenuNode[] = [];
 			for (const option of byLevelModelValue?.items ?? []) {
+				if (option.kind === 'toggle' && option.id === 'addPropertyFirst')
+					continue;
 				if (option.kind === 'separator') {
 					byLevelChildren.push(
 						nativeMenuDivider(`sort_menu.by_level.divider.${option.id}`),
@@ -4286,7 +4303,7 @@
 				}
 				byLevelChildren.push(
 					nativeMenuItem(
-						`sort_menu.by_level.${option.id === 'reveal-anchor' ? 'reveal_anchor' : option.id === 'addPropertyFirst' ? 'add_property_first' : option.id}`,
+						`sort_menu.by_level.${option.id === 'reveal-anchor' ? 'reveal_anchor' : option.id}`,
 						{
 							title: translate(option.labelKey),
 							icon: option.icon,
@@ -4315,15 +4332,6 @@
 									// No current note to take: pick one.
 									void beginRevealPick(activeTab);
 									return;
-								}
-								if (
-									option.kind === 'toggle' &&
-									option.id === 'addPropertyFirst'
-								) {
-									handleSortChange({
-										...current,
-										addPropertyFirst: !option.checked,
-									});
 								}
 							},
 						},
@@ -4424,7 +4432,7 @@
 				supportsByLevel(activeTab) ? ['by-level'] : [],
 			),
 		);
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function toggleExplorerExpansion(
@@ -4484,7 +4492,7 @@
 					});
 			});
 		}
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function refreshExpansionState() {
