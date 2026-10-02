@@ -857,6 +857,7 @@ export const en: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'writes to the vault',
 	'sasi.inspector.toggle.on': 'Published',
 	'sasi.inspector.toggle.off': 'Hidden',
+	'sasi.cells.kind.cell_counter': 'Counter cells',
 	'sasi.hover.sidebars.hide': 'Hide sidebars',
 	'sasi.hover.sidebars.hover': 'Hover sidebars',
 	'sasi.hover.sidebars.pin': 'Pin sidebars',
