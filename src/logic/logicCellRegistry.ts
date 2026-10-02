@@ -135,7 +135,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{ explorer: 'props', fixedRank: 998, defaultOn: false },
 			{ explorer: 'tags', fixedRank: 998, defaultOn: false },
 			{ explorer: 'snippets', fixedRank: 998, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 998, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 998, defaultOn: false },
 		],
 	},
 	{
