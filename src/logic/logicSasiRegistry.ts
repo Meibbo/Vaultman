@@ -25,7 +25,9 @@ export type SasiCatalogKind =
 	| 'node_settings'
 	| 'node_group'
 	| 'node_group_custom'
-	| 'cell_badge_update';
+	| 'cell_badge_update'
+	| 'cell_counter'
+	| '_timesOpened';
 
 export interface SasiAvailability {
 	status: 'available' | 'unavailable';

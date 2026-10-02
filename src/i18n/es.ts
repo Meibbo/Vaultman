@@ -398,6 +398,18 @@ export const es: Record<string, string> = {
 	'settings.reset.confirm_message':
 		'Esto restaura cada configuracion a su valor por defecto, incluyendo filtros guardados, sets de operaciones y layouts. Esto no se puede deshacer.',
 	'settings.reset.done': 'Configuracion reseteada a los valores por defecto.',
+	'settings.opened_history.clear': 'Limpiar historial de aperturas',
+	'settings.opened_history.clear.desc':
+		'Elimina las últimas aperturas por archivo y el historial opcional de aperturas individuales. La configuración no cambia y las nuevas aperturas siguen el interruptor actual de registro.',
+	'settings.opened_history.clear.button': 'Limpiar historial',
+	'settings.opened_history.clear.confirm_title': '¿Limpiar el historial de aperturas?',
+	'settings.opened_history.clear.confirm_message':
+		'Esto elimina la última apertura de cada archivo y cada apertura individual registrada. La configuración queda intacta. Las nuevas aperturas siguen registrándose según el interruptor actual.',
+	'settings.opened_history.clear.done': 'Historial de aperturas eliminado.',
+	'settings.opened_history.clear.failed':
+		'No se pudo limpiar el historial de aperturas: {reason}',
+	'settings.opened_history.clear.unavailable': 'el servicio de historial no está disponible',
+	'settings.opened_history.clear.unknown_error': 'ocurrió un error de almacenamiento desconocido',
 	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
@@ -864,6 +876,7 @@ export const es: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'escribe en el vault',
 	'sasi.inspector.toggle.on': 'Publicado',
 	'sasi.inspector.toggle.off': 'Oculto',
+	'sasi.cells.kind.cell_counter': 'Celdas contador',
 	'sasi.hover.sidebars.hide': 'Ocultar los sidebars',
 	'sasi.hover.sidebars.hover': 'Pasar el cursor por los sidebars',
 	'sasi.hover.sidebars.pin': 'Fijar los sidebars',
@@ -1062,6 +1075,9 @@ export const es: Record<string, string> = {
 	'settings.open_mode.left_sidebar': 'Barra lateral izquierda',
 	'settings.open_mode.right_sidebar': 'Barra lateral derecha',
 	'settings.open_mode.main': 'Vista principal',
+	'settings.record_all_file_opens': 'Registrar cada apertura de archivo',
+	'settings.record_all_file_opens.desc':
+		'Apagado (por defecto) guarda solo la última apertura por archivo. Activado también registra cada apertura desde ahora; no reconstruye aperturas anteriores y el almacenamiento crece hasta que lo limpies.',
 	'ribbon.open.left_sidebar': 'Abrir en la barra izquierda',
 	'ribbon.open.main': 'Abrir en la vista principal',
 	'ribbon.open.right_sidebar': 'Abrir en la barra derecha',

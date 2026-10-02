@@ -394,6 +394,18 @@ export const en: Record<string, string> = {
 	'settings.reset.confirm_message':
 		'This restores every setting to its default, including saved filters, operation sets, and layouts. This cannot be undone.',
 	'settings.reset.done': 'Settings reset to defaults.',
+	'settings.opened_history.clear': 'Clear file opening history',
+	'settings.opened_history.clear.desc':
+		'Remove both latest-per-file timestamps and the optional individual opening history. Settings stay unchanged, and new openings follow the current recording toggle.',
+	'settings.opened_history.clear.button': 'Clear history',
+	'settings.opened_history.clear.confirm_title': 'Clear file opening history?',
+	'settings.opened_history.clear.confirm_message':
+		'This removes the latest opening for every file and every recorded individual opening. Settings stay unchanged. New openings continue to follow the current recording toggle.',
+	'settings.opened_history.clear.done': 'File opening history cleared.',
+	'settings.opened_history.clear.failed':
+		'Could not clear file opening history: {reason}',
+	'settings.opened_history.clear.unavailable': 'the history service is unavailable',
+	'settings.opened_history.clear.unknown_error': 'an unknown storage error occurred',
 	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
@@ -845,6 +857,7 @@ export const en: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'writes to the vault',
 	'sasi.inspector.toggle.on': 'Published',
 	'sasi.inspector.toggle.off': 'Hidden',
+	'sasi.cells.kind.cell_counter': 'Counter cells',
 	'sasi.hover.sidebars.hide': 'Hide sidebars',
 	'sasi.hover.sidebars.hover': 'Hover sidebars',
 	'sasi.hover.sidebars.pin': 'Pin sidebars',
@@ -1081,6 +1094,9 @@ export const en: Record<string, string> = {
 	'settings.open_mode.left_sidebar': 'Left sidebar',
 	'settings.open_mode.right_sidebar': 'Right sidebar',
 	'settings.open_mode.main': 'Main leaf (full-width)',
+	'settings.record_all_file_opens': 'Record every file opening',
+	'settings.record_all_file_opens.desc':
+		'Off (default) keeps only the latest opening per file. On also records each opening from now on; it does not reconstruct earlier opens, and storage grows until you clear it.',
 	'ribbon.open.left_sidebar': 'Open in left sidebar',
 	'ribbon.open.main': 'Open in main leaf',
 	'ribbon.open.right_sidebar': 'Open in right sidebar',

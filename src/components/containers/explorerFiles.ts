@@ -1056,8 +1056,9 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
-		// Subscribe to lastOpenedService changes to re-render when the store loads or updates.
-		this.register(this.plugin.lastOpenedService.onChange(() => this._render()));
+		// Hydration/clear need a rebuild; ordinary opens already use the incremental
+		// file-open handler below and must not trigger a second full render.
+		this.register(this.plugin.lastOpenedService.onReset(() => this._render()));
 		this._glyphSettingsSignature = this._currentGlyphSettingsSignature();
 		this.register(
 			this.plugin.onSettingsChange(this._handleGlyphSettingsChange),

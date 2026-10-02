@@ -18,6 +18,7 @@ import {
 import { SORT_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
 import { cellDef, cellsForExplorer } from '../../src/logic/logicCellRegistry';
 import lastOpenedServiceSource from '../../src/services/serviceLastOpened.ts?raw';
+import lastOpenedStoreSource from '../../src/services/serviceOpenedHistoryStore.ts?raw';
 import mainSource from '../../src/main.ts?raw';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import { LastOpenedService } from '../../src/services/serviceLastOpened';
@@ -56,12 +57,18 @@ function makeFile(path: string): TFile {
 function makeFakeAdapter(
 	initialContent: string | null = null,
 ): {
+	exists: ReturnType<typeof vi.fn>;
+	rename: ReturnType<typeof vi.fn>;
+	remove: ReturnType<typeof vi.fn>;
 	read: ReturnType<typeof vi.fn>;
 	write: ReturnType<typeof vi.fn>;
 	stored: string;
 } {
 	let stored = initialContent ?? '';
 	return {
+		exists: vi.fn(async (path: string) => path.endsWith('/last-opened.json') && stored !== ''),
+		rename: vi.fn(async () => {}),
+		remove: vi.fn(async () => {}),
 		read: vi.fn(async (_path: string) => {
 			await new Promise<void>((resolve) => queueMicrotask(resolve));
 			if (stored === '') throw new Error('ENOENT');
@@ -86,6 +93,7 @@ function makeApp(adapter: ReturnType<typeof makeFakeAdapter>, files: string[] = 
 		},
 		workspace: {
 			on: vi.fn((_event: string, cb: () => void) => ({ off: () => {}, then: cb })),
+			onLayoutReady: vi.fn((callback: () => void) => callback()),
 		},
 		manifest: { id: 'test-plugin' },
 	} as unknown as App;
@@ -207,7 +215,7 @@ describe('BT5-013 last opened record', () => {
 		// One trailing write per burst, never a full settings save per event.
 		expect(lastOpenedServiceSource).toContain('private _scheduleFlush()');
 		expect(lastOpenedServiceSource).not.toContain('saveData(');
-		expect(lastOpenedServiceSource).toContain('vault.adapter.write');
+		expect(lastOpenedStoreSource).toContain('this.adapter.write');
 		expect(mainSource).toContain("workspace.on('file-open'");
 		expect(mainSource).toContain("vault.on('rename'");
 		expect(mainSource).toContain("vault.on('delete'");
@@ -381,11 +389,12 @@ describe('BT5-013 robust flush on unload and mobile (U130 B-a05 criterion 3)', (
 
 			svc.handleFileOpen(makeFile('test.md'), 500);
 			expect(adapter.write).not.toHaveBeenCalled();
+			const flush = vi.spyOn(svc, 'flush');
 
 			fakeDocument.visibilityState = 'hidden';
 			listeners.get('visibilitychange')!();
-			await Promise.resolve();
-			await Promise.resolve();
+			expect(flush).toHaveBeenCalledTimes(1);
+			await svc.flush();
 			expect(adapter.write).toHaveBeenCalledTimes(1);
 			expect(JSON.parse(adapter.stored)).toEqual({ 'test.md': 500 });
 
@@ -422,7 +431,7 @@ describe('BT5-013 roundtrip: N opens -> flush -> new service -> loadStore -> N o
 		svc2.onload();
 		await svc2.whenLoaded();
 
-		expect(adapter.read).toHaveBeenCalledTimes(2); // once per service load
+		expect(adapter.read).toHaveBeenCalledTimes(1); // The initially missing store needs no read; restart reads the persisted store.
 		expect(restored).toHaveLength(1);
 		expect(restored[0]).toEqual({
 			'a.md': 1000,

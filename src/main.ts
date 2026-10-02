@@ -224,6 +224,9 @@ export class VaultmanPlugin extends Plugin {
 			countFrontmatterWords: this.settings.countFrontmatterWords === true,
 		});
 		this.lastOpenedService = new LastOpenedService(this.app, this.manifest.id);
+		this.lastOpenedService.setRecordAllOpens(
+			this.settings.recordAllFileOpens === true,
+		);
 
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
@@ -886,8 +889,11 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
-		// Notify listeners first so UI reacts immediately; persist in the
-		// background (the in-memory settings are already the source of truth).
+		this.lastOpenedService?.setRecordAllOpens(
+			this.settings.recordAllFileOpens === true,
+		);
+		// Notify listeners so UI reacts immediately; persist in the background (the
+		// in-memory settings are already the source of truth).
 		this.notifySettingsChanged();
 		await this.saveData(this.settings);
 	}
