@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
 import {
 	createInstanceRecord,
+	declareWorkspaceInstance,
 	EMPTY_REGISTRY,
+	setInstanceHomeSurface,
 	setActiveScene,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
@@ -20,6 +22,44 @@ describe('createInstanceRecord', () => {
 
 	it('starts from an empty registry at schema 1', () => {
 		expect(EMPTY_REGISTRY).toEqual({ schema: 1, instances: {} });
+	});
+});
+
+describe('declared workspace instances', () => {
+	it('persists a logical home surface and is not tombstoned by missing mounts', () => {
+		const declared = declareWorkspaceInstance(EMPTY_REGISTRY, 'vm-declared', {
+			kind: 'sidebar',
+			edge: 'end',
+		});
+		const reconciled = reconcileRegistry(declared, []);
+
+		expect(reconciled.instances['vm-declared']?.homeSurface).toEqual({
+			kind: 'sidebar',
+			edge: 'end',
+		});
+		expect(reconciled.instances['vm-declared']?.tombstoned).toBe(false);
+	});
+
+	it('does not revive an explicit tombstone while changing home intent', () => {
+		let registry = declareWorkspaceInstance(EMPTY_REGISTRY, 'vm-declared', {
+			kind: 'main',
+		});
+		registry = {
+			...registry,
+			instances: {
+				...registry.instances,
+				'vm-declared': { ...registry.instances['vm-declared'], tombstoned: true },
+			},
+		};
+		const next = setInstanceHomeSurface(registry, 'vm-declared', {
+			kind: 'sidebar',
+			edge: 'start',
+		});
+
+		expect(next.instances['vm-declared']).toMatchObject({
+			homeSurface: { kind: 'sidebar', edge: 'start' },
+			tombstoned: true,
+		});
 	});
 });
 

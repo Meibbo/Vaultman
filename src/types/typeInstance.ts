@@ -8,6 +8,7 @@ import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';
 import type { TaskCellDisplayMode } from '../logic/logicTaskMetric';
 import type { ShowOptionsOverride } from '../logic/logicSettingSceneOptions';
+import type { HomeSurfaceIntent } from './typeSurface';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -130,6 +131,8 @@ export interface WorkspaceInstanceRecord {
 	tombstoned: boolean;
 	/** overrides de toda la instancia, por encima de global y por debajo de la scene. */
 	self: SceneConfig;
+	/** Persisted logical home intent; absent means legacy leaf-owned identity. */
+	homeSurface?: HomeSurfaceIntent;
 	/**
 	 * En que scene estaba la instancia. NO va dentro de `self` porque `self` es un `SceneConfig`
 	 * -ajustes que una scene puede tener- y esto es una propiedad de la instancia: cual de ellas
