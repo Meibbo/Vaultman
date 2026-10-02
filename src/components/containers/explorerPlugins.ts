@@ -35,7 +35,6 @@ import {
 	isSettingsSearchActive,
 	listCorePluginStubs,
 	pluginCanonicalGroup,
-	resolveSettingsBridgeNodes,
 	sortAddonEntries,
 	type AddonExplorerPanelPort,
 } from '../../logic/logicAddonExplorer';
@@ -782,7 +781,7 @@ export class PluginsExplorerPanel
 			// (por id, F10) y settings globales → Global settings.
 			const ref = settingsBridgeRefOf(node.meta);
 			if (ref) {
-				return ref.tab === 'core-plugins'
+				return ref.tab === 'core-plugins' || ref.tab === 'plugins'
 						? 'core-plugins'
 						: ref.tab === 'community-plugins'
 							? 'community-plugins'
@@ -1005,26 +1004,19 @@ export class PluginsExplorerPanel
 			this.render();
 			return;
 		}
-		// U130 Slice A: término activo = camino nativo (sin `searchText`
-		// local, sin re-sort: el ranking es el orden nativo). Término vacío
-		// = forma canónica 2026-09-25: grupos core/community → plugins →
-		// tabs/pages en orden nativo. Sin tabs el plugin queda hoja (F4).
-		if (isSettingsSearchActive(this.searchTerm)) {
-			this.rebuildSettingsBridgeNodes();
-			return;
-		}
-		const filtered = filterAddonEntries(
-			this.entries,
-			this.searchTerm,
-			(entry) =>
-				[entry.name, entry.version, entry.author, entry.description]
-					.filter(Boolean)
-					.join(' '),
-		);
 		const scopeSort = activeScopeSort('plugins', this.sortState);
+		const searchActive = isSettingsSearchActive(this.searchTerm);
+		const filtered = searchActive
+			? this.entries
+			: filterAddonEntries(
+					this.entries,
+					this.searchTerm,
+					(entry) =>
+						[entry.name, entry.version, entry.author, entry.description]
+							.filter(Boolean)
+							.join(' '),
+			  );
 		const entries = sortAddonEntries(filtered, scopeSort);
-		// U130 forma canónica: core por id (nunca display name). Los stubs
-		// core llevan el mismo sort de scope que los community.
 		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
 		const coreMetas: PluginMeta[] = sortAddonEntries(
 			listCorePluginStubs(this.plugin.app, communityIds).map((stub) => ({
@@ -1042,13 +1034,13 @@ export class PluginsExplorerPanel
 		}));
 		const communityNodes = this.buildPluginNodes(entries);
 		const coreNodes = this.buildPluginNodes(coreMetas);
-		// U130 parity B (F1): con nesting off, filas planas sin caret.
-		// U130-C1: también planas las globales (mismo orden que el camino anidado).
 		const nestedOn = this._nestedEnabled();
+		this._communityIds = communityIds;
+
+		let rawRoots: TreeNode<PluginMeta>[];
 		if (!nestedOn) {
-			this._communityIds = communityIds;
 			const flat = [
-				...buildGlobalSettingsNodes(this.plugin.app, communityIds),
+				...buildGlobalSettingsNodes(this.plugin.app, communityIds, this.groupPreset),
 				...communityNodes,
 				...coreNodes,
 			];
@@ -1056,65 +1048,123 @@ export class PluginsExplorerPanel
 				node.children = [];
 				node.showCaret = false;
 			}
-			this.nodes = flat;
+			rawRoots = flat;
+		} else {
+			rawRoots = buildCanonicalRestRoots({
+				app: this.plugin.app,
+				pluginNodes: [...communityNodes, ...coreNodes],
+				communityIds,
+				groupPreset: this.groupPreset,
+			});
+		}
+
+		if (!searchActive) {
+			this.nodes = rawRoots;
 			this.settingsSearchHighlightIds = new Set<string>();
 			this.render();
 			return;
 		}
-		// U130-C1 (Defecto 1): el preset viaja hasta las raíces: con
-		// `none` el árbol es plano (sin cabeceras `group:*`); el
-		// `sections` lo agrupa `projectGroupedTree`, no esta función.
-		this._communityIds = communityIds;
-		this.nodes = buildCanonicalRestRoots({
-			app: this.plugin.app,
-			pluginNodes: [...communityNodes, ...coreNodes],
-			communityIds,
-			groupPreset: this.groupPreset,
-		});
-		this.settingsSearchHighlightIds = new Set<string>();
-		this.render();
-	}
 
-	/**
-	 * Camino nativo: resuelve los grupos cacheados contra las entries
-	 * frescas. Espacios, cero resultados, adapter ausente o nativo roto
-	 * limpian el árbol previo (nada de rows stale, nada de filtro local).
-	 */
-	private rebuildSettingsBridgeNodes(): void {
-		if (this.settingsSearchUnavailable || !this.settingsSearchGroups) {
+		if (this.settingsSearchUnavailable && !this.searchTerm.trim()) {
 			this.nodes = [];
 			this.settingsSearchHighlightIds = new Set<string>();
 			this.render();
 			return;
 		}
-		const ordered = sortAddonEntries(
-			this.entries,
-			activeScopeSort('plugins', this.sortState),
-		);
-		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
-		this._communityIds = communityIds;
-		const coreMetas: PluginMeta[] = listCorePluginStubs(
-			this.plugin.app,
-			communityIds,
-		).map((stub) => ({
-			pluginId: stub.pluginId,
-			name: stub.name,
-			enabled: stub.enabled,
-			loaded: false,
-			isVaultman: false,
-		}));
-		const byId = new Map<string, TreeNode<PluginMeta>>();
-		for (const node of this.buildPluginNodes([...ordered, ...coreMetas])) {
-			byId.set(node.meta.pluginId, node);
+
+		const term = this.searchTerm.trim().toLowerCase();
+		const matchedTabs = new Set<string>();
+		const matchedPlugins = new Set<string>();
+		const matchedPages = new Set<string>();
+		const matchedDefs = new Set<string>();
+		if (this.settingsSearchGroups) {
+			for (const group of this.settingsSearchGroups) {
+				const groupTab = (group.tab ?? '').trim().toLowerCase();
+				if (groupTab) {
+					if ((group.tabNameMatch?.length ?? 0) > 0) {
+						matchedTabs.add(groupTab);
+						matchedPlugins.add(groupTab);
+					}
+				}
+				for (const item of group.results ?? []) {
+					const tab = (item.entry?.tab ?? group.tab ?? '').trim().toLowerCase();
+					if (tab) matchedTabs.add(tab);
+					if (tab === 'community-plugins' || tab === 'plugins' || tab === 'core-plugins') {
+						const def = (item.entry?.definition ?? '').trim().toLowerCase();
+						if (def) matchedPlugins.add(def);
+					}
+					const page = (item.entry?.page ?? group.page ?? '').trim().toLowerCase();
+					const pagePath = (item.entry?.pagePath ?? group.pagePath ?? '').trim().toLowerCase();
+					if (page) matchedPages.add(`${tab}::${page}`);
+					if (pagePath) matchedPages.add(`${tab}::${pagePath}`);
+					const def = (item.entry?.definition ?? '').trim().toLowerCase();
+					if (def) matchedDefs.add(`${tab}::${def}`);
+				}
+			}
 		}
-		const bridge = resolveSettingsBridgeNodes({
-			pluginNodesById: byId,
-			groups: this.settingsSearchGroups,
-		});
-		this.nodes = bridge.nodes;
-		this.settingsSearchHighlightIds = this.searchHighlightEnabled
-			? bridge.highlightIds
-			: new Set<string>();
+
+		const isNodeMatch = (node: TreeNode<PluginMeta>): boolean => {
+			const label = (node.label ?? '').trim().toLowerCase();
+			const name = (node.meta?.name ?? '').trim().toLowerCase();
+			const pluginId = (node.meta?.pluginId ?? '').trim().toLowerCase();
+			if (label.includes(term) || name.includes(term) || (pluginId && pluginId.includes(term))) {
+				return true;
+			}
+			const ref = settingsBridgeRefOf(node.meta);
+			if (ref) {
+				const tab = (ref.tab ?? '').trim().toLowerCase();
+				const def = (ref.definition ?? '').trim().toLowerCase();
+				const page = (ref.page ?? '').trim().toLowerCase();
+				const pagePath = (ref.pagePath ?? '').trim().toLowerCase();
+				if (def !== '') {
+					if (matchedDefs.has(`${tab}::${def}`) || def.includes(term)) return true;
+				} else if (page !== '' || pagePath !== '') {
+					if (
+						matchedPages.has(`${tab}::${page}`) ||
+						matchedPages.has(`${tab}::${pagePath}`) ||
+						page.includes(term) ||
+						pagePath.includes(term)
+					) {
+						return true;
+					}
+				} else if (tab !== '') {
+					if (matchedTabs.has(tab) || tab.includes(term)) return true;
+				}
+			} else if (pluginId) {
+				if (
+					matchedTabs.has(pluginId) ||
+					matchedPlugins.has(pluginId) ||
+					matchedPlugins.has(name)
+				) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		const highlightIds = new Set<string>();
+		const filterTree = (node: TreeNode<PluginMeta>): TreeNode<PluginMeta> | null => {
+			const direct = isNodeMatch(node);
+			if (direct) highlightIds.add(node.id);
+			const children: TreeNode<PluginMeta>[] = [];
+			if (node.children && node.children.length > 0) {
+				for (const child of node.children) {
+					const f = filterTree(child);
+					if (f) children.push(f);
+				}
+			}
+			if (direct || children.length > 0) {
+				return {
+					...node,
+					children,
+					showCaret: children.length > 0,
+				};
+			}
+			return null;
+		};
+
+		this.nodes = rawRoots.map(filterTree).filter((n): n is TreeNode<PluginMeta> => n !== null);
+		this.settingsSearchHighlightIds = this.searchHighlightEnabled ? highlightIds : new Set<string>();
 		this.render();
 	}
 
@@ -1223,36 +1273,7 @@ export class PluginsExplorerPanel
 		// grupos custom (ni padres nativos ni sus hijos settings/plugin;
 		// tampoco los tabs/pages de term vacío, que viajan con su plugin
 		// por holarchy). Con búsqueda activa los padres nativos quedan
-		// arriba sin re-envolver; los hijos viajan con ellos.
-		const searchActive = !this.dataSource && isSettingsSearchActive(this.searchTerm ?? '');
-		let nodesForGrouping = this.nodes;
-		let nativeParents: TreeNode<PluginMeta>[] | undefined;
-		if (searchActive) {
-			const protectedIds = new Set<string>();
-			for (const node of this.nodes) {
-				// Padres nativos (grupo `settings:tab::pagePath::`) y
-				// cualquier fila puente top-level (`settings:…`, incl.
-				// hijos con `#tab`/`#page` si alguna vez suben a raíz).
-				if (
-					node.id.startsWith('settings:') ||
-					node.id === 'group:core-plugins' ||
-					node.id === 'group:community-plugins' ||
-					node.id === GLOBAL_SETTINGS_GROUP_ID
-				) {
-					protectedIds.add(node.id);
-				}
-			}
-			// Separate: native parents stay at top level, rest get grouped
-			nativeParents = this.nodes.filter((node) =>
-				protectedIds.has(node.id),
-			);
-			nodesForGrouping = this.nodes.filter(
-				(node) => !protectedIds.has(node.id),
-			);
-			if (nodesForGrouping.length === 0) {
-				return this.withGroupToggleCells(nativeParents);
-			}
-		}
+		const nodesForGrouping = this.nodes;
 
 		const projected = projectGroupedTree<PluginMeta>({
 			nodes: nodesForGrouping,
@@ -1286,16 +1307,19 @@ export class PluginsExplorerPanel
 					header.id === 'vaultman.group.preset:core-plugins'
 				) {
 					header.label = 'Core plugins';
+					header.icon = 'lucide-toy-brick';
 				} else if (
 					header.id === 'group:community-plugins' ||
 					header.id === 'vaultman.group.preset:community-plugins'
 				) {
 					header.label = 'Community plugins';
+					header.icon = 'lucide-puzzle';
 				} else if (
 					header.id === GLOBAL_SETTINGS_GROUP_ID ||
 					header.id === 'vaultman.group.preset:global-settings'
 				) {
 					header.label = GLOBAL_SETTINGS_GROUP_LABEL;
+					header.icon = 'lucide-sliders-horizontal';
 				} else if (
 					this.dataSource?.providerId === 'sasi' ||
 					presetKey in API_SCENE_GROUP_LABEL_KEYS
@@ -1328,13 +1352,7 @@ export class PluginsExplorerPanel
 			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<PluginMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this._expandedGroupIds, this._groupIds);
-		const result = this.withGroupToggleCells(projected);
-		// U130: prepend native group parents so they stay at top level
-		// and are not rewrapped by custom groups during native search.
-		if (searchActive && nativeParents && nativeParents.length > 0) {
-			return [...nativeParents, ...result];
-		}
-		return result;
+		return this.withGroupToggleCells(projected);
 	}
 
 	/**
@@ -1789,10 +1807,16 @@ export class PluginsExplorerPanel
 		}
 		if (this.interactionMode !== 'open') return;
 		this._toggleExpandedGroup(id);
-		if (id === 'group:community-plugins') {
+		if (
+			id === 'group:community-plugins' ||
+			id === 'vaultman.group.preset:community-plugins'
+		) {
 			openSettingsTabById(this.plugin.app, 'community-plugins');
-		} else if (id === 'group:core-plugins') {
-			openSettingsTabById(this.plugin.app, 'core-plugins');
+		} else if (
+			id === 'group:core-plugins' ||
+			id === 'vaultman.group.preset:core-plugins'
+		) {
+			openSettingsTabById(this.plugin.app, 'plugins');
 		}
 	}
 

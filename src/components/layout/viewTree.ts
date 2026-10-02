@@ -1799,12 +1799,12 @@ export class UnifiedTreeView {
 							: typeof (event.target as { closest?: unknown })?.closest === 'function'
 								? (event.target as unknown as Element)
 								: null;
-					if (target?.closest('.vaultman-selection-checkbox, .cell_checkbox')) {
+					if (target?.closest?.('.vaultman-selection-checkbox, .cell_checkbox')) {
 						opts.onRecursiveSelect?.(node.id);
 						return;
 					}
 					if (
-						target?.closest(
+						target?.closest?.(
 							'.vaultman-tree-caret--start, .vaultman-tree-caret--end, .cell_caret',
 						)
 					) {

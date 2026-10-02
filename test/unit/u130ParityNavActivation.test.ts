@@ -85,8 +85,8 @@ describe('U130 parity NAV: resolution', () => {
 	});
 
 	it.each([
-		['general', 'general'],
-		['files and links', 'files'],
+		['general', 'about'],
+		['files and links', 'file'],
 	])('maps the global row %s to native tab %s', (settingsTab, nativeTab) => {
 		expect(
 			resolveSettingSceneActivation({

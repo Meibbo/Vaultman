@@ -126,6 +126,17 @@ function toPageType(value: unknown): string | undefined {
 	return typeof type === 'string' ? type : undefined;
 }
 
+function toPagePath(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (Array.isArray(value)) {
+		return value
+			.map(toName)
+			.filter((part) => part !== '')
+			.join(' > ');
+	}
+	return '';
+}
+
 function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 	if (!isRecord(value)) return null;
 	const entry = value['entry'];
@@ -134,7 +145,7 @@ function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 		tab: toNamedId(entry['tab']),
 		definition: toDefinitionName(entry['definition']),
 		page: toName(entry['page']),
-		pagePath: toText(entry['pagePath']),
+		pagePath: toPagePath(entry['pagePath']),
 	};
 }
 
@@ -165,7 +176,7 @@ function toGroup(value: unknown): NativeSettingsSearchGroup | null {
 		tabName: toTabName(value['tab']),
 		tabIcon: toTabIcon(value['tab']),
 		page: toName(value['page']),
-		pagePath: toText(value['pagePath']),
+		pagePath: toPagePath(value['pagePath']),
 		pageDesc: toPageDesc(value['page']),
 		pageType: toPageType(value['page']),
 		tabNameMatch: toSpans(value['tabNameMatch']),
@@ -271,9 +282,33 @@ function listPluginSettingPagesUncached(
 	const broad = queryNativeSettingsSearch(app, 'a').filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	const seenPages = new Set(primary.map((g) => `${g.page}::${g.pagePath}`));
-	const extra = broad.filter((g) => !seenPages.has(`${g.page}::${g.pagePath}`));
-	return [...primary, ...extra];
+	const groupsByPage = new Map<string, NativeSettingsSearchGroup>();
+	for (const g of primary) {
+		const key = `${g.page}::${g.pagePath}`;
+		groupsByPage.set(key, { ...g, results: [...g.results] });
+	}
+	for (const g of broad) {
+		const key = `${g.page}::${g.pagePath}`;
+		const existing = groupsByPage.get(key);
+		if (!existing) {
+			groupsByPage.set(key, { ...g, results: [...g.results] });
+		} else {
+			const seenDefs = new Set(existing.results.map((r) => r.entry.definition));
+			const mergedResults = [...existing.results];
+			for (const r of g.results) {
+				if (!seenDefs.has(r.entry.definition)) {
+					seenDefs.add(r.entry.definition);
+					mergedResults.push(r);
+				}
+			}
+			groupsByPage.set(key, {
+				...existing,
+				results: mergedResults,
+				bestScore: Math.max(existing.bestScore, g.bestScore),
+			});
+		}
+	}
+	return Array.from(groupsByPage.values());
 }
 
 /**

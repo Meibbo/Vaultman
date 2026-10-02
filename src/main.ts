@@ -446,7 +446,8 @@ export class VaultmanPlugin extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon(
 			'lucide-vault',
 			translate('plugin.open'),
-			() => {
+			(evt?: MouseEvent) => {
+				if (evt && typeof evt.button === 'number' && evt.button !== 0) return;
 				void this.activateView();
 			},
 		);
@@ -460,9 +461,25 @@ export class VaultmanPlugin extends Plugin {
 			},
 			{ capture: true },
 		);
-		this.registerDomEvent(ribbonIconEl, 'contextmenu', (event) => {
-			this.openRibbonLocationMenu(event);
-		}, { capture: true });
+		this.registerDomEvent(
+			ribbonIconEl,
+			'auxclick',
+			(event) => {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			},
+			{ capture: true },
+		);
+		this.registerDomEvent(
+			ribbonIconEl,
+			'contextmenu',
+			(event) => {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				this.openRibbonLocationMenu(event);
+			},
+			{ capture: true },
+		);
 
 		this.registerView(
 			VAULTMAN_FRAME_TYPE,
