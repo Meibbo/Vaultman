@@ -9,6 +9,13 @@ import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
+	findNodeLevel,
+	findParentId,
+	findScopeParentId,
+	hasScopeParentNodes,
+	indexLevel,
+} from '../../logic/logicIndexGroups';
+import {
 	deletionBadge,
 	findDeletionMatch,
 	queueDeletesSubject,
@@ -137,6 +144,7 @@ import {
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
 import { projectAddonDataNodes, type AddonExplorerDataSource } from '../../logic/logicAddonDataSource';
+import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -219,6 +227,7 @@ export class PluginsExplorerPanel
 	private stickyRowsOverride: boolean | undefined = undefined;
 	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
+	private onSortStateChange?: (state: ExplorerSortState) => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
@@ -981,11 +990,17 @@ export class PluginsExplorerPanel
 		this.onExpansionChange = handler;
 	}
 
+	setSortStateChangeHandler(
+		handler?: (state: ExplorerSortState) => void,
+	): void {
+		this.onSortStateChange = handler;
+	}
+
 	expandAll(): void {
 		if (!this._expansionEnabled()) return;
-		for (const row of this.projectedNodes()) {
-			if (isGroupHeader(row.id, this._groupIds)) {
-				this._expandedGroupIds.add(row.id);
+		for (const root of this.projectedNodes()) {
+			for (const id of collectExpandableSubtreeIds(root)) {
+				this._expandedGroupIds.add(id);
 			}
 		}
 		this.onExpansionChange?.();
@@ -1840,13 +1855,23 @@ export class PluginsExplorerPanel
 
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
+	private _scopeTree(): TreeNode<PluginMeta>[] {
+		return this._lastProjectedTree.length > 0
+			? this._lastProjectedTree
+			: this.projectedNodes();
+	}
+
+	private static _isScopeParent(node: TreeNode<PluginMeta>): boolean {
+		return (
+			Boolean('isGroupHeader' in node && node.isGroupHeader) ||
+			(node.children?.length ?? 0) > 0
+		);
+	}
+
 	getIndexNodes(rootId: string | null): IndexNodeRef[] {
-		if (rootId !== null) return [];
-		return this.nodes.map((node) => ({
-			id: node.id,
-			label: node.label,
-			isContainer: false,
-		}));
+		return indexLevel(this._scopeTree(), rootId, (node) =>
+			PluginsExplorerPanel._isScopeParent(node),
+		);
 	}
 
 	isIndexableSort(): boolean {
@@ -1861,11 +1886,26 @@ export class PluginsExplorerPanel
 	}
 
 	supportsDrill(): boolean {
-		return false;
+		return true;
 	}
 
-	scopeRootForNode(_id: string): string | null {
-		return null;
+	scopeRootForNode(id: string): string | null {
+		return findParentId(this._scopeTree(), id);
+	}
+
+	scopeParentForNode(id: string): string | null {
+		return findScopeParentId(
+			this._scopeTree(),
+			id,
+			undefined,
+			(node) => PluginsExplorerPanel._isScopeParent(node),
+		);
+	}
+
+	hasScopeParentNodes(): boolean {
+		return hasScopeParentNodes(this._scopeTree(), (node) =>
+			PluginsExplorerPanel._isScopeParent(node),
+		);
 	}
 
 	sortNodeLabel(id: string): string | null {
@@ -1873,11 +1913,33 @@ export class PluginsExplorerPanel
 		return node?.label ?? null;
 	}
 
-	scopeLevelForNode(_id: string): number | string | null {
-		return null;
+	scopeLevelForNode(id: string): number | string | null {
+		return findNodeLevel(this._scopeTree(), id);
 	}
 
-	expandNodeById(_id: string): void {}
+	hasSortNode(id: string): boolean {
+		return Boolean(findProjectedNode(this._scopeTree(), id));
+	}
+
+	expandNodeById(id: string): void {
+		if (this._expandedGroupIds.has(id)) return;
+		this._expandedGroupIds.add(id);
+		this.onExpansionChange?.();
+		this.render();
+	}
+
+	/** D31: the floating index drill can drive the sort scope. */
+	applyExternalSortScope(drillNodeId: string | null): void {
+		const next = normalizeExplorerSortState('plugins', {
+			...this.sortState,
+			activeScope: drillNodeId ? 'drill' : 'all',
+			drillNodeId,
+		});
+		if (sameExplorerSortState(this.sortState, next)) return;
+		this.sortState = next;
+		this.onSortStateChange?.(this.sortState);
+		this.rebuildNodes();
+	}
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
 		if (!this.findNode(id)) return false;

@@ -33,6 +33,19 @@ interface ObsidianCommunityPluginManager {
 	disablePlugin?: (id: string) => MaybePromise<void>;
 }
 
+interface ObsidianInternalPlugin {
+	enabled?: boolean;
+	instance?: { name?: string };
+	enable?: (save?: boolean) => MaybePromise<void>;
+	disable?: (save?: boolean) => MaybePromise<void>;
+}
+
+interface ObsidianInternalPluginManager {
+	plugins?: Record<string, ObsidianInternalPlugin>;
+	getPluginById?: (id: string) => ObsidianInternalPlugin | null | undefined;
+	getEnabledPluginById?: (id: string) => unknown;
+}
+
 interface RibbonHost {
 	items?: Array<{ id?: string; icon?: string }>;
 }
@@ -41,6 +54,7 @@ interface ExtendedApp extends App {
 	workspace: App['workspace'] & { leftRibbon?: RibbonHost };
 	customCss?: ObsidianCustomCss;
 	plugins?: ObsidianCommunityPluginManager;
+	internalPlugins?: ObsidianInternalPluginManager;
 }
 
 export interface CssSnippetEntry {
@@ -215,23 +229,76 @@ export async function listCommunityPluginEntries(
 	);
 }
 
+function resolveCorePlugin(
+	app: App,
+	id: string,
+): ObsidianInternalPlugin | null {
+	if (!id) return null;
+	const internal = extendedApp(app).internalPlugins;
+	if (!internal) return null;
+	try {
+		const viaGetter = internal.getPluginById?.call(internal, id);
+		if (viaGetter) return viaGetter;
+	} catch {
+		// Fall through to the plugins map lookup below.
+	}
+	return internal.plugins?.[id] ?? null;
+}
+
+async function setCorePluginEnabled(
+	core: ObsidianInternalPlugin,
+	enabled: boolean,
+): Promise<boolean> {
+	if (enabled) {
+		if (typeof core.enable !== 'function') return false;
+		await core.enable.call(core, true);
+		return true;
+	}
+	if (typeof core.disable !== 'function') return false;
+	await core.disable.call(core, true);
+	return true;
+}
+
 export async function setCommunityPluginEnabled(
 	app: App,
 	id: string,
 	enabled: boolean,
 ): Promise<boolean> {
-	const manager = extendedApp(app).plugins;
-	if (!manager) return false;
-	if (enabled) {
-		const enable = manager.enablePluginAndSave ?? manager.enablePlugin;
-		if (!enable) return false;
-		await enable.call(manager, id);
-		return true;
+	if (!id) return false;
+	const ext = extendedApp(app);
+	const manager = ext.plugins;
+	const isCommunity = Boolean(manager?.manifests?.[id]);
+	const core = resolveCorePlugin(app, id);
+	// Core plugins (internalPlugins) toggle via enable/disable with
+	// persistence. Prefer the core path when the id is not a known
+	// community manifest; on id collisions the community listing wins
+	// because listCorePluginStubs already excludes community ids.
+	if (!isCommunity && core) {
+		const toggled = await setCorePluginEnabled(core, enabled);
+		if (toggled) return true;
+		// Fall through to the community manager as a legacy fallback
+		// (managers without a manifests index).
 	}
-	const disable = manager.disablePluginAndSave ?? manager.disablePlugin;
-	if (!disable) return false;
-	await disable.call(manager, id);
-	return true;
+	if (manager) {
+		if (enabled) {
+			const enable = manager.enablePluginAndSave ?? manager.enablePlugin;
+			if (enable) {
+				await enable.call(manager, id);
+				return true;
+			}
+		} else {
+			const disable =
+				manager.disablePluginAndSave ?? manager.disablePlugin;
+			if (disable) {
+				await disable.call(manager, id);
+				return true;
+			}
+		}
+	}
+	if (core) {
+		return setCorePluginEnabled(core, enabled);
+	}
+	return false;
 }
 
 /** First ribbon action a plugin registered (`pluginId:Title`): its icon is

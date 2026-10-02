@@ -200,7 +200,12 @@
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
 		snippetsExplorer?: PanelWidgetExplorerPort;
-		pluginsExplorer?: PanelWidgetExplorerPort;
+		pluginsExplorer?: PanelWidgetExplorerPort & {
+			hasSortNode?: (id: string) => boolean;
+			setSortStateChangeHandler?: (
+				handler?: (state: ExplorerSortState) => void,
+			) => void;
+		};
 	};
 
 	export async function invokeToolbarSasiAction(
@@ -2722,6 +2727,21 @@
 		commitConfig('tags', { sortState: normalizedState });
 	}
 
+	function handleExternalPluginsSortState(state: ExplorerSortState) {
+		const normalizedState = normalizeSortState('plugins', state);
+		if (sameSortState(appliedSortStateByTab.plugins, normalizedState)) return;
+		appliedSortStateByTab.plugins = normalizedState;
+		const currentByTab = untrack(() => ({
+			...sortStateByTab,
+			plugins: normalizeSortState(
+				'plugins',
+				sortStateByTab.plugins ?? DEFAULT_SORT_STATE.plugins,
+			),
+		}));
+		if (sameSortState(currentByTab.plugins, normalizedState)) return;
+		commitConfig('plugins', { sortState: normalizedState });
+	}
+
 	function handleViewModeChange(mode: ExplorerViewMode) {
 		setSceneEngine(activeTab, mode);
 	}
@@ -3536,12 +3556,18 @@
 							tagsExplorer.hasSortNode?.(id) ?? false,
 					}
 				: {}),
-			...(validateDrill && tab === 'props' && propExplorer
-				? {
-						isValidDrillNode: (id: string) =>
-							propExplorer?.hasSortNode?.(id) ?? false,
-					}
-				: {}),
+		...(validateDrill && tab === 'props' && propExplorer
+			? {
+					isValidDrillNode: (id: string) =>
+						propExplorer?.hasSortNode?.(id) ?? false,
+				}
+			: {}),
+		...(validateDrill && tab === 'plugins' && pluginsExplorer
+			? {
+					isValidDrillNode: (id: string) =>
+						pluginsExplorer.hasSortNode?.(id) ?? false,
+				}
+			: {}),
 		});
 		return {
 			...normalized,
@@ -4548,13 +4574,18 @@
 	$effect(() => {
 		const currentFileList = fileList;
 		const currentTagsExplorer = tagsExplorer;
+		const currentPluginsExplorer = pluginsExplorer;
 		currentFileList?.setSortStateChangeHandler(handleExternalFilesSortState);
 		currentTagsExplorer?.setSortStateChangeHandler?.(
 			handleExternalTagsSortState,
 		);
+		currentPluginsExplorer?.setSortStateChangeHandler?.(
+			handleExternalPluginsSortState,
+		);
 		return () => {
 			currentFileList?.setSortStateChangeHandler(undefined);
 			currentTagsExplorer?.setSortStateChangeHandler?.(undefined);
+			currentPluginsExplorer?.setSortStateChangeHandler?.(undefined);
 		};
 	});
 
