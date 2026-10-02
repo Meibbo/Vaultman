@@ -23,16 +23,35 @@ export class OpenedHistoryStore {
 			// Finish a clear interrupted between its two stores before projecting old data.
 			if (await this.adapter.exists(`${this.root}/opened-history-clear.json`)) await this.erase();
 			const path = `${this.root}/last-opened.json`;
-			const canonicalExists = await this.adapter.exists(path);
-			const source = canonicalExists ? path : `${path}.pending`;
-			if (!canonicalExists && !(await this.adapter.exists(source))) return {};
-			const value: unknown = JSON.parse(await this.adapter.read(source));
-			if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid last-opened store');
-			const record = normalizeLastOpenedRecord(value);
-			if (Object.keys(record).length !== Object.keys(value).length) throw new Error('Invalid last-opened entries');
-			if (!canonicalExists) await this.adapter.rename(source, path);
-			return record;
+			// A leftover `.pending` beside its canonical file is the newer
+			// complete state: `replace()` writes pending first and only then
+			// removes the canonical file, so coexistence means the process
+			// stopped between those two steps. Preferring canonical would
+			// strand the latest opening.
+			if (await this.adapter.exists(`${path}.pending`)) {
+				try {
+					const record = this.parseSnapshot(await this.adapter.read(`${path}.pending`));
+					if (await this.adapter.exists(path)) await this.adapter.remove(path);
+					await this.adapter.rename(`${path}.pending`, path);
+					return record;
+				} catch {
+					// Never silently overwrite an unreadable pending file with
+					// the next snapshot write: preserve it aside for inspection
+					// and fall through to the canonical file.
+					await this.adapter.rename(`${path}.pending`, `${path}.corrupt-${Date.now()}`);
+				}
+			}
+			if (!(await this.adapter.exists(path))) return {};
+			return this.parseSnapshot(await this.adapter.read(path));
 		});
+	}
+
+	private parseSnapshot(raw: string): LastOpenedRecord {
+		const value: unknown = JSON.parse(raw);
+		if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid last-opened store');
+		const record = normalizeLastOpenedRecord(value);
+		if (Object.keys(record).length !== Object.keys(value).length) throw new Error('Invalid last-opened entries');
+		return record;
 	}
 
 	persist(snapshot: string, events: readonly OpeningEvent[]): Promise<void> {
@@ -77,6 +96,18 @@ export class OpenedHistoryStore {
 		await this.adapter.remove(`${this.root}/opened-history-clear.json`);
 	}
 
+	private parseBatch(raw: string): OpeningEvent[] {
+		const batch: unknown = JSON.parse(raw);
+		if (!Array.isArray(batch)) throw new Error('Invalid opening-history batch');
+		const events: OpeningEvent[] = [];
+		const candidates: readonly unknown[] = batch;
+		for (const event of candidates) {
+			if (!event || typeof event !== 'object' || !('path' in event) || typeof event.path !== 'string' || !event.path || !('at' in event) || typeof event.at !== 'number' || !Number.isFinite(event.at) || event.at <= 0) throw new Error('Invalid opening-history event');
+			events.push({ path: event.path, at: event.at });
+		}
+		return events;
+	}
+
 	/** The journal is never loaded or traversed by rendering or normal startup. */
 	readHistory(): Promise<readonly OpeningEvent[]> {
 		return this.serialize(async () => {
@@ -87,15 +118,23 @@ export class OpenedHistoryStore {
 			const paths = new Set(files.filter((path) => path.endsWith('.json') || path.endsWith('.json.pending')).map((path) => path.replace(/\.pending$/, '')));
 			for (const path of [...paths].sort()) {
 				const canonicalExists = await this.adapter.exists(path);
-				const source = canonicalExists ? path : `${path}.pending`;
-				const batch: unknown = JSON.parse(await this.adapter.read(source));
-				if (!Array.isArray(batch)) throw new Error('Invalid opening-history batch');
-				const events: readonly unknown[] = batch;
-				for (const event of events) {
-					if (!event || typeof event !== 'object' || !('path' in event) || typeof event.path !== 'string' || !event.path || !('at' in event) || typeof event.at !== 'number' || !Number.isFinite(event.at) || event.at <= 0) throw new Error('Invalid opening-history event');
-					history.push({ path: event.path, at: event.at });
+				// Same newer-wins rule as the snapshot: a `.pending` beside
+				// its batch is the complete write that never got renamed.
+				if (await this.adapter.exists(`${path}.pending`)) {
+					try {
+						const pendingEvents = this.parseBatch(await this.adapter.read(`${path}.pending`));
+						if (canonicalExists) await this.adapter.remove(path);
+						await this.adapter.rename(`${path}.pending`, path);
+						history.push(...pendingEvents);
+						continue;
+					} catch {
+						// Preserve the unreadable pending batch aside instead
+						// of letting the next write silently overwrite it.
+						await this.adapter.rename(`${path}.pending`, `${path}.corrupt-${Date.now()}`);
+					}
 				}
-				if (!canonicalExists) await this.adapter.rename(source, path);
+				if (!canonicalExists) continue;
+				history.push(...this.parseBatch(await this.adapter.read(path)));
 			}
 			return history.sort((a, b) => a.at - b.at);
 		});

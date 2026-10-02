@@ -200,3 +200,84 @@ describe('independent history clear', () => {
 		f.service.onunload();
 	});
 });
+
+describe('interrupted replacement recovery (Oracle blockers)', () => {
+	it('promotes a valid newer pending snapshot beside its canonical file', async () => {
+		const f = fixture(); // Given: old canonical + newer complete pending.
+		f.disk.set(`${root}/last-opened.json.pending`, '{"a.md":500}');
+		f.service.onload(); // When: startup finds both files.
+		await f.service.whenLoaded();
+		expect(f.service.getLastOpened(f.file('a.md'))).toBe(500); // Then: pending wins and is promoted.
+		expect(f.disk.get(`${root}/last-opened.json`)).toBe('{"a.md":500}');
+		expect(f.disk.has(`${root}/last-opened.json.pending`)).toBe(false);
+		f.service.onunload();
+	});
+
+	it('returns the pending batch contents when a batch pending coexists', async () => {
+		const f = fixture('{}');
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		const batch = `${root}/opened-history/0000000000-writer.json`;
+		f.disk.set(`${root}/opened-history`, '');
+		f.disk.set(batch, JSON.stringify([{ path: 'old.md', at: 100 }]));
+		f.disk.set(`${batch}.pending`, JSON.stringify([{ path: 'new.md', at: 200 }]));
+		const history = await f.service.getHistory(); // When: canonical + pending batch coexist.
+		expect(history).toEqual([{ path: 'new.md', at: 200 }]); // Then: pending wins, no duplication.
+		expect(f.disk.get(batch)).toBe(JSON.stringify([{ path: 'new.md', at: 200 }]));
+		f.service.onunload();
+	});
+
+	it('uses the canonical snapshot and preserves a corrupt pending aside', async () => {
+		const f = fixture(); // Given: valid canonical + unreadable pending.
+		f.disk.set(`${root}/last-opened.json.pending`, 'corrupt JSON');
+		f.service.onload();
+		await f.service.whenLoaded();
+		expect(f.service.getLastOpened(f.file('a.md'))).toBe(100); // Then: canonical projected.
+		const aside = [...f.disk.keys()].find((key) => key.startsWith(`${root}/last-opened.json.corrupt-`));
+		expect(aside).toBeDefined(); // And: pending preserved aside, not overwritten.
+		expect(f.disk.get(aside!)).toBe('corrupt JSON');
+		f.service.onunload();
+	});
+
+	it('completes an interrupted clear and removes the marker on startup', async () => {
+		const f = fixture(); // Given: a clear interrupted between its stores.
+		f.disk.set(`${root}/opened-history-clear.json`, '{}');
+		f.disk.set(`${root}/opened-history`, '');
+		f.disk.set(`${root}/opened-history/0000000000-writer.json`, JSON.stringify([{ path: 'a.md', at: 100 }]));
+		f.service.onload();
+		await f.service.whenLoaded();
+		expect(f.service.getLastOpened(f.file('a.md'))).toBeNull(); // Then: both stores erased.
+		expect(await f.service.getHistory()).toEqual([]);
+		expect(f.disk.has(`${root}/opened-history-clear.json`)).toBe(false);
+		f.service.onunload();
+	});
+
+	it('isolates a throwing change observer so hydration and flush survive', async () => {
+		const f = fixture();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		f.service.onChange(() => { throw new Error('observer boom'); });
+		f.service.onload();
+		await f.service.whenLoaded(); // When: hydration notifies a throwing observer.
+		f.service.handleFileOpen(f.file('c.md'), 300);
+		await f.service.flush(); // Then: persistence still works.
+		expect(JSON.parse(f.disk.get(`${root}/last-opened.json`) ?? 'null')).toEqual({ 'a.md': 100, 'b.md': 200, 'c.md': 300 });
+		f.service.onunload();
+	});
+
+	it('completes the clear barrier despite a throwing reset observer', async () => {
+		const f = fixture();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		f.service.handleFileOpen(f.file('a.md'), 300);
+		await f.service.flush();
+		f.service.onReset(() => { throw new Error('reset boom'); });
+		await f.service.clearHistory(); // When: clear notifies a throwing observer.
+		expect(await f.service.getHistory()).toEqual([]); // Then: both stores cleared.
+		expect(f.service.getLastOpened(f.file('a.md'))).toBeNull();
+		expect(f.disk.has(`${root}/opened-history-clear.json`)).toBe(false);
+		f.service.onunload();
+	});
+});

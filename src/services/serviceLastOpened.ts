@@ -120,11 +120,27 @@ export class LastOpenedService extends Component {
 
 	private _notify(reset = false): void {
 		// Preserve snapshot semantics only for consumers that request a record.
+		// Each observer is isolated: a throwing UI callback must never reject
+		// hydration (loadPromise) or prevent the clear barrier from running.
 		if (this.changes.size) {
 			const snapshot = { ...this.record };
-			for (const callback of this.changes) callback(snapshot);
+			for (const callback of this.changes) {
+				try {
+					callback(snapshot);
+				} catch (error) {
+					console.warn('Vaultman opening-history observer failed', error);
+				}
+			}
 		}
-		if (reset) for (const callback of this.resets) callback();
+		if (reset) {
+			for (const callback of this.resets) {
+				try {
+					callback();
+				} catch (error) {
+					console.warn('Vaultman opening-history reset observer failed', error);
+				}
+			}
+		}
 	}
 
 	/** Wait for the initial load to complete. */
