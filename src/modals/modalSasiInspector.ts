@@ -1,4 +1,4 @@
-import { Modal, type App } from 'obsidian';
+import { Modal, Notice, type App } from 'obsidian';
 import { translate } from '../i18n/index';
 import type {
 	SasiAxis,
@@ -6,22 +6,27 @@ import type {
 	SasiRegistry,
 } from '../logic/logicSasiRegistry';
 import type { SasiCommandPublisher } from '../logic/logicSasiCommands';
-import { UnifiedTreeView } from '../components/layout/viewTree';
+import { mount, unmount } from 'svelte';
+import { PluginsExplorerPanel } from '../components/containers/explorerPlugins';
+import ApiSceneHost from '../components/layout/apiSceneHost.svelte';
+import { createApiSceneConfigPort } from '../logic/logicApiSceneConfig';
+import type { VaultmanPlugin } from '../main';
+import { formatAddonTimestamp } from '../logic/logicAddonExplorer';
+import { isBlankPanelSelectionTarget } from '../logic/logicPanelBlankSelection';
 import {
-	API_SCENE_GROUP_IDS,
 	API_SCENE_GROUP_LABEL_KEYS,
 	PUBLISH_CELL_ID,
 	apiSceneUrnOf,
 	buildApiSceneNodes,
 	isApiSceneNode,
-	projectApiSceneTree,
+	buildApiSceneGroups,
+	apiSceneMemberships,
 	type ApiSceneGroupMeta,
-	type ApiSceneGroupName,
 	type ApiSceneNodeMeta,
 	type ApiScenePublisherView,
 } from '../logic/logicApiScene';
-import { expandNewGroupHeaders } from '../logic/logicTreeGroupProjection';
-import type { TreeNode } from '../types/typeTree';
+import { entityIdOf } from '../logic/logicTreeGroupProjection';
+import type { PluginMeta, TreeNode } from '../types/typeTree';
 import type { InstanceRegistryData } from '../types/typeInstance';
 
 export interface SasiInspectorEntry {
@@ -39,6 +44,14 @@ export interface SasiInspectorSection {
 	axis: SasiAxis;
 	labelKey: string;
 	entries: readonly SasiInspectorEntry[];
+}
+
+export function apiSceneInstanceIdFromRow(
+	rowId: string,
+	nodes: readonly TreeNode<ApiSceneNodeMeta>[],
+): string | null {
+	const node = nodes.find((candidate) => candidate.id === rowId);
+	return node?.meta.group === 'instance' ? node.meta.sasiId : null;
 }
 
 /** El orden del mapa del dev: Providers, Kinds, FUNCTIONS. */
@@ -85,6 +98,27 @@ export function buildSasiInspectorModel(
 }
 
 type ApiMeta = ApiSceneNodeMeta | ApiSceneGroupMeta;
+type InstanceOpenOutcome =
+	| boolean
+	| { readonly ok: boolean; readonly reason?: string }
+	| void;
+
+export function apiSceneInstanceFailureNoticeKey(reason: string): string {
+	switch (reason) {
+		case 'tombstoned-instance':
+			return 'sasi.apiscene.instance_open_failed.tombstoned';
+		case 'unsupported-surface':
+			return 'sasi.apiscene.instance_open_failed.unsupported';
+		case 'mount-conflict':
+			return 'sasi.apiscene.instance_open_failed.conflict';
+		case 'surface-unavailable':
+			return 'sasi.apiscene.instance_open_failed.surface_unavailable';
+		case 'stale-reservation':
+			return 'sasi.apiscene.instance_open_failed.stale';
+		default:
+			return 'sasi.apiscene.instance_open_failed';
+	}
+}
 
 export function createApiScenePublisherView(
 	publisher: SasiCommandPublisher,
@@ -114,26 +148,29 @@ export function createApiScenePublisherView(
 export class SasiInspectorModal extends Modal {
 	private readonly registry: SasiRegistry;
 	private readonly publisher: SasiCommandPublisher | undefined;
-	private readonly onToggle?: (id: string, published: boolean) => void;
-	private readonly instances: InstanceRegistryData | undefined;
-	private view: UnifiedTreeView | null = null;
+	private readonly instances:
+		| InstanceRegistryData
+		| (() => InstanceRegistryData | undefined)
+		| undefined;
+	private readonly onOpenInstance?: (
+		id: string,
+	) => Promise<InstanceOpenOutcome> | InstanceOpenOutcome;
+	private panel: PluginsExplorerPanel | null = null;
+	private disposeToolbar: (() => Promise<void>) | null = null;
 	private host: HTMLElement | null = null;
-	private readonly expandedIds = new Set<string>();
-	private readonly seenHeaders = new Set<string>();
 	private flat: readonly TreeNode<ApiSceneNodeMeta>[] = [];
+	private readonly plugin: VaultmanPlugin;
 
 	constructor(
 		app: App,
-		registry: SasiRegistry,
-		publisher?: SasiCommandPublisher,
-		onToggle?: (id: string, published: boolean) => void,
-		instances?: InstanceRegistryData,
+		plugin: VaultmanPlugin,
 	) {
 		super(app);
-		this.registry = registry;
-		this.publisher = publisher;
-		this.onToggle = onToggle;
-		this.instances = instances;
+		this.plugin = plugin;
+		this.registry = plugin.sasiRegistry;
+		this.publisher = plugin.sasiCommandPublisher;
+		this.instances = () => plugin.settings.instanceRegistry;
+		this.onOpenInstance = (id) => plugin.openWorkspaceInstance(id);
 	}
 
 	onOpen(): void {
@@ -141,10 +178,33 @@ export class SasiInspectorModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass('vaultman-sasi-inspector');
 		contentEl.createEl('h2', { text: translate('sasi.inspector.title') });
+		const toolbarHost = contentEl.createDiv();
 		this.host = contentEl.createDiv({ cls: 'vaultman-sasi-apiscene' });
-		this.view = new UnifiedTreeView(this.host);
-		this.renderScene();
+		this.panel = new PluginsExplorerPanel(this.host, this.plugin, {
+			providerId: 'sasi',
+			groups: buildApiSceneGroups((name) => translate(API_SCENE_GROUP_LABEL_KEYS[name])),
+			nodes: () => this.addonNodes(),
+			memberships: () => apiSceneMemberships(this.flat),
+			urnOf: (node) => this.flat.find((row) => row.id === entityIdOf(node))?.meta.urn ?? '',
+			activate: (id) => { void this.openInstanceFromRow(id); },
+			cell: (id, cellId) => this.handleCell(id, cellId === 'state' ? PUBLISH_CELL_ID : cellId),
+			tooltip: (node) => {
+				const row = this.flat.find((candidate) => candidate.id === entityIdOf(node));
+				return row ? this.rowTooltip(row) : node.label;
+			},
+		});
+		this.panel.load();
+		const toolbar = mount(ApiSceneHost, {
+			target: toolbarHost,
+			props: { plugin: this.plugin, explorer: this.panel, sceneConfigPort: createApiSceneConfigPort(this.plugin) },
+		});
+		this.disposeToolbar = () => unmount(toolbar);
+		contentEl.addEventListener('click', this.clearBlankSelection);
 	}
+
+	private readonly clearBlankSelection = (event: MouseEvent): void => {
+		if (event.target instanceof Element && isBlankPanelSelectionTarget(event.target)) this.panel?.clearSelection();
+	};
 
 	/** Vista coherente del publisher: relee el snapshot en cada render. */
 	private publisherView(): ApiScenePublisherView | undefined {
@@ -153,51 +213,55 @@ export class SasiInspectorModal extends Modal {
 		return createApiScenePublisherView(publisher);
 	}
 
-	private renderScene(): void {
-		if (!this.view) return;
+	private addonNodes(): TreeNode<PluginMeta>[] {
 		const publisherView = this.publisherView();
+		const instances =
+			typeof this.instances === 'function' ? this.instances() : this.instances;
 		const flat = buildApiSceneNodes(
 			this.registry,
 			publisherView,
-			this.instances,
+			instances,
 		);
 		this.flat = flat;
-		const labeled = flat.map((node) => ({
+		return flat.map((node) => {
+			const lifecycle = this.plugin.sasiProvider.lifecycleFor(node.meta.sasiId);
+			const instance = node.meta.group === 'instance' ? instances?.instances[node.meta.sasiId] : undefined;
+			const createdAt = instance?.createdAt ?? lifecycle?.createdAt;
+			const updatedAt = instance?.lastActiveAt ?? lifecycle?.updatedAt;
+			return {
 			...node,
+			children: undefined,
+			ctimeText: formatAddonTimestamp(createdAt),
+			mtimeText: formatAddonTimestamp(updatedAt),
 			label: translate(node.meta.labelKey) || node.label,
 			cells: node.cells?.map((cell) =>
 				'label' in cell
-					? { ...cell, label: translate(cell.label) || cell.label }
+					? { ...cell, id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id, label: translate(cell.label) || cell.label }
 					: cell,
 			),
-		}));
-		const projected = projectApiSceneTree(labeled, {
-			expandedIds: this.expandedIds,
-			labelOf: (name: ApiSceneGroupName) =>
-				translate(API_SCENE_GROUP_LABEL_KEYS[name]) ||
-				API_SCENE_GROUP_IDS[name],
-			noGroupLabel: translate('sasi.inspector.empty'),
-		});
-		// Los grupos se abren solos la primera vez (un file manager abre
-		// grupos); el colapso del usuario se respeta despues.
-		expandNewGroupHeaders(projected, this.seenHeaders, this.expandedIds);
-		this.view.render({
-			nodes: projected as TreeNode[],
-			expandedIds: this.expandedIds,
-			indentGuides: true,
-			onToggle: (id) => this.toggleExpanded(id),
-			onGroupActivate: (id) => this.toggleExpanded(id),
-			onRowClick: () => {},
-			onContextMenu: () => {},
-			onCellClick: (id, cellId) => this.handleCell(id, cellId),
-			rowTooltip: (node) => this.rowTooltip(node as TreeNode<ApiMeta>),
+			// Compatibility projection for the shared addon engine; semantic API identity stays intact.
+			meta: { ...node.meta, pluginId: node.id, name: node.label, enabled: node.meta.published, loaded: false, isVaultman: false, installedTime: createdAt, updatedTime: updatedAt },
+			};
 		});
 	}
 
-	private toggleExpanded(id: string): void {
-		if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-		else this.expandedIds.add(id);
-		this.renderScene();
+	private async openInstanceFromRow(rowId: string): Promise<void> {
+		const instanceId = apiSceneInstanceIdFromRow(rowId, this.flat);
+		if (!instanceId || !this.onOpenInstance) return;
+		let result: InstanceOpenOutcome;
+		try {
+			result = await this.onOpenInstance(instanceId);
+		} catch (error) {
+			const detail = error instanceof Error ? `: ${error.message}` : '';
+			new Notice(`${translate('sasi.apiscene.instance_open_failed')}${detail}`);
+			return;
+		}
+		if (result === true || (typeof result === 'object' && result?.ok === true)) {
+			this.close();
+		} else if (result === false || (typeof result === 'object' && result?.ok === false)) {
+			const reason = typeof result === 'object' ? result.reason : undefined;
+			new Notice(translate(apiSceneInstanceFailureNoticeKey(reason ?? '')));
+		}
 	}
 
 	private handleCell(rowId: string, cellId: string): void {
@@ -206,9 +270,8 @@ export class SasiInspectorModal extends Modal {
 		if (!node || !node.meta.publishable) return;
 		const next = !node.meta.published;
 		this.publisher.setPublished(node.meta.sasiId, next);
-		if (this.onToggle) this.onToggle(node.meta.sasiId, next);
 		// Relee registry + publisher: sin snapshot obsoleta tras el click.
-		this.renderScene();
+		void this.panel?.refresh();
 	}
 
 	private rowTooltip(node: TreeNode<ApiMeta>): string {
@@ -240,8 +303,11 @@ export class SasiInspectorModal extends Modal {
 	}
 
 	onClose(): void {
-		this.view?.destroy();
-		this.view = null;
+		this.contentEl.removeEventListener('click', this.clearBlankSelection);
+		this.panel?.unload();
+		this.panel = null;
+		void this.disposeToolbar?.();
+		this.disposeToolbar = null;
 		this.host = null;
 		this.contentEl.empty();
 	}

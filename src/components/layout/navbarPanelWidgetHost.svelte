@@ -5,6 +5,8 @@
 	import type { SceneEngineSurface } from '../../logic/logicSasiSceneActions';
 	import type { NavbarPanelWidgetState } from '../../types/typePanelWidget';
 	import type { ExplorerViewMode } from '../../types/typeUI';
+	import type { App } from 'obsidian';
+	import type { WorkspaceInstanceRecord } from '../../types/typeInstance';
 
 	let {
 		providerState,
@@ -14,6 +16,8 @@
 		onPointerEnter,
 		onPointerLeave,
 		onSwitchInstance,
+		app,
+		readInstanceRecords,
 	}: {
 		providerState: NavbarPanelWidgetState | null;
 		sceneConfigPort: SceneConfigPort;
@@ -22,6 +26,8 @@
 		onPointerEnter?: () => void;
 		onPointerLeave?: () => void;
 		onSwitchInstance?: (id: string) => void;
+		app?: App;
+		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 	} = $props();
 
 	const mountedState = $derived(providerState);
@@ -67,6 +73,8 @@
 			{...mountedState}
 			{sceneConfigPort}
 			{onSwitchInstance}
+			app={app ?? mountedState.app}
+			{readInstanceRecords}
 		/>
 	{/if}
 </div>

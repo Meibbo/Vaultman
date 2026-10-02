@@ -32,6 +32,25 @@ describe('BT5-067 frame command activation', () => {
 		expect(mainSource).toContain('void this.activateView()');
 	});
 
+	it('creates a declared leased instance before normal open renders a frame', () => {
+		const openBlock = mainSource.slice(
+			mainSource.indexOf('private async openVaultmanView'),
+			mainSource.indexOf('private openRibbonLocationMenu'),
+		);
+		expect(openBlock).toContain('createAndOpenWorkspaceInstance');
+		expect(openBlock).toContain('opened.address.leaf');
+		expect(openBlock).not.toContain('setViewState');
+	});
+
+	it('routes direct reveal creation through the declared instance path', () => {
+		const revealBlock = mainSource.slice(
+			mainSource.indexOf('async revealNodeInVaultman'),
+			mainSource.indexOf('async revealFrontmatterProperty'),
+		);
+		expect(revealBlock).toContain('createAndOpenWorkspaceInstance');
+		expect(revealBlock).not.toContain('setViewState');
+	});
+
 	it('gives the ribbon Open Vaultman node its own location alt-cmenu', () => {
 		expect(mainSource).toContain('registerDomEvent');
 		expect(mainSource).toContain("'contextmenu'");

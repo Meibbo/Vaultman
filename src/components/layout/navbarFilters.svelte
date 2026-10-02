@@ -37,6 +37,7 @@
 	import { showInputModal } from '../../utils/inputModal';
 	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 	import { InstanceInfoModal } from '../../modals/modalInstanceInfo';
+	import type { WorkspaceInstanceRecord } from '../../types/typeInstance';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -194,6 +195,7 @@
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
 		onSwitchInstance?: (id: string) => void;
+		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
@@ -370,6 +372,7 @@
 		onSaveLayout,
 		onLayoutLoaded,
 		app,
+		allowedCellIds,
 		showTabLabels = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
@@ -380,6 +383,7 @@
 		pvpuiConfig = {},
 		sceneConfigPort,
 		onSwitchInstance,
+		readInstanceRecords,
 	}: NavbarRendererState = $props();
 
 	function invokeSceneAction(
@@ -2971,10 +2975,13 @@
 				selectionCheckboxPosition,
 			},
 		)) {
+			if (allowedCellIds && !allowedCellIds.includes(entry.id)) continue;
 			nodes.push(
 				nativeMenuItem(`view_menu.cells.${entry.id}`, {
 					title: translate(
-						cellLabelKey(entry.definition, activeTab, activeView),
+						providerId === 'sasi' && entry.id === 'state'
+							? 'sasi.apiscene.cell.published'
+							: cellLabelKey(entry.definition, providerId === 'sasi' && entry.id === 'ctime' ? 'files' : activeTab, activeView),
 					),
 					icon: cellIcon(entry.definition, activeTab, activeView),
 					checked: entry.active,
@@ -3321,6 +3328,7 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		if (sceneConfigPort.readInstanceRecord()) {
 		menu.addItem((item) => {
 			item
 				.setTitle(translate('toolbar.instance_info'))
@@ -3329,9 +3337,9 @@
 					if (!app) return;
 					const record = sceneConfigPort.readInstanceRecord();
 					if (!record) return;
-					const records = Object.values(
-						plugin.settings.instanceRegistry?.instances ?? {},
-					).filter((candidate) => !candidate.tombstoned);
+					const records = (readInstanceRecords?.() ?? [record]).filter(
+						(candidate) => !candidate.tombstoned,
+					);
 					new InstanceInfoModal(
 						app,
 						record,
@@ -3340,6 +3348,7 @@
 					).open();
 				});
 		});
+		}
 		const providedNodes = panelWidgetNodes.filter((node) => {
 			const prefix = `${providerId}:`;
 			return node.id.startsWith(prefix) &&

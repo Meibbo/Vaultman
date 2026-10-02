@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('../../src/components/layout/apiSceneHost.svelte', () => ({ default: {} }));
 import { buildSasiInspectorModel } from '../../src/modals/modalSasiInspector';
 import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';

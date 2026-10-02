@@ -68,6 +68,7 @@ import {
 } from './utils/dragEditorDrop';
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
+import { SasiInspectorModal } from './modals/modalSasiInspector';
 import {
 	openUpdatesBulletin,
 	shouldShowUpdates,
@@ -75,11 +76,31 @@ import {
 import {
 	normalizeOpenMode,
 	shouldToggleCloseFrame,
+	selectCommandFrame,
 } from './logic/logicFrameActivation';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
-import { reconcileRegistry } from './logic/logicInstanceRegistry';
+import {
+	declareWorkspaceInstance,
+	mintInstanceId,
+	reconcileRegistry,
+} from './logic/logicInstanceRegistry';
+import { addressForLeaf } from './logic/logicSurfaceAddress';
+import {
+	InstanceMountRegistry,
+	type InstanceMountLease,
+	type MountReservationResult,
+} from './logic/logicInstanceMountRegistry';
+import {
+	SurfaceHost,
+	type OpenWorkspaceInstanceResult,
+} from './services/serviceSurfaceHost';
+import {
+	DEFAULT_HOME_SURFACE,
+	type HomeSurfaceIntent,
+	type SurfaceRequest,
+} from './types/typeSurface';
 import { createVaultmanSasi } from './logic/logicSasiBootstrap';
 import type { SasiRegistry } from './logic/logicSasiRegistry';
 import type { SasiProvider } from './services/serviceSasiProvider';
@@ -154,6 +175,7 @@ export function sasiPublishedDefault(id: string): boolean {
 export class VaultmanPlugin extends Plugin {
 	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();
+	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
 
 	// Core services — public so components/modals can access them
 	propertyIndex!: PropertyIndexService;
@@ -167,6 +189,8 @@ export class VaultmanPlugin extends Plugin {
 	nodeBindingService!: NodeBindingService;
 	nativeSurfaceBindingService!: NativeSurfaceBindingService;
 	breadcrumbFileSceneService!: BreadcrumbFileSceneService;
+	private readonly instanceMounts = new InstanceMountRegistry<WorkspaceLeaf>();
+	surfaceHost!: SurfaceHost<WorkspaceLeaf>;
 
 	/**
 	 * U130-01: SASI = Services Actions Scripts Indexing. Vive bajo MyConfig,
@@ -196,8 +220,11 @@ export class VaultmanPlugin extends Plugin {
 		const leaves = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
 		let targetLeaf = leaves[0];
 		if (!targetLeaf) {
-			targetLeaf = this.app.workspace.getLeftLeaf(false) ?? this.app.workspace.getLeaf('tab');
-			await targetLeaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
+			const opened = await this.createAndOpenWorkspaceInstance(
+				this.sidebarSurfaceForPhysical('left'),
+			);
+			if (!opened.ok) return false;
+			targetLeaf = opened.address.leaf;
 		}
 		await this.app.workspace.revealLeaf(targetLeaf);
 		this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
@@ -231,7 +258,25 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async onload(): Promise<void> {
+		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+			if (leaf?.view instanceof VaultmanFrame) this.lastFocusedFrameLeaf = leaf;
+		}));
+		this.registerDomEvent(activeDocument, 'pointerdown', (event) => {
+			if (!(event.target instanceof Node)) return;
+			const target = event.target;
+			const leaf = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE).find(
+				(candidate) => candidate.view.containerEl.contains(target),
+			);
+			if (leaf) this.lastFocusedFrameLeaf = leaf;
+		});
 		await this.loadSettings();
+		this.surfaceHost = new SurfaceHost({
+			workspace: this.app.workspace,
+			frameType: VAULTMAN_FRAME_TYPE,
+			mounts: this.instanceMounts,
+			isRtl: () => this.isRtlDirection(),
+			readRegistry: () => this.settings.instanceRegistry ?? { schema: 1, instances: {} },
+		});
 		this.updateGlassBlur();
 
 		setLanguage(this.settings.language);
@@ -633,6 +678,10 @@ export class VaultmanPlugin extends Plugin {
 		if (!this.sasiCommandPublisher?.isPublishable(id)) return false;
 		this.sasiCommandPublisher.setPublished(id, published);
 		return true;
+	}
+
+	openApiScene(): void {
+		new SasiInspectorModal(this.app, this).open();
 	}
 
 	showDragActionGuide(text: string): void {
@@ -1095,6 +1144,93 @@ export class VaultmanPlugin extends Plugin {
 		applyGlassBlurSetting(activeDocument.body.style, this.settings);
 	}
 
+	async openWorkspaceInstance(
+		instanceId: string,
+		surface?: SurfaceRequest,
+	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
+		const record = this.settings.instanceRegistry?.instances[instanceId];
+		if (!record || record.tombstoned) {
+			return this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+		}
+		const enrolled = this.enrollExactLiveFrame(instanceId);
+		if (enrolled && !enrolled.ok) {
+			return { ok: false, reason: 'mount-conflict', ownerId: enrolled.ownerId };
+		}
+		return this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+	}
+
+	/** Declares a durable home; openWorkspaceInstance accepts one-open overrides. */
+	async createAndOpenWorkspaceInstance(
+		homeSurface: HomeSurfaceIntent = DEFAULT_HOME_SURFACE,
+	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
+		const registry = this.settings.instanceRegistry ?? { schema: 1, instances: {} };
+		const instanceId = mintInstanceId(registry);
+		this.settings.instanceRegistry = declareWorkspaceInstance(
+			registry,
+			instanceId,
+			homeSurface,
+		);
+		await this.saveSettings();
+		return this.openWorkspaceInstance(instanceId);
+	}
+
+	workspaceMountForLeaf(leaf: WorkspaceLeaf): InstanceMountLease<WorkspaceLeaf> | undefined {
+		return this.instanceMounts.getByLeaf(leaf);
+	}
+
+	adoptWorkspaceMount(
+		instanceId: string,
+		leaf: WorkspaceLeaf,
+	): MountReservationResult<WorkspaceLeaf> {
+		const address = addressForLeaf(this.app.workspace, leaf, this.isRtlDirection());
+		return this.instanceMounts.adopt(instanceId, leaf, address);
+	}
+
+	readdressWorkspaceMount(leaf: WorkspaceLeaf): boolean {
+		const lease = this.instanceMounts.getByLeaf(leaf);
+		if (!lease) return false;
+		return this.instanceMounts.readdress(
+			lease,
+			addressForLeaf(this.app.workspace, leaf, this.isRtlDirection()),
+		);
+	}
+
+	releaseWorkspaceMount(lease: InstanceMountLease<WorkspaceLeaf>): boolean {
+		return this.instanceMounts.release(lease);
+	}
+
+	private enrollExactLiveFrame(
+		instanceId: string,
+	): MountReservationResult<WorkspaceLeaf> | null {
+		for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+			if (!(leaf.view instanceof VaultmanFrame)) continue;
+			if (!leaf.view.hasExactWorkspaceInstanceIdentity()) continue;
+			if (leaf.view.workspaceInstanceId !== instanceId) continue;
+			return this.adoptWorkspaceMount(instanceId, leaf);
+		}
+		return null;
+	}
+
+	private isRtlDirection(): boolean {
+		return (
+			activeDocument.defaultView?.getComputedStyle(activeDocument.documentElement)
+				.direction === 'rtl'
+		);
+	}
+
+	private sidebarSurfaceForPhysical(
+		side: 'left' | 'right',
+	): Extract<HomeSurfaceIntent, { kind: 'sidebar' }> {
+		const edge = side === 'left'
+			? this.isRtlDirection()
+				? 'end'
+				: 'start'
+			: this.isRtlDirection()
+				? 'start'
+				: 'end';
+		return { kind: 'sidebar', edge };
+	}
+
 	/** Los IDs anclados en las hojas que Obsidian acaba de restaurar. */
 	collectLiveInstanceAnchors(): string[] {
 		const anchors: string[] = [];
@@ -1112,20 +1248,15 @@ export class VaultmanPlugin extends Plugin {
 	private async openVaultmanView(
 		explicitMode?: 'left_sidebar' | 'right_sidebar' | 'main',
 	): Promise<WorkspaceLeaf | null> {
-		const { workspace } = this.app;
 		const mode = normalizeOpenMode(explicitMode ?? this.settings.openMode);
-		let leaf: WorkspaceLeaf | null;
-		if (mode === 'left_sidebar') {
-			leaf = workspace.getLeftLeaf(false);
-		} else if (mode === 'right_sidebar') {
-			leaf = workspace.getRightLeaf(false);
-		} else {
-			leaf = workspace.getLeaf('tab');
-		}
-		if (!leaf) return null;
-		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
-		void workspace.revealLeaf(leaf);
-		return leaf;
+		const surface =
+			mode === 'left_sidebar'
+				? this.sidebarSurfaceForPhysical('left')
+				: mode === 'right_sidebar'
+					? this.sidebarSurfaceForPhysical('right')
+					: DEFAULT_HOME_SURFACE;
+		const opened = await this.createAndOpenWorkspaceInstance(surface);
+		return opened.ok ? opened.address.leaf : null;
 	}
 
 	/**
@@ -1191,7 +1322,10 @@ export class VaultmanPlugin extends Plugin {
 	 * commands close Vaultman instead of focusing it.
 	 */
 	async ensureVaultmanFrame(): Promise<WorkspaceLeaf | null> {
-		const existing = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		const existing = selectCommandFrame(
+			this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE),
+			this.lastFocusedFrameLeaf,
+		);
 		if (existing) {
 			await this.app.workspace.revealLeaf(existing);
 			return existing;

@@ -59,6 +59,7 @@
 	import type { SavedFloatingTocState } from './types/typeSettings';
 	import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
 	import { ClickBurstGesture } from './utils/clickBurstGesture';
+	import { isBlankPanelSelectionTarget } from './logic/logicPanelBlankSelection';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -67,14 +68,12 @@
 		workspaceInstanceId: string;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
-		onWorkspaceInstanceChange?: (id: string) => void;
 	}
 	let {
 		plugin,
 		workspaceInstanceId,
 		initialShowToolbar = null,
 		onShowToolbarChange,
-		onWorkspaceInstanceChange,
 	}: Props = $props();
 	let frameShowToolbar = $state(
 		untrack(() =>
@@ -95,11 +94,36 @@
 		sceneConfigPort.setInstanceId(id);
 	}
 
-	function switchWorkspaceInstance(id: string): void {
-		const target = plugin.settings.instanceRegistry?.instances[id];
-		if (!target || target.tombstoned || id === sceneConfigPort.readInstanceRecord()?.id) return;
-		sceneConfigPort.setInstanceId(id);
-		onWorkspaceInstanceChange?.(id);
+	async function switchWorkspaceInstance(id: string): Promise<void> {
+		try {
+			const result = await plugin.openWorkspaceInstance(id);
+			if (result.ok) return;
+
+			const notice = (() => {
+				switch (result.reason) {
+					case 'tombstoned-instance':
+						return translate('sasi.apiscene.instance_open_failed.tombstoned');
+					case 'unsupported-surface':
+						return translate('sasi.apiscene.instance_open_failed.unsupported');
+					case 'mount-conflict':
+						return translate('sasi.apiscene.instance_open_failed.conflict');
+					case 'surface-unavailable':
+						return translate(
+							'sasi.apiscene.instance_open_failed.surface_unavailable',
+						);
+					case 'stale-reservation':
+						return translate('sasi.apiscene.instance_open_failed.stale');
+					case 'unknown-instance':
+					case 'view-state-failed':
+					case 'reveal-failed':
+						return translate('sasi.apiscene.instance_open_failed');
+				}
+			})();
+			new Notice(notice);
+		} catch (error) {
+			const detail = error instanceof Error ? `: ${error.message}` : '';
+			new Notice(`${translate('sasi.apiscene.instance_open_failed')}${detail}`);
+		}
 	}
 
 	export function setShowToolbar(val: boolean): void {
@@ -884,6 +908,12 @@
 
 	// ResizeObserver on .vaultman-view updates nav state
 	function bindViewRoot(el: HTMLElement) {
+		const onBlankClick = (event: MouseEvent): void => {
+			if (event.target instanceof Element && isBlankPanelSelectionTarget(event.target)) {
+				clearExplorerSelection(activeFloatingTocPanel());
+			}
+		};
+		el.addEventListener('click', onBlankClick);
 		const target =
 			(el.closest('.vaultman-view') as HTMLElement) ?? el.parentElement ?? el;
 		viewRootEl = target;
@@ -907,6 +937,7 @@
 		return {
 			destroy() {
 				ro.disconnect();
+				el.removeEventListener('click', onBlankClick);
 				viewRootEl = null;
 			},
 		};
@@ -1607,6 +1638,8 @@
 		providerState={activePanelWidgetState}
 		{sceneConfigPort}
 		onSwitchInstance={switchWorkspaceInstance}
+		app={plugin.app}
+		readInstanceRecords={() => Object.values(plugin.settings.instanceRegistry?.instances ?? {})}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
 		onPointerEnter={onToolbarPointerEnter}

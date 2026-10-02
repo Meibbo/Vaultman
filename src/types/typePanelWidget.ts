@@ -366,6 +366,8 @@ export interface NavbarPanelWidgetState {
 	onSaveLayout?: (layout: SavedLayout) => void;
 	onLayoutLoaded?: (layout: SavedLayout) => void;
 	app?: App;
+	/** Data sources may omit cells belonging exclusively to another provider. */
+	allowedCellIds?: readonly string[];
 	showTabLabels?: boolean;
 	orderCellsByActivation?: boolean;
 	/** U121-108: edge of the select-mode checkbox; `hidden` hides its view_option. */

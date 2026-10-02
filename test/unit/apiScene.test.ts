@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('../../src/components/layout/apiSceneHost.svelte', () => ({ default: {} }));
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
 import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 import {
@@ -23,7 +24,11 @@ import { parseMembershipUrn } from '../../src/logic/logicMembershipUrn';
 import { NO_GROUP_ID } from '../../src/logic/logicTreeGroupProjection';
 import { createSasiProvider } from '../../src/services/serviceSasiProvider';
 import { createSasiCommandPublisher } from '../../src/logic/logicSasiCommands';
-import { createApiScenePublisherView } from '../../src/modals/modalSasiInspector';
+import {
+	apiSceneInstanceIdFromRow,
+	apiSceneInstanceFailureNoticeKey,
+	createApiScenePublisherView,
+} from '../../src/modals/modalSasiInspector';
 import type { InstanceRegistryData } from '../../src/types/typeInstance';
 import type { TreeNode } from '../../src/types/typeTree';
 
@@ -192,6 +197,25 @@ describe('U130L apiScene: ejes kind/provider poblados', () => {
 });
 
 describe('U130L apiScene: instancias reales del registro', () => {
+	it('maps failed opens to localized user-facing reason keys', () => {
+		expect(apiSceneInstanceFailureNoticeKey('tombstoned-instance')).toBe(
+			'sasi.apiscene.instance_open_failed.tombstoned',
+		);
+		expect(apiSceneInstanceFailureNoticeKey('reveal-failed')).toBe(
+			'sasi.apiscene.instance_open_failed',
+		);
+	});
+
+	it('routes only instance rows by their durable id', () => {
+		const { registry } = createVaultmanSasi();
+		const nodes = buildApiSceneNodes(registry, fakePublisher(), fakeInstances());
+
+		expect(apiSceneInstanceIdFromRow('sasi:instance:vm-instance-aaa', nodes)).toBe(
+			'vm-instance-aaa',
+		);
+		expect(apiSceneInstanceIdFromRow('sasi:scene:files', nodes)).toBeNull();
+	});
+
 	it('dos instancias durables aparecen con su id', () => {
 		const { registry } = createVaultmanSasi();
 		const nodes = buildApiSceneNodes(

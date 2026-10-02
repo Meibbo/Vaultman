@@ -27,6 +27,8 @@ import type {
 	TimestampRelativeWindow,
 } from '../logic/logicRelativeTime';
 import type { FolderHoverInfoField } from '../logic/logicFileHoverInfo';
+import type { OpenWorkspaceInstanceResult } from '../services/serviceSurfaceHost';
+import type { SurfaceRequest } from './typeSurface';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -471,6 +473,8 @@ export interface VaultmanSettings {
 	 * futuras si el comando vuelve.
 	 */
 	sasiPublishedCommands?: Record<string, boolean>;
+	/** API inspector options are not workspace instance declarations. */
+	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
@@ -489,6 +493,11 @@ export interface VaultmanSettings {
 export interface iVaultmanPlugin extends Plugin {
 	settings: VaultmanSettings;
 	saveSettings(): Promise<void>;
+	openApiScene(): void;
+	openWorkspaceInstance(
+		instanceId: string,
+		surface?: SurfaceRequest,
+	): Promise<OpenWorkspaceInstanceResult<import('obsidian').WorkspaceLeaf>>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
 	queueService?: {
