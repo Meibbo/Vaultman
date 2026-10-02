@@ -49,6 +49,8 @@ export interface SasiSupport {
 }
 
 export interface SasiDef {
+	/** Authoritative implementation dates, when maintained explicitly by the owner. */
+	lifecycle?: import('./logicSasiLifecycle').SasiLifecycle;
 	/**
 	 * Estable y con namespace: `vaultman.move.proceed`.
 	 * Superficies concretas usan el id chrome tal cual

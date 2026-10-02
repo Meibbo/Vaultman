@@ -41,10 +41,13 @@ export interface SasiProvider {
  * de la unificacion del panelExplorer, que es de otro agente.
  */
 export function createSasiProvider(registry: SasiRegistry): SasiProvider {
+	const lifecycleFor = (id: string): SasiLifecycle | undefined => registry.resolve(id).def?.lifecycle ?? sasiLifecycleFor(id);
 	return {
-		lifecycleFor: sasiLifecycleFor,
+		lifecycleFor,
 		nodesFor(axis) {
-			return registry.list(axis).map((def) => ({
+			return registry.list(axis).map((def) => {
+				const lifecycle = lifecycleFor(def.id);
+				return {
 				id: def.id,
 				labelKey: def.labelKey,
 				...(def.icon ? { icon: def.icon } : {}),
@@ -55,12 +58,13 @@ export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 				supports: def.supports,
 				availability: def.availability ?? { status: 'available' },
 				composes: def.composes ?? [],
-				...(sasiLifecycleFor(def.id) ? {
-					createdAt: sasiLifecycleFor(def.id)?.createdAt,
-					updatedAt: sasiLifecycleFor(def.id)?.updatedAt,
-					dateSource: sasiLifecycleFor(def.id)?.source,
+				...(lifecycle ? {
+					createdAt: lifecycle.createdAt,
+					updatedAt: lifecycle.updatedAt,
+					dateSource: lifecycle.source,
 				} : {}),
-			}));
+				};
+			});
 		},
 	};
 }

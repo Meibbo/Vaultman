@@ -5,7 +5,7 @@ export interface SasiLifecycle {
 	readonly updatedAt: number;
 	readonly source: string;
 	/** Update precision is the implementation module, not a claimed per-line behavioral history. */
-	readonly precision: 'declaration-module';
+	readonly precision: 'definition' | 'declaration-module';
 }
 
 export function sasiLifecycleFor(id: string): SasiLifecycle | undefined {
