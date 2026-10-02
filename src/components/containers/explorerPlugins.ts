@@ -165,7 +165,7 @@ export class PluginsExplorerPanel
 	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
 	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
-	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested']);
+	private visibleCells = new Set(['icon', 'text', 'state', 'config', 'nested']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
