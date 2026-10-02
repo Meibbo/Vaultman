@@ -67,7 +67,11 @@ export function resolveCheckboxSelection(args: {
 	if (modifiers?.shiftKey || modifiers?.ctrlKey || modifiers?.metaKey || modifiers?.altKey) {
 		return resolveContextClickSelection({
 			...args,
-			modifiers: { ...modifiers, ctrlKey: modifiers.ctrlKey || modifiers.altKey },
+			modifiers: {
+				ctrlKey: modifiers.ctrlKey || modifiers.altKey,
+				metaKey: modifiers.metaKey,
+				shiftKey: modifiers.shiftKey,
+			},
 		});
 	}
 	if (args.selected) return { selectedIds: new Set([args.invokedId]), anchorId: args.invokedId };

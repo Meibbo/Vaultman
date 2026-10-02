@@ -24,6 +24,17 @@ describe('checkbox selection uses the shared anchor policy', () => {
 		expect([...result.selectedIds]).toEqual(['a', 'b', 'c']);
 		expect(result.anchorId).toBe('a');
 	});
+	it.each([false, true])('reads inherited browser modifiers for additive=%s', (additive) => {
+		const modifiers = new class {
+			get shiftKey(): boolean { return true; }
+			get metaKey(): boolean { return additive; }
+		}();
+		const result = resolveCheckboxSelection({
+			...state, selectedIds: new Set(['old']), modifiers,
+		});
+		expect([...result.selectedIds]).toEqual(additive ? ['old', 'a', 'b', 'c'] : ['a', 'b', 'c']);
+		expect(result.anchorId).toBe('a');
+	});
 	it('unchecks only the requested row without inventing another anchor', () => {
 		const result = resolveCheckboxSelection({ ...state, invokedId: 'a', selected: false });
 		expect([...result.selectedIds]).toEqual(['b']);
