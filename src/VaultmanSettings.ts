@@ -89,6 +89,10 @@ import {
 	buildQueueTemplatePreview,
 	buildSavedLayoutPreview,
 } from './logic/logicPayloadPreview';
+import {
+	getLastOpenedCaptureSetting,
+	getLastOpenedClearSetting,
+} from './logic/logicLastOpenedSettings';
 
 type SettingSectionMarker = {
 	readonly type: 'vaultman-setting-section';
@@ -448,6 +452,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
 		});
+
+		items.push(getLastOpenedCaptureSetting(this.plugin));
 
 		items.push({
 			name: translate('settings.operation_scope'),
@@ -1024,6 +1030,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
 		});
+
+		items.push(getLastOpenedClearSetting(this.plugin));
 
 		items.push({
 			name: translate('settings.reset'),
