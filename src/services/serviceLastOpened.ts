@@ -48,6 +48,15 @@ export class LastOpenedService extends Component {
 	private clearing: Promise<void> | null = null;
 	private writing: Promise<void> | null = null;
 	private clearBlocked = false;
+	/**
+	 * Aggregate open counts per path, derived from the opt-in journal.
+	 * Null until the first `getOpenCount` hydrates it, so vaults that never
+	 * ask pay zero startup or memory cost. Counts follow journal paths:
+	 * live renames migrate the aggregate, pre-hydration history keeps the
+	 * path it was recorded under.
+	 */
+	private openCounts: Map<string, number> | null = null;
+	private countsPromise: Promise<void> | null = null;
 
 	constructor(
 		private readonly app: LastOpenedHost,
@@ -94,6 +103,42 @@ export class LastOpenedService extends Component {
 		return this.store.readHistory();
 	}
 
+	/**
+	 * How many journaled openings `path` owns, 0 when none. Hydrates from
+	 * the persisted journal on first call only; later openings increment
+	 * the map live, so this never traverses the journal per call.
+	 */
+	async getOpenCount(path: string): Promise<number> {
+		await this.ensureCounts();
+		return this.openCounts?.get(path) ?? 0;
+	}
+
+	private ensureCounts(): Promise<void> {
+		if (!this.countsPromise) {
+			const generation = this.generation;
+			const attempt = (async () => {
+				// Flush first so unpersisted in-session events are included.
+				await this.flush();
+				const events = await this.store.readHistory();
+				// A clear that landed while hydration was in flight owns the
+				// newer generation: its synchronous reset already stands.
+				if (generation !== this.generation) return;
+				const counts = new Map<string, number>();
+				for (const event of events) counts.set(event.path, (counts.get(event.path) ?? 0) + 1);
+				if (generation !== this.generation) return;
+				this.openCounts = counts;
+			})();
+			this.countsPromise = attempt;
+			// Hydration is lazy and retryable: a later call tries again. Only
+			// null out when this attempt is still current, so a newer
+			// hydration started by a clear is never discarded by an old error.
+			void attempt.catch(() => {
+				if (this.countsPromise === attempt) this.countsPromise = null;
+			});
+		}
+		return this.countsPromise;
+	}
+
 	/** Establish the boundary immediately: later real openings belong to the new history. */
 	clearHistory(): Promise<void> {
 		if (this.clearing) return this.clearing;
@@ -105,6 +150,10 @@ export class LastOpenedService extends Component {
 		this.pendingEvents = [];
 		this.dirty = false;
 		this.folderRecency = null;
+		// The aggregate restarts empty with the new generation; a hydration
+		// in flight from the previous one is discarded on install.
+		this.openCounts = new Map();
+		this.countsPromise = null;
 		this._notify(true);
 		const clear = async () => {
 			// An explicit clear is also the recovery action for an unreadable snapshot.
@@ -204,7 +253,12 @@ export class LastOpenedService extends Component {
 		const mutation = () => { this.record[path] = at; };
 		mutation();
 		if (!this.loaded) this.earlyMutations.push(mutation);
-		if (this.recordAllOpens) this.pendingEvents.push({ path, at });
+		if (this.recordAllOpens) {
+			this.pendingEvents.push({ path, at });
+			// Live aggregate: pre-hydration events are counted by the first
+			// hydration instead, so each opening lands in exactly one place.
+			if (this.openCounts) this.openCounts.set(path, (this.openCounts.get(path) ?? 0) + 1);
+		}
 		this.folderRecency = null;
 		this._markDirty();
 		this._notify();
@@ -215,6 +269,10 @@ export class LastOpenedService extends Component {
 		const mutation = () => { this.record = { ...withRenamedPath(this.record, oldPath, newPath) }; };
 		mutation();
 		if (!this.loaded) this.earlyMutations.push(mutation);
+		if (this.openCounts?.has(oldPath)) {
+			this.openCounts.set(newPath, (this.openCounts.get(newPath) ?? 0) + (this.openCounts.get(oldPath) ?? 0));
+			this.openCounts.delete(oldPath);
+		}
 		this.folderRecency = null;
 		this._markDirty();
 		this._notify();
@@ -225,6 +283,7 @@ export class LastOpenedService extends Component {
 		const mutation = () => { this.record = { ...withDeletedPath(this.record, path) }; };
 		mutation();
 		if (!this.loaded) this.earlyMutations.push(mutation);
+		this.openCounts?.delete(path);
 		this.folderRecency = null;
 		this._markDirty();
 		this._notify();
