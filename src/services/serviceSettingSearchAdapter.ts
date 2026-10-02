@@ -4,6 +4,7 @@ import type {
 	NativeSettingsSearchItem,
 	NativeSettingsSearchSpan,
 } from '../types/typeSettingsSearch';
+import { settingPageCacheFor, type SettingPageCache } from './serviceSettingPageCache';
 
 /**
  * U130 Slice A: adaptador fino sobre el índice NATIVO de settings.
@@ -218,41 +219,17 @@ export function queryNativeSettingsSearch(
  * group.tab === pluginId, orden nativo, sin re-rank.
  * Ausencia total: [] (plugin hoja, sin hijos inventados, sin scrapeo).
  */
-const pluginPagesCache = new Map<string, { tabSig: string; groups: NativeSettingsSearchGroup[] }>();
-
-function pluginTabsSignature(app: unknown): string {
-	const setting = (app as { setting?: unknown }).setting;
-	if (typeof setting !== 'object' || setting === null) return '';
-	const record = setting as Record<string, unknown>;
-	const tabs = record['pluginTabs'];
-	if (Array.isArray(tabs)) {
-		return tabs
-			.map((t) => {
-				const tab = t as { id?: unknown; name?: unknown; icon?: unknown };
-				return `${String(tab?.id ?? '')}:${String(tab?.name ?? '')}:${String(tab?.icon ?? '')}`;
-			})
-			.sort()
-			.join('|');
-	}
-	if (typeof tabs === 'object' && tabs !== null) {
-		return Object.values(tabs as Record<string, { id?: unknown; name?: unknown; icon?: unknown }>)
-			.map((tab) => `${String(tab?.id ?? '')}:${String(tab?.name ?? '')}:${String(tab?.icon ?? '')}`)
-			.sort()
-			.join('|');
-	}
-	return '';
-}
-
 export function listPluginSettingPages(
 	app: unknown,
 	pluginId: string,
 ): NativeSettingsSearchGroup[] {
-	const tabSig = pluginTabsSignature(app);
-	const cached = pluginPagesCache.get(pluginId);
-	if (cached && cached.tabSig === tabSig) return cached.groups;
+	const cache = settingPageCacheFor(app);
+	if (!cache) return [];
+	const cached = cache.plugins.get(pluginId);
+	if (cached) return cached;
 
-	const groups = listPluginSettingPagesUncached(app, pluginId);
-	pluginPagesCache.set(pluginId, { tabSig, groups });
+	const groups = listPluginSettingPagesUncached(app, pluginId, cache);
+	cache.plugins.set(pluginId, groups);
 	return groups;
 }
 
@@ -260,6 +237,7 @@ export function listPluginSettingPages(
 function listPluginSettingPagesUncached(
 	app: unknown,
 	pluginId: string,
+	cache: SettingPageCache,
 ): NativeSettingsSearchGroup[] {
 	// Primary: lectura declarativa de pluginTabs (puede ser Record u array)
 	const declarative = listPluginSettingPagesDeclarative(app, pluginId);
@@ -267,6 +245,10 @@ function listPluginSettingPagesUncached(
 	// Si devuelve grupos SIN results (solo tab info), cae al fallback nativo.
 	const hasResults = declarative.some((g) => g.results && g.results.length > 0);
 	if (hasResults) return declarative;
+	// Core plugins without a native settings tab have no self-tab pages.
+	if (declarative.length === 0 && isRecord(app) &&
+		isRecord(app.internalPlugins) && isRecord(app.internalPlugins.plugins) &&
+		isRecord(app.internalPlugins.plugins[pluginId])) return [];
 
 	// Fallback: unión de query por pluginId (determinista) + probe de
 	// cobertura 'a' filtrado al propio tab. El índice nativo responde
@@ -279,7 +261,8 @@ function listPluginSettingPagesUncached(
 	const primary = queryNativeSettingsSearch(app, pluginId).filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	const broad = queryNativeSettingsSearch(app, 'a').filter(
+	cache.coverage ??= queryNativeSettingsSearch(app, 'a');
+	const broad = cache.coverage.filter(
 		(candidate) => candidate.tab === pluginId,
 	);
 	const groupsByPage = new Map<string, NativeSettingsSearchGroup>();
