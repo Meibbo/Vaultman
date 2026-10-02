@@ -1855,6 +1855,17 @@
 			}
 
 			if (invocation.actionId === 'reveal-active-file') {
+				if (explorerActiveTab === 'props') {
+					if (!propExplorer) return false;
+					propExplorer.toggleRevealActiveFile();
+					return true;
+				}
+				if (explorerActiveTab === 'tags') {
+					if (!tagsExplorer) return false;
+					tagsExplorer.toggleRevealActiveFile();
+					return true;
+				}
+				if (explorerActiveTab !== 'files' || !fileList) return false;
 				measureSceneSync(
 					'scene.action.reveal-active-file.files',
 					undefined,
