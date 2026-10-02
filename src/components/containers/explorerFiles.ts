@@ -8,6 +8,7 @@ import {
 	TFolder,
 } from 'obsidian';
 import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
+import { folderFileCounts } from '../../logic/logicFolderFileCounts';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -2908,16 +2909,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _refreshFolderFileCount(files: readonly TFile[]): void {
-		const counts = new Map<string, number>();
-		for (const file of files) {
-			const parts = file.path.split('/');
-			parts.pop();
-			for (let depth = 1; depth <= parts.length; depth += 1) {
-				const path = parts.slice(0, depth).join('/');
-				counts.set(path, (counts.get(path) ?? 0) + 1);
-			}
-		}
-		this._folderFileCount = counts;
+		this._folderFileCount = folderFileCounts(files);
 	}
 
 	/** Same bubbling as `_refreshFolderFileCount`, summing the stat instead of
