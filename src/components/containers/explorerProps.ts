@@ -207,6 +207,7 @@ import {
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -933,17 +934,14 @@ export class PropsExplorerPanel extends Component {
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
-				this._touchSelection();
-				void this._render();
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this._applyPropSelection(result.selectedIds, result.anchorId);
 			},
 		} as const;
 	}
@@ -992,18 +990,9 @@ export class PropsExplorerPanel extends Component {
 			card.append(checkbox);
 		}
 		checkbox.checked = this.selectedNodeIds.has(node.id);
-		checkbox.addEventListener('click', (event) => event.stopPropagation());
-		checkbox.addEventListener('change', (event) => {
+		checkbox.addEventListener('click', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) {
-				this.selectedNodeIds.add(node.id);
-				this.selectionAnchorId = node.id;
-			} else {
-				this.selectedNodeIds.delete(node.id);
-				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
-			}
-			this._touchSelection();
-			card.toggleClass('is-selected', checkbox.checked);
+			this._selectionViewOptions().onSelectionToggle(node.id, checkbox.checked, event);
 		});
 	}
 
