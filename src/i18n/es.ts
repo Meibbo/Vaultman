@@ -712,7 +712,8 @@ export const es: Record<string, string> = {
 	'viewmenu.interaction.add': 'Agregar',
 	'viewmenu.interaction.select': 'Seleccionar',
 	'viewmenu.interaction.filter': 'Filtrar',
-	'viewmenu.interaction.input': 'Entrada',
+	'viewmenu.interaction.input': 'Renombrar',
+	'scene_menu.tab.plugins': 'Settings',
 	'viewmenu.engines': 'Motores',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',

@@ -2975,6 +2975,7 @@
 					layoutChildren,
 				),
 			);
+			nodes.push(nativeMenuDivider('view_menu.divider.after_layouts'));
 		}
 
 		// D29 superseded by spec 08: 'Nested' moved to the view menu.
@@ -3024,21 +3025,6 @@
 				}),
 			);
 		}
-		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
-		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
-		// El segundo divider reserva el sitio del control de dimensiones
-		// del stream proto_design.
-		nodes.push(nativeMenuDivider('view_menu.divider.toolbar'));
-		if (onToggleToolbar) {
-			nodes.push(
-				nativeMenuItem('view_menu.toolbar', {
-					title: translate('viewmenu.toolbar'),
-					icon: 'lucide-panel-top',
-					checked: toolbarShown,
-					onClick: () => onToggleToolbar?.(),
-				}),
-			);
-		}
 		nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
@@ -3072,6 +3058,9 @@
 		// a flat padding override (4px, no per-depth sangria) that applies
 		// whether or not there is anything to nest or group, so it is gated
 		// only by the engine being `tree`, not by `nestedAct`.
+		engineChildren.push(
+			nativeMenuDivider('view_menu.engines.divider.before_nested'),
+		);
 		engineChildren.push(
 			nativeMenuItem('view_menu.engines.nested', {
 				title: translate('sort.level.nested'),
@@ -3488,20 +3477,28 @@
 				}),
 			);
 		}
-		// Statistics and add-on explorers share the next section.
-		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
+		// Add-on explorers section (snippets, then settings).
+		if (addonTabOptions.length > 0) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
+			for (const option of addonTabOptions) {
+				const title =
+					option.id === 'plugins'
+						? translate('scene_menu.tab.plugins') || 'Settings'
+						: option.label;
+				nodes.push(
+					nativeMenuItem(`scene_menu.tab.${option.id}`, {
+						title,
+						icon: option.icon,
+						checked: option.id === activeSectionTab,
+						onClick: () => onSectionTabChange?.(option.id),
+					}),
+				);
+			}
 		}
-		if (!showDock && statisticsAction)
+		// Statistics in its own section below Settings.
+		if (!showDock && statisticsAction) {
+			nodes.push(nativeMenuDivider('scene_menu.divider.statistics'));
 			nodes.push(tabActionNode(statisticsAction));
-		for (const option of addonTabOptions) {
-			nodes.push(
-				nativeMenuItem(`scene_menu.tab.${option.id}`, {
-					title: option.label,
-					icon: option.icon,
-					onClick: () => onSectionTabChange?.(option.id),
-				}),
-			);
 		}
 		renderNativeMenuNodes(menu, projectNativeMenu('scene_menu', nodes));
 		showToolbarMenu(menu, event);

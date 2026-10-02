@@ -85,6 +85,7 @@ function mockElement(opts: {
 					if (classes.has(className)) return this;
 				}
 				if (part.includes("[data-path]") && attributes["data-path"] !== undefined) return this;
+				if (part.includes("[data-id]") && (attributes["data-id"] !== undefined || dataset.id !== undefined)) return this;
 				if (part.includes("[href]") && attributes["href"] !== undefined) return this;
 				if (part.includes("[data-snippet-name]") && dataset.snippetName !== undefined) return this;
 				if (part.includes("[data-plugin-id]") && dataset.pluginId !== undefined) return this;
@@ -816,4 +817,89 @@ describe("hover interno en nn-links (solo preview, jamás suprime)", () => {
 		)).toBe(false);
 		expect(app.workspace.trigger).not.toHaveBeenCalled();
 	});
+
+	it("folder '+' dispara preview de su C-Node '+/+.md'", () => {
+		const rowParent = mockElement({ classes: ["vaultman-tree-row"], attributes: { "data-path": "+" } });
+		const el = nnEl({ textContent: "+", parent: rowParent });
+		const app = hoverApp();
+		app.vault.getAbstractFileByPath = (p: string) => (p === "+/+.md" ? { path: "+/+.md" } : null);
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "+/+.md",
+		}));
+	});
+
+	it("folder 'x' dispara preview por alias 'x'", () => {
+		const rowParent = mockElement({ classes: ["vaultman-tree-row"], attributes: { "data-path": "x" } });
+		const el = nnEl({ textContent: "x", parent: rowParent });
+		const app = hoverApp([{ path: "Shelf.md" }], { aliases: ["x"] });
+		app.vault.getAbstractFileByPath = () => null;
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Shelf.md",
+		}));
+	});
+
+	it("plugin row con afijo % dispara preview por alias", () => {
+		const rowParent = mockElement({ classes: ["vaultman-tree-row"], attributes: { "data-id": "dataview" } });
+		const el = nnEl({ textContent: "Dataview", parent: rowParent });
+		const app = hoverApp([{ path: "Notes/Dataview.md" }], { aliases: ["%dataview"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Dataview.md",
+		}));
+	});
+
+	it("snippet row con afijo $ dispara preview por alias", () => {
+		const rowParent = mockElement({ classes: ["vaultman-tree-row"], attributes: { "data-id": "custom-cards" } });
+		const el = nnEl({ textContent: "custom-cards", parent: rowParent });
+		const app = hoverApp([{ path: "Notes/Cards.md" }], { aliases: ["$custom-cards"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Cards.md",
+		}));
+	});
+
+	it("prop row con afijo [] dispara preview por alias", () => {
+		const el = nnEl({ textContent: "status" });
+		const app = hoverApp([{ path: "Notes/Status.md" }], { aliases: ["[status]"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Status.md",
+		}));
+	});
+
+	it("tag row con afijo # dispara preview por alias", () => {
+		const el = nnEl({ textContent: "#dev" });
+		const app = hoverApp([{ path: "Notes/Dev.md" }], { aliases: ["#dev"] });
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Notes/Dev.md",
+		}));
+	});
+
+	it("wikilink en celda formateada dispara preview del destino", () => {
+		const el = nnEl({ textContent: "[[Docs/Architecture|Archi]]" });
+		const app = hoverApp();
+		app.metadataCache.getFirstLinkpathDest = (t: string) => (t === "Docs/Architecture" ? { path: "Docs/Architecture.md" } : null);
+
+		const event = { target: el, ctrlKey: true, metaKey: false } as unknown as MouseEvent;
+		expect(handleInternalNodeNoteHover(event, { app: asApp(app) })).toBe(true);
+		expect(app.workspace.trigger).toHaveBeenCalledWith("hover-link", expect.objectContaining({
+			linktext: "Docs/Architecture.md",
+		}));
+	});
 });
+
