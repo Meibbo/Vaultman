@@ -845,6 +845,17 @@ export const en: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'writes to the vault',
 	'sasi.inspector.toggle.on': 'Published',
 	'sasi.inspector.toggle.off': 'Hidden',
+	'sasi.apiscene.instance_open_failed': 'Could not open this workspace instance.',
+	'sasi.apiscene.instance_open_failed.tombstoned':
+		'This workspace instance was deleted and cannot be reopened.',
+	'sasi.apiscene.instance_open_failed.unsupported':
+		'This workspace surface is not supported yet.',
+	'sasi.apiscene.instance_open_failed.conflict':
+		'This workspace instance is already mounted elsewhere.',
+	'sasi.apiscene.instance_open_failed.surface_unavailable':
+		'The requested sidebar surface is unavailable.',
+	'sasi.apiscene.instance_open_failed.stale':
+		'The workspace instance changed before it could be revealed.',
 	'sasi.apiscene.group.action': 'Actions',
 	'sasi.apiscene.group.operation': 'Operations',
 	'sasi.apiscene.group.command': 'Commands',
@@ -1456,6 +1467,8 @@ export const en: Record<string, string> = {
 	'group.new': 'New group',
 	'group.new.prompt': 'Group name',
 	'group.create_with_selected': 'Create group with selected',
+	'sasi.apiscene.cell.published': 'Published',
+	'sasi.toolbar.reveal_active_file': 'Reveal this file',
 	'group.selected': 'Group selected',
 	'group.degroup_selected': 'Degroup selected',
 	'group.selected.no_handler': 'No group handler on this surface',

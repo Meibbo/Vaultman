@@ -864,6 +864,17 @@ export const es: Record<string, string> = {
 	'sasi.inspector.mutates_vault': 'escribe en el vault',
 	'sasi.inspector.toggle.on': 'Publicado',
 	'sasi.inspector.toggle.off': 'Oculto',
+	'sasi.apiscene.instance_open_failed': 'No se pudo abrir esta instancia del espacio de trabajo.',
+	'sasi.apiscene.instance_open_failed.tombstoned':
+		'Esta instancia fue eliminada y no se puede reabrir.',
+	'sasi.apiscene.instance_open_failed.unsupported':
+		'Esta superficie del espacio de trabajo todavía no está soportada.',
+	'sasi.apiscene.instance_open_failed.conflict':
+		'Esta instancia ya está montada en otra superficie.',
+	'sasi.apiscene.instance_open_failed.surface_unavailable':
+		'La superficie lateral solicitada no está disponible.',
+	'sasi.apiscene.instance_open_failed.stale':
+		'La instancia cambió antes de poder revelarse.',
 	'sasi.apiscene.group.action': 'Acciones',
 	'sasi.apiscene.group.operation': 'Operaciones',
 	'sasi.apiscene.group.command': 'Comandos',
@@ -1352,6 +1363,8 @@ export const es: Record<string, string> = {
 	'group.new': 'Nuevo grupo',
 	'group.new.prompt': 'Nombre del grupo',
 	'group.create_with_selected': 'Crear grupo con la selección',
+	'sasi.apiscene.cell.published': 'Publicado',
+	'sasi.toolbar.reveal_active_file': 'Revelar este archivo',
 	'group.selected': 'Agrupar selección',
 	'group.degroup_selected': 'Desagrupar selección',
 	'group.selected.no_handler': 'Sin manejador de grupos en esta superficie',
