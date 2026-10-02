@@ -979,6 +979,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								this.app,
 								this.plugin.sasiRegistry,
 								this.plugin.sasiCommandPublisher,
+								undefined,
+								this.plugin.settings.instanceRegistry,
 							).open();
 						}),
 				);

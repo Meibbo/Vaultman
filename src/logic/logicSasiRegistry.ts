@@ -11,7 +11,7 @@
  * estable, y cada entrada declara en que superficies aplica.
  */
 
-export type SasiAxis = 'provider' | 'kind' | 'function';
+export type SasiAxis = 'provider' | 'kind' | 'function' | 'surface';
 
 export type SasiCatalogKind =
 	| 'settingScene'
@@ -49,7 +49,11 @@ export interface SasiSupport {
 }
 
 export interface SasiDef {
-	/** Estable y con namespace: `vaultman.move.proceed`. */
+	/**
+	 * Estable y con namespace: `vaultman.move.proceed`.
+	 * Superficies concretas usan el id chrome tal cual
+	 * (`chrome:left-sidebar`): ya es estable y con namespace.
+	 */
 	id: string;
 	axis: SasiAxis;
 	type?: SasiCatalogKind;
@@ -77,6 +81,7 @@ export interface SasiRegistry {
 	list(axis: SasiAxis): readonly SasiDef[];
 	listActions(): readonly SasiDef[];
 	listOperations(): readonly SasiDef[];
+	listCommands(): readonly SasiDef[];
 	resolve(id: string): SasiResolved;
 }
 
@@ -104,6 +109,7 @@ export function createSasiRegistry(): SasiRegistry {
 		},
 		listActions: () => ofKind('action'),
 		listOperations: () => ofKind('operation'),
+		listCommands: () => ofKind('command'),
 		resolve(id) {
 			const def = byId.get(id);
 			// Contrato de logicCommandActions.ts: retirado != inexistente.

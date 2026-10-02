@@ -18,6 +18,12 @@ export interface SasiNode {
 	mutatesVault?: true;
 	availability?: SasiAvailability;
 	supports?: readonly SasiSupport[];
+	/**
+	 * U130L apiScene: se conservan tal cual del def. Sin ellos el apiScene
+	 * no puede decir en que superficies vive cada entrada ni que compone
+	 * cada comando, que es la mitad de "que es cada cosa y DONDE ESTA".
+	 */
+	composes?: readonly string[];
 }
 
 export interface SasiProvider {
@@ -42,6 +48,7 @@ export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 				...(def.mutatesVault ? { mutatesVault: def.mutatesVault } : {}),
 				supports: def.supports,
 				availability: def.availability ?? { status: 'available' },
+				composes: def.composes ?? [],
 			}));
 		},
 	};

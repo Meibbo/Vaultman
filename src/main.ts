@@ -85,6 +85,8 @@ import type { SasiRegistry } from './logic/logicSasiRegistry';
 import type { SasiProvider } from './services/serviceSasiProvider';
 import {
 	createSasiCommandPublisher,
+	effectiveSasiPublishedDecisions,
+	mergeSasiPublishedStore,
 	type SasiCommandPublisher,
 } from './logic/logicSasiCommands';
 import {
@@ -122,6 +124,31 @@ import {
 	routeVaultmanCurrentFileProperty,
 	type FrontmatterSourceLocation,
 } from './services/serviceFrontmatterPropertyReveal';
+
+/**
+ * U130L: decision Published por defecto, explicita por comando. Los comandos
+ * historicos nacen publicados (preservan atajos); cualquier comando nuevo
+ * nace oculto salvo que se anada aqui a `true`. El default solo se
+ * aplica cuando `settings.sasiPublishedCommands` no trae preferencia previa
+ * para ese id (`resolveSasiPublishedDecision`).
+ */
+const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
+	'apply-queue',
+	'open',
+	'open-updates',
+	'focus-content-search',
+	'focus-active-explorer-search',
+	SETTINGS_OPEN_ID,
+	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+	TOOLBAR_TOGGLE_EXPANSION_ID,
+	TOOLBAR_SEARCHBOX_ID,
+	SEARCH_CYCLE_CATEGORY_ID,
+	SEARCH_CREATE_TARGET_ID,
+]);
+
+export function sasiPublishedDefault(id: string): boolean {
+	return SASI_PUBLISHED_DEFAULT_TRUE.has(id);
+}
 
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
@@ -228,7 +255,18 @@ export class VaultmanPlugin extends Plugin {
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
 		this.sasiProvider = sasi.provider;
-		this.sasiCommandPublisher = createSasiCommandPublisher(this);
+		// U130L: la decision Published vive en PSS/settings, separada del
+		// capability registry. Cada toggle de usuario (inspector incluido,
+		// que ya llama a `setPublished`) persiste aqui sin tocar su modal.
+		this.sasiCommandPublisher = createSasiCommandPublisher(this, {
+			onDecision: (id, published) => {
+				const store = (this.settings.sasiPublishedCommands ??= {});
+				if (store[id] !== published) {
+					store[id] = published;
+					void this.saveSettings();
+				}
+			},
+		});
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -481,10 +519,6 @@ export class VaultmanPlugin extends Plugin {
 			});
 		}
 
-		this.sasiCommandPublisher.setPublished('apply-queue', true);
-		this.sasiCommandPublisher.setPublished('open', true);
-		this.sasiCommandPublisher.setPublished('open-updates', true);
-		this.sasiCommandPublisher.setPublished('focus-content-search', true);
 		this.sasiCommandPublisher.register({
 			id: SETTINGS_OPEN_ID,
 			name: translate('command.open_settings'),
@@ -493,25 +527,45 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
-	this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
-	this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
 		const toolbarCommands = [
-		[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
-		[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
-		[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
-		[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
-		[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
-	] as const;
-	for (const [id, labelKey] of toolbarCommands) {
-		this.sasiCommandPublisher.register({
-			id,
-			name: translate(labelKey),
-			handler: () => {
-				void this.invokeToolbarSasiAction(id);
-			},
-		});
-		this.sasiCommandPublisher.setPublished(id, true);
-	}
+			[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
+			[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
+			[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
+			[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
+			[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+		] as const;
+		for (const [id, labelKey] of toolbarCommands) {
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(labelKey),
+				handler: () => {
+					void this.invokeToolbarSasiAction(id);
+				},
+			});
+		}
+		// U130L: la decision Published persiste en PSS/settings y sobrevive a
+		// desactivar/reactivar y a reinicios. El default explicito
+		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
+		// previa; los ids retirados del store se conservan para elecciones
+		// futuras y los no registrados se ignoran (`restorePublished`).
+		// Compatibilidad de datos: un data.json viejo sin el campo arranca
+		// con los defaults y los persiste en una sola escritura.
+		{
+			const stored = this.settings.sasiPublishedCommands;
+			const effective = effectiveSasiPublishedDecisions(
+				this.sasiCommandPublisher.registeredIds(),
+				stored,
+				sasiPublishedDefault,
+			);
+			this.sasiCommandPublisher.restorePublished(effective);
+			const merged = mergeSasiPublishedStore(stored, effective);
+			const needsSave =
+				stored === undefined ||
+				Object.keys(merged).length !== Object.keys(stored).length ||
+				Object.entries(effective).some(([id, value]) => stored[id] !== value);
+			this.settings.sasiPublishedCommands = merged;
+			if (needsSave) await this.saveData(this.settings);
+		}
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -556,6 +610,29 @@ export class VaultmanPlugin extends Plugin {
 		);
 
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
+	}
+
+	/**
+	 * U130L: al desactivar se retiran los comandos de la sesion (Obsidian
+	 * tambien los limpia), pero la DECISION persiste en
+	 * `settings.sasiPublishedCommands`: el proximo `onload` la restaura via
+	 * `restorePublished`. Por eso aqui no se toca settings.
+	 */
+	onunload(): void {
+		this.sasiCommandPublisher?.revokeAll();
+	}
+
+	/**
+	 * U130L: puente para proyectar la decision Published a un `cell_toggle`
+	 * existente (sin widget ni cell kind nuevos). Solo los comandos con
+	 * descriptor registrado son conmutables: devuelve `false` sin tocar
+	 * nada para provider/kind/action sin descriptor o ids retirados. La
+	 * persistencia la hace el `onDecision` del publisher.
+	 */
+	setSasiCommandPublished(id: string, published: boolean): boolean {
+		if (!this.sasiCommandPublisher?.isPublishable(id)) return false;
+		this.sasiCommandPublisher.setPublished(id, published);
+		return true;
 	}
 
 	showDragActionGuide(text: string): void {
