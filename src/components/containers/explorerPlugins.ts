@@ -93,9 +93,15 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTree,
+	PRESET_GROUP_PREFIX,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	API_SCENE_GROUP_KIND,
+	API_SCENE_GROUP_LABEL_KEYS,
+	type ApiSceneGroupName,
+} from '../../logic/logicApiSceneModel';
 import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
@@ -764,6 +770,12 @@ export class PluginsExplorerPanel
 		if (kind === 'created') return node.meta.installedTime ?? null;
 		if (kind === 'state') return node.meta.enabled ? 'enabled' : 'disabled';
 		if (kind === 'sections') {
+			if (this.dataSource?.providerId === 'sasi') {
+				const group = (node.meta as { group?: unknown })?.group;
+				if (typeof group === 'string' && group) {
+					return group;
+				}
+			}
 			// U130-C1: en reposo (term vacío) las filas top-level son
 			// `node_plugin` + `node_settings` globales planas. El bucket
 			// lo gobierna `projectGroupedTree`: plugins → Core/Community
@@ -1265,6 +1277,10 @@ export class PluginsExplorerPanel
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			decorateHeader: (header) => {
 				if (this.groupPreset.kind !== 'sections') return;
+				const presetKey = header.id.startsWith(PRESET_GROUP_PREFIX)
+					? header.id.slice(PRESET_GROUP_PREFIX.length)
+					: header.id.replace(/^group:/, '');
+
 				if (
 					header.id === 'group:core-plugins' ||
 					header.id === 'vaultman.group.preset:core-plugins'
@@ -1280,6 +1296,19 @@ export class PluginsExplorerPanel
 					header.id === 'vaultman.group.preset:global-settings'
 				) {
 					header.label = GLOBAL_SETTINGS_GROUP_LABEL;
+				} else if (
+					this.dataSource?.providerId === 'sasi' ||
+					presetKey in API_SCENE_GROUP_LABEL_KEYS
+				) {
+					const sasiKey = presetKey as ApiSceneGroupName;
+					const labelKey = API_SCENE_GROUP_LABEL_KEYS[sasiKey];
+					if (labelKey) {
+						header.label = translate(labelKey);
+						header.meta = {
+							identityKind: API_SCENE_GROUP_KIND,
+							group: sasiKey,
+						} as any;
+					}
 				}
 			},
 			rangeLabels: translatedRangeLabels(),
@@ -1379,10 +1408,14 @@ export class PluginsExplorerPanel
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
 			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			renderLabel: (row, node) => {
 				if (this.dataSource) return false;
 				if (node.isGroupHeader === true) {
@@ -1543,6 +1576,7 @@ export class PluginsExplorerPanel
 					setTooltip(row, this.tooltip(node.meta), {
 				placement: tooltipPlacementForSetting(
 					this.plugin.settings?.tooltipPlacement,
+					this.containerEl,
 				),
 			});
 			},

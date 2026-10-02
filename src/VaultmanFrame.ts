@@ -294,6 +294,8 @@ export class VaultmanFrame extends ItemView {
 				if (current === this.app.workspace.rootSplit) break;
 				current = current.parent;
 			}
+			this.contentEl.dataset.surfacePosition = surfacePosition;
+			this.containerEl.dataset.surfacePosition = surfacePosition;
 			const registry = this.plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
 			const next = setInstanceSurfacePosition(
 				registry,

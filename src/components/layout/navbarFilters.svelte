@@ -2996,7 +2996,11 @@
 					title: translate(
 						providerId === 'sasi' && entry.id === 'state'
 							? 'sasi.apiscene.cell.published'
-							: cellLabelKey(entry.definition, providerId === 'sasi' && entry.id === 'ctime' ? 'files' : activeTab, activeView),
+							: providerId === 'sasi' && (entry.id === 'installed' || entry.id === 'ctime')
+								? 'viewmode.pill.ctime'
+								: providerId === 'sasi' && (entry.id === 'updated' || entry.id === 'mtime')
+									? 'viewmode.pill.mtime'
+									: cellLabelKey(entry.definition, activeTab, activeView),
 					),
 					icon: cellIcon(entry.definition, activeTab, activeView),
 					checked: entry.active,
@@ -4273,7 +4277,13 @@
 			const isActive = activeSort.sortBy === option.id;
 			nodes.push(
 				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
-					title: `${translate(providerId === 'sasi' && option.id === 'installed' ? 'sort.by.created' : option.labelKey)}${
+					title: `${translate(
+						providerId === 'sasi' && (option.id === 'installed' || option.id === 'ctime')
+							? 'sort.by.created'
+							: providerId === 'sasi' && (option.id === 'updated' || option.id === 'mtime')
+								? 'sort.by.modified'
+								: option.labelKey,
+					)}${
 						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
 					}`,
 					icon: option.icon,

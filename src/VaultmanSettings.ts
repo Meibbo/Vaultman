@@ -1744,6 +1744,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.tree_indent_mode'),
+			desc: translate('settings.tree_indent_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('all', translate('settings.tree_indent_mode.all'))
+						.addOption('depth', translate('settings.tree_indent_mode.depth'))
+						.addOption('parent', translate('settings.tree_indent_mode.parent'))
+						.setValue(this.plugin.settings.treeIndentMode ?? 'all')
+						.onChange(async (value) => {
+							this.plugin.settings.treeIndentMode = value as
+								'all' | 'depth' | 'parent';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.selection_checkbox_position'),
 			desc: translate('settings.selection_checkbox_position.desc'),
 			render: (setting: Setting) => {

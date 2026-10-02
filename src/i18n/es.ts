@@ -327,6 +327,12 @@ export const es: Record<string, string> = {
 	'settings.caret_position.start': 'Inicio / izquierda',
 	'settings.caret_position.end': 'Final / derecha',
 	'settings.caret_position.hidden': 'Oculto',
+	'settings.tree_indent_mode': 'Modo de sangría de árbol',
+	'settings.tree_indent_mode.desc':
+		'Diferencia lo que quita la opción de vista de sangría: todos los indents, solo sangría de profundidad, o solo alineación con padres.',
+	'settings.tree_indent_mode.all': 'Todos los indents (profundidad y alineación)',
+	'settings.tree_indent_mode.depth': 'Solo sangría de profundidad',
+	'settings.tree_indent_mode.parent': 'Solo alineación con padres',
 	'settings.selection_checkbox_position': 'Posición de la casilla de selección',
 	'settings.selection_checkbox_position.desc':
 		'Coloca el cell_checkbox del modo seleccionar al inicio o al final de los nodos.',
@@ -919,6 +925,7 @@ export const es: Record<string, string> = {
 	'sasi.provider.tags': 'Proveedor Tags',
 	'sasi.provider.snippets': 'Proveedor Snippets',
 	'sasi.provider.plugins': 'Proveedor Plugins',
+	'sasi.provider.lupapi': 'Proveedor LUPAPI (Load/Unload Plugins API)',
 	'sasi.surface.chrome.left-sidebar': 'Sidebar izquierda',
 	'sasi.surface.chrome.right-sidebar': 'Sidebar derecha',
 	'sasi.surface.chrome.left-ribbon': 'Ribbon izquierdo',
@@ -1472,6 +1479,7 @@ export const es: Record<string, string> = {
 	'tags.source.inline': 'cuerpo',
 	'tags.source.both': 'ambos',
 	'viewmode.pill.format': 'Formato',
+	'viewmode.pill.filters': 'Filtros',
 	'viewmode.pill.cell_hover': 'Acciones al pasar',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',

@@ -12,10 +12,10 @@ export function createApiSceneConfigPort(plugin: VaultmanPlugin): SceneConfigPor
 	let registry: InstanceRegistryData = { schema: 1, instances: { [id]: record } };
 	const defaults: Required<SceneConfig> = {
 		viewMode: 'tree', interactionMode: 'open',
-		visibleCells: ['caret', 'icon', 'format', 'text', 'state', 'ctime', 'mtime'],
+		visibleCells: ['caret', 'icon', 'format', 'text', 'state', 'ctime', 'mtime', 'installed', 'updated'],
 		taskCellDisplayMode: 'auto', sortState: normalizeExplorerSortState('plugins', null),
 		stickyRows: true, compactFolders: false, indent: true, tooltips: true,
-		groupPreset: { kind: 'custom', direction: 'asc' }, hiddenGroupIds: [],
+		groupPreset: { kind: 'sections', direction: 'asc' }, hiddenGroupIds: [],
 		sceneLabelMode: 'on', autoRevealMode: 'auto', hiddenToolbarNodes: [],
 		toolbarNodeIcons: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
 		toolbarNodeOrder: [], groupMemberships: {}, showOptionsOverride: 'inherit',

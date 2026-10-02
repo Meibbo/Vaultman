@@ -32,7 +32,7 @@
 		toolbarShown: visible, onToggleToolbar: () => { visible = !visible; },
 		app: plugin.app, sasiRegistry: plugin.sasiRegistry,
 		onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
-		allowedCellIds: ['caret', 'checkbox', 'icon', 'text', 'state', 'ctime', 'mtime', 'format'],
+		allowedCellIds: ['caret', 'checkbox', 'icon', 'text', 'state', 'installed', 'updated', 'ctime', 'mtime', 'format'],
 		toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 		orderCellsByActivation: plugin.settings.orderCellsByActivation,
 		selectionCheckboxPosition: plugin.settings.selectionCheckboxPosition,

@@ -325,6 +325,12 @@ export const en: Record<string, string> = {
 	'settings.caret_position.start': 'Start',
 	'settings.caret_position.end': 'End',
 	'settings.caret_position.hidden': 'Hidden',
+	'settings.tree_indent_mode': 'Tree indent mode',
+	'settings.tree_indent_mode.desc':
+		'Differentiates what the indent view option removes: all indents, depth indents only, or parent alignment indents only.',
+	'settings.tree_indent_mode.all': 'All indents (depth & parent alignment)',
+	'settings.tree_indent_mode.depth': 'Depth indent only',
+	'settings.tree_indent_mode.parent': 'Parent alignment only',
 	'settings.selection_checkbox_position': 'Selection Checkbox position',
 	'settings.selection_checkbox_position.desc':
 		'Where to display the selection checkbox on the file or item.',
@@ -900,6 +906,7 @@ export const en: Record<string, string> = {
 	'sasi.provider.tags': 'Tags provider',
 	'sasi.provider.snippets': 'Snippets provider',
 	'sasi.provider.plugins': 'Plugins provider',
+	'sasi.provider.lupapi': 'LUPAPI (Load/Unload Plugins API)',
 	'sasi.surface.chrome.left-sidebar': 'Left sidebar',
 	'sasi.surface.chrome.right-sidebar': 'Right sidebar',
 	'sasi.surface.chrome.left-ribbon': 'Left ribbon',
@@ -1578,6 +1585,7 @@ export const en: Record<string, string> = {
 	'tags.source.inline': 'inline',
 	'tags.source.both': 'both',
 	'viewmode.pill.format': 'Format',
+	'viewmode.pill.filters': 'Filters',
 	'viewmode.pill.cell_hover': 'Hover actions',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',

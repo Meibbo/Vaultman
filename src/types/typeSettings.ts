@@ -402,6 +402,8 @@ export interface VaultmanSettings {
 	iconInCaretSlot?: boolean;
 	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
 	caretPosition: 'start' | 'end' | 'hidden';
+	/** What the view_option indent removes: 'all' (depth + parent), 'depth' only, or 'parent' only. */
+	treeIndentMode: 'all' | 'depth' | 'parent';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
 	selectionCheckboxPosition: 'start' | 'end' | 'hidden';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
@@ -680,6 +682,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	caretPosition: 'start',
+	treeIndentMode: 'all',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,

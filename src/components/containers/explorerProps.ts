@@ -59,6 +59,7 @@ export interface PanelPluginCtx {
 		keepPropertyWhenLastValueDeleted?: boolean;
 		/** Opt-in drawer animation for expand/collapse. */
 		treeExpansionAnimation?: boolean;
+		treeIndentMode?: 'all' | 'depth' | 'parent';
 		groupNodeTooltips?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
@@ -3013,8 +3014,12 @@ export class PropsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: activeFilterIds,
-					exclusive: excludedFilterIds,
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -3202,8 +3207,12 @@ export class PropsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			rowTooltip: (node) => {
 				if (node.isGroupHeader !== true || this.plugin.settings?.groupNodeTooltips === false) return '';
 				const count = collectGroupMemberIds(node.children ?? []).length;
@@ -3389,8 +3398,12 @@ export class PropsExplorerPanel extends Component {
 			},
 			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
-				inclusive: activeFilterIds,
-				exclusive: excludedFilterIds,
+				inclusive: this.visibleCells.has('filters')
+					? activeFilterIds
+					: undefined,
+				exclusive: this.visibleCells.has('filters')
+					? excludedFilterIds
+					: undefined,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
@@ -4813,8 +4826,9 @@ export class PropsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
+			const showFilters = this.visibleCells.has('filters');
+			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass(

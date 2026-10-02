@@ -19,8 +19,6 @@ import {
 	apiSceneUrnOf,
 	buildApiSceneNodes,
 	isApiSceneNode,
-	buildApiSceneGroups,
-	apiSceneMemberships,
 	type ApiSceneGroupMeta,
 	type ApiSceneNodeMeta,
 	type ApiScenePublisherView,
@@ -182,9 +180,9 @@ export class SasiInspectorModal extends Modal {
 		this.host = contentEl.createDiv({ cls: 'vaultman-sasi-apiscene' });
 		this.panel = new PluginsExplorerPanel(this.host, this.plugin, {
 			providerId: 'sasi',
-			groups: buildApiSceneGroups((name) => translate(API_SCENE_GROUP_LABEL_KEYS[name])),
+			groups: [],
 			nodes: () => this.addonNodes(),
-			memberships: () => apiSceneMemberships(this.flat),
+			memberships: () => ({}),
 			urnOf: (node) => this.flat.find((row) => row.id === entityIdOf(node))?.meta.urn ?? '',
 			activate: (id) => { void this.openInstanceFromRow(id); },
 			cell: (id, cellId) => this.handleCell(id, cellId === 'state' ? PUBLISH_CELL_ID : cellId),

@@ -195,10 +195,13 @@ const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	...SHOW_OPTIONS_MENU_ACTIONS,
 ];
 
-const GROUP_PRESETS = uniqueByKey(
-	EXPLORER_TABS.flatMap((tab) => GROUP_PRESETS_BY_TAB[tab]),
-	(preset) => preset,
-);
+const GROUP_PRESETS = [
+	...uniqueByKey(
+		EXPLORER_TABS.flatMap((tab) => GROUP_PRESETS_BY_TAB[tab]),
+		(preset) => preset,
+	).filter((preset) => preset !== 'custom'),
+	'custom' as const,
+];
 const SCOPE_OPTIONS = uniqueByKey(
 	HIERARCHICAL_TABS.flatMap((tab) => sortScopeOptions(tab)),
 	(option) => option.scope,

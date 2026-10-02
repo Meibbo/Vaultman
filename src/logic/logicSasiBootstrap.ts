@@ -45,6 +45,7 @@ const PROVIDER_SCENES = [
 	'tags',
 	'snippets',
 	'plugins',
+	'lupapi',
 ] as const;
 
 export const CHROME_SURFACES = [
