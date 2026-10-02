@@ -44,9 +44,14 @@ describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales'
 				`${name} proyecta sin groupTotals`,
 			).toBe(true);
 			const compactSource = source.replace(/\s+/g, ' ');
+			// The shared addon engine must use its attached provider namespace,
+			// retaining Plugins only as the native-source default.
+			const providerExpression = name === 'explorerPlugins'
+				? "this.dataSource?.providerId ?? 'plugins'"
+				: `'${providerId}'`;
 			expect(
 				compactSource.includes(
-					`groupTotals: bubbleMemberCountsToGroups({ groups, memberships, providerId: '${providerId}', })`,
+					`groupTotals: bubbleMemberCountsToGroups({ groups, memberships, providerId: ${providerExpression}, })`,
 				),
 				`${name} no cablea los totales burbujeados con el provider de su scene`,
 			).toBe(true);
@@ -91,12 +96,15 @@ describe('L-07AW: la cabecera muestra el agregado burbujeado, no children.length
 		filtered: false,
 	};
 
-	it('ANTES: sin groupTotals el padre solo cuenta su hijo directo', () => {
+	it('ANTES: sin groupTotals el padre no inventa count desde children.length', () => {
 		const [padre] = projectGroupedTree(base);
 		expect(padre.id).toBe('P');
 		// x esta en P y en H: dos ocurrencias, ids de FILA distintos (caso S-26).
 		expect(padre.children?.map((c) => c.id)).toEqual(['x@P']);
-		expect(padre.count).toBe(1);
+		// Contrato headerNode: `count` es agregado burbujeado, NUNCA
+		// children.length; el numero de hijos vive en `subCountText`.
+		expect(padre.count).toBeUndefined();
+		expect(padre.subCountText).toBe('1');
 	});
 
 	it('DESPUES: con groupTotals el padre agrega al hijo con dedup por identidad', () => {

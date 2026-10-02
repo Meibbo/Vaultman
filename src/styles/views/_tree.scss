@@ -888,7 +888,7 @@ body.vaultman-resizing {
   gap: 5px;
   padding-block: 0;
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  padding-inline-end: 8px;
+  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
   height: 27px;
   margin-inline: var(--size-4-1, 4px);
   margin-bottom: 1px;
@@ -910,7 +910,7 @@ body.vaultman-resizing {
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  padding-inline-end: 8px;
+  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
 }
 
 .vaultman-tree-row--virtual {
@@ -1199,7 +1199,7 @@ body:not(.is-grabbing) .vaultman-tree-row.is-clickable:hover,
   margin-bottom: 0;
   padding-block: 8px;
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  padding-inline-end: 8px;
+  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
   line-height: 20.8px;
   color: var(--text-normal);
 }

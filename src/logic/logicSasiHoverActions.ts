@@ -92,15 +92,39 @@ export function kindForHoverId(id: string): 'hide' | 'hover' | 'pin' | null {
 	return null;
 }
 
+/**
+ * U130L correctiva: los `supports` apuntan a superficies chrome concretas
+ * (eje `surface` del registro), no al generico `chrome`. Solo metadata del
+ * registro: la implementacion del hover (servicio, SCSS, settings) no cambia.
+ * `sidebars`/`ribbons` mapean a dos superficies cada una por semantica.
+ */
+const CONCRETE_SUPPORTS: Record<HoverSurface, readonly string[]> = {
+	sidebars: ['chrome:left-sidebar', 'chrome:right-sidebar'],
+	ribbons: ['chrome:left-ribbon', 'chrome:right-ribbon'],
+	tabbar: ['chrome:tabbar'],
+	statusbar: ['chrome:statusbar'],
+};
+
+const LOCK_SUPPORTS: readonly string[] = [
+	'chrome:left-sidebar',
+	'chrome:right-sidebar',
+	'chrome:left-ribbon',
+	'chrome:right-ribbon',
+	'chrome:tabbar',
+	'chrome:navbar',
+	'chrome:statusbar',
+];
+
 export function registerHoverActions(registry: SasiRegistry): void {
 	for (const surface of HOVER_SURFACE_IDS) {
+		const supports = CONCRETE_SUPPORTS[surface].map((s) => ({ surface: s }));
 		registry.register({
 			id: hoverActionId({ surface, kind: HIDE }),
 			axis: 'function',
 			kind: 'action',
 			labelKey: LABEL_KEYS[surface].hide,
 			icon: ICONS[surface].hide,
-			supports: [{ surface: 'chrome' }],
+			supports,
 		});
 		registry.register({
 			id: hoverActionId({ surface, kind: HOVER }),
@@ -108,7 +132,7 @@ export function registerHoverActions(registry: SasiRegistry): void {
 			kind: 'action',
 			labelKey: LABEL_KEYS[surface].hover,
 			icon: ICONS[surface].hover,
-			supports: [{ surface: 'chrome' }],
+			supports,
 		});
 		registry.register({
 			id: hoverActionId({ surface, kind: PIN }),
@@ -116,7 +140,7 @@ export function registerHoverActions(registry: SasiRegistry): void {
 			kind: 'action',
 			labelKey: LABEL_KEYS[surface].pin,
 			icon: ICONS[surface].pin,
-			supports: [{ surface: 'chrome' }],
+			supports,
 		});
 	}
 	registry.register({
@@ -125,7 +149,7 @@ export function registerHoverActions(registry: SasiRegistry): void {
 		kind: 'action',
 		labelKey: 'sasi.hover.lock',
 		icon: 'lucide-lock',
-		supports: [{ surface: 'chrome' }],
+		supports: LOCK_SUPPORTS.map((s) => ({ surface: s })),
 	});
 	registry.register({
 		id: HOVER_NESTED_RIBBON_ID,
@@ -133,6 +157,6 @@ export function registerHoverActions(registry: SasiRegistry): void {
 		kind: 'action',
 		labelKey: 'sasi.hover.nested-ribbon',
 		icon: 'lucide-panel-left',
-		supports: [{ surface: 'chrome' }],
+		supports: [{ surface: 'chrome:left-ribbon' }],
 	});
 }

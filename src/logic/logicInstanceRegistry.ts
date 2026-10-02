@@ -9,6 +9,10 @@ import type { SavedFloatingTocState } from '../types/typeSettings';
 import { cloneGroupPreset } from '../types/typeGroupPreset';
 import { cloneExplorerSortState } from './logicScopedSort';
 import { cloneGroupMemberships } from './logicMembershipUrn';
+import {
+	DEFAULT_HOME_SURFACE,
+	type HomeSurfaceIntent,
+} from '../types/typeSurface';
 
 export const EMPTY_REGISTRY: InstanceRegistryData = { schema: 1, instances: {} };
 
@@ -85,6 +89,58 @@ export function ensureInstance(
 		record,
 		created: true,
 	};
+}
+
+/** Declare durable identity without reviving a tombstone from a legacy mount. */
+export function declareWorkspaceInstance(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	homeSurface: HomeSurfaceIntent = DEFAULT_HOME_SURFACE,
+): InstanceRegistryData {
+	const existing = registry.instances[id];
+	if (!existing) {
+		const record: WorkspaceInstanceRecord = {
+			...createInstanceRecord(id),
+			homeSurface: cloneHomeSurfaceIntent(homeSurface),
+		};
+		return { ...registry, instances: { ...registry.instances, [id]: record } };
+	}
+	if (existing.tombstoned || existing.homeSurface) return registry;
+	const declared: WorkspaceInstanceRecord = {
+		...existing,
+		homeSurface: cloneHomeSurfaceIntent(homeSurface),
+		revision: existing.revision + 1,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: declared } };
+}
+
+export function setInstanceHomeSurface(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	homeSurface: HomeSurfaceIntent,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (
+		!record ||
+		(record.homeSurface?.kind === homeSurface.kind &&
+			(record.homeSurface.kind !== 'sidebar' ||
+				homeSurface.kind !== 'sidebar' ||
+				record.homeSurface.edge === homeSurface.edge))
+	) {
+		return registry;
+	}
+	const next: WorkspaceInstanceRecord = {
+		...record,
+		homeSurface: cloneHomeSurfaceIntent(homeSurface),
+		revision: record.revision + 1,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: next } };
+}
+
+function cloneHomeSurfaceIntent(intent: HomeSurfaceIntent): HomeSurfaceIntent {
+	return intent.kind === 'main'
+		? { kind: 'main' }
+		: { kind: 'sidebar', edge: intent.edge };
 }
 
 /**
@@ -208,7 +264,13 @@ export function reconcileRegistry(
 		if (!record || typeof record !== 'object' || record.id !== id) continue;
 		// Migración: si `lastActiveAt` falta o no es finito, usar `createdAt`.
 		const lastActiveAt = Number.isFinite(record.lastActiveAt) ? record.lastActiveAt : (Number.isFinite(record.createdAt) ? record.createdAt : 0);
-		const next: WorkspaceInstanceRecord = { ...record, lastActiveAt, tombstoned: !live.has(id) };
+		const next: WorkspaceInstanceRecord = {
+			...record,
+			lastActiveAt,
+			// Declared records own their durable identity. Legacy records retain
+			// the old anchor-derived tombstone behavior for compatibility.
+			tombstoned: record.homeSurface ? record.tombstoned : !live.has(id),
+		};
 		instances[id] = next;
 		if (next.tombstoned) tombstones.push(next);
 	}

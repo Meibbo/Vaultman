@@ -1,6 +1,7 @@
 // src/components/UnifiedTreeView.ts
 import { Platform, setIcon, setTooltip } from 'obsidian';
 import type { TooltipPlacement } from 'obsidian';
+import { translate } from '../../i18n/index';
 import type {
 	NodeBubbleDot,
 	TreeNode,
@@ -9,8 +10,10 @@ import type {
 import type { ExplorerTabId } from '../../types/typeUI';
 import type { CounterRange } from '../../types/typeGroupPreset';
 import { validateCounterRangeEdit } from '../../logic/logicCounterRangeEditor';
-import { translate } from '../../i18n/index';
-import { applyCellTooltip as applySharedCellTooltip } from '../../logic/logicCellTooltip';
+import {
+	applyCellTooltip as applySharedCellTooltip,
+	resolveTooltipPlacement,
+} from '../../logic/logicCellTooltip';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import {
 	resolveExplorerHighlight,
@@ -69,7 +72,7 @@ export function isEditableDblClickTarget(target: EventTarget | null): boolean {
 		tagName?: string;
 	};
 	if (typeof el.closest === 'function') {
-		const input = el.closest('input') as HTMLInputElement | null;
+		const input = el.closest('input');
 		if (input && (input.type === 'checkbox' || input.type === 'radio')) {
 			return false;
 		}
@@ -81,6 +84,28 @@ export function isEditableDblClickTarget(target: EventTarget | null): boolean {
 	if (el.isContentEditable === true) return true;
 	const tag = typeof el.tagName === 'string' ? el.tagName.toUpperCase() : '';
 	return tag === 'INPUT' || tag === 'TEXTAREA';
+}
+
+function setRowCssProps(
+	row: HTMLElement,
+	props: Record<string, string>,
+): void {
+	if (
+		typeof (row as { setCssProps?: (props: Record<string, string>) => void })
+			.setCssProps === 'function'
+	) {
+		(row as { setCssProps: (props: Record<string, string>) => void }).setCssProps(
+			props,
+		);
+	} else {
+		for (const [key, value] of Object.entries(props)) {
+			if (value) {
+				row.style.setProperty(key, value);
+			} else {
+				row.style.removeProperty(key);
+			}
+		}
+	}
 }
 
 export interface TreeViewOptions {
@@ -202,6 +227,11 @@ export interface TreeViewOptions {
 	 * keeps today's geometry for every row.
 	 */
 	indent?: boolean;
+	/**
+	 * Settings differentiation: controls whether indent toggle removes all indents,
+	 * only depth indentation, or only same-level parent indentation.
+	 */
+	treeIndentMode?: 'all' | 'depth' | 'parent';
 	/**
 	 * U130 polishing: view_option `tooltips`, per_instance. `false` apaga
 	 * los tooltips nativos de filas y celdas. Ausente/`true` conserva los
@@ -680,7 +710,7 @@ export class UnifiedTreeView {
 			const meta = node.meta as { isFolder?: unknown } | null;
 			return {
 				id: node.id,
-				depth: Math.max(0, node.depth - 1),
+				depth: node.depth,
 				hasCaret,
 				isParent:
 					hasCaret ||
@@ -1391,8 +1421,12 @@ export class UnifiedTreeView {
 		// Obsidian's native tooltip, not the browser `title` (which double-renders).
 		row.removeAttribute('title');
 		if (this._opts?.tooltipsEnabled === false) return;
+		const placement = resolveTooltipPlacement(
+			this._opts?.tooltipPlacement ?? 'right',
+			row,
+		);
 		setTooltip(row, text, {
-			placement: this._opts?.tooltipPlacement ?? 'right',
+			placement,
 		});
 	}
 
@@ -1657,23 +1691,63 @@ export class UnifiedTreeView {
 		row.tabIndex = 0;
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
-		// The first logical level establishes a shared cell baseline. Only later
-		// levels add indentation, so p-nodes and c-nodes line up together.
-		row.style.setProperty('--depth', String(Math.max(0, node.depth - 1)));
-		// view_option `indent` off: only a row with no caret — it has nothing
-		// to disclose, so its depth carries no information the caret already
-		// doesn't — collapses to the flat 4px gutter. A p-node keeps the real
-		// formula unconditionally, at any depth, so its caret still marks the
-		// level it actually sits at.
+		const caretPos = opts.caretPosition ?? 'start';
+		const indentMode = opts.treeIndentMode ?? 'all';
 		const effectiveIndent = node.scopeIndent ?? opts.indent;
-		if (effectiveIndent === false && !showCaret) {
-			row.setCssProps({
-				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
+
+		// 1. Depth indentation:
+		// When effectiveIndent is false and indentMode is 'all' or 'depth',
+		// depth offset is zeroed for non-caret rows (p-nodes keep depth so
+		// carets remain at their structural tier).
+		const disableDepthIndent =
+			effectiveIndent === false &&
+			(indentMode === 'all' || indentMode === 'depth') &&
+			!showCaret;
+
+		if (disableDepthIndent) {
+			setRowCssProps(row, {
+				'--depth': '0',
 				'--vaultman-tree-indent-unit': '0px',
 			});
 		} else {
-			row.style.removeProperty('--vaultman-tree-row-padding-start');
-			row.style.removeProperty('--vaultman-tree-indent-unit');
+			setRowCssProps(row, {
+				'--depth': String(node.depth),
+				'--vaultman-tree-indent-unit': '',
+			});
+		}
+
+		// 2. Start padding (same-level parent indent on the left):
+		// Carets removed from start (end or hidden), or indent toggled off
+		// with mode 'all' or 'parent' for non-caret rows, removes the 24px start gutter.
+		const removeStartParentIndent =
+			caretPos === 'end' ||
+			caretPos === 'hidden' ||
+			(effectiveIndent === false &&
+				!showCaret &&
+				(indentMode === 'all' || indentMode === 'parent'));
+
+		if (removeStartParentIndent) {
+			setRowCssProps(row, {
+				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
+			});
+		} else {
+			setRowCssProps(row, {
+				'--vaultman-tree-row-padding-start': '',
+			});
+		}
+
+		// 3. End padding (same-level parent indent on the right):
+		// When carets are placed at the end and cell_caret is active, rows without
+		// carets receive end padding so right-side cells align with caret rows.
+		if (caretPos === 'end' && showCaretCell && !showCaret) {
+			setRowCssProps(row, {
+				'--vaultman-tree-row-padding-end':
+					'calc(var(--size-4-2, 8px) + var(--vaultman-tree-caret-size, 16px) + var(--size-4-1, 4px))',
+			});
+		} else {
+			setRowCssProps(row, {
+				'--vaultman-tree-row-padding-end': '',
+			});
 		}
 		if (node.folderColor) {
 			row.style.setProperty('--folder-color', node.folderColor);
@@ -1719,7 +1793,12 @@ export class UnifiedTreeView {
 					// A13: dblclick in an editable field only moves the caret.
 					if (isEditableDblClickTarget(event.target)) return;
 					if (!hasChildren) return;
-					const target = event.target instanceof Element ? event.target : null;
+					const target =
+						typeof Element !== 'undefined' && event.target instanceof Element
+							? event.target
+							: typeof (event.target as { closest?: unknown })?.closest === 'function'
+								? (event.target as unknown as Element)
+								: null;
 					if (target?.closest('.vaultman-selection-checkbox, .cell_checkbox')) {
 						opts.onRecursiveSelect?.(node.id);
 						return;
@@ -2361,9 +2440,13 @@ export class UnifiedTreeView {
 				});
 				const description = opts.bubbleDotLabel?.(node.bubbleDot);
 				if (description) {
+					const placement = resolveTooltipPlacement(
+						opts.tooltipPlacement ?? 'right',
+						dotEl,
+					);
 					setTooltip(dotEl, description, {
-				placement: opts.tooltipPlacement ?? 'right',
-			});
+						placement,
+					});
 					dotEl.setAttribute('role', 'img');
 					dotEl.setAttribute('aria-label', description);
 				}
@@ -2381,9 +2464,13 @@ export class UnifiedTreeView {
 				if (description) {
 					dotEl.setAttribute('role', 'img');
 					dotEl.setAttribute('aria-label', description);
+					const placement = resolveTooltipPlacement(
+						opts.tooltipPlacement ?? 'right',
+						dotEl,
+					);
 					setTooltip(dotEl, description, {
-				placement: opts.tooltipPlacement ?? 'right',
-			});
+						placement,
+					});
 				}
 			}
 
@@ -2401,10 +2488,15 @@ export class UnifiedTreeView {
 						setIcon(iEl, badge.icon);
 					}
 					const badgeHint = badge.tooltip ?? badge.text;
-					if (badgeHint)
+					if (badgeHint) {
+						const placement = resolveTooltipPlacement(
+							opts.tooltipPlacement ?? 'right',
+							bEl,
+						);
 						setTooltip(bEl, badgeHint, {
-							placement: opts.tooltipPlacement ?? 'right',
+							placement,
 						});
+					}
 					if (badge.text && !badge.icon) bEl.setText(badge.text);
 					// Double-click to undo this specific queue operation
 					const releasesNode =
@@ -2500,8 +2592,12 @@ export class UnifiedTreeView {
 		toggleEl.toggleClass('is-disabled', cell.disabled === true);
 		toggleEl.toggleClass('is-mixed', cell.mixed === true);
 			toggleEl.setAttribute('aria-label', cell.label);
+			const togglePlacement = resolveTooltipPlacement(
+				opts.tooltipPlacement ?? 'right',
+				toggleEl,
+			);
 			setTooltip(toggleEl, cell.label, {
-				placement: opts.tooltipPlacement ?? 'right',
+				placement: togglePlacement,
 			});
 			const input = toggleEl.createEl('input', {
 				cls: 'vaultman-addon-toggle-input',
@@ -2540,8 +2636,12 @@ export class UnifiedTreeView {
 						: 'lucide-toggle-left'
 					: cell.icon,
 			);
+			const badgePlacement = resolveTooltipPlacement(
+				opts.tooltipPlacement ?? 'right',
+				badgeEl,
+			);
 			setTooltip(badgeEl, cell.label, {
-				placement: opts.tooltipPlacement ?? 'right',
+				placement: badgePlacement,
 			});
 			if (!cell.disabled) {
 				badgeEl.addClass('is-clickable');
@@ -2557,8 +2657,12 @@ export class UnifiedTreeView {
 		actionEl.setAttribute('aria-label', cell.label);
 		actionEl.disabled = cell.disabled === true;
 		setIcon(actionEl, cell.icon);
+		const actionPlacement = resolveTooltipPlacement(
+			opts.tooltipPlacement ?? 'right',
+			actionEl,
+		);
 		setTooltip(actionEl, cell.label, {
-			placement: opts.tooltipPlacement ?? 'right',
+			placement: actionPlacement,
 		});
 		handleClick(actionEl);
 	}

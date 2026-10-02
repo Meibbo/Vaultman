@@ -52,14 +52,57 @@ export function cellTooltipText(
 }
 
 /**
+ * Detect whether an element is inside Obsidian's right sidebar/split or placed
+ * so close to the right viewport edge that a right-side lateral tooltip would
+ * overflow off-screen.
+ */
+export function isElementInRightSidebar(el: Element | null | undefined): boolean {
+	if (!el) return false;
+	if (el.closest?.('.mod-right-split, [data-surface-position="right-sidebar"]')) {
+		return true;
+	}
+	if (typeof window !== 'undefined' && typeof el.getBoundingClientRect === 'function') {
+		try {
+			const rect = el.getBoundingClientRect();
+			if (rect && (rect.width > 0 || rect.height > 0) && rect.right > window.innerWidth - 320) {
+				return true;
+			}
+		} catch {
+			// ignore in test / virtual dom
+		}
+	}
+	return false;
+}
+
+/**
+ * Resolves final TooltipPlacement taking into account screen bounds.
+ * Lateral placements (`side` or `right`) flip to `left` when docked on the
+ * right sidebar to prevent off-screen rendering.
+ */
+export function resolveTooltipPlacement(
+	placement: TooltipPlacement | 'side' | undefined,
+	element?: Element | null,
+): TooltipPlacement {
+	if (placement === 'bottom') return 'bottom';
+	if (placement === 'top') return 'top';
+	if (placement === 'left') return 'left';
+	if (isElementInRightSidebar(element)) return 'left';
+	return 'right';
+}
+
+/**
  * U130 polishing: user-facing tooltip placement (`side` = native lateral,
  * `below` = historic ours, `above`) mapped to Obsidian placements. Unknown
- * values fall back to native-like `right`.
+ * values fall back to native-like `right` (or `left` if in right sidebar).
  */
-export function tooltipPlacementForSetting(value: unknown): TooltipPlacement {
+export function tooltipPlacementForSetting(
+	value: unknown,
+	contextEl?: Element | null,
+): TooltipPlacement {
 	if (value === 'below') return 'bottom';
 	if (value === 'above') return 'top';
-	return 'right';
+	if (value === 'left') return 'left';
+	return resolveTooltipPlacement('right', contextEl);
 }
 
 export function applyCellTooltip(
@@ -67,11 +110,13 @@ export function applyCellTooltip(
 	explorer: ExplorerTabId,
 	viewMode: ExplorerViewMode,
 	cellId: string,
-	placement?: TooltipPlacement,
+	placement?: TooltipPlacement | 'side',
 ): void {
 	const text = cellTooltipText(explorer, viewMode, cellId);
 	element.removeAttribute('title');
 	if (!text) return;
 	element.setAttribute('aria-label', text);
-	setTooltip(element, text, { placement: placement ?? 'right' });
+	const resolved = resolveTooltipPlacement(placement, element);
+	setTooltip(element, text, { placement: resolved });
 }
+

@@ -262,6 +262,12 @@ it("normaliza vacios/antiguos a defaults", () => {
 				pluginSuffix: "",
 				propPrefix: "[",
 				propSuffix: "]",
+				groupPrefix: "",
+				groupSuffix: "",
+				folderPrefix: "",
+				folderSuffix: "",
+				filePrefix: "",
+				fileSuffix: "",
 			});
 			expect(normalizeNodeNotePrefixes({ tagPrefix: "  " })).toMatchObject({ tagPrefix: "#" });
 			expect(prefixesFromSettings(undefined)).toMatchObject({ tagPrefix: "#" });

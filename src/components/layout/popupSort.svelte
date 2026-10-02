@@ -67,6 +67,9 @@
 		onNewGroup,
 		onHideGroup,
 		onDeleteGroup,
+		onRenameGroup,
+		onCopyGroup,
+		onUpdateGroupScope,
 		icon,
 	}: {
 		activeTab: FiltersTab;

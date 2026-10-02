@@ -27,6 +27,8 @@ import type {
 	TimestampRelativeWindow,
 } from '../logic/logicRelativeTime';
 import type { FolderHoverInfoField } from '../logic/logicFileHoverInfo';
+import type { OpenWorkspaceInstanceResult } from '../services/serviceSurfaceHost';
+import type { SurfaceRequest } from './typeSurface';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -402,6 +404,8 @@ export interface VaultmanSettings {
 	iconInCaretSlot?: boolean;
 	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
 	caretPosition: 'start' | 'end' | 'hidden';
+	/** What the view_option indent removes: 'all' (depth + parent), 'depth' only, or 'parent' only. */
+	treeIndentMode: 'all' | 'depth' | 'parent';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
 	selectionCheckboxPosition: 'start' | 'end' | 'hidden';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
@@ -475,6 +479,16 @@ export interface VaultmanSettings {
 	contextMenuHideRules: MenuHideRule[];
 	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
 	instanceRegistry?: InstanceRegistryData;
+	/**
+	 * U130L: decisión Published de comandos SASI, separada del capability
+	 * registry. Vive en PSS/settings para sobrevivir a desactivar/reactivar
+	 * y a reinicios. Clave = command id estable, valor = publicado o no.
+	 * Los ids retirados se conservan (no se podan) para no perder elecciones
+	 * futuras si el comando vuelve.
+	 */
+	sasiPublishedCommands?: Record<string, boolean>;
+	/** API inspector options are not workspace instance declarations. */
+	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
@@ -493,6 +507,11 @@ export interface VaultmanSettings {
 export interface iVaultmanPlugin extends Plugin {
 	settings: VaultmanSettings;
 	saveSettings(): Promise<void>;
+	openApiScene(): void;
+	openWorkspaceInstance(
+		instanceId: string,
+		surface?: SurfaceRequest,
+	): Promise<OpenWorkspaceInstanceResult<import('obsidian').WorkspaceLeaf>>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
 	queueService?: {
@@ -671,6 +690,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	caretPosition: 'start',
+	treeIndentMode: 'all',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,
@@ -689,4 +709,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuShowInMoreOptions: true,
 	contextMenuHideRules: [],
 	instanceRegistry: { schema: 1, instances: {} },
+	sasiPublishedCommands: {},
 };

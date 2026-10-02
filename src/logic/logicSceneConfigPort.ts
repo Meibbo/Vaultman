@@ -115,11 +115,11 @@ export function captureSceneFacets(
 		showOptionsOverride: config.showOptionsOverride,
 		sceneLabelMode: config.sceneLabelMode,
 		autoRevealMode: config.autoRevealMode,
-		hiddenToolbarNodes: [...config.hiddenToolbarNodes],
-		toolbarNodeIcons: { ...config.toolbarNodeIcons },
-		toolbarCommandActions: [...config.toolbarCommandActions],
+		hiddenToolbarNodes: [...(config.hiddenToolbarNodes ?? [])],
+		toolbarNodeIcons: { ...(config.toolbarNodeIcons ?? {}) },
+		toolbarCommandActions: [...(config.toolbarCommandActions ?? [])],
 		createActionsPlacement: config.createActionsPlacement,
-		toolbarNodeOrder: [...config.toolbarNodeOrder],
+		toolbarNodeOrder: [...(config.toolbarNodeOrder ?? [])],
 	};
 }
 

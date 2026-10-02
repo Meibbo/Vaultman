@@ -1,4 +1,4 @@
-import { Component, Notice, setTooltip } from 'obsidian';
+import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
@@ -93,9 +93,15 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTree,
+	PRESET_GROUP_PREFIX,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	API_SCENE_GROUP_KIND,
+	API_SCENE_GROUP_LABEL_KEYS,
+	type ApiSceneGroupName,
+} from '../../logic/logicApiSceneModel';
 import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
@@ -127,9 +133,11 @@ import {
 } from '../../logic/logicGroupSelectionTransaction';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import { projectAddonDataNodes, type AddonExplorerDataSource } from '../../logic/logicAddonDataSource';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -137,6 +145,7 @@ export class PluginsExplorerPanel
 {
 	private readonly containerEl: HTMLElement;
 	private readonly plugin: VaultmanPlugin;
+	private readonly dataSource: AddonExplorerDataSource | undefined;
 	private treeView: UnifiedTreeView | null = null;
 	private nodes: TreeNode<PluginMeta>[] = [];
 	/** A07b-2: el ultimo arbol PROYECTADO (cabeceras + ocurrencias `id@grupo`),
@@ -162,7 +171,7 @@ export class PluginsExplorerPanel
 	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
 	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
-	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested']);
+	private visibleCells = new Set(['icon', 'text', 'state', 'config', 'nested']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
@@ -184,7 +193,8 @@ export class PluginsExplorerPanel
 	private selectionRevision: number | null = null;
 
 	private _selectionKey(): string {
-		return selectionKeyFor('plugins', 'plugins', this.selectionInstanceId);
+		const provider = this.dataSource?.providerId ?? 'plugins';
+		return selectionKeyFor(provider, provider, this.selectionInstanceId);
 	}
 
 	private _touchSelection(): void {
@@ -219,10 +229,11 @@ export class PluginsExplorerPanel
 	private readonly _seenGroupHeaderIds = new Set<string>();
 	private _expandedGroupIds = new Set<string>();
 
-	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
+	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin, dataSource?: AddonExplorerDataSource) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		this.dataSource = dataSource;
 		this.cellStyle = normalizeAddonCellStyle(plugin.settings.addonCellStyle);
 	}
 
@@ -233,6 +244,10 @@ export class PluginsExplorerPanel
 			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
 		);
 		this.treeView = new UnifiedTreeView(this.containerEl);
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		void this.refresh();
 		// Core Settings toggles emit no event; poll a cheap signature while the
 		// panel is visible and refresh only on a real delta (BT4-006).
@@ -310,6 +325,7 @@ export class PluginsExplorerPanel
 	private _lastExternalSignature = '';
 
 	private _syncExternalState(): void {
+		if (this.dataSource) return;
 		if (this.destroyed || !this.containerEl.isShown()) return;
 		const signature = communityPluginStateSignature(this.plugin.app);
 		if (signature === this._lastExternalSignature) return;
@@ -334,6 +350,10 @@ export class PluginsExplorerPanel
 	}
 
 	async refresh(): Promise<void> {
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		const revision = ++this.refreshRevision;
 		const manifestId = this.plugin.manifest.id;
 		this._lastExternalSignature = communityPluginStateSignature(
@@ -351,6 +371,10 @@ export class PluginsExplorerPanel
 	setSearchTerm(term: string): void {
 		if (this.searchTerm === term) return;
 		this.searchTerm = term;
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		if (isSettingsSearchActive(term)) {
 			if (isNativeSettingsSearchAvailable(this.plugin.app)) {
 				try {
@@ -451,6 +475,7 @@ export class PluginsExplorerPanel
 	}
 
 	private _membershipUrnOf(node: TreeNode<PluginMeta>): string {
+		if (this.dataSource) return this.dataSource.urnOf(node);
 		// U130 Slice A: la fila `node_settings` no es un plugin; su kind es
 		// `settings` con la tripleta nativa como identidad. providerId `plugins`
 		// intacto (no se renombra) y kind `plugin` conservado en resolubles.
@@ -569,6 +594,7 @@ export class PluginsExplorerPanel
 	}
 
 	private _isCustomGroupId(id: string): boolean {
+		if (this.dataSource?.groups.some((group) => group.id === id)) return false;
 		return (
 			this._groupIds.has(id) ||
 			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
@@ -744,6 +770,12 @@ export class PluginsExplorerPanel
 		if (kind === 'created') return node.meta.installedTime ?? null;
 		if (kind === 'state') return node.meta.enabled ? 'enabled' : 'disabled';
 		if (kind === 'sections') {
+			if (this.dataSource?.providerId === 'sasi') {
+				const group = (node.meta as { group?: unknown })?.group;
+				if (typeof group === 'string' && group) {
+					return group;
+				}
+			}
 			// U130-C1: en reposo (term vacío) las filas top-level son
 			// `node_plugin` + `node_settings` globales planas. El bucket
 			// lo gobierna `projectGroupedTree`: plugins → Core/Community
@@ -968,6 +1000,11 @@ export class PluginsExplorerPanel
 	}
 
 	private rebuildNodes(): void {
+		if (this.dataSource) {
+			this.nodes = projectAddonDataNodes(this.dataSource.nodes(), this.searchTerm, activeScopeSort('plugins', this.sortState));
+			this.render();
+			return;
+		}
 		// U130 Slice A: término activo = camino nativo (sin `searchText`
 		// local, sin re-sort: el ranking es el orden nativo). Término vacío
 		// = forma canónica 2026-09-25: grupos core/community → plugins →
@@ -1175,8 +1212,8 @@ export class PluginsExplorerPanel
 		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
 		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
 		// un layout por nombre: el layout solo copia su foto en la scene.
-		const memberships = this.groupMemberships;
-		const groups = resolveCustomGroups(memberships).filter(
+		const memberships = { ...this.dataSource?.memberships(), ...this.groupMemberships };
+		const groups = [...(this.groupPreset.kind === 'custom' ? this.dataSource?.groups ?? [] : []), ...resolveCustomGroups(this.groupMemberships)].filter(
 			(group) => !this.hiddenGroupIds.has(group.id),
 		);
 		this._groupIds.clear();
@@ -1187,7 +1224,7 @@ export class PluginsExplorerPanel
 		// tampoco los tabs/pages de term vacío, que viajan con su plugin
 		// por holarchy). Con búsqueda activa los padres nativos quedan
 		// arriba sin re-envolver; los hijos viajan con ellos.
-		const searchActive = isSettingsSearchActive(this.searchTerm ?? '');
+		const searchActive = !this.dataSource && isSettingsSearchActive(this.searchTerm ?? '');
 		let nodesForGrouping = this.nodes;
 		let nativeParents: TreeNode<PluginMeta>[] | undefined;
 		if (searchActive) {
@@ -1221,7 +1258,7 @@ export class PluginsExplorerPanel
 			nodes: nodesForGrouping,
 			groups,
 			memberships,
-			providerId: 'plugins',
+			providerId: this.dataSource?.providerId ?? 'plugins',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
 			hiddenGroupIds: this.hiddenGroupIds,
@@ -1231,7 +1268,7 @@ export class PluginsExplorerPanel
 			groupTotals: bubbleMemberCountsToGroups({
 				groups,
 				memberships,
-				providerId: 'plugins',
+				providerId: this.dataSource?.providerId ?? 'plugins',
 			}),
 			// Spec 08 §3.1.bis: the preset selection is the switch, never the
 			// sort scope.
@@ -1240,6 +1277,10 @@ export class PluginsExplorerPanel
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			decorateHeader: (header) => {
 				if (this.groupPreset.kind !== 'sections') return;
+				const presetKey = header.id.startsWith(PRESET_GROUP_PREFIX)
+					? header.id.slice(PRESET_GROUP_PREFIX.length)
+					: header.id.replace(/^group:/, '');
+
 				if (
 					header.id === 'group:core-plugins' ||
 					header.id === 'vaultman.group.preset:core-plugins'
@@ -1255,6 +1296,19 @@ export class PluginsExplorerPanel
 					header.id === 'vaultman.group.preset:global-settings'
 				) {
 					header.label = GLOBAL_SETTINGS_GROUP_LABEL;
+				} else if (
+					this.dataSource?.providerId === 'sasi' ||
+					presetKey in API_SCENE_GROUP_LABEL_KEYS
+				) {
+					const sasiKey = presetKey as ApiSceneGroupName;
+					const labelKey = API_SCENE_GROUP_LABEL_KEYS[sasiKey];
+					if (labelKey) {
+						header.label = translate(labelKey);
+						header.meta = {
+							identityKind: API_SCENE_GROUP_KIND,
+							group: sasiKey,
+						} as any;
+					}
 				}
 			},
 			rangeLabels: translatedRangeLabels(),
@@ -1291,6 +1345,7 @@ export class PluginsExplorerPanel
 	private withGroupToggleCells(
 		rows: readonly TreeNode<PluginMeta>[],
 	): TreeNode<PluginMeta>[] {
+		if (this.dataSource) return [...rows];
 		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
 			return rows as TreeNode<PluginMeta>[];
 		}
@@ -1335,7 +1390,7 @@ export class PluginsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (this.visibleCells.has('format')) {
+		if (!this.dataSource && this.visibleCells.has('format')) {
 			this._decorateNodeNotes(this.nodes);
 		}
 		this.emptyEl?.remove();
@@ -1353,11 +1408,16 @@ export class PluginsExplorerPanel
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
 			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			renderLabel: (row, node) => {
+				if (this.dataSource) return false;
 				if (node.isGroupHeader === true) {
 					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
 						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
@@ -1420,14 +1480,14 @@ export class PluginsExplorerPanel
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this.selectedNodeIds = result.selectedIds;
+				this.selectionAnchorId = result.anchorId;
 				this._touchSelection();
 				this.render();
 			},
@@ -1447,6 +1507,11 @@ export class PluginsExplorerPanel
 					return;
 				}
 				if (this.interactionMode !== 'select') {
+					if (this.dataSource) {
+						const node = this.findNode(id);
+						if (node) this.dataSource.activate(entityIdOf(node));
+						return;
+					}
 					this._activateSettingSceneRow(id);
 					return;
 				}
@@ -1478,6 +1543,11 @@ export class PluginsExplorerPanel
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
+				if (this.dataSource) {
+					const node = this.findNode(id);
+					if (node && !node.isGroupHeader) this.dataSource.cell(entityIdOf(node), cellId);
+					return;
+				}
 				if (isGroupHeader(id, this._groupIds)) {
 					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
 					// miembros, no a uno.
@@ -1491,13 +1561,22 @@ export class PluginsExplorerPanel
 					openPluginSettings(this.plugin.app, node.meta.pluginId);
 				}
 			},
-			rowTooltip: (node) => this.tooltip(node.meta as PluginMeta),
+			rowTooltip: (node) => {
+				const row = this.findNode(node.id);
+				return this.dataSource && row ? this.dataSource.tooltip(row) : this.tooltip(node.meta as PluginMeta);
+			},
+			onEmptySpaceClick: () => this.clearSelection(),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
+				if (this.dataSource) {
+					if (node && this.tooltipsOverride !== false) setTooltip(row, this.dataSource.tooltip(node));
+					return;
+				}
 				if (node && this.tooltipsOverride !== false)
 					setTooltip(row, this.tooltip(node.meta), {
 				placement: tooltipPlacementForSetting(
 					this.plugin.settings?.tooltipPlacement,
+					this.containerEl,
 				),
 			});
 			},
@@ -1562,6 +1641,14 @@ export class PluginsExplorerPanel
 					return;
 				}
 				const node = this.findNode(id);
+				if (this.dataSource && node) {
+					this._includeInvokedInSelection(id, event);
+					const menu = new Menu();
+					const create = this._groupCreationMenuCtx().createGroupWithSelected;
+					if (create) menu.addItem((item) => item.setTitle(translate('group.selected')).setIcon('lucide-boxes').onClick(() => { void create(); }));
+					menu.showAtMouseEvent(event);
+					return;
+				}
 				// U130 Slice A: `node_settings` no es plugin y no tiene menú
 				// de plugin (su `pluginId` es '').
 				if (!node || !node.meta.pluginId) return;

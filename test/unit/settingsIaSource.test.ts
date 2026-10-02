@@ -96,9 +96,11 @@ describe('BT3 settings information architecture source guards', () => {
 		// BT5-010: Files defaults come from the shared registry.
 		// Orden dev 2026-09-15: format < path < name.
 		expect(defaultVisibleCells('files', 'tree')).toEqual([
-			'format',
+			'caret',
 			'name',
+			'format',
 			'ext',
+			'filters',
 			'nested',
 		]);
 		expect(
@@ -206,7 +208,7 @@ describe('U121-029 declarative settings root inventory', () => {
 	});
 
 	it('keeps the template and saved-composition sections on the root page', () => {
-		const templates = sliceBetween(FILTER_TEMPLATES, TOOLBAR_PAGE);
+		const templates = sliceBetween(ROOT, TOOLBAR_PAGE);
 		for (const key of [
 			'settings.templates',
 			'queue.template.templates',

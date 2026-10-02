@@ -2991,8 +2991,12 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			counterRangeBoundLabel: (bound) =>
@@ -3283,6 +3287,8 @@ export class FilesExplorerPanel extends Component {
 		// header up in the raw source tree made materialization disappear from
 		// the universal group menu.
 		const projectedTree = this.projectedNodes(renderTree);
+		const { activeFilterIds, excludedFilterIds } =
+			this._fileFilterHighlight(renderTree);
 		this._treeRenderOpts = {
 			surface: 'files',
 			nodes: renderTree,
@@ -3290,9 +3296,12 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
-			rowTooltip: (node) => this._groupHoverText(node),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
@@ -3300,7 +3309,15 @@ export class FilesExplorerPanel extends Component {
 			caretPosition: this.plugin.settings.caretPosition ?? 'start',
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
-				highlightIds: { deletion: this._deletionHighlightIds },
+				highlightIds: {
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
+					deletion: this._deletionHighlightIds,
+				},
 				// U121-081: fileScene never passed this, so even with the cell on
 				// there was nothing to render.
 				selectionCheckboxPosition: this._selectionCheckboxPosition(),
@@ -3605,6 +3622,17 @@ export class FilesExplorerPanel extends Component {
 						typeof node.meta.folderPath === 'string'
 					)
 						this._handleFolderHover(node.meta.folderPath, row);
+					else if (node?.isGroupHeader) {
+						const text = this._groupHoverText(node);
+						if (text) {
+							setTooltip(row, text, {
+								placement: tooltipPlacementForSetting(
+									this.plugin.settings?.tooltipPlacement,
+									this.containerEl,
+								),
+							});
+						}
+					}
 				},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
@@ -3809,7 +3837,37 @@ export class FilesExplorerPanel extends Component {
 		}
 	}
 
-	
+	private _fileFilterHighlight(
+		nodes: readonly TreeNode<FileMeta>[],
+	): { activeFilterIds: Set<string>; excludedFilterIds: Set<string> } {
+		const activeFilterIds = new Set<string>();
+		const excludedFilterIds = new Set<string>();
+		const filterService = this.plugin.filterService;
+		if (!filterService) return { activeFilterIds, excludedFilterIds };
+
+		const visit = (node: TreeNode<FileMeta>) => {
+			const meta = node.meta;
+			if (meta?.isFolder) {
+				const folderPath = meta.folderPath ?? node.id;
+				const state = filterService.getFilterState('folder', folderPath);
+				if (state === 'included') activeFilterIds.add(node.id);
+				else if (state === 'excluded') excludedFilterIds.add(node.id);
+			} else if (meta?.file) {
+				const filePath = meta.file.path;
+				if (isFileExcluded(filterService.activeFilter, filePath)) {
+					excludedFilterIds.add(node.id);
+				}
+			}
+			for (const child of node.children ?? []) {
+				visit(child);
+			}
+		};
+		for (const node of nodes) {
+			visit(node);
+		}
+		return { activeFilterIds, excludedFilterIds };
+	}
+
 	private _decorateTreeWithNodeNotes(nodes: TreeNode<FileMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
@@ -6737,8 +6795,12 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

@@ -68,6 +68,7 @@ import {
 } from './utils/dragEditorDrop';
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
+import { SasiInspectorModal } from './modals/modalSasiInspector';
 import {
 	openUpdatesBulletin,
 	shouldShowUpdates,
@@ -75,16 +76,38 @@ import {
 import {
 	normalizeOpenMode,
 	shouldToggleCloseFrame,
+	selectCommandFrame,
 } from './logic/logicFrameActivation';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
-import { reconcileRegistry } from './logic/logicInstanceRegistry';
+import {
+	declareWorkspaceInstance,
+	mintInstanceId,
+	reconcileRegistry,
+} from './logic/logicInstanceRegistry';
+import { addressForLeaf } from './logic/logicSurfaceAddress';
+import {
+	InstanceMountRegistry,
+	type InstanceMountLease,
+	type MountReservationResult,
+} from './logic/logicInstanceMountRegistry';
+import {
+	SurfaceHost,
+	type OpenWorkspaceInstanceResult,
+} from './services/serviceSurfaceHost';
+import {
+	DEFAULT_HOME_SURFACE,
+	type HomeSurfaceIntent,
+	type SurfaceRequest,
+} from './types/typeSurface';
 import { createVaultmanSasi } from './logic/logicSasiBootstrap';
 import type { SasiRegistry } from './logic/logicSasiRegistry';
 import type { SasiProvider } from './services/serviceSasiProvider';
 import {
 	createSasiCommandPublisher,
+	effectiveSasiPublishedDecisions,
+	mergeSasiPublishedStore,
 	type SasiCommandPublisher,
 } from './logic/logicSasiCommands';
 import {
@@ -123,10 +146,36 @@ import {
 	type FrontmatterSourceLocation,
 } from './services/serviceFrontmatterPropertyReveal';
 
+/**
+ * U130L: decision Published por defecto, explicita por comando. Los comandos
+ * historicos nacen publicados (preservan atajos); cualquier comando nuevo
+ * nace oculto salvo que se anada aqui a `true`. El default solo se
+ * aplica cuando `settings.sasiPublishedCommands` no trae preferencia previa
+ * para ese id (`resolveSasiPublishedDecision`).
+ */
+const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
+	'apply-queue',
+	'open',
+	'open-updates',
+	'focus-content-search',
+	'focus-active-explorer-search',
+	SETTINGS_OPEN_ID,
+	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+	TOOLBAR_TOGGLE_EXPANSION_ID,
+	TOOLBAR_SEARCHBOX_ID,
+	SEARCH_CYCLE_CATEGORY_ID,
+	SEARCH_CREATE_TARGET_ID,
+]);
+
+export function sasiPublishedDefault(id: string): boolean {
+	return SASI_PUBLISHED_DEFAULT_TRUE.has(id);
+}
+
 //...----------—————————————(   EXPORTS   )————————————------------...\\
 export class VaultmanPlugin extends Plugin {
 	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();
+	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
 
 	// Core services — public so components/modals can access them
 	propertyIndex!: PropertyIndexService;
@@ -140,6 +189,8 @@ export class VaultmanPlugin extends Plugin {
 	nodeBindingService!: NodeBindingService;
 	nativeSurfaceBindingService!: NativeSurfaceBindingService;
 	breadcrumbFileSceneService!: BreadcrumbFileSceneService;
+	private readonly instanceMounts = new InstanceMountRegistry<WorkspaceLeaf>();
+	surfaceHost!: SurfaceHost<WorkspaceLeaf>;
 
 	/**
 	 * U130-01: SASI = Services Actions Scripts Indexing. Vive bajo MyConfig,
@@ -169,8 +220,11 @@ export class VaultmanPlugin extends Plugin {
 		const leaves = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
 		let targetLeaf = leaves[0];
 		if (!targetLeaf) {
-			targetLeaf = this.app.workspace.getLeftLeaf(false) ?? this.app.workspace.getLeaf('tab');
-			await targetLeaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
+			const opened = await this.createAndOpenWorkspaceInstance(
+				this.sidebarSurfaceForPhysical('left'),
+			);
+			if (!opened.ok) return false;
+			targetLeaf = opened.address.leaf;
 		}
 		await this.app.workspace.revealLeaf(targetLeaf);
 		this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
@@ -204,7 +258,25 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async onload(): Promise<void> {
+		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+			if (leaf?.view instanceof VaultmanFrame) this.lastFocusedFrameLeaf = leaf;
+		}));
+		this.registerDomEvent(activeDocument, 'pointerdown', (event) => {
+			if (!(event.target instanceof Node)) return;
+			const target = event.target;
+			const leaf = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE).find(
+				(candidate) => candidate.view.containerEl.contains(target),
+			);
+			if (leaf) this.lastFocusedFrameLeaf = leaf;
+		});
 		await this.loadSettings();
+		this.surfaceHost = new SurfaceHost({
+			workspace: this.app.workspace,
+			frameType: VAULTMAN_FRAME_TYPE,
+			mounts: this.instanceMounts,
+			isRtl: () => this.isRtlDirection(),
+			readRegistry: () => this.settings.instanceRegistry ?? { schema: 1, instances: {} },
+		});
 		this.updateGlassBlur();
 
 		setLanguage(this.settings.language);
@@ -231,7 +303,18 @@ export class VaultmanPlugin extends Plugin {
 		const sasi = createVaultmanSasi();
 		this.sasiRegistry = sasi.registry;
 		this.sasiProvider = sasi.provider;
-		this.sasiCommandPublisher = createSasiCommandPublisher(this);
+		// U130L: la decision Published vive en PSS/settings, separada del
+		// capability registry. Cada toggle de usuario (inspector incluido,
+		// que ya llama a `setPublished`) persiste aqui sin tocar su modal.
+		this.sasiCommandPublisher = createSasiCommandPublisher(this, {
+			onDecision: (id, published) => {
+				const store = (this.settings.sasiPublishedCommands ??= {});
+				if (store[id] !== published) {
+					store[id] = published;
+					void this.saveSettings();
+				}
+			},
+		});
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -484,10 +567,6 @@ export class VaultmanPlugin extends Plugin {
 			});
 		}
 
-		this.sasiCommandPublisher.setPublished('apply-queue', true);
-		this.sasiCommandPublisher.setPublished('open', true);
-		this.sasiCommandPublisher.setPublished('open-updates', true);
-		this.sasiCommandPublisher.setPublished('focus-content-search', true);
 		this.sasiCommandPublisher.register({
 			id: SETTINGS_OPEN_ID,
 			name: translate('command.open_settings'),
@@ -496,25 +575,45 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
-	this.sasiCommandPublisher.setPublished('focus-active-explorer-search', true);
-	this.sasiCommandPublisher.setPublished(SETTINGS_OPEN_ID, true);
 		const toolbarCommands = [
-		[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
-		[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
-		[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
-		[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
-		[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
-	] as const;
-	for (const [id, labelKey] of toolbarCommands) {
-		this.sasiCommandPublisher.register({
-			id,
-			name: translate(labelKey),
-			handler: () => {
-				void this.invokeToolbarSasiAction(id);
-			},
-		});
-		this.sasiCommandPublisher.setPublished(id, true);
-	}
+			[TOOLBAR_REVEAL_ACTIVE_FILE_ID, 'sasi.toolbar.reveal_active_file'],
+			[TOOLBAR_TOGGLE_EXPANSION_ID, 'sasi.toolbar.toggle_expansion'],
+			[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
+			[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
+			[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+		] as const;
+		for (const [id, labelKey] of toolbarCommands) {
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(labelKey),
+				handler: () => {
+					void this.invokeToolbarSasiAction(id);
+				},
+			});
+		}
+		// U130L: la decision Published persiste en PSS/settings y sobrevive a
+		// desactivar/reactivar y a reinicios. El default explicito
+		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
+		// previa; los ids retirados del store se conservan para elecciones
+		// futuras y los no registrados se ignoran (`restorePublished`).
+		// Compatibilidad de datos: un data.json viejo sin el campo arranca
+		// con los defaults y los persiste en una sola escritura.
+		{
+			const stored = this.settings.sasiPublishedCommands;
+			const effective = effectiveSasiPublishedDecisions(
+				this.sasiCommandPublisher.registeredIds(),
+				stored,
+				sasiPublishedDefault,
+			);
+			this.sasiCommandPublisher.restorePublished(effective);
+			const merged = mergeSasiPublishedStore(stored, effective);
+			const needsSave =
+				stored === undefined ||
+				Object.keys(merged).length !== Object.keys(stored).length ||
+				Object.entries(effective).some(([id, value]) => stored[id] !== value);
+			this.settings.sasiPublishedCommands = merged;
+			if (needsSave) await this.saveData(this.settings);
+		}
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
@@ -559,6 +658,33 @@ export class VaultmanPlugin extends Plugin {
 		);
 
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
+	}
+
+	/**
+	 * U130L: al desactivar se retiran los comandos de la sesion (Obsidian
+	 * tambien los limpia), pero la DECISION persiste en
+	 * `settings.sasiPublishedCommands`: el proximo `onload` la restaura via
+	 * `restorePublished`. Por eso aqui no se toca settings.
+	 */
+	onunload(): void {
+		this.sasiCommandPublisher?.revokeAll();
+	}
+
+	/**
+	 * U130L: puente para proyectar la decision Published a un `cell_toggle`
+	 * existente (sin widget ni cell kind nuevos). Solo los comandos con
+	 * descriptor registrado son conmutables: devuelve `false` sin tocar
+	 * nada para provider/kind/action sin descriptor o ids retirados. La
+	 * persistencia la hace el `onDecision` del publisher.
+	 */
+	setSasiCommandPublished(id: string, published: boolean): boolean {
+		if (!this.sasiCommandPublisher?.isPublishable(id)) return false;
+		this.sasiCommandPublisher.setPublished(id, published);
+		return true;
+	}
+
+	openApiScene(): void {
+		new SasiInspectorModal(this.app, this).open();
 	}
 
 	showDragActionGuide(text: string): void {
@@ -1024,6 +1150,98 @@ export class VaultmanPlugin extends Plugin {
 		applyGlassBlurSetting(activeDocument.body.style, this.settings);
 	}
 
+	async openWorkspaceInstance(
+		instanceId: string,
+		surface?: SurfaceRequest,
+	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
+		const record = this.settings.instanceRegistry?.instances[instanceId];
+		if (!record || record.tombstoned) {
+			return this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+		}
+		const enrolled = this.enrollExactLiveFrame(instanceId);
+		if (enrolled && !enrolled.ok) {
+			return { ok: false, reason: 'mount-conflict', ownerId: enrolled.ownerId };
+		}
+		const opened = await this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+		if (opened.ok) {
+			this.lastFocusedFrameLeaf = opened.address.leaf;
+			this.app.workspace.setActiveLeaf(opened.address.leaf, { focus: true });
+		}
+		return opened;
+	}
+
+	/** Declares a durable home; openWorkspaceInstance accepts one-open overrides. */
+	async createAndOpenWorkspaceInstance(
+		homeSurface: HomeSurfaceIntent = DEFAULT_HOME_SURFACE,
+	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
+		const registry = this.settings.instanceRegistry ?? { schema: 1, instances: {} };
+		const instanceId = mintInstanceId(registry);
+		this.settings.instanceRegistry = declareWorkspaceInstance(
+			registry,
+			instanceId,
+			homeSurface,
+		);
+		await this.saveSettings();
+		return this.openWorkspaceInstance(instanceId);
+	}
+
+	workspaceMountForLeaf(leaf: WorkspaceLeaf): InstanceMountLease<WorkspaceLeaf> | undefined {
+		return this.instanceMounts.getByLeaf(leaf);
+	}
+
+	adoptWorkspaceMount(
+		instanceId: string,
+		leaf: WorkspaceLeaf,
+	): MountReservationResult<WorkspaceLeaf> {
+		const address = addressForLeaf(this.app.workspace, leaf, this.isRtlDirection());
+		return this.instanceMounts.adopt(instanceId, leaf, address);
+	}
+
+	readdressWorkspaceMount(leaf: WorkspaceLeaf): boolean {
+		const lease = this.instanceMounts.getByLeaf(leaf);
+		if (!lease) return false;
+		return this.instanceMounts.readdress(
+			lease,
+			addressForLeaf(this.app.workspace, leaf, this.isRtlDirection()),
+		);
+	}
+
+	releaseWorkspaceMount(lease: InstanceMountLease<WorkspaceLeaf>): boolean {
+		return this.instanceMounts.release(lease);
+	}
+
+	private enrollExactLiveFrame(
+		instanceId: string,
+	): MountReservationResult<WorkspaceLeaf> | null {
+		for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+			if (!(leaf.view instanceof VaultmanFrame)) continue;
+			if (!leaf.view.hasExactWorkspaceInstanceIdentity()) continue;
+			if (leaf.view.workspaceInstanceId !== instanceId) continue;
+			return this.adoptWorkspaceMount(instanceId, leaf);
+		}
+		return null;
+	}
+
+	private isRtlDirection(): boolean {
+		return (
+			activeDocument.defaultView?.getComputedStyle(activeDocument.documentElement)
+				.direction === 'rtl'
+		);
+	}
+
+	private sidebarSurfaceForPhysical(
+		side: 'left' | 'right',
+	): Extract<HomeSurfaceIntent, { kind: 'sidebar' }> {
+		const edge = side === 'left'
+			? this.isRtlDirection()
+				? 'end'
+				: 'start'
+			: this.isRtlDirection()
+				? 'start'
+				: 'end';
+		return { kind: 'sidebar', edge };
+	}
+
 	/** Los IDs anclados en las hojas que Obsidian acaba de restaurar. */
 	collectLiveInstanceAnchors(): string[] {
 		const anchors: string[] = [];
@@ -1041,20 +1259,15 @@ export class VaultmanPlugin extends Plugin {
 	private async openVaultmanView(
 		explicitMode?: 'left_sidebar' | 'right_sidebar' | 'main',
 	): Promise<WorkspaceLeaf | null> {
-		const { workspace } = this.app;
 		const mode = normalizeOpenMode(explicitMode ?? this.settings.openMode);
-		let leaf: WorkspaceLeaf | null;
-		if (mode === 'left_sidebar') {
-			leaf = workspace.getLeftLeaf(false);
-		} else if (mode === 'right_sidebar') {
-			leaf = workspace.getRightLeaf(false);
-		} else {
-			leaf = workspace.getLeaf('tab');
-		}
-		if (!leaf) return null;
-		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
-		void workspace.revealLeaf(leaf);
-		return leaf;
+		const surface =
+			mode === 'left_sidebar'
+				? this.sidebarSurfaceForPhysical('left')
+				: mode === 'right_sidebar'
+					? this.sidebarSurfaceForPhysical('right')
+					: DEFAULT_HOME_SURFACE;
+		const opened = await this.createAndOpenWorkspaceInstance(surface);
+		return opened.ok ? opened.address.leaf : null;
 	}
 
 	/**
@@ -1120,7 +1333,10 @@ export class VaultmanPlugin extends Plugin {
 	 * commands close Vaultman instead of focusing it.
 	 */
 	async ensureVaultmanFrame(): Promise<WorkspaceLeaf | null> {
-		const existing = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		const existing = selectCommandFrame(
+			this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE),
+			this.lastFocusedFrameLeaf,
+		);
 		if (existing) {
 			await this.app.workspace.revealLeaf(existing);
 			return existing;

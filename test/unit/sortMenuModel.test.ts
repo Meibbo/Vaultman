@@ -155,11 +155,9 @@ describe('BT5-007 shared sort menu model', () => {
 				(item) => item.id,
 			),
 		).toEqual([
+			'all',
 			'drill',
 			'level',
-			'scope-rows-separator',
-			'all',
-			'level:1',
 		]);
 		expect(byLevelModel('plugins', stateFor('plugins'))?.items).toEqual([]);
 	});

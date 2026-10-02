@@ -72,10 +72,10 @@ describe('explorer drag and drop source guards', () => {
 			"void this._moveDraggedNodesIntoFolder(payload, '')",
 		);
 		expect(filesSource).toContain(
-			"dragManager.dragFile?.(event, entries[0], 'vaultman')",
+			"dragManager.dragFile?.(event, entries[0], 'file-explorer')",
 		);
 		expect(filesSource).toContain(
-			"dragManager.dragFiles?.(event, entries, 'vaultman')",
+			"dragManager.dragFiles?.(event, entries, 'file-explorer')",
 		);
 		expect(propsSource).toContain('private _handlePropDrop');
 		expect(propsSource).toContain('this._copyDraggedValueToProperty');

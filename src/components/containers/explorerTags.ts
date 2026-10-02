@@ -77,6 +77,7 @@ export interface PanelPluginCtx {
 		deletionHighlight?: boolean;
 		/** Opt-in drawer animation for expand/collapse. */
 		treeExpansionAnimation?: boolean;
+		treeIndentMode?: 'all' | 'depth' | 'parent';
 		groupNodeTooltips?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
@@ -194,6 +195,7 @@ import {
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -658,14 +660,14 @@ export class TagsExplorerPanel extends Component {
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this.selectedNodeIds = result.selectedIds;
+				this.selectionAnchorId = result.anchorId;
 				this._touchSelection();
 				void this._render();
 			},
@@ -696,18 +698,9 @@ export class TagsExplorerPanel extends Component {
 			attr: { 'aria-label': `Select ${node.label}` },
 		});
 		checkbox.checked = this.selectedNodeIds.has(node.id);
-		checkbox.addEventListener('click', (event) => event.stopPropagation());
-		checkbox.addEventListener('change', (event) => {
+		checkbox.addEventListener('click', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) {
-				this.selectedNodeIds.add(node.id);
-				this.selectionAnchorId = node.id;
-			} else {
-				this.selectedNodeIds.delete(node.id);
-				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
-			}
-			this._touchSelection();
-			card.toggleClass('is-selected', checkbox.checked);
+			this._selectionViewOptions().onSelectionToggle(node.id, checkbox.checked, event);
 		});
 	}
 
@@ -2169,8 +2162,12 @@ export class TagsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: activeFilterIds,
-					exclusive: excludedFilterIds,
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -2263,8 +2260,12 @@ export class TagsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			rowTooltip: (node) => {
 				if (node.isGroupHeader !== true || this.plugin.settings?.groupNodeTooltips === false) return '';
 				const count = collectGroupMemberIds(node.children ?? []).length;
@@ -2372,8 +2373,12 @@ export class TagsExplorerPanel extends Component {
 			},
 			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
-				inclusive: activeFilterIds,
-				exclusive: excludedFilterIds,
+				inclusive: this.visibleCells.has('filters')
+					? activeFilterIds
+					: undefined,
+				exclusive: this.visibleCells.has('filters')
+					? excludedFilterIds
+					: undefined,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
@@ -2736,8 +2741,9 @@ export class TagsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
+			const showFilters = this.visibleCells.has('filters');
+			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass('is-selected', this.selectedNodeIds.has(node.id));
 			card.setAttribute('role', 'button');

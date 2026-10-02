@@ -20,6 +20,7 @@ describe('explorer interaction modes', () => {
 			'filter',
 			'add',
 			'select',
+			'input',
 		]);
 		expect(interactionModesForTab('props')).toEqual([
 			'open',

@@ -91,6 +91,7 @@ import {
 } from '../../logic/logicGroupSelectionTransaction';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
@@ -989,14 +990,14 @@ export class SnippetsExplorerPanel
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this.selectedNodeIds = result.selectedIds;
+				this.selectionAnchorId = result.anchorId;
 				this._touchSelection();
 				this.render();
 			},

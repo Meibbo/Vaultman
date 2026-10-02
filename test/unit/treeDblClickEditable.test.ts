@@ -134,7 +134,18 @@ class TinyElement {
 		);
 	}
 
-	closest(): TinyElement | null {
+	closest(selector?: string): TinyElement | null {
+		if (!selector) return null;
+		const classes = selector
+			.split(',')
+			.map((s) => s.trim().replace(/^\./, ''));
+		let current: TinyElement | null = this;
+		while (current) {
+			for (const cls of classes) {
+				if (cls && current.classList.contains(cls)) return current;
+			}
+			current = current.parentElement;
+		}
 		return null;
 	}
 
@@ -293,11 +304,20 @@ describe('A13: dblclick inside an editable field never toggles the row', () => {
 		expect(onRowDoubleClick).not.toHaveBeenCalled();
 	});
 
-	it('still expands when the dblclick lands on the row name', async () => {
+	it('does not expand when dblclick lands on the row name (preserves input=filter/select collision avoidance)', async () => {
 		const onRowDoubleClick = vi.fn();
 		const row = await renderParentRow(onRowDoubleClick);
 		const label = new TinyElement('span', 'vaultman-tree-label', 'status');
 		const event = stubDblClickTarget(label);
+		row.ondblclick?.(event);
+		expect(onRowDoubleClick).not.toHaveBeenCalled();
+	});
+
+	it('still expands when the dblclick lands on the caret toggle', async () => {
+		const onRowDoubleClick = vi.fn();
+		const row = await renderParentRow(onRowDoubleClick);
+		const caret = new TinyElement('span', 'cell_caret vaultman-tree-caret--start');
+		const event = stubDblClickTarget(caret);
 		row.ondblclick?.(event);
 		expect(onRowDoubleClick).toHaveBeenCalledTimes(1);
 		expect(onRowDoubleClick).toHaveBeenCalledWith('prop:status', event);

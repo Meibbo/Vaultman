@@ -111,16 +111,27 @@ const FILE_CARD_MODES = ['cards', 'grid'] as const;
 
 export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 	{
+		id: 'filters',
+		role: 'control',
+		labelKey: 'viewmode.pill.filters',
+		icon: 'lucide-filter',
+		supports: [
+			{ explorer: 'files', fixedRank: 998, defaultOn: true },
+			{ explorer: 'props', fixedRank: 998, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 998, defaultOn: true },
+		],
+	},
+	{
 		id: 'caret',
 		role: 'control',
 		labelKey: 'viewmode.pill.caret',
 		icon: 'lucide-chevron-right',
 		supports: [
-			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 999, defaultOn: true },
-			{ explorer: 'props', viewModes: ['tree'], fixedRank: 999, defaultOn: true },
-			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 999, defaultOn: true },
-			{ explorer: 'snippets', fixedRank: 999, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 999, defaultOn: true },
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 5, defaultOn: true },
+			{ explorer: 'props', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 5, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 5, defaultOn: true },
 		],
 	},
 	{
@@ -131,11 +142,11 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		supports: [
 			// U121-081: `files` was the only explorer left out, which is the whole
 			// reason fileScene never offered the option.
-			{ explorer: 'files', fixedRank: 998, defaultOn: false },
-			{ explorer: 'props', fixedRank: 998, defaultOn: false },
-			{ explorer: 'tags', fixedRank: 998, defaultOn: false },
-			{ explorer: 'snippets', fixedRank: 998, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 998, defaultOn: true },
+			{ explorer: 'files', fixedRank: 999, defaultOn: false },
+			{ explorer: 'props', fixedRank: 999, defaultOn: false },
+			{ explorer: 'tags', fixedRank: 999, defaultOn: false },
+			{ explorer: 'snippets', fixedRank: 999, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 999, defaultOn: false },
 		],
 	},
 	{

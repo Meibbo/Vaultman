@@ -98,8 +98,8 @@ describe('U130-GGC context selection', () => {
 		// Props centralizes every right-click through _openNodeMenu.
 		const props = source('explorerProps.ts');
 		const openNodeMenu = props.slice(props.indexOf('private _openNodeMenu'));
-		expect(openNodeMenu.indexOf('this._includeInvokedInSelection(node.id')).toBeGreaterThanOrEqual(0);
-		expect(openNodeMenu.indexOf('this._includeInvokedInSelection(node.id')).toBeLessThan(
+		expect(openNodeMenu).toMatch(/this\._includeInvokedInSelection\([\s\S]*?node\.id/);
+		expect(openNodeMenu.indexOf('this._includeInvokedInSelection')).toBeLessThan(
 			openNodeMenu.indexOf('openPanelMenu('),
 		);
 		// Files covers table/grid via _openFileContextMenu and tree via onContextMenu.

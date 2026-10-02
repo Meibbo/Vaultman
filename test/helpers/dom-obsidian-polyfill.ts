@@ -84,4 +84,18 @@ export function installObsidianDomPolyfill(): void {
 			(this).textContent = text;
 		};
 	}
+	if (!slot.setCssProps) {
+		slot.setCssProps = function (
+			this: HTMLElement,
+			props: Record<string, string>,
+		) {
+			for (const [key, value] of Object.entries(props)) {
+				if (value) {
+					this.style.setProperty(key, value);
+				} else {
+					this.style.removeProperty(key);
+				}
+			}
+		};
+	}
 }

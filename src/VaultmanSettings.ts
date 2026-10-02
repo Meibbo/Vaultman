@@ -70,7 +70,6 @@ import {
 // import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
-import { SasiInspectorModal } from './modals/modalSasiInspector';
 import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { Notice } from 'obsidian';
@@ -981,11 +980,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					button
 						.setButtonText(translate('settings.sasi_inspector.open'))
 						.onClick(() => {
-							new SasiInspectorModal(
-								this.app,
-								this.plugin.sasiRegistry,
-								this.plugin.sasiCommandPublisher,
-							).open();
+							this.plugin.openApiScene();
 						}),
 				);
 			},
@@ -1750,6 +1745,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							this.plugin.settings.caretPosition = value as
 								'start' | 'end' | 'hidden';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
+			name: translate('settings.tree_indent_mode'),
+			desc: translate('settings.tree_indent_mode.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('all', translate('settings.tree_indent_mode.all'))
+						.addOption('depth', translate('settings.tree_indent_mode.depth'))
+						.addOption('parent', translate('settings.tree_indent_mode.parent'))
+						.setValue(this.plugin.settings.treeIndentMode ?? 'all')
+						.onChange(async (value) => {
+							this.plugin.settings.treeIndentMode = value as
+								'all' | 'depth' | 'parent';
 							await this.plugin.saveSettings();
 						}),
 				);

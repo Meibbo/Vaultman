@@ -84,7 +84,7 @@ describe('BT5-011 render order follows activation only when asked', () => {
 });
 
 describe('BT5-011 menus project the same order as the render', () => {
-	it('keeps Format before Path before Name and Checkbox last in every explorer view mode', () => {
+	it('keeps Name before Path before Format and Checkbox last in every explorer view mode', () => {
 		// Given: every explorer/view mode with no active cells hiding Path.
 		const viewModes = ['tree', 'table', 'cards', 'grid', 'dnd'] as const;
 
@@ -100,7 +100,7 @@ describe('BT5-011 menus project the same order as the render', () => {
 				orderedIds.filter((id) =>
 					['format', 'path', 'name', 'checkbox'].includes(id),
 				),
-			).toEqual(['format', 'path', 'name', 'checkbox']);
+			).toEqual(['name', 'path', 'format', 'checkbox']);
 		}
 
 		for (const explorer of ['props', 'tags', 'snippets', 'plugins'] as const) {

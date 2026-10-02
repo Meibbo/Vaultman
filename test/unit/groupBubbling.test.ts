@@ -199,7 +199,8 @@ describe('S07A: la cabecera proyecta el total cuando se le pasa', () => {
 	it('sin groupTotals la cabecera cuenta sus hijos directos (cero regresion)', () => {
 		const [header] = projectGroupedTree({ ...base, nodes: [{ ...base.nodes[0], label: 'beta' }] });
 		expect(header.id).toBe('g1');
-		expect(header.count).toBe(1);
+		expect(header.count).toBeUndefined();
+		expect(header.subCountText).toBe('1');
 	});
 
 	it('con groupTotals la cabecera muestra el total anidado y deducido', () => {

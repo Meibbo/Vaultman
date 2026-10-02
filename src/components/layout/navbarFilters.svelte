@@ -37,6 +37,7 @@
 	import { showInputModal } from '../../utils/inputModal';
 	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 	import { InstanceInfoModal } from '../../modals/modalInstanceInfo';
+	import type { WorkspaceInstanceRecord } from '../../types/typeInstance';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -194,6 +195,7 @@
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
 		onSwitchInstance?: (id: string) => void;
+		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
@@ -382,6 +384,7 @@
 		onSaveLayout,
 		onLayoutLoaded,
 		app,
+		allowedCellIds,
 		showTabLabels = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
@@ -392,6 +395,7 @@
 		pvpuiConfig = {},
 		sceneConfigPort,
 		onSwitchInstance,
+		readInstanceRecords,
 	}: NavbarRendererState = $props();
 
 	function invokeSceneAction(
@@ -2986,10 +2990,17 @@
 				selectionCheckboxPosition,
 			},
 		)) {
+			if (allowedCellIds && !allowedCellIds.includes(entry.id)) continue;
 			nodes.push(
 				nativeMenuItem(`view_menu.cells.${entry.id}`, {
 					title: translate(
-						cellLabelKey(entry.definition, activeTab, activeView),
+						providerId === 'sasi' && entry.id === 'state'
+							? 'sasi.apiscene.cell.published'
+							: providerId === 'sasi' && (entry.id === 'installed' || entry.id === 'ctime')
+								? 'viewmode.pill.ctime'
+								: providerId === 'sasi' && (entry.id === 'updated' || entry.id === 'mtime')
+									? 'viewmode.pill.mtime'
+									: cellLabelKey(entry.definition, activeTab, activeView),
 					),
 					icon: cellIcon(entry.definition, activeTab, activeView),
 					checked: entry.active,
@@ -3010,6 +3021,21 @@
 							...currentSortState,
 							addPropertyFirst: currentSortState.addPropertyFirst !== true,
 						}),
+				}),
+			);
+		}
+		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
+		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
+		// El segundo divider reserva el sitio del control de dimensiones
+		// del stream proto_design.
+		nodes.push(nativeMenuDivider('view_menu.divider.toolbar'));
+		if (onToggleToolbar) {
+			nodes.push(
+				nativeMenuItem('view_menu.toolbar', {
+					title: translate('viewmenu.toolbar'),
+					icon: 'lucide-panel-top',
+					checked: toolbarShown,
+					onClick: () => onToggleToolbar?.(),
 				}),
 			);
 		}
@@ -3336,6 +3362,7 @@
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		if (sceneConfigPort.readInstanceRecord()) {
 		menu.addItem((item) => {
 			item
 				.setTitle(translate('toolbar.instance_info'))
@@ -3344,9 +3371,9 @@
 					if (!app) return;
 					const record = sceneConfigPort.readInstanceRecord();
 					if (!record) return;
-					const records = Object.values(
-						plugin.settings.instanceRegistry?.instances ?? {},
-					).filter((candidate) => !candidate.tombstoned);
+					const records = (readInstanceRecords?.() ?? [record]).filter(
+						(candidate) => !candidate.tombstoned,
+					);
 					new InstanceInfoModal(
 						app,
 						record,
@@ -3355,6 +3382,7 @@
 					).open();
 				});
 		});
+		}
 		const providedNodes = panelWidgetNodes.filter((node) => {
 			const prefix = `${providerId}:`;
 			return node.id.startsWith(prefix) &&
@@ -3464,6 +3492,8 @@
 		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
 		}
+		if (!showDock && statisticsAction)
+			nodes.push(tabActionNode(statisticsAction));
 		for (const option of addonTabOptions) {
 			nodes.push(
 				nativeMenuItem(`scene_menu.tab.${option.id}`, {
@@ -3473,8 +3503,6 @@
 				}),
 			);
 		}
-		if (!showDock && statisticsAction)
-			nodes.push(tabActionNode(statisticsAction));
 		renderNativeMenuNodes(menu, projectNativeMenu('scene_menu', nodes));
 		showToolbarMenu(menu, event);
 	}
@@ -4264,7 +4292,13 @@
 			const isActive = activeSort.sortBy === option.id;
 			nodes.push(
 				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
-					title: `${translate(option.labelKey)}${
+					title: `${translate(
+						providerId === 'sasi' && (option.id === 'installed' || option.id === 'ctime')
+							? 'sort.by.created'
+							: providerId === 'sasi' && (option.id === 'updated' || option.id === 'mtime')
+								? 'sort.by.modified'
+								: option.labelKey,
+					)}${
 						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
 					}`,
 					icon: option.icon,
