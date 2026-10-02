@@ -97,6 +97,12 @@ export class AbstractInputSuggest<T> {
 	selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
 }
 
+export class App {
+	workspace: any;
+	vault: any;
+	metadataCache: any;
+}
+
 export class Modal {
 	contentEl = {
 		empty: () => {},
@@ -107,12 +113,24 @@ export class Modal {
 		}),
 	};
 
-	constructor(..._args: unknown[]) {}
+	app!: App;
+
+	constructor(app?: App, ..._args: unknown[]) {
+		if (app) this.app = app;
+	}
 
 	open(): void {}
 	close(): void {}
 	onOpen(): void {}
 	onClose(): void {}
+}
+
+export abstract class SuggestModal<T> extends Modal {
+	setPlaceholder(_placeholder: string): void {}
+	setInstructions(_instructions: Array<{ command: string; purpose: string }>): void {}
+	abstract getSuggestions(query: string): T[] | Promise<T[]>;
+	abstract renderSuggestion(value: T, el: HTMLElement): void;
+	abstract onChooseSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void;
 }
 
 export class Setting {

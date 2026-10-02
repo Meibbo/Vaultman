@@ -452,7 +452,41 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.open_vaultman_behavior'),
+			desc: translate('settings.open_vaultman_behavior.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							direct: translate('settings.open_vaultman_behavior.direct'),
+							search_modal: translate('settings.open_vaultman_behavior.search_modal'),
+						})
+						.setValue(this.plugin.settings.openVaultmanBehavior ?? 'direct')
+						.onChange(async (value) => {
+							this.plugin.settings.openVaultmanBehavior = value as 'direct' | 'search_modal';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		items.push(getLastOpenedCaptureSetting(this.plugin));
+
+		items.push({
+			name: translate('settings.select_opened_file'),
+			desc: translate('settings.select_opened_file.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.selectOpenedFile ?? false)
+						.onChange(async (value) => {
+							this.plugin.settings.selectOpenedFile = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
 
 		items.push({
 			name: translate('settings.operation_scope'),
@@ -486,17 +520,17 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions({
-							'level:1': translate('sort.scope.level_n', { n: 1 }),
 							all: translate('sort.level.all'),
+							'level:1': translate('sort.scope.level_n', { n: 1 }),
 						})
 						.setValue(
-							this.plugin.settings.scopeDefaultCursor === 'all'
-								? 'all'
-								: 'level:1',
+							this.plugin.settings.scopeDefaultCursor === 'level:1'
+								? 'level:1'
+								: 'all',
 						)
 						.onChange(async (value) => {
 							this.plugin.settings.scopeDefaultCursor =
-								value === 'all' ? 'all' : 'level:1';
+								value === 'level:1' ? 'level:1' : 'all';
 							await this.plugin.saveSettings();
 						}),
 				);

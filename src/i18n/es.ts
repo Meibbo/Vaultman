@@ -1103,9 +1103,19 @@ export const es: Record<string, string> = {
 	'settings.operation_scope': 'Alcance de operaciones',
 	'settings.operation_scope.desc':
 		'Alcance por defecto para operaciones del explorador',
-	'settings.default_scope': 'Cursor de alcance por defecto',
+	'settings.default_scope': 'Action Scope',
 	'settings.default_scope.desc':
-		'Alcance con el que abre una escena nueva (Nivel 1 o Todos). Solo elige el cursor inicial y nunca reescribe sorts, grupos ni celdas guardados.',
+		'Alcance con el que abre una escena nueva (Todos o Nivel 1). Solo elige el cursor inicial y nunca reescribe sorts, grupos ni celdas guardados.',
+	'settings.select_opened_file': 'Seleccionar archivo al abrir',
+	'settings.select_opened_file.desc':
+		'Mantener los archivos seleccionados en el explorador de archivos al abrirlos con input=open.',
+	'settings.open_vaultman_behavior': 'Comportamiento de "Open Vaultman"',
+	'settings.open_vaultman_behavior.desc':
+		'Elige qué sucede al invocar "Open Vaultman": abrir directamente según la ubicación, o mostrar el modal de búsqueda de instancias.',
+	'settings.open_vaultman_behavior.direct': 'Directo',
+	'settings.open_vaultman_behavior.search_modal': 'Modal de búsqueda / creación de instancias',
+	'instance.search.placeholder': 'Buscar instancia o ingresar nuevo nombre...',
+	'instance.search.empty': 'No se encontraron instancias coincidentes',
 	'settings.scope.auto': 'Auto (seleccionados > filtrados > todos)',
 	'settings.scope.selected': 'Solo archivos seleccionados',
 	'settings.scope.filtered': 'Archivos filtrados',

@@ -212,6 +212,10 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
 	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
+	/** Behavior of the explicit "Open Vaultman" command: direct or via search modal. */
+	openVaultmanBehavior: 'direct' | 'search_modal';
+	/** Opt-in: keep opened files selected in the files explorer when using input=open. Default false. */
+	selectOpenedFile: boolean;
 	/** Record every file-open event in addition to the latest timestamp per file. */
 	recordAllFileOpens: boolean;
 	/**
@@ -600,7 +604,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	settingSceneGoToTarget: 'modal',
 	settingSceneShowOptionsByDefault: false,
 	explorerOperationScope: 'auto',
-	scopeDefaultCursor: 'level:1',
+	scopeDefaultCursor: 'all',
 	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',
@@ -611,6 +615,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'main',
+	openVaultmanBehavior: 'direct',
+	selectOpenedFile: false,
 	recordAllFileOpens: false,
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',

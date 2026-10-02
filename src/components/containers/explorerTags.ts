@@ -52,6 +52,7 @@ import { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
+import { DELETE_PROP, FIND_REPLACE_CONTENT } from '../../types/typeOps';
 import {
 	nodeTypeFilterPatch,
 	normalizeNodeTypeFilters,
@@ -442,7 +443,9 @@ export class TagsExplorerPanel extends Component {
 				const targetIds = this._resolveSelectionTargets(ctx);
 				const tree = this.logic.getTree();
 				for (const id of targetIds) {
-					const node = this._findNode(id, tree);
+					const node =
+						this._findNode(id, this._lastRenderTree) ??
+						this._findNode(id, tree);
 					if (node?.meta) {
 						void this._deleteTag(node.meta.tagPath);
 					}
@@ -3119,26 +3122,54 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private async _deleteTag(tagPath: string): Promise<void> {
+		const cleanTarget = tagPath.replace(/^#/, '').trim();
 		this.plugin.queueService.addOrRun({
 			type: 'tag',
-			tag: tagPath,
+			tag: cleanTarget,
 			action: 'delete',
-			details: `Delete tag "#${tagPath}"`,
-			files: this._getFilesWithTag(tagPath),
+			details: `Delete tag "#${cleanTarget}"`,
+			files: this._getFilesWithTag(cleanTarget),
 			customLogic: true,
 			logicFunc: (_file, fm) => {
-				if (!fm.tags) return null;
-				const raw: unknown = fm.tags;
-				const tags: string[] = Array.isArray(raw)
-					? (raw as unknown[]).map((v) => String(v))
-					: typeof raw === 'string'
-						? [raw]
-						: [];
-				const filtered = tags.filter(
-					(t: string) => t !== tagPath && t !== `#${tagPath}`,
-				);
-				fm.tags = filtered.length > 0 ? filtered : undefined;
-				return fm;
+				const updates: Record<string, unknown> = {};
+				let fmChanged = false;
+
+				// 1. Frontmatter tags (handles tags and tag)
+				const rawFm = fm.tags ?? fm.tag;
+				if (rawFm !== undefined && rawFm !== null) {
+					const tags: string[] = Array.isArray(rawFm)
+						? (rawFm as unknown[]).map((v) => String(v).trim())
+						: typeof rawFm === 'string'
+							? rawFm.split(/[,\s]+/).map((v) => v.trim()).filter(Boolean)
+							: [];
+					const filtered = tags.filter((t: string) => {
+						const clean = t.replace(/^#/, '').trim();
+						return clean !== cleanTarget;
+					});
+					if (filtered.length !== tags.length) {
+						fmChanged = true;
+						if (filtered.length > 0) {
+							updates.tags = filtered;
+							if ('tag' in fm) updates[DELETE_PROP] = 'tag';
+						} else {
+							updates.tags = undefined;
+							updates.tag = undefined;
+							updates[DELETE_PROP] = ['tags', 'tag'];
+						}
+					}
+				}
+
+				// 2. Inline body tag occurrences
+				const escapedTag = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const tagPattern = `(?:^|(?<=\\s))#${escapedTag}(?=[\\s,.;:!?)\\}\\]]|$)`;
+				updates[FIND_REPLACE_CONTENT] = {
+					pattern: tagPattern,
+					replacement: '',
+					isRegex: true,
+					caseSensitive: false,
+				};
+
+				return fmChanged || updates[FIND_REPLACE_CONTENT] ? updates : null;
 			},
 		});
 		this.logic.invalidate();

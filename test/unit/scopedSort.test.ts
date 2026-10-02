@@ -57,7 +57,7 @@ describe('scoped explorer sort state', () => {
 		// on `level:1`; a legacy flat sort below still preserves `all`.
 		expect(normalizeExplorerSortState('tags', { unexpected: true })).toEqual({
 			sorts: {},
-			activeScope: 'level:1',
+			activeScope: 'all',
 			drillNodeId: null,
 			nodeTypeFilter: null,
 			filtered: false,

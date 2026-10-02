@@ -70,6 +70,7 @@ export function dedupeSuggestItems(
 	for (const raw of items) {
 		const item =
 			typeof raw === 'string' ? { value: raw } : { ...raw };
+		if (!item.value || !item.value.trim()) continue;
 		const known = out.find((entry) =>
 			caseInsensitive
 				? entry.value.toLowerCase() === item.value.toLowerCase()
@@ -135,27 +136,28 @@ export class PropertySuggest extends AbstractInputSuggest<string> {
 		onSelectItem: (value: string) => void
 	) {
 		super(app, inputEl);
-		this.items = items.map((item) =>
-			typeof item === 'string' ? { value: item } : item,
-		);
+		this.items = items
+			.map((item) => (typeof item === 'string' ? { value: item } : item))
+			.filter((item) => item.value && item.value.trim().length > 0);
 		this.selectCallback = onSelectItem;
 	}
 
 	getSuggestions(query: string): string[] {
-		const lower = query.toLowerCase();
-		if (!lower) return this.items.slice(0, 20).map((item) => item.value);
+		const lower = query.toLowerCase().trim();
+		const validItems = this.items.filter((item) => item.value && item.value.trim().length > 0);
+		if (!lower) return validItems.slice(0, 20).map((item) => item.value);
 
 		// Native parity: the core Properties view fuzzy-matches, so
 		// intermediate fragments must hit, with prefix matches first.
 		const fuzzy = prepareFuzzySearch(lower);
-		return this.items
+		return validItems
 			.map((item) => ({ item, match: fuzzy(item.value.toLowerCase()) }))
 			.filter(
 				(entry): entry is { item: PropertySuggestItem; match: NonNullable<typeof entry.match> } =>
 					entry.match !== null,
 			)
 			.sort((a, b) => {
-				if (a.match.score !== b.match.score) return a.match.score - b.match.score;
+				if (a.match.score !== b.match.score) return b.match.score - a.match.score;
 				const aStarts = a.item.value.toLowerCase().startsWith(lower) ? 0 : 1;
 				const bStarts = b.item.value.toLowerCase().startsWith(lower) ? 0 : 1;
 				if (aStarts !== bStarts) return aStarts - bStarts;
@@ -197,9 +199,9 @@ export class PropertySuggest extends AbstractInputSuggest<string> {
 
 	/** Update the suggestion list dynamically */
 	setItems(items: Array<string | PropertySuggestItem>): void {
-		this.items = items.map((item) =>
-			typeof item === 'string' ? { value: item } : item,
-		);
+		this.items = items
+			.map((item) => (typeof item === 'string' ? { value: item } : item))
+			.filter((item) => item.value && item.value.trim().length > 0);
 	}
 }
 

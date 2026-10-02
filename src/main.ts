@@ -69,6 +69,7 @@ import {
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
 import { SasiInspectorModal } from './modals/modalSasiInspector';
+import { InstanceSearchModal } from './modals/modalInstanceSearch';
 import {
 	openUpdatesBulletin,
 	shouldShowUpdates,
@@ -86,6 +87,7 @@ import {
 	mintInstanceId,
 	reconcileRegistry,
 } from './logic/logicInstanceRegistry';
+import { registerDefaultScopeCursorProvider } from './logic/logicScopedSort';
 import { addressForLeaf } from './logic/logicSurfaceAddress';
 import {
 	InstanceMountRegistry,
@@ -270,6 +272,9 @@ export class VaultmanPlugin extends Plugin {
 			if (leaf) this.lastFocusedFrameLeaf = leaf;
 		});
 		await this.loadSettings();
+		registerDefaultScopeCursorProvider(
+			() => this.settings.scopeDefaultCursor ?? 'all',
+		);
 		this.surfaceHost = new SurfaceHost({
 			workspace: this.app.workspace,
 			frameType: VAULTMAN_FRAME_TYPE,
@@ -1190,9 +1195,13 @@ export class VaultmanPlugin extends Plugin {
 	/** Declares a durable home; openWorkspaceInstance accepts one-open overrides. */
 	async createAndOpenWorkspaceInstance(
 		homeSurface: HomeSurfaceIntent = DEFAULT_HOME_SURFACE,
+		customId?: string,
 	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
 		const registry = this.settings.instanceRegistry ?? { schema: 1, instances: {} };
-		const instanceId = mintInstanceId(registry);
+		const instanceId =
+			customId && customId.trim().length > 0
+				? customId.trim()
+				: mintInstanceId(registry);
 		this.settings.instanceRegistry = declareWorkspaceInstance(
 			registry,
 			instanceId,
@@ -1328,6 +1337,13 @@ export class VaultmanPlugin extends Plugin {
 	 * always an extra frame in new_instance mode.
 	 */
 	async activateView(): Promise<void> {
+		if (
+			this.settings.openVaultmanBehavior === 'search_modal' ||
+			(this.settings.openMode as string) === 'search_modal'
+		) {
+			new InstanceSearchModal(this.app, this).open();
+			return;
+		}
 		const existingLeaves = this.app.workspace.getLeavesOfType(
 			VAULTMAN_FRAME_TYPE,
 		);

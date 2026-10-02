@@ -307,6 +307,14 @@ export class Modal {
 	onClose?(): void;
 }
 
+export abstract class SuggestModal<T> extends Modal {
+	setPlaceholder(_placeholder: string): void {}
+	setInstructions(_instructions: Array<{ command: string; purpose: string }>): void {}
+	abstract getSuggestions(query: string): T[] | Promise<T[]>;
+	abstract renderSuggestion(value: T, el: HTMLElement): void;
+	abstract onChooseSuggestion(item: T, evt: MouseEvent | KeyboardEvent): void;
+}
+
 export abstract class FuzzySuggestModal<T> extends Modal {
 	getSuggestions(_query: string): Array<{ item: T; match: unknown }> {
 		return this.getItems().map((item) => ({ item, match: null }));

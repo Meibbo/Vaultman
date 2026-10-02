@@ -637,25 +637,28 @@ export class FilesExplorerPanel extends Component {
 			id: 'file.exclude',
 			nodeTypes: ['file'],
 			surfaces: ['panel'],
-			label: translate('file.ctx.exclude'),
+			label: (ctx: MenuCtx) => this._fileFilterMenuLabel(ctx),
 			icon: 'lucide-eye-off',
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
-				for (const file of targets) {
-					const path = file.path;
+				let paths = targets.map((file) => file.path);
+				if (paths.length === 0) {
+					const invoked = this._filePathFromCtx(ctx);
+					if (invoked) paths = [invoked];
+				}
+				for (const path of paths) {
 					// BT5-009: exclusion is a filter node now, so it hides through the
 					// pipeline and shows again by removing its chip — coherent with
 					// exclude-folder — instead of a parallel list applied in render.
-					if (isFileExcluded(this.plugin.filterService.activeFilter, path)) {
-						continue;
-					}
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'file_exclude',
-						property: '',
-						values: [path],
-					});
+					const excluded =
+						this.plugin.filterService.getFilterState('file', path) ===
+							'excluded' ||
+						isFileExcluded(this.plugin.filterService.activeFilter, path);
+					this.plugin.filterService.setFileNodePolarity(
+						path,
+						excluded ? 'none' : 'exclusive',
+					);
 				}
 			},
 		});
@@ -903,18 +906,27 @@ export class FilesExplorerPanel extends Component {
 			id: 'folder.filter_include',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
-			label: translate('folder.ctx.filter_include'),
+			label: (ctx: MenuCtx) =>
+				this._folderFilterMenuLabel(ctx, 'included', 'folder.ctx.filter_include'),
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
-				for (const folder of targets) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'folder',
-						property: '',
-						values: [folder.path],
-					});
+				const paths =
+					targets.length > 0
+						? targets.map((folder) => folder.path)
+						: (() => {
+								const invoked = this._folderPathFromCtx(ctx);
+								return invoked ? [invoked] : [];
+							})();
+				for (const folderPath of paths) {
+					const included =
+						this.plugin.filterService.getFilterState('folder', folderPath) ===
+						'included';
+					this.plugin.filterService.setFolderNodePolarity(
+						folderPath,
+						included ? 'none' : 'inclusive',
+					);
 				}
 			},
 		});
@@ -923,19 +935,28 @@ export class FilesExplorerPanel extends Component {
 			id: 'folder.filter_exclude',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
-			label: translate('folder.ctx.filter_exclude'),
+			label: (ctx: MenuCtx) =>
+				this._folderFilterMenuLabel(ctx, 'excluded', 'folder.ctx.filter_exclude'),
 			icon: 'lucide-filter-x',
 			separatorBefore: true,
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
-				for (const folder of targets) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'folder_exclude',
-						property: '',
-						values: [folder.path],
-					});
+				const paths =
+					targets.length > 0
+						? targets.map((folder) => folder.path)
+						: (() => {
+								const invoked = this._folderPathFromCtx(ctx);
+								return invoked ? [invoked] : [];
+							})();
+				for (const folderPath of paths) {
+					const excluded =
+						this.plugin.filterService.getFilterState('folder', folderPath) ===
+						'excluded';
+					this.plugin.filterService.setFolderNodePolarity(
+						folderPath,
+						excluded ? 'none' : 'exclusive',
+					);
 				}
 			},
 		});
@@ -2312,7 +2333,18 @@ export class FilesExplorerPanel extends Component {
 			).open();
 			return;
 		}
-		this._applyFileSelection(selection);
+		if (this.plugin.settings.selectOpenedFile) {
+			this._applyFileSelection(selection);
+		} else {
+			if (this.selectedFilePaths.size > 0) {
+				this._applyFileSelection({
+					selectedPaths: new Set<string>(),
+					anchorPath: file.path,
+				});
+			} else {
+				this.selectionAnchorPath = file.path;
+			}
+		}
 		const paneType = Keymap.isModEvent(event);
 		void this.plugin.app.workspace.getLeaf(paneType).openFile(file);
 	}
@@ -4246,6 +4278,59 @@ export class FilesExplorerPanel extends Component {
 	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
 		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
 		return meta?.folder ?? null;
+	}
+
+	private _folderPathFromCtx(ctx: MenuCtx): string | null {
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		const fromFolder = meta?.folder?.path;
+		if (fromFolder !== undefined) return fromFolder;
+		const fromMeta = meta?.folderPath;
+		if (typeof fromMeta === 'string' && fromMeta.length > 0) return fromMeta;
+		const id = ctx.node.id;
+		if (typeof id === 'string' && id.startsWith('folder:')) {
+			return id.slice('folder:'.length).replace(/^\/|\/$/g, '');
+		}
+		if (typeof id === 'string' && id.length > 0) return id;
+		return null;
+	}
+
+	private _filePathFromCtx(ctx: MenuCtx): string | null {
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		const fromFile = meta?.file?.path;
+		if (typeof fromFile === 'string' && fromFile.length > 0) return fromFile;
+		if (typeof ctx.file?.path === 'string' && ctx.file.path.length > 0) {
+			return ctx.file.path;
+		}
+		const id = ctx.node.id;
+		if (typeof id === 'string' && id.length > 0 && !id.startsWith('folder:')) {
+			return id;
+		}
+		return null;
+	}
+
+	private _folderFilterMenuLabel(
+		ctx: MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'folder.ctx.filter_include' | 'folder.ctx.filter_exclude',
+	): string {
+		const folderPath = this._folderPathFromCtx(ctx);
+		if (folderPath === null) return translate(fallback);
+		return this.plugin.filterService.getFilterState('folder', folderPath) ===
+			activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
+	}
+
+	private _fileFilterMenuLabel(ctx: MenuCtx): string {
+		const filePath = this._filePathFromCtx(ctx);
+		if (filePath === null) return translate('file.ctx.exclude');
+		const state = this.plugin.filterService.getFilterState('file', filePath);
+		const excluded =
+			state === 'excluded' ||
+			isFileExcluded(this.plugin.filterService.activeFilter, filePath);
+		return excluded
+			? translate('explorer.ctx.filter_clean')
+			: translate('file.ctx.exclude');
 	}
 
 	/**

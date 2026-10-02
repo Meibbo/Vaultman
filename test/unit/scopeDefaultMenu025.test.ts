@@ -44,12 +44,12 @@ function stateFor(
 }
 
 describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () => {
-	it('una escena nueva abre en level:1 en tabs jerárquicas y en all en addons', () => {
+	it('una escena nueva abre en all por defecto (Action Scope) y en all en addons', () => {
 		for (const tab of ['props', 'files', 'tags'] as const) {
 			const fresh = normalizeExplorerSortState(tab, null);
-			expect(fresh.activeScope).toBe('level:1');
-			expect(scopeStateFromLegacy(tab, undefined).cursor).toBe('level:1');
-			expect(defaultScopeForTab(tab)).toBe('level:1');
+			expect(fresh.activeScope).toBe('all');
+			expect(scopeStateFromLegacy(tab, undefined).cursor).toBe('all');
+			expect(defaultScopeForTab(tab)).toBe('all');
 		}
 		for (const tab of ['snippets', 'plugins'] as const) {
 			expect(normalizeExplorerSortState(tab, null).activeScope).toBe('all');
@@ -59,16 +59,16 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 	});
 
 	it('Settings solo elige el cursor inicial y nunca reescribe los sets', () => {
-		expect(DEFAULT_SETTINGS.scopeDefaultCursor).toBe('level:1');
+		expect(DEFAULT_SETTINGS.scopeDefaultCursor).toBe('all');
 		expect(normalizeScopeDefaultCursor('all')).toBe('all');
 		expect(normalizeScopeDefaultCursor('level:1')).toBe('level:1');
-		expect(normalizeScopeDefaultCursor('bogus')).toBe('level:1');
-		expect(normalizeScopeDefaultCursor(undefined)).toBe('level:1');
-		// Un override a `all` es visitable en tabs jerárquicas…
+		expect(normalizeScopeDefaultCursor('bogus')).toBe('all');
+		expect(normalizeScopeDefaultCursor(undefined)).toBe('all');
+		// Un override a `level:1` es visitable en tabs jerárquicas…
 		expect(defaultScopeForTab('props', 'all')).toBe('all');
 		expect(defaultScopeForTab('props', 'level:1')).toBe('level:1');
 		// …pero un override sin sentido cae al default del tab, no a un cursor roto.
-		expect(defaultScopeForTab('props', 'bogus')).toBe('level:1');
+		expect(defaultScopeForTab('props', 'bogus')).toBe('all');
 		// Los sets existentes no se tocan al resolver el default.
 		const sets: ScopeState['sets'] = {
 			all: { sort: { sortBy: 'name', direction: 'asc' } },
@@ -112,7 +112,7 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 		// Solo los picks iniciales: 'all', 'drill', 'level'
 		expect(ids).toEqual(['all', 'drill', 'level']);
 		const all = model!.items.find((item) => item.id === 'all');
-		expect(all).toMatchObject({ kind: 'pick', checked: false });
+		expect(all).toMatchObject({ kind: 'pick', checked: true });
 	});
 
 	it('muestra rows configurados respetando orden (all, parents, levels ordenados)', () => {
@@ -266,10 +266,10 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 		expect(keys.map((k) => k)).toEqual(['all', 'level:2', 'parent:folder:Projects']);
 	});
 
-	it('fuente: el default jerárquico es level:1 y el menú ya no resetea a all', () => {
-		expect(scopedSource).toContain("props: 'level:1'");
-		expect(scopedSource).toContain("files: 'level:1'");
-		expect(scopedSource).toContain("tags: 'level:1'");
+	it('fuente: el default es all y el menú ya no resetea a all', () => {
+		expect(scopedSource).toContain("props: 'all'");
+		expect(scopedSource).toContain("files: 'all'");
+		expect(scopedSource).toContain("tags: 'all'");
 		expect(sortMenuSource).toContain('hasConfig');
 		expect(navbarSource).toContain('allLevelsLabel');
 		expect(settingsSource).toContain('scopeDefaultCursor');

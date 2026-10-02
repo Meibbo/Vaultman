@@ -1082,9 +1082,19 @@ export const en: Record<string, string> = {
 		'Enable searching text inside files in the file tree',
 	'settings.operation_scope': 'Operation scope',
 	'settings.operation_scope.desc': 'Default scope for explorer operations',
-	'settings.default_scope': 'Default scope cursor',
+	'settings.default_scope': 'Action Scope',
 	'settings.default_scope.desc':
-		'Scope a new scene opens with (Level 1 or All). It only selects the initial cursor and never rewrites saved sorts, groups or cells.',
+		'Scope a new scene opens with (All or Level 1). It only selects the initial cursor and never rewrites saved sorts, groups or cells.',
+	'settings.select_opened_file': 'Select opened file',
+	'settings.select_opened_file.desc':
+		'Keep files selected in the files explorer when opening them with input=open.',
+	'settings.open_vaultman_behavior': 'Open Vaultman command behavior',
+	'settings.open_vaultman_behavior.desc':
+		'Choose what happens when invoking the "Open Vaultman" command: direct open according to placement, or show the instance search modal.',
+	'settings.open_vaultman_behavior.direct': 'Direct',
+	'settings.open_vaultman_behavior.search_modal': 'Search / create instance modal',
+	'instance.search.placeholder': 'Search instance or type new name...',
+	'instance.search.empty': 'No matching instances',
 	'settings.scope.auto': 'Auto (selected > filtered > all)',
 	'settings.scope.selected': 'Selected files only',
 	'settings.scope.filtered': 'Filtered files',
