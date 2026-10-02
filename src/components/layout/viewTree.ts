@@ -1673,6 +1673,20 @@ export class UnifiedTreeView {
 		const indentMode = opts.treeIndentMode ?? 'all';
 		const effectiveIndent = node.scopeIndent ?? opts.indent;
 
+function setRowCssProps(el: HTMLElement, props: Record<string, string>): void {
+	if (typeof (el as unknown as { setCssProps?: (p: Record<string, string>) => void }).setCssProps === 'function') {
+		(el as unknown as { setCssProps: (p: Record<string, string>) => void }).setCssProps(props);
+	} else {
+		for (const [key, value] of Object.entries(props)) {
+			if (value === '') {
+				el.style?.removeProperty?.(key);
+			} else {
+				el.style?.setProperty?.(key, value);
+			}
+		}
+	}
+}
+
 		// 1. Depth indentation:
 		// When effectiveIndent is false and indentMode is 'all' or 'depth',
 		// depth offset is zeroed for non-caret rows (p-nodes keep depth so
@@ -1683,12 +1697,12 @@ export class UnifiedTreeView {
 			!showCaret;
 
 		if (disableDepthIndent) {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--depth': '0',
 				'--vaultman-tree-indent-unit': '0px',
 			});
 		} else {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--depth': String(node.depth),
 				'--vaultman-tree-indent-unit': '',
 			});
@@ -1705,11 +1719,11 @@ export class UnifiedTreeView {
 				(indentMode === 'all' || indentMode === 'parent'));
 
 		if (removeStartParentIndent) {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
 			});
 		} else {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-start': '',
 			});
 		}
@@ -1718,12 +1732,12 @@ export class UnifiedTreeView {
 		// When carets are placed at the end and cell_caret is active, rows without
 		// carets receive end padding so right-side cells align with caret rows.
 		if (caretPos === 'end' && showCaretCell && !showCaret) {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-end':
 					'calc(var(--size-4-2, 8px) + var(--vaultman-tree-caret-size, 16px) + var(--size-4-1, 4px))',
 			});
 		} else {
-			row.setCssProps({
+			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-end': '',
 			});
 		}
@@ -1771,18 +1785,12 @@ export class UnifiedTreeView {
 					// A13: dblclick in an editable field only moves the caret.
 					if (isEditableDblClickTarget(event.target)) return;
 					if (!hasChildren) return;
-					const target = event.target instanceof Element ? event.target : null;
-					if (target?.closest('.vaultman-selection-checkbox, .cell_checkbox')) {
+					const target = event.target as { closest?: (selector: string) => unknown } | null;
+					if (target?.closest?.('.vaultman-selection-checkbox, .cell_checkbox')) {
 						opts.onRecursiveSelect?.(node.id);
 						return;
 					}
-					if (
-						target?.closest(
-							'.vaultman-tree-caret--start, .vaultman-tree-caret--end, .cell_caret',
-						)
-					) {
-						opts.onRowDoubleClick?.(node.id, event);
-					}
+					opts.onRowDoubleClick?.(node.id, event);
 				}
 			: null;
 		row.onpointerenter = () => {

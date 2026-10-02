@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
 	buildCanonicalRestRoots,
+	buildGlobalSettingsNodes,
 	canonicalPluginId,
 	listCorePluginStubs,
 	pluginCanonicalGroup,
@@ -544,5 +545,58 @@ describe('U130 canónica: paridad reposo/búsqueda (misma parentage)', () => {
 		} finally {
 			spy.mockRestore();
 		}
+	});
+
+	describe('buildGlobalSettingsNodes (sections vs none & icons)', () => {
+		it('excludes plugins and community-plugins when groupPreset.kind === sections', () => {
+			const app = {};
+			const nodes = buildGlobalSettingsNodes(app, [], { kind: 'sections', direction: 'asc' });
+			const ids = nodes.map((n) => settingsBridgeRefOf(n.meta)?.tab);
+			expect(ids).not.toContain('plugins');
+			expect(ids).not.toContain('community-plugins');
+			expect(ids).toContain('general');
+			expect(ids).toContain('files and links');
+			expect(ids).toContain('appearance');
+		});
+
+		it('includes plugins and community-plugins when groupPreset.kind === none', () => {
+			const app = {};
+			const nodes = buildGlobalSettingsNodes(app, [], { kind: 'none', direction: 'asc' });
+			const ids = nodes.map((n) => settingsBridgeRefOf(n.meta)?.tab);
+			expect(ids).toContain('plugins');
+			expect(ids).toContain('community-plugins');
+			expect(ids).toContain('general');
+			expect(ids).toContain('files and links');
+		});
+
+		it('assigns fallback icons prefixed with lucide- to all global tabs', () => {
+			const app = {};
+			const nodes = buildGlobalSettingsNodes(app, [], { kind: 'none', direction: 'asc' });
+			for (const node of nodes) {
+				expect(node.icon).toBeDefined();
+				expect(node.icon).toMatch(/^lucide-/);
+			}
+			const generalNode = nodes.find((n) => settingsBridgeRefOf(n.meta)?.tab === 'general');
+			expect(generalNode?.icon).toBe('lucide-circle-user');
+
+			const filesNode = nodes.find((n) => settingsBridgeRefOf(n.meta)?.tab === 'files and links');
+			expect(filesNode?.icon).toBe('lucide-folder-cog');
+
+			const appearanceNode = nodes.find((n) => settingsBridgeRefOf(n.meta)?.tab === 'appearance');
+			expect(appearanceNode?.icon).toBe('lucide-palette');
+		});
+
+		it('prefers runtime settingTabs icon when provided', () => {
+			const app = {
+				setting: {
+					settingTabs: [
+						{ id: 'about', name: 'General', icon: 'custom-user' },
+					],
+				},
+			};
+			const nodes = buildGlobalSettingsNodes(app, [], { kind: 'sections', direction: 'asc' });
+			const generalNode = nodes.find((n) => settingsBridgeRefOf(n.meta)?.tab === 'general');
+			expect(generalNode?.icon).toBe('lucide-custom-user');
+		});
 	});
 });

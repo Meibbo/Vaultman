@@ -315,10 +315,100 @@ describe('resolvePluginSettingsChildren (spec-07)', () => {
 			'myplugin',
 			baseNode,
 		);
-
 		// Spec-07: with no pages source the plugin remains a leaf, never removed
 		expect(result).toHaveLength(1);
 		expect(result[0]?.showCaret).toBe(false);
 		expect(result[0]?.children).toEqual([]);
+	});
+
+	it('builds recursive pages -> subpages -> definitions hierarchy', () => {
+		const app = {
+			setting: {
+				pluginTabs: { myplugin: { id: 'myplugin', name: 'My Plugin' } },
+				searchIndex: {
+					search: () => [
+						{
+							tab: { id: 'myplugin', name: 'My Plugin' },
+							page: { id: 'toolbar-menu', name: 'Toolbar menu' },
+							pagePath: ['Context menus', 'Toolbar menu'],
+							tabNameMatch: { score: 1, matches: [] },
+							results: [
+								{
+									entry: {
+										tab: { id: 'myplugin', name: 'My Plugin' },
+										definition: { name: 'Show button' },
+										page: { id: 'toolbar-menu', name: 'Toolbar menu' },
+										pagePath: ['Context menus', 'Toolbar menu'],
+									},
+									nameMatch: { score: 1, matches: [] },
+									descMatch: { score: 0, matches: [] },
+									score: 1,
+								},
+							],
+							bestScore: { score: 1 },
+						},
+					],
+				},
+			},
+		};
+
+		const baseNode = pluginNode('myplugin', 'My Plugin');
+		const result = resolvePluginSettingsChildren(app, 'myplugin', baseNode);
+
+		expect(result).toHaveLength(1);
+		const rootPage = result[0]?.children?.[0];
+		expect(rootPage?.label).toBe('Context menus');
+		expect(rootPage?.depth).toBe(1);
+
+		const subpage = rootPage?.children?.[0];
+		expect(subpage?.label).toBe('Toolbar menu');
+		expect(subpage?.depth).toBe(2);
+
+		const def = subpage?.children?.[0];
+		expect(def?.label).toBe('Show button');
+		expect(def?.depth).toBe(3);
+	});
+
+	it('detects children in resting mode when primary search is empty but broad query matches (developer-toolbox case)', () => {
+		const app = {
+			setting: {
+				pluginTabs: { 'developer-toolbox': { id: 'developer-toolbox', name: 'Developer Toolbox' } },
+				searchIndex: {
+					search: (q: string) => {
+						if (q === 'developer-toolbox') return [];
+						return [
+							{
+								tab: { id: 'developer-toolbox', name: 'Developer Toolbox' },
+								page: { id: 'general', name: 'General' },
+								pagePath: 'General',
+								tabNameMatch: { score: 0, matches: [] },
+								results: [
+									{
+										entry: {
+											tab: { id: 'developer-toolbox', name: 'Developer Toolbox' },
+											definition: { name: 'Storage folder' },
+											page: { id: 'general', name: 'General' },
+											pagePath: 'General',
+										},
+										nameMatch: { score: 1, matches: [] },
+										descMatch: { score: 0, matches: [] },
+										score: 1,
+									},
+								],
+								bestScore: { score: 1 },
+							},
+						];
+					},
+				},
+			},
+		};
+
+		const baseNode = pluginNode('developer-toolbox', 'Developer Toolbox');
+		const result = resolvePluginSettingsChildren(app, 'developer-toolbox', baseNode);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.showCaret).toBe(true);
+		expect(result[0]?.children?.length).toBeGreaterThan(0);
+		expect(result[0]?.children?.[0]?.label).toBe('General');
 	});
 });

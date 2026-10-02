@@ -174,8 +174,11 @@ describe('U130 parity A2: vaultman catalogue (F2, live fixture)', () => {
 		const all = collectDescendants(kids);
 		const ids = all.map((n) => n.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		for (const n of all) {
+		for (const n of kids) {
 			expect(n.depth).toBe(base.depth + 1);
+		}
+		for (const n of all) {
+			expect(n.depth).toBeGreaterThanOrEqual(base.depth + 1);
 			expect(n.label.trim()).not.toBe('');
 			expect(n.id).toMatch(/^settings:/);
 			expect(n.cells).toEqual([]);
