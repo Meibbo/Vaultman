@@ -18,6 +18,7 @@ import {
 import type { InteractionMode } from './logicInteractionMode';
 import type { GroupPreset } from '../types/typeGroupPreset';
 import { nativeSettingsTabId } from './logicSettingSceneActivation';
+import { discoverCorePlugins } from './logicCorePluginDiscovery';
 
 export interface AddonEntryProjection {
 	name: string;
@@ -1088,13 +1089,6 @@ export function pluginCanonicalGroup(
 	return 'core';
 }
 
-interface RuntimeCorePluginTabs {
-	pluginTabs?: unknown;
-	internalPlugins?: {
-		getEnabledPluginById?: (id: string) => unknown;
-	};
-}
-
 export interface CorePluginStub {
 	pluginId: string;
 	name: string;
@@ -1102,53 +1096,22 @@ export interface CorePluginStub {
 }
 
 /**
- * Stubs `node_plugin` para los core-plugins en reposo: ids de tab nativos
- * (`app.setting.pluginTabs`, Record o array `{id,name}`) que NO están en
- * el conjunto community (comparación canónica, nunca display).
- * Nombre = `name` del tab cuando existe, si no el id. Habilitado =
- * `internalPlugins.getEnabledPluginById(id)` cuando la API existe; sin
- * ella se asume habilitado (el gate de contenido —F4— sigue aplicando:
- * sin pages nativas el nodo queda hoja).
+ * Core membership/state comes from app.internalPlugins, including plugins
+ * without settings tabs. Native tab labels take precedence where available;
+ * community IDs remain excluded. Settings children still require native pages.
  */
 export function listCorePluginStubs(
 	app: unknown,
 	communityIds: Iterable<string>,
 ): CorePluginStub[] {
-	if (typeof app !== 'object' || app === null) return [];
-	const setting = (app as { setting?: unknown }).setting;
-	if (typeof setting !== 'object' || setting === null) return [];
-	const record = setting as RuntimeCorePluginTabs & Record<string, unknown>;
-	const rawTabs = record['pluginTabs'];
-	let tabs: readonly { id?: unknown; name?: unknown }[];
-	if (Array.isArray(rawTabs)) {
-		tabs = rawTabs as readonly { id?: unknown; name?: unknown }[];
-	} else if (typeof rawTabs === 'object' && rawTabs !== null) {
-		tabs = Object.values(rawTabs as Record<string, { id?: unknown; name?: unknown }>);
-	} else {
-		return [];
-	}
-	const internal = record['internalPlugins'];
-	const getEnabled =
-		typeof internal === 'object' && internal !== null
-			? (internal as { getEnabledPluginById?: unknown }).getEnabledPluginById
-			: undefined;
-	const out: CorePluginStub[] = [];
+	const community = new Set([...communityIds].map(canonicalPluginId));
 	const seen = new Set<string>();
-	for (const tab of tabs) {
-		const id = typeof tab?.id === 'string' ? tab.id : '';
-		if (id === '') continue;
-		const key = canonicalPluginId(id);
-		if (seen.has(key)) continue;
+	return discoverCorePlugins(app).filter((stub) => {
+		const key = canonicalPluginId(stub.pluginId);
+		if (seen.has(key) || community.has(key)) return false;
 		seen.add(key);
-		if (pluginCanonicalGroup(id, communityIds) !== 'core') continue;
-		const name = typeof tab?.name === 'string' && tab.name !== '' ? tab.name : id;
-		const enabled =
-			typeof getEnabled === 'function'
-				? (getEnabled as (pid: string) => unknown).call(internal, id) != null
-				: true;
-		out.push({ pluginId: id, name, enabled });
-	}
-	return out;
+		return true;
+	});
 }
 
 export interface CanonicalRestRootsInput {
