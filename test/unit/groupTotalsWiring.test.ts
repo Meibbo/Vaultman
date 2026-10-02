@@ -44,9 +44,14 @@ describe('L-07AW GUARDA NEGATIVA: ningun explorer proyecta el count sin totales'
 				`${name} proyecta sin groupTotals`,
 			).toBe(true);
 			const compactSource = source.replace(/\s+/g, ' ');
+			// The shared addon engine must use its attached provider namespace,
+			// retaining Plugins only as the native-source default.
+			const providerExpression = name === 'explorerPlugins'
+				? "this.dataSource?.providerId ?? 'plugins'"
+				: `'${providerId}'`;
 			expect(
 				compactSource.includes(
-					`groupTotals: bubbleMemberCountsToGroups({ groups, memberships, providerId: '${providerId}', })`,
+					`groupTotals: bubbleMemberCountsToGroups({ groups, memberships, providerId: ${providerExpression}, })`,
 				),
 				`${name} no cablea los totales burbujeados con el provider de su scene`,
 			).toBe(true);
