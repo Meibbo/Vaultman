@@ -140,4 +140,62 @@ describe('times-opened aggregate (SASI cell_counter / _timesOpened)', () => {
 		expect(await f.service.getOpenCount('b.md')).toBe(1);
 		f.service.onunload();
 	});
+
+	it('migrates child counts when a folder is renamed', async () => {
+		const f = fixture();
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		f.service.handleFileOpen(f.file('folder/a.md'), 100);
+		f.service.handleFileOpen(f.file('folder/sub/b.md'), 200);
+		expect(await f.service.getOpenCount('folder/a.md')).toBe(1);
+		expect(await f.service.getOpenCount('folder/sub/b.md')).toBe(1);
+
+		f.service.handleRename('archive', 'folder');
+		expect(await f.service.getOpenCount('archive/a.md')).toBe(1);
+		expect(await f.service.getOpenCount('archive/sub/b.md')).toBe(1);
+		expect(await f.service.getOpenCount('folder/a.md')).toBe(0);
+		expect(await f.service.getOpenCount('folder/sub/b.md')).toBe(0);
+		f.service.onunload();
+	});
+
+	it('migrates unpersisted pending events when a folder is renamed before flush', async () => {
+		const f = fixture();
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		f.service.handleFileOpen(f.file('folder/a.md'), 100);
+		f.service.handleRename('archive', 'folder');
+		await f.service.flush();
+		const history = await f.service.getHistory();
+		expect(history.map((e) => e.path)).toEqual(['archive/a.md']);
+		f.service.onunload();
+	});
+
+	it('removes child counts when a folder is deleted', async () => {
+		const f = fixture();
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		f.service.handleFileOpen(f.file('folder/a.md'), 100);
+		expect(await f.service.getOpenCount('folder/a.md')).toBe(1);
+
+		f.service.handleDelete('folder');
+		expect(await f.service.getOpenCount('folder/a.md')).toBe(0);
+		f.service.onunload();
+	});
+
+	it('discards unpersisted pending events when a folder is deleted before flush', async () => {
+		const f = fixture();
+		f.service.setRecordAllOpens(true);
+		f.service.onload();
+		await f.service.whenLoaded();
+		f.service.handleFileOpen(f.file('folder/a.md'), 100);
+		f.service.handleDelete('folder');
+		await f.service.flush();
+		const history = await f.service.getHistory();
+		expect(history).toEqual([]);
+		f.service.onunload();
+	});
 });
+

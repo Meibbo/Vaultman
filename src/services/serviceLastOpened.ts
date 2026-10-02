@@ -125,6 +125,7 @@ export class LastOpenedService extends Component {
 				if (generation !== this.generation) return;
 				const counts = new Map<string, number>();
 				for (const event of events) counts.set(event.path, (counts.get(event.path) ?? 0) + 1);
+				for (const event of this.pendingEvents) counts.set(event.path, (counts.get(event.path) ?? 0) + 1);
 				if (generation !== this.generation) return;
 				this.openCounts = counts;
 			})();
@@ -219,6 +220,11 @@ export class LastOpenedService extends Component {
 		const pruned = pruneMissingPaths(this.record, existing);
 		if (Object.keys(pruned).length === Object.keys(this.record).length) return false;
 		this.record = { ...pruned };
+		if (this.openCounts) {
+			for (const key of [...this.openCounts.keys()]) {
+				if (!existing.has(key)) this.openCounts.delete(key);
+			}
+		}
 		this._markDirty();
 		return true;
 	}
@@ -269,9 +275,27 @@ export class LastOpenedService extends Component {
 		const mutation = () => { this.record = { ...withRenamedPath(this.record, oldPath, newPath) }; };
 		mutation();
 		if (!this.loaded) this.earlyMutations.push(mutation);
-		if (this.openCounts?.has(oldPath)) {
-			this.openCounts.set(newPath, (this.openCounts.get(newPath) ?? 0) + (this.openCounts.get(oldPath) ?? 0));
-			this.openCounts.delete(oldPath);
+		const folderPrefix = `${oldPath}/`;
+		if (this.pendingEvents.length > 0) {
+			this.pendingEvents = this.pendingEvents.map((event) => {
+				if (event.path === oldPath) return { ...event, path: newPath };
+				if (event.path.startsWith(folderPrefix)) {
+					return { ...event, path: `${newPath}${event.path.slice(oldPath.length)}` };
+				}
+				return event;
+			});
+		}
+		if (this.openCounts) {
+			for (const [key, count] of [...this.openCounts.entries()]) {
+				if (key === oldPath) {
+					this.openCounts.set(newPath, (this.openCounts.get(newPath) ?? 0) + count);
+					this.openCounts.delete(oldPath);
+				} else if (key.startsWith(folderPrefix)) {
+					const migratedKey = `${newPath}${key.slice(oldPath.length)}`;
+					this.openCounts.set(migratedKey, (this.openCounts.get(migratedKey) ?? 0) + count);
+					this.openCounts.delete(key);
+				}
+			}
 		}
 		this.folderRecency = null;
 		this._markDirty();
@@ -283,7 +307,20 @@ export class LastOpenedService extends Component {
 		const mutation = () => { this.record = { ...withDeletedPath(this.record, path) }; };
 		mutation();
 		if (!this.loaded) this.earlyMutations.push(mutation);
-		this.openCounts?.delete(path);
+		const folderPrefix = `${path}/`;
+		if (this.pendingEvents.length > 0) {
+			this.pendingEvents = this.pendingEvents.filter(
+				(event) => event.path !== path && !event.path.startsWith(folderPrefix),
+			);
+		}
+		if (this.openCounts) {
+			this.openCounts.delete(path);
+			for (const key of [...this.openCounts.keys()]) {
+				if (key.startsWith(folderPrefix)) {
+					this.openCounts.delete(key);
+				}
+			}
+		}
 		this.folderRecency = null;
 		this._markDirty();
 		this._notify();
