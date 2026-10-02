@@ -6,6 +6,14 @@ import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 
 describe('BT5-067 frame command activation', () => {
+	it('focuses the exact opened instance and remembers it for subsequent commands', () => {
+		const openBlock = mainSource.slice(
+			mainSource.indexOf('async openWorkspaceInstance('),
+			mainSource.indexOf('/** Declares a durable home;'),
+		);
+		expect(openBlock).toContain('this.lastFocusedFrameLeaf = opened.address.leaf');
+		expect(openBlock).toContain('this.app.workspace.setActiveLeaf(opened.address.leaf, { focus: true })');
+	});
 	it('never closes regardless of open mode (all modes are new instances)', () => {
 		expect(shouldToggleCloseFrame('sidebar', 1)).toBe(false);
 		expect(shouldToggleCloseFrame('main', 2)).toBe(false);

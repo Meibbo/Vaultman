@@ -1156,7 +1156,12 @@ export class VaultmanPlugin extends Plugin {
 		if (enrolled && !enrolled.ok) {
 			return { ok: false, reason: 'mount-conflict', ownerId: enrolled.ownerId };
 		}
-		return this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+		const opened = await this.surfaceHost.openWorkspaceInstance(instanceId, surface);
+		if (opened.ok) {
+			this.lastFocusedFrameLeaf = opened.address.leaf;
+			this.app.workspace.setActiveLeaf(opened.address.leaf, { focus: true });
+		}
+		return opened;
 	}
 
 	/** Declares a durable home; openWorkspaceInstance accepts one-open overrides. */
