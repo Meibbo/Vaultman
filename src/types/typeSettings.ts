@@ -210,6 +210,8 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
 	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
+	/** Record every file-open event in addition to the latest timestamp per file. */
+	recordAllFileOpens: boolean;
 	/**
 	 * U121-027: render Last opened / Modified / Created as relative copy ("3 hours
 	 * ago") while they are under a day old. Off renders the exact date everywhere,
@@ -514,6 +516,11 @@ export interface iVaultmanPlugin extends Plugin {
 	statisticsCache?: {
 		setCountFrontmatterWords(enabled: boolean): void;
 	};
+	/** Narrow opening-history controls used by the native settings tab. */
+	lastOpenedService?: {
+		setRecordAllOpens(enabled: boolean): void;
+		clearHistory(): Promise<void>;
+	};
 	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
 	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
 	/** U130-?: el publicador de comandos SASI vive en el plugin; el inspector lo usa para toggle por entry. */
@@ -585,6 +592,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'main',
+	recordAllFileOpens: false,
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',
 	timestampRelativeCutoffs: {},
