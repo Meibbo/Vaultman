@@ -6,6 +6,7 @@ import type {
 	SasiRegistry,
 	SasiSupport,
 } from '../logic/logicSasiRegistry';
+import { sasiLifecycleFor, type SasiLifecycle } from '../logic/logicSasiLifecycle';
 
 /** Un nodo proyectable desde SASI. Plano y serializable a proposito. */
 export interface SasiNode {
@@ -24,10 +25,14 @@ export interface SasiNode {
 	 * cada comando, que es la mitad de "que es cada cosa y DONDE ESTA".
 	 */
 	composes?: readonly string[];
+	createdAt?: number;
+	updatedAt?: number;
+	dateSource?: string;
 }
 
 export interface SasiProvider {
 	nodesFor(axis: SasiAxis): readonly SasiNode[];
+	lifecycleFor(id: string): SasiLifecycle | undefined;
 }
 
 /**
@@ -37,6 +42,7 @@ export interface SasiProvider {
  */
 export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 	return {
+		lifecycleFor: sasiLifecycleFor,
 		nodesFor(axis) {
 			return registry.list(axis).map((def) => ({
 				id: def.id,
@@ -49,6 +55,11 @@ export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 				supports: def.supports,
 				availability: def.availability ?? { status: 'available' },
 				composes: def.composes ?? [],
+				...(sasiLifecycleFor(def.id) ? {
+					createdAt: sasiLifecycleFor(def.id)?.createdAt,
+					updatedAt: sasiLifecycleFor(def.id)?.updatedAt,
+					dateSource: sasiLifecycleFor(def.id)?.source,
+				} : {}),
 			}));
 		},
 	};
