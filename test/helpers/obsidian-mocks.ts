@@ -224,6 +224,14 @@ export interface MenuItem {
 }
 
 export class Menu {
+	private hideCallbacks: Array<() => void> = [];
+	onHide(callback: () => void): this {
+		this.hideCallbacks.push(callback);
+		return this;
+	}
+	hide(): void {
+		for (const callback of this.hideCallbacks.splice(0)) callback();
+	}
 	items: Array<{ title: string; icon?: string; submenu?: Menu | null; onClick?: () => void }> = [];
 	addItem(cb: (item: MenuItem) => void): this {
 		const wrapper: MenuItem = {
