@@ -4273,7 +4273,7 @@
 			const isActive = activeSort.sortBy === option.id;
 			nodes.push(
 				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
-					title: `${translate(option.labelKey)}${
+					title: `${translate(providerId === 'sasi' && option.id === 'installed' ? 'sort.by.created' : option.labelKey)}${
 						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
 					}`,
 					icon: option.icon,
