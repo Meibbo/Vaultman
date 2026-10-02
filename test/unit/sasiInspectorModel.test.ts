@@ -35,6 +35,7 @@ describe('U130-01: el inspector de SASI', () => {
 			'settingScene.toolbar',
 			'node_plugin.cmenu',
 			'node_group.cmenu',
+			'cell_counter',
 		]);
 		expect(kinds?.entries.slice(0, 4).map((entry) => entry.surfaces)).toEqual([
 			['settingScene'],

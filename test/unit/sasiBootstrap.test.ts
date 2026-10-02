@@ -17,6 +17,7 @@ describe('U130 SASI bootstrap', () => {
 			'settingScene.toolbar',
 			'node_plugin.cmenu',
 			'node_group.cmenu',
+			'cell_counter',
 		]);
 		expect(registry.list('function').length).toBeGreaterThan(0);
 	});
