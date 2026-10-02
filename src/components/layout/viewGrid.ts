@@ -1,7 +1,7 @@
 // src/components/GridView.ts
 import { Platform, setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
-import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
+import { buildVirtualTableWindow, hasVisibleTableRows, type RenderedTableRange } from '../../utils/tableVirtualization';
 import type { NodeBadge } from '../../types/typeTree';
 import {
 	compareFilesForExplorer,
@@ -87,6 +87,7 @@ export class GridView {
 	private tbodyEl: HTMLElement | null = null;
 	private activePath: string | null = null;
 	private rowEls = new Map<string, HTMLElement>();
+	private renderedRange: RenderedTableRange | null = null;
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private totalCount = 0;
@@ -95,7 +96,10 @@ export class GridView {
 	private visibleCells = new Set<string>(['name', 'ext', 'path']);
 	private readonly onScroll = () => {
 		this._syncHeaderScroll();
-		this.scheduleWindowRender();
+		if (this.listEl && !hasVisibleTableRows(this.renderedRange, this.listEl.scrollTop, this.listEl.clientHeight)) {
+			this.cancelScheduledRender();
+			this._renderWindow();
+		} else this.scheduleWindowRender();
 	};
 
 	constructor(
@@ -153,6 +157,7 @@ export class GridView {
 		this.displayedFiles = [];
 		this.rowEls.clear();
 		this.selectedFiles.clear();
+		this.renderedRange = null;
 		this.totalCount = 0;
 	}
 
@@ -424,6 +429,7 @@ export class GridView {
 			rowHeight: this.rowHeight,
 			overscan: this.overscan,
 		});
+		this.renderedRange = { startIndex: projection.startIndex, endIndex: projection.endIndex, rowHeight: projection.rowHeight };
 		const visiblePaths = new Set(
 			projection.visibleRows.map((row) => row.row.path),
 		);
@@ -575,7 +581,7 @@ export class GridView {
 		row.draggable = Boolean(this.callbacks.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = `${this.surfaceWidth(layout)}px`;
+		row.style.width = '100%';
 		row.onpointerenter = () => this.callbacks.onFileHover?.(file, row);
 		row.oncontextmenu = (event) => {
 			event.preventDefault();

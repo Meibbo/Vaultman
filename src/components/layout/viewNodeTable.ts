@@ -17,7 +17,7 @@ import {
 	type ExplorerHighlightIdSets,
 	type ExplorerStatusDot,
 } from '../../logic/logicExplorerHighlight';
-import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
+import { buildVirtualTableWindow, hasVisibleTableRows, type RenderedTableRange } from '../../utils/tableVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
@@ -76,6 +76,7 @@ export class NodeTableView<TMeta = unknown> {
 	private opts: NodeTableViewOptions<TMeta> | null = null;
 	private rows: TreeNode<TMeta>[] = [];
 	private rowEls = new Map<string, HTMLElement>();
+	private renderedRange: RenderedTableRange | null = null;
 	private _filterBubbleIds: ReadonlySet<string> = new Set();
 	private _excludedFilterBubbleIds: ReadonlySet<string> = new Set();
 	private _highlightBubbleIds: ExplorerHighlightIdSets = {};
@@ -86,7 +87,10 @@ export class NodeTableView<TMeta = unknown> {
 	private readonly recursiveExpandGesture = new LongPressGesture();
 	private readonly onScroll = () => {
 		this._syncHeaderScroll();
-		this.scheduleWindowRender();
+		if (this.listEl && !hasVisibleTableRows(this.renderedRange, this.listEl.scrollTop, this.listEl.clientHeight)) {
+			this.cancelScheduledRender();
+			this._renderWindow();
+		} else this.scheduleWindowRender();
 	};
 
 	constructor(containerEl: HTMLElement) {
@@ -322,6 +326,7 @@ export class NodeTableView<TMeta = unknown> {
 			rowHeight: this.rowHeight,
 			overscan: this.overscan,
 		});
+		this.renderedRange = { startIndex: projection.startIndex, endIndex: projection.endIndex, rowHeight: projection.rowHeight };
 		const layout = this.layoutFor(this.opts);
 		this._applyDimensions(layout);
 		const visibleIds = new Set(projection.visibleRows.map((row) => row.row.id));
@@ -476,7 +481,7 @@ export class NodeTableView<TMeta = unknown> {
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = `${this.surfaceWidth(layout)}px`;
+		row.style.width = '100%';
 		row.style.setProperty('--depth', String(node.depth));
 		bindLongPressGesture(
 			row,
