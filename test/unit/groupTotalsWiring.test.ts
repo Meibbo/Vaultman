@@ -96,12 +96,15 @@ describe('L-07AW: la cabecera muestra el agregado burbujeado, no children.length
 		filtered: false,
 	};
 
-	it('ANTES: sin groupTotals el padre solo cuenta su hijo directo', () => {
+	it('ANTES: sin groupTotals el padre no inventa count desde children.length', () => {
 		const [padre] = projectGroupedTree(base);
 		expect(padre.id).toBe('P');
 		// x esta en P y en H: dos ocurrencias, ids de FILA distintos (caso S-26).
 		expect(padre.children?.map((c) => c.id)).toEqual(['x@P']);
-		expect(padre.count).toBe(1);
+		// Contrato headerNode: `count` es agregado burbujeado, NUNCA
+		// children.length; el numero de hijos vive en `subCountText`.
+		expect(padre.count).toBeUndefined();
+		expect(padre.subCountText).toBe('1');
 	});
 
 	it('DESPUES: con groupTotals el padre agrega al hijo con dedup por identidad', () => {
