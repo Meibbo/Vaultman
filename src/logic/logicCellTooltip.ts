@@ -52,26 +52,15 @@ export function cellTooltipText(
 }
 
 /**
- * Detect whether an element is inside Obsidian's right sidebar/split or placed
- * so close to the right viewport edge that a right-side lateral tooltip would
- * overflow off-screen.
+ * Detect right-sidebar ownership without flushing layout. This runs while
+ * virtual rows and cells are being written, so measuring their bounds here
+ * would force a layout for every tooltip in the render window.
  */
 export function isElementInRightSidebar(el: Element | null | undefined): boolean {
 	if (!el) return false;
-	if (el.closest?.('.mod-right-split, [data-surface-position="right-sidebar"]')) {
-		return true;
-	}
-	if (typeof window !== 'undefined' && typeof el.getBoundingClientRect === 'function') {
-		try {
-			const rect = el.getBoundingClientRect();
-			if (rect && (rect.width > 0 || rect.height > 0) && rect.right > window.innerWidth - 320) {
-				return true;
-			}
-		} catch {
-			// ignore in test / virtual dom
-		}
-	}
-	return false;
+	return Boolean(
+		el.closest?.('.mod-right-split, [data-surface-position="right-sidebar"]'),
+	);
 }
 
 /**
@@ -119,4 +108,3 @@ export function applyCellTooltip(
 	const resolved = resolveTooltipPlacement(placement, element);
 	setTooltip(element, text, { placement: resolved });
 }
-
