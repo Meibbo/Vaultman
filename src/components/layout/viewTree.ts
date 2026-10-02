@@ -1161,11 +1161,15 @@ export class UnifiedTreeView {
 	private _renderWindow(): void {
 		if (!this._opts || !this._contentEl) return;
 		const started = performance.now();
+		const scrollTop = this.containerEl.scrollTop;
+		const viewportHeight = this.containerEl.clientHeight;
+		const rowHeight = this.rowHeight();
+		if (this._opts.stickyParentRows) this._applyStickyTopOffset();
 		const projection = buildVirtualTreeWindow({
 			rows: this._rows,
-			scrollTop: this.containerEl.scrollTop,
-			viewportHeight: this.containerEl.clientHeight,
-			rowHeight: this.rowHeight(),
+			scrollTop,
+			viewportHeight,
+			rowHeight,
 			overscan: this._overscan,
 		});
 		const visibleIds = new Set(
@@ -1178,7 +1182,7 @@ export class UnifiedTreeView {
 			rowEl.addClass('vaultman-tree-row--virtual');
 			rowEl.style.top = `${row.top}px`;
 		}
-		this._renderStickyRows();
+		this._renderStickyRows(scrollTop, viewportHeight, rowHeight);
 		this._focusEditingRow(this._opts);
 		if (this._scopePreviewNodeId) {
 			this._scheduleScopePreview(this._scopePreviewNodeId);
@@ -1202,18 +1206,16 @@ export class UnifiedTreeView {
 		}
 	}
 
-	private _renderStickyRows(): void {
+	private _renderStickyRows(scrollTop: number, viewportHeight: number, rowHeight: number): void {
 		if (!this._stickyLayerEl || !this._opts?.stickyParentRows) {
 			this.removeStaleRows(new Set(), this.stickyRowEls);
 			this._syncStickyTwins(new Set());
 			return;
 		}
-		const rowHeight = this.rowHeight();
-		this._applyStickyTopOffset();
 		const stickyRows = stickyTreeRows(this._rows, {
 			rowHeight,
-			scrollTop: this.containerEl.scrollTop,
-			viewportHeight: this.containerEl.clientHeight,
+			scrollTop,
+			viewportHeight,
 			maxFraction: this._opts?.stickyMaxFraction,
 			parentIndex: this._parentIndex ?? undefined,
 			subtreeEnd: this._subtreeEnd ?? undefined,
@@ -1277,7 +1279,8 @@ export class UnifiedTreeView {
 	 * an offset of zero happens to be right there and only there.
 	 *
 	 * Measured rather than wired: the content box already knows where it starts
-	 * relative to the scrollport. Read once per sticky render, never per frame.
+	 * relative to the scrollport. Read before the window's row writes so the
+	 * measurement cannot flush the partially rendered virtual window.
 	 */
 	private _applyStickyTopOffset(): void {
 		const layer = this._stickyLayerEl;
@@ -2529,18 +2532,10 @@ export class UnifiedTreeView {
 		}
 		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox('end');
 		if (opts.caretPosition === 'end') emitCaret('end');
-		const indentAnchor = row.querySelector<HTMLElement>(
-			'.vaultman-selection-checkbox--start, .vaultman-tree-icon, .vaultman-tree-label, .vaultman-tree-input',
-		);
-		if (indentAnchor) {
-			const isRtl = this._treeWindow().getComputedStyle(row).direction === 'rtl';
-			const start = isRtl
-				? row.clientWidth - indentAnchor.offsetLeft - indentAnchor.offsetWidth
-				: indentAnchor.offsetLeft;
-			row.style.setProperty('--vaultman-tree-guide-start', `${Math.max(0, start)}px`);
-		} else {
-			row.style.removeProperty('--vaultman-tree-guide-start');
-		}
+		// Guides belong to ancestor lanes, not the current label's offset.
+		// The shared logical-inset CSS tracks those lanes without measuring
+		// each partially built row (and forcing layout between DOM writes).
+		row.style.removeProperty('--vaultman-tree-guide-start');
 
 		return row;
 	}
