@@ -909,7 +909,10 @@
 	// ResizeObserver on .vaultman-view updates nav state
 	function bindViewRoot(el: HTMLElement) {
 		const onBlankClick = (event: MouseEvent): void => {
-			if (event.target instanceof Element && isBlankPanelSelectionTarget(event.target)) {
+			if (
+				event.target instanceof Element &&
+				isBlankPanelSelectionTarget(event.target)
+			) {
 				clearExplorerSelection(activeFloatingTocPanel());
 			}
 		};
@@ -1639,7 +1642,8 @@
 		{sceneConfigPort}
 		onSwitchInstance={switchWorkspaceInstance}
 		app={plugin.app}
-		readInstanceRecords={() => Object.values(plugin.settings.instanceRegistry?.instances ?? {})}
+		readInstanceRecords={() =>
+			Object.values(plugin.settings.instanceRegistry?.instances ?? {})}
 		visible={panelWidgetVisible}
 		peeking={panelWidgetPeek}
 		onPointerEnter={onToolbarPointerEnter}
