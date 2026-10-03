@@ -64,7 +64,9 @@ describe('virtual scroll CSS source guards', () => {
 		expect(desktopCoreRowIndentBlock).toContain(
 			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
 		);
-		expect(desktopCoreRowIndentBlock).toContain('padding-inline-end: 8px');
+		expect(desktopCoreRowIndentBlock).toContain(
+			'padding-inline-end: var(--vaultman-tree-row-padding-end, 8px)',
+		);
 		expect(desktopCoreRowIndentBlock).not.toContain('!important');
 	});
 

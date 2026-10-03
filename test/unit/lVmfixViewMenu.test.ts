@@ -47,28 +47,36 @@ describe('L-VMFIX view_menu guard', () => {
 		if (layoutsIdx > -1) expect(layoutsIdx).toBeGreaterThan(interactionIdx);
 	});
 
-	it('puts Toolbar above engines, with a divider between them', () => {
+	it('removes toolbar toggle and configures layout and nested dividers', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const enginesIdx = menu.indexOf('const engineChildren: NativeMenuNode[]');
-		const toolbarIdx = menu.indexOf("translate('viewmenu.toolbar')");
 		expect(enginesIdx).toBeGreaterThan(-1);
-		expect(toolbarIdx).toBeGreaterThan(-1);
-		expect(toolbarIdx).toBeLessThan(enginesIdx);
 
-		// A top-level divider (on `menu`, not the `engines` submenu) sits
-		// ahead of the Toolbar section, separating it from the cell presets
-		// above (orden dev, 2026-09-15).
-		const beforeToolbar = menu.slice(0, toolbarIdx);
-		expect(beforeToolbar).toContain("nativeMenuDivider('view_menu.divider.toolbar')");
+		// Toolbar option is removed from view_menu per backlog spec (redundant).
+		expect(menu).not.toContain("translate('viewmenu.toolbar')");
+		expect(menu).not.toContain("nativeMenuDivider('view_menu.divider.toolbar')");
 
-		// A second TOP-LEVEL divider sits between Toolbar and engines. The
-		// tab right before `menu.addSeparator(` distinguishes it from the
-		// submenu's own `submenu.addSeparator()` calls, which are expected
-		// inside the engines span (e.g. before `nested`) and live after
-		// enginesIdx, not in this span. This divider reserves the slot for
-		// the stream proto_design dimension control.
-		const between = menu.slice(toolbarIdx, enginesIdx);
-		expect(between).toContain("nativeMenuDivider('view_menu.divider.engines')");
+		// Divider before engines sits ahead of the engines submenu.
+		const beforeEngines = menu.slice(0, enginesIdx);
+		expect(beforeEngines).toContain("nativeMenuDivider('view_menu.divider.engines')");
+
+		// Dividers before and after layout view_option.
+		expect(menu).toContain("nativeMenuDivider('view_menu.divider.layouts')");
+		expect(menu).toContain("nativeMenuDivider('view_menu.divider.after_layouts')");
+
+		// Dividers before and after nested option inside engines submenu.
+		const enginesBlock = menu.slice(enginesIdx);
+		const nestedIdx = enginesBlock.indexOf("'view_menu.engines.nested'");
+		const beforeNestedDividerIdx = enginesBlock.indexOf("'view_menu.engines.divider.before_nested'");
+		const afterNestedDividerIdx = enginesBlock.indexOf("'view_menu.engines.divider.options'");
+
+		expect(beforeNestedDividerIdx).toBeGreaterThan(-1);
+		expect(nestedIdx).toBeGreaterThan(beforeNestedDividerIdx);
+		expect(afterNestedDividerIdx).toBeGreaterThan(nestedIdx);
+
+		// Input interaction mode is 'Rename' / 'Renombrar'.
+		expect(en['viewmenu.interaction.input']).toBe('Rename');
+		expect(es['viewmenu.interaction.input']).toBe('Renombrar');
 	});
 
 	it('keeps the nested -> parentsFirst -> fixedFolders projection chain inside engines', () => {

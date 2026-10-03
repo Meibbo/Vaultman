@@ -2,6 +2,7 @@ import esbuild from "esbuild";
 import process from "process";
 import { builtinModules as builtins } from "module";
 import esbuildSvelte from "esbuild-svelte";
+import './scripts/generate-sasi-lifecycle.mts';
 
 const prod = process.argv[2] === "production";
 

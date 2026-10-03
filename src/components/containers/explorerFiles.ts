@@ -8,6 +8,7 @@ import {
 	TFolder,
 } from 'obsidian';
 import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
+import { folderFileCounts } from '../../logic/logicFolderFileCounts';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -45,6 +46,10 @@ import {
 	parseMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
 import { planGroupToFolder, type GroupFolderMember, type GroupFolderPlan } from '../../logic/logicGroupToFolder';
 import {
 	collectGroupMemberIds,
@@ -77,10 +82,13 @@ import {
 } from '../../types/typeGroupPreset';
 import {
 	addCounterRangeSlice,
-	rebalanceCounterRange,
 	snapshotPresetBucket,
 	type MaterializePresetHandler,
 } from '../../logic/logicGroupPresets';
+import {
+	rebalanceCounterRange,
+	sliceCounterRange,
+} from '../../logic/logicCounterRangePartitions';
 import { translatedRangeLabels } from '../../utils/groupPresetLabels';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
@@ -160,6 +168,7 @@ import {
 	activeScopeSort,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	parseScopeLevel,
 	siblingScopeSort,
 	replaceActiveScopeSort,
 	sameExplorerSortState,
@@ -186,6 +195,8 @@ import {
 import {
 	buildFileHoverInfo,
 	filesHoverNeedsStatistics,
+	normalizeFolderHoverInfo,
+	type FolderHoverInfoField,
 } from '../../logic/logicFileHoverInfo';
 import {
 	collectExpandableSubtreeIds,
@@ -468,6 +479,7 @@ export class FilesExplorerPanel extends Component {
 	private pendingStatsPaths = new Set<string>();
 	private propertyCountCache = new Map<string, number>();
 	private pendingHoverStats = new Map<string, Set<HTMLElement>>();
+	private pendingFolderHoverStats = new Map<string, Set<HTMLElement>>();
 	private statisticsWarmSignature = '';
 	private statisticsWarmup: Promise<void> = Promise.resolve();
 	private statisticsRetrySignature = '';
@@ -538,6 +550,9 @@ export class FilesExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
 	private counterRangesChangeHandler?: (
 		ranges: readonly CounterRange[],
 		target: ScopeTarget,
@@ -1042,8 +1057,9 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
-		// Subscribe to lastOpenedService changes to re-render when the store loads or updates.
-		this.register(this.plugin.lastOpenedService.onChange(() => this._render()));
+		// Hydration/clear need a rebuild; ordinary opens already use the incremental
+		// file-open handler below and must not trigger a second full render.
+		this.register(this.plugin.lastOpenedService.onReset(() => this._render()));
 		this._glyphSettingsSignature = this._currentGlyphSettingsSignature();
 		this.register(
 			this.plugin.onSettingsChange(this._handleGlyphSettingsChange),
@@ -1111,6 +1127,7 @@ export class FilesExplorerPanel extends Component {
 		this.pendingStatsPaths.clear();
 		this.propertyCountCache.clear();
 		this.pendingHoverStats.clear();
+		this.pendingFolderHoverStats.clear();
 		this.plugin.queueService.off('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.off('changed', this._handleStatsChange);
 		this.containerEl.removeEventListener(
@@ -1217,6 +1234,139 @@ export class FilesExplorerPanel extends Component {
 		this.groupDeleteHandler = handler;
 	}
 
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
+	}
+
+	/**
+	 * U130-GGC-016: make_a_copy para custom groups. Crea una copia enumerada
+	 * ("Grupo (1)", "Grupo (2)") con los mismos miembros en `groupMemberships`.
+	 * Preserva el target del scoped key; en legacy usa sufijo plano.
+	 */
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				const nextName = `${parsed.name} (${n})`;
+				try {
+					nextId = makeScopedGroupKey(parsed.target, nextName);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		const finalId = nextId!;
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[finalId]: [...members],
+		});
+	}
+
+	/**
+	 * U130-GGC-016: rename para custom groups. Pide nuevo nombre vía modal de
+	 * texto y renombra la clave en `groupMemberships` preservando target.
+	 */
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const currentName = parsed.name;
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: currentName,
+			})
+		)?.trim();
+		if (!nextName || nextName === currentName) return;
+		let nextId: string;
+		if (parsed.legacy) {
+			nextId = nextName;
+		} else {
+			try {
+				nextId = makeScopedGroupKey(parsed.target, nextName);
+			} catch {
+				new Notice(translate('group.batch.rejected'));
+				return;
+			}
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({
+			...rest,
+			[nextId]: [...(members ?? [])],
+		});
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this._render();
+		}
+	}
+
+	/**
+	 * U130-GGC-016: change scope para custom groups. Mueve la clave al target
+	 * `all` preservando el nombre (con enumeración si colisiona).
+	 */
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({
+			...rest,
+			[nextId]: [...(members ?? [])],
+		});
+	}
+
 	setCounterRangesChangeHandler(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
@@ -1229,7 +1379,10 @@ export class FilesExplorerPanel extends Component {
 		const candidates: ScopeTarget[] = [target];
 		if (target.startsWith('parent:')) {
 			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
-			if (parentLevel !== null) candidates.push(`level:${parentLevel + 1}`);
+			if (parentLevel !== null) {
+				const nextLevel = parseScopeLevel(parentLevel).base + 1;
+				candidates.push(`level:${nextLevel}`);
+			}
 		}
 		if (target !== 'all') candidates.push('all');
 		const projected = this.projectedNodes(this._lastRenderTree);
@@ -1387,16 +1540,63 @@ export class FilesExplorerPanel extends Component {
 	 * miembros del owner invocado. El owner viaja desde la metadata de la
 	 * ocurrencia miembro; preset sin handler.
 	 */
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<FileMeta>[],
+	): string | undefined {
+		const selected = this.selectedFilePaths;
+		const walk = (nodes: readonly TreeNode<FileMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (this.groupPreset.kind === 'note' || this._isCustomGroupId(owner)))
+						return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
 	private _degroupMenuCtx(
 		invoked: TreeNode<FileMeta>,
 	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
 		const handler = this.degroupSelectedHandler;
-		const owner = occurrenceOwnerOf(invoked);
-		if (!handler || !owner || !this._groupIds.has(owner)) return {};
-		if (this.selectedFilePaths.size === 0) return {};
+		if (!handler || this.selectedFilePaths.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(invoked);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
+		const resolvedGroupOwner = noteGroup ? 'note' : 'custom';
 		return {
-			membershipOwner: owner,
-			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			membershipOwner: resolvedOwner,
+			groupOwner: resolvedGroupOwner,
 			occurrenceEntityId: entityIdOf(invoked),
 			degroupSelected: () => {
 				const snapshot = snapshotFromProjectedTree({
@@ -1410,7 +1610,7 @@ export class FilesExplorerPanel extends Component {
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
 	}
@@ -1669,17 +1869,7 @@ export class FilesExplorerPanel extends Component {
 			this._notifyExpansionChanged();
 			this._refreshCompleteTreeExpansion(changedFolderIds);
 		}
-		window.requestAnimationFrame(() => {
-			if (this.viewMode === 'table') {
-				this.tableView?.scrollToPath(file.path);
-				return;
-			}
-			if (this.viewMode === 'grid') {
-				this.gridView?.scrollToPath(file.path);
-				return;
-			}
-			this.treeView?.scrollToId(file.path);
-		});
+		this.revealNode(file.path, { behavior: 'auto' });
 	}
 
 	async createFromSearch(category: number, term: string): Promise<void> {
@@ -2030,6 +2220,11 @@ export class FilesExplorerPanel extends Component {
 			this.interactionMode,
 			false,
 		);
+		if (action === 'input') {
+			this._editingId = file.path;
+			this._render();
+			return;
+		}
 		if (action === 'filter') {
 			const folderPath =
 				file.parent?.path === '/' ? '' : (file.parent?.path ?? '');
@@ -2206,7 +2401,7 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
-	scopeLevelForNode(id: string): number | null {
+	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findNodeLevel(this._scopeTree(), id);
 	}
@@ -2714,16 +2909,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _refreshFolderFileCount(files: readonly TFile[]): void {
-		const counts = new Map<string, number>();
-		for (const file of files) {
-			const parts = file.path.split('/');
-			parts.pop();
-			for (let depth = 1; depth <= parts.length; depth += 1) {
-				const path = parts.slice(0, depth).join('/');
-				counts.set(path, (counts.get(path) ?? 0) + 1);
-			}
-		}
-		this._folderFileCount = counts;
+		this._folderFileCount = folderFileCounts(files);
 	}
 
 	/** Same bubbling as `_refreshFolderFileCount`, summing the stat instead of
@@ -2797,30 +2983,39 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			cellRenderOrder: this._activationCellOrder(),
 			selectionCheckboxPosition: this._selectionCheckboxPosition(),
 			counterRangeBoundLabel: (bound) =>
 				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-			onCounterRangeCommit: (_id, range) => {
+			onCounterRangeCommit: (_id, range, mode) => {
 				const header = this._findNode(_id, projectedTree);
 				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 					return false;
-				const result = rebalanceCounterRange(
-					header.counterRanges,
-					range,
-					header.counterDomain,
-				);
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
 				if (!result.ok) {
-					new Notice(translate('group.counter.invalid'));
 					return false;
 				}
 				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 				return true;
 			},
-			onCounterRangeError: () =>
-				new Notice(translate('group.counter.invalid')),
+			onCounterRangeError: () => {},
 			prepareNode: (node) => this._prepareTreeNode(node as TreeNode<FileMeta>),
 		};
 		this.treeView.render({
@@ -3084,6 +3279,8 @@ export class FilesExplorerPanel extends Component {
 		// header up in the raw source tree made materialization disappear from
 		// the universal group menu.
 		const projectedTree = this.projectedNodes(renderTree);
+		const { activeFilterIds, excludedFilterIds } =
+			this._fileFilterHighlight(renderTree);
 		this._treeRenderOpts = {
 			surface: 'files',
 			nodes: renderTree,
@@ -3091,39 +3288,56 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
-				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings.caretPosition ?? 'start',
 				// U121-077: fileScene nunca cableo este canal, asi que el highlight
 				// de borrado sencillamente no existia aqui.
-				highlightIds: { deletion: this._deletionHighlightIds },
+				highlightIds: {
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
+					deletion: this._deletionHighlightIds,
+				},
 				// U121-081: fileScene never passed this, so even with the cell on
 				// there was nothing to render.
 				selectionCheckboxPosition: this._selectionCheckboxPosition(),
 				counterRangeBoundLabel: (bound) =>
 					translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
-				onCounterRangeCommit: (id, range) => {
+				onCounterRangeCommit: (id, range, mode) => {
 					const header = this._findNode(id, projectedTree);
 					if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
 						return false;
-					const result = rebalanceCounterRange(
-						header.counterRanges,
-						range,
-						header.counterDomain,
-					);
+					const result =
+						mode === 'slice'
+							? sliceCounterRange(
+									header.counterRanges,
+									range,
+									header.counterDomain,
+								)
+							: rebalanceCounterRange(
+									header.counterRanges,
+									range,
+									header.counterDomain,
+								);
 					if (!result.ok) {
-						new Notice(translate('group.counter.invalid'));
 						return false;
 					}
 					this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
 					return true;
 				},
-				onCounterRangeError: () =>
-					new Notice(translate('group.counter.invalid')),
+				onCounterRangeError: () => {},
 				// U121-106: mantener pulsado el checkbox de un p-node actua sobre
 				// toda su descendencia. La regla de apagado que pidio el dev es
 				// "si ya hay ALGUNO o todos", no "si estan todos": un p-node con
@@ -3234,10 +3448,7 @@ export class FilesExplorerPanel extends Component {
 						? this._toggleDescendantSelection(id)
 						: this._expandSubtree(id, projectedTree),
 				onRowDoubleClick: (id: string) =>
-					resolveRecursiveInteractionAction(this.interactionMode) ===
-					'select-descendants'
-						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, projectedTree),
+					this._expandSubtree(id, projectedTree),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					if (isGroupHeader(id, this._groupIds)) {
 						// B-groupbody: el motor ya no trae el cuerpo por aqui
@@ -3403,6 +3614,17 @@ export class FilesExplorerPanel extends Component {
 						typeof node.meta.folderPath === 'string'
 					)
 						this._handleFolderHover(node.meta.folderPath, row);
+					else if (node?.isGroupHeader) {
+						const text = this._groupHoverText(node);
+						if (text) {
+							setTooltip(row, text, {
+								placement: tooltipPlacementForSetting(
+									this.plugin.settings?.tooltipPlacement,
+									this.containerEl,
+								),
+							});
+						}
+					}
 				},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
@@ -3413,10 +3635,18 @@ export class FilesExplorerPanel extends Component {
 					// desde aqui quedan disabled con razon.
 					const header = this._findNode(id, projectedTree);
 					const groupId = header ? entityIdOf(header) : id;
-					const groupOwner = this._groupIds.has(groupId) ? 'custom' : 'preset';
+					const groupOwner =
+						this.groupPreset.kind === 'note'
+							? 'note'
+							: this._isCustomGroupId(groupId)
+								? 'custom'
+								: 'preset';
+					const folderOwner =
+						groupOwner === 'note' ? null : (groupOwner as 'custom' | 'preset');
 					const conversionPlan = header &&
-						(groupOwner === 'preset' || this.groupDeleteHandler)
-						? this._groupToFolderPlan(header, groupId, groupOwner, projectedTree)
+						folderOwner &&
+						(folderOwner === 'preset' || this.groupDeleteHandler)
+						? this._groupToFolderPlan(header, groupId, folderOwner, projectedTree)
 						: null;
 					this.plugin.contextMenuService.openPanelMenu(
 						{
@@ -3431,8 +3661,8 @@ export class FilesExplorerPanel extends Component {
 							surface: 'panel',
 							groupId,
 							groupOwner,
-							convertGroupToFolder: conversionPlan && header
-								? () => this._previewGroupToFolder(id, groupId, groupOwner, conversionPlan)
+							convertGroupToFolder: conversionPlan && header && folderOwner
+								? () => this._previewGroupToFolder(id, groupId, folderOwner, conversionPlan)
 								: undefined,
 							groupHidden: this.hiddenGroupIds.has(groupId),
 							hideGroup: this.groupHideHandler,
@@ -3440,10 +3670,14 @@ export class FilesExplorerPanel extends Component {
 							groupExpanded: this.expandedIds.has(id),
 							adjustGroupRange:
 								header?.counterRange && header.counterDomain
-									? () => this.treeView?.beginCounterRangeEdit(id)
+									? () => this.treeView?.beginCounterRangeEdit(id, 'adjust')
+									: undefined,
+							sliceGroupRange:
+								header?.counterRange && header.counterDomain
+									? () => this.treeView?.beginCounterRangeEdit(id, 'slice')
 									: undefined,
 							materializePreset:
-								this._groupIds.has(groupId) || !header || !this.materializePresetHandler
+								this._isCustomGroupId(groupId) || !header || !this.materializePresetHandler
 									? undefined
 									: () =>
 										this.materializePresetHandler!(
@@ -3453,6 +3687,42 @@ export class FilesExplorerPanel extends Component {
 												this.selectionRevision,
 											),
 										),
+							makeACopy:
+								groupOwner === 'custom'
+									? () => {
+											if (this.groupCopyHandler) this.groupCopyHandler(groupId);
+											else this._makeACopyOfGroup(groupId);
+										}
+									: undefined,
+							createSubgroup: (parentLabel: string) => {
+								if (!this.createGroupHandler) return;
+								const snapshot = snapshotFromProjectedTree({
+									tree: projectedTree,
+									selectedIds: this.selectedFilePaths,
+									urnOf: (node) => this._membershipUrnOf(node),
+									providerId: 'files',
+									scene: 'files',
+									instanceId: this.selectionInstanceId,
+									revision: this.selectionRevision,
+									selectionKey: this._selectionKey(),
+									customGroupIds: this._groupIds,
+								});
+								return this.createGroupHandler(snapshot, `${parentLabel}/`);
+							},
+							renameGroup:
+								groupOwner === 'custom' || groupOwner === 'note'
+									? async (targetId: string) => {
+											if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+											else await this._renameCustomGroup(targetId);
+										}
+									: undefined,
+							updateGroupScope:
+								groupOwner === 'custom'
+									? () => {
+											if (this.groupScopeHandler) this.groupScopeHandler(groupId);
+											else this._updateCustomGroupScope(groupId);
+										}
+									: undefined,
 							toggleGroupExpand: () => {
 								this._toggleExpanded(id);
 							},
@@ -3559,7 +3829,37 @@ export class FilesExplorerPanel extends Component {
 		}
 	}
 
-	
+	private _fileFilterHighlight(
+		nodes: readonly TreeNode<FileMeta>[],
+	): { activeFilterIds: Set<string>; excludedFilterIds: Set<string> } {
+		const activeFilterIds = new Set<string>();
+		const excludedFilterIds = new Set<string>();
+		const filterService = this.plugin.filterService;
+		if (!filterService) return { activeFilterIds, excludedFilterIds };
+
+		const visit = (node: TreeNode<FileMeta>) => {
+			const meta = node.meta;
+			if (meta?.isFolder) {
+				const folderPath = meta.folderPath ?? node.id;
+				const state = filterService.getFilterState('folder', folderPath);
+				if (state === 'included') activeFilterIds.add(node.id);
+				else if (state === 'excluded') excludedFilterIds.add(node.id);
+			} else if (meta?.file) {
+				const filePath = meta.file.path;
+				if (isFileExcluded(filterService.activeFilter, filePath)) {
+					excludedFilterIds.add(node.id);
+				}
+			}
+			for (const child of node.children ?? []) {
+				visit(child);
+			}
+		};
+		for (const node of nodes) {
+			visit(node);
+		}
+		return { activeFilterIds, excludedFilterIds };
+	}
+
 	private _decorateTreeWithNodeNotes(nodes: TreeNode<FileMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
@@ -3628,6 +3928,43 @@ export class FilesExplorerPanel extends Component {
 			});
 			if (node.labelColor) label.style.color = node.labelColor;
 			return true;
+		}
+
+		if (node.isGroupHeader === true) {
+			if (this.visibleCells.has("format") && this.plugin.nodeBindingService) {
+				const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+				const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+				const hasBoundNote =
+					aliasSet.has(node.label) ||
+					Boolean(groupMeta?.file) ||
+					Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+				if (hasBoundNote) {
+					const linkEl = container.createSpan({
+						cls: "vaultman-tree-label vaultman-node-note-link",
+						text: node.label,
+					});
+					if (node.labelColor) linkEl.style.color = node.labelColor;
+					linkEl.onclick = (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						if (groupMeta?.file) {
+							const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+							void leaf.openFile(groupMeta.file, { active: true });
+						} else {
+							void this.plugin.nodeBindingService?.bindOrCreate(
+								{
+									kind: "group",
+									label: node.label,
+									path: node.id,
+								},
+								{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+							);
+						}
+					};
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// O(1) pure read: When format cell is visible and node was decorated with a Node-Note
@@ -3881,8 +4218,8 @@ export class FilesExplorerPanel extends Component {
 		if (entries.length === 0) return;
 		const draggable =
 			entries.length === 1 && entries[0] instanceof TFile
-				? dragManager.dragFile?.(event, entries[0], 'vaultman')
-				: dragManager.dragFiles?.(event, entries, 'vaultman');
+				? dragManager.dragFile?.(event, entries[0], 'file-explorer')
+				: dragManager.dragFiles?.(event, entries, 'file-explorer');
 		if (draggable !== undefined) dragManager.draggable = draggable;
 	}
 
@@ -3917,9 +4254,8 @@ export class FilesExplorerPanel extends Component {
 	 * - `select`: conmuta la seleccion de todos los descendientes (ids de
 	 *   entidad, sin el sufijo `@grupo` de las filas multi-grupo), nunca el
 	 *   id del grupo, que no es un path y no significa nada en la seleccion.
-	 * - `filter`/`add`/`open`: colapsa/expande. Un grupo no puede ser
-	 *   criterio de filtro (`serviceFilter.getFilterState` solo acepta
-	 *   folder/tag/prop/value), asi que el fallback es open, nunca el veto.
+	 * - `open`: colapsa/expande. En los demás modos el cuerpo no altera la
+	 *   expansión; el caret conserva su acción directa en todos los modos.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -3940,6 +4276,7 @@ export class FilesExplorerPanel extends Component {
 			});
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleFolderWithStickyAnchor(id);
 	}
 
@@ -4797,6 +5134,7 @@ export class FilesExplorerPanel extends Component {
 		if (action === 'patch') {
 			const pathSet = new Set(paths);
 			this._patchVisibleStatisticsCells(pathSet);
+			this._patchFolderAggregateStatistics(pathSet);
 			this._patchVisibleTimeCells(pathSet);
 			return;
 		}
@@ -4995,6 +5333,73 @@ export class FilesExplorerPanel extends Component {
 			}
 		};
 		visit(this._lastRenderTree);
+	}
+
+	/** Refresh only folder aggregate roots containing files whose stats changed. */
+	private _patchFolderAggregateStatistics(paths: ReadonlySet<string>): void {
+		if (
+			paths.size === 0 ||
+			this.viewMode !== 'tree' ||
+			!this.treeView ||
+			!this._treeRenderOpts
+		) return;
+		const flags = this._folderAggregateFlags();
+		if (!flags) return;
+
+		const folderNodes = new Map<string, TreeNode<FileMeta>>();
+		const visit = (nodes: readonly TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (node.meta.isFolder) folderNodes.set(node.meta.folderPath, node);
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(this._lastRenderTree);
+
+		const affectedPaths = new Set<string>();
+		for (const filePath of paths) {
+			const parts = filePath.split('/');
+			parts.pop();
+			for (let depth = 1; depth <= parts.length; depth += 1) {
+				affectedPaths.add(parts.slice(0, depth).join('/'));
+			}
+		}
+		const roots: TreeNode<FileMeta>[] = [];
+		for (const path of affectedPaths) {
+			const node = folderNodes.get(path);
+			if (!node) continue;
+			const segments = path.split('/');
+			let covered = false;
+			while (segments.length > 1) {
+				segments.pop();
+				if (folderNodes.has(segments.join('/'))) {
+					covered = true;
+					break;
+				}
+			}
+			if (!covered) roots.push(node);
+		}
+		if (roots.length === 0) return;
+
+		for (const root of roots) {
+			const totals = this._folderAggregateTotals([root], flags);
+			const apply = (nodes: TreeNode<FileMeta>[]): void => {
+				for (const node of nodes) {
+					const total = node.meta.isFolder ? totals.get(node.id) : undefined;
+					if (total) this._applyAggregateCells(node, total, flags);
+					if (node.children?.length) apply(node.children);
+				}
+			};
+			apply([root]);
+		}
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const decorateGroups = (nodes: TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (node.isGroupHeader) this._decorateGroupHeader(node);
+				if (node.children?.length) decorateGroups(node.children);
+			}
+		};
+		decorateGroups(projected);
+		this.treeView.render({ ...this._treeRenderOpts, nodes: projected });
 	}
 
 	/**
@@ -5283,13 +5688,18 @@ export class FilesExplorerPanel extends Component {
 			this.visibleCells.has('file-count') ||
 			this.groupPreset.kind === 'childs' ||
 			scopedPresets.includes('childs');
-		if (this.plugin.settings.folderAggregateCells !== true && !files) return null;
+		const isGroupingActive =
+			this.groupPreset.kind !== 'none' ||
+			scopedPresets.some((p) => p && p !== 'none');
+		if (this.plugin.settings.folderAggregateCells !== true && !files && !isGroupingActive) return null;
 		const flags = {
 			files,
 			count:
 				this.visibleCells.has('count') ||
 				this.groupPreset.kind === 'props' ||
-				scopedPresets.includes('props'),
+				this.groupPreset.kind === 'count' ||
+				scopedPresets.includes('props') ||
+				scopedPresets.includes('count'),
 			words:
 				this.visibleCells.has('words') ||
 				this.groupPreset.kind === 'words' ||
@@ -5550,48 +5960,81 @@ export class FilesExplorerPanel extends Component {
 			.finally(() => this.pendingHoverStats.delete(file.path));
 	}
 
-	/**
-	 * U130 polishing: folders get hover tooltips like files — same native
-	 * mechanism (`setTooltip`, like the native ones) and same field
-	 * flexibility (`filesHoverInfo` order + labels). Aggregates bubble at
-	 * render, so no stats warmup is needed. Fields without folder meaning
-	 * (ext/opened/ctime/characters/count) stay null and are skipped.
-	 */
+	private _folderHoverFields(): FolderHoverInfoField[] {
+		return normalizeFolderHoverInfo(this.plugin.settings.folderHoverInfo);
+	}
+
+	private _folderDescendantFiles(folderPath: string): TFile[] {
+		const prefix = `${folderPath.replace(/\/$/, '')}/`;
+		return (this.plugin.app.vault.getMarkdownFiles?.() ?? []).filter((file) =>
+			file.path.startsWith(prefix),
+		);
+	}
+
+	private _folderHoverStats(folderPath: string): {
+		words: number | null;
+		tags: number | null;
+		tasks: number | null;
+	} {
+		const files = this._folderDescendantFiles(folderPath);
+		const sum = (read: (file: TFile) => number | null): number | null => {
+			let total = 0;
+			for (const file of files) {
+				const value = read(file);
+				if (value === null) return null;
+				total += value;
+			}
+			return total;
+		};
+		return {
+			words: sum((file) => this.plugin.statisticsCache.getFileWordCount(file)),
+			tags: sum((file) => this.plugin.statisticsCache.getFileTagCount(file)),
+			tasks: sum((file) => this.plugin.statisticsCache.getFileRemainingTasks(file)),
+		};
+	}
+
+	/** Folder counts follow the vault tree; requested statistics warm on hover. */
 	private _folderHoverText(
 		folderPath: string,
-		fields: readonly FileHoverInfoId[] = this._filesHoverFields(),
+		fields: readonly FolderHoverInfoField[] = this._folderHoverFields(),
 	): string {
-		const labels = Object.fromEntries(
-			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
-		) as Record<FileHoverInfoId, string>;
-		const name = folderPath.split('/').filter(Boolean).pop() ?? folderPath;
-		const maxMtime = this._folderMaxMtime.get(folderPath) ?? 0;
-		return buildFileHoverInfo(
-			fields,
-			{
-				label: name,
-				path: folderPath,
-				opened: null,
-				mtime:
-					maxMtime > 0 ? (this._formatHoverDateCell(maxMtime) ?? null) : null,
-				ctime: null,
-				ext: '',
-				words: this._folderWordCount.get(folderPath) ?? 0,
-				characters: null,
-				tasks: this._folderTaskCount.get(folderPath) ?? 0,
-				count: null,
-			},
-			labels,
-		);
+		const loaded = this.plugin.app.vault.getAllLoadedFiles?.() ?? [];
+		const prefix = `${folderPath.replace(/\/$/, '')}/`;
+		const descendants = loaded.filter((file) => file.path.startsWith(prefix));
+		const fileCount = descendants.filter((file) => file instanceof TFile).length;
+		const folderCount = descendants.filter((file) => file instanceof TFolder).length;
+		const stats = this._folderHoverStats(folderPath);
+		const lines: string[] = [];
+		const hasFiles = fields.includes('files');
+		const hasFolders = fields.includes('folders');
+		if (hasFiles && hasFolders) {
+			lines.push(
+				`${fileCount} ${translate(fileCount === 1 ? 'settings.folder_hover.file_noun' : 'settings.folder_hover.files_noun')}, ${folderCount} ${translate(folderCount === 1 ? 'settings.folder_hover.folder_noun' : 'settings.folder_hover.folders_noun')}`,
+			);
+		} else if (hasFiles) {
+			lines.push(`${fileCount} ${translate(fileCount === 1 ? 'settings.folder_hover.file_noun' : 'settings.folder_hover.files_noun')}`);
+		} else if (hasFolders) {
+			lines.push(`${folderCount} ${translate(folderCount === 1 ? 'settings.folder_hover.folder_noun' : 'settings.folder_hover.folders_noun')}`);
+		}
+		for (const field of fields) {
+			if (field === 'files' || field === 'folders') continue;
+			const value = stats[field];
+			if (value === null) continue;
+			lines.push(`${translate(`settings.folder_hover.${field}`)}: ${value}`);
+		}
+		return lines.join('\n');
 	}
 
 	private _applyFolderHoverTooltip(
 		folderPath: string,
 		element: HTMLElement,
-		fields: readonly FileHoverInfoId[],
+		fields: readonly FolderHoverInfoField[],
 	): void {
 		element.removeAttribute('title');
-		if (this.tooltipsOverride === false) return;
+		if (
+			this.tooltipsOverride === false ||
+			this.plugin.settings.folderNodeTooltips === false
+		) return;
 		const text = this._folderHoverText(folderPath, fields);
 		if (text)
 			setTooltip(element, text, {
@@ -5602,11 +6045,56 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _handleFolderHover(folderPath: string, element: HTMLElement): void {
-		this._applyFolderHoverTooltip(
-			folderPath,
-			element,
-			this._filesHoverFields(),
+		const fields = this._folderHoverFields();
+		this._applyFolderHoverTooltip(folderPath, element, fields);
+		if (
+			this.tooltipsOverride === false ||
+			this.plugin.settings.folderNodeTooltips === false
+		) return;
+		const statsFields = fields.filter((field) =>
+			field === 'words' || field === 'tags' || field === 'tasks',
 		);
+		if (statsFields.length === 0) return;
+		const files = this._folderDescendantFiles(folderPath);
+		const missing = files.some((file) =>
+			statsFields.some((field) => {
+				if (field === 'words') return this.plugin.statisticsCache.getFileWordCount(file) === null;
+				if (field === 'tags') return this.plugin.statisticsCache.getFileTagCount(file) === null;
+				return this.plugin.statisticsCache.getFileRemainingTasks(file) === null;
+			}),
+		);
+		if (!missing) return;
+		const waiting = this.pendingFolderHoverStats.get(folderPath);
+		if (waiting) {
+			waiting.add(element);
+			return;
+		}
+		this.pendingFolderHoverStats.set(folderPath, new Set([element]));
+		void this.plugin.statisticsCache.ensureFileStats(files)
+			.then(() => {
+				for (const row of this.pendingFolderHoverStats.get(folderPath) ?? []) {
+					if (row.isConnected && row.dataset.path === folderPath) {
+						this._applyFolderHoverTooltip(
+							folderPath,
+							row,
+							this._folderHoverFields(),
+						);
+					}
+				}
+			})
+			.catch((error: unknown) => {
+				console.warn(`Vaultman could not load folder hover stats for ${folderPath}`, error);
+			})
+			.finally(() => this.pendingFolderHoverStats.delete(folderPath));
+	}
+
+	private _groupHoverText(node: TreeNode): string {
+		if (
+			node.isGroupHeader !== true ||
+			this.plugin.settings.groupNodeTooltips === false
+		) return '';
+		const count = collectGroupMemberIds(node.children ?? []).length;
+		return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
 	}
 
 	/**
@@ -6299,8 +6787,12 @@ export class FilesExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,

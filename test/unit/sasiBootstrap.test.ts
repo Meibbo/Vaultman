@@ -4,9 +4,22 @@ import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 describe('U130 SASI bootstrap', () => {
 	it('nace con los tres ejes y registra el catalogo de settingScene', () => {
 		const { registry } = createVaultmanSasi();
-		expect(registry.list('provider').map((entry) => entry.id)).toEqual(['plugins']);
-		expect(registry.list('kind').map((entry) => entry.id)).toEqual([
+		expect(
+			registry
+				.list('provider')
+				.filter((entry) => entry.catalogKind === 'settingScene')
+				.map((entry) => entry.id),
+		).toEqual(['plugins']);
+		expect(
+			registry
+				.list('kind')
+				.filter((entry) => entry.catalogKind !== undefined)
+				.map((entry) => entry.id),
+		).toEqual([
 			'node_settings',
+			'node_plugin',
+			'node_plugin_core',
+			'node_plugin_community',
 			'node_group',
 			'node_group_custom',
 			'cell_badge_update',
@@ -17,6 +30,34 @@ describe('U130 SASI bootstrap', () => {
 			'settingScene.toolbar',
 			'node_plugin.cmenu',
 			'node_group.cmenu',
+			'cell_counter',
+		]);
+	});
+
+	it('puebla kind/provider/surface ademas de function', () => {
+		const { registry } = createVaultmanSasi();
+		// Correctiva U130L: los ejes ya no nacen vacios. El kind `node_apis`,
+		// los providers del contrato Scene y las 7 superficies chrome son
+		// identidades registradas; `node_groups` sigue virtual, nunca kind.
+		expect(registry.list('kind').map((def) => def.id)).toContain(
+			'vaultman.kind.node_apis',
+		);
+		expect(
+			registry.list('kind').some((def) => def.id.includes('node_groups')),
+		).toBe(false);
+		for (const scene of ['files', 'props', 'tags', 'snippets', 'plugins']) {
+			expect(registry.list('provider').map((def) => def.id)).toContain(
+				`vaultman.provider.${scene}`,
+			);
+		}
+		expect(registry.list('surface').map((def) => def.id)).toEqual([
+			'chrome:left-sidebar',
+			'chrome:right-sidebar',
+			'chrome:left-ribbon',
+			'chrome:right-ribbon',
+			'chrome:tabbar',
+			'chrome:navbar',
+			'chrome:statusbar',
 		]);
 		expect(registry.list('function').length).toBeGreaterThan(0);
 	});

@@ -5,7 +5,7 @@ import treeSource from '../../src/components/layout/viewTree.ts?raw';
 describe('core Files caret source guards', () => {
 	it('uses Obsidian collapse-icon markup for tree carets', () => {
 		expect(treeSource).toContain(
-			"cls: 'vaultman-tree-toggle tree-item-icon collapse-icon'",
+			'cls: `vaultman-tree-toggle tree-item-icon collapse-icon vaultman-tree-caret--${position}`',
 		);
 		expect(treeSource).toContain("setIcon(toggleEl, 'right-triangle')");
 		expect(treeSource).toContain(

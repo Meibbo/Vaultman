@@ -14,7 +14,12 @@ import {
 } from '../../src/logic/logicSceneConfigPort';
 import { makeScopedGroupKey } from '../../src/logic/logicScopedCustomGroups';
 import { buildInstanceInfoModel } from '../../src/modals/modalInstanceInfo';
-import { EMPTY_REGISTRY, ensureInstance } from '../../src/logic/logicInstanceRegistry';
+import {
+	declareWorkspaceInstance,
+	EMPTY_REGISTRY,
+	ensureInstance,
+	reconcileRegistry,
+} from '../../src/logic/logicInstanceRegistry';
 
 const defaults = {
 	viewMode: 'tree' as const,
@@ -57,6 +62,33 @@ function harness() {
 }
 
 describe('createSceneConfigPort', () => {
+	it('keeps A/B scene config after declared records outlive runtime mounts', async () => {
+		let registry = declareWorkspaceInstance(EMPTY_REGISTRY, 'vm-a', { kind: 'main' });
+		registry = declareWorkspaceInstance(registry, 'vm-b', {
+			kind: 'sidebar',
+			edge: 'end',
+		});
+		const makePort = (instanceId: string) =>
+			createSceneConfigPort({
+				instanceId,
+				readRegistry: () => registry,
+				writeRegistry: (next) => {
+					registry = next;
+				},
+				persist: async () => {},
+				defaultsFor: () => defaults,
+			});
+
+		await makePort('vm-a').propose('files', { ...defaults, viewMode: 'table' });
+		await makePort('vm-b').propose('files', { ...defaults, viewMode: 'grid' });
+		registry = reconcileRegistry(registry, []);
+
+		expect(makePort('vm-a').read('files').viewMode).toBe('table');
+		expect(makePort('vm-b').read('files').viewMode).toBe('grid');
+		expect(registry.instances['vm-a']?.tombstoned).toBe(false);
+		expect(registry.instances['vm-b']?.tombstoned).toBe(false);
+	});
+
 	it('reads the defaults when the scene has no stored patch', () => {
 		const { port } = harness();
 		expect(port.read('files')).toEqual(defaults);

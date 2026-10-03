@@ -87,10 +87,8 @@ describe('scoped explorer sort state', () => {
 				sorts: {},
 				activeScope: 'all',
 				nodeTypeFilter: null,
+				...(tab === 'plugins' ? { drillNodeId: null } : {}),
 			};
-			if (tab === 'plugins') {
-				expected['drillNodeId'] = null;
-			}
 			expect(state).toEqual(expected);
 			expect(activeScopeSort(tab, state)).toEqual({
 				sortBy: 'name',

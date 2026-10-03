@@ -80,8 +80,7 @@ describe('U130 toolbar alt-cmenus', () => {
 		expect(navbarSource).toContain('sceneLabelMode');
 	});
 
-	it('el nodo reveal alterna el always-reveal per-instance y revela ya', () => {
-		expect(navbarSource).toContain("translate('toolbar.alt.reveal_now')");
+	it('el nodo reveal alterna el always-reveal per-instance', () => {
 		expect(navbarSource).toContain("translate('toolbar.alt.always_reveal')");
 		expect(navbarSource).toContain('setAutoRevealOverride');
 		expect(explorerFilesSource).toContain('setAutoRevealOverride(');

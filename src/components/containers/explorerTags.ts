@@ -70,14 +70,15 @@ export interface PanelPluginCtx {
 		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
-		/** BT5-015 */
-		iconInCaretSlot?: boolean;
+		caretPosition?: 'start' | 'end' | 'hidden';
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-077: opt-in red tint for everything the queue will delete. */
 		deletionHighlight?: boolean;
 		/** Opt-in drawer animation for expand/collapse. */
 		treeExpansionAnimation?: boolean;
+		treeIndentMode?: 'all' | 'depth' | 'parent';
+		groupNodeTooltips?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -107,11 +108,18 @@ import {
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
+import { showInputModal } from '../../utils/inputModal';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
+	collectGroupOccurrenceIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	findCounterGroupHeader,
 	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
@@ -125,8 +133,14 @@ import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
+	type CounterRange,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	addCounterRangeSlice,
+	rebalanceCounterRange,
+	sliceCounterRange,
+} from '../../logic/logicCounterRangePartitions';
 import {
 	parseFrontmatterNoteGroups,
 	scopeToNoteGroupTarget,
@@ -141,11 +155,12 @@ import {
 	activeScopeSort,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	parseScopeLevel,
 	sameExplorerSortState,
 	siblingScopeSort,
 	sortWithScopes,
 } from '../../logic/logicScopedSort';
-import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort, ScopeTarget } from '../../types/typeUI';
 import {
 	findNodeLevel,
 	findParentId,
@@ -180,6 +195,7 @@ import {
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -257,6 +273,13 @@ export class TagsExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
+	private counterRangesChangeHandler?: (
+		ranges: readonly CounterRange[],
+		target: ScopeTarget,
+	) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -501,6 +524,8 @@ export class TagsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
 	private selectionAnchorId: string | null = null;
+	/** Exact tree projection shown to the user, including duplicate occurrences. */
+	private _lastProjectedTree: TreeNode<TagMeta>[] = [];
 	private _selectionKey(): string {
 		return selectionKeyFor('tags', 'tags', this.selectionInstanceId);
 	}
@@ -635,14 +660,14 @@ export class TagsExplorerPanel extends Component {
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this.selectedNodeIds = result.selectedIds;
+				this.selectionAnchorId = result.anchorId;
 				this._touchSelection();
 				void this._render();
 			},
@@ -653,9 +678,11 @@ export class TagsExplorerPanel extends Component {
 	 * U130-p2: visible tree node IDs in render order for selection resolution.
 	 */
 	private _orderedVisibleTreeIds(): string[] {
-		const tree = this.logic.getTree();
-		if (!tree) return [];
-		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
+		const tree =
+			this.viewMode === 'tree' ? this._lastProjectedTree : this._lastRenderTree;
+		return flattenVisibleTree(tree, this.expandedIds)
+			.filter((node) => node.isGroupHeader !== true)
+			.map((node) => node.id);
 	}
 
 	private _renderCardSelectionCheckbox(
@@ -671,18 +698,9 @@ export class TagsExplorerPanel extends Component {
 			attr: { 'aria-label': `Select ${node.label}` },
 		});
 		checkbox.checked = this.selectedNodeIds.has(node.id);
-		checkbox.addEventListener('click', (event) => event.stopPropagation());
-		checkbox.addEventListener('change', (event) => {
+		checkbox.addEventListener('click', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) {
-				this.selectedNodeIds.add(node.id);
-				this.selectionAnchorId = node.id;
-			} else {
-				this.selectedNodeIds.delete(node.id);
-				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
-			}
-			this._touchSelection();
-			card.toggleClass('is-selected', checkbox.checked);
+			this._selectionViewOptions().onSelectionToggle(node.id, checkbox.checked, event);
 		});
 	}
 
@@ -881,6 +899,50 @@ export class TagsExplorerPanel extends Component {
 		this.groupDeleteHandler = handler;
 	}
 
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
+	}
+
+	setCounterRangesChangeHandler(
+		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
+	): void {
+		this.counterRangesChangeHandler = handler;
+	}
+
+	createCounterRangeSlice(): boolean {
+		if (!this.counterRangesChangeHandler) return false;
+		const target = this.sortState.scopeState?.cursor ?? 'all';
+		const candidates: ScopeTarget[] = [target];
+		if (target.startsWith('parent:')) {
+			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
+			if (parentLevel !== null) {
+				const nextLevel = parseScopeLevel(parentLevel).base + 1;
+				candidates.push(`level:${nextLevel}`);
+			}
+		}
+		if (target !== 'all') candidates.push('all');
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const header = candidates
+			.map((candidate) => findCounterGroupHeader(projected, candidate))
+			.find((candidate) => candidate !== undefined);
+		if (!header?.counterDomain || !header.counterRanges) return false;
+		const result = addCounterRangeSlice(
+			header.counterRanges,
+			header.counterDomain,
+		);
+		if (!result.ok) return false;
+		this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+		return true;
+	}
+
 	setSelectionScope(scope: {
 		instanceId: string | null;
 		revision: number | null;
@@ -987,19 +1049,59 @@ export class TagsExplorerPanel extends Component {
 		};
 	}
 
-	private _degroupMenuCtx(node: TreeNode<TagMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
-		const owner = occurrenceOwnerOf(node);
-		const handler = this.degroupSelectedHandler;
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<TagMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
 		const noteGroup = this.groupPreset.kind === 'note';
-		if (
-			!owner ||
-			!handler ||
-			this.selectedNodeIds.size === 0 ||
-			(!noteGroup && !this._groupIds.has(owner))
-		)
-			return {};
+		const walk = (nodes: readonly TreeNode<TagMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
+	private _degroupMenuCtx(node: TreeNode<TagMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
+		const handler = this.degroupSelectedHandler;
+		if (!handler || this.selectedNodeIds.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(node);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
+			membershipOwner: resolvedOwner,
 			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(node),
 			degroupSelected: async () => {
@@ -1013,10 +1115,113 @@ export class TagsExplorerPanel extends Component {
 					revision: this.selectionRevision,
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
+					membershipOwner: resolvedOwner,
+					selectionStateIds: this.selectedNodeIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			void this._render();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -1535,7 +1740,7 @@ export class TagsExplorerPanel extends Component {
 			}
 			return index;
 		};
-		return sortWithScopes(
+		const sorted = sortWithScopes(
 			nodes,
 			(parentId, level) =>
 				siblingScopeSort('tags', this.sortState, parentId, level),
@@ -1544,6 +1749,21 @@ export class TagsExplorerPanel extends Component {
 				return (a, b) => this._compareNodes(a, b, sort, timeIndex);
 			},
 		);
+
+		const reverseLevel = (siblings: TreeNode<TagMeta>[], parentId: string | null, level: number): TreeNode<TagMeta>[] => {
+			const sort = siblingScopeSort('tags', this.sortState, parentId, level);
+			const sortBy = normalizeExplorerSortBy(sort.sortBy);
+			const list = (sortBy === 'note' || sortBy === 'anchor') && sort.direction === 'desc'
+				? [...siblings].reverse()
+				: siblings;
+			return list.map((node) =>
+				node.children?.length
+					? { ...node, children: reverseLevel(node.children, node.id, level + 1) }
+					: node,
+			);
+		};
+
+		return reverseLevel(sorted, null, 1);
 	}
 
 	private _buildTagTimeIndex(sortBy: DateSortId): Map<string, number> {
@@ -1610,8 +1830,11 @@ export class TagsExplorerPanel extends Component {
 	 * descendant of the node in this instance's own selection. Never opens,
 	 * never expands, never queues a file operation.
 	 */
-	private _toggleDescendantSelection(id: string): void {
-		const node = this._findNode(id, this._lastRenderTree);
+	private _toggleDescendantSelection(
+		id: string,
+		tree: TreeNode<TagMeta>[] = this._lastProjectedTree,
+	): void {
+		const node = this._findNode(id, tree);
 		if (!node?.children?.length) return;
 		this.selectedNodeIds = toggleDescendantSelection(
 				node,
@@ -1623,10 +1846,11 @@ export class TagsExplorerPanel extends Component {
 
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
-	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
+	 * `select` conmuta las ocurrencias visibles del grupo (ids de fila, unicos
+	 * por grupo aunque la misma entidad aparezca en varios);
 	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
-	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value):
-	 * fallback a open, nunca el veto.
+	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value).
+	 * Solo `open` permite expandir desde el cuerpo; el caret sigue disponible.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -1635,7 +1859,7 @@ export class TagsExplorerPanel extends Component {
 				this.projectedNodes(this._lastRenderTree),
 			);
 			if (!node?.children?.length) return;
-			const members = collectGroupMemberIds(node.children);
+			const members = collectGroupOccurrenceIds(node.children);
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
@@ -1643,6 +1867,7 @@ export class TagsExplorerPanel extends Component {
 			void this._render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpanded(id);
 		void this._render();
 	}
@@ -1679,6 +1904,17 @@ export class TagsExplorerPanel extends Component {
 		return this.viewMode === 'tree';
 	}
 
+	private _cachedScopeTree: TreeNode<TagMeta>[] | null = null;
+
+	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
+	 * never contains derived group headers). */
+	private _scopeTree(): TreeNode<TagMeta>[] {
+		if (!this._cachedScopeTree) {
+			this._cachedScopeTree = this.projectedNodes(this._lastRenderTree);
+		}
+		return this._cachedScopeTree;
+	}
+
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
@@ -1686,16 +1922,16 @@ export class TagsExplorerPanel extends Component {
 
 	scopeParentForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findScopeParentId(this._lastRenderTree, id);
+		return findScopeParentId(this._scopeTree(), id);
 	}
 
 	hasScopeParentNodes(): boolean {
-		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
+		return this.viewMode === 'tree' && hasScopeParentNodes(this._scopeTree());
 	}
 
-	scopeLevelForNode(id: string): number | null {
+	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findNodeLevel(this._lastRenderTree, id);
+		return findNodeLevel(this._scopeTree(), id);
 	}
 
 	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
@@ -1757,7 +1993,10 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	hasSortNode(id: string): boolean {
-		return this._findNode(id, this._lastRenderTree) !== null;
+		return (
+			this._findNode(id, this._lastRenderTree) !== null ||
+			this._findNode(id, this._scopeTree()) !== null
+		);
 	}
 
 	/** D31: the floating index drill can drive the sort scope. */
@@ -1774,7 +2013,11 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	sortNodeLabel(id: string): string | null {
-		return this._findNode(id, this._lastRenderTree)?.label ?? null;
+		return (
+			this._findNode(id, this._scopeTree())?.label ??
+			this._findNode(id, this._lastRenderTree)?.label ??
+			null
+		);
 	}
 
 	expandNodeById(id: string): void {
@@ -1818,6 +2061,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this._cachedScopeTree = null;
 		this.deferredRender.satisfy();
 		// Reveal narrows the snapshot before anything else reads it, so search,
 		// the type filters and every sort work on the same tree instead of each
@@ -1918,8 +2162,12 @@ export class TagsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: activeFilterIds,
-					exclusive: excludedFilterIds,
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -1933,11 +2181,9 @@ export class TagsExplorerPanel extends Component {
 					'select-descendants'
 						? this._toggleDescendantSelection(id)
 						: this._expandSubtree(id, nodesWithIcons),
+				onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 				onRowDoubleClick: (id: string) =>
-					resolveRecursiveInteractionAction(this.interactionMode) ===
-					'select-descendants'
-						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, nodesWithIcons),
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					// B-groupbody: la tabla no proyecta cabeceras; este veto era
 					// codigo muerto. Fuera.
@@ -2003,6 +2249,10 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		const projected = this.projectedNodes(nodesWithIcons);
+		this._lastProjectedTree = projected;
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(projected);
+		}
 		this.view.render({
 			surface: 'tags',
 			nodes: projected,
@@ -2010,14 +2260,48 @@ export class TagsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
+			rowTooltip: (node) => {
+				if (node.isGroupHeader !== true || this.plugin.settings?.groupNodeTooltips === false) return '';
+				const count = collectGroupMemberIds(node.children ?? []).length;
+				return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
+			},
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			expansionAnimation: this.plugin.settings?.treeExpansionAnimation === true,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			counterRangeBoundLabel: (bound) =>
+				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
+			onCounterRangeCommit: (_id, range, mode) => {
+				const header = this._findNode(_id, projected);
+				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
+					return false;
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
+				if (!result.ok) {
+					return false;
+				}
+				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+				return true;
+			},
+			onCounterRangeError: () => {},
 			renderLabel: (row, node) => {
 				const queue = this.plugin.queueService.queue;
 				const target = renameTargetFromQueue(queue, node.id);
@@ -2028,6 +2312,42 @@ export class TagsExplorerPanel extends Component {
 					});
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
+				}
+				if (node.isGroupHeader === true) {
+					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+						const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+						const hasBoundNote =
+							aliasSet.has(node.label) ||
+							Boolean(groupMeta?.file) ||
+							Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+						if (hasBoundNote) {
+							const label = row.createSpan({
+								cls: 'vaultman-tree-label vaultman-node-note-link',
+								text: node.label,
+							});
+							if (node.labelColor) label.style.color = node.labelColor;
+							label.onclick = (e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								if (groupMeta?.file) {
+									const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+									void leaf.openFile(groupMeta.file, { active: true });
+								} else {
+									void this.plugin.nodeBindingService?.bindOrCreate(
+										{
+											kind: 'group',
+											label: node.label,
+											path: node.id,
+										},
+										{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									);
+								}
+							};
+							return true;
+						}
+					}
+					return false;
 				}
 				if (
 					this.visibleCells.has('format') &&
@@ -2051,16 +2371,20 @@ export class TagsExplorerPanel extends Component {
 				}
 				return false;
 			},
-			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
-				inclusive: activeFilterIds,
-				exclusive: excludedFilterIds,
+				inclusive: this.visibleCells.has('filters')
+					? activeFilterIds
+					: undefined,
+				exclusive: this.visibleCells.has('filters')
+					? excludedFilterIds
+					: undefined,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
-			onRename: (id, newLabel) => {
+				onRename: (id, newLabel) => {
 				newLabel = newLabel.replace(
 					/\{date\}|\[fecha\]/gi,
 					new Date().toISOString().slice(0, 10),
@@ -2075,7 +2399,7 @@ export class TagsExplorerPanel extends Component {
 					void this._render();
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (node) void this._renameTag(node.meta.tagPath, check.name);
 				this.editingId = null;
 				void this._render();
@@ -2096,14 +2420,15 @@ export class TagsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
 			onRowDoubleClick: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
+			onRecursiveSelect: (id: string) =>
+				this._toggleDescendantSelection(id, projected),
 			onRowClick: (id: string, event) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// B-groupbody: el motor ya no trae el cuerpo por aqui
@@ -2111,7 +2436,7 @@ export class TagsExplorerPanel extends Component {
 					this._activateGroupRow(id);
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
@@ -2135,16 +2460,24 @@ export class TagsExplorerPanel extends Component {
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(groupId)
+								: this._isCustomGroupId(groupId)
 									? 'custom'
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(groupId),
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
+						adjustGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.view?.beginCounterRangeEdit(id, 'adjust')
+								: undefined,
+						sliceGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.view?.beginCounterRangeEdit(id, 'slice')
+								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(groupId) ||
+							this._isCustomGroupId(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -2156,6 +2489,44 @@ export class TagsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
+						makeACopy:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										if (this.groupCopyHandler) this.groupCopyHandler(groupId);
+										else this._makeACopyOfGroup(groupId);
+									}
+								: undefined,
+						createSubgroup: (parentLabel: string) => {
+							if (!this.createGroupHandler) return;
+							const snapshot = snapshotFromProjectedTree({
+								tree: projected,
+								selectedIds: this.selectedNodeIds,
+								urnOf: (node) => this._membershipUrnOf(node),
+								providerId: 'tags',
+								scene: 'tags',
+								instanceId: this.selectionInstanceId,
+								revision: this.selectionRevision,
+								selectionKey: this._selectionKey(),
+								customGroupIds: this._groupIds,
+							});
+							return this.createGroupHandler(snapshot, `${parentLabel}/`);
+						},
+						renameGroup:
+							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
+								? async (targetId: string) => {
+										if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+										else await this._renameCustomGroup(targetId);
+									}
+								: undefined,
+						updateGroupScope:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										if (this.groupScopeHandler) this.groupScopeHandler(groupId);
+										else this._updateCustomGroupScope(groupId);
+									}
+								: undefined,
 						toggleGroupExpand: () => {
 							this._toggleExpanded(id);
 						},
@@ -2164,7 +2535,7 @@ export class TagsExplorerPanel extends Component {
 				);
 				return;
 			}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				const orderedIds = this._orderedVisibleTreeIds();
 				this._includeInvokedInSelection(id, e, orderedIds);
@@ -2186,7 +2557,7 @@ export class TagsExplorerPanel extends Component {
 				);
 			},
 			onDragStart: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				setVaultmanDragPayload(
 					event,
@@ -2201,12 +2572,12 @@ export class TagsExplorerPanel extends Component {
 				);
 			},
 			onDragOver: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleTagDragOver(node, event);
 			},
 			onDrop: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleTagDrop(node, event);
 			},
@@ -2370,8 +2741,9 @@ export class TagsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
+			const showFilters = this.visibleCells.has('filters');
+			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass('is-selected', this.selectedNodeIds.has(node.id));
 			card.setAttribute('role', 'button');
@@ -2551,15 +2923,52 @@ export class TagsExplorerPanel extends Component {
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',
 		});
+		// 1. Búsqueda sin resultados: títulos existentes.
+		if (this.searchTerm) {
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.tags.empty_title'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.tags.empty_search_desc'),
+			});
+			return;
+		}
+		// 2. Modo Reveal activo.
+		if (this.isRevealingActiveFile()) {
+			const revealPath = this._revealPath();
+			if (!revealPath) {
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.ctx.reveal_this_file.no_active_file'),
+				});
+				emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate(
+						'explorer.ctx.reveal_this_file.no_active_file_desc',
+					),
+				});
+				return;
+			}
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.ctx.reveal_this_file.empty_tags'),
+			});
+			emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.ctx.reveal_this_file.empty_desc_tags'),
+			});
+			return;
+		}
+		// 3. Modo normal general.
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-title',
 			text: translate('explorer.tags.empty_title'),
 		});
 		emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-desc',
-			text: this.searchTerm
-				? translate('explorer.tags.empty_search_desc')
-				: translate('explorer.tags.empty_desc'),
+			text: translate('explorer.tags.empty_desc'),
 		});
 	}
 
@@ -2743,12 +3152,18 @@ export class TagsExplorerPanel extends Component {
 			new Notice('Select a tag to stage it');
 			return;
 		}
+		let files = this.plugin.filterService.filteredFiles;
+		if (this.isRevealingActiveFile()) {
+			const path = this._revealPath();
+			const file = path ? this.plugin.app.vault.getFileByPath(path) : null;
+			files = file instanceof TFile ? [file] : [];
+		}
 		this.plugin.queueService.addOrRun({
 			type: 'tag',
 			tag: tagPath,
 			action: 'add',
 			details: `Add tag "#${tagPath}"`,
-			files: this.plugin.filterService.filteredFiles,
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				const raw: unknown = fm.tags;

@@ -218,8 +218,9 @@ function matchesFileName(file: TFile, term: string): boolean {
 /** Compare a frontmatter value (possibly array) against a target string */
 function matchValue(val: unknown, target: string): boolean {
 	if (Array.isArray(val)) {
-		return val.some((v) => String(v).toLowerCase() === target.toLowerCase());
+		return val.length === 0 ? target === '' : val.some((v) => matchValue(v, target));
 	}
+	if (val == null) return target === '';
 	return String(val).toLowerCase() === target.toLowerCase();
 }
 

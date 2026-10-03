@@ -84,7 +84,7 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		// BT5-010: the configurable cells moved from popupView's local map to
 		// the shared registry, so the guard asks the registry itself.
 		for (const tab of ['snippets', 'plugins'] as const) {
-			const cellIds = cellsForExplorer(tab, 'tree').map((cell) => cell.id);
+		const cellIds = cellsForExplorer(tab, 'tree').map((cell) => cell.id);
 			expect(cellIds).toEqual(
 				expect.arrayContaining(['state', 'installed', 'updated']),
 			);
@@ -95,6 +95,9 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		// The plugins-only config cell is registered centrally too.
 		expect(cellsForExplorer('plugins', 'tree').map((cell) => cell.id)).toContain(
 			'config',
+		);
+		expect(cellsForExplorer('plugins', 'tree').map((cell) => cell.id)).toContain(
+			'cell_update',
 		);
 		expect(navbarFiltersSource).toContain('expansionActionAvailable(');
 		expect(popupSortSource).toContain('visibleSortOptions(');
@@ -143,7 +146,10 @@ describe('plugin cell order (BT4-007)', () => {
 		const stateIndex = pluginsPanelSource.indexOf("id: 'state'");
 		expect(configIndex).toBeGreaterThan(-1);
 		expect(stateIndex).toBeGreaterThan(-1);
-		expect(configIndex).toBeLessThan(stateIndex);
+			expect(configIndex).toBeLessThan(stateIndex);
+		const updateIndex = pluginsPanelSource.indexOf("id: 'cell_update'");
+		expect(updateIndex).toBeGreaterThan(configIndex);
+		expect(updateIndex).toBeLessThan(stateIndex);
 	});
 });
 

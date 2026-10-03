@@ -48,6 +48,7 @@ export interface FileHoverEntry {
  * checkbox from every scene AND from the view menu — it is not a position.
  */
 export type SelectionCheckboxPosition = 'start' | 'end' | 'hidden';
+export type TreeCaretPosition = 'start' | 'end' | 'hidden';
 
 export interface ViewMenuCellOptions {
 	/**
@@ -55,6 +56,10 @@ export interface ViewMenuCellOptions {
 	 * Undefined keeps the historical behaviour (checkbox offered).
 	 */
 	selectionCheckboxPosition?: SelectionCheckboxPosition;
+	/**
+	 * When `hidden`, the `caret` view_option is not offered.
+	 */
+	caretPosition?: TreeCaretPosition;
 }
 
 /**
@@ -63,6 +68,12 @@ export interface ViewMenuCellOptions {
  * so a stale persisted choice never loses the option silently.
  */
 export function shouldOfferCheckboxViewOption(
+	position?: string,
+): boolean {
+	return position !== 'hidden';
+}
+
+export function shouldOfferCaretViewOption(
 	position?: string,
 ): boolean {
 	return position !== 'hidden';
@@ -100,6 +111,30 @@ const FILE_CARD_MODES = ['cards', 'grid'] as const;
 
 export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 	{
+		id: 'filters',
+		role: 'control',
+		labelKey: 'viewmode.pill.filters',
+		icon: 'lucide-filter',
+		supports: [
+			{ explorer: 'files', fixedRank: 998, defaultOn: true },
+			{ explorer: 'props', fixedRank: 998, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 998, defaultOn: true },
+		],
+	},
+	{
+		id: 'caret',
+		role: 'control',
+		labelKey: 'viewmode.pill.caret',
+		icon: 'lucide-chevron-right',
+		supports: [
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 5, defaultOn: true },
+			{ explorer: 'props', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 5, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 5, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 5, defaultOn: true },
+		],
+	},
+	{
 		id: 'checkbox',
 		role: 'control',
 		labelKey: 'viewmode.pill.checkbox',
@@ -111,7 +146,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{ explorer: 'props', fixedRank: 999, defaultOn: false },
 			{ explorer: 'tags', fixedRank: 999, defaultOn: false },
 			{ explorer: 'snippets', fixedRank: 999, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 999, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 999, defaultOn: false },
 		],
 	},
 	{
@@ -175,7 +210,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 	{
 		id: 'text',
 		role: 'identity',
-		labelKey: 'viewmode.pill.text',
+		labelKey: 'viewmode.pill.name',
 		icon: 'lucide-text',
 		sortId: 'name',
 		supports: [
@@ -197,19 +232,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 17,
+				fixedRank: 25,
 				defaultOn: false,
 			},
 		],
@@ -221,7 +256,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-list-filter',
 		sortId: 'type',
 		supports: [
-			{ explorer: 'props', fixedRank: 30, defaultOn: false },
+			{ explorer: 'props', fixedRank: 40, defaultOn: false },
 			// A tag's type is where it is written — frontmatter, the body, or
 			// both. Same cell, same rank, same sort id as the property type:
 			// the question the column answers is the node's own kind.
@@ -230,7 +265,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 				// The tag cards draw no value cells, so offering it there would
 				// put a switch in the menu that changes nothing on screen.
 				viewModes: ['tree', 'table'],
-				fixedRank: 30,
+				fixedRank: 40,
 				defaultOn: false,
 				labelKey: 'viewmode.pill.tag_type',
 			},
@@ -247,19 +282,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 30,
+				fixedRank: 40,
 				defaultOn: true,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 50,
+				fixedRank: 40,
 				defaultOn: true,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 30,
+				fixedRank: 40,
 				defaultOn: true,
 			},
 		],
@@ -270,13 +305,13 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.format',
 		icon: 'lucide-braces',
 		supports: [
-			{ explorer: 'props', fixedRank: 15, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 15, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 15, defaultOn: true },
-			{ explorer: 'snippets', fixedRank: 15, defaultOn: true },
-			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 15, defaultOn: true },
-			{ explorer: 'files', viewModes: ['table'], fixedRank: 15, defaultOn: true },
-			{ explorer: 'files', viewModes: FILE_CARD_MODES, fixedRank: 15, defaultOn: true },
+			{ explorer: 'props', fixedRank: 30, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 30, defaultOn: true },
+			{ explorer: 'plugins', fixedRank: 30, defaultOn: true },
+			{ explorer: 'snippets', fixedRank: 30, defaultOn: true },
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 30, defaultOn: true },
+			{ explorer: 'files', viewModes: ['table'], fixedRank: 30, defaultOn: true },
+			{ explorer: 'files', viewModes: FILE_CARD_MODES, fixedRank: 30, defaultOn: true },
 		],
 	},
 	{
@@ -292,8 +327,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		hoverId: 'parent',
 		requiresCellsOff: ['nested'],
 		supports: [
-			{ explorer: 'props', fixedRank: 25, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 25, defaultOn: true },
+			{ explorer: 'props', fixedRank: 50, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 50, defaultOn: true },
 		],
 	},
 	{
@@ -304,26 +339,26 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		sortId: 'count',
 		hoverId: 'count',
 		supports: [
-			{ explorer: 'props', fixedRank: 40, defaultOn: true },
-			{ explorer: 'tags', fixedRank: 40, defaultOn: true },
+			{ explorer: 'props', fixedRank: 90, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 90, defaultOn: true },
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 90,
+				fixedRank: 120,
 				defaultOn: false,
 				labelKey: 'viewmode.pill.prop_count',
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 30,
+				fixedRank: 120,
 				defaultOn: false,
 				labelKey: 'viewmode.pill.prop_count',
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 40,
+				fixedRank: 120,
 				defaultOn: false,
 				labelKey: 'viewmode.pill.prop_count',
 			},
@@ -336,7 +371,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-files',
 		sortId: 'file-count',
 		supports: [
-			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 85, defaultOn: false },
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 80, defaultOn: false },
 		],
 	},
 	{
@@ -344,7 +379,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		role: 'control',
 		labelKey: 'viewmode.pill.cell_hover',
 		icon: 'lucide-more-horizontal',
-		supports: [{ explorer: 'props', fixedRank: 50, defaultOn: true }],
+		supports: [{ explorer: 'props', fixedRank: 997, defaultOn: true }],
 	},
 	{
 		id: 'sub',
@@ -353,8 +388,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-indent',
 		sortId: 'sub',
 		supports: [
-			{ explorer: 'props', viewModes: ['tree'], fixedRank: 45, defaultOn: false },
-			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 45, defaultOn: false },
+			{ explorer: 'props', viewModes: ['tree'], fixedRank: 80, defaultOn: false },
+			{ explorer: 'tags', viewModes: ['tree'], fixedRank: 80, defaultOn: false },
 		],
 	},
 	{
@@ -368,7 +403,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 40,
+				fixedRank: 60,
 				defaultOn: false,
 			},
 			{
@@ -402,13 +437,13 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 70,
+				fixedRank: 50,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 70,
+				fixedRank: 50,
 				defaultOn: false,
 			},
 		],
@@ -424,19 +459,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 55,
+				fixedRank: 70,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 75,
+				fixedRank: 70,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 75,
+				fixedRank: 70,
 				defaultOn: false,
 			},
 		],
@@ -452,19 +487,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 60,
+				fixedRank: 90,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 40,
+				fixedRank: 90,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 50,
+				fixedRank: 90,
 				defaultOn: false,
 			},
 		],
@@ -478,19 +513,19 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 75,
+				fixedRank: 110,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: ['table'],
-				fixedRank: 45,
+				fixedRank: 110,
 				defaultOn: false,
 			},
 			{
 				explorer: 'files',
 				viewModes: FILE_CARD_MODES,
-				fixedRank: 55,
+				fixedRank: 110,
 				defaultOn: false,
 			},
 		],
@@ -506,7 +541,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 			{
 				explorer: 'files',
 				viewModes: FILE_TREE_MODES,
-				fixedRank: 70,
+				fixedRank: 100,
 				defaultOn: false,
 			},
 		],
@@ -517,17 +552,25 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.state',
 		icon: 'lucide-toggle-right',
 		sortId: 'state',
-		supports: [
-			{ explorer: 'snippets', fixedRank: 30, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 30, defaultOn: true },
-		],
+			supports: [
+				{ explorer: 'snippets', fixedRank: 40, defaultOn: true },
+				{ explorer: 'plugins', fixedRank: 40, defaultOn: true },
+			],
 	},
 	{
 		id: 'config',
 		role: 'control',
 		labelKey: 'viewmode.pill.config',
 		icon: 'lucide-settings',
-		supports: [{ explorer: 'plugins', fixedRank: 40, defaultOn: true }],
+		supports: [{ explorer: 'plugins', fixedRank: 50, defaultOn: true }],
+	},
+	{
+		id: 'cell_update',
+		role: 'control',
+		labelKey: 'viewmode.pill.cell_update',
+		icon: 'lucide-download',
+		sortId: 'cell_update',
+		supports: [{ explorer: 'plugins', fixedRank: 50, defaultOn: false }],
 	},
 	{
 		id: 'installed',
@@ -536,8 +579,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-calendar-plus',
 		sortId: 'installed',
 		supports: [
-			{ explorer: 'snippets', fixedRank: 40, defaultOn: false },
-			{ explorer: 'plugins', fixedRank: 50, defaultOn: false },
+			{ explorer: 'snippets', fixedRank: 60, defaultOn: false },
+			{ explorer: 'plugins', fixedRank: 60, defaultOn: false },
 		],
 	},
 	{
@@ -547,8 +590,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-calendar-clock',
 		sortId: 'updated',
 		supports: [
-			{ explorer: 'snippets', fixedRank: 50, defaultOn: false },
-			{ explorer: 'plugins', fixedRank: 60, defaultOn: false },
+			{ explorer: 'snippets', fixedRank: 70, defaultOn: false },
+			{ explorer: 'plugins', fixedRank: 70, defaultOn: false },
 		],
 	},
 	{
@@ -792,6 +835,13 @@ export function createExplorerCellRegistry(
 						definition.id !== 'checkbox' ||
 						shouldOfferCheckboxViewOption(
 							options?.selectionCheckboxPosition,
+						),
+				)
+				.filter(
+					(definition) =>
+						definition.id !== 'caret' ||
+						shouldOfferCaretViewOption(
+							options?.caretPosition,
 						),
 				);
 		},

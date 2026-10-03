@@ -52,14 +52,46 @@ export function cellTooltipText(
 }
 
 /**
+ * Detect right-sidebar ownership without flushing layout. This runs while
+ * virtual rows and cells are being written, so measuring their bounds here
+ * would force a layout for every tooltip in the render window.
+ */
+export function isElementInRightSidebar(el: Element | null | undefined): boolean {
+	if (!el) return false;
+	return Boolean(
+		el.closest?.('.mod-right-split, [data-surface-position="right-sidebar"]'),
+	);
+}
+
+/**
+ * Resolves final TooltipPlacement taking into account screen bounds.
+ * Lateral placements (`side` or `right`) flip to `left` when docked on the
+ * right sidebar to prevent off-screen rendering.
+ */
+export function resolveTooltipPlacement(
+	placement: TooltipPlacement | 'side' | undefined,
+	element?: Element | null,
+): TooltipPlacement {
+	if (placement === 'bottom') return 'bottom';
+	if (placement === 'top') return 'top';
+	if (placement === 'left') return 'left';
+	if (isElementInRightSidebar(element)) return 'left';
+	return 'right';
+}
+
+/**
  * U130 polishing: user-facing tooltip placement (`side` = native lateral,
  * `below` = historic ours, `above`) mapped to Obsidian placements. Unknown
- * values fall back to native-like `right`.
+ * values fall back to native-like `right` (or `left` if in right sidebar).
  */
-export function tooltipPlacementForSetting(value: unknown): TooltipPlacement {
+export function tooltipPlacementForSetting(
+	value: unknown,
+	contextEl?: Element | null,
+): TooltipPlacement {
 	if (value === 'below') return 'bottom';
 	if (value === 'above') return 'top';
-	return 'right';
+	if (value === 'left') return 'left';
+	return resolveTooltipPlacement('right', contextEl);
 }
 
 export function applyCellTooltip(
@@ -67,11 +99,12 @@ export function applyCellTooltip(
 	explorer: ExplorerTabId,
 	viewMode: ExplorerViewMode,
 	cellId: string,
-	placement?: TooltipPlacement,
+	placement?: TooltipPlacement | 'side',
 ): void {
 	const text = cellTooltipText(explorer, viewMode, cellId);
 	element.removeAttribute('title');
 	if (!text) return;
 	element.setAttribute('aria-label', text);
-	setTooltip(element, text, { placement: placement ?? 'right' });
+	const resolved = resolveTooltipPlacement(placement, element);
+	setTooltip(element, text, { placement: resolved });
 }

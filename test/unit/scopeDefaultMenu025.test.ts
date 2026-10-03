@@ -29,7 +29,7 @@ function scene(canPickParent = true, canPickLevel = true) {
 			id === 'folder:Projects' ? 'Projects' : id.startsWith('folder:') ? id : null,
 		parentLevel: (id: string) => (id === 'folder:Projects' ? 1 : 2),
 		sortLabel: (sort: ScopeSort) => `${sort.sortBy} ${sort.direction}`,
-		levelLabel: (level: number) => `Level ${level}`,
+		levelLabel: (level: number | string) => `Level ${level}`,
 		allLevelsLabel: () => 'All levels',
 		canPickParent,
 		canPickLevel,
@@ -105,22 +105,17 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 		});
 	});
 
-	it('All y L1 son entradas fijas con resumen correcto aunque no tengan overrides', () => {
+	it('All y L1 no se listan en scopes configurados si no tienen overrides', () => {
 		const model = scopeMenuModel('files', stateFor('files'), scene());
 		expect(model).not.toBeNull();
 		const ids = model!.items.map((item) => item.id);
-		// picks, divisor, All fijo, L1 fijo — sin resto configurado.
-		expect(ids).toEqual(['drill', 'level', 'scope-rows-separator', 'all', 'level:1']);
+		// Solo los picks iniciales: 'all', 'drill', 'level'
+		expect(ids).toEqual(['all', 'drill', 'level']);
 		const all = model!.items.find((item) => item.id === 'all');
-		const l1 = model!.items.find((item) => item.id === 'level:1');
-		expect(all).toMatchObject({ kind: 'scope-row', label: 'All levels' });
-		expect(l1).toMatchObject({ kind: 'scope-row', label: 'Level 1' });
-		// Ambas muestran el sort efectivo (heredado o propio), no un hueco.
-		expect((all as { sortLabel: string }).sortLabel).toBeTruthy();
-		expect((l1 as { sortLabel: string }).sortLabel).toBeTruthy();
+		expect(all).toMatchObject({ kind: 'pick', checked: false });
 	});
 
-	it('el resto ordena parents antes que otros levels y excluye el fijo L1', () => {
+	it('muestra rows configurados respetando orden (all, parents, levels ordenados)', () => {
 		const model = scopeMenuModel(
 			'files',
 			stateFor('files', {
@@ -137,35 +132,34 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 		);
 		const ids = model!.items.map((item) => item.id);
 		expect(ids).toEqual([
+			'all',
 			'drill',
 			'level',
 			'scope-rows-separator',
 			'all',
-			'level:1',
 			'parent:folder:Projects',
+			'level:1',
 			'level:2',
 			'level:3',
 		]);
-		// La fila L1 fija refleja su propio sort, no el heredado de all.
-		const l1 = model!.items.find((item) => item.id === 'level:1');
+		// La fila L1 configurada refleja su propio sort, no el heredado de all.
+		const l1 = model!.items.find((item) => item.kind === 'scope-row' && item.id === 'level:1');
 		expect(l1).toMatchObject({ sortLabel: 'modified desc' });
 	});
 
-	it('nested=off oculta los picks sin mover las fijas ni dejar divisor huérfano', () => {
+	it('nested=off oculta los picks parent/level sin dejar divisor huérfano', () => {
 		const gated = scopeMenuModel('files', stateFor('files'), scene(false, false));
 		const ids = gated!.items.map((item) => item.id);
-		expect(ids).toEqual(['all', 'level:1']);
+		expect(ids).toEqual(['all']);
 		expect(ids).not.toContain('scope-rows-separator');
 		expect(ids).not.toContain('drill');
 		expect(ids).not.toContain('level');
 
-		// Con un solo pick, el divisor sigue separando picks de fijas.
+		// Con parent pick activo pero level pick inactivo
 		const half = scopeMenuModel('files', stateFor('files'), scene(true, false));
 		expect(half!.items.map((item) => item.id)).toEqual([
-			'drill',
-			'scope-rows-separator',
 			'all',
-			'level:1',
+			'drill',
 		]);
 	});
 
@@ -252,21 +246,20 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 			sortBy: 'name',
 			direction: 'asc',
 		});
-		// El modelo visual pone al parent después de las fijas, pero la
-		// resolución no depende de esa posición.
+		// El modelo visual pone parents antes de levels en los rows configurados
 		const model = scopeMenuModel(
 			'files',
 			stateFor('files', {
 				sorts: {
 					all: { sortBy: 'name', direction: 'asc' },
-					'level:2': { sortBy: 'count', direction: 'desc' },
+					'level:1': { sortBy: 'count', direction: 'desc' },
 					'parent:folder:Projects': { sortBy: 'modified', direction: 'desc' },
 				},
 			}),
 			scene(),
 		);
 		const visual = model!.items.map((item) => item.id);
-		expect(visual.indexOf('parent:folder:Projects')).toBeGreaterThan(
+		expect(visual.indexOf('parent:folder:Projects')).toBeLessThan(
 			visual.indexOf('level:1'),
 		);
 		const keys = ['all', 'level:2', 'parent:folder:Projects'] as SortScopeKey[];
@@ -277,8 +270,7 @@ describe('U130-GGC-025 — default scope Level 1 y All levels configurado', () =
 		expect(scopedSource).toContain("props: 'level:1'");
 		expect(scopedSource).toContain("files: 'level:1'");
 		expect(scopedSource).toContain("tags: 'level:1'");
-		expect(sortMenuSource).toContain('fixedAll');
-		expect(sortMenuSource).toContain('fixedLevel1');
+		expect(sortMenuSource).toContain('hasConfig');
 		expect(navbarSource).toContain('allLevelsLabel');
 		expect(settingsSource).toContain('scopeDefaultCursor');
 	});

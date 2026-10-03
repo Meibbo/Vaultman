@@ -31,6 +31,11 @@ export function shouldToggleCloseFrame(
 	return false;
 }
 
+/** Closed leaves never remain command targets; live last focus wins over list order. */
+export function selectCommandFrame<T>(leaves: readonly T[], lastFocused: T | null): T | null {
+	return lastFocused !== null && leaves.includes(lastFocused) ? lastFocused : leaves[0] ?? null;
+}
+
 export type FramePlacement = 'left_sidebar' | 'right_sidebar' | 'tab' | 'popout_window';
 
 export function normalizeFramePlacement(placement: string): FramePlacement {

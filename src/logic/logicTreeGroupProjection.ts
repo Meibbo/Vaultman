@@ -210,6 +210,7 @@ function headerNode<TMeta>(
 	range?: import('../types/typeGroupPreset').CounterRange,
 	ranges?: readonly import('../types/typeGroupPreset').CounterRange[],
 	domain?: import('../types/typeGroupPreset').CounterDomain,
+	scope?: string,
 ): TreeNode<TMeta> {
 	return {
 		id,
@@ -228,7 +229,18 @@ function headerNode<TMeta>(
 		// resto de p-nodes, lo que tuerce la ventana virtualizada.
 		...(coreCls ? { coreCls } : {}),
 		showCaret: true,
-		count: count ?? children.length,
+		...(scope ? { groupScopeTarget: scope as ScopeTarget } : {}),
+		// `count` (cell `count` / `cell_occurrences`) es el agregado de
+		// ocurrencias de los hijos, NUNCA `children.length` (ese es el
+		// numero de hijos: `subCountText` / cell `sub` / `cell_childs`).
+		...(count !== undefined
+			? { count }
+			: children.some((child) => typeof child.count === 'number')
+				? {
+						count: children.reduce((acc, child) => acc + (child.count ?? 0), 0),
+					}
+				: {}),
+		subCountText: children.length > 0 ? String(children.length) : undefined,
 		children,
 		meta,
 		...(range ? { counterRange: { ...range } } : {}),
@@ -395,6 +407,16 @@ function reparent<TMeta>(
 	});
 }
 
+function shiftDepth<TMeta>(nodes: readonly TreeNode<TMeta>[], by: number): void {
+	if (by === 0) return;
+	for (const node of nodes) {
+		node.depth += by;
+		if (node.children?.length) {
+			shiftDepth(node.children, by);
+		}
+	}
+}
+
 const NO_SUFFIX: ReadonlySet<string> = new Set<string>();
 
 /**
@@ -452,6 +474,34 @@ export function collectGroupMemberIds<TMeta>(
 			if (!seen.has(entityId)) {
 				seen.add(entityId);
 				out.push(entityId);
+			}
+			walk(row.children);
+		}
+	};
+	walk(children);
+	return out;
+}
+
+/**
+ * Collect selectable row occurrences below a rendered group. A member can
+ * appear in more than one group, so selection uses each projected row id;
+ * actions can still deduplicate the underlying entity when they execute.
+ */
+export function collectGroupOccurrenceIds<TMeta>(
+	children: readonly TreeNode<TMeta>[] | undefined,
+): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const walk = (rows: readonly TreeNode<TMeta>[] | undefined): void => {
+		for (const row of rows ?? []) {
+			if (
+				row.isGroupHeader !== true &&
+				(row.meta as { isAddPropertyRow?: boolean } | undefined)
+					?.isAddPropertyRow !== true &&
+				!seen.has(row.id)
+			) {
+				seen.add(row.id);
+				out.push(row.id);
 			}
 			walk(row.children);
 		}
@@ -583,6 +633,8 @@ export function projectGroupedTree<TMeta>(
 			);
 		});
 		if (ownGroups.length === 0) return nodes;
+		const directedGroups =
+			preset?.direction === 'desc' ? [...ownGroups].reverse() : ownGroups;
 		if (!urnOf) {
 			throw new Error(
 				'projectGroupedTree: hay grupos custom y falta urnOf. Sin ella no ' +
@@ -590,7 +642,7 @@ export function projectGroupedTree<TMeta>(
 					'tapar un hueco de diseno con una heuristica.',
 			);
 		}
-		const membersPerGroup = ownGroups.map((group) => {
+		const membersPerGroup = directedGroups.map((group) => {
 			const urns = new Set(memberships[group.id] ?? []);
 			const identities = new Set(
 				[...urns]
@@ -627,33 +679,118 @@ export function projectGroupedTree<TMeta>(
 		// duplicados en todo el arbol (Spec 01 §6). Incluye NO_GROUP aunque el
 		// complemento acabe podado: reservar de mas nunca crea una fila.
 		const used = new Set<string>([
-			...ownGroups.map((group) => group.id),
+			...directedGroups.map((group) => group.id),
 			NO_GROUP_ID,
 		]);
 		const claimed = new Set<string>();
 		const out: TreeNode<TMeta>[] = [];
-		ownGroups.forEach((group, index) => {
-			const members = membersPerGroup[index] ?? [];
-			for (const member of members) claimed.add(member.entityId ?? member.id);
-			// Poda normal del pipeline, no inmunidad.
-			if (members.length === 0 && filtered) return;
-			const reparented = reparent(members, group.id, 1, suffixed, used);
-			out.push(
-				finishHeader(
-					headerNode(
-						group.id,
-						group.label,
+		const hasSlashHierarchy = directedGroups.some((g) => g.label.includes('/'));
+		if (!hasSlashHierarchy) {
+			directedGroups.forEach((group, index) => {
+				const members = membersPerGroup[index] ?? [];
+				for (const member of members) claimed.add(member.entityId ?? member.id);
+				// Poda normal del pipeline, no inmunidad.
+				if (members.length === 0 && filtered) return;
+				const reparented = reparent(members, group.id, 1, suffixed, used);
+				out.push(
+					finishHeader(
+						headerNode(
+							group.id,
+							group.label,
+							reparented,
+							ownMeta,
+							groupTotals?.get(group.id),
+							headerCoreCls,
+							undefined,
+							undefined,
+							undefined,
+							group.scope,
+						),
 						reparented,
-						ownMeta,
-						groupTotals?.get(group.id),
-						headerCoreCls,
+						expandedIds,
+						decorateHeader,
 					),
-					reparented,
-					expandedIds,
-					decorateHeader,
-				),
-			);
-		});
+				);
+			});
+		} else {
+			interface GroupEntry {
+				group?: NodeGroupDef;
+				reparentedMembers: TreeNode<TMeta>[];
+				children: Map<string, GroupEntry>;
+			}
+			const rootEntries = new Map<string, GroupEntry>();
+
+			const getOrCreateEntry = (segments: string[]): GroupEntry => {
+				let currentMap = rootEntries;
+				let currentEntry: GroupEntry | null = null;
+				for (const segment of segments) {
+					let entry = currentMap.get(segment);
+					if (!entry) {
+						entry = {
+							reparentedMembers: [],
+							children: new Map(),
+						};
+						currentMap.set(segment, entry);
+					}
+					currentEntry = entry;
+					currentMap = entry.children;
+				}
+				return currentEntry!;
+			};
+
+			directedGroups.forEach((group, index) => {
+				const members = membersPerGroup[index] ?? [];
+				for (const member of members) claimed.add(member.entityId ?? member.id);
+				if (members.length === 0 && filtered) return;
+				const reparented = reparent(members, group.id, 1, suffixed, used);
+				const segments = group.label.split('/').map((s) => s.trim()).filter(Boolean);
+				const entry = getOrCreateEntry(segments.length > 0 ? segments : [group.label]);
+				entry.group = group;
+				entry.reparentedMembers = reparented;
+			});
+
+			const resolveEntry = (
+				segment: string,
+				entry: GroupEntry,
+				depth: number,
+				pathPrefix: string,
+			): TreeNode<TMeta> | null => {
+				const currentPath = pathPrefix ? `${pathPrefix}/${segment}` : segment;
+				const subHeaders: TreeNode<TMeta>[] = [];
+				for (const [childSegment, childEntry] of entry.children) {
+					const resolvedChild = resolveEntry(childSegment, childEntry, depth + 1, currentPath);
+					if (resolvedChild) subHeaders.push(resolvedChild);
+				}
+				if (filtered && subHeaders.length === 0 && entry.reparentedMembers.length === 0) {
+					return null;
+				}
+				const groupId = entry.group?.id ?? claimRowId(`vaultman.group:${currentPath}`, used);
+				const directMembers = entry.reparentedMembers;
+				if (depth > 0) {
+					shiftDepth(directMembers, depth);
+				}
+				const allChildren = [...subHeaders, ...directMembers];
+				const header = headerNode(
+					groupId,
+					segment,
+					allChildren,
+					ownMeta,
+					entry.group ? groupTotals?.get(entry.group.id) : undefined,
+					headerCoreCls,
+					undefined,
+					undefined,
+					undefined,
+					entry.group?.scope,
+				);
+				header.depth = depth;
+				return finishHeader(header, allChildren, expandedIds, decorateHeader);
+			};
+
+			for (const [segment, entry] of rootEntries) {
+				const header = resolveEntry(segment, entry, 0, '');
+				if (header) out.push(header);
+			}
+		}
 		// `no group` es el COMPLEMENTO, no un grupo mas: no se borra ni se
 		// renombra, y por eso no lleva id de grupo custom.
 		const orphans = nodes.filter(
@@ -741,13 +878,14 @@ export function projectGroupedTree<TMeta>(
 						}
 					}
 				}
-				return members;
+				return preset?.direction === 'desc' ? members.reverse() : members;
 			} else {
-				return nodes.filter((node) => {
+				const members = nodes.filter((node) => {
 					const k = getKey(node);
 					const cleanK = k.startsWith('#') ? k.slice(1) : k;
 					return seenInGroup.has(cleanK);
 				});
+				return preset?.direction === 'desc' ? members.reverse() : members;
 			}
 		});
 
@@ -971,25 +1109,28 @@ export function projectGroupedTreeScopeState<TMeta>(
 			state,
 			{ level, parentId },
 			{
-				groupPreset: {
+				groupPreset: input.preset ?? {
 					kind: 'none',
-					direction: input.preset?.direction ?? 'asc',
+					direction: 'asc',
 				},
 			},
 		);
 		const cellToggles = resolved.cellToggles
 			? { ...resolved.cellToggles }
 			: undefined;
+		const scopeIndent = resolved.indent;
 		const nested: TreeNode<TMeta>[] = nodes.map((node) =>
 			node.children?.length
 				? {
 						...node,
 						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+						...(scopeIndent !== undefined ? { scopeIndent } : {}),
 						children: [...visit(node.children, node.id, level + 1)],
 					}
 				: {
 						...node,
 						...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+						...(scopeIndent !== undefined ? { scopeIndent } : {}),
 					},
 		);
 		const preset = resolved.groupPreset;
@@ -1008,13 +1149,38 @@ export function projectGroupedTreeScopeState<TMeta>(
 		const owner = parentId === null ? `level:${level}:root` : `parent:${parentId}`;
 		const depth = nested[0]?.depth ?? level - 1;
 		const headerScopeTarget: ScopeTarget = parentTarget ?? sourceTarget;
+		const headerResolved = resolveScopeSet(
+			state,
+			{
+				level: parentId === null ? 0 : level - 1,
+				parentId,
+			},
+		);
+		const headerCellToggles = headerResolved.cellToggles
+			? { ...headerResolved.cellToggles }
+			: undefined;
 		return projectGroupedTree({
 			...input,
 			nodes: nested,
 			enabled: true,
 			preset,
 			groups: preset.kind === 'custom'
-				? input.groups.filter((group) => group.scope === sourceTarget)
+				? input.groups.filter((group) => {
+					const scope = group.scope ?? 'all';
+					if (sourceTarget === 'all') {
+						if (parentId === null || level === 1) {
+							return scope === 'all' || scope === 'level:1';
+						}
+						return scope === levelTarget || (parentTarget !== null && scope === parentTarget);
+					}
+					if (sourceTarget === levelTarget) {
+						return scope === levelTarget || (level === 1 && scope === 'all');
+					}
+					if (parentTarget && sourceTarget === parentTarget) {
+						return scope === parentTarget;
+					}
+					return scope === sourceTarget;
+				})
 				: input.groups,
 		}).map((node) => {
 			if (node.isGroupHeader !== true) return node;
@@ -1023,10 +1189,10 @@ export function projectGroupedTreeScopeState<TMeta>(
 				...node,
 				id: rowId,
 				entityId: entityIdOf(node),
-				groupScopeTarget: headerScopeTarget,
+				groupScopeTarget: (node.groupScopeTarget as ScopeTarget) ?? headerScopeTarget,
 				depth,
 				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
-				...(cellToggles ? { scopeCellToggles: { ...cellToggles } } : {}),
+				...(headerCellToggles ? { scopeCellToggles: { ...headerCellToggles } } : {}),
 			};
 		});
 	};

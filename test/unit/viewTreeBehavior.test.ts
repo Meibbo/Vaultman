@@ -144,6 +144,16 @@ class TinyElement {
 		return null;
 	}
 
+	setCssProps(props: Record<string, string>): void {
+		for (const [key, value] of Object.entries(props)) {
+			if (value) {
+				(this.style.setProperty as (name: string, value: string) => void)(key, value);
+			} else {
+				(this.style.removeProperty as (name: string) => void)(key);
+			}
+		}
+	}
+
 	empty(): void {
 		for (const child of this.children) child.parentElement = null;
 		this.children.length = 0;
@@ -534,12 +544,8 @@ describe('UnifiedTreeView behavior', () => {
 
 		view.scrollToId('alpha.md', 'start', 'smooth');
 
-		const row = container.querySelector(
-			'.vaultman-tree-row',
-		) as unknown as TinyElement | null;
-		expect(row?.lastScrollIntoViewOptions).toEqual({
-			block: 'start',
-			inline: 'nearest',
+		expect((container as unknown as TinyElement).lastScrollToOptions).toEqual({
+			top: 0,
 			behavior: 'smooth',
 		});
 	});

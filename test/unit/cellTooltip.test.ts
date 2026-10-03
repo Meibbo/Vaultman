@@ -78,7 +78,7 @@ describe('tooltip placement (U130 polishing)', () => {
 		expect(viewTreeSource).toContain('tooltipPlacement?: TooltipPlacement');
 		expect(viewTreeSource).toContain('opts.tooltipPlacement');
 		expect(explorerFilesSource).toContain(
-			'tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement)',
+			'tooltipPlacement: tooltipPlacementForSetting(',
 		);
 		expect(settingsSource).toContain("translate('settings.tooltip_placement')");
 	});

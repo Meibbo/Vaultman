@@ -795,12 +795,16 @@
 	z-index: 15;
 	height: 0;
 	overflow: visible;
+	pointer-events: none;
+}
+.vaultman-toolbar-slot.is-hidden-mode.is-peeking {
+	pointer-events: auto;
 }
 .vaultman-toolbar-slot.is-hidden-mode .vaultman-navbar-filters {
 	position: relative;
 	top: auto;
 	transform: translateY(-110%);
-	transition: transform 0.22s ease;
+	transition: transform 0.1s ease-out;
 	will-change: transform;
 }
 .vaultman-toolbar-slot.is-hidden-mode.is-peeking .vaultman-navbar-filters {

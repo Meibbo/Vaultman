@@ -1,4 +1,4 @@
-import { Component, Notice, setTooltip } from 'obsidian';
+import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
@@ -35,7 +35,6 @@ import {
 	isSettingsSearchActive,
 	listCorePluginStubs,
 	pluginCanonicalGroup,
-	resolveSettingsBridgeNodes,
 	sortAddonEntries,
 	type AddonExplorerPanelPort,
 } from '../../logic/logicAddonExplorer';
@@ -80,6 +79,11 @@ import {
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
+import { showInputModal } from '../../utils/inputModal';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
@@ -88,9 +92,15 @@ import {
 	isGroupHeader,
 	occurrenceOwnerOf,
 	projectGroupedTree,
+	PRESET_GROUP_PREFIX,
 	resolveCustomGroups,
 	toggleGroupMembers,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	API_SCENE_GROUP_KIND,
+	API_SCENE_GROUP_LABEL_KEYS,
+	type ApiSceneGroupName,
+} from '../../logic/logicApiSceneModel';
 import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
@@ -122,9 +132,11 @@ import {
 } from '../../logic/logicGroupSelectionTransaction';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import { projectAddonDataNodes, type AddonExplorerDataSource } from '../../logic/logicAddonDataSource';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -132,6 +144,7 @@ export class PluginsExplorerPanel
 {
 	private readonly containerEl: HTMLElement;
 	private readonly plugin: VaultmanPlugin;
+	private readonly dataSource: AddonExplorerDataSource | undefined;
 	private treeView: UnifiedTreeView | null = null;
 	private nodes: TreeNode<PluginMeta>[] = [];
 	/** A07b-2: el ultimo arbol PROYECTADO (cabeceras + ocurrencias `id@grupo`),
@@ -157,12 +170,13 @@ export class PluginsExplorerPanel
 	/** Término no vacío con adapter ausente: estado "unavailable", sin stale. */
 	private settingsSearchUnavailable = false;
 	private sortState = normalizeExplorerSortState('plugins', null);
-	private visibleCells = new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested']);
+	private visibleCells = new Set(['icon', 'text', 'state', 'config', 'nested']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
 	private cellStyle: AddonCellStyle;
 	private readonly pendingToggleIds = new Set<string>();
+	private readonly pendingUpdateIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
@@ -172,11 +186,15 @@ export class PluginsExplorerPanel
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 
 	private _selectionKey(): string {
-		return selectionKeyFor('plugins', 'plugins', this.selectionInstanceId);
+		const provider = this.dataSource?.providerId ?? 'plugins';
+		return selectionKeyFor(provider, provider, this.selectionInstanceId);
 	}
 
 	private _touchSelection(): void {
@@ -199,6 +217,8 @@ export class PluginsExplorerPanel
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	private stickyRowsOverride: boolean | undefined = undefined;
+	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -209,10 +229,11 @@ export class PluginsExplorerPanel
 	private readonly _seenGroupHeaderIds = new Set<string>();
 	private _expandedGroupIds = new Set<string>();
 
-	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
+	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin, dataSource?: AddonExplorerDataSource) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		this.dataSource = dataSource;
 		this.cellStyle = normalizeAddonCellStyle(plugin.settings.addonCellStyle);
 	}
 
@@ -223,6 +244,10 @@ export class PluginsExplorerPanel
 			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
 		);
 		this.treeView = new UnifiedTreeView(this.containerEl);
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		void this.refresh();
 		// Core Settings toggles emit no event; poll a cheap signature while the
 		// panel is visible and refresh only on a real delta (BT4-006).
@@ -256,6 +281,19 @@ export class PluginsExplorerPanel
 		this.register(() =>
 			this.plugin.queueService.off('changed', this._handleQueueChange),
 		);
+		const pluginUpdates = this.plugin.pluginUpdatesService;
+		if (pluginUpdates) {
+			const stopPluginUpdateListening = pluginUpdates.onChanged(() => {
+				if (this.destroyed) return;
+				this.entries = this.entries.map((entry) => ({
+					...entry,
+					version: pluginUpdates.getInstalledVersion(entry.pluginId) ?? entry.version,
+					updateVersion: pluginUpdates.getPluginUpdate(entry.pluginId)?.version,
+				}));
+				this.rebuildNodes();
+			});
+			this.register(stopPluginUpdateListening);
+		}
 		// U121-108: live repaint of selectionCheckboxPosition (start/end/hidden)
 		// across every mounted scene. Reuses the icon-rebuild coalescer (one
 		// rebuild per burst) instead of adding a second timer.
@@ -300,6 +338,7 @@ export class PluginsExplorerPanel
 	private _lastExternalSignature = '';
 
 	private _syncExternalState(): void {
+		if (this.dataSource) return;
 		if (this.destroyed || !this.containerEl.isShown()) return;
 		const signature = communityPluginStateSignature(this.plugin.app);
 		if (signature === this._lastExternalSignature) return;
@@ -324,6 +363,10 @@ export class PluginsExplorerPanel
 	}
 
 	async refresh(): Promise<void> {
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		const revision = ++this.refreshRevision;
 		const manifestId = this.plugin.manifest.id;
 		this._lastExternalSignature = communityPluginStateSignature(
@@ -333,6 +376,7 @@ export class PluginsExplorerPanel
 		if (this.destroyed || revision !== this.refreshRevision) return;
 		this.entries = entries.map((entry) => ({
 			...entry,
+			updateVersion: this.plugin.pluginUpdatesService?.getPluginUpdate(entry.pluginId)?.version,
 			isVaultman: entry.pluginId === manifestId,
 		}));
 		this.rebuildNodes();
@@ -341,6 +385,10 @@ export class PluginsExplorerPanel
 	setSearchTerm(term: string): void {
 		if (this.searchTerm === term) return;
 		this.searchTerm = term;
+		if (this.dataSource) {
+			this.rebuildNodes();
+			return;
+		}
 		if (isSettingsSearchActive(term)) {
 			if (isNativeSettingsSearchAvailable(this.plugin.app)) {
 				try {
@@ -423,12 +471,25 @@ export class PluginsExplorerPanel
 		this.groupDeleteHandler = handler;
 	}
 
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
+	}
+
 	setSelectionScope(scope: { instanceId: string | null; revision: number | null; scene: string }): void {
 		this.selectionInstanceId = scope.instanceId;
 		this.selectionRevision = scope.revision;
 	}
 
 	private _membershipUrnOf(node: TreeNode<PluginMeta>): string {
+		if (this.dataSource) return this.dataSource.urnOf(node);
 		// U130 Slice A: la fila `node_settings` no es un plugin; su kind es
 		// `settings` con la tripleta nativa como identidad. providerId `plugins`
 		// intacto (no se renombra) y kind `plugin` conservado en resolubles.
@@ -546,18 +607,159 @@ export class PluginsExplorerPanel
 		};
 	}
 
+	private _isCustomGroupId(id: string): boolean {
+		if (this.dataSource?.groups.some((group) => group.id === id)) return false;
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<PluginMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
+		const noteGroup = this.groupPreset.kind === 'note';
+		const walk = (nodes: readonly TreeNode<PluginMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this.rebuildNodes();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+	}
+
 	private _degroupMenuCtx(node: TreeNode<PluginMeta>): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
-		const owner = occurrenceOwnerOf(node);
-		if (
-			!owner ||
-			!this.degroupSelectedHandler ||
-			this.selectedNodeIds.size === 0 ||
-			!this._groupIds.has(owner)
-		)
-			return {};
+		if (!this.degroupSelectedHandler || this.selectedNodeIds.size === 0) return {};
+		const noteGroup = this.groupPreset.kind === 'note';
+		const invokedOwner = occurrenceOwnerOf(node);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(this._lastProjectedTree);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
-			groupOwner: this._groupIds.has(owner) ? 'custom' : 'preset',
+			membershipOwner: resolvedOwner,
+			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(node),
 			degroupSelected: async () => {
 				const snapshot = snapshotFromProjectedTree({
@@ -568,7 +770,7 @@ export class PluginsExplorerPanel
 					instanceId: this.selectionInstanceId, revision: this.selectionRevision,
 					selectionKey: this._selectionKey(), customGroupIds: this._groupIds,
 				});
-				return this.degroupSelectedHandler?.(snapshot, owner) ?? { status: 'cancelled' };
+				return this.degroupSelectedHandler?.(snapshot, resolvedOwner) ?? { status: 'cancelled' };
 			},
 		};
 	}
@@ -582,13 +784,19 @@ export class PluginsExplorerPanel
 		if (kind === 'created') return node.meta.installedTime ?? null;
 		if (kind === 'state') return node.meta.enabled ? 'enabled' : 'disabled';
 		if (kind === 'sections') {
+			if (this.dataSource?.providerId === 'sasi') {
+				const group = (node.meta as { group?: unknown })?.group;
+				if (typeof group === 'string' && group) {
+					return group;
+				}
+			}
 			// U130-C1: en reposo (term vacío) las filas top-level son
 			// `node_plugin` + `node_settings` globales planas. El bucket
 			// lo gobierna `projectGroupedTree`: plugins → Core/Community
 			// (por id, F10) y settings globales → Global settings.
 			const ref = settingsBridgeRefOf(node.meta);
 			if (ref) {
-				return ref.tab === 'core-plugins'
+				return ref.tab === 'core-plugins' || ref.tab === 'plugins'
 						? 'core-plugins'
 						: ref.tab === 'community-plugins'
 							? 'community-plugins'
@@ -754,12 +962,24 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	setStickyRowsEnabled(enabled: boolean): void {
+		if (this.stickyRowsOverride === enabled) return;
+		this.stickyRowsOverride = enabled;
+		this.render();
+	}
+
+	setCompactFoldersEnabled(enabled: boolean): void {
+		if (this.compactFoldersOverride === enabled) return;
+		this.compactFoldersOverride = enabled;
+		this.render();
+	}
+
 	/**
 	 * A07: la unica expansibilidad de un explorer plano son sus cabeceras de
 	 * grupo. Sin preset no hay nada que plegar.
 	 */
 	private _expansionEnabled(): boolean {
-		return this.groupPreset.kind !== 'none';
+		return this.groupPreset.kind !== 'none' || this.nodes.some((node) => (node.children?.length ?? 0) > 0);
 	}
 
 	/** U130 parity B (F1): la proyección anidada sigue a la cell `nested`
@@ -778,11 +998,14 @@ export class PluginsExplorerPanel
 
 	expandAll(): void {
 		if (!this._expansionEnabled()) return;
-		for (const row of this.projectedNodes()) {
-			if (isGroupHeader(row.id, this._groupIds)) {
+		const expand = (rows: readonly TreeNode<PluginMeta>[]): void => {
+			for (const row of rows) {
+				if (!row.children?.length) continue;
 				this._expandedGroupIds.add(row.id);
+				expand(row.children);
 			}
-		}
+		};
+		expand(this.projectedNodes());
 		this.onExpansionChange?.();
 		this.render();
 	}
@@ -794,32 +1017,31 @@ export class PluginsExplorerPanel
 	}
 
 	private rebuildNodes(): void {
-		// U130 Slice A: término activo = camino nativo (sin `searchText`
-		// local, sin re-sort: el ranking es el orden nativo). Término vacío
-		// = forma canónica 2026-09-25: grupos core/community → plugins →
-		// tabs/pages en orden nativo. Sin tabs el plugin queda hoja (F4).
-		if (isSettingsSearchActive(this.searchTerm)) {
-			this.rebuildSettingsBridgeNodes();
+		if (this.dataSource) {
+			this.nodes = projectAddonDataNodes(this.dataSource.nodes(), this.searchTerm, activeScopeSort('plugins', this.sortState));
+			this.render();
 			return;
 		}
-		const filtered = filterAddonEntries(
-			this.entries,
-			this.searchTerm,
-			(entry) =>
-				[entry.name, entry.version, entry.author, entry.description]
-					.filter(Boolean)
-					.join(' '),
-		);
 		const scopeSort = activeScopeSort('plugins', this.sortState);
+		const searchActive = isSettingsSearchActive(this.searchTerm);
+		const filtered = searchActive
+			? this.entries
+			: filterAddonEntries(
+					this.entries,
+					this.searchTerm,
+					(entry) =>
+						[entry.name, entry.version, entry.author, entry.description]
+							.filter(Boolean)
+							.join(' '),
+			  );
 		const entries = sortAddonEntries(filtered, scopeSort);
-		// U130 forma canónica: core por id (nunca display name). Los stubs
-		// core llevan el mismo sort de scope que los community.
 		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
 		const coreMetas: PluginMeta[] = sortAddonEntries(
 			listCorePluginStubs(this.plugin.app, communityIds).map((stub) => ({
 				name: stub.name,
 				enabled: stub.enabled,
 				pluginId: stub.pluginId,
+				updateVersion: this.plugin.pluginUpdatesService?.getPluginUpdate(stub.pluginId)?.version,
 			})),
 			scopeSort,
 		).map((stub) => ({
@@ -831,13 +1053,13 @@ export class PluginsExplorerPanel
 		}));
 		const communityNodes = this.buildPluginNodes(entries);
 		const coreNodes = this.buildPluginNodes(coreMetas);
-		// U130 parity B (F1): con nesting off, filas planas sin caret.
-		// U130-C1: también planas las globales (mismo orden que el camino anidado).
 		const nestedOn = this._nestedEnabled();
+		this._communityIds = communityIds;
+
+		let rawRoots: TreeNode<PluginMeta>[];
 		if (!nestedOn) {
-			this._communityIds = communityIds;
 			const flat = [
-				...buildGlobalSettingsNodes(this.plugin.app, communityIds),
+				...buildGlobalSettingsNodes(this.plugin.app, communityIds, this.groupPreset),
 				...communityNodes,
 				...coreNodes,
 			];
@@ -845,65 +1067,123 @@ export class PluginsExplorerPanel
 				node.children = [];
 				node.showCaret = false;
 			}
-			this.nodes = flat;
+			rawRoots = flat;
+		} else {
+			rawRoots = buildCanonicalRestRoots({
+				app: this.plugin.app,
+				pluginNodes: [...communityNodes, ...coreNodes],
+				communityIds,
+				groupPreset: this.groupPreset,
+			});
+		}
+
+		if (!searchActive) {
+			this.nodes = rawRoots;
 			this.settingsSearchHighlightIds = new Set<string>();
 			this.render();
 			return;
 		}
-		// U130-C1 (Defecto 1): el preset viaja hasta las raíces: con
-		// `none` el árbol es plano (sin cabeceras `group:*`); el
-		// `sections` lo agrupa `projectGroupedTree`, no esta función.
-		this._communityIds = communityIds;
-		this.nodes = buildCanonicalRestRoots({
-			app: this.plugin.app,
-			pluginNodes: [...communityNodes, ...coreNodes],
-			communityIds,
-			groupPreset: this.groupPreset,
-		});
-		this.settingsSearchHighlightIds = new Set<string>();
-		this.render();
-	}
 
-	/**
-	 * Camino nativo: resuelve los grupos cacheados contra las entries
-	 * frescas. Espacios, cero resultados, adapter ausente o nativo roto
-	 * limpian el árbol previo (nada de rows stale, nada de filtro local).
-	 */
-	private rebuildSettingsBridgeNodes(): void {
-		if (this.settingsSearchUnavailable || !this.settingsSearchGroups) {
+		if (this.settingsSearchUnavailable && !this.searchTerm.trim()) {
 			this.nodes = [];
 			this.settingsSearchHighlightIds = new Set<string>();
 			this.render();
 			return;
 		}
-		const ordered = sortAddonEntries(
-			this.entries,
-			activeScopeSort('plugins', this.sortState),
-		);
-		const communityIds = new Set(this.entries.map((entry) => entry.pluginId));
-		this._communityIds = communityIds;
-		const coreMetas: PluginMeta[] = listCorePluginStubs(
-			this.plugin.app,
-			communityIds,
-		).map((stub) => ({
-			pluginId: stub.pluginId,
-			name: stub.name,
-			enabled: stub.enabled,
-			loaded: false,
-			isVaultman: false,
-		}));
-		const byId = new Map<string, TreeNode<PluginMeta>>();
-		for (const node of this.buildPluginNodes([...ordered, ...coreMetas])) {
-			byId.set(node.meta.pluginId, node);
+
+		const term = this.searchTerm.trim().toLowerCase();
+		const matchedTabs = new Set<string>();
+		const matchedPlugins = new Set<string>();
+		const matchedPages = new Set<string>();
+		const matchedDefs = new Set<string>();
+		if (this.settingsSearchGroups) {
+			for (const group of this.settingsSearchGroups) {
+				const groupTab = (group.tab ?? '').trim().toLowerCase();
+				if (groupTab) {
+					if ((group.tabNameMatch?.length ?? 0) > 0) {
+						matchedTabs.add(groupTab);
+						matchedPlugins.add(groupTab);
+					}
+				}
+				for (const item of group.results ?? []) {
+					const tab = (item.entry?.tab ?? group.tab ?? '').trim().toLowerCase();
+					if (tab) matchedTabs.add(tab);
+					if (tab === 'community-plugins' || tab === 'plugins' || tab === 'core-plugins') {
+						const def = (item.entry?.definition ?? '').trim().toLowerCase();
+						if (def) matchedPlugins.add(def);
+					}
+					const page = (item.entry?.page ?? group.page ?? '').trim().toLowerCase();
+					const pagePath = (item.entry?.pagePath ?? group.pagePath ?? '').trim().toLowerCase();
+					if (page) matchedPages.add(`${tab}::${page}`);
+					if (pagePath) matchedPages.add(`${tab}::${pagePath}`);
+					const def = (item.entry?.definition ?? '').trim().toLowerCase();
+					if (def) matchedDefs.add(`${tab}::${def}`);
+				}
+			}
 		}
-		const bridge = resolveSettingsBridgeNodes({
-			pluginNodesById: byId,
-			groups: this.settingsSearchGroups,
-		});
-		this.nodes = bridge.nodes;
-		this.settingsSearchHighlightIds = this.searchHighlightEnabled
-			? bridge.highlightIds
-			: new Set<string>();
+
+		const isNodeMatch = (node: TreeNode<PluginMeta>): boolean => {
+			const label = (node.label ?? '').trim().toLowerCase();
+			const name = (node.meta?.name ?? '').trim().toLowerCase();
+			const pluginId = (node.meta?.pluginId ?? '').trim().toLowerCase();
+			if (label.includes(term) || name.includes(term) || (pluginId && pluginId.includes(term))) {
+				return true;
+			}
+			const ref = settingsBridgeRefOf(node.meta);
+			if (ref) {
+				const tab = (ref.tab ?? '').trim().toLowerCase();
+				const def = (ref.definition ?? '').trim().toLowerCase();
+				const page = (ref.page ?? '').trim().toLowerCase();
+				const pagePath = (ref.pagePath ?? '').trim().toLowerCase();
+				if (def !== '') {
+					if (matchedDefs.has(`${tab}::${def}`) || def.includes(term)) return true;
+				} else if (page !== '' || pagePath !== '') {
+					if (
+						matchedPages.has(`${tab}::${page}`) ||
+						matchedPages.has(`${tab}::${pagePath}`) ||
+						page.includes(term) ||
+						pagePath.includes(term)
+					) {
+						return true;
+					}
+				} else if (tab !== '') {
+					if (matchedTabs.has(tab) || tab.includes(term)) return true;
+				}
+			} else if (pluginId) {
+				if (
+					matchedTabs.has(pluginId) ||
+					matchedPlugins.has(pluginId) ||
+					matchedPlugins.has(name)
+				) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		const highlightIds = new Set<string>();
+		const filterTree = (node: TreeNode<PluginMeta>): TreeNode<PluginMeta> | null => {
+			const direct = isNodeMatch(node);
+			if (direct) highlightIds.add(node.id);
+			const children: TreeNode<PluginMeta>[] = [];
+			if (node.children && node.children.length > 0) {
+				for (const child of node.children) {
+					const f = filterTree(child);
+					if (f) children.push(f);
+				}
+			}
+			if (direct || children.length > 0) {
+				return {
+					...node,
+					children,
+					showCaret: children.length > 0,
+				};
+			}
+			return null;
+		};
+
+		this.nodes = rawRoots.map(filterTree).filter((n): n is TreeNode<PluginMeta> => n !== null);
+		this.settingsSearchHighlightIds = this.searchHighlightEnabled ? highlightIds : new Set<string>();
 		this.render();
 	}
 
@@ -925,6 +1205,18 @@ export class PluginsExplorerPanel
 					label: translate('addons.open_settings'),
 				});
 			}
+			const update = this.plugin.pluginUpdatesService?.getPluginUpdate(entry.pluginId);
+			if (update) {
+				cells.push({
+					id: 'cell_update',
+					kind: 'action',
+					appearance: 'badge',
+					icon: 'lucide-download',
+					label: translate('addons.update'),
+					disabled: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
+					busy: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
+				});
+			}
 			cells.push({
 				id: 'state',
 				kind: 'toggle',
@@ -934,6 +1226,7 @@ export class PluginsExplorerPanel
 					entry.enabled ? 'addons.enabled' : 'addons.disabled',
 				),
 				disabled: this.pendingToggleIds.has(entry.pluginId),
+				busy: this.pendingToggleIds.has(entry.pluginId),
 			});
 			// BT5-019 precedence: Vaultman override > Iconic ribbon > plugin
 			// emitted ribbon icon > generic plug (supersedes D35).
@@ -1001,8 +1294,8 @@ export class PluginsExplorerPanel
 		// U130-09: el mapa es el de ESTA scene de ESTA instancia; lo aplica el
 		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
 		// un layout por nombre: el layout solo copia su foto en la scene.
-		const memberships = this.groupMemberships;
-		const groups = resolveCustomGroups(memberships).filter(
+		const memberships = { ...this.dataSource?.memberships(), ...this.groupMemberships };
+		const groups = [...(this.groupPreset.kind === 'custom' ? this.dataSource?.groups ?? [] : []), ...resolveCustomGroups(this.groupMemberships)].filter(
 			(group) => !this.hiddenGroupIds.has(group.id),
 		);
 		this._groupIds.clear();
@@ -1012,42 +1305,13 @@ export class PluginsExplorerPanel
 		// grupos custom (ni padres nativos ni sus hijos settings/plugin;
 		// tampoco los tabs/pages de term vacío, que viajan con su plugin
 		// por holarchy). Con búsqueda activa los padres nativos quedan
-		// arriba sin re-envolver; los hijos viajan con ellos.
-		const searchActive = isSettingsSearchActive(this.searchTerm ?? '');
-		let nodesForGrouping = this.nodes;
-		let nativeParents: TreeNode<PluginMeta>[] | undefined;
-		if (searchActive) {
-			const protectedIds = new Set<string>();
-			for (const node of this.nodes) {
-				// Padres nativos (grupo `settings:tab::pagePath::`) y
-				// cualquier fila puente top-level (`settings:…`, incl.
-				// hijos con `#tab`/`#page` si alguna vez suben a raíz).
-				if (
-					node.id.startsWith('settings:') ||
-					node.id === 'group:core-plugins' ||
-					node.id === 'group:community-plugins' ||
-					node.id === GLOBAL_SETTINGS_GROUP_ID
-				) {
-					protectedIds.add(node.id);
-				}
-			}
-			// Separate: native parents stay at top level, rest get grouped
-			nativeParents = this.nodes.filter((node) =>
-				protectedIds.has(node.id),
-			);
-			nodesForGrouping = this.nodes.filter(
-				(node) => !protectedIds.has(node.id),
-			);
-			if (nodesForGrouping.length === 0) {
-				return this.withGroupToggleCells(nativeParents);
-			}
-		}
+		const nodesForGrouping = this.nodes;
 
 		const projected = projectGroupedTree<PluginMeta>({
 			nodes: nodesForGrouping,
 			groups,
 			memberships,
-			providerId: 'plugins',
+			providerId: this.dataSource?.providerId ?? 'plugins',
 			noGroupLabel: translate('explorer.group.no_group'),
 			filtered: this.sortState?.filtered === true,
 			hiddenGroupIds: this.hiddenGroupIds,
@@ -1057,7 +1321,7 @@ export class PluginsExplorerPanel
 			groupTotals: bubbleMemberCountsToGroups({
 				groups,
 				memberships,
-				providerId: 'plugins',
+				providerId: this.dataSource?.providerId ?? 'plugins',
 			}),
 			// Spec 08 §3.1.bis: the preset selection is the switch, never the
 			// sort scope.
@@ -1066,21 +1330,41 @@ export class PluginsExplorerPanel
 			presetValueOf: (node, kind) => this._groupPresetValue(node, kind),
 			decorateHeader: (header) => {
 				if (this.groupPreset.kind !== 'sections') return;
+				const presetKey = header.id.startsWith(PRESET_GROUP_PREFIX)
+					? header.id.slice(PRESET_GROUP_PREFIX.length)
+					: header.id.replace(/^group:/, '');
+
 				if (
 					header.id === 'group:core-plugins' ||
 					header.id === 'vaultman.group.preset:core-plugins'
 				) {
 					header.label = 'Core plugins';
+					header.icon = 'lucide-toy-brick';
 				} else if (
 					header.id === 'group:community-plugins' ||
 					header.id === 'vaultman.group.preset:community-plugins'
 				) {
 					header.label = 'Community plugins';
+					header.icon = 'lucide-puzzle';
 				} else if (
 					header.id === GLOBAL_SETTINGS_GROUP_ID ||
 					header.id === 'vaultman.group.preset:global-settings'
 				) {
 					header.label = GLOBAL_SETTINGS_GROUP_LABEL;
+					header.icon = 'lucide-sliders-horizontal';
+				} else if (
+					this.dataSource?.providerId === 'sasi' ||
+					presetKey in API_SCENE_GROUP_LABEL_KEYS
+				) {
+					const sasiKey = presetKey as ApiSceneGroupName;
+					const labelKey = API_SCENE_GROUP_LABEL_KEYS[sasiKey];
+					if (labelKey) {
+						header.label = translate(labelKey);
+						header.meta = {
+							identityKind: API_SCENE_GROUP_KIND,
+							group: sasiKey,
+						} as any;
+					}
 				}
 			},
 			rangeLabels: translatedRangeLabels(),
@@ -1100,13 +1384,7 @@ export class PluginsExplorerPanel
 			headerCoreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}) as TreeNode<PluginMeta>[];
 		expandNewGroupHeaders(projected, this._seenGroupHeaderIds, this._expandedGroupIds, this._groupIds);
-		const result = this.withGroupToggleCells(projected);
-		// U130: prepend native group parents so they stay at top level
-		// and are not rewrapped by custom groups during native search.
-		if (searchActive && nativeParents && nativeParents.length > 0) {
-			return [...nativeParents, ...result];
-		}
-		return result;
+		return this.withGroupToggleCells(projected);
 	}
 
 	/**
@@ -1117,6 +1395,7 @@ export class PluginsExplorerPanel
 	private withGroupToggleCells(
 		rows: readonly TreeNode<PluginMeta>[],
 	): TreeNode<PluginMeta>[] {
+		if (this.dataSource) return [...rows];
 		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
 			return rows as TreeNode<PluginMeta>[];
 		}
@@ -1153,6 +1432,7 @@ export class PluginsExplorerPanel
 								: 'addons.disabled',
 					),
 					disabled: pending,
+					busy: pending,
 				},
 			];
 			return { ...row, cells };
@@ -1161,7 +1441,7 @@ export class PluginsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (this.visibleCells.has('format')) {
+		if (!this.dataSource && this.visibleCells.has('format')) {
 			this._decorateNodeNotes(this.nodes);
 		}
 		this.emptyEl?.remove();
@@ -1179,9 +1459,52 @@ export class PluginsExplorerPanel
 			// necesita la guia igual que el resto de p-nodes con hijos.
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
+			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
 			renderLabel: (row, node) => {
+				if (this.dataSource) return false;
+				if (node.isGroupHeader === true) {
+					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+						const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+						const hasBoundNote =
+							aliasSet.has(node.label) ||
+							Boolean(groupMeta?.file) ||
+							Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+						if (hasBoundNote) {
+							const label = row.createSpan({
+								cls: 'vaultman-tree-label vaultman-node-note-link',
+								text: node.label,
+							});
+							if (node.labelColor) label.style.color = node.labelColor;
+							label.onclick = (e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								if (groupMeta?.file) {
+									const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+									void leaf.openFile(groupMeta.file, { active: true });
+								} else {
+									void this.plugin.nodeBindingService?.bindOrCreate(
+										{
+											kind: 'group',
+											label: node.label,
+											path: node.id,
+										},
+										{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									);
+								}
+							};
+							return true;
+						}
+					}
+					return false;
+				}
 				if (this.visibleCells.has('format') && (node.meta as PluginMeta)?.hasNodeNote === true) {
 					const label = row.createSpan({
 						cls: 'vaultman-tree-label vaultman-node-note-link',
@@ -1201,21 +1524,21 @@ export class PluginsExplorerPanel
 				}
 				return false;
 			},
-			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings.caretPosition ?? 'start',
 			expansionAnimation: this.plugin.settings.treeExpansionAnimation === true,
 			expandedIds: this._expandedGroupIds,
 			selectedIds: this.selectedNodeIds,
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this.selectedNodeIds = result.selectedIds;
+				this.selectionAnchorId = result.anchorId;
 				this._touchSelection();
 				this.render();
 			},
@@ -1235,6 +1558,11 @@ export class PluginsExplorerPanel
 					return;
 				}
 				if (this.interactionMode !== 'select') {
+					if (this.dataSource) {
+						const node = this.findNode(id);
+						if (node) this.dataSource.activate(entityIdOf(node));
+						return;
+					}
 					this._activateSettingSceneRow(id);
 					return;
 				}
@@ -1266,6 +1594,11 @@ export class PluginsExplorerPanel
 				this.render();
 			},
 			onCellClick: (id, cellId) => {
+				if (this.dataSource) {
+					const node = this.findNode(id);
+					if (node && !node.isGroupHeader) this.dataSource.cell(entityIdOf(node), cellId);
+					return;
+				}
 				if (isGroupHeader(id, this._groupIds)) {
 					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
 					// miembros, no a uno.
@@ -1278,14 +1611,24 @@ export class PluginsExplorerPanel
 				if (cellId === 'config') {
 					openPluginSettings(this.plugin.app, node.meta.pluginId);
 				}
+				if (cellId === 'cell_update') void this.updatePlugin(node.meta);
 			},
-			rowTooltip: (node) => this.tooltip(node.meta as PluginMeta),
+			rowTooltip: (node) => {
+				const row = this.findNode(node.id);
+				return this.dataSource && row ? this.dataSource.tooltip(row) : this.tooltip(node.meta as PluginMeta);
+			},
+			onEmptySpaceClick: () => this.clearSelection(),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
+				if (this.dataSource) {
+					if (node && this.tooltipsOverride !== false) setTooltip(row, this.dataSource.tooltip(node));
+					return;
+				}
 				if (node && this.tooltipsOverride !== false)
 					setTooltip(row, this.tooltip(node.meta), {
 				placement: tooltipPlacementForSetting(
 					this.plugin.settings?.tooltipPlacement,
+					this.containerEl,
 				),
 			});
 			},
@@ -1305,13 +1648,13 @@ export class PluginsExplorerPanel
 							},
 							surface: 'panel',
 							groupId: id,
-							groupOwner: this._groupIds.has(id) ? 'custom' : 'preset',
+							groupOwner: this._isCustomGroupId(id) ? 'custom' : 'preset',
 							groupHidden: this.hiddenGroupIds.has(id),
 							hideGroup: this.groupHideHandler,
 							deleteGroup: this.groupDeleteHandler,
 							groupExpanded: this._expandedGroupIds.has(id),
 							materializePreset:
-								this._groupIds.has(id) ||
+								this._isCustomGroupId(id) ||
 								!header ||
 								!this.materializePresetHandler
 									? undefined
@@ -1323,6 +1666,24 @@ export class PluginsExplorerPanel
 												this.selectionRevision,
 											),
 										),
+							makeACopy: this._isCustomGroupId(id)
+								? () => {
+										if (this.groupCopyHandler) this.groupCopyHandler(id);
+										else this._makeACopyOfGroup(id);
+									}
+								: undefined,
+							renameGroup: this._isCustomGroupId(id)
+								? async (targetId: string) => {
+										if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+										else await this._renameCustomGroup(targetId);
+									}
+								: undefined,
+							updateGroupScope: this._isCustomGroupId(id)
+								? () => {
+										if (this.groupScopeHandler) this.groupScopeHandler(id);
+										else this._updateCustomGroupScope(id);
+									}
+								: undefined,
 							toggleGroupExpand: (groupId: string) => {
 								this._toggleExpandedGroup(groupId);
 							},
@@ -1332,6 +1693,14 @@ export class PluginsExplorerPanel
 					return;
 				}
 				const node = this.findNode(id);
+				if (this.dataSource && node) {
+					this._includeInvokedInSelection(id, event);
+					const menu = new Menu();
+					const create = this._groupCreationMenuCtx().createGroupWithSelected;
+					if (create) menu.addItem((item) => item.setTitle(translate('group.selected')).setIcon('lucide-boxes').onClick(() => { void create(); }));
+					menu.showAtMouseEvent(event);
+					return;
+				}
 				// U130 Slice A: `node_settings` no es plugin y no tiene menú
 				// de plugin (su `pluginId` es '').
 				if (!node || !node.meta.pluginId) return;
@@ -1451,8 +1820,8 @@ export class PluginsExplorerPanel
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
 	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`
-	 * de las filas multi-grupo), nunca el id del grupo; en el resto
-	 * colapsa/expande como una carpeta.
+	 * de las filas multi-grupo), nunca el id del grupo; solo `open` colapsa o
+	 * expande desde el cuerpo. El caret conserva su acción directa.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -1470,11 +1839,18 @@ export class PluginsExplorerPanel
 			this.render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpandedGroup(id);
-		if (id === 'group:community-plugins') {
+		if (
+			id === 'group:community-plugins' ||
+			id === 'vaultman.group.preset:community-plugins'
+		) {
 			openSettingsTabById(this.plugin.app, 'community-plugins');
-		} else if (id === 'group:core-plugins') {
-			openSettingsTabById(this.plugin.app, 'core-plugins');
+		} else if (
+			id === 'group:core-plugins' ||
+			id === 'vaultman.group.preset:core-plugins'
+		) {
+			openSettingsTabById(this.plugin.app, 'plugins');
 		}
 	}
 
@@ -1531,7 +1907,7 @@ export class PluginsExplorerPanel
 		return node?.label ?? null;
 	}
 
-	scopeLevelForNode(_id: string): number | null {
+	scopeLevelForNode(_id: string): number | string | null {
 		return null;
 	}
 
@@ -1640,6 +2016,25 @@ export class PluginsExplorerPanel
 		} finally {
 			this.pendingToggleIds.delete(meta.pluginId);
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
+		}
+	}
+
+	private async updatePlugin(meta: PluginMeta): Promise<void> {
+		if (this.pendingUpdateIds.has(meta.pluginId)) return;
+		this.pendingUpdateIds.add(meta.pluginId);
+		this.rebuildNodes();
+		try {
+			if (!this.plugin.pluginUpdatesService) return;
+			const result = await this.plugin.pluginUpdatesService.updatePlugin(meta.pluginId);
+			if (result.status !== 'success') {
+				new Notice(result.message ?? translate('addons.update_failed'));
+			}
+		} catch (error) {
+			new Notice(translate('addons.update_failed'));
+			console.error('Vaultman plugin update failed', error);
+		} finally {
+			this.pendingUpdateIds.delete(meta.pluginId);
+			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 }

@@ -45,6 +45,7 @@ export type TreeNodeCell =
 		style: AddonCellStyle;
 		label: string;
 		disabled?: boolean;
+		busy?: boolean;
 		/**
 		 * Spec 07 §2: la cabecera de un `node_group` pinta el agregado de sus
 		 * miembros. Mixto (algunos si, algunos no) se PINTA como mixto, pero
@@ -56,8 +57,9 @@ export type TreeNodeCell =
 			id: string;
 			kind: 'action';
 			icon: string;
-			label: string;
-			disabled?: boolean;
+		label: string;
+		disabled?: boolean;
+		busy?: boolean;
 			appearance?: 'button' | 'badge';
 		}
 	| {
@@ -112,6 +114,8 @@ export interface TreeNode<TMeta = unknown> {
 	groupScopeTarget?: ScopeTarget;
 	/** Resolved per-scope cell overrides carried with this projected row. */
 	scopeCellToggles?: Partial<Record<string, boolean>>;
+	/** Resolved per-scope indent override carried with this projected row. */
+	scopeIndent?: boolean;
 	/**
 	 * B-groupbody: marca puesta SOLO por `headerNode` de
 	 * `logicTreeGroupProjection`. El motor (`UnifiedTreeView`) reconoce por
@@ -220,9 +224,11 @@ export interface PluginMeta {
 	enabled: boolean;
 	loaded: boolean;
 	version?: string;
+	updateVersion?: string;
 	author?: string;
 	description?: string;
 	isDesktopOnly?: boolean;
+	fundingUrl?: string;
 	isVaultman: boolean;
 	installedTime?: number;
 	updatedTime?: number;

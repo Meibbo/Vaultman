@@ -4,8 +4,6 @@ import viewTreeSource from '../../src/components/layout/viewTree.ts?raw';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import explorerPluginsSource from '../../src/components/containers/explorerPlugins.ts?raw';
 import explorerSnippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
-import explorerPropsSource from '../../src/components/containers/explorerProps.ts?raw';
-import explorerTagsSource from '../../src/components/containers/explorerTags.ts?raw';
 import enSource from '../../src/i18n/en.ts?raw';
 import esSource from '../../src/i18n/es.ts?raw';
 
@@ -36,16 +34,12 @@ describe('BT5-034 the tooltip is ready before the pointer arrives', () => {
 		for (const source of [explorerPluginsSource, explorerSnippetsSource]) {
 			expect(source).toContain('rowTooltip: (node');
 		}
-		// Props and Tags still configure none, so they still show none.
-		for (const source of [explorerPropsSource, explorerTagsSource]) {
-			expect(source).not.toContain('rowTooltip:');
-		}
 	});
 
 	it('calls the feature Tooltip in the settings UI', () => {
-		expect(enSource).toContain("'settings.files_hover_info': 'Files tooltip'");
+		expect(enSource).toContain("'settings.files_hover_info': 'Node tooltips'");
 		expect(esSource).toContain(
-			"'settings.files_hover_info': 'Tooltip de Files'",
+			"'settings.files_hover_info': 'Tooltips de nodos'",
 		);
 	});
 });

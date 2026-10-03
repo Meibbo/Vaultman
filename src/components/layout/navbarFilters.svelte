@@ -37,6 +37,7 @@
 	import { showInputModal } from '../../utils/inputModal';
 	import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 	import { InstanceInfoModal } from '../../modals/modalInstanceInfo';
+	import type { WorkspaceInstanceRecord } from '../../types/typeInstance';
 	import {
 		nextExplorerSortDirection,
 		sortDirectionGlyph,
@@ -50,6 +51,7 @@
 		mergeScopeStates,
 		normalizeExplorerSortState,
 		parentOfScope,
+		parseScopeLevel,
 		replaceActiveScopeSort,
 		resolveScopeSet,
 		sameExplorerSortState,
@@ -192,6 +194,8 @@
 	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
+		onSwitchInstance?: (id: string) => void;
+		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
 		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
@@ -236,6 +240,18 @@
 		readonly disabled?: boolean;
 		readonly onClick?: () => void;
 	};
+	let activeToolbarMenu: Menu | null = null;
+
+	/** Keep fast successive toolbar context-menu openings mutually exclusive. */
+	function showToolbarMenu(menu: Menu, event: MouseEvent): void {
+		activeToolbarMenu?.hide();
+		activeToolbarMenu = menu;
+		menu.onHide(() => {
+			if (activeToolbarMenu === menu) activeToolbarMenu = null;
+		});
+		menu.showAtMouseEvent(event);
+	}
+
 	type NativeMenuNode = ToolbarMenuNode<NativeMenuValue>;
 
 	function nativeMenuItem(
@@ -368,14 +384,18 @@
 		onSaveLayout,
 		onLayoutLoaded,
 		app,
+		allowedCellIds,
 		showTabLabels = true,
 		orderCellsByActivation = false,
 		selectionCheckboxPosition = 'start' as 'start' | 'end' | 'hidden',
+		caretPosition = 'start' as 'start' | 'end' | 'hidden',
 		toolbarMenuLayouts,
 		commandActions = [],
 		createActionsPlacement = 'searchbox',
 		pvpuiConfig = {},
 		sceneConfigPort,
+		onSwitchInstance,
+		readInstanceRecords,
 	}: NavbarRendererState = $props();
 
 	function invokeSceneAction(
@@ -756,6 +776,123 @@
 		applyGroupMemberships(tab, rest);
 		setGroupHidden(tab, id, false);
 	}
+	/** U130-GGC-016: make_a_copy desde el sort drawer. Copia enumerada con mismos miembros. */
+	function copyCustomGroup(tab: FiltersTab, id: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		const members = memberships[id] ?? [];
+		const parsed = parseScopedGroupKey(id);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${id} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, nextId) &&
+				n < 1000
+			);
+		}
+		const next = { ...memberships, [nextId!]: [...members] };
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+	}
+	/** U130-GGC-016: rename desde el sort drawer o cmenu. Modal de texto, renombra clave preservando target. */
+	async function renameCustomGroup(tab: FiltersTab, id: string, nextNameParam?: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		const parsed = parseScopedGroupKey(id);
+		let nextName = nextNameParam?.trim();
+		if (!nextName) {
+			if (!app) return;
+			nextName = (
+				await showInputModal(app, translate('group.row.rename'), {
+					initialValue: parsed.name,
+				})
+			)?.trim();
+		}
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(memberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [id]: members, ...rest } = memberships;
+		const next = { ...rest, [nextId]: [...(members ?? [])] };
+		const wasHidden = configByTab[tab].hiddenGroupIds.includes(id);
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+		if (wasHidden) {
+			setGroupHidden(tab, id, false);
+			setGroupHidden(tab, nextId, true);
+		}
+	}
+	/** U130-GGC-016: change scope desde el sort drawer. Mueve la clave al target actual. */
+	function updateCustomGroupScope(tab: FiltersTab, id: string) {
+		const memberships = configByTab[tab].groupMemberships;
+		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
+		const parsed = parseScopedGroupKey(id);
+		const target = currentCustomGroupTarget(tab);
+		if (!parsed.legacy && parsed.target === target) return;
+		let nextId: string;
+		try {
+			nextId = parsed.legacy
+				? makeScopedGroupKey(target, parsed.name)
+				: makeScopedGroupKey(target, parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(memberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey(target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(memberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [id]: members, ...rest } = memberships;
+		const wasHidden = configByTab[tab].hiddenGroupIds.includes(id);
+		const next = { ...rest, [nextId]: [...(members ?? [])] };
+		commitConfig(tab, { groupMemberships: next });
+		applyGroupMemberships(tab, next);
+		if (wasHidden) {
+			setGroupHidden(tab, id, false);
+			setGroupHidden(tab, nextId, true);
+		}
+	}
 	function setGroupPresetFor(tab: FiltersTab, next: GroupPreset) {
 		const currentSort = normalizeSortState(
 			tab,
@@ -793,9 +930,11 @@
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
 		const targetParentId = parentOfScope(target);
-		const targetLevel = targetParentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const targetLevel = target === 'all'
+			? undefined
+			: targetParentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0).base + 1
+				: (levelOfScope(target) ?? undefined);
 		const preset =
 			scopeState.sets[target]?.groupPreset ??
 			resolveScopeSet(
@@ -830,9 +969,11 @@
 			currentSort.activeScope,
 		) as ScopeTarget;
 		const parentId = parentOfScope(cursor);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(cursor) ?? 1);
+		const level = cursor === 'all'
+			? undefined
+			: parentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
+				: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -933,6 +1074,7 @@
 	async function createCustomGroup(
 		tab: FiltersTab,
 		snapshot?: GroupSelectionSnapshot,
+		initialName?: string,
 	): Promise<GroupMutationResult> {
 		if (!app) return { status: 'rejected', reason: 'group.selected.no_app' };
 		if (snapshot?.rowIds.includes(ADD_PROPERTY_ROW_ID))
@@ -965,6 +1107,7 @@
 					? translate('group.suggester.title')
 					: translate('group.new'),
 			placeholder: translate('group.suggester.placeholder'),
+			initialValue: initialName ?? '',
 			customGroups: customs.map((group) => ({
 				id: group.id,
 				label: group.label,
@@ -1269,6 +1412,10 @@
 	);
 	const panelWidgetNodeId = (localId: string): string =>
 		`${providerId}:${localId}`;
+	const PLUGIN_UPDATE_TOOLBAR_ACTIONS = [
+		['check_plugin_updates', 'addons.check_updates', 'lucide-refresh-cw'],
+		['update_all_plugins', 'addons.update_all', 'lucide-download-cloud'],
+	] as const;
 	// U130 change-icon: override per-instance del icono de un nodo (alt-cmenu
 	// "Change icon"). Ausencia de clave = icono de serie.
 	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
@@ -1375,6 +1522,11 @@
 				true,
 				30,
 			);
+		}
+		if (activeTab === 'plugins') {
+			for (const [index, [id, labelKey, iconName]] of PLUGIN_UPDATE_TOOLBAR_ACTIONS.entries()) {
+				append(id, translate(labelKey), iconName, 'button', true, true, 35 + index);
+			}
 		}
 		if (
 			activeTab === 'files' &&
@@ -2474,9 +2626,11 @@
 		) as ScopeTarget;
 		scopeState.cursor = target;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
+				: (levelOfScope(target) ?? undefined);
 		const effective = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -2648,7 +2802,12 @@
 				};
 				scopeState.cursor = target;
 				const next = { ...current, scopeState };
-				commitConfig(activeTab, { sortState: next });
+				if (target === 'all') {
+					commitConfig(activeTab, { visibleCells: cells, sortState: next });
+					applyVisibleCells(activeTab, cells);
+				} else {
+					commitConfig(activeTab, { sortState: next });
+				}
 				applySortState(activeTab, next);
 			},
 		);
@@ -2664,9 +2823,11 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
+				: (levelOfScope(target) ?? undefined);
 		const resolved = resolveScopeSet(state.scopeState, {
 			level,
 			parentId,
@@ -2685,9 +2846,11 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = parentId
-			? (treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0) + 1
-			: (levelOfScope(target) ?? 1);
+		const level = target === 'all'
+			? undefined
+			: parentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
+				: (levelOfScope(target) ?? undefined);
 		const defaults: ScopeSet = {
 			nested: (
 				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
@@ -2736,6 +2899,10 @@
 	function openNativeViewMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const activeView = viewModeByTab[activeTab] ?? 'tree';
+		const currentSortState = normalizeSortState(
+			activeTab,
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+		);
 		const minimalNativeViewModes = minimalStyle
 			? viewModesForDataSurface(activeTab).filter(
 					(option) => option.id !== 'dnd',
@@ -2795,10 +2962,10 @@
 						),
 					);
 				}
-				layoutChildren.push(
-					nativeMenuDivider('view_menu.layouts.divider.saved'),
-				);
 			}
+			layoutChildren.push(
+				nativeMenuDivider('view_menu.layouts.divider.save'),
+			);
 			layoutChildren.push(
 				nativeMenuItem('view_menu.layouts.save', {
 					title: translate('viewmenu.save_layout'),
@@ -2817,9 +2984,9 @@
 					layoutChildren,
 				),
 			);
+			nodes.push(nativeMenuDivider('view_menu.divider.after_layouts'));
 		}
 
-		nodes.push(nativeMenuDivider('view_menu.divider.cells'));
 		// D29 superseded by spec 08: 'Nested' moved to the view menu.
 		// BT5-011: the menu mirrors the row — active cells in render order
 		// first, then the rest at their canonical rank.
@@ -2833,10 +3000,17 @@
 				selectionCheckboxPosition,
 			},
 		)) {
+			if (allowedCellIds && !allowedCellIds.includes(entry.id)) continue;
 			nodes.push(
 				nativeMenuItem(`view_menu.cells.${entry.id}`, {
 					title: translate(
-						cellLabelKey(entry.definition, activeTab, activeView),
+						providerId === 'sasi' && entry.id === 'state'
+							? 'sasi.apiscene.cell.published'
+							: providerId === 'sasi' && (entry.id === 'installed' || entry.id === 'ctime')
+								? 'viewmode.pill.ctime'
+								: providerId === 'sasi' && (entry.id === 'updated' || entry.id === 'mtime')
+									? 'viewmode.pill.mtime'
+									: cellLabelKey(entry.definition, activeTab, activeView),
 					),
 					icon: cellIcon(entry.definition, activeTab, activeView),
 					checked: entry.active,
@@ -2845,22 +3019,22 @@
 			);
 		}
 
-		// Orden (dev, 2026-09-15): un divider tras los cell presets, luego
-		// el toggle `Toolbar`, un segundo divider y el submenu `engines`.
-		// El segundo divider reserva el sitio del control de dimensiones
-		// del stream proto_design.
-		nodes.push(nativeMenuDivider('view_menu.divider.toolbar'));
-		if (onToggleToolbar) {
+		if (activeTab === 'props' && revealActive) {
+			nodes.push(nativeMenuDivider('view_menu.divider.add_property_first'));
 			nodes.push(
-				nativeMenuItem('view_menu.toolbar', {
-					title: translate('viewmenu.toolbar'),
-					icon: 'lucide-panel-top',
-					checked: toolbarShown,
-					onClick: () => onToggleToolbar?.(),
+				nativeMenuItem('view_menu.add_property_first', {
+					title: translate('sort.level.add_property_first'),
+					icon: 'lucide-list-plus',
+					checked: currentSortState.addPropertyFirst === true,
+					onClick: () =>
+						handleSortChange({
+							...currentSortState,
+							addPropertyFirst: currentSortState.addPropertyFirst !== true,
+						}),
 				}),
 			);
-			nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		}
+		nodes.push(nativeMenuDivider('view_menu.divider.engines'));
 		// Submenu `engines`: the available rendering engines, then a divider,
 		// then the engine-specific view options (nested, folders-first,
 		// fixed-folders, sticky rows, compact folders). Those options are modes
@@ -2893,7 +3067,9 @@
 		// a flat padding override (4px, no per-depth sangria) that applies
 		// whether or not there is anything to nest or group, so it is gated
 		// only by the engine being `tree`, not by `nestedAct`.
-		engineChildren.push(nativeMenuDivider('view_menu.engines.divider.options'));
+		engineChildren.push(
+			nativeMenuDivider('view_menu.engines.divider.before_nested'),
+		);
 		engineChildren.push(
 			nativeMenuItem('view_menu.engines.nested', {
 				title: translate('sort.level.nested'),
@@ -2902,6 +3078,7 @@
 				onClick: () => toggleNestedFor(activeTab),
 			}),
 		);
+		engineChildren.push(nativeMenuDivider('view_menu.engines.divider.options'));
 		if (treeCapableFor(activeTab)) {
 			engineChildren.push(
 				nativeMenuItem('view_menu.engines.indent', {
@@ -3035,7 +3212,7 @@
 			),
 		);
 		renderNativeMenuNodes(menu, projectNativeMenu('view_menu', nodes));
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	// U130 toolbar alt-cmenus (right-click): overrides per-instance. Los
@@ -3117,12 +3294,6 @@
 			menu.addSeparator();
 		}
 		if (localId === 'reveal-active-file') {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('toolbar.alt.reveal_now'))
-					.setIcon('lucide-gallery-vertical')
-					.onClick(() => revealActiveExplorerFile('menu', event));
-			});
 			const revealMode = configByTab.files?.autoRevealMode ?? 'auto';
 			const alwaysReveal =
 				revealMode === 'auto' ? autoRevealGlobal : revealMode === 'on';
@@ -3184,11 +3355,12 @@
 					});
 				});
 		});
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
+		if (sceneConfigPort.readInstanceRecord()) {
 		menu.addItem((item) => {
 			item
 				.setTitle(translate('toolbar.instance_info'))
@@ -3197,11 +3369,38 @@
 					if (!app) return;
 					const record = sceneConfigPort.readInstanceRecord();
 					if (!record) return;
-					new InstanceInfoModal(app, record).open();
+					const records = (readInstanceRecords?.() ?? [record]).filter(
+						(candidate) => !candidate.tombstoned,
+					);
+					new InstanceInfoModal(
+						app,
+						record,
+						records,
+						onSwitchInstance,
+					).open();
 				});
 		});
-		menu.addSeparator();
+		}
+		const providedNodes = panelWidgetNodes.filter((node) => {
+			const prefix = `${providerId}:`;
+			return node.id.startsWith(prefix) &&
+				!node.id.slice(prefix.length).startsWith('command:');
+		});
+		if (providedNodes.length > 0) {
+			menu.addSeparator();
+			for (const node of providedNodes) {
+				const localId = node.id.slice(`${providerId}:`.length);
+				menu.addItem((item) => {
+					item
+						.setTitle(node.label)
+						.setIcon(node.icon)
+						.setChecked(toolbarNodeVisible(localId))
+						.onClick(() => toggleToolbarNodeVisibility(localId));
+				});
+			}
+		}
 		if (onToggleToolbar) {
+			menu.addSeparator();
 			menu.addItem((item) => {
 				item
 					.setTitle(translate('viewmenu.toolbar'))
@@ -3209,8 +3408,8 @@
 					.setChecked(toolbarShown)
 					.onClick(() => onToggleToolbar?.());
 			});
-			menu.addSeparator();
 		}
+		menu.addSeparator();
 		// U130 polishing: añadir nodos con comandos bindeados directamente
 		// per-instance (scene). Los `command:*` globales se gestionan en
 		// Settings; aquí solo entra la lista de esta scene.
@@ -3233,23 +3432,7 @@
 					});
 				});
 		});
-		menu.addSeparator();
-		// Solo nodos provided: los `command:*` los gestiona el usuario donde
-		// los agregó, no desde aquí.
-		for (const node of panelWidgetNodes) {
-			const prefix = `${providerId}:`;
-			if (!node.id.startsWith(prefix)) continue;
-			const localId = node.id.slice(prefix.length);
-			if (localId.startsWith('command:')) continue;
-			menu.addItem((item) => {
-				item
-					.setTitle(node.label)
-					.setIcon(node.icon)
-					.setChecked(toolbarNodeVisible(localId))
-					.onClick(() => toggleToolbarNodeVisibility(localId));
-			});
-		}
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function openNativeSceneMenu(event: MouseEvent) {
@@ -3303,23 +3486,31 @@
 				}),
 			);
 		}
-		// Statistics and add-on explorers share the next section.
-		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
+		// Add-on explorers section (snippets, then settings).
+		if (addonTabOptions.length > 0) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
+			for (const option of addonTabOptions) {
+				const title =
+					option.id === 'plugins'
+						? translate('scene_menu.tab.plugins') || 'Settings'
+						: option.label;
+				nodes.push(
+					nativeMenuItem(`scene_menu.tab.${option.id}`, {
+						title,
+						icon: option.icon,
+						checked: option.id === activeSectionTab,
+						onClick: () => onSectionTabChange?.(option.id),
+					}),
+				);
+			}
 		}
-		if (!showDock && statisticsAction)
+		// Statistics in its own section below Settings.
+		if (!showDock && statisticsAction) {
+			nodes.push(nativeMenuDivider('scene_menu.divider.statistics'));
 			nodes.push(tabActionNode(statisticsAction));
-		for (const option of addonTabOptions) {
-			nodes.push(
-				nativeMenuItem(`scene_menu.tab.${option.id}`, {
-					title: option.label,
-					icon: option.icon,
-					onClick: () => onSectionTabChange?.(option.id),
-				}),
-			);
 		}
 		renderNativeMenuNodes(menu, projectNativeMenu('scene_menu', nodes));
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function nextSortState(id: string): ExplorerSortState {
@@ -3354,6 +3545,12 @@
 							tagsExplorer.hasSortNode?.(id) ?? false,
 					}
 				: {}),
+			...(validateDrill && tab === 'props' && propExplorer
+				? {
+						isValidDrillNode: (id: string) =>
+							propExplorer?.hasSortNode?.(id) ?? false,
+					}
+				: {}),
 		});
 		return {
 			...normalized,
@@ -3386,14 +3583,19 @@
 		ownerPanel?.setScopePickMode?.(mode);
 		// D29 drill UX: one click selects the requested parent/level scope.
 		pane.classList.add('vaultman-sort-pick-mode');
+		const isCaretPointer = (event: Event): boolean =>
+			event.target instanceof Element &&
+			Boolean(event.target.closest('.vaultman-tree-row .vaultman-tree-toggle'));
 		const suppressEvent = (event: Event) => {
+			if (isCaretPointer(event)) return;
 			event.preventDefault();
 			event.stopImmediatePropagation();
 		};
 		const onPick = (event: PointerEvent) => {
+			if (isCaretPointer(event)) return;
 			const target =
 				event.target instanceof Element
-					? event.target.closest<HTMLElement>('[data-id]')
+					? event.target.closest<HTMLElement>('.vaultman-tree-row[data-id]')
 					: null;
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;
@@ -3737,6 +3939,8 @@
 		if (tab === 'files') fileList?.setStickyRowsEnabled?.(enabled);
 		if (tab === 'props') propExplorer?.setStickyRowsEnabled?.(enabled);
 		if (tab === 'tags') tagsExplorer?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'snippets') snippetsExplorer?.setStickyRowsEnabled?.(enabled);
+		if (tab === 'plugins') pluginsExplorer?.setStickyRowsEnabled?.(enabled);
 	}
 
 	function indentEnabledFor(tab: FiltersTab): boolean {
@@ -3795,11 +3999,12 @@
 		const nextSort = { ...currentSort, scopeState };
 		if (target === 'all') {
 			commitConfig(tab, { indent: next, sortState: nextSort });
+			applySortState(tab, nextSort);
+			applyIndent(tab, next);
 		} else {
 			commitConfig(tab, { sortState: nextSort });
+			applySortState(tab, nextSort);
 		}
-		applySortState(tab, nextSort);
-		applyIndent(tab, next);
 	}
 
 	function toggleStickyRowsFor(tab: FiltersTab) {
@@ -3867,6 +4072,8 @@
 	// esta implementada en el arbol.
 	function applyCompactFolders(tab: FiltersTab, enabled: boolean) {
 		if (tab === 'files') fileList?.setCompactFoldersEnabled?.(enabled);
+		if (tab === 'snippets') snippetsExplorer?.setCompactFoldersEnabled?.(enabled);
+		if (tab === 'plugins') pluginsExplorer?.setCompactFoldersEnabled?.(enabled);
 	}
 
 	function toggleCompactFoldersFor(tab: FiltersTab) {
@@ -3962,10 +4169,6 @@
 					continue;
 				}
 				const rowChildren: NativeMenuNode[] = [
-					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.confirm`, {
-						title: translate('group.row.confirm'),
-						disabled: true,
-					}),
 					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.select`, {
 						title: entry.label,
 						icon: entry.icon,
@@ -3983,10 +4186,6 @@
 						title: translate('group.row.delete'),
 						icon: 'lucide-trash-2',
 						onClick: () => deleteScope(activeTab, entry.id),
-					}),
-					nativeMenuItem(`sort_menu.scope.rows.${entry.id}.cancel`, {
-						title: translate('group.row.cancel'),
-						icon: 'lucide-x',
 					}),
 				];
 				scopeChildren.push(
@@ -4099,7 +4298,13 @@
 			const isActive = activeSort.sortBy === option.id;
 			nodes.push(
 				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
-					title: `${translate(option.labelKey)}${
+					title: `${translate(
+						providerId === 'sasi' && (option.id === 'installed' || option.id === 'ctime')
+							? 'sort.by.created'
+							: providerId === 'sasi' && (option.id === 'updated' || option.id === 'mtime')
+								? 'sort.by.modified'
+								: option.labelKey,
+					)}${
 						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
 					}`,
 					icon: option.icon,
@@ -4119,6 +4324,8 @@
 			);
 			const byLevelChildren: NativeMenuNode[] = [];
 			for (const option of byLevelModelValue?.items ?? []) {
+				if (option.kind === 'toggle' && option.id === 'addPropertyFirst')
+					continue;
 				if (option.kind === 'separator') {
 					byLevelChildren.push(
 						nativeMenuDivider(`sort_menu.by_level.divider.${option.id}`),
@@ -4127,7 +4334,7 @@
 				}
 				byLevelChildren.push(
 					nativeMenuItem(
-						`sort_menu.by_level.${option.id === 'reveal-anchor' ? 'reveal_anchor' : option.id === 'addPropertyFirst' ? 'add_property_first' : option.id}`,
+						`sort_menu.by_level.${option.id === 'reveal-anchor' ? 'reveal_anchor' : option.id}`,
 						{
 							title: translate(option.labelKey),
 							icon: option.icon,
@@ -4156,15 +4363,6 @@
 									// No current note to take: pick one.
 									void beginRevealPick(activeTab);
 									return;
-								}
-								if (
-									option.kind === 'toggle' &&
-									option.id === 'addPropertyFirst'
-								) {
-									handleSortChange({
-										...current,
-										addPropertyFirst: !option.checked,
-									});
 								}
 							},
 						},
@@ -4265,7 +4463,7 @@
 				supportsByLevel(activeTab) ? ['by-level'] : [],
 			),
 		);
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function toggleExplorerExpansion(
@@ -4325,7 +4523,7 @@
 					});
 			});
 		}
-		menu.showAtMouseEvent(event);
+		showToolbarMenu(menu, event);
 	}
 
 	function refreshExpansionState() {
@@ -4439,8 +4637,8 @@
 		const port = explorerPortForTab(tab);
 		const scope = selectionScopeFor(tab);
 		port?.setSelectionScope?.(scope);
-		port?.setCreateGroupHandler?.((snapshot) =>
-			createCustomGroup(tab, snapshot),
+		port?.setCreateGroupHandler?.((snapshot, initialName) =>
+			createCustomGroup(tab, snapshot, initialName),
 		);
 		port?.setDegroupSelectedHandler?.((snapshot, owner) =>
 			degroupSelected(tab, snapshot, owner),
@@ -4455,6 +4653,11 @@
 			setGroupHidden(tab, groupId, hidden),
 		);
 		port?.setGroupDeleteHandler?.((groupId) => deleteCustomGroup(tab, groupId));
+		port?.setGroupRenameHandler?.((groupId, nextName) =>
+			renameCustomGroup(tab, groupId, nextName),
+		);
+		port?.setGroupCopyHandler?.((groupId) => copyCustomGroup(tab, groupId));
+		port?.setGroupScopeHandler?.((groupId) => updateCustomGroupScope(tab, groupId));
 		port?.setCounterRangesChangeHandler?.((ranges, target) =>
 			setCounterRangesFor(tab, ranges, target),
 		);
@@ -4787,6 +4990,29 @@
 								)}
 							></div>
 						{/if}
+						{#if activeTab === 'plugins'}
+							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
+								{#if toolbarNodeVisible(id)}
+									<div
+										class={headerActionClass}
+										data-panel-widget-node-id={panelWidgetNodeId(id)}
+										style:order={panelWidgetNodeOrder(id)}
+										role="button"
+										tabindex="0"
+										aria-label={translate(labelKey)}
+										title={toolbarNodeTitle(translate(labelKey))}
+										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
+										onkeydown={(event) => {
+											if (event.key === 'Enter' || event.key === ' ') {
+												event.preventDefault();
+												invokeSceneAction(id, 'keyboard');
+											}
+										}}
+										use:icon={panelWidgetNodeIcon(id, iconName)}
+									></div>
+								{/if}
+							{/each}
+						{/if}
 						{#if activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
 							{#if toolbarNodeVisible('create-file')}
@@ -4987,6 +5213,9 @@
 					onNewGroup={() => createGroupForPreset(activeTab)}
 					onHideGroup={(id, hidden) => setGroupHidden(activeTab, id, hidden)}
 					onDeleteGroup={(id) => deleteCustomGroup(activeTab, id)}
+					onRenameGroup={(id) => void renameCustomGroup(activeTab, id)}
+					onCopyGroup={(id) => copyCustomGroup(activeTab, id)}
+					onUpdateGroupScope={(id) => updateCustomGroupScope(activeTab, id)}
 					{icon}
 				/>
 			</div>
@@ -4999,6 +5228,7 @@
 				<ViewModePopup
 					{activeTab}
 					{selectionCheckboxPosition}
+					{caretPosition}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}

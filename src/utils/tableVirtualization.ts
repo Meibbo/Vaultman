@@ -4,6 +4,22 @@ export interface VirtualTableRow<T> {
 	top: number;
 }
 
+export interface RenderedTableRange {
+	readonly startIndex: number;
+	readonly endIndex: number;
+	readonly rowHeight: number;
+}
+
+export function hasVisibleTableRows(
+	range: RenderedTableRange | null,
+	scrollTop: number,
+	viewportHeight: number,
+): boolean {
+	return range !== null && range.endIndex > range.startIndex &&
+		range.startIndex * range.rowHeight < scrollTop + viewportHeight &&
+		range.endIndex * range.rowHeight > scrollTop;
+}
+
 export interface VirtualTableWindow<T> {
 	rows: T[];
 	visibleRows: VirtualTableRow<T>[];

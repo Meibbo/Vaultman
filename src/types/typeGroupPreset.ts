@@ -89,7 +89,7 @@ export const GROUP_PRESETS_BY_TAB: Record<
 	props: ['none', 'letter', 'name', 'type', 'count', 'childs', 'custom'],
 	tags: ['none', 'letter', 'name', 'count', 'childs', 'custom'],
 	snippets: ['none', 'letter', 'name', 'modified', 'created', 'custom'],
-	plugins: ['none', 'letter', 'name', 'modified', 'created', 'custom', 'sections', 'state'],
+	plugins: ['none', 'letter', 'name', 'modified', 'created', 'sections', 'state', 'custom'],
 };
 
 export const ALL_GROUP_PRESET_KINDS: readonly GroupPresetKind[] = [

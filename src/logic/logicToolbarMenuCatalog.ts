@@ -99,12 +99,12 @@ const SCENE_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'scene_menu.tab.props', labelKey: 'filter.tab.props', icon: 'lucide-archive', section: 'tabs', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.tab.tags', labelKey: 'filter.tab.tags', icon: 'lucide-tag', section: 'tabs', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.tab.content', labelKey: 'filter.tab.content', icon: 'lucide-file-search', section: 'tabs', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
-	{ id: 'scene_menu.tab.snippets', labelKey: 'filter.tab.snippets', icon: 'lucide-file-code', section: 'tabs', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
-	{ id: 'scene_menu.tab.plugins', labelKey: 'filter.tab.plugins', icon: 'lucide-plug', section: 'tabs', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.launcher.filters', labelKey: 'filters.active', icon: 'lucide-filter', section: 'launchers', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.launcher.queue', labelKey: 'ops.tab.queue', icon: 'lucide-list-checks', section: 'launchers', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
-	{ id: 'scene_menu.launcher.statistics', labelKey: 'nav.statistics', icon: 'lucide-chart-column', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.floating_toc', labelKey: 'floating_toc.menu', icon: 'lucide-a-arrow-down', section: 'floating-toc', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	{ id: 'scene_menu.tab.snippets', labelKey: 'filter.tab.snippets', icon: 'lucide-file-code', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	{ id: 'scene_menu.tab.plugins', labelKey: 'filter.tab.plugins', icon: 'lucide-plug', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	{ id: 'scene_menu.launcher.statistics', labelKey: 'nav.statistics', icon: 'lucide-chart-column', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 ];
 
 const INTERACTION_ICONS: Readonly<Record<InteractionMode, string>> = {
@@ -133,13 +133,56 @@ const SHOW_OPTIONS_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	} as const)),
 ];
 
+// This is the default order used by the toolbar menu layout catalog. Keep the
+// union in the same relative order requested for each explorer; unavailable
+// cells are filtered by tab, so Files-only and add-on cells can share one list.
+const VIEW_MENU_CELL_ORDER: readonly string[] = [
+	'icon',
+	'name',
+	'text',
+	'path',
+	'format',
+	'ext',
+	'type',
+	'ctime',
+	'parent',
+	'mtime',
+	'opened',
+	'file-count',
+	'sub',
+	'words',
+	'tasks',
+	'tags',
+	'count',
+	'state',
+	'config',
+	'installed',
+	'updated',
+	'cell_hover',
+	'checkbox',
+	'caret',
+];
+const VIEW_MENU_CELL_DEFS = [
+	...uniqueByKey(
+		EXPLORER_CELL_DEFS.filter((definition) => definition.role !== 'topology'),
+		(definition) => definition.id,
+	),
+].sort((left, right) => {
+	const leftRank = VIEW_MENU_CELL_ORDER.indexOf(left.id);
+	const rightRank = VIEW_MENU_CELL_ORDER.indexOf(right.id);
+	return (
+		(leftRank < 0 ? Number.MAX_SAFE_INTEGER : leftRank) -
+			(rightRank < 0 ? Number.MAX_SAFE_INTEGER : rightRank)
+	);
+});
+
 const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'view_menu.interaction', labelKey: 'viewmenu.interaction', icon: 'lucide-mouse-pointer-click', section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	...uniqueByKey(EXPLORER_TABS.flatMap((tab) => interactionModesForTab(tab)), (mode) => mode).map((mode) => ({ id: `view_menu.interaction.${mode}`, labelKey: `viewmenu.interaction.${mode}`, icon: INTERACTION_ICONS[mode], section: 'interaction', submenu: 'interaction', requires: NO_REQUIREMENTS, availability: { tabs: EXPLORER_TABS.filter((tab) => interactionModesForTab(tab).includes(mode)) } })),
 	{ id: 'view_menu.layouts', labelKey: 'viewmenu.layouts', icon: 'lucide-layout-template', section: 'layouts', submenu: 'layouts', requires: NO_REQUIREMENTS, availability: { ...ALL_TABS_AVAILABILITY, runtimeChildren: 'saved-layouts' } },
 	{ id: 'view_menu.layouts.save', labelKey: 'viewmenu.save_layout', icon: 'lucide-save', section: 'layouts', submenu: 'layouts', requires: NO_REQUIREMENTS, availability: { ...ALL_TABS_AVAILABILITY, requiresSavedLayout: true } },
-	...uniqueByKey(EXPLORER_CELL_DEFS.filter((definition) => definition.role !== 'topology'), (definition) => definition.id).map((definition) => ({ id: `view_menu.cells.${definition.id}`, labelKey: definition.labelKey, icon: definition.icon, section: 'cells', requires: NO_REQUIREMENTS, availability: availabilityForCell(definition) })),
-	{ id: 'view_menu.toolbar', labelKey: 'viewmenu.toolbar', icon: 'lucide-panel-top', section: 'toolbar', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	...VIEW_MENU_CELL_DEFS.map((definition) => ({ id: `view_menu.cells.${definition.id}`, labelKey: definition.labelKey, icon: definition.icon, section: 'cells', requires: NO_REQUIREMENTS, availability: availabilityForCell(definition) })),
+	{ id: 'view_menu.add_property_first', labelKey: 'sort.level.add_property_first', icon: 'lucide-list-plus', section: 'cells', requires: NO_REQUIREMENTS, availability: { tabs: ['props'], requiresRevealAnchor: true } },
 	{ id: 'view_menu.engines', labelKey: 'viewmenu.engines', icon: 'lucide-layout', section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	...uniqueByKey(EXPLORER_TABS.flatMap((tab) => viewModesForDataSurface(tab)), (option) => option.id).map((option) => ({ id: `view_menu.engines.${option.id}`, labelKey: option.labelKey, icon: option.icon, section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: { tabs: EXPLORER_TABS.filter((tab) => viewModesForDataSurface(tab).some((candidate) => candidate.id === option.id)), ...(option.id === 'dnd' ? { unavailableInMinimalStyle: true } : {}) } })),
 	{ id: 'view_menu.engines.nested', labelKey: 'sort.level.nested', icon: 'lucide-list-tree', section: 'engines', submenu: 'engines', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
@@ -152,10 +195,13 @@ const VIEW_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	...SHOW_OPTIONS_MENU_ACTIONS,
 ];
 
-const GROUP_PRESETS = uniqueByKey(
-	EXPLORER_TABS.flatMap((tab) => GROUP_PRESETS_BY_TAB[tab]),
-	(preset) => preset,
-);
+const GROUP_PRESETS = [
+	...uniqueByKey(
+		EXPLORER_TABS.flatMap((tab) => GROUP_PRESETS_BY_TAB[tab]),
+		(preset) => preset,
+	).filter((preset) => preset !== 'custom'),
+	'custom' as const,
+];
 const SCOPE_OPTIONS = uniqueByKey(
 	HIERARCHICAL_TABS.flatMap((tab) => sortScopeOptions(tab)),
 	(option) => option.scope,
@@ -172,7 +218,6 @@ const SORT_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	...EXPLORER_TABS.flatMap((tab) => SORT_MENU_OPTIONS[tab].map((option) => ({ id: `sort_menu.sort.${tab}.${option.id}`, labelKey: option.labelKey, icon: option.icon, section: 'sort', requires: NO_REQUIREMENTS, availability: { tabs: [tab] } }))),
 	{ id: 'sort_menu.by_level', labelKey: 'sort.level.title', icon: 'lucide-list-tree', section: 'by-level', submenu: 'by-level', requires: NO_REQUIREMENTS, availability: HIERARCHICAL_AVAILABILITY },
 	{ id: 'sort_menu.by_level.reveal_anchor', labelKey: 'sort.reveal.anchor', icon: 'lucide-anchor', section: 'by-level', submenu: 'by-level', requires: NO_REQUIREMENTS, availability: { tabs: ['props', 'tags'], requiresRevealAnchor: true } },
-	{ id: 'sort_menu.by_level.add_property_first', labelKey: 'sort.level.add_property_first', icon: 'lucide-list-plus', section: 'by-level', submenu: 'by-level', requires: NO_REQUIREMENTS, availability: { tabs: ['props'], requiresRevealAnchor: true } },
 	{ id: 'sort_menu.filtered', labelKey: 'sort.level.filtered', icon: 'lucide-filter', section: 'filtered', requires: NO_REQUIREMENTS, availability: HIERARCHICAL_AVAILABILITY },
 	{ id: 'sort_menu.by_type', labelKey: 'explorer.sort.type', icon: 'lucide-list-filter', section: 'by-type', submenu: 'by-type', requires: NO_REQUIREMENTS, availability: { tabs: NODE_TYPE_TABS, runtimeChildren: 'node-types' } },
 	...NODE_TYPE_TABS.flatMap((tab) => NODE_TYPE_MENU_OPTIONS[tab].map((option) => ({ id: `sort_menu.by_type.${tab}.${option.id}`, labelKey: option.labelKey, icon: option.icon, section: 'by-type', submenu: 'by-type', requires: NO_REQUIREMENTS, availability: { tabs: [tab] } }))),

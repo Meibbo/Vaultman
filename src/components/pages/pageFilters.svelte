@@ -418,6 +418,11 @@
 		const position = plugin.settings.selectionCheckboxPosition;
 		return position === 'end' || position === 'hidden' ? position : 'start';
 	});
+	const caretPosition = $derived.by(() => {
+		void settingsRevision;
+		const position = plugin.settings.caretPosition;
+		return position === 'end' || position === 'hidden' ? position : 'start';
+	});
 	const toolbarToolsMenu = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
@@ -1850,6 +1855,17 @@
 			}
 
 			if (invocation.actionId === 'reveal-active-file') {
+				if (explorerActiveTab === 'props') {
+					if (!propExplorer) return false;
+					propExplorer.toggleRevealActiveFile();
+					return true;
+				}
+				if (explorerActiveTab === 'tags') {
+					if (!tagsExplorer) return false;
+					tagsExplorer.toggleRevealActiveFile();
+					return true;
+				}
+				if (explorerActiveTab !== 'files' || !fileList) return false;
 				measureSceneSync(
 					'scene.action.reveal-active-file.files',
 					undefined,
@@ -1901,6 +1917,10 @@
 					plugin.app,
 					invocation.actionId.slice('command:'.length),
 				);
+				return true;
+			}
+			if (invocation.actionId === 'check_plugin_updates' || invocation.actionId === 'update_all_plugins') {
+				await plugin.runPluginUpdateAction(invocation.actionId);
 				return true;
 			}
 			return false;
@@ -1979,6 +1999,7 @@
 				onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
 				orderCellsByActivation,
 				selectionCheckboxPosition,
+				caretPosition,
 				toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,
 				frameWidth,
 				onToggleToolbar: toggleToolbar,

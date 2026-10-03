@@ -5,6 +5,10 @@ import {
 	computeAliasToken,
 	findNotesByAlias,
 	extractWikilinkTarget,
+	propAliasTokens,
+	tagAliasTokens,
+	snippetAliasTokens,
+	pluginAliasTokens,
 	DEFAULT_NODE_NOTE_PREFIXES,
 	prefixesFromSettings,
 	type NodeNotePrefixes,
@@ -457,53 +461,162 @@ export function handleInternalNodeNoteHover(
 	// Las superficies nativas las cubre el handler nativo (sin doble preview).
 	if (resolveNativeBindingTarget(event.target, app)) return false;
 
-	// 1. Anchor con href (valores wikilink/url renderizados).
-	const href = link.getAttribute?.("href") ?? null;
-	if (href) {
-		const dest = app?.metadataCache?.getFirstLinkpathDest?.(href, "") as
+	if (!app) return false;
+
+	const prefixes = deps.prefixes ?? DEFAULT_NODE_NOTE_PREFIXES;
+
+	const resolveFileDest = (pathOrTarget: string | null | undefined): string | null => {
+		if (!pathOrTarget) return null;
+		const clean = pathOrTarget.replace(/^[/\\]+|[/\\]+$/g, "");
+		if (!clean) return null;
+		const direct = app.vault?.getAbstractFileByPath?.(clean) as
+			| { path?: string; children?: unknown }
+			| null
+			| undefined;
+		if (direct && direct.children === undefined && direct.path) {
+			return direct.path;
+		}
+		if (!clean.toLowerCase().endsWith(".md")) {
+			const mdFile = app.vault?.getAbstractFileByPath?.(clean + ".md") as
+				| { path?: string; children?: unknown }
+				| null
+				| undefined;
+			if (mdFile && mdFile.children === undefined && mdFile.path) {
+				return mdFile.path;
+			}
+		}
+		const linkDest = app.metadataCache?.getFirstLinkpathDest?.(clean, "") as
 			| { path?: string }
 			| null
 			| undefined;
-		if (dest?.path) {
-			triggerInternalHover(app, event, link, dest.path);
+		if (linkDest?.path) return linkDest.path;
+		return null;
+	};
+
+	const resolveAliasDest = (token: string | null | undefined): string | null => {
+		if (!token) return null;
+		const trimmed = token.trim();
+		if (!trimmed) return null;
+		const hits = findNotesByAlias(app, trimmed);
+		if (hits.length > 0 && hits[0]?.path) return hits[0].path;
+		return null;
+	};
+
+	// 1. Anchor con href (valores wikilink/url renderizados).
+	const href = link.getAttribute?.("href") ?? null;
+	if (href) {
+		const destPath = resolveFileDest(href) ?? resolveAliasDest(href);
+		if (destPath) {
+			triggerInternalHover(app, event, link, destPath);
 			return true;
 		}
 		return false;
 	}
 
-	if (!app) return false;
-
-	// 2. Fila de archivo [data-path]: alias de path/filename/basename.
-	const row = asHtmlElement(link.closest?.("[data-path]"));
+	// 2. Fila de contexto (data-path o data-id)
+	const row = asHtmlElement(link.closest?.("[data-path], [data-id]"));
 	const rowPath = row?.getAttribute?.("data-path") ?? (row?.dataset?.path) ?? null;
+	const rowId = row?.getAttribute?.("data-id") ?? (row?.dataset?.id) ?? null;
+
 	if (rowPath) {
-		const fileName = rowPath.split("/").pop() ?? rowPath;
+		const cleanPath = rowPath.replace(/^[/\\]+|[/\\]+$/g, "");
+		const fileName = cleanPath.split("/").pop() ?? cleanPath;
 		const basename = fileName.replace(/\.[^/.]+$/, "");
-		for (const token of [rowPath, fileName, basename]) {
-			const hits = findNotesByAlias(app, token);
-			if (hits.length > 0 && hits[0]?.path) {
-				triggerInternalHover(app, event, link, hits[0].path);
+
+		// 2a. C-Node para carpetas (e.g. + -> +/+.md, x -> x/x.md)
+		const cNodePath = cleanPath ? `${cleanPath}/${fileName}.md` : `${fileName}.md`;
+		const cNodeDest = resolveFileDest(cNodePath);
+		if (cNodeDest) {
+			triggerInternalHover(app, event, link, cNodeDest);
+			return true;
+		}
+
+		// 2b. Archivo directo
+		const directDest = resolveFileDest(cleanPath);
+		if (directDest) {
+			triggerInternalHover(app, event, link, directDest);
+			return true;
+		}
+
+		// 2c. Aliases de path/filename/basename y con afijos
+		const pathTokens = [
+			cleanPath,
+			fileName,
+			basename,
+			prefixes.folderPrefix + fileName + prefixes.folderSuffix,
+			prefixes.folderPrefix + cleanPath + prefixes.folderSuffix,
+			prefixes.filePrefix + basename + prefixes.fileSuffix,
+			prefixes.filePrefix + fileName + prefixes.fileSuffix,
+		];
+		for (const token of pathTokens) {
+			const hit = resolveAliasDest(token);
+			if (hit) {
+				triggerInternalHover(app, event, link, hit);
 				return true;
 			}
 		}
-		return false;
 	}
 
-	// 3. Texto del label: alias verbatim o con afijos de prop configurados.
+	// 3. Texto del label y/o id de nodo (props, tags, plugins, snippets, groups)
 	const text = (link.textContent ?? "").trim();
-	if (text) {
-		const propWrapped = (() => {
-			const p = deps.prefixes ?? DEFAULT_NODE_NOTE_PREFIXES;
-			return p.propPrefix + text + p.propSuffix;
-		})();
-		for (const token of [text, propWrapped]) {
-			const hits = findNotesByAlias(app, token);
-			if (hits.length > 0 && hits[0]?.path) {
-				triggerInternalHover(app, event, link, hits[0].path);
+	if (text || rowId) {
+		// 3a. Target de wikilink si el texto tiene formato [[Target|Alias]]
+		const wikiTarget = text ? extractWikilinkTarget(text) : null;
+		if (wikiTarget) {
+			const wikiDest = resolveFileDest(wikiTarget) ?? resolveAliasDest(wikiTarget);
+			if (wikiDest) {
+				triggerInternalHover(app, event, link, wikiDest);
+				return true;
+			}
+		}
+
+		const id = rowId && rowId !== text ? rowId.trim() : null;
+		const candidateTokens = new Set<string>();
+
+		if (text) {
+			candidateTokens.add(text);
+			for (const tok of propAliasTokens(text, prefixes)) candidateTokens.add(tok);
+			for (const tok of tagAliasTokens(text, prefixes)) candidateTokens.add(tok);
+			for (const tok of snippetAliasTokens(text, prefixes)) candidateTokens.add(tok);
+			candidateTokens.add(prefixes.groupPrefix + text + prefixes.groupSuffix);
+			candidateTokens.add(prefixes.folderPrefix + text + prefixes.folderSuffix);
+			candidateTokens.add(prefixes.filePrefix + text + prefixes.fileSuffix);
+		}
+
+		if (id) {
+			candidateTokens.add(id);
+			for (const tok of propAliasTokens(id, prefixes)) candidateTokens.add(tok);
+			for (const tok of tagAliasTokens(id, prefixes)) candidateTokens.add(tok);
+			for (const tok of snippetAliasTokens(id, prefixes)) candidateTokens.add(tok);
+			candidateTokens.add(prefixes.groupPrefix + id + prefixes.groupSuffix);
+			candidateTokens.add(prefixes.folderPrefix + id + prefixes.folderSuffix);
+			candidateTokens.add(prefixes.filePrefix + id + prefixes.fileSuffix);
+		}
+
+		// Plugins: busca con clean id y clean name
+		for (const tok of pluginAliasTokens(id ?? text, text || (id ?? ""), prefixes)) {
+			candidateTokens.add(tok);
+		}
+
+		// Buscar por alias primero
+		for (const token of candidateTokens) {
+			const hit = resolveAliasDest(token);
+			if (hit) {
+				triggerInternalHover(app, event, link, hit);
+				return true;
+			}
+		}
+
+		// Buscar por archivo directo o linkpath destination
+		for (const token of candidateTokens) {
+			const hit = resolveFileDest(token);
+			if (hit) {
+				triggerInternalHover(app, event, link, hit);
 				return true;
 			}
 		}
 	}
+
 	return false;
 }
 

@@ -26,6 +26,9 @@ import type {
 	RelativeTimeCutoffs,
 	TimestampRelativeWindow,
 } from '../logic/logicRelativeTime';
+import type { FolderHoverInfoField } from '../logic/logicFileHoverInfo';
+import type { OpenWorkspaceInstanceResult } from '../services/serviceSurfaceHost';
+import type { SurfaceRequest } from './typeSurface';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -44,6 +47,16 @@ export interface SavedViewConfig {
 	taskCellDisplayMode?: TaskCellDisplayMode | 'auto';
 	sortState: ExplorerSortState;
 	interactionMode?: InteractionMode;
+	/** Toolbar composition captured with the rest of this layout photo. */
+	navigationComposer?: {
+		sceneLabelMode?: 'auto' | 'on' | 'off';
+		autoRevealMode?: 'auto' | 'on' | 'off';
+		hiddenToolbarNodes?: string[];
+		toolbarNodeIcons?: Record<string, string>;
+		toolbarCommandActions?: string[];
+		createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
+		toolbarNodeOrder?: string[];
+	};
 	/** U130-09: the custom groups of that scene, groupId -> member URNs. */
 	groupMemberships?: Record<string, readonly string[]>;
 	groupPreset?: GroupPreset;
@@ -199,6 +212,10 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
 	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
+	/** Opt-in: mirror the owning instance's active scene in its workspace tab. */
+	workspaceTabMirrorsScene: boolean;
+	/** Record every file-open event in addition to the latest timestamp per file. */
+	recordAllFileOpens: boolean;
 	/**
 	 * U121-027: render Last opened / Modified / Created as relative copy ("3 hours
 	 * ago") while they are under a day old. Off renders the exact date everywhere,
@@ -377,12 +394,20 @@ export interface VaultmanSettings {
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
 	filesHoverInfoOrder?: FileHoverInfoId[];
+	/** Fields shown on folder node tooltips. */
+	folderHoverInfo: FolderHoverInfoField[];
+	folderNodeTooltips: boolean;
+	groupNodeTooltips: boolean;
 	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
 	addonIconOverrides: AddonIconOverrides;
 	/** Render cells in the order they were switched on instead of a fixed rank */
 	orderCellsByActivation: boolean;
-	/** BT5-015: put the node icon in the caret slot when nothing can expand */
-	iconInCaretSlot: boolean;
+	/** BT5-015: deprecated — replaced by cell_caret and caretPosition */
+	iconInCaretSlot?: boolean;
+	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
+	caretPosition: 'start' | 'end' | 'hidden';
+	/** What the view_option indent removes: 'all' (depth + parent), 'depth' only, or 'parent' only. */
+	treeIndentMode: 'all' | 'depth' | 'parent';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
 	selectionCheckboxPosition: 'start' | 'end' | 'hidden';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
@@ -456,6 +481,16 @@ export interface VaultmanSettings {
 	contextMenuHideRules: MenuHideRule[];
 	/** Registro durable de instancias. Lo posee InstanceRegistry; PSS solo lo lee. */
 	instanceRegistry?: InstanceRegistryData;
+	/**
+	 * U130L: decisión Published de comandos SASI, separada del capability
+	 * registry. Vive en PSS/settings para sobrevivir a desactivar/reactivar
+	 * y a reinicios. Clave = command id estable, valor = publicado o no.
+	 * Los ids retirados se conservan (no se podan) para no perder elecciones
+	 * futuras si el comando vuelve.
+	 */
+	sasiPublishedCommands?: Record<string, boolean>;
+	/** API inspector options are not workspace instance declarations. */
+	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
 	nativeSurfaceClickAlt: NativeSurfaceClickAction;
 	nativeSurfaceClickMod: NativeSurfaceClickAction;
@@ -464,6 +499,9 @@ export interface VaultmanSettings {
 	nodeNoteSnippetPattern: string;
 	nodeNotePluginPattern: string;
 	nodeNotePropPattern: string;
+	nodeNoteGroupPattern: string;
+	nodeNoteFolderPattern: string;
+	nodeNoteFilePattern: string;
 	/** Folder where new node-notes are created (empty = vault root) */
 	}
 
@@ -471,6 +509,11 @@ export interface VaultmanSettings {
 export interface iVaultmanPlugin extends Plugin {
 	settings: VaultmanSettings;
 	saveSettings(): Promise<void>;
+	openApiScene(): void;
+	openWorkspaceInstance(
+		instanceId: string,
+		surface?: SurfaceRequest,
+	): Promise<OpenWorkspaceInstanceResult<import('obsidian').WorkspaceLeaf>>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
 	queueService?: {
@@ -493,6 +536,11 @@ export interface iVaultmanPlugin extends Plugin {
 	/** Cell words: live word-count cache; the frontmatter toggle refreshes it. */
 	statisticsCache?: {
 		setCountFrontmatterWords(enabled: boolean): void;
+	};
+	/** Narrow opening-history controls used by the native settings tab. */
+	lastOpenedService?: {
+		setRecordAllOpens(enabled: boolean): void;
+		clearHistory(): Promise<void>;
 	};
 	/** U130-01: el registro SASI vivo del plugin. El inspector lo consume, no lo crea. */
 	sasiRegistry: import('../logic/logicSasiRegistry').SasiRegistry;
@@ -536,6 +584,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	nodeNoteSnippetPattern: '$name',
 	nodeNotePluginPattern: '%name',
 	nodeNotePropPattern: '[name]',
+	nodeNoteGroupPattern: 'name',
+	nodeNoteFolderPattern: 'name',
+	nodeNoteFilePattern: 'name',
 		language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
@@ -562,6 +613,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'main',
+	workspaceTabMirrorsScene: false,
+	recordAllFileOpens: false,
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',
 	timestampRelativeCutoffs: {},
@@ -634,9 +687,13 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	createActionsPlacement: 'searchbox',
 	tooltipPlacement: 'side',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
+	folderHoverInfo: ['files', 'folders', 'words'],
+	folderNodeTooltips: true,
+	groupNodeTooltips: true,
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
-	iconInCaretSlot: false,
+	caretPosition: 'start',
+	treeIndentMode: 'all',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,
@@ -655,4 +712,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuShowInMoreOptions: true,
 	contextMenuHideRules: [],
 	instanceRegistry: { schema: 1, instances: {} },
+	sasiPublishedCommands: {},
 };

@@ -145,6 +145,33 @@ describe('U130 parity C (F5): open-mode activation routing', () => {
 		expect(openTabById).toHaveBeenCalledWith('editor');
 	});
 
+	it('preserves the native setting manager receiver when opening an exact definition', () => {
+		// Given: native navigation reads its active tab from the manager receiver.
+		const { app, open, openTabById } = mockApp();
+		const definition = { name: 'Font size' };
+		const item = { entry: { definition } };
+		const group = { tab: { id: 'appearance' }, pagePath: [], results: [item] };
+		const manager = {
+			open,
+			openTabById,
+			activeTab: 'editor',
+			searchIndex: { search: () => [group] },
+			navigateToSearchResult(this: { activeTab: string }, result: typeof group) {
+				this.activeTab = result.tab.id;
+			},
+		};
+		Object.assign(app, { setting: manager });
+		// When: the settings row opens its native definition.
+		const outcome = executeSettingSceneActivation(app, {
+			kind: 'open-settings-tab', tab: 'appearance',
+			target: { tab: 'appearance', page: '', pagePath: '', definition: 'Font size' },
+		});
+		// Then: exact navigation succeeds instead of degrading to the tab top.
+		expect(outcome).toEqual({ status: 'success', destination: 'settings-row' });
+		expect(manager.activeTab).toBe('appearance');
+		expect(openTabById).not.toHaveBeenCalled();
+	});
+
 	it('reports failure when the native api cannot open', () => {
 		const { app, open, openTabById } = mockApp({
 			pluginTabs: [{ id: 'other', name: 'Other' }],
@@ -160,6 +187,27 @@ describe('U130 parity C (F5): open-mode activation routing', () => {
 		expect(
 			executeSettingSceneActivation(app, { kind: 'select-only', reason: 'plugin-without-tab' }),
 		).toEqual({ status: 'failed' });
+	});
+
+	it('opens the requested page when two native pages contain the same definition name', () => {
+		const { app, open, openTabById } = mockApp();
+		const definition = { name: 'Shared setting' };
+		const results = ['First page', 'Second page'].map((page) => ({
+			tab: { id: 'appearance' }, page: { name: page }, pagePath: [page],
+			results: [{ entry: { definition } }],
+		}));
+		let selectedPage = '';
+		Object.assign(app, { setting: {
+			open, openTabById,
+			searchIndex: { search: () => results },
+			navigateToSearchResult(group: (typeof results)[number]) { selectedPage = group.page.name; },
+		} });
+		const outcome = executeSettingSceneActivation(app, {
+			kind: 'open-settings-tab', tab: 'appearance',
+			target: { tab: 'appearance', page: 'Second page', pagePath: 'Second page', definition: 'Shared setting' },
+		});
+		expect(outcome).toEqual({ status: 'success', destination: 'settings-row' });
+		expect(selectedPage).toBe('Second page');
 	});
 
 	it('opens settings tabs only with a resolvable target', () => {

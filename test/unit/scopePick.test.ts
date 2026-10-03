@@ -82,18 +82,18 @@ describe('scope pick ownership and availability', () => {
 		// Picking nested child under nested group resolves nested group as parent
 		expect(findScopeParentId(treeWithGroups, 'file-1.md')).toBe('nested-group-header');
 
-		// Root group header is Level 0
-		expect(findNodeLevel(treeWithGroups, 'root-group-header')).toBe(0);
-		expect(findNodeLevel(treeWithGroups, 'empty-group-header')).toBe(0);
+		// Root group header is Level 0+1
+		expect(findNodeLevel(treeWithGroups, 'root-group-header')).toBe('0+1');
+		expect(findNodeLevel(treeWithGroups, 'empty-group-header')).toBe('0+1');
 
 		// Normal root level is Level 1 (if not group header)
 		expect(findNodeLevel([{ id: 'root-item', label: 'Root Item' }], 'root-item')).toBe(1);
 
-		// Folder under root group is Level 2
-		expect(findNodeLevel(treeWithGroups, 'folder-1')).toBe(2);
+		// Folder under root group is Level 1 (natural node at root)
+		expect(findNodeLevel(treeWithGroups, 'folder-1')).toBe(1);
 
-		// Nested group header keeps structural depth (Level 3)
-		expect(findNodeLevel(treeWithGroups, 'nested-group-header')).toBe(3);
+		// Nested group header keeps compound depth (Level 1+1 under folder-1)
+		expect(findNodeLevel(treeWithGroups, 'nested-group-header')).toBe('1+1');
 	});
 
 	it('keeps Scope but hides Level when Nested is off', () => {

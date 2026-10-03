@@ -31,6 +31,7 @@ import type { NodeGroupDef } from './logicNodeGroup';
 export type ScopedCustomTarget =
 	| 'all'
 	| `level:${number}`
+	| `level:${number}+${number}`
 	| `parent:${string}`;
 
 const SCOPED_GROUP_PREFIX = 'vaultman.custom.v1:';
@@ -88,13 +89,16 @@ export function makeScopedGroupKey(
 		return `${SCOPED_GROUP_PREFIX}${encodePart(target)}:${encodePart(name)}`;
 	if (target.startsWith('level:')) {
 		const raw = target.slice('level:'.length);
-		const level = Number(raw);
-		if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(level)) {
+		if (!/^\d+(\+\d+)?$/.test(raw)) {
 			throw new Error(
 				`makeScopedGroupKey: target de nivel invalido (${target}).`,
 			);
 		}
-		return `${SCOPED_GROUP_PREFIX}${encodePart(`level:${level}`)}:${encodePart(name)}`;
+		const normalized = raw
+			.split('+')
+			.map((part) => String(Number(part)))
+			.join('+');
+		return `${SCOPED_GROUP_PREFIX}${encodePart(`level:${normalized}`)}:${encodePart(name)}`;
 	}
 	const parentId = target.slice('parent:'.length);
 	if (!parentId) {
@@ -125,7 +129,7 @@ export function parseScopedGroupKey(key: string): ParsedScopedGroupKey {
 	if (target === 'all') return { target, name, legacy: false };
 	if (target.startsWith('level:')) {
 		const raw = target.slice('level:'.length);
-		if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw)))
+		if (!/^\d+(\+\d+)?$/.test(raw))
 			return legacy();
 		return { target: target as ScopedCustomTarget, name, legacy: false };
 	}

@@ -5,19 +5,29 @@
 	import type { SceneEngineSurface } from '../../logic/logicSasiSceneActions';
 	import type { NavbarPanelWidgetState } from '../../types/typePanelWidget';
 	import type { ExplorerViewMode } from '../../types/typeUI';
+	import type { App } from 'obsidian';
+	import type { WorkspaceInstanceRecord } from '../../types/typeInstance';
 
 	let {
 		providerState,
 		sceneConfigPort,
 		visible = true,
 		peeking = false,
+		onPointerEnter,
 		onPointerLeave,
+		onSwitchInstance,
+		app,
+		readInstanceRecords,
 	}: {
 		providerState: NavbarPanelWidgetState | null;
 		sceneConfigPort: SceneConfigPort;
 		visible?: boolean;
 		peeking?: boolean;
+		onPointerEnter?: () => void;
 		onPointerLeave?: () => void;
+		onSwitchInstance?: (id: string) => void;
+		app?: App;
+		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 	} = $props();
 
 	const mountedState = $derived(providerState);
@@ -54,9 +64,17 @@
 	class:is-hidden-mode={!visible}
 	class:is-peeking={peeking}
 	data-panel-widget-host-id={PANEL_WIDGET_HOST_ID}
+	onpointerenter={onPointerEnter}
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}
-		<NavbarFilters bind:this={navbarRef} {...mountedState} {sceneConfigPort} />
+		<NavbarFilters
+			bind:this={navbarRef}
+			{...mountedState}
+			{sceneConfigPort}
+			{onSwitchInstance}
+			app={app ?? mountedState.app}
+			{readInstanceRecords}
+		/>
 	{/if}
 </div>

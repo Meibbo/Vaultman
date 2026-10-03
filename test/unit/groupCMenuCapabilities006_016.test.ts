@@ -342,4 +342,47 @@ describe('U130-GGC-006 / U130-GGC-016 — Group CMenu Capabilities Matrix', () =
 			expect(openWindow.when?.(plainGroupCtx)).toBe(false);
 		});
 	});
+
+	describe('Numeric counter range group capabilities (Files, Props, Tags)', () => {
+		it('shows and runs adjust-range and slice-range when handlers are provided', async () => {
+			const actions = getRegisteredActions();
+			const adjustRange = actions.get('group.adjust-range')!;
+			const sliceRange = actions.get('group.slice-range')!;
+
+			const adjustFn = vi.fn();
+			const sliceFn = vi.fn();
+
+			const counterGroupCtx: MenuCtx = {
+				nodeType: 'group',
+				node: node('group:count:1-5', '1 - 5', {
+					counterRange: [1, 5],
+					counterDomain: [1, 20],
+				}),
+				surface: 'panel',
+				groupId: 'group:count:1-5',
+				groupOwner: 'preset',
+				adjustGroupRange: adjustFn,
+				sliceGroupRange: sliceFn,
+			};
+
+			expect(adjustRange.when?.(counterGroupCtx)).toBe(true);
+			await adjustRange.run(counterGroupCtx);
+			expect(adjustFn).toHaveBeenCalledTimes(1);
+
+			expect(sliceRange.when?.(counterGroupCtx)).toBe(true);
+			await sliceRange.run(counterGroupCtx);
+			expect(sliceFn).toHaveBeenCalledTimes(1);
+
+			// Without handlers -> hidden
+			const plainGroupCtx: MenuCtx = {
+				nodeType: 'group',
+				node: node('group:plain', 'Plain Group', {}),
+				surface: 'panel',
+				groupId: 'group:plain',
+				groupOwner: 'preset',
+			};
+			expect(adjustRange.when?.(plainGroupCtx)).toBe(false);
+			expect(sliceRange.when?.(plainGroupCtx)).toBe(false);
+		});
+	});
 });

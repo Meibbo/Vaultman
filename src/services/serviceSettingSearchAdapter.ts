@@ -4,6 +4,7 @@ import type {
 	NativeSettingsSearchItem,
 	NativeSettingsSearchSpan,
 } from '../types/typeSettingsSearch';
+import { settingPageCacheFor, type SettingPageCache } from './serviceSettingPageCache';
 
 /**
  * U130 Slice A: adaptador fino sobre el índice NATIVO de settings.
@@ -126,6 +127,17 @@ function toPageType(value: unknown): string | undefined {
 	return typeof type === 'string' ? type : undefined;
 }
 
+function toPagePath(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (Array.isArray(value)) {
+		return value
+			.map(toName)
+			.filter((part) => part !== '')
+			.join(' > ');
+	}
+	return '';
+}
+
 function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 	if (!isRecord(value)) return null;
 	const entry = value['entry'];
@@ -134,7 +146,7 @@ function toEntry(value: unknown): NativeSettingsSearchEntry | null {
 		tab: toNamedId(entry['tab']),
 		definition: toDefinitionName(entry['definition']),
 		page: toName(entry['page']),
-		pagePath: toText(entry['pagePath']),
+		pagePath: toPagePath(entry['pagePath']),
 	};
 }
 
@@ -165,7 +177,7 @@ function toGroup(value: unknown): NativeSettingsSearchGroup | null {
 		tabName: toTabName(value['tab']),
 		tabIcon: toTabIcon(value['tab']),
 		page: toName(value['page']),
-		pagePath: toText(value['pagePath']),
+		pagePath: toPagePath(value['pagePath']),
 		pageDesc: toPageDesc(value['page']),
 		pageType: toPageType(value['page']),
 		tabNameMatch: toSpans(value['tabNameMatch']),
@@ -207,40 +219,17 @@ export function queryNativeSettingsSearch(
  * group.tab === pluginId, orden nativo, sin re-rank.
  * Ausencia total: [] (plugin hoja, sin hijos inventados, sin scrapeo).
  */
-const pluginPagesCache = new Map<string, { tabSig: string; groups: NativeSettingsSearchGroup[] }>();
-
-function pluginTabsSignature(app: unknown): string {
-	const setting = (app as { setting?: unknown }).setting;
-	if (typeof setting !== 'object' || setting === null) return '';
-	const record = setting as Record<string, unknown>;
-	const tabs = record['pluginTabs'];
-	if (Array.isArray(tabs)) {
-		return tabs
-			.map((t) => (t as { id?: unknown })?.id)
-			.filter((id): id is string => typeof id === 'string')
-			.sort()
-			.join('|');
-	}
-	if (typeof tabs === 'object' && tabs !== null) {
-		return Object.values(tabs as Record<string, { id?: unknown }>)
-			.map((t) => t?.id)
-			.filter((id): id is string => typeof id === 'string')
-			.sort()
-			.join('|');
-	}
-	return '';
-}
-
 export function listPluginSettingPages(
 	app: unknown,
 	pluginId: string,
 ): NativeSettingsSearchGroup[] {
-	const tabSig = pluginTabsSignature(app);
-	const cached = pluginPagesCache.get(pluginId);
-	if (cached && cached.tabSig === tabSig) return cached.groups;
+	const cache = settingPageCacheFor(app);
+	if (!cache) return [];
+	const cached = cache.plugins.get(pluginId);
+	if (cached) return cached;
 
-	const groups = listPluginSettingPagesUncached(app, pluginId);
-	pluginPagesCache.set(pluginId, { tabSig, groups });
+	const groups = listPluginSettingPagesUncached(app, pluginId, cache);
+	cache.plugins.set(pluginId, groups);
 	return groups;
 }
 
@@ -248,6 +237,7 @@ export function listPluginSettingPages(
 function listPluginSettingPagesUncached(
 	app: unknown,
 	pluginId: string,
+	cache: SettingPageCache,
 ): NativeSettingsSearchGroup[] {
 	// Primary: lectura declarativa de pluginTabs (puede ser Record u array)
 	const declarative = listPluginSettingPagesDeclarative(app, pluginId);
@@ -255,6 +245,10 @@ function listPluginSettingPagesUncached(
 	// Si devuelve grupos SIN results (solo tab info), cae al fallback nativo.
 	const hasResults = declarative.some((g) => g.results && g.results.length > 0);
 	if (hasResults) return declarative;
+	// Core plugins without a native settings tab have no self-tab pages.
+	if (declarative.length === 0 && isRecord(app) &&
+		isRecord(app.internalPlugins) && isRecord(app.internalPlugins.plugins) &&
+		isRecord(app.internalPlugins.plugins[pluginId])) return [];
 
 	// Fallback: unión de query por pluginId (determinista) + probe de
 	// cobertura 'a' filtrado al propio tab. El índice nativo responde
@@ -267,12 +261,37 @@ function listPluginSettingPagesUncached(
 	const primary = queryNativeSettingsSearch(app, pluginId).filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	const broad = queryNativeSettingsSearch(app, 'a').filter(
+	cache.coverage ??= queryNativeSettingsSearch(app, 'a');
+	const broad = cache.coverage.filter(
 		(candidate) => candidate.tab === pluginId,
 	);
-	const seenPages = new Set(primary.map((g) => `${g.page}::${g.pagePath}`));
-	const extra = broad.filter((g) => !seenPages.has(`${g.page}::${g.pagePath}`));
-	return [...primary, ...extra];
+	const groupsByPage = new Map<string, NativeSettingsSearchGroup>();
+	for (const g of primary) {
+		const key = `${g.page}::${g.pagePath}`;
+		groupsByPage.set(key, { ...g, results: [...g.results] });
+	}
+	for (const g of broad) {
+		const key = `${g.page}::${g.pagePath}`;
+		const existing = groupsByPage.get(key);
+		if (!existing) {
+			groupsByPage.set(key, { ...g, results: [...g.results] });
+		} else {
+			const seenDefs = new Set(existing.results.map((r) => r.entry.definition));
+			const mergedResults = [...existing.results];
+			for (const r of g.results) {
+				if (!seenDefs.has(r.entry.definition)) {
+					seenDefs.add(r.entry.definition);
+					mergedResults.push(r);
+				}
+			}
+			groupsByPage.set(key, {
+				...existing,
+				results: mergedResults,
+				bestScore: Math.max(existing.bestScore, g.bestScore),
+			});
+		}
+	}
+	return Array.from(groupsByPage.values());
 }
 
 /**
@@ -289,7 +308,7 @@ function listPluginSettingPagesDeclarative(
 	if (typeof setting !== 'object' || setting === null) return [];
 
 	// Normalizar a array de tabs para tratamiento unificado
-	let pluginTabs: readonly { id?: string; name?: string }[];
+	let pluginTabs: readonly { id?: string; name?: string; icon?: string }[];
 	// Cast to access pluginTabs property safely
 	const settingRecord = setting as Record<string, unknown>;
 	if (typeof settingRecord.pluginTabs === 'object' && settingRecord.pluginTabs !== null) {
@@ -298,7 +317,7 @@ function listPluginSettingPagesDeclarative(
 		} else {
 			// Record<string, RuntimePluginSettingTab>
 			pluginTabs = Object.values(
-				settingRecord.pluginTabs as Record<string, { id?: string; name?: string }>
+				settingRecord.pluginTabs as Record<string, { id?: string; name?: string; icon?: string }>
 			);
 		}
 	} else {
@@ -322,7 +341,7 @@ function listPluginSettingPagesDeclarative(
 		results: [],
 		bestScore: 0,
 		// Datos canónicos del runtime nativo (1.13.7+).
-		tabIcon: tabInfo.name !== undefined ? undefined : undefined,
+		tabIcon: toTabIcon(tabInfo),
 		pageDesc: undefined,
 		pageType: undefined,
 	};

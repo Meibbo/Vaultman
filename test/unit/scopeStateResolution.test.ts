@@ -303,6 +303,40 @@ describe('U130-GGC cumulative scope sets', () => {
 		expect(parent?.children?.[0]?.children?.[0]?.label).toBe('Open');
 	});
 
+	it('projects custom groups with level:1 when group_preset_custom is activated on all', () => {
+		const outer = makeScopedGroupKey('level:1', 'Outer');
+		const inner = makeScopedGroupKey('level:2', 'Inner');
+		const memberships = {
+			[outer]: ['props:prop:Status|Status'],
+			[inner]: ['props:value:Open|Open'],
+		};
+		const roots: TreeNode<null>[] = [{
+			id: 'status', label: 'Status', depth: 0, meta: null,
+			children: [{ id: 'open', label: 'Open', depth: 1, meta: null }],
+		}];
+		const projected = projectGroupedTreeScopeState({
+			nodes: roots,
+			groups: resolveCustomGroups(memberships), memberships,
+			providerId: 'props', noGroupLabel: 'No group', filtered: false,
+			preset: { kind: 'none', direction: 'asc' },
+			urnOf: (node) => node.depth === 0
+				? `props:prop:${node.label}|${node.label}`
+				: `props:value:${node.label}|${node.label}`,
+		}, {
+			cursor: 'all',
+			sets: {
+				all: { groupPreset: { kind: 'custom', direction: 'asc' } },
+			},
+		});
+		// Both level:1 (Outer) and level:2 (Inner) groups are visible because level 1 is within All!
+		expect(projected[0]?.label).toBe('Outer');
+		expect(projected[0]?.groupScopeTarget).toBe('level:1');
+		const parent = projected[0]?.children?.[0];
+		expect(parent?.label).toBe('Status');
+		expect(parent?.children?.[0]?.label).toBe('Inner');
+		expect(parent?.children?.[0]?.children?.[0]?.label).toBe('Open');
+	});
+
 	it('U130-GGC-027: normalizeScopeState preserves level:1 on add-on explorers (snippets and plugins)', () => {
 		const pluginRawState = {
 			cursor: 'all',
@@ -656,4 +690,62 @@ describe('U130-GGC cumulative scope sets', () => {
 		// p2 was NOT forced to use 0..50 and 51..200; it still has its 1000..10000 domain
 		expect(p2DynamicHeaders[0]?.counterDomain).toEqual({ min: 1000, max: 10000 });
 	});
+
+	it('propaga scopeIndent y cellToggles a los hijos del parent configurado', () => {
+		const tree: TreeNode<unknown>[] = [
+			{
+				id: '+',
+				label: '+',
+				depth: 0,
+				meta: null,
+				children: [
+					{ id: '+/file1.md', label: 'file1.md', depth: 1, meta: null },
+					{ id: '+/file2.md', label: 'file2.md', depth: 1, meta: null },
+				],
+			},
+			{
+				id: 'other',
+				label: 'other',
+				depth: 0,
+				meta: null,
+				children: [
+					{ id: 'other/file3.md', label: 'file3.md', depth: 1, meta: null },
+				],
+			},
+		];
+
+		const input: GroupProjectionInput<unknown> = {
+			nodes: tree,
+			groups: [],
+			memberships: {},
+			providerId: 'files',
+			noGroupLabel: 'Sin grupo',
+			filtered: false,
+		};
+
+		const projected = projectGroupedTreeScopeState(input, {
+			cursor: 'parent:+',
+			sets: {
+				all: { indent: true },
+				'parent:+': {
+					indent: false,
+					cellToggles: { checkbox: false, format: false },
+				},
+			},
+		});
+
+		const plusNode = projected.find((n) => n.id === '+');
+		expect(plusNode).toBeDefined();
+		expect(plusNode?.scopeIndent).toBe(true);
+
+		const plusChildren = plusNode?.children ?? [];
+		expect(plusChildren).toHaveLength(2);
+		expect(plusChildren[0]?.scopeIndent).toBe(false);
+		expect(plusChildren[1]?.scopeIndent).toBe(false);
+		expect(plusChildren[0]?.scopeCellToggles).toEqual({ checkbox: false, format: false });
+
+		const otherNode = projected.find((n) => n.id === 'other');
+		expect(otherNode?.children?.[0]?.scopeIndent).toBe(true);
+	});
 });
+

@@ -35,6 +35,12 @@ export interface NodeNotePrefixes {
 	pluginSuffix: string;
 	propPrefix: string;
 	propSuffix: string;
+	groupPrefix: string;
+	groupSuffix: string;
+	folderPrefix: string;
+	folderSuffix: string;
+	filePrefix: string;
+	fileSuffix: string;
 }
 
 export const DEFAULT_NODE_NOTE_PREFIXES: Readonly<NodeNotePrefixes> = {
@@ -46,6 +52,12 @@ export const DEFAULT_NODE_NOTE_PREFIXES: Readonly<NodeNotePrefixes> = {
 	pluginSuffix: "",
 	propPrefix: "[",
 	propSuffix: "]",
+	groupPrefix: "",
+	groupSuffix: "",
+	folderPrefix: "",
+	folderSuffix: "",
+	filePrefix: "",
+	fileSuffix: "",
 };
 
 function pickAffix(value: string | undefined, fallback: string): string {
@@ -67,6 +79,12 @@ export function normalizeNodeNotePrefixes(
 		pluginSuffix: pickAffix(p.pluginSuffix, DEFAULT_NODE_NOTE_PREFIXES.pluginSuffix),
 		propPrefix: pickAffix(p.propPrefix, DEFAULT_NODE_NOTE_PREFIXES.propPrefix),
 		propSuffix: pickAffix(p.propSuffix, DEFAULT_NODE_NOTE_PREFIXES.propSuffix),
+		groupPrefix: pickAffix(p.groupPrefix, DEFAULT_NODE_NOTE_PREFIXES.groupPrefix),
+		groupSuffix: pickAffix(p.groupSuffix, DEFAULT_NODE_NOTE_PREFIXES.groupSuffix),
+		folderPrefix: pickAffix(p.folderPrefix, DEFAULT_NODE_NOTE_PREFIXES.folderPrefix),
+		folderSuffix: pickAffix(p.folderSuffix, DEFAULT_NODE_NOTE_PREFIXES.folderSuffix),
+		filePrefix: pickAffix(p.filePrefix, DEFAULT_NODE_NOTE_PREFIXES.filePrefix),
+		fileSuffix: pickAffix(p.fileSuffix, DEFAULT_NODE_NOTE_PREFIXES.fileSuffix),
 	};
 }
 
@@ -77,6 +95,9 @@ export function prefixesFromSettings(settings: unknown): NodeNotePrefixes {
 		nodeNoteSnippetPattern?: unknown;
 		nodeNotePluginPattern?: unknown;
 		nodeNotePropPattern?: unknown;
+		nodeNoteGroupPattern?: unknown;
+		nodeNoteFolderPattern?: unknown;
+		nodeNoteFilePattern?: unknown;
 	};
 	const pattern = (v: unknown, fallback: string): { prefix: string; suffix: string } => {
 		const raw = typeof v === "string" && v.trim() !== "" ? v.trim() : fallback;
@@ -88,6 +109,9 @@ export function prefixesFromSettings(settings: unknown): NodeNotePrefixes {
 	const snippet = pattern(s.nodeNoteSnippetPattern, "$name");
 	const plugin = pattern(s.nodeNotePluginPattern, "%name");
 	const prop = pattern(s.nodeNotePropPattern, "[name]");
+	const group = pattern(s.nodeNoteGroupPattern, "name");
+	const folder = pattern(s.nodeNoteFolderPattern, "name");
+	const file = pattern(s.nodeNoteFilePattern, "name");
 	return normalizeNodeNotePrefixes({
 		tagPrefix: tag.prefix,
 		tagSuffix: tag.suffix,
@@ -97,6 +121,12 @@ export function prefixesFromSettings(settings: unknown): NodeNotePrefixes {
 		pluginSuffix: plugin.suffix,
 		propPrefix: prop.prefix,
 		propSuffix: prop.suffix,
+		groupPrefix: group.prefix,
+		groupSuffix: group.suffix,
+		folderPrefix: folder.prefix,
+		folderSuffix: folder.suffix,
+		filePrefix: file.prefix,
+		fileSuffix: file.suffix,
 	});
 }
 
@@ -172,7 +202,8 @@ export type BindingNodeKind =	| "tag"
 	| "file"
 	| "snippet"
 	| "template"
-	| "plugin";
+	| "plugin"
+	| "group";
 
 export interface BindingNodeInput {
 	kind: BindingNodeKind;
@@ -249,9 +280,12 @@ export function computeAliasToken(
 			return prefixes.snippetPrefix + stripLeading(label, prefixes.snippetPrefix) + prefixes.snippetSuffix;
 		case "plugin":
 			return prefixes.pluginPrefix + stripLeading((node.pluginId ?? label).trim(), prefixes.pluginPrefix) + prefixes.pluginSuffix;
+		case "group":
+			return prefixes.groupPrefix + label + prefixes.groupSuffix;
 		case "file":
+			return prefixes.filePrefix + (node.path ?? label) + prefixes.fileSuffix;
 		case "folder":
-			return node.path ?? label;
+			return prefixes.folderPrefix + (node.path ?? label) + prefixes.folderSuffix;
 		case "value":
 		case "template":
 		default:
@@ -329,7 +363,34 @@ export async function ensureFolderExists(app: App, folderPath: string): Promise<
 }
 
 export class NodeBindingService {
+	private cachedAliasSet: Set<string> | null = null;
+
 	constructor(private deps: NodeBindingDeps) {}
+
+	invalidateAliasCache(): void {
+		this.cachedAliasSet = null;
+	}
+
+	getVaultAliasSet(): Set<string> {
+		if (this.cachedAliasSet) return this.cachedAliasSet;
+		const app = this.deps.app;
+		const aliasSet = new Set<string>();
+		const markdownFiles = app.vault?.getMarkdownFiles?.() ?? [];
+		for (const file of markdownFiles) {
+			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
+			if (fm?.aliases) {
+				if (Array.isArray(fm.aliases)) {
+					for (const a of fm.aliases) {
+						if (typeof a === 'string') aliasSet.add(a.trim());
+					}
+				} else if (typeof fm.aliases === 'string') {
+					aliasSet.add(fm.aliases.trim());
+				}
+			}
+		}
+		this.cachedAliasSet = aliasSet;
+		return aliasSet;
+	}
 
 	/**
 	 * Resolve binding for a node. Returns a `BindingResult`.
@@ -359,6 +420,7 @@ export class NodeBindingService {
 			node = { ...node, label: wikilinkTarget };
 		}
 	}
+	const prefixes = this.deps.getPrefixes?.() ?? DEFAULT_NODE_NOTE_PREFIXES;
 
 	// 2. Folder Node-Notes resolution hierarchy:
 		//    a) C-Node with same name (folder/folder.md)
@@ -387,11 +449,11 @@ export class NodeBindingService {
 
 			// Create C-Node inside folder
 			await ensureFolderExists(app, folderPath);
-			return this.createOrAdoptNote(cNodePath, folderPath, folderName, options?.newLeaf);
+			const token = computeAliasToken(node, prefixes);
+			return this.createOrAdoptNote(cNodePath, token, folderName, options?.newLeaf);
 		}
 
 		// 3. Standard 0/1/N resolution for non-folder nodes (tags, props, values, snippets, plugins, files)
-		const prefixes = this.deps.getPrefixes?.() ?? DEFAULT_NODE_NOTE_PREFIXES;
 		const token = computeAliasToken(node, prefixes);
 		const matches = findNotesByAlias(app, token);
 		if (matches.length === 1) {

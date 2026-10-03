@@ -54,6 +54,32 @@ export interface ContextClickModifiers {
 	shiftKey?: boolean | undefined;
 }
 
+/** A plain checked cell establishes a new anchor; modifiers keep their shared grammar. */
+export function resolveCheckboxSelection(args: {
+	readonly selectedIds: ReadonlySet<string>;
+	readonly anchorId: string | null;
+	readonly orderedVisibleIds: readonly string[];
+	readonly invokedId: string;
+	readonly selected: boolean;
+	readonly modifiers?: ContextClickModifiers & { readonly altKey?: boolean };
+}): { selectedIds: Set<string>; anchorId: string | null } {
+	const modifiers = args.modifiers;
+	if (modifiers?.shiftKey || modifiers?.ctrlKey || modifiers?.metaKey || modifiers?.altKey) {
+		return resolveContextClickSelection({
+			...args,
+			modifiers: {
+				ctrlKey: modifiers.ctrlKey || modifiers.altKey,
+				metaKey: modifiers.metaKey,
+				shiftKey: modifiers.shiftKey,
+			},
+		});
+	}
+	if (args.selected) return { selectedIds: new Set([args.invokedId]), anchorId: args.invokedId };
+	const selectedIds = new Set(args.selectedIds);
+	selectedIds.delete(args.invokedId);
+	return { selectedIds, anchorId: args.anchorId === args.invokedId ? null : args.anchorId };
+}
+
 /**
  * U130-GGC-022/024: shared pure policy for right-click and visible-occurrence
  * range selection, with a per-instance/scene anchor.

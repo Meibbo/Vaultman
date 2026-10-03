@@ -8,6 +8,7 @@ import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';
 import type { TaskCellDisplayMode } from '../logic/logicTaskMetric';
 import type { ShowOptionsOverride } from '../logic/logicSettingSceneOptions';
+import type { HomeSurfaceIntent } from './typeSurface';
 
 /** ID opaco y durable de una instancia. Nunca se deriva de la posición ni de la hoja. */
 export type WorkspaceInstanceId = string;
@@ -123,11 +124,15 @@ export interface WorkspaceInstanceRecord {
 	/** epoch ms del último toque de actividad; la reconciliación usa esto para LRU.
 	 * Migración: si falta (registro persisted de antes de esta fecha), se usa `createdAt`. */
 	lastActiveAt: number;
+	/** Current workspace location, shown under instance overrides in Instance info. */
+	surfacePosition?: 'left-sidebar' | 'right-sidebar' | 'main-leaf';
 	/** sube en cada commit; la reconciliación la usa para detectar escrituras interrumpidas. */
 	revision: number;
 	tombstoned: boolean;
 	/** overrides de toda la instancia, por encima de global y por debajo de la scene. */
 	self: SceneConfig;
+	/** Persisted logical home intent; absent means legacy leaf-owned identity. */
+	homeSurface?: HomeSurfaceIntent;
 	/**
 	 * En que scene estaba la instancia. NO va dentro de `self` porque `self` es un `SceneConfig`
 	 * -ajustes que una scene puede tener- y esto es una propiedad de la instancia: cual de ellas

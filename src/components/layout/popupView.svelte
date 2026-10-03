@@ -23,6 +23,7 @@
 	let {
 		activeTab,
 		selectionCheckboxPosition = 'start',
+		caretPosition = 'start',
 		onClose,
 		onViewModeChange,
 		onPillsChange,
@@ -38,6 +39,7 @@
 		 * all — the setting is not a position then.
 		 */
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
+		caretPosition?: 'start' | 'end' | 'hidden';
 		onClose: () => void;
 		onViewModeChange?: (mode: ExplorerViewMode) => void;
 		onPillsChange?: (activePills: string[]) => void;
@@ -72,6 +74,7 @@
 	const currentPillDefs = $derived(
 		viewMenuCells(activeTab, activeView, activePills, {
 			selectionCheckboxPosition,
+			caretPosition,
 		}).map((definition) => ({
 			id: definition.id,
 			labelKey: cellLabelKey(definition, activeTab, activeView),

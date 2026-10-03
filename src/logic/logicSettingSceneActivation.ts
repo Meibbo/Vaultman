@@ -18,8 +18,12 @@ function runtimeSettings(app: App): RuntimeSettingManager | undefined {
 	return (app as AppWithRuntimeSettings).setting;
 }
 
-function nativeSettingsTabId(tabId: string): string {
-	return tabId.trim().toLowerCase() === 'files and links' ? 'files' : tabId;
+export function nativeSettingsTabId(tabId: string): string {
+	const key = tabId.trim().toLowerCase();
+	if (key === 'general') return 'about';
+	if (key === 'files and links' || key === 'files') return 'file';
+	if (key === 'core-plugins') return 'plugins';
+	return tabId;
 }
 
 /**
@@ -196,7 +200,11 @@ function navigateToSettingTarget(
 	if (!navigate || !searchIndex?.search) return 'not-found';
 	const def = target.definition.trim();
 	const pageNames = new Set(
-		[target.page.trim(), target.pagePath.trim()].filter((value) => value !== ''),
+		[
+			target.page.trim(),
+			target.pagePath.trim(),
+			...target.pagePath.split(' > ').map((s) => s.trim()),
+		].filter((value) => value !== ''),
 	);
 	const queries = def !== '' ? [def] : [...pageNames];
 	if (queries.length === 0) return 'not-found';
@@ -206,14 +214,18 @@ function navigateToSettingTarget(
 			if (!Array.isArray(results)) continue;
 			for (const group of results) {
 				if (!isRecord(group)) continue;
-				if (nativeId(group['tab']) !== nativeSettingsTabId(target.tab)) continue;
+				if (
+					nativeSettingsTabId(nativeId(group['tab'])) !==
+					nativeSettingsTabId(target.tab)
+				) {
+					continue;
+				}
 				const pagePath = nativePagePath(group['pagePath']);
 				if (
-					def === '' &&
-					pageNames.size > 0 &&
-					!pageNames.has(nativeId(group['page'])) &&
-					!pageNames.has(nativeName(group['page'])) &&
-					!pageNames.has(pagePath.at(-1) ?? '')
+					(target.pagePath.trim() !== '' && pagePath.join(' > ') !== target.pagePath.trim()) ||
+					(target.pagePath.trim() === '' && target.page.trim() !== '' &&
+					 nativeName(group['page']) !== target.page.trim() &&
+					 pagePath.at(-1) !== target.page.trim())
 				) {
 					continue;
 				}
@@ -225,12 +237,12 @@ function navigateToSettingTarget(
 						const entry = item['entry'];
 						if (!isRecord(entry)) continue;
 						if (nativeName(entry['definition']) !== def) continue;
-						navigate(group, item);
+						navigate.call(settings, group, item);
 						return 'exact';
 					}
 					continue;
 				}
-				navigate(group);
+				navigate.call(settings, group);
 				return 'exact';
 			}
 		}

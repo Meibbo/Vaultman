@@ -335,7 +335,10 @@ describe('U130 B1: F7 reveal, modal fallbacks & missing definitions', () => {
 	});
 
 	it('reutiliza F7 scrollToSettingTarget nativo en el paso CREATE', async () => {
-		const mock = createMockApp();
+		const mock = createMockApp({ searchIndexResults: [{
+			tab: { id: 'editor' }, page: { name: 'Font' }, pagePath: ['Editor', 'Font'],
+			results: [{ entry: { definition: { name: 'Font size' } } }],
+		}] });
 
 		const loc = createContentLocator({
 			tabId: 'editor',

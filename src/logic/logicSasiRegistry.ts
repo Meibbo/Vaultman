@@ -11,7 +11,7 @@
  * estable, y cada entrada declara en que superficies aplica.
  */
 
-export type SasiAxis = 'provider' | 'kind' | 'function';
+export type SasiAxis = 'provider' | 'kind' | 'function' | 'surface';
 
 export type SasiCatalogKind =
 	| 'settingScene'
@@ -23,9 +23,14 @@ export type SasiCatalogKind =
 	| 'node_plugin.cmenu'
 	| 'node_group.cmenu'
 	| 'node_settings'
+	| 'node_plugin'
+	| 'node_plugin_core'
+	| 'node_plugin_community'
 	| 'node_group'
 	| 'node_group_custom'
-	| 'cell_badge_update';
+	| 'cell_badge_update'
+	| 'cell_counter'
+	| '_timesOpened';
 
 export interface SasiAvailability {
 	status: 'available' | 'unavailable';
@@ -49,7 +54,13 @@ export interface SasiSupport {
 }
 
 export interface SasiDef {
-	/** Estable y con namespace: `vaultman.move.proceed`. */
+	/** Authoritative implementation dates, when maintained explicitly by the owner. */
+	lifecycle?: import('./logicSasiLifecycle').SasiLifecycle;
+	/**
+	 * Estable y con namespace: `vaultman.move.proceed`.
+	 * Superficies concretas usan el id chrome tal cual
+	 * (`chrome:left-sidebar`): ya es estable y con namespace.
+	 */
 	id: string;
 	axis: SasiAxis;
 	type?: SasiCatalogKind;
@@ -77,6 +88,7 @@ export interface SasiRegistry {
 	list(axis: SasiAxis): readonly SasiDef[];
 	listActions(): readonly SasiDef[];
 	listOperations(): readonly SasiDef[];
+	listCommands(): readonly SasiDef[];
 	resolve(id: string): SasiResolved;
 }
 
@@ -104,6 +116,7 @@ export function createSasiRegistry(): SasiRegistry {
 		},
 		listActions: () => ofKind('action'),
 		listOperations: () => ofKind('operation'),
+		listCommands: () => ofKind('command'),
 		resolve(id) {
 			const def = byId.get(id);
 			// Contrato de logicCommandActions.ts: retirado != inexistente.

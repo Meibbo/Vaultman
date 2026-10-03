@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { NodeNotePrefixes } from '../../src/services/serviceNodeBinding';
+import {
+	DEFAULT_NODE_NOTE_PREFIXES,
+	type NodeNotePrefixes,
+} from '../../src/services/serviceNodeBinding';
 import { planAliasPrefixMigration } from '../../src/logic/logicNodeNotePrefixMigration';
 
 const OLD: NodeNotePrefixes = {
+	...DEFAULT_NODE_NOTE_PREFIXES,
 	tagPrefix: '#',
 	tagSuffix: '',
 	snippetPrefix: '$',
@@ -15,6 +19,7 @@ const OLD: NodeNotePrefixes = {
 };
 
 const NEW: NodeNotePrefixes = {
+	...DEFAULT_NODE_NOTE_PREFIXES,
 	tagPrefix: '@',
 	tagSuffix: '',
 	snippetPrefix: '~',

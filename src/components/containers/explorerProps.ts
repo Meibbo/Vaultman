@@ -46,8 +46,7 @@ export interface PanelPluginCtx {
 		stickyParentRowsMaxFraction?: number;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
-		/** BT5-015 */
-		iconInCaretSlot?: boolean;
+		caretPosition?: 'start' | 'end' | 'hidden';
 		selectionCheckboxPosition?: 'start' | 'end' | 'hidden';
 		tooltipPlacement?: 'side' | 'below' | 'above';
 		/** U121-003: how far a type-incompatibility warning decorates its node. */
@@ -60,6 +59,8 @@ export interface PanelPluginCtx {
 		keepPropertyWhenLastValueDeleted?: boolean;
 		/** Opt-in drawer animation for expand/collapse. */
 		treeExpansionAnimation?: boolean;
+		treeIndentMode?: 'all' | 'depth' | 'parent';
+		groupNodeTooltips?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -108,17 +109,23 @@ import {
 	toNativePropType,
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
-import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { compareExplorerText, normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
 	cloneGroupMemberships,
 	formatMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	makeScopedGroupKey,
+	parseScopedGroupKey,
+} from '../../logic/logicScopedCustomGroups';
 import { bubbleMemberCountsToGroups } from '../../logic/logicBadgeBubbling';
 import {
 	collectGroupMemberIds,
+	collectGroupOccurrenceIds,
 	entityIdOf,
 	expandNewGroupHeaders,
+	findCounterGroupHeader,
 	groupProjectionScope,
 	isGroupHeader,
 	occurrenceOwnerOf,
@@ -140,8 +147,14 @@ import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
 	sameGroupPreset,
+	type CounterRange,
 	type GroupPreset,
 } from '../../types/typeGroupPreset';
+import {
+	addCounterRangeSlice,
+	rebalanceCounterRange,
+	sliceCounterRange,
+} from '../../logic/logicCounterRangePartitions';
 import {
 	parseFrontmatterNoteGroups,
 	scopeToNoteGroupTarget,
@@ -157,11 +170,12 @@ import {
 	activeScopeSort,
 	hasScopeGrouping,
 	normalizeExplorerSortState,
+	parseScopeLevel,
 	sameExplorerSortState,
 	siblingScopeSort,
 	sortTwoLevel,
 } from '../../logic/logicScopedSort';
-import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort, ScopeTarget } from '../../types/typeUI';
 import {
 	findNodeLevel,
 	findParentId,
@@ -194,6 +208,7 @@ import {
 import { toggleDescendantSelection } from '../../logic/logicNodeSelection';
 import {
 	resolveContextClickSelection,
+	resolveCheckboxSelection,
 	resolveSelectionTargets,
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
@@ -320,6 +335,13 @@ export class PropsExplorerPanel extends Component {
 	private materializePresetHandler?: MaterializePresetHandler;
 	private groupHideHandler?: (groupId: string, hidden: boolean) => void;
 	private groupDeleteHandler?: (groupId: string) => void;
+	private groupRenameHandler?: (groupId: string, nextName?: string) => Promise<void> | void;
+	private groupCopyHandler?: (groupId: string) => void;
+	private groupScopeHandler?: (groupId: string) => void;
+	private counterRangesChangeHandler?: (
+		ranges: readonly CounterRange[],
+		target: ScopeTarget,
+	) => void;
 	private selectionInstanceId: string | null = null;
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
@@ -348,6 +370,7 @@ export class PropsExplorerPanel extends Component {
 	}
 	private _optimisticFrontmatter: Record<string, unknown> | null = null;
 	private _optimisticFrontmatterPath: string | null = null;
+	private emptyEl: HTMLElement | null = null;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -754,6 +777,8 @@ export class PropsExplorerPanel extends Component {
 		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
+		this.emptyEl?.remove();
+		this.emptyEl = null;
 		this.view.destroy();
 		this.tableView?.destroy();
 		super.onunload();
@@ -763,6 +788,8 @@ export class PropsExplorerPanel extends Component {
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
 	private selectionAnchorId: string | null = null;
+	/** Exact tree projection shown to the user, including duplicate occurrences. */
+	private _lastProjectedTree: TreeNode<PropMeta>[] = [];
 	/** U130-03: ids de los grupos custom activos. Lo puebla la tarea 3.3. */
 	private readonly _groupIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
@@ -908,17 +935,14 @@ export class PropsExplorerPanel extends Component {
 			selectionCheckboxPosition: this.visibleCells.has('checkbox')
 				? (this.plugin.settings?.selectionCheckboxPosition ?? 'start')
 				: 'hidden',
-			onSelectionToggle: (id: string, selected: boolean) => {
+			onSelectionToggle: (id: string, selected: boolean, event?: MouseEvent) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-				if (selected) {
-					this.selectedNodeIds.add(id);
-					this.selectionAnchorId = id;
-				} else {
-					this.selectedNodeIds.delete(id);
-					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
-				}
-				this._touchSelection();
-				void this._render();
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected,
+					...(event ? { modifiers: event } : {}),
+				});
+				this._applyPropSelection(result.selectedIds, result.anchorId);
 			},
 		} as const;
 	}
@@ -927,9 +951,15 @@ export class PropsExplorerPanel extends Component {
 	 * U130-p2: visible tree node IDs in render order for selection resolution.
 	 */
 	private _orderedVisibleTreeIds(): string[] {
-		const tree = this.logic.getTree();
-		if (!tree) return [];
-		return flattenVisibleTree(tree, this.expandedIds).map((node) => node.id);
+		const tree =
+			this.viewMode === 'tree' ? this._lastProjectedTree : this._lastRenderTree;
+		return flattenVisibleTree(tree, this.expandedIds)
+			.filter(
+				(node) =>
+					node.isGroupHeader !== true &&
+					!(node.meta as PropMeta | undefined)?.isAddPropertyRow,
+			)
+			.map((node) => node.id);
 	}
 
 	/**
@@ -961,18 +991,9 @@ export class PropsExplorerPanel extends Component {
 			card.append(checkbox);
 		}
 		checkbox.checked = this.selectedNodeIds.has(node.id);
-		checkbox.addEventListener('click', (event) => event.stopPropagation());
-		checkbox.addEventListener('change', (event) => {
+		checkbox.addEventListener('click', (event) => {
 			event.stopPropagation();
-			if (checkbox.checked) {
-				this.selectedNodeIds.add(node.id);
-				this.selectionAnchorId = node.id;
-			} else {
-				this.selectedNodeIds.delete(node.id);
-				if (this.selectionAnchorId === node.id) this.selectionAnchorId = null;
-			}
-			this._touchSelection();
-			card.toggleClass('is-selected', checkbox.checked);
+			this._selectionViewOptions().onSelectionToggle(node.id, checkbox.checked, event);
 		});
 	}
 
@@ -1227,6 +1248,50 @@ export class PropsExplorerPanel extends Component {
 		this.groupDeleteHandler = handler;
 	}
 
+	setGroupRenameHandler(handler?: (groupId: string, nextName?: string) => Promise<void> | void): void {
+		this.groupRenameHandler = handler;
+	}
+
+	setGroupCopyHandler(handler?: (groupId: string) => void): void {
+		this.groupCopyHandler = handler;
+	}
+
+	setGroupScopeHandler(handler?: (groupId: string) => void): void {
+		this.groupScopeHandler = handler;
+	}
+
+	setCounterRangesChangeHandler(
+		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
+	): void {
+		this.counterRangesChangeHandler = handler;
+	}
+
+	createCounterRangeSlice(): boolean {
+		if (!this.counterRangesChangeHandler) return false;
+		const target = this.sortState.scopeState?.cursor ?? 'all';
+		const candidates: ScopeTarget[] = [target];
+		if (target.startsWith('parent:')) {
+			const parentLevel = this.scopeLevelForNode(target.slice('parent:'.length));
+			if (parentLevel !== null) {
+				const nextLevel = parseScopeLevel(parentLevel).base + 1;
+				candidates.push(`level:${nextLevel}`);
+			}
+		}
+		if (target !== 'all') candidates.push('all');
+		const projected = this.projectedNodes(this._lastRenderTree);
+		const header = candidates
+			.map((candidate) => findCounterGroupHeader(projected, candidate))
+			.find((candidate) => candidate !== undefined);
+		if (!header?.counterDomain || !header.counterRanges) return false;
+		const result = addCounterRangeSlice(
+			header.counterRanges,
+			header.counterDomain,
+		);
+		if (!result.ok) return false;
+		this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+		return true;
+	}
+
 	setSelectionScope(scope: {
 		instanceId: string | null;
 		revision: number | null;
@@ -1361,16 +1426,61 @@ export class PropsExplorerPanel extends Component {
 		};
 	}
 
+	private _isCustomGroupId(id: string): boolean {
+		return (
+			this._groupIds.has(id) ||
+			Object.prototype.hasOwnProperty.call(this.groupMemberships, id)
+		);
+	}
+
+	private _findSelectedDegroupOwner(
+		tree: readonly TreeNode<PropMeta>[],
+	): string | undefined {
+		const selected = this.selectedNodeIds;
+		const noteGroup = this.groupPreset.kind === 'note';
+		const walk = (nodes: readonly TreeNode<PropMeta>[]): string | undefined => {
+			for (const node of nodes) {
+				if (node.isGroupHeader === true) {
+					if (node.children?.length) {
+						const found = walk(node.children);
+						if (found) return found;
+					}
+					continue;
+				}
+				const entity = entityIdOf(node);
+				if (selected.has(node.id) || selected.has(entity)) {
+					const owner = occurrenceOwnerOf(node);
+					if (owner && (noteGroup || this._isCustomGroupId(owner))) return owner;
+				}
+				if (node.children?.length) {
+					const found = walk(node.children);
+					if (found) return found;
+				}
+			}
+			return undefined;
+		};
+		return walk(tree);
+	}
+
 	private _degroupMenuCtx(
 		invoked: TreeNode<PropMeta>,
 	): Pick<MenuCtx, 'degroupSelected' | 'membershipOwner' | 'occurrenceEntityId' | 'groupOwner'> {
 		const handler = this.degroupSelectedHandler;
-		const owner = occurrenceOwnerOf(invoked);
+		if (!handler || this.selectedNodeIds.size === 0) return {};
 		const noteGroup = this.groupPreset.kind === 'note';
-		if (!handler || !owner || (!noteGroup && !this._groupIds.has(owner))) return {};
-		if (this.selectedNodeIds.size === 0) return {};
+		const invokedOwner = occurrenceOwnerOf(invoked);
+		let owner: string | undefined;
+		if (invokedOwner && (noteGroup || this._isCustomGroupId(invokedOwner))) {
+			owner = invokedOwner;
+		} else {
+			owner = this._findSelectedDegroupOwner(
+				this.projectedNodes(this._lastRenderTree),
+			);
+		}
+		if (!owner) return {};
+		const resolvedOwner = owner;
 		return {
-			membershipOwner: owner,
+			membershipOwner: resolvedOwner,
 			groupOwner: noteGroup ? 'note' : 'custom',
 			occurrenceEntityId: entityIdOf(invoked),
 			degroupSelected: () => {
@@ -1384,10 +1494,113 @@ export class PropsExplorerPanel extends Component {
 					revision: this.selectionRevision,
 					selectionKey: this._selectionKey(),
 					customGroupIds: this._groupIds,
+					membershipOwner: resolvedOwner,
+					selectionStateIds: this.selectedNodeIds,
 				});
-				return handler(snapshot, owner);
+				return handler(snapshot, resolvedOwner);
 			},
 		};
+	}
+
+	private _makeACopyOfGroup(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const members = this.groupMemberships[groupId] ?? [];
+		const parsed = parseScopedGroupKey(groupId);
+		let nextId: string;
+		if (parsed.legacy) {
+			let n = 1;
+			do {
+				nextId = `${groupId} (${n})`;
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		} else {
+			let n = 1;
+			do {
+				try {
+					nextId = makeScopedGroupKey(parsed.target, `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId) &&
+				n < 1000
+			);
+		}
+		this.setGroupMemberships({
+			...this.groupMemberships,
+			[nextId!]: [...members],
+		});
+	}
+
+	private async _renameCustomGroup(groupId: string): Promise<void> {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		const nextName = (
+			await showInputModal(this.plugin.app, translate('group.row.rename'), {
+				initialValue: parsed.name,
+			})
+		)?.trim();
+		if (!nextName || nextName === parsed.name) return;
+		const nextId = parsed.legacy
+			? nextName
+			: (() => {
+					try {
+						return makeScopedGroupKey(parsed.target, nextName);
+					} catch {
+						return null;
+					}
+				})();
+		if (!nextId) {
+			new Notice(translate('group.batch.rejected'));
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			new Notice(`${translate('group.batch.rejected')} (group_name_collision)`);
+			return;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
+		if (this.hiddenGroupIds.has(groupId)) {
+			const nextHidden = new Set(this.hiddenGroupIds);
+			nextHidden.delete(groupId);
+			nextHidden.add(nextId);
+			this.hiddenGroupIds = nextHidden;
+			this._render();
+		}
+	}
+
+	private _updateCustomGroupScope(groupId: string): void {
+		if (!this._isCustomGroupId(groupId)) return;
+		const parsed = parseScopedGroupKey(groupId);
+		if (parsed.legacy || parsed.target === 'all') return;
+		let nextId: string;
+		try {
+			nextId = makeScopedGroupKey('all', parsed.name);
+		} catch {
+			return;
+		}
+		if (Object.prototype.hasOwnProperty.call(this.groupMemberships, nextId)) {
+			let n = 1;
+			let candidate: string;
+			do {
+				try {
+					candidate = makeScopedGroupKey('all', `${parsed.name} (${n})`);
+				} catch {
+					return;
+				}
+				n += 1;
+			} while (
+				Object.prototype.hasOwnProperty.call(this.groupMemberships, candidate) &&
+				n < 1000
+			);
+			nextId = candidate!;
+		}
+		const { [groupId]: members, ...rest } = this.groupMemberships;
+		this.setGroupMemberships({ ...rest, [nextId]: [...(members ?? [])] });
 	}
 
 	setStickyRowsEnabled(enabled: boolean): void {
@@ -1494,7 +1707,8 @@ export class PropsExplorerPanel extends Component {
 			property: propName,
 			action: 'add',
 			details: `Add property "${propName}"`,
-			files: this.plugin.filterService.filteredFiles,
+			files:
+				this._mutationScope() ?? this.plugin.filterService.filteredFiles,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				if (propName in fm) return null;
@@ -2447,16 +2661,24 @@ export class PropsExplorerPanel extends Component {
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
 		if (node.id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-		const orderedIds = this._orderedVisibleTreeIds();
-		this._includeInvokedInSelection(node.id, e, orderedIds);
+		this._includeInvokedInSelection(
+			node.id,
+			e,
+			e.shiftKey ? this._orderedVisibleTreeIds() : undefined,
+		);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
+		const self = this;
 		this.plugin.contextMenuService.openPanelMenu(
 			{
 				nodeType,
 				node,
 				surface: 'panel',
 				selectedIds: this.selectedNodeIds,
-				orderedIds,
+				get orderedIds(): string[] | undefined {
+					return self.selectedNodeIds.size > 1
+						? self._orderedVisibleTreeIds()
+						: undefined;
+				},
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(node),
 				invokeRename: (targetId: string) => {
@@ -2589,6 +2811,17 @@ export class PropsExplorerPanel extends Component {
 		this.deferredRender.activate(() => this._render());
 	}
 
+	private _cachedScopeTree: TreeNode<PropMeta>[] | null = null;
+
+	/** U130-GGC-028: scope reads the projected tree (raw `_lastRenderTree`
+	 * never contains derived group headers). */
+	private _scopeTree(): TreeNode<PropMeta>[] {
+		if (!this._cachedScopeTree) {
+			this._cachedScopeTree = this.projectedNodes(this._lastRenderTree);
+		}
+		return this._cachedScopeTree;
+	}
+
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
@@ -2596,16 +2829,31 @@ export class PropsExplorerPanel extends Component {
 
 	scopeParentForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findScopeParentId(this._lastRenderTree, id);
+		return findScopeParentId(this._scopeTree(), id);
 	}
 
 	hasScopeParentNodes(): boolean {
-		return this.viewMode === 'tree' && hasScopeParentNodes(this._lastRenderTree);
+		return this.viewMode === 'tree' && hasScopeParentNodes(this._scopeTree());
 	}
 
-	scopeLevelForNode(id: string): number | null {
+	scopeLevelForNode(id: string): number | string | null {
 		if (this.viewMode !== 'tree') return null;
-		return findNodeLevel(this._lastRenderTree, id);
+		return findNodeLevel(this._scopeTree(), id);
+	}
+
+	hasSortNode(id: string): boolean {
+		return (
+			this._findNode(id, this._lastRenderTree) !== null ||
+			this._findNode(id, this._scopeTree()) !== null
+		);
+	}
+
+	sortNodeLabel(id: string): string | null {
+		return (
+			this._findNode(id, this._scopeTree())?.label ??
+			this._findNode(id, this._lastRenderTree)?.label ??
+			null
+		);
 	}
 
 	expandNodeById(id: string): void {
@@ -2629,24 +2877,13 @@ export class PropsExplorerPanel extends Component {
 		this.onIndexChanged?.();
 	}
 
-		private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
+	private _decorateNodeNotes(nodes: TreeNode<PropMeta>[]): void {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
 
 		const visit = (list: TreeNode<PropMeta>[]) => {
 			for (const node of list) {
@@ -2685,6 +2922,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this._cachedScopeTree = null;
 		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
 			this._renderGrid();
@@ -2744,10 +2982,18 @@ export class PropsExplorerPanel extends Component {
 		if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
 			this._decorateNodeNotes(nodesWithIcons);
 		}
-		// In reveal the list always ends (or starts) with the synthetic
-		// "+ Add property" row, so an empty note still offers the action
-		// in place instead of an empty state plus a detached button.
-		if (nodesWithIcons.length === 0 && !this.isRevealingActiveFile()) {
+		this.emptyEl?.remove();
+		this.emptyEl = null;
+
+		// In normal mode, or in reveal mode when no active file exists,
+		// an empty node list renders the empty state landing.
+		// In reveal mode with an active file, the adopted widget "+ Add property"
+		// row is preserved in the tree, even when the note has no properties
+		// or when a search returns 0 matching properties.
+		if (
+			nodesWithIcons.length === 0 &&
+			(!this.isRevealingActiveFile() || !this._revealPath())
+		) {
 			this._renderEmptyState();
 			return;
 		}
@@ -2768,8 +3014,12 @@ export class PropsExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
 				highlightIds: {
-					inclusive: activeFilterIds,
-					exclusive: excludedFilterIds,
+					inclusive: this.visibleCells.has('filters')
+						? activeFilterIds
+						: undefined,
+					exclusive: this.visibleCells.has('filters')
+						? excludedFilterIds
+						: undefined,
 					deletion: deletionIds,
 				},
 				statusDotLabel: () => translate('filter.active_descendant'),
@@ -2784,11 +3034,9 @@ export class PropsExplorerPanel extends Component {
 					'select-descendants'
 						? this._toggleDescendantSelection(id)
 						: this._expandSubtree(id, nodesWithIcons),
+				onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
 				onRowDoubleClick: (id: string) =>
-					resolveRecursiveInteractionAction(this.interactionMode) ===
-					'select-descendants'
-						? this._toggleDescendantSelection(id)
-						: this._expandSubtree(id, nodesWithIcons),
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string, event) => {
 					// B-groupbody: la tabla no proyecta cabeceras; este veto era
 					// codigo muerto. Fuera.
@@ -2854,6 +3102,42 @@ export class PropsExplorerPanel extends Component {
 						if (node.labelColor) label.style.color = node.labelColor;
 						return true;
 					}
+					if (node.isGroupHeader === true) {
+						if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+							const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+							const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+							const hasBoundNote =
+								aliasSet.has(node.label) ||
+								Boolean(groupMeta?.file) ||
+								Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+							if (hasBoundNote) {
+								const label = container.createSpan({
+									cls: 'vaultman-tree-label vaultman-node-note-link',
+									text: node.label,
+								});
+								if (node.labelColor) label.style.color = node.labelColor;
+								label.onclick = (e) => {
+									e.stopPropagation();
+									e.preventDefault();
+									if (groupMeta?.file) {
+										const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+										void leaf.openFile(groupMeta.file, { active: true });
+									} else {
+										void this.plugin.nodeBindingService?.bindOrCreate(
+											{
+												kind: 'group',
+												label: node.label,
+												path: node.id,
+											},
+											{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+										);
+									}
+								};
+								return true;
+							}
+						}
+						return false;
+					}
 					const nodeMeta = node.meta;
 					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
 					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
@@ -2892,6 +3176,19 @@ export class PropsExplorerPanel extends Component {
 					return this._renderPropertyValueLabel(container, node);
 				},
 			});
+			if (nodesWithIcons.length === 0 && this.searchTerm) {
+				this.emptyEl = this.containerEl.createDiv({
+					cls: 'vaultman-explorer-empty-landing',
+				});
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.props.empty_title'),
+				});
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate('explorer.props.empty_search_desc'),
+				});
+			}
 			this._renderAddPropertyButtonIfNeeded();
 			return;
 		}
@@ -2899,6 +3196,10 @@ export class PropsExplorerPanel extends Component {
 		const projected = this._withAddPropertyRow(
 			this.projectedNodes(nodesWithIcons),
 		);
+		this._lastProjectedTree = projected;
+		if (this.visibleCells.has('sub')) {
+			this._decorateSubCounts(projected);
+		}
 		this.view.render({
 			surface: 'props',
 			nodes: projected,
@@ -2906,14 +3207,48 @@ export class PropsExplorerPanel extends Component {
 			visibleCells: this.visibleCells,
 			indentGuides: this._indentGuidesActive(),
 			indent: this.indentOverride ?? true,
+			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
-			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
+			tooltipPlacement: tooltipPlacementForSetting(
+				this.plugin.settings?.tooltipPlacement,
+				this.containerEl,
+			),
+			rowTooltip: (node) => {
+				if (node.isGroupHeader !== true || this.plugin.settings?.groupNodeTooltips === false) return '';
+				const count = collectGroupMemberIds(node.children ?? []).length;
+				return `${node.label}\n${count} ${translate('settings.group_hover.members')}`;
+			},
 			stickyParentRows:
 				this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			expansionAnimation: this.plugin.settings?.treeExpansionAnimation === true,
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
+			counterRangeBoundLabel: (bound) =>
+				translate(bound === 'lower' ? 'group.counter.lower' : 'group.counter.upper'),
+			onCounterRangeCommit: (_id, range, mode) => {
+				const header = this._findNode(_id, projected);
+				if (!header?.counterRanges || !header.counterDomain || !this.counterRangesChangeHandler)
+					return false;
+				const result =
+					mode === 'slice'
+						? sliceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							)
+						: rebalanceCounterRange(
+								header.counterRanges,
+								range,
+								header.counterDomain,
+							);
+				if (!result.ok) {
+					return false;
+				}
+				this.counterRangesChangeHandler(result.ranges, header.groupScopeTarget ?? 'all');
+				return true;
+			},
+			onCounterRangeError: () => {},
 			onCellClick: (id, cellId) => {
 				const node = this._findNode(id, projected);
 				if (!node || !cellId.startsWith('cell_hover:')) return;
@@ -2967,7 +3302,43 @@ export class PropsExplorerPanel extends Component {
 					if (node.labelColor) label.style.color = node.labelColor;
 					return true;
 				}
-					const nodeMeta = node.meta as PropMeta;
+				if (node.isGroupHeader === true) {
+					if (this.visibleCells.has('format') && this.plugin.nodeBindingService) {
+						const aliasSet = this.plugin.nodeBindingService.getVaultAliasSet();
+						const groupMeta = node.meta as { file?: import('obsidian').TFile; noteGroup?: boolean } | undefined;
+						const hasBoundNote =
+							aliasSet.has(node.label) ||
+							Boolean(groupMeta?.file) ||
+							Boolean(groupMeta?.noteGroup && this.plugin.app.vault.getAbstractFileByPath(node.id));
+						if (hasBoundNote) {
+							const label = container.createSpan({
+								cls: 'vaultman-tree-label vaultman-node-note-link',
+								text: node.label,
+							});
+							if (node.labelColor) label.style.color = node.labelColor;
+							label.onclick = (e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								if (groupMeta?.file) {
+									const leaf = this.plugin.app.workspace.getLeaf(e.ctrlKey || e.metaKey || e.button === 1);
+									void leaf.openFile(groupMeta.file, { active: true });
+								} else {
+									void this.plugin.nodeBindingService?.bindOrCreate(
+										{
+											kind: 'group',
+											label: node.label,
+											path: node.id,
+										},
+										{ newLeaf: e.ctrlKey || e.metaKey || e.button === 1 },
+									);
+								}
+							};
+							return true;
+						}
+					}
+					return false;
+				}
+				const nodeMeta = node.meta as PropMeta;
 					const nodeLinkText = nodeMeta?.isValueNode ? (nodeMeta.rawValue ?? node.label) : node.label;
 					// ISSUE 1: solo el wikilink verdadero (o texto con nota) lleva
 					// formato node-note-link; hyperlink/url_link quedan plain.
@@ -3025,10 +3396,14 @@ export class PropsExplorerPanel extends Component {
 					node as TreeNode<PropMeta>,
 				);
 			},
-			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
+			caretPosition: this.plugin.settings?.caretPosition ?? 'start',
 			highlightIds: {
-				inclusive: activeFilterIds,
-				exclusive: excludedFilterIds,
+				inclusive: this.visibleCells.has('filters')
+					? activeFilterIds
+					: undefined,
+				exclusive: this.visibleCells.has('filters')
+					? excludedFilterIds
+					: undefined,
 				deletion: deletionIds,
 			},
 			statusDotLabel: () => translate('filter.active_descendant'),
@@ -3131,14 +3506,15 @@ export class PropsExplorerPanel extends Component {
 			onRecursiveExpand: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
 			onRowDoubleClick: (id: string) =>
 				resolveRecursiveInteractionAction(this.interactionMode) ===
 				'select-descendants'
-					? this._toggleDescendantSelection(id)
-					: this._expandSubtree(id, this.projectedNodes(nodesWithIcons)),
-			onRecursiveSelect: (id: string) => this._toggleDescendantSelection(id),
+					? this._toggleDescendantSelection(id, projected)
+					: this._expandSubtree(id, projected),
+			onRecursiveSelect: (id: string) =>
+				this._toggleDescendantSelection(id, projected),
 			onRowClick: (id: string, event) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {
 					this._startAddPropertyInReveal();
@@ -3150,7 +3526,7 @@ export class PropsExplorerPanel extends Component {
 					this._activateGroupRow(id);
 					return;
 				}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
@@ -3177,16 +3553,24 @@ export class PropsExplorerPanel extends Component {
 						groupOwner:
 							this.groupPreset.kind === 'note'
 								? 'note'
-								: this._groupIds.has(groupId)
+								: this._isCustomGroupId(groupId)
 									? 'custom'
 									: 'preset',
 						groupHidden: this.hiddenGroupIds.has(groupId),
 						hideGroup: this.groupHideHandler,
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
+						adjustGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.view?.beginCounterRangeEdit(id, 'adjust')
+								: undefined,
+						sliceGroupRange:
+							header?.counterRange && header.counterDomain
+								? () => this.view?.beginCounterRangeEdit(id, 'slice')
+								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
-							this._groupIds.has(groupId) ||
+							this._isCustomGroupId(groupId) ||
 							!header ||
 							!this.materializePresetHandler
 								? undefined
@@ -3198,6 +3582,44 @@ export class PropsExplorerPanel extends Component {
 											this.selectionRevision,
 										),
 									),
+						makeACopy:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										if (this.groupCopyHandler) this.groupCopyHandler(groupId);
+										else this._makeACopyOfGroup(groupId);
+									}
+								: undefined,
+						createSubgroup: (parentLabel: string) => {
+							if (!this.createGroupHandler) return;
+							const snapshot = snapshotFromProjectedTree({
+								tree: projected,
+								selectedIds: this.selectedNodeIds,
+								urnOf: (node) => this._membershipUrnOf(node),
+								providerId: 'props',
+								scene: 'props',
+								instanceId: this.selectionInstanceId,
+								revision: this.selectionRevision,
+								selectionKey: this._selectionKey(),
+								customGroupIds: this._groupIds,
+							});
+							return this.createGroupHandler(snapshot, `${parentLabel}/`);
+						},
+						renameGroup:
+							this.groupPreset.kind === 'note' || this._isCustomGroupId(groupId)
+								? async (targetId: string) => {
+										if (this.groupRenameHandler) await this.groupRenameHandler(targetId);
+										else await this._renameCustomGroup(targetId);
+									}
+								: undefined,
+						updateGroupScope:
+							this._isCustomGroupId(groupId) &&
+							this.groupPreset.kind !== 'note'
+								? () => {
+										if (this.groupScopeHandler) this.groupScopeHandler(groupId);
+										else this._updateCustomGroupScope(groupId);
+									}
+								: undefined,
 						toggleGroupExpand: () => {
 							this._toggleExpanded(id);
 						},
@@ -3206,23 +3628,23 @@ export class PropsExplorerPanel extends Component {
 				);
 				return;
 			}
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._openNodeMenu(node, e);
 			},
 			onDragStart: (id: string, event: DragEvent) => {
 				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._setPropDragPayload(node, activeFilterIds, event);
 			},
 			onDragOver: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handlePropDragOver(node, event);
 			},
 			onDrop: (id: string, event: DragEvent) => {
-				const node = this._findNode(id, tree);
+				const node = this._findNode(id, projected);
 				if (!node) return;
 				this._handlePropDrop(node, event);
 			},
@@ -3235,6 +3657,22 @@ export class PropsExplorerPanel extends Component {
 		// Tree path renders "+ Add property" as an in-list row (see
 		// _withAddPropertyRow); the fixed container button survives only for
 		// the table branch, which keeps its own call below.
+		if (nodesWithIcons.length === 0 && this.searchTerm) {
+			this.emptyEl = this.containerEl.createDiv({
+				cls: 'vaultman-explorer-empty-landing',
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.props.empty_title'),
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.props.empty_search_desc'),
+			});
+			if (this.sortState?.addPropertyFirst !== true) {
+				this.containerEl.prepend(this.emptyEl);
+			}
+		}
 	}
 
 	private _updateRevealFrontmatter(
@@ -3879,6 +4317,12 @@ export class PropsExplorerPanel extends Component {
 		// off — off would paint the raw model word, on would render an empty
 		// widget.
 		if ((node.meta.rawValue ?? '') === '') {
+			if (node.meta.flatLabelPrefix) {
+				container.createSpan({
+					cls: 'vaultman-property-value-prefix',
+					text: node.meta.flatLabelPrefix,
+				});
+			}
 			if (this.visibleCells.has('format')) {
 				const propType = node.meta.propType ?? 'text';
 				const label = container.createSpan({
@@ -4012,8 +4456,11 @@ export class PropsExplorerPanel extends Component {
 	 * descendant of the node in this instance's own selection. Never opens,
 	 * never expands, never queues a file operation.
 	 */
-	private _toggleDescendantSelection(id: string): void {
-		const node = this._findNode(id, this._lastRenderTree);
+	private _toggleDescendantSelection(
+		id: string,
+		tree: TreeNode<PropMeta>[] = this._lastProjectedTree,
+	): void {
+		const node = this._findNode(id, tree);
 		if (!node?.children?.length) return;
 		this.selectedNodeIds = toggleDescendantSelection(
 			node,
@@ -4025,10 +4472,11 @@ export class PropsExplorerPanel extends Component {
 
 	/**
 	 * B-groupbody: accion del CUERPO del row de grupo segun el modo. En
-	 * `select` conmuta los MIEMBROS (ids de entidad, sin el sufijo `@grupo`);
+	 * `select` conmuta las ocurrencias visibles del grupo (ids de fila, unicos
+	 * por grupo aunque la misma entidad aparezca en varios);
 	 * en el resto colapsa/expande. Un grupo no puede ser criterio de filtro
-	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value):
-	 * fallback a open, nunca el veto.
+	 * (`serviceFilter.getFilterState` solo acepta folder/tag/prop/value).
+	 * Solo `open` permite expandir desde el cuerpo; el caret sigue disponible.
 	 */
 	private _activateGroupRow(id: string): void {
 		if (this.interactionMode === 'select') {
@@ -4037,7 +4485,7 @@ export class PropsExplorerPanel extends Component {
 				this.projectedNodes(this._lastRenderTree),
 			);
 			if (!node?.children?.length) return;
-			const members = collectGroupMemberIds(node.children);
+			const members = collectGroupOccurrenceIds(node.children);
 			if (members.length === 0) return;
 			const { next } = toggleGroupMembers(this.selectedNodeIds, members);
 			this.selectedNodeIds = next;
@@ -4045,6 +4493,7 @@ export class PropsExplorerPanel extends Component {
 			void this._render();
 			return;
 		}
+		if (this.interactionMode !== 'open') return;
 		this._toggleExpanded(id);
 		void this._render();
 	}
@@ -4190,13 +4639,7 @@ export class PropsExplorerPanel extends Component {
 				b.label,
 			);
 		}
-		return (
-			dir *
-			a.label.localeCompare(b.label, undefined, {
-				numeric: true,
-				sensitivity: 'base',
-			})
-		);
+		return dir * compareExplorerText(a.label, b.label);
 	}
 
 	/**
@@ -4235,7 +4678,21 @@ export class PropsExplorerPanel extends Component {
 					)
 				: null;
 
-		return sortTwoLevel(
+		const valuesSortCache = new Map<
+			string,
+			{ sort: ScopeSort; timeIndex: PropTimeIndex | null }
+		>();
+		const getValuesSort = (parentId: string) => {
+			let entry = valuesSortCache.get(parentId);
+			if (!entry) {
+				const sort = siblingScopeSort('props', this.sortState, parentId, 2);
+				entry = { sort, timeIndex: timeIndexFor(sort) };
+				valuesSortCache.set(parentId, entry);
+			}
+			return entry;
+		};
+
+		let sorted = sortTwoLevel(
 			nodes,
 			(a, b) =>
 				this._compareNodes(
@@ -4246,10 +4703,30 @@ export class PropsExplorerPanel extends Component {
 					propertiesTypeIndex,
 				),
 			(a, b, parent) => {
-				const valuesSort = siblingScopeSort('props', this.sortState, parent.id, 2);
-				return this._compareNodes(a, b, valuesSort, timeIndexFor(valuesSort));
+				const { sort, timeIndex } = getValuesSort(parent.id);
+				return this._compareNodes(a, b, sort, timeIndex);
 			},
 		);
+
+		if (
+			(propertiesSortBy === 'note' || propertiesSortBy === 'anchor') &&
+			propertiesSort.direction === 'desc'
+		) {
+			sorted = sorted.reverse();
+		}
+
+		return sorted.map((node) => {
+			const { sort } = getValuesSort(node.id);
+			const valuesSortBy = normalizeExplorerSortBy(sort.sortBy);
+			if (
+				(valuesSortBy === 'note' || valuesSortBy === 'anchor') &&
+				sort.direction === 'desc' &&
+				node.children?.length
+			) {
+				return { ...node, children: [...node.children].reverse() };
+			}
+			return node;
+		});
 	}
 
 	private _buildPropTimeIndex(sortBy: DateSortId): PropTimeIndex {
@@ -4355,8 +4832,9 @@ export class PropsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
+			const showFilters = this.visibleCells.has('filters');
+			card.toggleClass('is-active-filter', showFilters && activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', showFilters && excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.toggleClass(
@@ -4532,18 +5010,55 @@ export class PropsExplorerPanel extends Component {
 		this.view.destroy();
 		this.tableView?.destroy();
 		this.containerEl.empty();
-		const emptyEl = this.containerEl.createDiv({
+		this.emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',
 		});
-		emptyEl.createDiv({
+		// 1. Búsqueda sin resultados: títulos existentes.
+		if (this.searchTerm) {
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.props.empty_title'),
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.props.empty_search_desc'),
+			});
+			return;
+		}
+		// 2. Modo Reveal activo.
+		if (this.isRevealingActiveFile()) {
+			const revealPath = this._revealPath();
+			if (!revealPath) {
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-title',
+					text: translate('explorer.ctx.reveal_this_file.no_active_file'),
+				});
+				this.emptyEl.createDiv({
+					cls: 'vaultman-explorer-empty-desc',
+					text: translate(
+						'explorer.ctx.reveal_this_file.no_active_file_desc',
+					),
+				});
+				return;
+			}
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-title',
+				text: translate('explorer.ctx.reveal_this_file.empty'),
+			});
+			this.emptyEl.createDiv({
+				cls: 'vaultman-explorer-empty-desc',
+				text: translate('explorer.ctx.reveal_this_file.empty_desc_props'),
+			});
+			return;
+		}
+		// 3. Modo normal general.
+		this.emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-title',
 			text: translate('explorer.props.empty_title'),
 		});
-		emptyEl.createDiv({
+		this.emptyEl.createDiv({
 			cls: 'vaultman-explorer-empty-desc',
-			text: this.searchTerm
-				? translate('explorer.props.empty_search_desc')
-				: translate('filter.prop_browser.empty'),
+			text: translate('filter.prop_browser.empty'),
 		});
 	}
 

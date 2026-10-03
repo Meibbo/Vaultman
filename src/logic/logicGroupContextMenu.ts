@@ -99,10 +99,12 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	// U130-GGC-006 / 016: Materialize preset bucket to custom group
+	// Oculta del panel cmenu (solo SASI) para evitar duplicado/colisión con
+	// 'group.make-copy': el panel muestra SOLO make-copy.
 	svc.registerAction({
 		id: 'group.materialize-preset',
 		nodeTypes: ['group'],
-		surfaces: ['panel'],
+		surfaces: [],
 		label: () => translate('group.preset.materialize'),
 		icon: 'lucide-copy-plus',
 		when: (ctx: MenuCtx) => isPreset(ctx) && typeof ctx.materializePreset === 'function',
@@ -142,6 +144,27 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		},
 	});
 
+	// U130: Crear subgrupo para node_group
+	svc.registerAction({
+		id: 'group.create-subgroup',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.subgroup.new') || 'Create subgroup',
+		icon: 'lucide-folder-plus',
+		when: (ctx: MenuCtx) =>
+			(isCustom(ctx) || ctx.groupOwner === 'custom' || typeof ctx.createSubgroup === 'function') &&
+			Boolean(ctx.node?.label || ctx.groupId),
+		disabledReason: () => null,
+		run: async (ctx: MenuCtx) => {
+			const label = ctx.node?.label ?? ctx.groupId ?? '';
+			if (typeof ctx.createSubgroup === 'function') {
+				await ctx.createSubgroup(label);
+			} else if (typeof ctx.createGroupWithSelected === 'function') {
+				await ctx.createGroupWithSelected();
+			}
+		},
+	});
+
 	// U130-GGC-016: rename_custom_group (custom o note group)
 	svc.registerAction({
 		id: 'group.rename',
@@ -163,15 +186,23 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 	});
 
 	// U130-GGC-016: open_node_note
+	// Disponible para cualquier node_group cuando nodeBindingService existe;
+	// si no, solo note groups o grupos con file/openNodeNote.
 	svc.registerAction({
 		id: 'group.open-note',
 		nodeTypes: ['group'],
 		surfaces: ['panel'],
 		label: () => translate('context_menu.node_note') || 'Open Node-Note',
 		icon: 'lucide-link',
-		when: (ctx: MenuCtx) =>
-			(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
-			(typeof ctx.openNodeNote === 'function' || Boolean(ctx.file) || Boolean(plugin.nodeBindingService)),
+		when: (ctx: MenuCtx) => {
+			if (Boolean(plugin.nodeBindingService)) return true;
+			return (
+				(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
+				(typeof ctx.openNodeNote === 'function' ||
+					Boolean(ctx.file) ||
+					Boolean(plugin.nodeBindingService))
+			);
+		},
 		disabledReason: () => null,
 		run: async (ctx: MenuCtx) => {
 			if (typeof ctx.openNodeNote === 'function') {
@@ -185,9 +216,9 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 			}
 			if (plugin.nodeBindingService && ctx.node?.label) {
 				await plugin.nodeBindingService.bindOrCreate({
-					kind: 'file',
+					kind: 'group',
 					label: ctx.node.label,
-					path: ctx.node.id,
+					path: ctx.groupId ?? ctx.node.id,
 				});
 			}
 		},

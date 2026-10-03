@@ -6,6 +6,14 @@ import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 
 describe('BT5-067 frame command activation', () => {
+	it('focuses the exact opened instance and remembers it for subsequent commands', () => {
+		const openBlock = mainSource.slice(
+			mainSource.indexOf('async openWorkspaceInstance('),
+			mainSource.indexOf('/** Declares a durable home;'),
+		);
+		expect(openBlock).toContain('this.lastFocusedFrameLeaf = opened.address.leaf');
+		expect(openBlock).toContain('this.app.workspace.setActiveLeaf(opened.address.leaf, { focus: true })');
+	});
 	it('never closes regardless of open mode (all modes are new instances)', () => {
 		expect(shouldToggleCloseFrame('sidebar', 1)).toBe(false);
 		expect(shouldToggleCloseFrame('main', 2)).toBe(false);
@@ -30,6 +38,25 @@ describe('BT5-067 frame command activation', () => {
 	it('keeps the explicit open command available', () => {
 		expect(mainSource).toContain('async activateView');
 		expect(mainSource).toContain('void this.activateView()');
+	});
+
+	it('creates a declared leased instance before normal open renders a frame', () => {
+		const openBlock = mainSource.slice(
+			mainSource.indexOf('private async openVaultmanView'),
+			mainSource.indexOf('private openRibbonLocationMenu'),
+		);
+		expect(openBlock).toContain('createAndOpenWorkspaceInstance');
+		expect(openBlock).toContain('opened.address.leaf');
+		expect(openBlock).not.toContain('setViewState');
+	});
+
+	it('routes direct reveal creation through the declared instance path', () => {
+		const revealBlock = mainSource.slice(
+			mainSource.indexOf('async revealNodeInVaultman'),
+			mainSource.indexOf('async revealFrontmatterProperty'),
+		);
+		expect(revealBlock).toContain('createAndOpenWorkspaceInstance');
+		expect(revealBlock).not.toContain('setViewState');
 	});
 
 	it('gives the ribbon Open Vaultman node its own location alt-cmenu', () => {
