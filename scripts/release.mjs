@@ -133,9 +133,25 @@ function ensureCleanWorktree() {
 
 function ensureExpectedBranch(branch) {
 	const current = output('git', ['branch', '--show-current']);
-	if (current !== branch) {
-		throw new Error(`Release channel requires branch ${branch}; current branch is ${current}.`);
+	const override = process.env.VAULTMAN_RELEASE_ALLOW_BRANCH;
+	if (override && current === override) {
+		console.log(
+			`Release branch override: publishing from ${current} instead of ${branch} (VAULTMAN_RELEASE_ALLOW_BRANCH).`,
+		);
+		return;
 	}
+	if (current !== branch) {
+		throw new Error(
+			`Release channel requires branch ${branch}; current branch is ${current}. ` +
+			`Set VAULTMAN_RELEASE_ALLOW_BRANCH=${current} to override explicitly.`,
+		);
+	}
+}
+
+function publishBranchName(fallback) {
+	const override = process.env.VAULTMAN_RELEASE_ALLOW_BRANCH;
+	if (override && output('git', ['branch', '--show-current']) === override) return override;
+	return fallback;
 }
 
 function ensureUpstreamContainsHeadBase(branch) {
@@ -497,7 +513,7 @@ async function main() {
 		return;
 	}
 
-	run('git', ['push', 'origin', target.branch]);
+	run('git', ['push', 'origin', publishBranchName(target.branch)]);
 	run('git', ['tag', '-a', target.version, '-m', target.version]);
 	run('git', ['push', 'origin', target.version]);
 	await waitForWorkflow(target.version);
