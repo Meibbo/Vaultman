@@ -8,6 +8,8 @@ const ACTION_IDS = [
 	'check_plugin_updates',
 	'update_plugin',
 	'update_all_plugins',
+	'browse_community_plugins',
+	'open_restricted_mode',
 	'group_toggle_cascade',
 	'go_to_setting_content',
 ];

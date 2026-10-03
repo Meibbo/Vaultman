@@ -4,6 +4,8 @@ export const SETTING_SCENE_ACTION_IDS = [
 	'check_plugin_updates',
 	'update_plugin',
 	'update_all_plugins',
+	'browse_community_plugins',
+	'open_restricted_mode',
 	'group_toggle_cascade',
 	'go_to_setting_content',
 ] as const;
@@ -94,6 +96,22 @@ export function registerSettingSceneCatalog(registry: SasiRegistry): void {
 			{ surface: SETTING_SCENE_SURFACE, context: 'settingScene.toolbar' },
 			{ surface: 'plugins' },
 		],
+	});
+	registry.register({
+		id: 'browse_community_plugins',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.settingScene.action.browse_community_plugins',
+		icon: 'lucide-store',
+		supports: [{ surface: SETTING_SCENE_SURFACE, context: 'settingScene.toolbar' }],
+	});
+	registry.register({
+		id: 'open_restricted_mode',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.settingScene.action.open_restricted_mode',
+		icon: 'lucide-shield',
+		supports: [{ surface: SETTING_SCENE_SURFACE, context: 'settingScene.toolbar' }],
 	});
 	registry.register({
 		id: 'group_toggle_cascade',

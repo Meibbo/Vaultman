@@ -129,6 +129,10 @@ import {
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
 import {
+	browseCommunityPlugins,
+	openRestrictedModeSetting,
+} from './logic/logicPluginNativeActions';
+import {
 	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 	TOOLBAR_SEARCHBOX_ID,
 	TOOLBAR_TOGGLE_EXPANSION_ID,
@@ -619,6 +623,13 @@ export class VaultmanPlugin extends Plugin {
 				handler: () => { void this.runPluginUpdateAction(id); },
 			});
 		}
+		for (const id of ['browse_community_plugins', 'open_restricted_mode'] as const) {
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(`sasi.settingScene.action.${id}`),
+				handler: () => { this.runPluginNativeAction(id); },
+			});
+		}
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -1040,6 +1051,14 @@ export class VaultmanPlugin extends Plugin {
 			this.settings.openMode = 'left_sidebar';
 			await this.saveData(this.settings);
 		}
+	}
+
+	runPluginNativeAction(id: 'browse_community_plugins' | 'open_restricted_mode'): void {
+		if (id === 'browse_community_plugins') {
+			browseCommunityPlugins(this.app);
+			return;
+		}
+		openRestrictedModeSetting(this.app);
 	}
 
 	async runPluginUpdateAction(id: 'check_plugin_updates' | 'update_all_plugins'): Promise<void> {
