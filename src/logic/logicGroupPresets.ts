@@ -150,6 +150,24 @@ export const DEFAULT_RANGE_LABELS: RangeLabels = {
 	daysAgo: (lo, hi) => (lo === hi ? `${lo} days ago` : `${lo}–${hi} days ago`),
 };
 
+/**
+ * U130 native polish: header text of a counter/date slice. Unnamed slices
+ * always show the generated label (this is what preserves `Today`); named
+ * slices show `name (generated)` by default and just the name under
+ * `name-only`. Display only: bucket keys, membership and identity never read
+ * the name.
+ */
+export function resolvePartitionDisplayLabel(
+	range: Pick<CounterRange, 'displayName'>,
+	generatedLabel: string,
+	presentation?: GroupPreset['partitionPresentation'],
+): string {
+	const name = range.displayName?.trim();
+	if (!name) return generatedLabel;
+	if (presentation === 'name-only') return name;
+	return `${name} (${generatedLabel})`;
+}
+
 // --- name (VLC MediaGroup) --------------------------------------------------
 
 /** `AutomaticGroupPrefixSize` in VLC's `MediaGroup.h`. */
@@ -491,16 +509,23 @@ export function buildPresetBuckets<T extends { label: string }>(
 	// single bucket; only the genuinely small automatic population opts out.
 	if (!explicitRanges && sectionCount(valued.length) < 2) return null;
 	if (ranges.length === 0) return null;
-	const buckets: PresetBucket<T>[] = ranges.map((range) => ({
-		key: range.id,
-		label: isDate
+	const buckets: PresetBucket<T>[] = ranges.map((range) => {
+		const generated = isDate
 			? range.lo === 0
 				? labels.recent(range.hi + 1)
 				: labels.daysAgo(range.lo, range.hi)
-			: labels.span(range.lo, range.hi),
-		members: [],
-		...((isCounter || isDate) ? { range } : {}),
-	}));
+			: labels.span(range.lo, range.hi);
+		return {
+			key: range.id,
+			label: resolvePartitionDisplayLabel(
+				range,
+				generated,
+				preset.partitionPresentation,
+			),
+			members: [],
+			...((isCounter || isDate) ? { range } : {}),
+		};
+	});
 	for (const { node, value } of valued) {
 		const index = ranges.findIndex((r) => value >= r.lo && value <= r.hi);
 		if (index === -1) ungrouped.push(node);

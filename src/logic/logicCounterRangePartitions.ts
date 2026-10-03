@@ -139,6 +139,59 @@ function nextCounterRangeId(ranges: readonly CounterRange[]): string {
 }
 
 /**
+ * U130 native polish: the stored display name of a slice id. Adjust/slice
+ * edits rebuild the `{id, lo, hi}` triple from parsed bounds, so without this
+ * lookup the name would be dropped on every bound edit. Absorbed ids vanish
+ * with their metadata; brand-new auto slices start unnamed.
+ */
+function storedDisplayName(
+	ranges: readonly CounterRange[],
+	id: string,
+): string | undefined {
+	return ranges.find((range) => range.id === id)?.displayName;
+}
+
+function withStoredName(
+	ranges: readonly CounterRange[],
+	id: string,
+	lo: number,
+	hi: number,
+): CounterRange {
+	const displayName = storedDisplayName(ranges, id);
+	return displayName === undefined
+		? { id, lo, hi }
+		: { id, lo, hi, displayName };
+}
+
+/**
+ * U130 native polish: `Name partition` context action, separate from bound
+ * editing. Empty input clears the override (`undefined` = unnamed). Pure:
+ * bounds, order and coverage are untouched, so the result always validates
+ * when the input did.
+ */
+export function setCounterRangeDisplayName(
+	ranges: readonly CounterRange[],
+	id: string,
+	name: string,
+	domain: CounterDomain,
+): CounterRangePartitionResult {
+	const checked = validateCounterRangePartition(ranges, domain);
+	if (!checked.ok) return checked;
+	const index = checked.ranges.findIndex((range) => range.id === id);
+	if (index < 0) return { ok: false, reason: 'unknown_range' };
+	const trimmed = name.trim();
+	const next = checked.ranges.map((range) => ({ ...range }));
+	const target = next[index];
+	if (!trimmed) delete target.displayName;
+	else {
+		target.displayName = Array.from(trimmed)
+			.slice(0, 80)
+			.join('');
+	}
+	return validateCounterRangePartition(next, domain);
+}
+
+/**
  * Apply a range edit while keeping the complete domain covered. The edited
  * range keeps its id. When boundaries expand into neighbors, those neighbors
  * are absorbed. When the first slice lo > domain.min, an automatic slice is inserted.
@@ -194,8 +247,8 @@ export function rebalanceCounterRange(
 		}
 	}
 
-	// 2. The edited slice
-	next.push({ id: edited.id, lo: edited.lo, hi: edited.hi });
+	// 2. The edited slice (same id keeps its display name).
+	next.push(withStoredName(ordered, edited.id, edited.lo, edited.hi));
 
 	// 3. Following slices (Finding 1.2: absorption on hi expansion)
 	const following = ordered.slice(index + 1);
@@ -257,7 +310,7 @@ export function sliceCounterRange(
 			hi: edited.lo - 1,
 		});
 	}
-	next.push({ id: edited.id, lo: edited.lo, hi: edited.hi });
+	next.push(withStoredName(ordered, edited.id, edited.lo, edited.hi));
 	if (edited.hi < target.hi) {
 		next.push({
 			id: nextCounterRangeId([...ordered, ...next]),
