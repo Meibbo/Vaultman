@@ -3,6 +3,7 @@ import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
+import { workspaceTabIdentity } from './logic/logicWorkspaceTabIdentity';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 import {
 	EMPTY_REGISTRY,
@@ -54,11 +55,13 @@ export class VaultmanFrame extends ItemView {
 	private _showToolbar: boolean | null = null;
 	private mountLease: InstanceMountLease<WorkspaceLeaf> | null = null;
 	private frameOpen = false;
+	private tabIdentitySignature = '';
 	workspaceInstanceId: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
 				if (isSameWorkspaceLeaf(activeLeaf, this.leaf)) {
@@ -77,10 +80,26 @@ export class VaultmanFrame extends ItemView {
 		return VAULTMAN_FRAME_TYPE;
 	}
 	getDisplayText(): string {
-		return translate('plugin.frame_name');
+		return translate(this.tabIdentity().labelKey);
 	}
 	getIcon(): string {
-		return 'lucide-vault';
+		return this.tabIdentity().icon;
+	}
+
+	private tabIdentity() {
+		const scene = this.workspaceInstanceId
+			? this.plugin.settings.instanceRegistry?.instances[this.workspaceInstanceId]?.activeScene
+			: undefined;
+		return workspaceTabIdentity(this.plugin.settings.workspaceTabMirrorsScene === true, scene);
+	}
+
+	private refreshTabIdentity(): void {
+		const signature = `${this.getIcon()}:${this.getDisplayText()}`;
+		if (signature === this.tabIdentitySignature) return;
+		this.tabIdentitySignature = signature;
+		if ('updateHeader' in this.leaf && typeof this.leaf.updateHeader === 'function') {
+			this.leaf.updateHeader();
+		}
 	}
 
 	getState(): Record<string, unknown> {

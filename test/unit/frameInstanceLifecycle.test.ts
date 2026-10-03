@@ -39,6 +39,7 @@ vi.mock('obsidian', () => ({
 		}
 
 		registerEvent(_event: unknown): void {}
+		register(_cleanup: () => unknown): void {}
 		getState(): Record<string, unknown> {
 			return {};
 		}
@@ -112,6 +113,7 @@ function createHarness(options: HarnessOptions = {}) {
 	const plugin = {
 		settings,
 		saveSettings,
+		onSettingsChange: vi.fn(() => () => undefined),
 		workspaceMountForLeaf: (candidate: object) => mounts.getByLeaf(candidate),
 		adoptWorkspaceMount: (instanceId: string, candidate: object) =>
 			mounts.adopt(instanceId, candidate, { kind: 'main', leaf: candidate }),

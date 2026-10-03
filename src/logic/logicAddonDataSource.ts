@@ -16,7 +16,12 @@ export interface AddonExplorerDataSource {
 }
 
 export function projectAddonDataNodes(nodes: readonly TreeNode<PluginMeta>[], term: string, sort: ScopeSort): TreeNode<PluginMeta>[] {
-	const filtered = filterAddonEntries(nodes, term, (node) => `${node.label} ${node.id} ${node.typeText ?? ''}`);
+	const filtered = term.trim() === '' ? nodes : nodes.flatMap((node) => {
+		const children = projectAddonDataNodes(node.children ?? [], term, sort);
+		const matches = filterAddonEntries([node], term, (row) => `${row.label} ${row.id} ${row.typeText ?? ''}`).length > 0;
+		if (!matches && children.length === 0) return [];
+		return node.children?.length ? [{ ...node, children, showCaret: children.length > 0 }] : [node];
+	});
 	return sortAddonEntries(filtered.map((node) => ({ ...node.meta, name: node.label, node })), sort)
 		.map((entry) => entry.node);
 }

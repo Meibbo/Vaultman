@@ -56,6 +56,7 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		path: 'asc',
 		installed: 'desc',
 		updated: 'desc',
+		cell_update: 'desc',
 		state: 'desc',
 		type: 'asc',
 		note: 'desc',

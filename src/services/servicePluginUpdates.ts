@@ -1,142 +1,35 @@
-import type { App } from 'obsidian';
+import { Component, type App } from 'obsidian';
 
 import type { PluginUpdateAdapter } from './serviceOperationQueue';
+import type { PluginUpdateItem } from '../types/typeOps';
 
-type UnknownRecord = Record<string, unknown>;
+import {
+	detectPluginUpdatesApi, managerFor, stringValue, updateRecord,
+	type PluginUpdateAdapterOptions, type PluginUpdateAvailability, type PluginUpdateBadge,
+	type PluginUpdateCheckResult, type PluginUpdateInstallResult, type PluginUpdateRecord,
+	type UnknownRecord,
+} from './pluginUpdatesNative';
+export { detectPluginUpdatesApi, PLUGIN_UPDATES_ADAPTER_VERSION } from './pluginUpdatesNative';
+export type {
+	PluginUpdateAdapterOptions, PluginUpdateAvailability, PluginUpdateBadge,
+	PluginUpdateCheckResult, PluginUpdateCheckStatus, PluginUpdateInstallResult,
+} from './pluginUpdatesNative';
 
-export const PLUGIN_UPDATES_ADAPTER_VERSION = 1;
-
-export type PluginUpdateCheckStatus =
-	| 'available'
-	| 'disabled'
-	| 'offline'
-	| 'throttled'
-	| 'failed';
-
-export interface PluginUpdateAvailability {
-	readonly available: boolean;
-	readonly status: PluginUpdateCheckStatus;
-	readonly reason?: string;
-	readonly retryAt?: number;
-	readonly managerVersion?: string;
-}
-
-export interface PluginUpdateBadge {
-	readonly id: string;
-	readonly version: string;
-}
-
-export interface PluginUpdateCheckResult {
-	readonly availability: PluginUpdateAvailability;
-	readonly updates: readonly PluginUpdateBadge[];
-	readonly invalidPluginIds: readonly string[];
-}
-
-export interface PluginUpdateInstallResult {
-	readonly id: string;
-	readonly status: 'success' | 'warning' | 'error';
-	readonly installedVersion?: string;
-	readonly message?: string;
-}
-
-export interface PluginUpdateAdapterOptions {
-	readonly throttleMs?: number;
-	readonly now?: () => number;
-	readonly isOnline?: () => boolean;
-}
-
-interface PluginUpdateManifest {
-	id: string;
-	name: string;
-	version?: string;
-}
-
-interface PluginUpdateRecord {
-	repo: string;
-	version: string;
-	manifest: PluginUpdateManifest;
-}
-
-interface PluginManagerWithUpdates extends UnknownRecord {
-	updates?: UnknownRecord;
-	manifests?: UnknownRecord;
-	checkForUpdates?: (automatic: boolean) => void | Promise<void>;
-	installPlugin?: (
-		repo: string,
-		version: string,
-		manifest: PluginUpdateManifest,
-	) => void | Promise<void>;
-}
-
-interface AppWithPluginManager extends App {
-	plugins?: PluginManagerWithUpdates;
-}
-
-function managerFor(app: App): PluginManagerWithUpdates | undefined {
-	const manager = (app as AppWithPluginManager).plugins;
-	return manager && typeof manager === 'object' ? manager : undefined;
-}
-
-function stringValue(value: unknown): string | undefined {
-	return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function updateRecord(value: unknown): PluginUpdateRecord | undefined {
-	if (!value || typeof value !== 'object') return undefined;
-	const record = value as UnknownRecord;
-	const manifest = record.manifest;
-	if (!manifest || typeof manifest !== 'object') return undefined;
-	const manifestRecord = manifest as UnknownRecord;
-	const id = stringValue(manifestRecord.id);
-	const name = stringValue(manifestRecord.name);
-	const repo = stringValue(record.repo);
-	const version = stringValue(record.version);
-	if (!id || !name || !repo || !version) return undefined;
-	return {
-		repo,
-		version,
-		manifest: {
-			id,
-			name,
-			...(stringValue(manifestRecord.version)
-				? { version: stringValue(manifestRecord.version) }
-				: {}),
-		},
-	};
-}
-
-function managerVersion(manager: PluginManagerWithUpdates): string | undefined {
-	return stringValue(manager.version) ?? stringValue(manager.appVersion);
-}
-
-export function detectPluginUpdatesApi(app: App): PluginUpdateAvailability {
-	const manager = managerFor(app);
-	if (!manager?.checkForUpdates || !manager.installPlugin) {
-		return {
-			available: false,
-			status: 'disabled',
-			reason: 'Obsidian plugin update API is unavailable',
-			managerVersion: manager ? managerVersion(manager) : undefined,
-		};
-	}
-	return {
-		available: true,
-		status: 'available',
-		managerVersion: managerVersion(manager),
-	};
-}
-
-export class PluginUpdatesService implements PluginUpdateAdapter {
+export class PluginUpdatesService extends Component implements PluginUpdateAdapter {
 	private readonly now: () => number;
 	private readonly isOnline: () => boolean;
 	private readonly throttleMs: number;
 	private lastCheckAt: number | undefined;
 	private snapshot = new Map<string, PluginUpdateRecord>();
+	private readonly activeUpdates = new Map<string, Promise<PluginUpdateInstallResult>>();
+	private readonly listeners = new Set<() => void>();
+	private checkInFlight: Promise<PluginUpdateCheckResult> | null = null;
 
 	constructor(
 		private readonly app: App,
 		options: PluginUpdateAdapterOptions = {},
 	) {
+		super();
 		this.now = options.now ?? Date.now;
 		this.isOnline = options.isOnline ?? (() =>
 			typeof navigator === 'undefined' || navigator.onLine !== false);
@@ -147,14 +40,32 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 		return detectPluginUpdatesApi(this.app);
 	}
 
+	onChanged(callback: () => void): () => void {
+		this.listeners.add(callback);
+		return () => this.listeners.delete(callback);
+	}
+
 	async checkPluginUpdates(): Promise<PluginUpdateCheckResult> {
+		if (this.checkInFlight) return this.checkInFlight;
+		this.checkInFlight = this.checkPluginUpdatesOnce();
+		try {
+			return await this.checkInFlight;
+		} finally {
+			this.checkInFlight = null;
+		}
+	}
+
+	private async checkPluginUpdatesOnce(): Promise<PluginUpdateCheckResult> {
+		await Promise.all(this.activeUpdates.values());
 		const api = this.availability;
 		if (!api.available) {
 			this.snapshot.clear();
+			this.notifyChanged();
 			return this.emptyResult(api);
 		}
 		if (!this.isOnline()) {
 			this.snapshot.clear();
+			this.notifyChanged();
 			return this.emptyResult({
 				...api,
 				available: false,
@@ -176,12 +87,14 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 		const manager = managerFor(this.app);
 		if (!manager?.checkForUpdates) {
 			this.snapshot.clear();
+			this.notifyChanged();
 			return this.emptyResult(api);
 		}
 		try {
 			await manager.checkForUpdates(false);
 		} catch (error) {
 			this.snapshot.clear();
+			this.notifyChanged();
 			return this.emptyResult({
 				...api,
 				available: false,
@@ -201,30 +114,71 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 			}
 			this.snapshot.set(id, record);
 		}
-		return {
+		const result = {
 			availability: api,
 			updates: this.badges(),
 			invalidPluginIds,
 		};
+		this.notifyChanged();
+		return result;
 	}
 
 	getPluginUpdate(id: string): PluginUpdateBadge | undefined {
 		const record = this.snapshot.get(id);
-		return record ? { id, version: record.version } : undefined;
+		const native = updateRecord(managerFor(this.app)?.updates?.[id]);
+		const installed = this.getInstalledVersion(id);
+		return record && native?.version === record.version && native.manifest.id === id && installed !== undefined && installed !== record.version
+			? { id, version: record.version } : undefined;
 	}
 
 	getPluginUpdates(): readonly PluginUpdateBadge[] {
 		return this.badges();
 	}
 
+	snapshotPluginUpdateItems(
+		nameForId: (id: string) => string = () => '',
+	): readonly PluginUpdateItem[] {
+		return this.badges().map((update) => ({
+			id: update.id,
+			name: nameForId(update.id) || this.snapshot.get(update.id)?.manifest.name || update.id,
+			fromVersion: this.getInstalledVersion(update.id) ?? '',
+			toVersion: update.version,
+		}));
+	}
+
 	getAvailability(): PluginUpdateAvailability {
 		return this.availability;
 	}
 
+	isUpdating(id: string): boolean {
+		return this.activeUpdates.has(id);
+	}
+
+	async waitForCheck(): Promise<void> {
+		if (this.checkInFlight) await this.checkInFlight;
+	}
+
 	async updatePlugin(id: string): Promise<PluginUpdateInstallResult> {
+		const pending = this.activeUpdates.get(id);
+		if (pending) return pending;
+		const run = Promise.resolve().then(() => this.installUpdate(id));
+		this.activeUpdates.set(id, run);
+		this.notifyChanged();
+		try {
+			return await run;
+		} finally {
+			this.activeUpdates.delete(id);
+			this.notifyChanged();
+		}
+	}
+
+	private async installUpdate(id: string): Promise<PluginUpdateInstallResult> {
 		const manager = managerFor(this.app);
-		const record = this.snapshot.get(id);
-		if (!manager?.installPlugin || !record) {
+		const cached = this.snapshot.get(id);
+		const record = updateRecord(manager?.updates?.[id]);
+		const installed = this.getInstalledVersion(id);
+		if (!manager?.installPlugin || !cached || !record || record.manifest.id !== id || record.version !== cached.version || installed === undefined || installed === record.version) {
+			this.snapshot.delete(id);
 			return { id, status: 'warning', message: 'Update is no longer available' };
 		}
 		try {
@@ -238,6 +192,7 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 		}
 		const installedVersion = this.getInstalledVersion(id);
 		if (installedVersion === record.version) {
+			this.snapshot.delete(id);
 			return { id, status: 'success', installedVersion };
 		}
 		if (installedVersion === undefined) {
@@ -256,7 +211,8 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 	}
 
 	hasUpdate(id: string, toVersion: string): boolean {
-		return this.snapshot.get(id)?.version === toVersion;
+		return this.snapshot.get(id)?.version === toVersion &&
+			(this.activeUpdates.has(id) || this.getPluginUpdate(id)?.version === toVersion);
 	}
 
 	async installPlugin(id: string): Promise<void> {
@@ -275,7 +231,7 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 	private badges(): PluginUpdateBadge[] {
 		return [...this.snapshot.entries()]
 			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([id, record]) => ({ id, version: record.version }));
+			.flatMap(([id]) => { const update = this.getPluginUpdate(id); return update ? [update] : []; });
 	}
 
 	private emptyResult(availability: PluginUpdateAvailability): PluginUpdateCheckResult {
@@ -286,6 +242,10 @@ export class PluginUpdatesService implements PluginUpdateAdapter {
 		availability: PluginUpdateAvailability,
 	): PluginUpdateCheckResult {
 		return { availability, updates: this.badges(), invalidPluginIds: [] };
+	}
+
+	private notifyChanged(): void {
+		for (const listener of [...this.listeners]) listener();
 	}
 }
 

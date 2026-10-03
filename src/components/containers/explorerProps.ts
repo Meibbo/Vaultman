@@ -4317,6 +4317,12 @@ export class PropsExplorerPanel extends Component {
 		// off — off would paint the raw model word, on would render an empty
 		// widget.
 		if ((node.meta.rawValue ?? '') === '') {
+			if (node.meta.flatLabelPrefix) {
+				container.createSpan({
+					cls: 'vaultman-property-value-prefix',
+					text: node.meta.flatLabelPrefix,
+				});
+			}
 			if (this.visibleCells.has('format')) {
 				const propType = node.meta.propType ?? 'text';
 				const label = container.createSpan({

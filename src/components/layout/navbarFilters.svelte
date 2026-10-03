@@ -1412,6 +1412,10 @@
 	);
 	const panelWidgetNodeId = (localId: string): string =>
 		`${providerId}:${localId}`;
+	const PLUGIN_UPDATE_TOOLBAR_ACTIONS = [
+		['check_plugin_updates', 'addons.check_updates', 'lucide-refresh-cw'],
+		['update_all_plugins', 'addons.update_all', 'lucide-download-cloud'],
+	] as const;
 	// U130 change-icon: override per-instance del icono de un nodo (alt-cmenu
 	// "Change icon"). Ausencia de clave = icono de serie.
 	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
@@ -1518,6 +1522,11 @@
 				true,
 				30,
 			);
+		}
+		if (activeTab === 'plugins') {
+			for (const [index, [id, labelKey, iconName]] of PLUGIN_UPDATE_TOOLBAR_ACTIONS.entries()) {
+				append(id, translate(labelKey), iconName, 'button', true, true, 35 + index);
+			}
 		}
 		if (
 			activeTab === 'files' &&
@@ -4980,6 +4989,29 @@
 									expansionIcon,
 								)}
 							></div>
+						{/if}
+						{#if activeTab === 'plugins'}
+							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
+								{#if toolbarNodeVisible(id)}
+									<div
+										class={headerActionClass}
+										data-panel-widget-node-id={panelWidgetNodeId(id)}
+										style:order={panelWidgetNodeOrder(id)}
+										role="button"
+										tabindex="0"
+										aria-label={translate(labelKey)}
+										title={toolbarNodeTitle(translate(labelKey))}
+										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
+										onkeydown={(event) => {
+											if (event.key === 'Enter' || event.key === ' ') {
+												event.preventDefault();
+												invokeSceneAction(id, 'keyboard');
+											}
+										}}
+										use:icon={panelWidgetNodeIcon(id, iconName)}
+									></div>
+								{/if}
+							{/each}
 						{/if}
 						{#if activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->

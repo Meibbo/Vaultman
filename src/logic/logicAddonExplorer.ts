@@ -23,6 +23,7 @@ import { discoverCorePlugins } from './logicCorePluginDiscovery';
 export interface AddonEntryProjection {
 	name: string;
 	enabled: boolean;
+	updateVersion?: string;
 	installedTime?: number;
 	updatedTime?: number;
 }
@@ -46,6 +47,13 @@ export function sortAddonEntries<T extends AddonEntryProjection>(
 	return [...entries].sort((a, b) => {
 		if (sort.sortBy === 'state' && a.enabled !== b.enabled) {
 			return direction * (Number(a.enabled) - Number(b.enabled));
+		}
+		if (sort.sortBy === 'cell_update') {
+			const leftHasUpdate = a.updateVersion !== undefined;
+			const rightHasUpdate = b.updateVersion !== undefined;
+			if (leftHasUpdate !== rightHasUpdate) {
+				return direction * (Number(leftHasUpdate) - Number(rightHasUpdate));
+			}
 		}
 		if (sort.sortBy === 'installed' || sort.sortBy === 'updated') {
 			const field =

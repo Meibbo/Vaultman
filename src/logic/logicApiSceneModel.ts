@@ -1,6 +1,6 @@
 import type { NodeGroupDef } from './logicNodeGroup';
 import { formatMembershipUrn } from './logicMembershipUrn';
-import type { SasiFunctionKind } from './logicSasiRegistry';
+import type { SasiCatalogKind, SasiFunctionKind } from './logicSasiRegistry';
 
 export const API_SCENE_PROVIDER_ID = 'sasi';
 export const API_SCENE_IDENTITY_KIND = 'node_apis';
@@ -67,6 +67,7 @@ export interface ApiSceneNodeMeta {
 	sasiId: string;
 	labelKey: string;
 	sasiKind: SasiFunctionKind | null;
+	catalogKind?: SasiCatalogKind;
 	supports: readonly string[];
 	composes: readonly string[];
 	mutatesVault: boolean;

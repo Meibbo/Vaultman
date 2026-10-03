@@ -36,6 +36,20 @@ function makeFile(path: string): TFile {
 }
 
 describe('filter evaluator file rules', () => {
+	it('matches present-empty values without matching missing properties or literal placeholders', () => {
+		// Given: the same empty representations counted by PropsLogic.
+		const values = [null, '', [], [null], [''], false, 0, 'Empty', 'null'];
+		const files = [...values.map((_, index) => makeFile(`empty-${index}.md`)), makeFile('missing.md')];
+		// When: the explorer filters the raw Empty value, not its display text.
+		const result = evalNode(
+			{ type: 'rule', filterType: 'specific_value', property: 'example', values: [''] },
+			files,
+			(file) => ({ frontmatter: file.path === 'missing.md' ? {} : { example: values[Number(file.basename.slice(6))] } }),
+		);
+		// Then: only files with a present empty property match.
+		expect([...result]).toEqual(['empty-0.md', 'empty-1.md', 'empty-2.md', 'empty-3.md', 'empty-4.md']);
+	});
+
 	it('matches property presence using the exact property casing supplied by the explorer', () => {
 		const files = [makeFile('People/Victoria.md')];
 

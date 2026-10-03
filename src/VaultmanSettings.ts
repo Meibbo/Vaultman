@@ -453,6 +453,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push(getLastOpenedCaptureSetting(this.plugin));
+		items.push({
+			name: translate('settings.workspace_tab_mirrors_scene'),
+			desc: translate('settings.workspace_tab_mirrors_scene.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) => toggle
+					.setValue(this.plugin.settings.workspaceTabMirrorsScene)
+					.onChange(async (value) => {
+						this.plugin.settings.workspaceTabMirrorsScene = value;
+						await this.plugin.saveSettings();
+					}));
+			},
+		});
 
 		items.push({
 			name: translate('settings.operation_scope'),

@@ -212,6 +212,8 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
 	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
+	/** Opt-in: mirror the owning instance's active scene in its workspace tab. */
+	workspaceTabMirrorsScene: boolean;
 	/** Record every file-open event in addition to the latest timestamp per file. */
 	recordAllFileOpens: boolean;
 	/**
@@ -611,6 +613,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'main',
+	workspaceTabMirrorsScene: false,
 	recordAllFileOpens: false,
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',

@@ -125,6 +125,7 @@ export const SORT_MENU_OPTIONS: Record<
 	plugins: [
 		{ id: 'state', icon: 'lucide-toggle-right', labelKey: 'sort.by.state' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+		{ id: 'cell_update', icon: 'lucide-download', labelKey: 'sort.by.cell_update' },
 		{
 			id: 'installed',
 			icon: 'lucide-calendar-plus',

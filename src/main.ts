@@ -32,6 +32,7 @@ import { PropertyIndexService } from './services/servicePropertyIndex';
 import { installCoreBookmarkBridge } from './services/serviceCoreBookmarks';
 import { FilterService } from './services/serviceFilter';
 import { OperationQueueService } from './services/serviceOperationQueue';
+import { PluginUpdatesService } from './services/servicePluginUpdates';
 import { VaultmanFrame, VAULTMAN_FRAME_TYPE } from './VaultmanFrame';
 import { IconicService } from './services/serviceIcons';
 import { PropertyTypeService } from './services/servicePropertyType';
@@ -181,6 +182,7 @@ export class VaultmanPlugin extends Plugin {
 	propertyIndex!: PropertyIndexService;
 	filterService!: FilterService;
 	queueService!: OperationQueueService;
+	pluginUpdatesService!: PluginUpdatesService;
 	iconicService!: IconicService;
 	propertyTypeService!: PropertyTypeService;
 	contextMenuService!: ContextMenuService;
@@ -284,6 +286,7 @@ export class VaultmanPlugin extends Plugin {
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app);
 		this.queueService = new OperationQueueService(this.app, this.settings);
+		this.pluginUpdatesService = new PluginUpdatesService(this.app);
 		this.iconicService = new IconicService(
 			this.app,
 			this.settings.iconicEnabled !== false,
@@ -319,6 +322,7 @@ export class VaultmanPlugin extends Plugin {
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
 		this.addChild(this.queueService);
+		this.addChild(this.pluginUpdatesService);
 		this.addChild(this.iconicService);
 		this.addChild(this.propertyTypeService);
 		this.addChild(this.contextMenuService);
@@ -606,6 +610,13 @@ export class VaultmanPlugin extends Plugin {
 				handler: () => {
 					void this.invokeToolbarSasiAction(id);
 				},
+			});
+		}
+		for (const id of ['check_plugin_updates', 'update_all_plugins'] as const) {
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(`sasi.settingScene.action.${id}`),
+				handler: () => { void this.runPluginUpdateAction(id); },
 			});
 		}
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
@@ -1029,6 +1040,19 @@ export class VaultmanPlugin extends Plugin {
 			this.settings.openMode = 'left_sidebar';
 			await this.saveData(this.settings);
 		}
+	}
+
+	async runPluginUpdateAction(id: 'check_plugin_updates' | 'update_all_plugins'): Promise<void> {
+		if (id === 'check_plugin_updates') {
+			const result = await this.pluginUpdatesService.checkPluginUpdates();
+			if (!result.availability.available) new Notice(result.availability.reason ?? translate('addons.update_failed'));
+			return;
+		}
+		await this.pluginUpdatesService.waitForCheck();
+		const items = this.pluginUpdatesService.snapshotPluginUpdateItems();
+		if (items.length === 0) return;
+		const batch = await this.queueService.runPluginUpdates(items, this.pluginUpdatesService, { selfUpdateId: this.manifest.id });
+		if (batch.items.some((item) => item.status !== 'success')) new Notice(translate('addons.update_failed'));
 	}
 
 	async saveSettings(): Promise<void> {

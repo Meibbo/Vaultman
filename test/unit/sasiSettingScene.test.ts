@@ -20,6 +20,9 @@ describe('U130 Slice C SASI settingScene catalog', () => {
 		expect(registry.list('provider').map((entry) => entry.id)).toEqual(['plugins']);
 		expect(registry.list('kind').map((entry) => entry.id)).toEqual([
 			'node_settings',
+			'node_plugin',
+			'node_plugin_core',
+			'node_plugin_community',
 			'node_group',
 			'node_group_custom',
 			'cell_badge_update',

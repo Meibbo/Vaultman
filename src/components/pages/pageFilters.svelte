@@ -1919,6 +1919,10 @@
 				);
 				return true;
 			}
+			if (invocation.actionId === 'check_plugin_updates' || invocation.actionId === 'update_all_plugins') {
+				await plugin.runPluginUpdateAction(invocation.actionId);
+				return true;
+			}
 			return false;
 		},
 	};

@@ -1675,7 +1675,8 @@ export class UnifiedTreeView {
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const showTags = visibleCells ? visibleCells.has('tags') : false;
 		const nodeCells = (node.cells ?? []).filter(
-			(cell) => !visibleCells || visibleCells.has(cell.id),
+			(cell) =>
+				!visibleCells || visibleCells.has(cell.id) || cell.id === 'cell_update',
 		);
 
 		const row =
@@ -2584,7 +2585,13 @@ export class UnifiedTreeView {
 				cls: 'checkbox-container vaultman-addon-toggle-cell',
 			});
 		toggleEl.toggleClass('is-enabled', cell.enabled);
-		toggleEl.toggleClass('is-disabled', cell.disabled === true);
+			toggleEl.toggleClass('is-disabled', cell.disabled === true);
+			toggleEl.toggleClass('is-busy', cell.busy === true);
+			if (cell.busy === true) toggleEl.setAttribute('aria-busy', 'true');
+			if (cell.busy === true) {
+				const spinner = toggleEl.createSpan({ cls: 'vaultman-addon-cell-spinner' });
+				setIcon(spinner, 'lucide-loader-circle');
+			}
 		toggleEl.toggleClass('is-mixed', cell.mixed === true);
 			toggleEl.setAttribute('aria-label', cell.label);
 			const togglePlacement = resolveTooltipPlacement(
@@ -2612,6 +2619,8 @@ export class UnifiedTreeView {
 				cls: 'vaultman-badge vaultman-addon-cell',
 			});
 		badgeEl.addClass('is-solid');
+		badgeEl.toggleClass('is-busy', cell.busy === true);
+		if (cell.busy === true) badgeEl.setAttribute('aria-busy', 'true');
 		if (cell.kind === 'toggle' && cell.mixed === true) {
 			badgeEl.addClass('is-mixed');
 		}
@@ -2623,9 +2632,21 @@ export class UnifiedTreeView {
 					: 'vaultman-badge--warning',
 			);
 			const iconEl = badgeEl.createSpan({ cls: 'vaultman-badge-icon' });
+			badgeEl.setAttribute('aria-label', cell.label);
+			badgeEl.setAttribute('role', 'button');
+			badgeEl.setAttribute('tabindex', cell.disabled ? '-1' : '0');
+			badgeEl.setAttribute('aria-disabled', String(cell.disabled === true));
+			badgeEl.onkeydown = (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					badgeEl.click();
+				}
+			};
 			setIcon(
 				iconEl,
-				cell.kind === 'toggle'
+				cell.busy === true
+					? 'lucide-loader-circle'
+					: cell.kind === 'toggle'
 					? cell.enabled
 						? 'lucide-toggle-right'
 						: 'lucide-toggle-left'
