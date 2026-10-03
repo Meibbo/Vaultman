@@ -20,6 +20,21 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-9"></a>
+
+## 1.3.0-beta.9 — Plugin upkeep on autopilot, headers that keep up
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.9 keeps your plugins current with native update checks and one-tap updates, while sticky headers, settings jumps, and property counters behave exactly as they read.
+
+- **Updates without the chore:** Native update checks with per-plugin badges, update-all that skips Vaultman itself until last, plus Browse community plugins and Restricted mode straight from the scene toolbar.
+- **Settings that land exactly:** Go-to navigation opens the precise setting page with a highlight, and the workspace tab mirrors the active scene across reloads.
+- **Headers that keep up:** Sticky rows hold their height limit without overlap, pixel gaps, or deep-level misdraws, with smooth scrolling on mobile.
+- **Props you can trust:** Empty values read as Empty with counters that match, alongside add-property, reveal, and suggester fixes.
+
+[Full changelog](../CHANGELOG.md#130-beta9---2026-10-03)
+
 <a id="v1-3-0-beta-8"></a>
 
 ## 1.3.0-beta.8 — Drops that land where you aim, settings that stay put
