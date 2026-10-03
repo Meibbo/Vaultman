@@ -19,12 +19,14 @@ function functionSlice(source: string, name: string): string {
 describe('BT3 native menu and interaction-mode source guards', () => {
 	it('orders the Tabs menu into the locked sections', () => {
 		const menu = functionSlice(navbarSource, 'openNativeSceneMenu');
+		// Orden vigente: add-ons (snippets, settings) antes de Statistics,
+		// en su propia seccion bajo Settings (alineado con backlog).
 		const orderedTokens = [
 			'for (const option of primaryTabOptions)',
 			'launcherActions',
 			"translate('floating_toc.menu')",
-			'tabActionNode(statisticsAction)',
 			'for (const option of addonTabOptions)',
+			'tabActionNode(statisticsAction)',
 		];
 		let previous = -1;
 		for (const token of orderedTokens) {
@@ -39,15 +41,21 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		const layouts = menu.indexOf("translate('viewmenu.layouts')");
 		const inMode = menu.indexOf("translate('viewmenu.interaction')");
 		const cells = menu.indexOf('cellMenuOrder(');
-		const toolbar = menu.indexOf("translate('viewmenu.toolbar')");
 		const engines = menu.indexOf('const engineChildren: NativeMenuNode[]');
 
 		// Orden dev 2026-09-15: el submenú de interacción (input) primero.
 		expect(inMode).toBeGreaterThan(-1);
 		expect(layouts).toBeGreaterThan(inMode);
 		expect(cells).toBeGreaterThan(layouts);
-		expect(toolbar).toBeGreaterThan(cells);
-		expect(engines).toBeGreaterThan(toolbar);
+		expect(engines).toBeGreaterThan(cells);
+		// El toggle del toolbar vive en su superficie dedicada
+		// (openToolbarEmptyMenu, alt-menus por instancia), no en el view
+		// menu principal: la cobertura sigue exigiendo que exista ahi.
+		const toolbarMenu = navbarSource.slice(
+			navbarSource.indexOf('function openToolbarEmptyMenu'),
+			navbarSource.indexOf('function openNativeSceneMenu'),
+		);
+		expect(toolbarMenu).toContain("translate('viewmenu.toolbar')");
 		expect(menu.indexOf('for (const layout of savedLayouts)')).toBeLessThan(
 			menu.indexOf("translate('viewmenu.save_layout')"),
 		);
