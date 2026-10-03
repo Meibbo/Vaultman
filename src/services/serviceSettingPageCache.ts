@@ -18,8 +18,10 @@ export function settingPageCacheFor(app: unknown): SettingPageCache | null {
 	const rawTabs = isRecord(app.setting) ? app.setting.pluginTabs : undefined;
 	const tabs: readonly unknown[] = Array.isArray(rawTabs)
 		? rawTabs : isRecord(rawTabs) ? Object.values(rawTabs) : [];
+	const textPart = (value: unknown): string =>
+		typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
 	const signature = tabs.map(tab => isRecord(tab)
-		? `${String(tab.id ?? '')}:${String(tab.name ?? '')}:${String(tab.icon ?? '')}`
+		? `${textPart(tab.id)}:${textPart(tab.name)}:${textPart(tab.icon)}`
 		: '::').sort().join('|');
 	const existing = caches.get(app);
 	if (existing?.signature === signature) return existing;

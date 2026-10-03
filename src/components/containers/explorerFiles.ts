@@ -3642,7 +3642,7 @@ export class FilesExplorerPanel extends Component {
 								? 'custom'
 								: 'preset';
 					const folderOwner =
-						groupOwner === 'note' ? null : (groupOwner as 'custom' | 'preset');
+						groupOwner === 'note' ? null : groupOwner;
 					const conversionPlan = header &&
 						folderOwner &&
 						(folderOwner === 'preset' || this.groupDeleteHandler)

@@ -1189,7 +1189,7 @@ export function projectGroupedTreeScopeState<TMeta>(
 				...node,
 				id: rowId,
 				entityId: entityIdOf(node),
-				groupScopeTarget: (node.groupScopeTarget as ScopeTarget) ?? headerScopeTarget,
+				groupScopeTarget: node.groupScopeTarget ?? headerScopeTarget,
 				depth,
 				...(input.expandedIds?.has(rowId) ? { bubbleDot: undefined } : {}),
 				...(headerCellToggles ? { scopeCellToggles: { ...headerCellToggles } } : {}),

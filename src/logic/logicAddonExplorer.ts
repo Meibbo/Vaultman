@@ -979,7 +979,7 @@ export function resolvePluginSettingsChildren(
 	const pluginName = (baseNode.meta?.name ?? '').trim().toLowerCase();
 	const childNodes: TreeNode<PluginMeta>[] = [];
 	for (const tab of tabOrder) {
-		const rootPageMap = rootPagesByTab.get(tab) ?? new Map();
+		const rootPageMap = rootPagesByTab.get(tab) ?? new Map<string, PageBuilder>();
 		const rootDefs = rootDefsByTab.get(tab) ?? [];
 		if (rootPageMap.size === 0 && rootDefs.length === 0) continue; // F4: tab sin contenido = ausente
 		const tabLabel = tabNameById.get(tab) ?? tab;

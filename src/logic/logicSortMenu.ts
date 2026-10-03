@@ -2,7 +2,6 @@ import type {
 	ExplorerSortDirection,
 	ExplorerSortState,
 	ExplorerTabId,
-	ScopeSet,
 	ScopeSort,
 	ScopeTarget,
 	SortScopeKey,
@@ -371,7 +370,7 @@ export function scopeMenuModel(
 	const hasConfig = (key: SortScopeKey): boolean => {
 		if (hidden.has(key)) return true;
 		if (state.sorts[key] !== undefined) return true;
-		const set = (state.scopeState?.sets as Record<string, ScopeSet | undefined> | undefined)?.[key as ScopeTarget];
+		const set = state.scopeState?.sets?.[key as ScopeTarget];
 		if (!set) return false;
 		if (set.hidden) return true;
 		if (set.sort !== undefined) return true;
@@ -397,7 +396,7 @@ export function scopeMenuModel(
 		if (seen.has(key)) return;
 		seen.add(key);
 		if (key === 'drill' || !isScopeAllowed(tab, key)) return;
-		if (!hasConfig(key as SortScopeKey)) return;
+		if (!hasConfig(key)) return;
 		if (key === 'all') {
 			hasAllRow = true;
 			return;

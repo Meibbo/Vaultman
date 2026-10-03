@@ -97,9 +97,9 @@ export class VaultmanFrame extends ItemView {
 		const signature = `${this.getIcon()}:${this.getDisplayText()}`;
 		if (signature === this.tabIdentitySignature) return;
 		this.tabIdentitySignature = signature;
-		if ('updateHeader' in this.leaf && typeof this.leaf.updateHeader === 'function') {
-			this.leaf.updateHeader();
-		}
+		const leafWithHeader = this.leaf as WorkspaceLeaf & { updateHeader?: () => void };
+		const updateHeader = leafWithHeader.updateHeader;
+		if (typeof updateHeader === 'function') updateHeader();
 	}
 
 	getState(): Record<string, unknown> {

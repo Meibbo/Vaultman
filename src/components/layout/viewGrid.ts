@@ -1,6 +1,7 @@
 // src/components/GridView.ts
 import { Platform, setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
+import { setRowCssProps } from './viewTree';
 import { buildVirtualTableWindow, hasVisibleTableRows, type RenderedTableRange } from '../../utils/tableVirtualization';
 import type { NodeBadge } from '../../types/typeTree';
 import {
@@ -581,7 +582,7 @@ export class GridView {
 		row.draggable = Boolean(this.callbacks.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = '100%';
+		setRowCssProps(row, { width: '100%' });
 		row.onpointerenter = () => this.callbacks.onFileHover?.(file, row);
 		row.oncontextmenu = (event) => {
 			event.preventDefault();

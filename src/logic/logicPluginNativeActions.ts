@@ -75,7 +75,7 @@ function communityPluginsTab(app: unknown): Record<string, unknown> | undefined 
 	if (!isRecord(app) || !isRecord(app.setting)) return undefined;
 	const tabs = app.setting.settingTabs;
 	if (!Array.isArray(tabs)) return undefined;
-	const tab = tabs.find((candidate: unknown) =>
+	const tab: unknown = tabs.find((candidate: unknown) =>
 		isRecord(candidate) && candidate.id === COMMUNITY_PLUGINS_TAB_ID);
 	return isRecord(tab) ? tab : undefined;
 }

@@ -195,7 +195,7 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		label: () => translate('context_menu.node_note') || 'Open Node-Note',
 		icon: 'lucide-link',
 		when: (ctx: MenuCtx) => {
-			if (Boolean(plugin.nodeBindingService)) return true;
+			if (plugin.nodeBindingService) return true;
 			return (
 				(ctx.groupOwner === 'note' || Boolean(ctx.file)) &&
 				(typeof ctx.openNodeNote === 'function' ||

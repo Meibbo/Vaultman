@@ -1360,6 +1360,13 @@ export class PluginsExplorerPanel
 					const labelKey = API_SCENE_GROUP_LABEL_KEYS[sasiKey];
 					if (labelKey) {
 						header.label = translate(labelKey);
+						// The header intentionally drops the borrowed child meta:
+						// sasi/apiScene consumers key off identityKind/group, and
+						// a child's pluginId must never leak onto a group header.
+						// PluginMeta cannot express this marker (see
+						// ApiSceneGroupMeta), hence the documented escape below
+						// with zero runtime change.
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- intentional non-PluginMeta group marker, see comment above
 						header.meta = {
 							identityKind: API_SCENE_GROUP_KIND,
 							group: sasiKey,

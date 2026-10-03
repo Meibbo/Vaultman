@@ -221,6 +221,9 @@ function matchValue(val: unknown, target: string): boolean {
 		return val.length === 0 ? target === '' : val.some((v) => matchValue(v, target));
 	}
 	if (val == null) return target === '';
+	// Only scalars reach String(): objects never matched meaningfully
+	// (their '[object Object]' rendering is not a user filter target).
+	if (typeof val !== 'string' && typeof val !== 'number' && typeof val !== 'boolean') return false;
 	return String(val).toLowerCase() === target.toLowerCase();
 }
 

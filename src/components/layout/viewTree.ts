@@ -86,7 +86,7 @@ export function isEditableDblClickTarget(target: EventTarget | null): boolean {
 	return tag === 'INPUT' || tag === 'TEXTAREA';
 }
 
-function setRowCssProps(
+export function setRowCssProps(
 	row: HTMLElement,
 	props: Record<string, string>,
 ): void {
