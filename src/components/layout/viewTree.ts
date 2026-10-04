@@ -2558,7 +2558,6 @@ export class UnifiedTreeView {
 					attr: {
 						type: 'button',
 						'aria-label': action.label,
-						title: action.label,
 					},
 				});
 				setIcon(actionEl, action.icon);

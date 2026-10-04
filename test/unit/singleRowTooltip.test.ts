@@ -6,6 +6,7 @@ import explorerPluginsSource from '../../src/components/containers/explorerPlugi
 import explorerSnippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
 import explorerPropsSource from '../../src/components/containers/explorerProps.ts?raw';
 import explorerTagsSource from '../../src/components/containers/explorerTags.ts?raw';
+import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
 
 describe('BT5-032 one tooltip owner per row', () => {
 	it('drops the hardcoded English tooltip the view fabricated', () => {
@@ -61,5 +62,22 @@ describe('BT5-032 one tooltip owner per row', () => {
 		expect(explorerFilesSource).toContain('_folderHoverText(');
 		expect(explorerFilesSource).toContain('meta.isFolder');
 		expect(explorerFilesSource).toContain('this._filesHoverFields()');
+	});
+
+	it('B1: hover-action buttons have aria-label and no native title attribute', () => {
+		// Native title alongside aria-label causes duplicate tooltips (browser + Obsidian).
+		expect(viewTreeSource).not.toMatch(
+			/vaultman-cell-hover-action[\s\S]*?attr:\s*\{[\s\S]*?title:\s*action\.label/,
+		);
+	});
+
+	it('B1: toolbar buttons with aria-label do not have redundant native title attributes', () => {
+		// toggle-expansion and update buttons have aria-label and should not set native title
+		expect(navbarFiltersSource).not.toMatch(
+			/panelWidgetNodeId\('toggle-expansion'\)[\s\S]*?title=\{toolbarNodeTitle\(expansionLabel\)\}/,
+		);
+		expect(navbarFiltersSource).not.toMatch(
+			/PLUGIN_UPDATE_TOOLBAR_ACTIONS[\s\S]*?title=\{toolbarNodeTitle\(translate\(labelKey\)\)\}/,
+		);
 	});
 });
