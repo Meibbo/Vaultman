@@ -81,6 +81,39 @@ export function resolveCheckboxSelection(args: {
 }
 
 /**
+ * Files checkboxes keep the shared modifier grammar but treat plain checks as
+ * additive membership changes. The native callback's `selected` value is the
+ * checkbox state after the click, so it is authoritative for plain checks.
+ */
+export function resolveFilesCheckboxSelection(args: {
+	readonly selectedIds: ReadonlySet<string>;
+	readonly anchorId: string | null;
+	readonly orderedVisibleIds: readonly string[];
+	readonly invokedId: string;
+	readonly selected: boolean;
+	readonly modifiers?: ContextClickModifiers & { readonly altKey?: boolean };
+	readonly isSelectable?: ((id: string) => boolean) | undefined;
+}): { selectedIds: Set<string>; anchorId: string | null } {
+	if (args.isSelectable && !args.isSelectable(args.invokedId)) {
+		return { selectedIds: new Set(args.selectedIds), anchorId: args.anchorId };
+	}
+	const modifiers = args.modifiers;
+	if (modifiers?.shiftKey || modifiers?.ctrlKey || modifiers?.metaKey || modifiers?.altKey) {
+		return resolveCheckboxSelection({ ...args, modifiers });
+	}
+	const selectedIds = new Set(args.selectedIds);
+	if (args.selected) {
+		selectedIds.add(args.invokedId);
+		return { selectedIds, anchorId: args.invokedId };
+	}
+	selectedIds.delete(args.invokedId);
+	return {
+		selectedIds,
+		anchorId: args.anchorId === args.invokedId ? null : args.anchorId,
+	};
+}
+
+/**
  * U130-GGC-022/024: shared pure policy for right-click and visible-occurrence
  * range selection, with a per-instance/scene anchor.
  *

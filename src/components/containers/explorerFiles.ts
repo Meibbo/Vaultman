@@ -213,6 +213,7 @@ import {
 	updateFileSelection,
 } from '../../logic/logicNodeSelection';
 import {
+	resolveFilesCheckboxSelection,
 	resolveContextClickSelection,
 	resolveSelectAllInScope,
 	resolveSelectionTargets,
@@ -3369,30 +3370,23 @@ export class FilesExplorerPanel extends Component {
 				},
 				onSelectionToggle: (
 					id: string,
-					_selected: boolean,
+					selected: boolean,
 					event?: MouseEvent,
 				) => {
-					// U130-p2: el checkbox es un control de SELECCION, nunca de
-					// apertura: un click plano reemplaza la seleccion (el gesto
-					// `open` de updateFileSelection es seleccion unica, no abre
-					// nada aqui), Shift extiende el rango y Ctrl/Meta/Alt
-					// conmutan de forma aditiva. El `true` es el modo aditivo
-					// propio del checkbox, como en `add`: Ctrl/Meta tambien
-					// conmutan aqui en vez de abrir en pestana nueva.
-					const gesture = fileSelectionGesture(event ?? null, true);
-					const orderedIds =
-						gesture === 'range' ? this._orderedVisibleTreeIds() : [];
-					this._applyFileSelection(
-						updateFileSelection(
-							{
-								selectedPaths: this.selectedFilePaths,
-								anchorPath: this.selectionAnchorPath,
-							},
-							orderedIds,
-							id,
-							gesture,
-						),
-					);
+					const ordered = this._orderedSelectableIds();
+					const selection = resolveFilesCheckboxSelection({
+						selectedIds: this.selectedFilePaths,
+						anchorId: this.selectionAnchorPath,
+						orderedVisibleIds: ordered,
+						invokedId: id,
+						selected,
+						modifiers: event,
+						isSelectable: (targetId) => ordered.includes(targetId),
+					});
+					this._applyFileSelection({
+						selectedPaths: selection.selectedIds,
+						anchorPath: selection.anchorId,
+					});
 				},
 				cellRenderOrder: this._activationCellOrder(),
 				prepareNode: (node) =>
