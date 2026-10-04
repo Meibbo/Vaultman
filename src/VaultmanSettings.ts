@@ -40,13 +40,14 @@ import {
 	mergeFilesMenuLayout,
 	normalizeFilesMenuLayout,
 	removeFilesMenuItem,
+	removeMenuOverride,
 	reorderFilesMenuItems,
 	setFilesMenuParent,
 	setFilesMenuVisibility,
 	type FilesMenuItem,
 } from './logic/logicFilesContextMenu';
 import {
-	TOOLBAR_MENU_CANONICAL_ORDER,
+	TOOLBAR_MENU_DEFAULT_ORDER,
 	TOOLBAR_MENU_KINDS,
 	toolbarMenuCatalog,
 	type ToolbarMenuKind,
@@ -2427,7 +2428,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						kind as (typeof PANEL_MENU_KINDS)[number]
 					];
 		const defaultOrder = isToolbar
-			? TOOLBAR_MENU_CANONICAL_ORDER[kind as ToolbarMenuKind]
+			? TOOLBAR_MENU_DEFAULT_ORDER[kind as ToolbarMenuKind]
 			: undefined;
 		const layout = mergeFilesMenuLayout(
 			savedLayout,
@@ -2449,6 +2450,34 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					...this.plugin.settings.contextMenuLayouts,
 					[kind]: normalized,
 				};
+			}
+			await this.plugin.saveSettings();
+			this.update();
+		};
+
+		/**
+		 * A1/A2: resetting one selected menu removes its persisted override
+		 * key so dynamic native/provider defaults return. An explicit custom
+		 * array (including zero dividers) stays a valid override until an
+		 * explicit reset. `files` keeps a required array so it re-materializes
+		 * its default (which already carries dividers).
+		 */
+		const resetToDefaults = async (): Promise<void> => {
+			if (isToolbar) {
+				this.plugin.settings.toolbarMenuLayouts = removeMenuOverride(
+					this.plugin.settings.toolbarMenuLayouts,
+					kind as ToolbarMenuKind,
+				);
+			} else if (kind === 'files') {
+				this.plugin.settings.filesContextMenuLayout = defaultFilesMenuLayout(
+					catalog.map((entry) => entry.id),
+					defaultOrder,
+				);
+			} else {
+				this.plugin.settings.contextMenuLayouts = removeMenuOverride(
+					this.plugin.settings.contextMenuLayouts,
+					kind as (typeof PANEL_MENU_KINDS)[number],
+				);
 			}
 			await this.plugin.saveSettings();
 			this.update();
@@ -2496,15 +2525,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						button
 							.setIcon('lucide-rotate-ccw')
 							.setTooltip(translate('settings.files_context_menu.reset'))
-							.onClick(
-								() =>
-									void persist(
-										defaultFilesMenuLayout(
-											catalog.map((entry) => entry.id),
-											defaultOrder,
-										),
-									),
-							),
+							.onClick(() => void resetToDefaults()),
 					);
 			},
 		});
