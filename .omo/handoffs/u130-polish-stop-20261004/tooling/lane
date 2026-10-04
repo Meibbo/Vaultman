@@ -1,0 +1,570 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# lane — la UNICA puerta de entrada para delegar trabajo a un carril.
+#
+# Existe para que un coordinador nuevo no tenga que aprender por conversacion
+# las dimensiones de la delegacion. Todo lo que costo descubrir el 2026-09-06/07
+# esta AQUI DENTRO, y no en un prompt que alguien tenga que recordar:
+#
+#   · MAXIMO DOS CARRILES VIVOS POR PROVEEDOR UPSTREAM. Los alias de pool
+#     comparten la misma cuenta y no pueden evadir el límite con --shared-pool.
+#   · El vault vuelve al reparto por trap, pase lo que pase (oc-task.sh).
+#   · La guarda del canonico compara por ANCESTRO contra el repo LOCAL de m2.
+#   · El codigo de salida es el del agente. 70 = proveedor agotado. 75 = guarda.
+#   · El lanzador corre desde una INSTANTANEA (lane-run.sh): editarlo con
+#     carriles vivos ya no los rompe.
+#
+# Uso:
+#   lane pools                      prueba cada pool y dice cual esta VIVO
+#   lane run <NOMBRE> <worktree> <prompt.md> [--vault] [--pool <p>] [--shared-pool]
+#   lane wt [list|free|new <n>]     censo de worktrees; `new` se niega si queda alguno libre
+#   lane done <NOMBRE> [hash]       marcar un carril como revisado e integrado
+#   lane status                     tabla de carriles con su veredicto
+#   lane stop <NOMBRE>              detiene un carril
+set -u
+WT=$HOME/wt
+CACHE=$HOME/.cache/claude-delegate
+CONF=$WT/lane-pools.conf
+mkdir -p "$CACHE"
+
+pools() { rg -v '^\s*#|^\s*$' "$CONF" 2>/dev/null || grep -vE '^\s*#|^\s*$' "$CONF"; }
+campo() { echo "$1" | cut -d'|' -f"$2"; }
+minus() { echo "$1" | tr 'A-Z' 'a-z'; }
+
+# Provider admission is the first operation, not a best-effort retry after a
+# model has already been invoked.  Zen is intentionally a manual Room state;
+# all opencode/ models therefore go through its operator-controlled gate.
+lane_provider() { # pool runtime model
+  case "$2:$3" in
+    agy:*) echo antigravity-gemini ;;
+    codex:gpt-6-luna) echo openai ;;
+    oc:opencode/*) echo zen ;;
+    oc:openrouter/*) echo openrouter ;;
+    oc:openai/*) echo openai ;;
+    *) echo "" ;;
+  esac
+}
+
+reject_model() { # model; forbidden upstream choices are rejected before launch
+  local model normalized
+  model=$1
+  normalized=$(printf '%s' "$model" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')
+  case "$normalized" in
+    *laguna*|*lightning*|*minimax*|*gpt56luna*|*nemotron*|*ultra*|*ling*)
+      echo "lane: modelo rechazado por decisión permanente del dev: $model" >&2
+      return 64 ;;
+  esac
+}
+
+validate_fallbacks() { # comma-separated list
+  local chain=$1 item
+  IFS=',' read -ra items <<< "$chain"
+  for item in "${items[@]}"; do
+    item=$(printf '%s' "$item" | tr -d '[:space:]')
+    [ -z "$item" ] || reject_model "$item" || return $?
+  done
+}
+
+validate_config() {
+  local row pool runtime model fallback provider
+  while IFS= read -r row; do
+    [[ "$row" =~ ^[[:space:]]*(#|$) ]] && continue
+    pool=$(campo "$row" 1); runtime=$(campo "$row" 2)
+    model=$(campo "$row" 3); fallback=$(campo "$row" 4)
+    case "$runtime" in oc|agy|codex) ;; *) echo "lane: runtime inválido en pool $pool: $runtime" >&2; return 64 ;; esac
+    reject_model "$model" || return $?
+    validate_fallbacks "$fallback" || return $?
+    provider=$(lane_provider "$pool" "$runtime" "$model")
+    [ -n "$provider" ] || { echo "lane: ruta/provider desconocido: $pool|$runtime|$model" >&2; return 64; }
+    if [ "$runtime" = codex ] && { [ "$model" != gpt-6-luna ] || [ -n "$fallback" ]; }; then
+      echo "lane: Codex solo admite gpt-6-luna sin fallback" >&2; return 64
+    fi
+  done < "$CONF"
+}
+
+validate_overrides() {
+  local key value
+  for key in OC_MODEL OC_FALLBACK_MODEL AGY_MODEL CODEX_MODEL; do
+    value=${!key:-}; [ -z "$value" ] && continue
+    if [ "$key" = OC_FALLBACK_MODEL ]; then validate_fallbacks "$value" || return $?; else reject_model "$value" || return $?; fi
+  done
+  case "${RUNNER:-}" in ''|opencode|agy|codex) ;; *) echo "lane: RUNNER inválido: $RUNNER" >&2; return 64 ;; esac
+}
+
+live_pane_rows() { # bounded tmux census: pane identity plus the canonical @passport value
+  tmux list-panes -a -F '#{pane_id}|#{@passport}' 2>/dev/null || true
+}
+
+contains_line() { # exact newline-delimited membership; avoids boundary-pattern misses
+  local haystack=$1 needle=$2 line
+  [ -n "$needle" ] || return 1
+  while IFS= read -r line; do [ "$line" = "$needle" ] && return 0; done <<< "$haystack"
+  return 1
+}
+
+pane_has_attempt() { # pane census; attempt id
+  local rows=$1 attempt=$2 line pane passport
+  [ -n "$attempt" ] || return 1
+  while IFS= read -r line; do
+    IFS='|' read -r pane passport <<< "$line"
+    [ -n "$pane" ] && [ "$passport" = "$attempt" ] && return 0
+  done <<< "$rows"
+  return 1
+}
+
+reservation_live() { # reservation path; pane census (caller holds admission lock when pruning)
+  local file=$1 panes=$2 _ owner attempt _workdir
+  IFS='|' read -r _ owner attempt _workdir < "$file"
+  if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then return 0; fi
+  pane_has_attempt "$panes" "$attempt"
+}
+
+prune_stale_reservations() { # only lane-owned reservation files; caller holds admission lock
+  local file panes
+  panes=$(live_pane_rows)
+  for file in "$CACHE"/*.reservation; do
+    [ -f "$file" ] || continue
+    reservation_live "$file" "$panes" || rm -f "$file"
+  done
+}
+
+passport_running() { # attempt id, confirmed by live canonical pane identity
+  local passport panes
+  [ -n "$1" ] || return 1
+  passport="$HOME/.cache/pkm-ai/delegates/$1.json"
+  [ -f "$passport" ] && jq -e '.state == "running"' "$passport" >/dev/null 2>&1 || return 1
+  panes=$(live_pane_rows)
+  pane_has_attempt "$panes" "$1"
+}
+
+provider_running_count() { # provider; reservations and canonical passports are counted once
+  local provider=$1 file passport name count=0 p owner attempt live legacy_sessions row pool runtime model panes
+  local -a passports
+  local -A pool_providers=()
+  passports=("$HOME/.cache/pkm-ai/delegates/"*.json)
+  panes=$(live_pane_rows)
+  running_rows=$(jq -r 'select(.state == "running") | [.provider // "", .name // "", .attemptId // ""] | join("|")' "${passports[@]}" 2>/dev/null || true)
+  running_attempts=
+  while IFS='|' read -r p name attempt; do
+    [ "$p" = "$provider" ] || continue
+    pane_has_attempt "$panes" "$attempt" || continue
+    if [ -n "$name" ] && [ -f "$CACHE/$name.reservation" ] && reservation_live "$CACHE/$name.reservation" "$panes"; then continue; fi
+    running_attempts+="$attempt"$'\n'
+    count=$((count + 1))
+  done <<< "$running_rows"
+  while IFS= read -r row; do
+    [[ "$row" =~ ^[[:space:]]*(#|$) ]] && continue
+    pool=$(campo "$row" 1); runtime=$(campo "$row" 2); model=$(campo "$row" 3)
+    pool_providers[$pool]=$(lane_provider "$pool" "$runtime" "$model")
+  done < "$CONF"
+  legacy_sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null || true)
+  legacy_sessions=$'\n'"$legacy_sessions"$'\n'
+  for file in "$CACHE"/*.pool; do
+    [ -f "$file" ] || continue
+    name=${file##*/}; name=${name%.pool}
+    [ -f "$CACHE/$name.reservation" ] && reservation_live "$CACHE/$name.reservation" "$panes" && continue
+    pool=$(<"$file"); [ "${pool_providers[$pool]:-}" = "$provider" ] || continue
+    attempt=
+    [ ! -f "$CACHE/$name.attempt" ] || attempt=$(<"$CACHE/$name.attempt")
+    if [ -n "$attempt" ]; then
+      contains_line "$running_attempts" "$attempt" && continue
+    fi
+    case "$legacy_sessions" in *$'\n'ag-"$name"-*) count=$((count + 1));; esac
+  done
+  for file in "$CACHE"/*.reservation; do
+    [ -f "$file" ] || continue
+    IFS='|' read -r p owner attempt _ < "$file"
+    [ "$p" = "$provider" ] || continue
+    reservation_live "$file" "$panes" || continue
+    live=no
+    if [ -n "$attempt" ]; then
+      pane_has_attempt "$panes" "$attempt" && live=yes
+    fi
+    if [ "$live" = no ]; then
+      name=${file##*/}; name=${name%.reservation}
+      while IFS='|' read -r p passport_name passport_attempt; do
+        if [ "$p" = "$provider" ] && [ "$passport_name" = "$name" ] && pane_has_attempt "$panes" "$passport_attempt"; then live=yes; break; fi
+      done <<< "$running_rows"
+    fi
+    if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null && [ "$live" = no ]; then
+      rm -f "$file"; continue
+    fi
+    count=$((count + 1))
+  done
+  printf '%s\n' "$count"
+}
+
+worktree_running_lane() { # workdir; return matching lane/passport label
+  local workdir=$1 file id n attempt panes
+  panes=$(live_pane_rows)
+  for file in "$HOME/.cache/pkm-ai/delegates/"*.json; do
+    [ -f "$file" ] || continue
+    attempt=$(jq -r '.attemptId // empty' "$file" 2>/dev/null)
+    if jq -e --arg w "$workdir" '.state == "running" and .workdir == $w' "$file" >/dev/null 2>&1 && pane_has_attempt "$panes" "$attempt"; then
+      jq -r '.name // .attemptId' "$file"; return 0
+    fi
+  done
+  for file in "$CACHE"/*.reservation; do
+    [ -f "$file" ] || continue
+    reservation_live "$file" "$panes" || continue
+    IFS='|' read -r _ _ _ reserved_workdir < "$file"
+    [ "$reserved_workdir" = "$workdir" ] || continue
+    n=${file##*/}; n=${n%.reservation}; echo "$n"; return 0
+  done
+  for file in "$CACHE"/*.wt; do
+    [ -f "$file" ] || continue
+    [ "$(cat "$file" 2>/dev/null)" = "$workdir" ] || continue
+    n=${file##*/}; n=${n%.wt}; attempt=
+    [ ! -f "$CACHE/$n.attempt" ] || attempt=$(<"$CACHE/$n.attempt")
+    if [ -n "$attempt" ] && passport_running "$attempt"; then echo "$n"; return 0; fi
+    tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -q "^ag-$n-" && { echo "$n"; return 0; }
+  done
+  return 1
+}
+
+reserve_admission() { # lane provider worktree pool; atomic cap and worktree guard
+  local name=$1 provider=$2 workdir=$3 pool=$4 count old
+  exec 9>"$CACHE/admission.lock"
+  flock -x 9
+  prune_stale_reservations
+  old=$(worktree_running_lane "$workdir" 2>/dev/null || true)
+  if [ -n "$old" ]; then echo "lane: el worktree '$workdir' ya lo ocupa '$old'" >&2; return 3; fi
+  count=$(provider_running_count "$provider")
+  if [ "$count" -ge 2 ]; then
+    echo "lane: proveedor '$provider' al límite ($count/2); --shared-pool no lo omite" >&2; return 3
+  fi
+  printf '%s|%s||%s\n' "$provider" "$BASHPID" "$workdir" > "$CACHE/$(minus "$name").reservation"
+  printf '%s\n' "$pool" > "$CACHE/$(minus "$name").pool"
+  printf '%s\n' "$workdir" > "$CACHE/$(minus "$name").wt"
+  flock -u 9
+  exec 9>&-
+}
+
+release_reservation() { # lane attempt id (empty while launch has not returned)
+  local name=$(minus "$1") attempt=${2:-}
+  exec 9>"$CACHE/admission.lock"; flock -x 9
+  if [ -n "$attempt" ]; then
+    local tmp="$CACHE/$name.reservation.tmp.$$"
+    local reservation="$CACHE/$name.reservation" provider owner workdir
+    if [ -f "$reservation" ]; then
+      IFS='|' read -r provider owner _ workdir < "$reservation"
+      printf '%s|%s|%s|%s\n' "$provider" "$owner" "$attempt" "$workdir" > "$tmp"
+      mv "$tmp" "$reservation"
+    fi
+  else
+    rm -f "$CACHE/$name.reservation"
+  fi
+  flock -u 9; exec 9>&-
+}
+
+switch_admission_provider() { # lane-name runtime model; 70 if fallback provider is full
+  local name=$(minus "$1") runtime=$2 model=$3 provider old owner attempt workdir count tmp panes
+  reject_model "$model" || return $?
+  provider=$(lane_provider "$name" "$runtime" "$model")
+  [ -n "$provider" ] || { echo "lane: fallback sin proveedor mapeado: $runtime/$model" >&2; return 64; }
+  exec 9>"$CACHE/admission.lock"; flock -x 9
+  [ -f "$CACHE/$name.reservation" ] || {
+    echo "lane: no hay reserva activa para admitir fallback del carril '$name'" >&2
+    flock -u 9; exec 9>&-; return 64;
+  }
+  panes=$(live_pane_rows)
+  reservation_live "$CACHE/$name.reservation" "$panes" || {
+    echo "lane: la reserva del carril '$name' ya no está activa" >&2
+    flock -u 9; exec 9>&-; return 64;
+  }
+  IFS='|' read -r old owner attempt workdir < "$CACHE/$name.reservation"
+  if "$HOME/bin/pkmai-delegate" check --provider "$provider" >/dev/null; then
+    :
+  else
+    local gate_rc=$?
+    flock -u 9; exec 9>&-
+    return "$gate_rc"
+  fi
+  if [ "$old" != "$provider" ]; then
+    count=$(provider_running_count "$provider")
+    if [ "$count" -ge 2 ]; then
+      echo "lane: fallback provider '$provider' al límite ($count/2); no se invoca $model" >&2
+      flock -u 9; exec 9>&-; return 70
+    fi
+    tmp="$CACHE/$name.reservation.tmp.$$"
+    printf '%s|%s|%s|%s\n' "$provider" "$owner" "$attempt" "$workdir" > "$tmp"
+    mv "$tmp" "$CACHE/$name.reservation"
+  fi
+  flock -u 9; exec 9>&-
+}
+
+admit_provider() { # pool runtime model
+  local provider
+  provider=$(lane_provider "$@")
+  [ -n "$provider" ] || { echo "lane: no hay mapeo de proveedor para $1/$2/$3" >&2; return 64; }
+  "$HOME/bin/pkmai-delegate" check --provider "$provider" >/dev/null
+}
+
+# The old implementation delegated to claude-delegate, which then made an
+# unrelated ag-* tmux session.  The compatibility adapter now enters the
+# canonical launcher, but this helper also records its durable attempt id so
+# lane status/stop/pool locking do not infer liveness from a tmux name.
+launch_canonical_lane() { # name workdir prompt runtime model fallback [vault lane]
+  local name=$1 workdir=$2 prompt=$3 runtime=$4 model=$5 fallback=$6 vault_lane=${7:-}
+  local -a envs
+  envs=(env)
+  envs+=("LANE_ADMISSION_NAME=$name")
+  [ -z "$vault_lane" ] || envs+=("OC_VAULT_LANE=$vault_lane")
+  case "$runtime" in
+    agy)
+      envs+=(RUNNER=agy "AGY_MODEL=$model")
+      attempt=$(cd "$workdir" && PKMAI_DELEGATE_HARNESS=agy PKMAI_DELEGATE_MODEL="$model" \
+        PKMAI_DELEGATE_PROVIDER="$(lane_provider '' agy "$model")" \
+        "$HOME/dotfiles/bin/claude-delegate" --detach "$name" "${envs[@]}" "$WT/lane-run.sh" "$name" "$workdir" "$prompt") || return $? ;;
+    codex)
+      envs+=(RUNNER=codex "CODEX_MODEL=$model")
+      attempt=$(cd "$workdir" && PKMAI_DELEGATE_HARNESS=codex PKMAI_DELEGATE_MODEL="$model" \
+        PKMAI_DELEGATE_PROVIDER=openai \
+        "$HOME/dotfiles/bin/claude-delegate" --detach "$name" "${envs[@]}" "$WT/lane-run.sh" "$name" "$workdir" "$prompt") || return $? ;;
+    oc)
+      envs+=(RUNNER=opencode "OC_MODEL=$model" "OC_FALLBACK_MODEL=$fallback")
+      attempt=$(cd "$workdir" && PKMAI_DELEGATE_HARNESS=opencode PKMAI_DELEGATE_MODEL="$model" \
+        PKMAI_DELEGATE_PROVIDER="$(lane_provider '' oc "$model")" \
+        "$HOME/dotfiles/bin/claude-delegate" --detach "$name" "${envs[@]}" "$WT/lane-run.sh" "$name" "$workdir" "$prompt") || return $? ;;
+  esac
+  [ -n "${attempt:-}" ] || { echo "lane: el lanzador no devolvió passport" >&2; return 1; }
+  printf '%s\n' "$attempt" > "$CACHE/$(minus "$name").attempt"
+}
+
+# Un pool esta OCUPADO si su carril sigue en tmux. Se mira el mundo real, no un
+# fichero de estado que puede quedar rancio.
+pool_ocupado() { # pool; report an active lane name if its provider is at capacity
+  local p=$1 row runtime model provider count
+  row=$(pools | grep "^$p|") || return 1
+  runtime=$(campo "$row" 2); model=$(campo "$row" 3)
+  provider=$(lane_provider "$p" "$runtime" "$model")
+  count=$(provider_running_count "$provider")
+  [ "$count" -ge 2 ] || return 1
+  printf '%s/%s\n' "$provider" "$count"
+}
+
+case "${1:-}" in
+pools)
+  validate_config || exit $?
+  validate_overrides || exit $?
+  # One frozen overlay snapshot per census: provider admission must precede
+  # execution, but it must not refresh six remote quota endpoints per row.
+  PKMAI_USAGE_SNAPSHOT=$(tmux-usage-overlay --json 2>/dev/null) || {
+    echo "lane: no se pudo leer tmux-usage-overlay" >&2; exit 70;
+  }
+  export PKMAI_USAGE_SNAPSHOT
+  printf '%-13s %-9s %-46s %s\n' POOL RUNTIME MODELO ESTADO
+  pools | while IFS= read -r l; do
+    p=$(campo "$l" 1); rt=$(campo "$l" 2); m=$(campo "$l" 3)
+    if admit_provider "$p" "$rt" "$m"; then est=VIVO; else est=AGOTADO; fi
+    provider=$(lane_provider "$p" "$rt" "$m")
+    count=$(provider_running_count "$provider")
+    est="$est ($count/2)"
+    printf '%-13s %-9s %-46s %s\n' "$p" "$rt" "$m" "$est"
+  done
+  ;;
+run)
+  validate_config || exit $?
+  validate_overrides || exit $?
+  NAME=${2:?nombre}; WTDIR=${3:?worktree}; PROMPT=${4:?prompt}; shift 4
+  VAULT=no; PICK=""; SHARED=no
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --vault) VAULT=si;;
+      --pool) shift; PICK=${1:?--pool requiere nombre};;
+      --shared-pool) SHARED=si;;
+      *) echo "lane: opción desconocida: $1" >&2; exit 2;;
+    esac
+    shift
+  done
+  [ -d "$WTDIR" ] || { echo "lane: worktree inexistente: $WTDIR" >&2; exit 2; }
+  [ -f "$PROMPT" ] || { echo "lane: prompt inexistente: $PROMPT" >&2; exit 2; }
+  if command grep -rqI 'BROKEN FOR TEST\|ROTO A PROPOSITO' "$WTDIR/src" "$WTDIR/scripts" 2>/dev/null; then
+    echo "lane: worktree '$WTDIR' tiene una rotura deliberada sin revertir" >&2; exit 3
+  fi
+  if [ -n "$PICK" ]; then
+    linea=$(pools | grep "^$PICK|") || { echo "lane: pool desconocido: $PICK" >&2; exit 2; }
+  else
+    linea=""
+    while IFS= read -r l; do
+      p=$(campo "$l" 1); rt=$(campo "$l" 2); m=$(campo "$l" 3)
+      provider=$(lane_provider "$p" "$rt" "$m")
+      [ "$(provider_running_count "$provider")" -lt 2 ] || continue
+      linea=$l; break
+    done < <(pools)
+    [ -n "$linea" ] || { echo "lane: no hay proveedor con capacidad disponible (máximo 2 por proveedor)" >&2; exit 3; }
+  fi
+  P=$(campo "$linea" 1); RT=$(campo "$linea" 2); M=$(campo "$linea" 3); FB=$(campo "$linea" 4)
+  case "$RT" in
+    oc) [ -z "${OC_MODEL:-}" ] || M=$OC_MODEL; if [ "${OC_FALLBACK_MODEL+x}" = x ]; then FB=$OC_FALLBACK_MODEL; fi ;;
+    agy) [ -z "${AGY_MODEL:-}" ] || M=$AGY_MODEL ;;
+    codex) [ -z "${CODEX_MODEL:-}" ] || M=$CODEX_MODEL ;;
+  esac
+  reject_model "$M" || exit $?
+  validate_fallbacks "$FB" || exit $?
+  provider=$(lane_provider "$P" "$RT" "$M")
+  [ -n "$provider" ] || { echo "lane: override sin proveedor mapeado: $RT/$M" >&2; exit 64; }
+  if [ "$RT" = codex ] && { [ "$M" != gpt-6-luna ] || [ -n "$FB" ]; }; then
+    echo "lane: Codex requiere gpt-6-luna y no admite fallback" >&2; exit 64
+  fi
+  selected_runner=${RUNNER:-$RT}
+  [ "$selected_runner" != opencode ] || selected_runner=oc
+  [ "$selected_runner" = "$RT" ] || { echo "lane: RUNNER debe coincidir con runtime $RT" >&2; exit 64; }
+  admit_provider "$P" "$RT" "$M" || { echo "lane: provider no disponible; no se crea carril" >&2; exit 70; }
+  low=$(minus "$NAME")
+  rm -f "$CACHE/$low.exit"
+  reserve_admission "$NAME" "$provider" "$WTDIR" "$P" || exit $?
+  launch_rc=0
+  if [ "$VAULT" = si ]; then
+    if grep -qE 'Edificio Tangerine|Obsidian Help|Obsidian Developers|plugin-dev' "$PROMPT"; then
+      release_reservation "$NAME"; echo "lane: el prompt nombra un vault a mano; usa {{VAULT}}" >&2; exit 2
+    fi
+    v=$("$HOME/bin/weblab-claim-vault" "$NAME" 2>/dev/null | tail -1) || { release_reservation "$NAME"; exit 1; }
+    PROMPT_R="${TMPDIR:-/tmp}/lane-prompt-$NAME.md"
+    sed "s|{{VAULT}}|$v|g" "$PROMPT" > "$PROMPT_R"; PROMPT=$PROMPT_R
+    echo "lane: $NAME -> pool $P ($M) · vault $v"
+    launch_canonical_lane "$NAME" "$WTDIR" "$PROMPT" "$RT" "$M" "$FB" "$NAME" || launch_rc=$?
+  else
+    echo "lane: $NAME -> pool $P ($M)"
+    launch_canonical_lane "$NAME" "$WTDIR" "$PROMPT" "$RT" "$M" "$FB" || launch_rc=$?
+  fi
+  if [ "$launch_rc" -ne 0 ]; then release_reservation "$NAME"; exit "$launch_rc"; fi
+  attempt=$(<"$CACHE/$low.attempt")
+  release_reservation "$NAME" "$attempt"
+  ;;
+config-check)
+  validate_config || exit $?
+  validate_overrides || exit $?
+  echo 'lane: config válida'
+  ;;
+admission-switch)
+  [ $# -eq 4 ] || { echo 'uso: lane admission-switch <nombre> <runtime> <modelo>' >&2; exit 64; }
+  switch_admission_provider "$2" "$3" "$4" || exit $?
+  ;;
+wt)
+  # Censo de worktrees del proyecto y su ocupacion.
+  #
+  # Regla del dev (2026-09-07): NO se crea un worktree nuevo mientras quede uno
+  # libre. Hay una cantidad enfermiza de worktrees repartidos por los nodos de
+  # PKM-AI porque cada coordinador creaba el suyo en vez de mirar. `lane wt new`
+  # se NIEGA a crear si queda alguno libre: es enforcement, no consejo.
+  sub=${2:-list}
+  libres=""
+  # `git worktree list` desde el repo principal enumera todos los del proyecto.
+  while IFS= read -r ln; do
+    wtp=$(echo "$ln" | awk '{print $1}')
+    case "$wtp" in "$HOME/vaultman"|*"/.worktrees/"*) continue;; esac
+    [ -d "$wtp" ] || continue
+    ocup=""
+    for wf in "$CACHE"/*.wt; do
+      [ -e "$wf" ] || continue
+      [ "$(cat "$wf" 2>/dev/null)" = "$wtp" ] || continue
+      c=$(basename "$wf" .wt)
+      if [ -f "$CACHE/$c.attempt" ]; then
+        a=$(cat "$CACHE/$c.attempt" 2>/dev/null || true)
+        jq -e 'select(.state == "running")' "$HOME/.cache/pkm-ai/delegates/$a.json" >/dev/null 2>&1 && { ocup=$c; break; }
+      fi
+      tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -q "^ag-$c-" && { ocup=$c; break; }
+    done
+    br=$(git -C "$wtp" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    # `grep -vc ... || echo 0` devolvia "0\n0" y rompia el `[ -gt ]`: se cuenta
+    # con wc, que siempre da un entero.
+    dirty=$(git -C "$wtp" status --porcelain 2>/dev/null | grep -v '^?? \.omo' | wc -l | tr -d ' ')
+    if [ -n "$ocup" ]; then est="ocupado por $ocup"
+    elif [ "${dirty:-0}" -gt 0 ]; then est="LIBRE pero con $dirty sin commitear"
+    else est="LIBRE"; libres="$libres $wtp"; fi
+    [ "$sub" = list ] && printf '%-34s %-34s %s\n' "$wtp" "$br" "$est"
+  done < <(git -C "$HOME/vaultman" worktree list 2>/dev/null)
+
+  case "$sub" in
+    free) set -- $libres; [ -n "${1:-}" ] || { echo "lane: no hay ningun worktree libre y limpio." >&2; exit 3; }; echo "$1";;
+    new)  if [ -n "$(echo "$libres" | tr -d ' ')" ]; then
+            echo "lane: NO se crea worktree nuevo: quedan libres ->$libres" >&2
+            echo "lane: usa uno de esos ('lane wt free' te da el primero). Regla del dev, 2026-09-07." >&2
+            exit 3
+          fi
+          n=${3:?nombre de worktree}
+          git -C "$HOME/vaultman" worktree add "$HOME/wt/$n" -b "oc/$n" feat/u130-nodemovemode || exit 1
+          echo "lane: creado $HOME/wt/$n (no quedaba ninguno libre)";;
+  esac
+  ;;
+status)
+  printf '%-12s %-13s %-9s %s\n' CARRIL POOL ESTADO VEREDICTO
+  # Query the tmux server once.  On Android each query can cost hundreds of
+  # milliseconds; multiplying it by historical lanes made `lane status` look
+  # hung even though it performed no model work.
+  LIVE_SESSIONS=$(tmux list-sessions -F '#{session_name}' 2>/dev/null || true)
+  LIVE_PANES=$(live_pane_rows)
+  declare -A PROVIDER_COUNTS=() STATUS_POOL_RUNTIME=() STATUS_POOL_MODEL=()
+  while IFS= read -r row; do
+    [[ "$row" =~ ^[[:space:]]*(#|$) ]] && continue
+    pool=$(campo "$row" 1); runtime=$(campo "$row" 2); model=$(campo "$row" 3)
+    STATUS_POOL_RUNTIME[$pool]=$runtime; STATUS_POOL_MODEL[$pool]=$model
+    provider=$(lane_provider "$pool" "$runtime" "$model")
+    [ -n "$provider" ] || continue
+    if [ -z "${PROVIDER_COUNTS[$provider]+set}" ]; then
+      PROVIDER_COUNTS[$provider]=$(provider_running_count "$provider")
+    fi
+  done < "$CONF"
+  for f in "$CACHE"/*.pool; do
+    [ -e "$f" ] || continue
+    n=${f##*/}; n=${n%.pool}; p=$(<"$f")
+    attempt=""; [ ! -f "$CACHE/$n.attempt" ] || attempt=$(<"$CACHE/$n.attempt")
+    passport="$HOME/.cache/pkm-ai/delegates/$attempt.json"
+    provider=$(lane_provider "$p" "${STATUS_POOL_RUNTIME[$p]:-}" "${STATUS_POOL_MODEL[$p]:-}")
+    if [ -f "$CACHE/$n.reservation" ]; then IFS='|' read -r provider _ _ _ < "$CACHE/$n.reservation"; fi
+    if [ -n "$provider" ]; then provider_count=${PROVIDER_COUNTS[$provider]:-0}; else provider=unknown; provider_count=0; fi
+    if [ -n "$attempt" ] && [ -f "$passport" ] && [ "$(jq -r '.state' "$passport")" = running ] && pane_has_attempt "$LIVE_PANES" "$attempt"; then
+      started=$(jq -r '.startedAt' "$passport")
+      bytes=$(wc -c < "$HOME/.cache/pkm-ai/delegates/$attempt.log" 2>/dev/null || echo 0)
+      printf '%-12s %-13s %-9s %s\n' "$n" "$p" vivo "passport $attempt · $started · ${bytes}B · upstream $provider_count/2"
+    elif printf '%s\n' "$LIVE_SESSIONS" | grep -q "^ag-$n-"; then
+      # Cuanto lleva vivo: sale de la hora de creacion de su sesion tmux. Sin
+      # esto un carril colgado se ve igual que uno trabajando, y el dev acaba
+      # mirando "pendiente" durante horas sin saber si avanza.
+      ini=$(tmux list-sessions -F '#{session_name} #{session_created}' 2>/dev/null | command grep "^ag-$n-" | head -1 | awk '{print $2}')
+      if [ -n "$ini" ]; then
+        secs=$(( $(date +%s) - ini )); mins=$(( secs / 60 ))
+        act=$(( $(date +%s) - $(date -r "$CACHE/$n.log" +%s 2>/dev/null || date +%s) ))
+        printf '%-12s %-13s %-9s %s\n' "$n" "$p" vivo "${mins}m · $(wc -c < "$CACHE/$n.log" 2>/dev/null)B · ultima actividad hace ${act}s · upstream $provider_count/2"
+      else
+        printf '%-12s %-13s %-9s %s\n' "$n" "$p" vivo "$(wc -c < "$CACHE/$n.log" 2>/dev/null)B · upstream $provider_count/2"
+      fi
+    else
+      if [ -f "$CACHE/$n.done" ]; then
+        done_mark=$(<"$CACHE/$n.done")
+        printf '%-12s %-13s %-9s %s\n' "$n" "$p" integrado "revisado e integrado ($done_mark) · upstream $provider_count/2"
+        continue
+      fi
+      if [ -n "$attempt" ] && [ -f "$passport" ]; then rc=$(jq -r '.exitCode // "?"' "$passport")
+      elif [ -f "$CACHE/$n.exit" ]; then rc=$(<"$CACHE/$n.exit")
+      else rc='?'; fi
+      case "$rc" in
+        0)  v="terminado — listo para revisar";;
+        70) v="PROVEEDOR AGOTADO (los dos modelos del pool) — no es fallo suyo";;
+        75) v="parado por la GUARDA del canonico — divergencia, lo mira un humano";;
+        '?') v="sin codigo de salida (nunca arranco o lo mataron)";;
+        *)  v="FALLO del agente (rc=$rc) — revisar $CACHE/$n.log";;
+      esac
+      printf '%-12s %-13s %-9s %s\n' "$n" "$p" fin "$v · upstream $provider_count/2"
+    fi
+  done
+  ;;
+done)
+  # Marca un carril como YA REVISADO E INTEGRADO. Sin esto su veredicto se
+  # queda en "listo para revisar" para siempre, y el siguiente coordinador
+  # --o uno mismo tres horas despues-- puede reintegrar trabajo ya integrado.
+  n=$(minus "${2:?nombre}"); h=${3:-}
+  [ -f "$CACHE/$n.pool" ] || { echo "lane: no hay carril '$n'" >&2; exit 2; }
+  echo "${h:-integrado}" > "$CACHE/$n.done"
+  echo "lane: $n marcado como integrado${h:+ ($h)}"
+  ;;
+stop)
+  n=$(minus "${2:?nombre}")
+  if [ -f "$CACHE/$n.attempt" ]; then
+    a=$(cat "$CACHE/$n.attempt" 2>/dev/null || true)
+    [ -z "$a" ] || "$HOME/bin/pkmai-delegate" stop "$a" && echo "detenido passport $a"
+  fi
+  for s in $(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^ag-$n-"); do tmux kill-session -t "$s"; echo "detenido $s"; done
+  ;;
+*) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
