@@ -9,11 +9,24 @@ import {
 	type PluginUpdateCheckResult, type PluginUpdateInstallResult, type PluginUpdateRecord,
 	type UnknownRecord,
 } from './pluginUpdatesNative';
+import { PendingUpdatesStore, comparePendingVersions } from './servicePendingUpdatesStore';
+import { PendingPluginUpdatesCache, pendingUpdateItems, pendingUpdateResult, resolvePendingBadge, resolvePendingBadges, resolvePendingStore } from './pendingUpdateSupport';
+export { comparePendingVersions } from './servicePendingUpdatesStore';
 export { detectPluginUpdatesApi, PLUGIN_UPDATES_ADAPTER_VERSION } from './pluginUpdatesNative';
 export type {
 	PluginUpdateAdapterOptions, PluginUpdateAvailability, PluginUpdateBadge,
 	PluginUpdateCheckResult, PluginUpdateCheckStatus, PluginUpdateInstallResult,
 } from './pluginUpdatesNative';
+
+export interface PluginUpdatesServiceOptions extends PluginUpdateAdapterOptions {
+	/**
+	 * Durable discovery cache. `undefined` derives one from
+	 * `app.vault` (`<configDir>/plugins/<pluginId>/pending-updates/`);
+	 * `null` disables persistence (in-memory snapshot only).
+	 */
+	readonly pendingStore?: PendingUpdatesStore | null;
+	readonly pluginId?: string;
+}
 
 export class PluginUpdatesService extends Component implements PluginUpdateAdapter {
 	private readonly now: () => number;
@@ -21,19 +34,32 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	private readonly throttleMs: number;
 	private lastCheckAt: number | undefined;
 	private snapshot = new Map<string, PluginUpdateRecord>();
+	private readonly unavailableSnapshots = new Set<string>();
+	private readonly pendingCache: PendingPluginUpdatesCache;
+	private readonly hydratePromise: Promise<void>;
 	private readonly activeUpdates = new Map<string, Promise<PluginUpdateInstallResult>>();
 	private readonly listeners = new Set<() => void>();
 	private checkInFlight: Promise<PluginUpdateCheckResult> | null = null;
 
 	constructor(
 		private readonly app: App,
-		options: PluginUpdateAdapterOptions = {},
+		options: PluginUpdatesServiceOptions = {},
 	) {
 		super();
 		this.now = options.now ?? Date.now;
 		this.isOnline = options.isOnline ?? (() =>
 			typeof navigator === 'undefined' || navigator.onLine !== false);
 		this.throttleMs = Math.max(0, options.throttleMs ?? 30_000);
+		const pendingStore = options.pendingStore !== undefined
+			? options.pendingStore
+			: resolvePendingStore(app, options.pluginId ?? 'vaultman');
+		this.pendingCache = new PendingPluginUpdatesCache(pendingStore, (id) => this.getInstalledVersion(id));
+		this.hydratePromise = this.pendingCache.hydrate().then(() => this.notifyChanged());
+	}
+
+	/** Resolves once the durable discovery cache (when any) has been reconciled. */
+	whenHydrated(): Promise<void> {
+		return this.hydratePromise;
 	}
 
 	get availability(): PluginUpdateAvailability {
@@ -56,17 +82,20 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	}
 
 	private async checkPluginUpdatesOnce(): Promise<PluginUpdateCheckResult> {
+		await this.hydratePromise;
 		await Promise.all(this.activeUpdates.values());
 		const api = this.availability;
 		if (!api.available) {
-			this.snapshot.clear();
+			// C3 retain-then-reconcile: the durable hints survive an
+			// unavailable authority; installed>=pending entries are dropped.
+			await this.pendingCache.reconcile();
 			this.notifyChanged();
-			return this.emptyResult(api);
+			return this.resultFromSnapshot(api);
 		}
 		if (!this.isOnline()) {
-			this.snapshot.clear();
+			await this.pendingCache.reconcile();
 			this.notifyChanged();
-			return this.emptyResult({
+			return this.resultFromSnapshot({
 				...api,
 				available: false,
 				status: 'offline',
@@ -86,16 +115,16 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 
 		const manager = managerFor(this.app);
 		if (!manager?.checkForUpdates) {
-			this.snapshot.clear();
+			await this.pendingCache.reconcile();
 			this.notifyChanged();
-			return this.emptyResult(api);
+			return this.resultFromSnapshot(api);
 		}
 		try {
 			await manager.checkForUpdates(false);
 		} catch (error) {
-			this.snapshot.clear();
+			await this.pendingCache.reconcile();
 			this.notifyChanged();
-			return this.emptyResult({
+			return this.resultFromSnapshot({
 				...api,
 				available: false,
 				status: 'failed',
@@ -113,7 +142,9 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 				continue;
 			}
 			this.snapshot.set(id, record);
+			this.unavailableSnapshots.delete(id);
 		}
+		await this.pendingCache.merge(this.snapshot.values(), now);
 		const result = {
 			availability: api,
 			updates: this.badges(),
@@ -124,11 +155,14 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	}
 
 	getPluginUpdate(id: string): PluginUpdateBadge | undefined {
-		const record = this.snapshot.get(id);
-		const native = updateRecord(managerFor(this.app)?.updates?.[id]);
-		const installed = this.getInstalledVersion(id);
-		return record && native?.version === record.version && native.manifest.id === id && installed !== undefined && installed !== record.version
-			? { id, version: record.version } : undefined;
+		return resolvePendingBadge(
+			id,
+			this.snapshot.get(id),
+			updateRecord(managerFor(this.app)?.updates?.[id]),
+			this.pendingCache.get(id),
+			this.getInstalledVersion(id),
+			this.unavailableSnapshots.has(id),
+		);
 	}
 
 	getPluginUpdates(): readonly PluginUpdateBadge[] {
@@ -138,12 +172,7 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	snapshotPluginUpdateItems(
 		nameForId: (id: string) => string = () => '',
 	): readonly PluginUpdateItem[] {
-		return this.badges().map((update) => ({
-			id: update.id,
-			name: nameForId(update.id) || this.snapshot.get(update.id)?.manifest.name || update.id,
-			fromVersion: this.getInstalledVersion(update.id) ?? '',
-			toVersion: update.version,
-		}));
+		return pendingUpdateItems(this.badges(), nameForId, this.snapshot, (id) => this.getInstalledVersion(id));
 	}
 
 	getAvailability(): PluginUpdateAvailability {
@@ -173,12 +202,19 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	}
 
 	private async installUpdate(id: string): Promise<PluginUpdateInstallResult> {
+		await this.hydratePromise;
 		const manager = managerFor(this.app);
 		const cached = this.snapshot.get(id);
 		const record = updateRecord(manager?.updates?.[id]);
 		const installed = this.getInstalledVersion(id);
-		if (!manager?.installPlugin || !cached || !record || record.manifest.id !== id || record.version !== cached.version || installed === undefined || installed === record.version) {
+		if (cached && installed !== undefined && comparePendingVersions(installed, cached.version) >= 0) {
 			this.snapshot.delete(id);
+			await this.pendingCache.drop(id);
+			return { id, status: 'warning', message: 'Plugin is already at or above the requested update' };
+		}
+		if (!manager?.installPlugin || !cached || !record || record.manifest.id !== id || record.version !== cached.version || installed === undefined || comparePendingVersions(installed, record.version) >= 0) {
+			this.snapshot.delete(id);
+			this.unavailableSnapshots.add(id);
 			return { id, status: 'warning', message: 'Update is no longer available' };
 		}
 		try {
@@ -191,8 +227,10 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 			};
 		}
 		const installedVersion = this.getInstalledVersion(id);
-		if (installedVersion === record.version) {
+		if (installedVersion !== undefined && comparePendingVersions(installedVersion, record.version) >= 0) {
 			this.snapshot.delete(id);
+			// installed==target clears the durable hint as well.
+			await this.pendingCache.drop(id);
 			return { id, status: 'success', installedVersion };
 		}
 		if (installedVersion === undefined) {
@@ -229,20 +267,10 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	}
 
 	private badges(): PluginUpdateBadge[] {
-		return [...this.snapshot.entries()]
-			.sort(([a], [b]) => a.localeCompare(b))
-			.flatMap(([id]) => { const update = this.getPluginUpdate(id); return update ? [update] : []; });
+		return resolvePendingBadges(this.snapshot, this.pendingCache.entries.keys(), (id) => this.getPluginUpdate(id));
 	}
 
-	private emptyResult(availability: PluginUpdateAvailability): PluginUpdateCheckResult {
-		return { availability, updates: [], invalidPluginIds: [] };
-	}
-
-	private resultFromSnapshot(
-		availability: PluginUpdateAvailability,
-	): PluginUpdateCheckResult {
-		return { availability, updates: this.badges(), invalidPluginIds: [] };
-	}
+	private resultFromSnapshot(availability: PluginUpdateAvailability): PluginUpdateCheckResult { return pendingUpdateResult(availability, this.badges()); }
 
 	private notifyChanged(): void {
 		for (const listener of [...this.listeners]) listener();
@@ -251,7 +279,7 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 
 export function createPluginUpdatesService(
 	app: App,
-	options?: PluginUpdateAdapterOptions,
+	options?: PluginUpdatesServiceOptions,
 ): PluginUpdatesService {
 	return new PluginUpdatesService(app, options);
 }

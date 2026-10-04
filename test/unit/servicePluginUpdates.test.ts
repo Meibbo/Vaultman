@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+	comparePendingVersions,
 	createPluginUpdatesService,
 	detectPluginUpdatesApi,
 } from '../../src/services/servicePluginUpdates';
@@ -41,6 +42,13 @@ function manager(overrides: FakeManager = {}): FakeManager {
 }
 
 describe('private Obsidian plugin updates adapter', () => {
+	it('orders stable, prerelease, build metadata, and invalid versions deterministically', () => {
+		expect(comparePendingVersions('1.3.0-beta.9', '1.3.0')).toBeLessThan(0);
+		expect(comparePendingVersions('1.3.0+installed', '1.3.0+target')).toBe(0);
+		expect(comparePendingVersions('999999999999999999999.0.0', '2.0.0')).toBeGreaterThan(0);
+		expect(Number.isNaN(comparePendingVersions('not-a-version', '1.3.0'))).toBe(true);
+	});
+
 	it('preserves all native manifest fields when installing an update', async () => {
 		const manifest = { id: 'alpha', name: 'Alpha', version: '2.0.0', author: 'Author', description: 'Description', minAppVersion: '1.8.0', isDesktopOnly: true, fundingUrl: { GitHub: 'https://github.com/sponsors/example' } };
 		const installPlugin = vi.fn();
@@ -156,7 +164,7 @@ describe('private Obsidian plugin updates adapter', () => {
 		});
 	});
 
-	it('clears badges on a global check failure', async () => {
+	it('retains badges on a global check failure (C3 retain-then-reconcile)', async () => {
 		const plugins = manager({
 			checkForUpdates: vi.fn()
 				.mockImplementationOnce(() => undefined)
@@ -168,7 +176,7 @@ describe('private Obsidian plugin updates adapter', () => {
 		const result = await service.checkPluginUpdates();
 
 		expect(result.availability.status).toBe('failed');
-		expect(result.updates).toEqual([]);
+		expect(result.updates).toEqual([{ id: 'alpha', version: '2.0.0' }]);
 	});
 
 	it('uses the current update fields and warns when post-state disappears', async () => {
