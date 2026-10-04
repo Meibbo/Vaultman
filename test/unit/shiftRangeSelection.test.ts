@@ -66,4 +66,25 @@ describe('U121-056 shift range selection', () => {
 		expect(snap.anchor).toBe('b.md');
 		expect([...snap.selected].sort()).toEqual(['b.md', 'c.md', 'd.md']);
 	});
+
+	it('E1/E2: range shrink drops far end when shifting back towards anchor', () => {
+		const initial = updateFileSelection(
+			{ selectedPaths: new Set(['a.md']), anchorPath: 'a.md' },
+			PATHS,
+			'd.md',
+			'range',
+		);
+		expect([...initial.selectedPaths].sort()).toEqual(['a.md', 'b.md', 'c.md', 'd.md']);
+		expect(initial.anchorPath).toBe('a.md');
+
+		// When shift-clicking 'b.md', range shrinks to {a.md, b.md}, dropping 'c.md' and 'd.md'
+		const shrunk = updateFileSelection(
+			{ selectedPaths: initial.selectedPaths, anchorPath: initial.anchorPath },
+			PATHS,
+			'b.md',
+			'range',
+		);
+		expect([...shrunk.selectedPaths].sort()).toEqual(['a.md', 'b.md']);
+		expect(shrunk.anchorPath).toBe('a.md');
+	});
 });

@@ -7,7 +7,10 @@ type ObsEl = Element & {
 	toggleClass(cls: string, force?: boolean): void;
 	empty(): void;
 	createDiv(opts?: { cls?: string; text?: string }): HTMLElement;
-	createEl(tag: string, opts?: { cls?: string; text?: string }): HTMLElement;
+	createEl(
+		tag: string,
+		opts?: { cls?: string; text?: string; type?: string },
+	): HTMLElement;
 	createSpan(opts?: { cls?: string; text?: string }): HTMLElement;
 	setText(text: string): void;
 };
@@ -54,11 +57,22 @@ export function installObsidianDomPolyfill(): void {
 		slot.createEl = function (
 			this: Element,
 			tag: string,
-			opts?: { cls?: string; text?: string },
+			opts?: {
+				cls?: string;
+				text?: string;
+				type?: string;
+				attr?: Record<string, string>;
+			},
 		) {
 			const child = document.createElement(tag);
 			if (opts?.cls) child.className = opts.cls;
 			if (opts?.text) child.textContent = opts.text;
+			if (opts?.type) child.setAttribute('type', opts.type);
+			if (opts?.attr) {
+				for (const [key, val] of Object.entries(opts.attr)) {
+					child.setAttribute(key, String(val));
+				}
+			}
 			this.appendChild(child);
 			return child;
 		};
@@ -66,7 +80,12 @@ export function installObsidianDomPolyfill(): void {
 	if (!proto.createDiv) {
 		slot.createDiv = function (
 			this: ObsEl,
-			opts?: { cls?: string; text?: string },
+			opts?: {
+				cls?: string;
+				text?: string;
+				type?: string;
+				attr?: Record<string, string>;
+			},
 		) {
 			return this.createEl('div', opts);
 		};
@@ -74,7 +93,12 @@ export function installObsidianDomPolyfill(): void {
 	if (!proto.createSpan) {
 		slot.createSpan = function (
 			this: ObsEl,
-			opts?: { cls?: string; text?: string },
+			opts?: {
+				cls?: string;
+				text?: string;
+				type?: string;
+				attr?: Record<string, string>;
+			},
 		) {
 			return this.createEl('span', opts);
 		};
