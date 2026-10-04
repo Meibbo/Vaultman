@@ -143,6 +143,18 @@ import {
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 import { projectAddonDataNodes, type AddonExplorerDataSource } from '../../logic/logicAddonDataSource';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 
@@ -225,6 +237,10 @@ export class PluginsExplorerPanel
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	private stickyRowsOverride: boolean | undefined = undefined;
 	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
@@ -965,6 +981,48 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this.render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this.render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'plugins', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase'> {
+		return {
+			nativeScene: 'plugins',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
@@ -1480,6 +1538,7 @@ export class PluginsExplorerPanel
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			tooltipPlacement: tooltipPlacementForSetting(
@@ -1612,6 +1671,61 @@ export class PluginsExplorerPanel
 				this._touchSelection();
 				this.render();
 			},
+			// U130 native polish: owner-local keyboard delegates (real modifier
+			// flags, never a cast MouseEvent; plain activation minus the pointer).
+			onKeyboardActivate: (id, modifiers) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					this._activateGroupRow(id);
+					return;
+				}
+				if (this.interactionMode !== 'select') {
+					if (this.dataSource) {
+						const node = this.findNode(id);
+						if (node) this.dataSource.activate(entityIdOf(node));
+						return;
+					}
+					this._activateSettingSceneRow(id);
+					return;
+				}
+				if (modifiers.shift || modifiers.ctrl || modifiers.meta) {
+					const { selectedIds, anchorId } = resolveContextClickSelection({
+						selectedIds: this.selectedNodeIds,
+						anchorId: this.selectionAnchorId,
+						orderedVisibleIds: this._orderedVisibleTreeIds(),
+						invokedId: id,
+						modifiers: {
+							ctrlKey: modifiers.ctrl,
+							metaKey: modifiers.meta,
+							shiftKey: modifiers.shift,
+						},
+					});
+					this.selectedNodeIds = selectedIds;
+					this.selectionAnchorId = anchorId;
+				} else if (this.selectedNodeIds.has(id)) {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				} else {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				}
+				this._touchSelection();
+				this.render();
+			},
+			onRangeSelect: (anchorId: string, focusId: string) => {
+				if (this.interactionMode !== 'select') return;
+				const { selectedIds, anchorId: nextAnchor } = resolveContextClickSelection({
+					selectedIds: this.selectedNodeIds,
+					anchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(),
+					invokedId: focusId,
+					modifiers: { shiftKey: true },
+				});
+				this.selectedNodeIds = selectedIds;
+				this.selectionAnchorId = nextAnchor;
+				this._touchSelection();
+				this.render();
+			},
+			onClearSelection: () => this.clearSelection(),
 			onCellClick: (id, cellId) => {
 				if (this.dataSource) {
 					const node = this.findNode(id);
@@ -1666,6 +1780,7 @@ export class PluginsExplorerPanel
 								depth: 0,
 							},
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							groupId: id,
 							groupOwner: this._isCustomGroupId(id) ? 'custom' : 'preset',
 							groupHidden: this.hiddenGroupIds.has(id),
@@ -1931,6 +2046,10 @@ export class PluginsExplorerPanel
 		return findParentId(this._scopeTree(), id);
 	}
 
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
+		this.treeView?.setScopePickMode(mode);
+	}
+
 	scopeParentForNode(id: string): string | null {
 		return findScopeParentId(
 			this._scopeTree(),
@@ -1998,6 +2117,7 @@ export class PluginsExplorerPanel
 				),
 				orderedIds: this.nodes.map((node) => node.meta.pluginId),
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(this.findNode(meta.pluginId) ?? { id: meta.pluginId, label: meta.name, depth: 0, meta }),
 			},

@@ -35,6 +35,8 @@ export interface FloatingTocPanel extends RevealNodePort {
 	/** Scope root owning a picked node's level (its parent id, or null). */
 	scopeRootForNode(id: string): string | null;
 	expandNodeById(id: string): void;
+	/** Owner-local hover outline while the floating drill pick is active. */
+	setScopePickMode?(mode: 'parent' | 'level' | 'drill' | null): void;
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 }
 

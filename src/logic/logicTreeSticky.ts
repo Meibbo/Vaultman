@@ -23,6 +23,20 @@ export interface StickyTreeRowsOptions {
 	 * several siblings hand the stack back and forth. */
 	parentIndex?: readonly number[];
 	subtreeEnd?: readonly number[];
+	/**
+	 * U130 native polish: variable-height geometry from the shared height
+	 * index. When present, header tops and push-off edges come from measured
+	 * tops instead of `index * rowHeight`; `rowHeight` remains the estimate
+	 * for the viewport-fraction budget. Absent keeps today's fixed formula.
+	 */
+	variable?: StickyVariableGeometry;
+}
+
+/** Measured-geometry source shared with the virtual window and reveal math. */
+export interface StickyVariableGeometry {
+	topForIndex(index: number): number;
+	heightForIndex(index: number): number;
+	indexForOffset(offset: number): number;
 }
 
 interface StickyCandidate {
@@ -41,6 +55,7 @@ export function stickyTreeRows(
 		maxFraction = 0.4,
 		parentIndex,
 		subtreeEnd,
+		variable,
 	}: StickyTreeRowsOptions,
 ): StickyTreeRow[] {
 	if (
@@ -51,26 +66,30 @@ export function stickyTreeRows(
 	)
 		return [];
 
-	const firstVisibleIndex = Math.min(
-		rows.length - 1,
-		Math.floor(scrollTop / rowHeight),
-	);
+	const topOf = (index: number): number =>
+		variable?.topForIndex(index) ?? index * rowHeight;
+	const heightOf = (index: number): number =>
+		variable?.heightForIndex(index) ?? rowHeight;
+	const indexAt = (offset: number): number =>
+		variable
+			? Math.min(rows.length - 1, variable.indexForOffset(offset))
+			: Math.min(rows.length - 1, Math.floor(offset / rowHeight));
+
+	const firstVisibleIndex = indexAt(scrollTop);
 	if (firstVisibleIndex < 0) return [];
 
 	const fraction = Math.min(1, Math.max(0.2, maxFraction));
-	const viewportRowLimit = Math.floor((viewportHeight * fraction) / rowHeight);
-	const rowLimit = Math.min(maxRows, viewportRowLimit);
-	if (rowLimit <= 0) return [];
+	const stackBudget = viewportHeight * fraction;
+	const rowLimit = Math.min(7, Math.max(0, maxRows));
+	if (rowLimit <= 0 || stackBudget <= 0) return [];
 
 	const result: StickyTreeRow[] = [];
+	let stackTop = 0;
 	for (let slot = 0; slot < rowLimit; slot += 1) {
 		// El ancla del slot es la fila que hay bajo lo ya apilado, no la del
 		// borde del viewport. Por eso una cabecera entra ya en su sitio.
-		const anchorTop = scrollTop + slot * rowHeight;
-		const anchorIndex = Math.min(
-			rows.length - 1,
-			Math.floor(anchorTop / rowHeight),
-		);
+		const anchorTop = scrollTop + stackTop;
+		const anchorIndex = indexAt(anchorTop);
 		if (anchorIndex < 0) break;
 
 		const chain = collectAncestors(
@@ -83,17 +102,20 @@ export function stickyTreeRows(
 		if (!candidate) break;
 
 		// Borde inferior de su subarbol, en coordenadas de viewport.
-		const subtreeBottom = candidate.subtreeEnd * rowHeight - scrollTop;
+		const subtreeBottom = topOf(candidate.subtreeEnd) - scrollTop;
 		// Si su subarbol termina por encima de este slot, ya fue relevado: el
 		// hueco es del siguiente p-node de su nivel, que es justo quien saldra
 		// como `chain[slot]` en cuanto el ancla entre en su subarbol.
-		if (subtreeBottom <= slot * rowHeight) break;
+		if (subtreeBottom <= stackTop) break;
 
 		// Fijada en su slot mientras su subarbol siga por debajo; empujada solo
 		// cuando ese borde entra en el slot, y entonces su parte inferior
 		// acompaña al borde en vez de saltar.
-		const top = Math.min(slot * rowHeight, subtreeBottom - rowHeight);
+		const ownHeight = heightOf(candidate.index);
+		if (result.length > 0 && stackTop + ownHeight > stackBudget) break;
+		const top = Math.min(stackTop, subtreeBottom - ownHeight);
 		result.push({ index: candidate.index, top });
+		stackTop += ownHeight;
 	}
 
 	return result;

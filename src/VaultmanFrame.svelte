@@ -51,6 +51,7 @@
 	import { refreshExplorerViewport } from './logic/logicExplorerViewportActivation';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
+	import { acquireNativeBridge } from './services/serviceNativeBridge';
 	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { NO_GROUP_PRESET } from './types/typeGroupPreset';
@@ -435,6 +436,10 @@
 			// global `settingSceneShowOptionsByDefault` decide hasta que el
 			// menú del toolbar fije el override de esta scene.
 			showOptionsOverride: 'inherit',
+			// U130 native polish: sin overrides de case ni compat por scene;
+			// heredan los globales (`textCaseByCell`, `nativeCompatDefaults`).
+			textCase: {},
+			nativeCompat: {},
 		}),
 	});
 
@@ -908,6 +913,10 @@
 
 	// ResizeObserver on .vaultman-view updates nav state
 	function bindViewRoot(el: HTMLElement) {
+		const releaseBridge = acquireNativeBridge(el.ownerDocument, (cb) => {
+			const ref = plugin.app.workspace.on('css-change', cb);
+			return () => plugin.app.workspace.offref(ref);
+		});
 		const onBlankClick = (event: MouseEvent): void => {
 			if (
 				event.target instanceof Element &&
@@ -939,6 +948,7 @@
 		applyFrameHeight(target.offsetHeight);
 		return {
 			destroy() {
+				releaseBridge();
 				ro.disconnect();
 				el.removeEventListener('click', onBlankClick);
 				viewRootEl = null;
@@ -1036,6 +1046,7 @@
 	function stopTocPick(): void {
 		tocPickCleanup?.();
 		tocPickCleanup = null;
+		activeFloatingTocPanel()?.setScopePickMode?.(null);
 		tocPickMode = false;
 	}
 	// Panels call this synchronously from their render; coalesce + defer the state
@@ -1220,6 +1231,7 @@
 			'.vaultman-filters-tab-pane.is-active',
 		);
 		if (!pane) return;
+		activeFloatingTocPanel()?.setScopePickMode?.('drill');
 		const onPick = (event: MouseEvent) => {
 			const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
 				'[data-id]',

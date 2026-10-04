@@ -19,6 +19,7 @@ export function createApiSceneConfigPort(plugin: VaultmanPlugin): SceneConfigPor
 		sceneLabelMode: 'on', autoRevealMode: 'auto', hiddenToolbarNodes: [],
 		toolbarNodeIcons: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
 		toolbarNodeOrder: [], groupMemberships: {}, showOptionsOverride: 'inherit',
+		textCase: {}, nativeCompat: {},
 	};
 	const port = createSceneConfigPort({
 		instanceId: id, readRegistry: () => registry,

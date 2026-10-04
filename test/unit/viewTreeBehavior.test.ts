@@ -373,6 +373,8 @@ describe('UnifiedTreeView behavior', () => {
 		expect(row?.classList.contains('mod-collapsible')).toBe(true);
 		expect(caret?.classList.contains('tree-item-icon')).toBe(true);
 		expect(caret?.classList.contains('collapse-icon')).toBe(true);
+		// Guides use the positioning slot, not the indented decoration box.
+		expect(container.querySelector('.vaultman-tree-guides')?.parentElement).toBe(row);
 	});
 
 	it('marks expanded set changes for temporary virtual row structure animation', async () => {
@@ -415,6 +417,7 @@ describe('UnifiedTreeView behavior', () => {
 			onToggle: () => {},
 			onRowClick: () => {},
 			onContextMenu: () => {},
+			expansionAnimation: true,
 		};
 
 		view.render({ ...baseOptions, expandedIds: new Set<string>() });
@@ -438,6 +441,50 @@ describe('UnifiedTreeView behavior', () => {
 		expect(
 			(container as unknown as TinyElement).classList.contains(
 				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+	});
+
+	it('leaves the tree static when the expansion animation is off', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const root: TreeNode = {
+			id: 'folder:Projects',
+			label: 'Projects',
+			depth: 0,
+			meta: {},
+			coreCls: 'tree-item-self nav-folder-title is-clickable',
+			children: [
+				{
+					id: 'file:Projects/Alpha.md',
+					label: 'Alpha.md',
+					depth: 1,
+					meta: {},
+				},
+			],
+		};
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const baseOptions = {
+			nodes: [root],
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, expandedIds: new Set<string>() });
+		view.render({
+			...baseOptions,
+			expandedIds: new Set<string>(['folder:Projects']),
+		});
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-drawer-animating',
 			),
 		).toBe(false);
 	});

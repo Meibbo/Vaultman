@@ -35,7 +35,9 @@ settings:
 	min-height: 100%;
 }
 
-.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before {
+/* U130 native polish: guides are a structural element, never the row's
+   ::before, so the native active decoration keeps a free pseudo-element. */
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-guides {
 	content: '';
 	position: absolute;
 	top: 0;
@@ -52,10 +54,13 @@ settings:
 	pointer-events: none;
 }
 
-.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
-.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
+/* U130 native polish: the slot owns structural indentation with a
+   host-qualified rule that outranks the native collapsible padding without
+   !important. The inner self adds no indent of its own. */
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row {
 	padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-	padding-inline-end: 8px;
+	padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
 }
 
 .vaultman-tree-virtual-viewport.vaultman-tree-structure-animating .vaultman-tree-row--virtual {

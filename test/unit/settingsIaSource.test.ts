@@ -100,6 +100,7 @@ describe('BT3 settings information architecture source guards', () => {
 			'name',
 			'format',
 			'ext',
+			'addons',
 			'filters',
 			'nested',
 		]);

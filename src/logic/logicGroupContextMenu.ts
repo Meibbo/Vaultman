@@ -330,6 +330,37 @@ export function registerGroupActions(plugin: VaultmanPlugin): void {
 		},
 	});
 
+	// U130 native polish: `Name partition` — display-name one counter/date
+	// slice without touching its bounds. Empty input clears the override.
+	svc.registerAction({
+		id: 'group.name-partition',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.counter.name_partition'),
+		icon: 'lucide-pen-line',
+		when: (ctx: MenuCtx) => typeof ctx.namePartitionRange === 'function',
+		disabledReason: () => null,
+		run: (ctx: MenuCtx) => {
+			ctx.namePartitionRange?.();
+		},
+	});
+
+	// U130 native polish: default name + generated range vs names-only.
+	// Unnamed slices always fall back to the generated label either way.
+	svc.registerAction({
+		id: 'group.partition-presentation',
+		nodeTypes: ['group'],
+		surfaces: ['panel'],
+		label: () => translate('group.counter.presentation'),
+		icon: 'lucide-case-sensitive',
+		checked: (ctx: MenuCtx) => ctx.partitionPresentation === 'name-only',
+		when: (ctx: MenuCtx) => typeof ctx.cyclePartitionPresentation === 'function',
+		disabledReason: () => null,
+		run: (ctx: MenuCtx) => {
+			ctx.cyclePartitionPresentation?.();
+		},
+	});
+
 	// U130-GGC-016: Ocultar Collapse group en ambos cmenu sin eliminar su acción SASI
 	svc.registerAction({
 		id: 'group.toggle-expand',

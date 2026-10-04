@@ -65,6 +65,18 @@ export interface SavedViewConfig {
 	compactFolders?: boolean;
 	indent?: boolean;
 	/**
+	 * U130 native polish: per-text-cell display case photo of that scene
+	 * (cell id -> case). Legacy photos lack it and leave the live value alone.
+	 */
+	textCase?: Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>;
+	/**
+	 * U130 native polish: compatible/locked photo of that scene per boundary.
+	 * Legacy photos lack it and leave the live value alone.
+	 */
+	nativeCompat?: Partial<
+		Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+	>;
+	/**
 	 * U130 spec-02: el override Options de esa scene (copia profunda en la
 	 * foto; el legacy sin campo no toca lo vivo al restaurar).
 	 */
@@ -410,6 +422,20 @@ export interface VaultmanSettings {
 	iconInCaretSlot?: boolean;
 	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
 	caretPosition: 'start' | 'end' | 'hidden';
+	/**
+	 * U130 native polish: global per-text-cell display case defaults
+	 * (cell id -> case). Per-scene `SceneConfig.textCase` overrides per cell;
+	 * absent everywhere = `provided`. Display only.
+	 */
+	textCaseByCell?: Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>;
+	/**
+	 * U130 native polish: global compatible/locked defaults per boundary.
+	 * Per-scene `SceneConfig.nativeCompat` overrides per boundary; absent
+	 * everywhere = `compatible`. `locked` disables the bridge, never isolates CSS.
+	 */
+	nativeCompatDefaults?: Partial<
+		Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+	>;
 	/** What the view_option indent removes: 'all' (depth + parent), 'depth' only, or 'parent' only. */
 	treeIndentMode: 'all' | 'depth' | 'parent';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
@@ -699,6 +725,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	caretPosition: 'start',
+	textCaseByCell: {},
+	nativeCompatDefaults: {},
 	treeIndentMode: 'all',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],

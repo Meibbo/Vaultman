@@ -255,7 +255,12 @@ describe('stickyTreeRows', () => {
 			new URL('../../src/components/layout/viewTree.ts', import.meta.url),
 			'utf8',
 		);
-		expect(viewTreeSource).toContain('row.style.height = `${rowHeight}px`');
+		// Sticky geometry uses the shared measured index for placement, but the
+		// clone must not receive an intrinsic height that blocks native CSS.
+		expect(viewTreeSource).not.toContain(
+			'row.style.height = `${this._heightIndex.heightForIndex(sticky.index)}px`',
+		);
+		expect(viewTreeSource).toContain('Do not pin an intrinsic height');
 		// El margen es estatico, asi que vive en CSS: el linter de Obsidian
 		// prohibe asignarlo desde JS. La altura si es dinamica y se queda.
 		const treeCss = readFileSync(

@@ -451,6 +451,8 @@ const defaults: Required<SceneConfig> = {
 	toolbarNodeOrder: [],
 	groupMemberships: {},
 	showOptionsOverride: 'inherit',
+	textCase: {},
+	nativeCompat: {},
 };
 
 function makeTestInstance(id: string) {

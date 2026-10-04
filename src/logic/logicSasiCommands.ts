@@ -153,10 +153,19 @@ export function createSasiCommandPublisher(
 			plugin.addCommand({
 				id: entry.descriptor.id,
 				name: entry.descriptor.name,
-				checkCallback: (checking) =>
-					(entry.descriptor.handler as SasiCheckableHandler)(
-						checking,
-					),
+				// Obsidian core runs every checkCallback with a null context
+				// while listing commands (palette, settings). A throwing
+				// handler breaks the whole listing, so a handler that cannot
+				// answer reports unavailable instead of throwing.
+				checkCallback: (checking) => {
+					try {
+						return (entry.descriptor.handler as SasiCheckableHandler)(
+							checking,
+						);
+					} catch {
+						return false;
+					}
+				},
 			});
 		} else {
 			plugin.addCommand({

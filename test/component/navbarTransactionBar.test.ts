@@ -87,6 +87,8 @@ describe('navbarFilters monta BarTransaction', () => {
 						toolbarNodeOrder: [],
 						groupMemberships: {},
 						showOptionsOverride: 'inherit' as const,
+						textCase: {},
+						nativeCompat: {},
 					}),
 					propose: (tab, next) => {
 						proposedConfigs.push({

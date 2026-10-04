@@ -1,4 +1,5 @@
-import { ItemView, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Scope, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { routeTreeKeyboardEvent } from './logic/logicTreeKeyboardBoundary';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
@@ -61,6 +62,8 @@ export class VaultmanFrame extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.scope = new Scope(this.app.scope);
+		this.scope.register(null, null, routeTreeKeyboardEvent);
 		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
@@ -99,7 +102,15 @@ export class VaultmanFrame extends ItemView {
 		this.tabIdentitySignature = signature;
 		const leafWithHeader = this.leaf as WorkspaceLeaf & { updateHeader?: () => void };
 		const updateHeader = leafWithHeader.updateHeader;
-		if (typeof updateHeader === 'function') updateHeader();
+		// Best-effort cosmetic: Obsidian core has no tab header yet during
+		// the startup settings cascade, so a throwing updateHeader must never
+		// break saveSettings/notifySettingsChanged.
+		if (typeof updateHeader !== 'function') return;
+		try {
+			updateHeader();
+		} catch {
+			// Ignore: the next settings change re-derives the identity.
+		}
 	}
 
 	getState(): Record<string, unknown> {

@@ -1080,7 +1080,7 @@ input.metadata-input-checkbox.vaultman-selection-checkbox {
 //   position: static;
 // }
 
-.vaultman-tree-row > .vaultman-selection-checkbox {
+.vaultman-tree-row > .vaultman-tree-self > .vaultman-selection-checkbox {
   // A04: el check nativo ancla su glifo al ancestro posicionado mas cercano.
   // Con `static` ese es el row (su `translateZ(0)` lo vuelve containing
   // block) y el check deriva ~10px a la izquierda de su caja; con el `inset`
@@ -1095,7 +1095,7 @@ input.metadata-input-checkbox.vaultman-selection-checkbox {
   margin-inline-end: 0;
 }
 
-.vaultman-tree-row > .vaultman-selection-checkbox--start {
+.vaultman-tree-row > .vaultman-tree-self > .vaultman-selection-checkbox--start {
   order: -1;
 }
 

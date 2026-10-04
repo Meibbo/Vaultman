@@ -45,6 +45,10 @@ vi.mock('obsidian', () => ({
 		}
 		async setState(_state: unknown, _result: unknown): Promise<void> {}
 	},
+	Scope: class {
+		constructor(_parent?: unknown) {}
+		register(): void {}
+	},
 }));
 vi.mock('svelte', () => ({ mount: svelteMocks.mount, unmount: svelteMocks.unmount }));
 vi.mock('../../src/VaultmanFrame.svelte', () => ({ default: {} }));

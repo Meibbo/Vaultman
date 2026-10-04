@@ -3,6 +3,8 @@ import type {
 	ExplorerTabId,
 	ExplorerViewMode,
 } from './typeUI';
+import type { TextCaseOption } from '../logic/logicTextCaseProjection';
+import type { NativeCompatMode } from '../logic/logicNativeTreeCompat';
 import type { InteractionMode } from '../logic/logicInteractionMode';
 import type { SavedFloatingTocState } from './typeSettings';
 import type { GroupPreset } from './typeGroupPreset';
@@ -115,6 +117,21 @@ export interface SceneConfig {
 	 * toolbar de esta scene; la UI de Settings solo toca el global.
 	 */
 	showOptionsOverride?: ShowOptionsOverride;
+	/**
+	 * U130 native polish: per-text-cell display case overrides for this
+	 * scene of this instance (cell id -> case). Sparse: absent cells inherit
+	 * the global `settings.textCaseByCell`, absent map inherits all of it.
+	 * Display only — never identity.
+	 */
+	textCase?: Record<string, TextCaseOption>;
+	/**
+	 * U130 native polish: compatible/locked policy per boundary
+	 * (`tree`/`toolbar`/`container`/`menu`) for this scene of this
+	 * instance. Sparse: absent boundaries inherit the global
+	 * `settings.nativeCompatDefaults`, absent map inherits all of it.
+	 * `locked` disables the bridge; it is NOT CSS isolation.
+	 */
+	nativeCompat?: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>;
 }
 
 export interface WorkspaceInstanceRecord {

@@ -8,6 +8,7 @@ import {
 	toggleGroupMembers,
 } from '../../src/logic/logicTreeGroupProjection';
 import type { FileMeta, TreeNode } from '../../src/types/typeTree';
+import type { TreeViewOptions } from '../../src/components/layout/viewTree';
 
 /**
  * U130 carril B-groupbody: el cuerpo del row de un `node_group` responde a
@@ -158,7 +159,31 @@ class TinyElement {
 		);
 	}
 
-	closest(): TinyElement | null {
+	closest(selector: string): TinyElement | null {
+		// Minimal class-only matching (`.a`, `.a.b`, comma lists) for the
+		// owner-local keyboard boundary. Anything else keeps the historic
+		// null so tag/complex selectors behave as before.
+		const parts = selector
+			.split(',')
+			.map((part) => part.trim())
+			.filter((part) => /^(\.[A-Za-z0-9_-]+)+$/.test(part));
+		if (parts.length === 0) return null;
+		let current: TinyElement | null = this;
+		while (current) {
+			for (const part of parts) {
+				const names = part.slice(1).split('.');
+				if (
+					names.every((name) => current?.classList.contains(name)) &&
+					current.dataset.id !== undefined
+				) {
+					// Rows carry dataset.id; containers do not. A bare class
+					// match on the container itself must not resolve, or the
+					// boundary would mistake the viewport for a row.
+					return current;
+				}
+			}
+			current = current.parentElement;
+		}
 		return null;
 	}
 
@@ -191,8 +216,24 @@ class TinyElement {
 		this.textContent = text;
 	}
 
-	addEventListener(): void {}
-	removeEventListener(): void {}
+	private readonly listeners = new Map<string, ((event: never) => void)[]>();
+	addEventListener(type: string, listener: (event: never) => void): void {
+		const list = this.listeners.get(type) ?? [];
+		list.push(listener);
+		this.listeners.set(type, list);
+	}
+	removeEventListener(type: string, listener: (event: never) => void): void {
+		const list = this.listeners.get(type);
+		if (!list) return;
+		const at = list.indexOf(listener);
+		if (at >= 0) list.splice(at, 1);
+	}
+	/** Dispatch to this element's own listeners (the owner-local boundary). */
+	emit(type: string, event: Record<string, unknown>): void {
+		for (const listener of [...(this.listeners.get(type) ?? [])]) {
+			listener(event as never);
+		}
+	}
 	scrollIntoView(): void {}
 	scrollTo(options?: ScrollToOptions): void {
 		if (typeof options?.top === 'number') this.scrollTop = options.top;
@@ -272,7 +313,7 @@ interface RenderSpies {
 	onGroupActivate?: (id: string) => void;
 }
 
-async function renderGroupView(spies: RenderSpies, scrollTop = 0) {
+async function renderGroupView(spies: RenderSpies, scrollTop = 0, activeIds: readonly (string | null)[] = [], options: Partial<TreeViewOptions> = {}) {
 	const { UnifiedTreeView } = await import(
 		'../../src/components/layout/viewTree'
 	);
@@ -289,7 +330,9 @@ async function renderGroupView(spies: RenderSpies, scrollTop = 0) {
 		...(spies.onGroupActivate
 			? { onGroupActivate: spies.onGroupActivate }
 			: {}),
+		...options,
 	});
+	for (const id of activeIds) view.setActiveId(id);
 	return container as unknown as TinyElement;
 }
 
@@ -300,20 +343,27 @@ function click(el: TinyElement): void {
 	el.onclick({} as MouseEvent);
 }
 
-function pressKey(el: TinyElement, key: string): void {
-	if (typeof el.onkeydown !== 'function') {
-		throw new Error('la fila no expone onkeydown');
-	}
-	el.onkeydown({
+function pressKey(container: TinyElement, row: TinyElement, key: string): void {
+	// U130 native polish: keyboard lives on the owner-local container
+	// boundary, not on the row. Dispatch there with the row as the target,
+	// exactly as a bubbled DOM keydown arrives in production.
+	container.emit('keydown', {
 		key,
-		target: el,
+		target: row,
+		isComposing: false,
+		shiftKey: false,
+		ctrlKey: false,
+		metaKey: false,
+		altKey: false,
 		preventDefault: () => {},
-	} as unknown as KeyboardEvent);
+		stopPropagation: () => {},
+	});
 }
 
 describe('B-groupbody: el cuerpo del row de grupo expande/colapsa en el motor', () => {
 	beforeEach(() => {
 		vi.resetModules();
+		vi.stubGlobal('HTMLInputElement', class {});
 		vi.stubGlobal('activeDocument', {
 			body: {
 				classList: {
@@ -348,6 +398,58 @@ describe('B-groupbody: el cuerpo del row de grupo expande/colapsa en el motor', 
 		expect(onRowClick).not.toHaveBeenCalled();
 	});
 
+	it('requests fresh measurements after invalidation even when mounted sizes stay unchanged', async () => {
+		const notifications: Element[] = [];
+		vi.stubGlobal('ResizeObserver', class {
+			private readonly observed = new Set<Element>();
+			observe(target: Element): void {
+				if (!this.observed.has(target)) notifications.push(target);
+				this.observed.add(target);
+			}
+			unobserve(target: Element): void { this.observed.delete(target); }
+			disconnect(): void { this.observed.clear(); }
+		});
+		try {
+			const { UnifiedTreeView } = await import('../../src/components/layout/viewTree');
+			const container = new TinyElement('div');
+			const view = new UnifiedTreeView(container as unknown as HTMLElement);
+			view.render({
+				nodes: groupNodes(), expandedIds: new Set([GROUP_ID]),
+				nativeScene: 'files', nativeCompat: { tree: 'compatible' },
+				onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {},
+			});
+			const row = container.findByDataId(GROUP_ID);
+			if (!row) throw new Error('Missing mounted group');
+			notifications.length = 0;
+			view.invalidateRowGeometry();
+			expect(notifications).toContain(row);
+			view.destroy();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('updates native inner active decoration without rebuilding the rendered tree', async () => {
+		const container = await renderGroupView({ onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {} }, 0, ['f-0.md', 'f-1.md']);
+		expect(container.findByDataId('f-0.md')?.querySelector('.vaultman-tree-self')?.classList.contains('is-active')).toBe(false);
+		expect(container.findByDataId('f-1.md')?.querySelector('.vaultman-tree-self')?.classList.contains('is-active')).toBe(true);
+	});
+
+	it('updates the sticky inner decoration when its represented node becomes active', async () => {
+		const container = await renderGroupView({ onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {} }, 280, [GROUP_ID]);
+		expect(container.findStickyByDataId(GROUP_ID)?.querySelector('.vaultman-tree-self')?.classList.contains('is-active')).toBe(true);
+	});
+
+	it('exposes native collapsed state on the folder slot as well as its caret', async () => {
+		const container = await renderGroupView({ onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {} }, 0, [], { nativeScene: 'files', expandedIds: new Set() });
+		expect(container.findByDataId(GROUP_ID)?.classList.contains('is-collapsed')).toBe(true);
+	});
+
+	it('exposes the native rename state on the inner decoration box', async () => {
+		const container = await renderGroupView({ onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {} }, 0, [], { nativeScene: 'files', editingId: 'f-0.md' });
+		expect(container.findByDataId('f-0.md')?.querySelector('.vaultman-tree-self')?.classList.contains('is-being-renamed')).toBe(true);
+	});
+
 	it('criterio 1 (sticky): la copia fijada llama a onToggle, no a onRowClick', async () => {
 		const onToggle = vi.fn();
 		const onRowClick = vi.fn();
@@ -375,7 +477,7 @@ describe('B-groupbody: el cuerpo del row de grupo expande/colapsa en el motor', 
 			});
 			const row = container.findByDataId(GROUP_ID);
 			if (!row) throw new Error('la fila del grupo no se pinto');
-			pressKey(row, key);
+			pressKey(container, row, key);
 			expect(onToggle).toHaveBeenCalledTimes(1);
 			expect(onToggle).toHaveBeenCalledWith(GROUP_ID);
 			expect(onRowClick).not.toHaveBeenCalled();
@@ -415,6 +517,26 @@ describe('B-groupbody: el cuerpo del row de grupo expande/colapsa en el motor', 
 		expect(onGroupActivate).toHaveBeenCalledWith(GROUP_ID);
 		expect(onToggle).not.toHaveBeenCalled();
 		expect(onRowClick).not.toHaveBeenCalled();
+	});
+});
+
+describe('native folder identity independently of visible cells', () => {
+	it('keeps a flat path-projected folder a folder when icons are toggled', async () => {
+		const nodes: TreeNode<FileMeta>[] = [{ id: 'folder:Blue', label: 'Blue', depth: 0,
+			meta: { file: null, folder: null, isFolder: true, folderPath: 'Blue' } }];
+		for (const icons of [true, false]) {
+			const container = await renderGroupView({ onToggle: vi.fn(), onRowClick: vi.fn(), onContextMenu: vi.fn() }, 0, [],
+				{ nodes, nativeScene: 'files', visibleCells: new Set(icons ? ['name', 'path', 'icon'] : ['name', 'path']) });
+			const row = container.findByDataId('folder:Blue');
+			expect(row?.classList.contains('nav-folder')).toBe(true);
+			expect(row?.querySelector('.vaultman-tree-self')?.classList.contains('nav-folder-title')).toBe(true);
+		}
+	});
+
+	it('releases the start gutter when the caret cell is hidden', async () => {
+		const container = await renderGroupView({ onToggle: vi.fn(), onRowClick: vi.fn(), onContextMenu: vi.fn() }, 0, [],
+			{ nativeScene: 'files', visibleCells: new Set(['name', 'icon']) });
+		expect(container.findByDataId(GROUP_ID)?.style['--vaultman-tree-row-padding-start']).toBe('var(--size-4-1)');
 	});
 });
 

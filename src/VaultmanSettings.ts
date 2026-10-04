@@ -1816,6 +1816,62 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push(
+			settingSection(translate('settings.native_style.section')),
+		);
+
+		items.push({
+			name: translate('settings.text_case'),
+			desc: translate('settings.text_case.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('provided', translate('settings.text_case.provided'))
+						.addOption('lowercase', translate('settings.text_case.lowercase'))
+						.addOption('titlecase', translate('settings.text_case.titlecase'))
+						.addOption('uppercase', translate('settings.text_case.uppercase'))
+						.setValue(
+							this.plugin.settings.textCaseByCell?.['text'] ?? 'provided',
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.textCaseByCell = {
+								...(this.plugin.settings.textCaseByCell ?? {}),
+								text: value as 'provided' | 'lowercase' | 'titlecase' | 'uppercase',
+							};
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		for (const boundary of ['tree', 'toolbar', 'container', 'menu'] as const) {
+			items.push({
+				name: translate(`settings.native_style.${boundary}`),
+				desc: translate(`settings.native_style.${boundary}.desc`),
+				render: (setting: Setting) => {
+					setting.addDropdown((dropdown) =>
+						dropdown
+							.addOption(
+								'compatible',
+								translate('settings.native_style.compatible'),
+							)
+							.addOption('locked', translate('settings.native_style.locked'))
+							.setValue(
+								this.plugin.settings.nativeCompatDefaults?.[boundary] ??
+									'compatible',
+							)
+							.onChange(async (value) => {
+								this.plugin.settings.nativeCompatDefaults = {
+									...(this.plugin.settings.nativeCompatDefaults ?? {}),
+									[boundary]: value as 'compatible' | 'locked',
+								};
+								await this.plugin.saveSettings();
+							}),
+					);
+				},
+			});
+		}
+
 		items.push({
 			name: translate('settings.selection_checkbox_position'),
 			desc: translate('settings.selection_checkbox_position.desc'),

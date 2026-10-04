@@ -336,11 +336,11 @@
   overflow: hidden;
 }
 
-.vaultman-tree-row--activation-order > * {
+.vaultman-tree-row--activation-order > .vaultman-tree-self > * {
   flex-shrink: 0;
 }
 
-.vaultman-tree-row--activation-order > .vaultman-tree-label {
+.vaultman-tree-row--activation-order > .vaultman-tree-self > .vaultman-tree-label {
   flex-shrink: 1;
 }
 

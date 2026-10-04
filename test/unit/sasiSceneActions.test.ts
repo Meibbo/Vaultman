@@ -66,7 +66,9 @@ describe('U130 SASI scene instance actions', () => {
 		const { registry } = createVaultmanSasi();
 		const ids = registry.list('function').map((def) => def.id);
 		const sceneIds = ids.filter((id) => id.startsWith('vaultman.scene.'));
-		expect(sceneIds.length).toBe(15);
+		// Fifteen existing engine/goto actions plus twelve indexed-only
+		// presentation identities. Registration still rejects collisions.
+		expect(sceneIds.length).toBe(27);
 		for (const id of sceneIds) {
 			expect(id.startsWith('vaultman.move.')).toBe(false);
 			expect(id.startsWith('vaultman.hover.')).toBe(false);

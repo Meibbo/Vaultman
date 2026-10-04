@@ -14,6 +14,8 @@ import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
 import { GridView as FilesTableView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
+import { ExplorerCellMounts, explorerNativeRowSource } from '../../services/serviceExplorerCellMounts';
+import { scheduleNativeBridgeRebuild } from '../../services/serviceNativeBridge';
 import type {
 	TreeNode,
 	FileMeta,
@@ -260,6 +262,23 @@ import {
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	scopePartitionPresentation,
+	togglePartitionPresentation,
+} from '../../logic/logicPartitionNaming';
+import { setCounterRangeDisplayName } from '../../logic/logicCounterRangePartitions';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import {
@@ -361,6 +380,9 @@ export class FilesExplorerPanel extends Component {
 	private tableView: FilesTableView | null = null;
 	private gridView: FilesGridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
+	private _cellContributions: ExplorerCellMounts | undefined;
+	private _nativeRootOrdinal: ((path: string) => number | undefined) | undefined;
+	private _nativeRootColors: (() => ReadonlyMap<string, string>) | undefined;
 	private expandedIds = new Set<string>();
 	/** BT5-017: descendant-activity index, rebuilt with the projection only. */
 	private bubbleIndex: BubbleIndex<FileMeta> | null = null;
@@ -542,6 +564,10 @@ export class FilesExplorerPanel extends Component {
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
@@ -562,6 +588,11 @@ export class FilesExplorerPanel extends Component {
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130 native polish: scene-owned presentation flip for partition headers. */
+	private partitionPresentationChangeHandler?: (
+		presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+		target: import('../../types/typeUI').ScopeTarget,
+	) => void;
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
 	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
@@ -597,6 +628,16 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		const contributions = this.plugin.explorerCellContributions;
+		if (contributions) {
+			const source = explorerNativeRowSource(this.plugin.app);
+			this._nativeRootOrdinal = source.rootOrdinal;
+			this._nativeRootColors = source.rootColors;
+			this._cellContributions = new ExplorerCellMounts(contributions, source, this.containerEl.ownerDocument);
+			this.register(() => this._cellContributions?.destroy());
+			this.register(contributions.onChange(() => scheduleNativeBridgeRebuild(this.containerEl.ownerDocument)));
+			scheduleNativeBridgeRebuild(this.containerEl.ownerDocument);
+		}
 		const iconic = this.plugin.iconicService;
 		if (iconic) {
 			// BT5-031: `onLoaded` fires once, so Files was the only explorer that
@@ -1201,6 +1242,8 @@ export class FilesExplorerPanel extends Component {
 			if (config.tooltips !== undefined) {
 				this.setTooltipsEnabled(config.tooltips);
 			}
+			if (config.textCase) this.setTextCase(config.textCase);
+			if (config.nativeCompat) this.setNativeCompat(config.nativeCompat);
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 			if (config.groupMemberships) {
@@ -1388,10 +1431,67 @@ export class FilesExplorerPanel extends Component {
 		});
 	}
 
+	/**
+	 * U130 native polish: `Name partition` — display-name one counter/date
+	 * slice without touching its bounds. Empty input clears the override;
+	 * cancelling leaves everything untouched.
+	 */
+	private _namePartitionRange(_headerId: string, header: TreeNode<FileMeta>): boolean {
+		const range = header.counterRange;
+		const ranges = header.counterRanges;
+		const domain = header.counterDomain;
+		if (!range || !ranges || !domain || !this.counterRangesChangeHandler) return false;
+		const target = header.groupScopeTarget ?? 'all';
+		const commit = this.counterRangesChangeHandler;
+		const current = range.displayName ?? '';
+		void (async () => {
+			const name = await showInputModal(this.plugin.app, translate('group.counter.name_partition'), {
+				placeholder: translate('group.counter.name_partition_placeholder'),
+				initialValue: current,
+			});
+			if (name === null) return;
+			const result = setCounterRangeDisplayName(ranges, range.id, name, domain);
+			if (!result.ok) {
+				new Notice(translate('group.counter.invalid'));
+				return;
+			}
+			commit(result.ranges, target);
+		})().catch(() => {
+			new Notice(translate('group.counter.invalid'));
+		});
+		return true;
+	}
+
+	/** U130 native polish: header presentation of the preset behind this header. */
+	private _scopePartitionPresentation(
+		header: TreeNode<FileMeta> | null | undefined,
+	): import('../../types/typeGroupPreset').PartitionPresentation {
+		const target = header?.groupScopeTarget ?? 'all';
+		return scopePartitionPresentation(this.sortState, this.groupPreset, target);
+	}
+
+	/** U130 native polish: flip name+range vs names-only for the header scope. */
+	private _cyclePartitionPresentation(header: TreeNode<FileMeta>): void {
+		if (!this.partitionPresentationChangeHandler) return;
+		const target = header.groupScopeTarget ?? 'all';
+		const current = scopePartitionPresentation(this.sortState, this.groupPreset, target);
+		this.partitionPresentationChangeHandler(togglePartitionPresentation(current), target);
+	}
+
 	setCounterRangesChangeHandler(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
 		this.counterRangesChangeHandler = handler;
+	}
+
+	/** U130 native polish: persist the header presentation flip (navbar-owned). */
+	setPartitionPresentationChangeHandler(
+		handler?: (
+			presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+			target: import('../../types/typeUI').ScopeTarget,
+		) => void,
+	): void {
+		this.partitionPresentationChangeHandler = handler;
 	}
 
 	createCounterRangeSlice(): boolean {
@@ -1654,13 +1754,59 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this._render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this._render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'files', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase' | 'cellContributions' | 'contributedIconScope' | 'nativeRootOrdinal' | 'nativeRootColors'> {
+		return {
+			nativeRootColors: this._nativeRootColors?.(),
+			nativeRootOrdinal: this._nativeRootOrdinal,
+			cellContributions: this._cellContributions,
+			contributedIconScope: normalizeFilesIconScope(this.plugin.settings.filesIconScope),
+			nativeScene: 'files',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
 		this._render();
 	}
 
-	setScopePickMode(mode: 'parent' | 'level' | null): void {
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
 		if (this.viewMode !== 'tree') return;
 		this.treeView?.setScopePickMode(mode);
 	}
@@ -2221,6 +2367,7 @@ export class FilesExplorerPanel extends Component {
 				nodeType: 'file',
 				node: syntheticNode,
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				selectedIds: this.selectedFilePaths,
 				orderedIds,
 				...this._groupCreationMenuCtx(),
@@ -3017,6 +3164,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,
@@ -3322,6 +3470,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,
@@ -3658,6 +3807,66 @@ export class FilesExplorerPanel extends Component {
 						}
 					}
 				},
+				// U130 native polish: owner-local keyboard delegates. Enter/Space
+				// arrive with real modifier flags (never a cast MouseEvent);
+				// plain activation reuses the row-click path minus the pointer.
+				onKeyboardActivate: (id: string, modifiers) => {
+					if (isGroupHeader(id, this._groupIds)) {
+						this._activateGroupRow(id);
+						return;
+					}
+					if (modifiers.shift || modifiers.ctrl || modifiers.meta || modifiers.alt) {
+						const gesture = fileSelectionGesture(
+							{
+								altKey: modifiers.alt,
+								shiftKey: modifiers.shift,
+								ctrlKey: modifiers.ctrl,
+								metaKey: modifiers.meta,
+							},
+							true,
+						);
+						const ordered = gesture === 'range' ? this._orderedSelectableIds() : [];
+						this._applyFileSelection(
+							updateFileSelection(
+								{
+									selectedPaths: this.selectedFilePaths,
+									anchorPath: this.selectionAnchorPath,
+								},
+								ordered,
+								id,
+								gesture,
+							),
+						);
+						return;
+					}
+					this._treeRenderOpts?.onRowClick?.(id);
+				},
+				onRangeSelect: (anchorId: string, focusId: string) => {
+					this._applyFileSelection(
+						updateFileSelection(
+							{
+								selectedPaths: this.selectedFilePaths,
+								anchorPath: anchorId,
+							},
+							this._orderedSelectableIds(),
+							focusId,
+							'range',
+						),
+					);
+				},
+				onClearSelection: () => {
+					if (this.selectedFilePaths.size === 0) return;
+					this._applyFileSelection({
+						selectedPaths: new Set<string>(),
+						anchorPath: null,
+					});
+				},
+				onRenameRequest: (id: string) => {
+					if (!this._canRenameNode(id)) return;
+					this._editingId = id;
+					this._render();
+				},
+				canRenameNode: (id: string) => this._canRenameNode(id),
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// U130 Slice B (spec-03 §24-40): las cabeceras abren el
@@ -3691,6 +3900,7 @@ export class FilesExplorerPanel extends Component {
 								depth: 0,
 							},
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							groupId,
 							groupOwner,
 							convertGroupToFolder: conversionPlan && header && folderOwner
@@ -3707,6 +3917,15 @@ export class FilesExplorerPanel extends Component {
 							sliceGroupRange:
 								header?.counterRange && header.counterDomain
 									? () => this.treeView?.beginCounterRangeEdit(id, 'slice')
+									: undefined,
+							namePartitionRange:
+								header?.counterRange && header.counterDomain && header.counterRanges
+									? () => this._namePartitionRange(id, header)
+									: undefined,
+							partitionPresentation: this._scopePartitionPresentation(header),
+							cyclePartitionPresentation:
+								header?.counterRange && header.counterDomain
+									? () => this._cyclePartitionPresentation(header)
 									: undefined,
 							materializePreset:
 								this._isCustomGroupId(groupId) || !header || !this.materializePresetHandler
@@ -3778,6 +3997,7 @@ export class FilesExplorerPanel extends Component {
 								nodeType: 'folder',
 								node,
 								surface: 'panel',
+								...this._nativeMenuPolicy(),
 								selectedIds: this.selectedFilePaths,
 								orderedIds,
 								...this._groupCreationMenuCtx(),
@@ -3794,6 +4014,7 @@ export class FilesExplorerPanel extends Component {
 							nodeType: 'file',
 							node,
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							selectedIds: this.selectedFilePaths,
 							orderedIds,
 							...this._groupCreationMenuCtx(),
@@ -6378,6 +6599,13 @@ export class FilesExplorerPanel extends Component {
 			.filter((id) => !isGroupHeader(id, this._groupIds));
 	}
 
+	/** U130 native polish: F2 rename availability (files + folders, never group headers). */
+	private _canRenameNode(id: string): boolean {
+		if (isGroupHeader(id, this._groupIds)) return false;
+		const meta = this._findNode(id, this._lastRenderTree)?.meta;
+		return Boolean(meta && (meta.file || meta.isFolder));
+	}
+
 	private _applyFileSelection({
 		selectedPaths,
 		anchorPath,
@@ -6874,6 +7102,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,

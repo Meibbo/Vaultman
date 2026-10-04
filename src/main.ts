@@ -49,6 +49,8 @@ import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
+import { ExplorerCellContributions } from './services/serviceExplorerCellContributions';
+import { fileExplorerCellTranslations } from './logic/logicFileExplorerCellTranslations';
 import {
 	readVaultmanDragPayload,
 	type VaultmanDragNodePayload,
@@ -185,6 +187,8 @@ export class VaultmanPlugin extends Plugin {
 	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
 
 	// Core services — public so components/modals can access them
+	/** Public additive cell contributions; registrations return an unload disposer. */
+	readonly explorerCellContributions = new ExplorerCellContributions();
 	propertyIndex!: PropertyIndexService;
 	filterService!: FilterService;
 	queueService!: OperationQueueService;
@@ -266,6 +270,8 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async onload(): Promise<void> {
+		for (const provider of fileExplorerCellTranslations) this.register(this.explorerCellContributions.register(provider));
+		this.register(() => this.explorerCellContributions.destroy());
 		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
 			if (leaf?.view instanceof VaultmanFrame) this.lastFocusedFrameLeaf = leaf;
 		}));

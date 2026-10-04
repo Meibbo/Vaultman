@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
+	import { applyNativeCompatClasses, NATIVE_BRIDGE_HOSTS, resolveNativeCompatMode, toNativeSceneId } from '../../logic/logicNativeTreeCompat';
 	import { Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
@@ -1946,6 +1947,8 @@
 				activeTab: explorerActiveTab,
 				autoRevealGlobal: plugin.settings.autoRevealActiveFile === true,
 				taskCellDisplayGlobal: plugin.settings.taskCellDisplayMode,
+				globalTextCase: plugin.settings.textCaseByCell,
+				globalNativeCompat: plugin.settings.nativeCompatDefaults,
 				filtersSearch,
 				filtersSearchCategory,
 				searchExpanded: panelWidgetSearchExpanded,
@@ -2043,6 +2046,29 @@
 			fileList?.cancelNodeMoveMode();
 		}
 	}
+	let nativeHostEl = $state<HTMLElement | null>(null);
+	$effect(() => {
+		void settingsRevision;
+		if (!nativeHostEl) return;
+		const scene = toNativeSceneId(filtersActiveTab);
+		const leaf = nativeHostEl.closest<HTMLElement>('.workspace-leaf-content');
+		if (!leaf) return;
+		if (scene) {
+			leaf.dataset.vaultmanNativeType = NATIVE_BRIDGE_HOSTS[scene][0];
+			leaf.dataset.vaultmanNativeScene = scene;
+			applyNativeCompatClasses(leaf, 'container', resolveNativeCompatMode(
+				'container', plugin.settings.nativeCompatDefaults, sceneConfigPort.read(scene).nativeCompat,
+			));
+		} else {
+			delete leaf.dataset.vaultmanNativeType;
+			delete leaf.dataset.vaultmanNativeScene;
+		}
+		return () => {
+			delete leaf.dataset.vaultmanNativeType;
+			delete leaf.dataset.vaultmanNativeScene;
+			leaf.classList.remove('vaultman-native-container-compat', 'vaultman-native-container-locked');
+		};
+	});
 </script>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -2057,7 +2083,7 @@
 	/>
 {/if}
 
-<div class="vaultman-filters-tab-content">
+<div class="vaultman-filters-tab-content" bind:this={nativeHostEl}>
 	{#if visitedTabs.files || filtersActiveTab === 'files'}
 		<div
 			class="vaultman-filters-tab-pane"

@@ -59,6 +59,8 @@ describe('U130-02 ui-dom: la barra NodeMove se monta segun dueno', () => {
 				tooltips: true,
 				taskCellDisplayMode: 'auto' as const,
 				showOptionsOverride: 'inherit' as const,
+				textCase: {},
+				nativeCompat: {},
 				toolbarNodeOrder: [],
 				groupMemberships: {},
 			}),

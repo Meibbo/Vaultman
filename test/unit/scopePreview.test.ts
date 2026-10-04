@@ -15,6 +15,16 @@ const rows: ScopePreviewRow[] = [
 ];
 
 describe('scope preview geometry', () => {
+	it('outlines the full row box without following text depth or caret padding', () => {
+		const result = scopePreviewGeometry({
+			rows: [{ id: 'nested', depth: 4, hasCaret: true }],
+			parentIndex: [-1], subtreeEnd: [1], hoveredIndex: 0, mode: 'parent',
+			rowHeight: 26, scrollTop: 0, viewportHeight: 26, contentWidth: 300,
+			rowInset: 0, rowPaddingStart: 24, indentUnit: 17, indentEnabled: true,
+			fullWidthRows: true,
+		});
+		expect(result.segments[0]?.left).toBe(0);
+	});
 	it('mounts the sticky preview before the virtual spacer', () => {
 		const ensureStart = viewTreeSource.indexOf('private _ensureScopePreviewElement');
 		const ensureEnd = viewTreeSource.indexOf('private _clearScopePreview', ensureStart);
@@ -42,6 +52,27 @@ describe('scope preview geometry', () => {
 		expect(scopePreviewGeometry({ ...input, hoveredIndex: 2 }).targetIndices).toEqual([0, 1, 2]);
 		expect(scopePreviewGeometry({ ...input, hoveredIndex: 4 }).targetIndices).toEqual([3, 4]);
 		expect(scopePreviewGeometry({ ...input, hoveredIndex: 5 }).targetIndices).toEqual([]);
+	});
+
+	it('drills by row kind: a child previews its parent, a p-node its level', () => {
+		const input = {
+			rows,
+			parentIndex: [-1, 0, 0, -1, 3, -1],
+			subtreeEnd: [3, 2, 3, 5, 5, 6],
+			mode: 'drill' as const,
+			rowHeight: 20,
+			scrollTop: 0,
+			viewportHeight: 100,
+			contentWidth: 300,
+			rowInset: 4,
+			rowPaddingStart: 24,
+			indentUnit: 16,
+			indentEnabled: true,
+		};
+		// Child hover behaves like the parent pick: the owning subtree.
+		expect(scopePreviewGeometry({ ...input, hoveredIndex: 1 }).targetIndices).toEqual([0, 1, 2]);
+		// P-node hover behaves like the level pick: every row at its depth.
+		expect(scopePreviewGeometry({ ...input, hoveredIndex: 0 }).targetIndices).toEqual([0, 3, 5]);
 	});
 
 	it('accepts a semantic flat parent without a rendered caret', () => {
@@ -122,5 +153,32 @@ describe('scope preview geometry', () => {
 			indentEnabled: false,
 		});
 		expect(result.segments[0]?.left).toBe(28);
+	});
+
+	it('uses bounded row and geometry accessors without a full hover projection', () => {
+		const result = scopePreviewGeometry({
+			rows: [],
+			rowCount: rows.length,
+			rowAt: (index) => rows[index],
+			parentIndex: [-1, 0, 0, -1, 3, -1],
+			subtreeEnd: [3, 2, 3, 5, 5, 6],
+			hoveredIndex: 1,
+			mode: 'level',
+			rowHeight: 20,
+			scrollTop: 20,
+			viewportHeight: 40,
+			contentWidth: 300,
+			rowInset: 4,
+			rowPaddingStart: 24,
+			indentUnit: 16,
+			indentEnabled: true,
+			levelBounds: new Map([[2, { first: 1, last: 4 }]]),
+			visibleStartIndex: 1,
+			visibleEndIndex: 3,
+			topAt: (index) => index * 20,
+			heightAt: () => 20,
+		});
+		expect(result.targetIndices).toEqual([1, 2]);
+		expect(result.segments.map(({ index }) => index)).toEqual([1, 2]);
 	});
 });

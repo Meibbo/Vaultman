@@ -352,7 +352,20 @@ export class ContextMenuService extends Component {
 		this.activePanelMenu?.hide();
 		ctx.event = event;
 		const menu = new Menu();
+		// Styling participation never removes functional native actions.
 		const nativeTarget = this._getNativeMenuTarget(ctx);
+		const paintMenu = (target: Menu): void => {
+			const constructor: unknown = Reflect.get(activeWindow, 'HTMLElement');
+			const isMenuElement = (value: unknown): value is HTMLElement =>
+				typeof constructor === 'function' && value instanceof constructor;
+			if (!ctx.menuNativeScene || !('dom' in target) || !isMenuElement(target.dom)) return;
+			target.dom.classList.add('vaultman-native-menu-host');
+			target.dom.dataset.vaultmanNativeScene = ctx.menuNativeScene;
+			target.dom.dataset.vaultmanNativeType = ctx.menuNativeScene === 'files' ? 'file-explorer'
+				: ctx.menuNativeScene === 'tags' ? 'tag' : ctx.menuNativeScene === 'props' ? 'all-properties' : 'settings';
+			target.dom.classList.add(ctx.menuNativeCompat === 'locked' ? 'vaultman-native-menu-locked' : 'vaultman-native-menu-compat');
+		};
+		paintMenu(menu);
 		if (nativeTarget) {
 			this.suppressWorkspaceInjection = true;
 			try {
@@ -424,6 +437,7 @@ export class ContextMenuService extends Component {
 							new Menu();
 					});
 					submenus.set(submenuLabel, targetMenu);
+					paintMenu(targetMenu);
 				}
 			}
 

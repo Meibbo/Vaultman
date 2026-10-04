@@ -56,6 +56,12 @@ function makeApp(): App {
 }
 
 describe('BT5-012 path label projection', () => {
+	it('hides the caret menu control in flat mode without erasing its stored activation', () => {
+		const cells = ['name', 'caret'];
+		expect(viewMenuCells('files', 'tree', cells).map(cell => cell.id)).not.toContain('caret');
+		expect(viewMenuCells('files', 'tree', [...cells, 'nested']).map(cell => cell.id)).toContain('caret');
+		expect(cells).toEqual(['name', 'caret']);
+	});
 	it('keeps the Path cell out of the menu while Nested is active', () => {
 		expect(cellDef('path')?.requiresCellsOff).toEqual(['nested']);
 

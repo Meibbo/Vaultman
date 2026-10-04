@@ -2,6 +2,8 @@
 import { Platform, setIcon, setTooltip } from 'obsidian';
 import type { TooltipPlacement } from 'obsidian';
 import { translate } from '../../i18n/index';
+import { bindTreeKeyboardBoundary } from '../../logic/logicTreeKeyboardBoundary';
+import { flatTreeLabelTarget } from '../../logic/logicTreeFlatLabel';
 import type {
 	NodeBubbleDot,
 	TreeNode,
@@ -31,7 +33,7 @@ import {
 import { stickyTreeRows } from '../../logic/logicTreeSticky';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import {
-	buildVirtualTreeWindow,
+	buildVariableTreeWindow,
 	flattenVisibleTree,
 	flattenVisibleTreeWithChain,
 	treeChainFromRows,
@@ -41,6 +43,35 @@ import {
 	type ScopePreviewMode,
 	type ScopePreviewRow,
 } from '../../logic/logicScopePreview';
+import {
+	applyTextCase,
+	resolveTextCase,
+	projectTextCaseElement,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	NATIVE_TREE_PROFILES,
+	resolveNativeCompatMode,
+	type NativeCompatPolicy,
+	type NativeSceneId,
+} from '../../logic/logicNativeTreeCompat';
+import {
+	handleTreeKeyboardKey,
+	isEditableKeyboardTarget,
+	type TreeKeyboardCallbacks,
+	type TreeKeyboardExtensions,
+	type TreeKeyboardModifiers,
+	type TreeKeyboardRow,
+	type TreeKeyboardState,
+} from '../../logic/logicTreeKeyboard';
+import {
+	readObserverEntryHeight,
+	TreeHeightIndex,
+} from '../../logic/logicTreeHeightIndex';
+import { onBridgeGeometryInvalidated } from '../../services/serviceNativeBridge';
+import { getNativeRootNthTokens } from '../../logic/logicNativeVirtualSelectors';
+import type { ExplorerCellMounts } from '../../services/serviceExplorerCellMounts';
+import { hasNativeFolderIdentity, syncNativeTreeIndentation } from '../../logic/logicNativeTreeGeometry';
 import {
 	attachBadgeCancelInteraction,
 	badgeCancelInteractionLabel,
@@ -109,6 +140,11 @@ export function setRowCssProps(
 }
 
 export interface TreeViewOptions {
+	/** Public provider contributions, consumed independently of row signatures. */
+	cellContributions?: ExplorerCellMounts;
+	contributedIconScope?: 'all' | 'files' | 'folders' | 'custom';
+	nativeRootOrdinal?: (path: string) => number | undefined;
+	nativeRootColors?: ReadonlyMap<string, string>;
 	/** Provider context used only to resolve localized per-cell names. */
 	surface?: ExplorerTabId;
 	nodes: TreeNode[];
@@ -256,6 +292,41 @@ export interface TreeViewOptions {
 	 * smoothly to their new positions. Off by default for performance.
 	 */
 	expansionAnimation?: boolean;
+	/**
+	 * U130 native polish: homologous native scene for this tree (`files`,
+	 * `tags`, `props`, `snippets`, `plugins`). Absent/null = unbridged
+	 * (e.g. `content`, which has no native counterpart): no native classes
+	 * are emitted and no data-type is ever forged.
+	 */
+	nativeScene?: NativeSceneId | null;
+	/**
+	 * U130 native polish: per-boundary compatible/locked policy. Only the
+	 * `tree` boundary is read here; toolbar/container/menu are applied by
+	 * their own hosts from the same object. Absent = all compatible.
+	 */
+	nativeCompat?: NativeCompatPolicy;
+	/**
+	 * U130 native polish: resolved per-cell display case (scene + global
+	 * already merged by the container). Display only: labels are transformed
+	 * at emit time, identities/inputs never.
+	 */
+	textCase?: Readonly<Record<string, TextCaseOption>>;
+	/** Owner-local extra key bindings for this tree instance. */
+	keyboardExtensions?: TreeKeyboardExtensions;
+	/**
+	 * Enter/Space activation with real modifier flags. Absent falls back to
+	 * `onRowClick(id)` with NO event — a KeyboardEvent is never cast to a
+	 * MouseEvent.
+	 */
+	onKeyboardActivate?: (id: string, modifiers: TreeKeyboardModifiers) => void;
+	/** Shift+Up/Down additive range. Absent = focus moves, selection untouched. */
+	onRangeSelect?: (anchorId: string, focusId: string) => void;
+	/** Escape. Absent = release DOM focus. */
+	onClearSelection?: () => void;
+	/** F2. The scene's own rename affordance. */
+	onRenameRequest?: (id: string) => void;
+	/** Whether F2 rename is available for this row. Absent = unavailable. */
+	canRenameNode?: (id: string) => boolean;
 }
 
 export class UnifiedTreeView {
@@ -275,7 +346,7 @@ export class UnifiedTreeView {
 	private readonly _ownerId = `vaultman-tree-${Math.random()
 		.toString(36)
 		.slice(2)}`;
-	private readonly _markupVersion = 2;
+	private readonly _markupVersion = 3;
 	private _structureAnimationTimer: number | null = null;
 	private _lastExpandedIds: Set<string> | null = null;
 	private _hasRenderedExpandedState = false;
@@ -291,8 +362,10 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _stickyLayerEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
-	private _scopePreviewRows: ScopePreviewRow[] = [];
-	private _scopePreviewLevels = new Map<number, number[]>();
+	private _scopePreviewDepthBounds = new Map<
+		number,
+		{ first: number; last: number }
+	>();
 	private _scopePickMode: ScopePreviewMode | null = null;
 	private _scopePreviewNodeId: string | null = null;
 	private _scopePreviewRaf: number | null = null;
@@ -305,8 +378,20 @@ export class UnifiedTreeView {
 	private _parentIndex: number[] | null = null;
 	private _subtreeEnd: number[] | null = null;
 	private _indexById = new Map<string, number>();
+	private _nativeRootOrdinals = new Map<string, number>();
 	private _activeId: string | null = null;
 	private readonly _overscan = 24;
+	/**
+	 * U130 native polish: shared variable-height index. The estimate is the
+	 * density row height; mounted slots report real entry heights through
+	 * one ResizeObserver. Every geometry consumer (window, spacer, reveal,
+	 * sticky, scope preview, drawer) reads this same index.
+	 */
+	private readonly _heightIndex = new TreeHeightIndex(27);
+	private _geometryUnsubscribe: (() => void) | null = null;
+	private _rowObserver: ResizeObserver | null = null;
+	private _containerWidth = 0;
+	private _keyboard: TreeKeyboardState = { rows: [], focusedId: null, anchorId: null };
 	private readonly _recursiveExpandGesture = new LongPressGesture();
 	/**
 	 * U121-106: pulsacion larga sobre el CHECKBOX. Gesto propio y no el de la
@@ -415,6 +500,12 @@ export class UnifiedTreeView {
 			).bubbled;
 		}
 		this._opts = opts;
+		const leadingSlots = opts.nativeScene ? NATIVE_TREE_PROFILES[opts.nativeScene].rootLeadingSlots ?? 0 : 0;
+		const nativeRoots = opts.nodes.filter(node => {
+			const path = this.nodeDataPath(node);
+			return !path || !path.includes('/');
+		});
+		this._nativeRootOrdinals = new Map(nativeRoots.map((node, index) => [this.nodeDataPath(node) ?? node.id, index + 1 + leadingSlots]));
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
 			'vaultman-tree-nested-guides',
@@ -459,26 +550,33 @@ export class UnifiedTreeView {
 		this._coreMetadataView.destroy();
 
 		const scrollTop = this.containerEl.scrollTop;
-		const rowHeight = this.rowHeight();
+		const anchor = this._heightIndex.anchorForOffset(scrollTop);
+		this._heightIndex.setEstimate(this.rowHeight());
 		const modelStarted = performance.now();
 		const flattened = flattenVisibleTreeWithChain(
 			opts.nodes,
 			opts.expandedIds,
 		);
 		this._rows = flattened.rows;
+		this._heightIndex.setRows(this._rows.map((row) => row.id));
 		this._rebuildScopePreviewIndex();
 		this._parentIndex = flattened.parentIndex;
 		this._subtreeEnd = flattened.subtreeEnd;
 		this._indexById = this._buildIndex(this._rows);
 		this._ensureScaffold();
+		this._applyNativeTreeCompat();
+		this._syncKeyboardModel();
 		if (this._spacerEl) {
-			this._spacerEl.style.height = `${this._rows.length * rowHeight}px`;
+		this._spacerEl.style.height = `${this._heightIndex.totalHeight()}px`;
 		}
+		const restoredAnchor = anchor
+			? this._heightIndex.offsetForAnchor(anchor)
+			: null;
 		this.containerEl.scrollTop = Math.min(
-			scrollTop,
+			restoredAnchor ?? scrollTop,
 			Math.max(
 				0,
-				this._rows.length * rowHeight - this.containerEl.clientHeight,
+				this._heightIndex.totalHeight() - this.containerEl.clientHeight,
 			),
 		);
 		vaultmanPerfMonitor.record('tree.model', performance.now() - modelStarted, {
@@ -518,13 +616,28 @@ export class UnifiedTreeView {
 		if (this._activeId === id) return;
 		const previousId = this._activeId;
 		this._activeId = id;
-		if (previousId) this.rowEls.get(previousId)?.removeClass('is-active');
-		if (id) this.rowEls.get(id)?.addClass('is-active');
+		for (const rows of [this.rowEls, this.stickyRowEls]) {
+			for (const [nodeId, active] of [[previousId, false], [id, true]] as const) {
+				if (!nodeId) continue;
+				const row = rows.get(nodeId);
+				row?.toggleClass('is-active', active);
+				row?.querySelector<HTMLElement>('.vaultman-tree-self')?.toggleClass('is-active', active);
+			}
+		}
 	}
 
 	destroy(): void {
+		this._keyboardBoundaryOff?.();
+		this._keyboardBoundaryOff = null;
+		for (const row of [...this.rowEls.values(), ...this.stickyRowEls.values()]) this._opts?.cellContributions?.unbind(row);
 		this._recursiveExpandGesture.cancel();
 		this.setScopePickMode(null);
+		this._geometryUnsubscribe?.();
+		this._geometryUnsubscribe = null;
+		this._rowObserver?.disconnect();
+		this._rowObserver = null;
+		this.containerEl.removeEventListener('keydown', this._onTreeKeyDown);
+		this.containerEl.removeEventListener('focusin', this._onTreeFocusIn);
 		this._coreMetadataView.destroy();
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
@@ -557,8 +670,7 @@ export class UnifiedTreeView {
 		this._stickyLayerEl = null;
 		this._rows = [];
 		this._rebuildScopePreviewIndex();
-		this._scopePreviewRows = [];
-		this._scopePreviewLevels.clear();
+		this._scopePreviewDepthBounds.clear();
 		this._indexById.clear();
 		this.rowEls.clear();
 		this.stickyRowEls.clear();
@@ -606,7 +718,7 @@ export class UnifiedTreeView {
 	private _renderScopePreview(): void {
 		const mode = this._activeScopePickMode();
 		const nodeId = this._scopePreviewNodeId;
-		if (this._scopePreviewRows.length !== this._rows.length) {
+		if (this._scopePreviewDepthBounds.size === 0 && this._rows.length > 0) {
 			this._rebuildScopePreviewIndex();
 		}
 		const contentEl =
@@ -615,13 +727,13 @@ export class UnifiedTreeView {
 				'.vaultman-tree-virtual-content',
 			);
 		const overlay = this._ensureScopePreviewElement();
-		if (!mode || !nodeId || !this._scopePreviewRows.length || !contentEl) {
+		if (!mode || !nodeId || !this._rows.length || !contentEl) {
 			this._clearScopePreview();
 			return;
 		}
 		const hoveredIndex =
 			this._indexById.get(nodeId) ??
-			this._scopePreviewRows.findIndex((row) => row.id === nodeId);
+			-1;
 		if (hoveredIndex < 0) {
 			this._clearScopePreview();
 			return;
@@ -650,25 +762,32 @@ export class UnifiedTreeView {
 			computed.getPropertyValue('--vaultman-tree-indent-unit'),
 			16,
 		);
-		const rowHeight = this.rowHeight();
+		const rowHeight = this._heightIndex.getEstimate();
 		const viewportHeight = this.containerEl.clientHeight;
-		const visibleStartIndex = Math.max(
-			0,
-			Math.floor(this.containerEl.scrollTop / rowHeight) - this._overscan,
-		);
+		const scrollTop = this.containerEl.scrollTop;
+		const firstVisible = this._heightIndex.indexForOffset(scrollTop);
+		const visibleStartIndex = Math.max(0, firstVisible - this._overscan);
+		let lastVisible = firstVisible;
+		while (
+			lastVisible + 1 < this._rows.length &&
+			this._heightIndex.topForIndex(lastVisible + 1) < scrollTop + viewportHeight
+		) {
+			lastVisible += 1;
+		}
 		const visibleEndIndex = Math.min(
 			this._rows.length,
-			Math.ceil((this.containerEl.scrollTop + viewportHeight) / rowHeight) +
-				this._overscan,
+			lastVisible + 1 + this._overscan,
 		);
 		const geometry = scopePreviewGeometry({
-			rows: this._scopePreviewRows,
+			rows: [],
+			rowCount: this._rows.length,
+			rowAt: (index) => this._scopePreviewRowAt(index),
 			parentIndex: this._parentIndex ?? [],
 			subtreeEnd: this._subtreeEnd ?? [],
 			hoveredIndex,
 			mode,
 			rowHeight,
-			scrollTop: this.containerEl.scrollTop,
+			scrollTop,
 			viewportHeight,
 			contentWidth: this.containerEl.clientWidth,
 			rowInset,
@@ -676,9 +795,12 @@ export class UnifiedTreeView {
 			leafRowPaddingStart,
 			indentUnit,
 			indentEnabled: this._opts?.indent !== false,
-			levelIndices: this._scopePreviewLevels,
+			fullWidthRows: this._opts?.nativeScene === 'files' && this._nativeTreeEnabled(),
+			levelBounds: this._scopePreviewDepthBounds,
 			visibleStartIndex,
 			visibleEndIndex,
+			topAt: (index) => this._heightIndex.topForIndex(index),
+			heightAt: (index) => this._heightIndex.heightForIndex(index),
 		});
 
 		// Writes are kept after every read above; pointer movement therefore does
@@ -699,32 +821,36 @@ export class UnifiedTreeView {
 
 	private _activeScopePickMode(): ScopePreviewMode | null {
 		const mode = this.containerEl.dataset.vaultmanScopePickMode;
-		return mode === 'parent' || mode === 'level'
+		return mode === 'parent' || mode === 'level' || mode === 'drill'
 			? mode
 			: this._scopePickMode;
 	}
 
 	private _rebuildScopePreviewIndex(): void {
-		this._scopePreviewRows = this._rows.map((node) => {
-			const hasCaret = Boolean(node.children?.length || node.showCaret);
-			const meta = node.meta as { isFolder?: unknown } | null;
-			return {
-				id: node.id,
-				depth: node.depth,
-				hasCaret,
-				isParent:
-					hasCaret ||
-					node.isGroupHeader === true ||
-					(meta !== null && meta?.isFolder === true),
-			};
-		});
-		this._scopePreviewLevels.clear();
-		for (let index = 0; index < this._scopePreviewRows.length; index += 1) {
-			const depth = this._scopePreviewRows[index].depth;
-			const indexes = this._scopePreviewLevels.get(depth);
-			if (indexes) indexes.push(index);
-			else this._scopePreviewLevels.set(depth, [index]);
+		this._scopePreviewDepthBounds.clear();
+		for (let index = 0; index < this._rows.length; index += 1) {
+			const depth = this._rows[index]?.depth;
+			if (depth === undefined) continue;
+			const bounds = this._scopePreviewDepthBounds.get(depth);
+			if (bounds) bounds.last = index;
+			else this._scopePreviewDepthBounds.set(depth, { first: index, last: index });
 		}
+	}
+
+	private _scopePreviewRowAt(index: number): ScopePreviewRow | undefined {
+		const node = this._rows[index];
+		if (!node) return undefined;
+		const hasCaret = Boolean(node.children?.length || node.showCaret);
+		const meta = node.meta as { isFolder?: unknown } | null;
+		return {
+			id: node.id,
+			depth: node.depth,
+			hasCaret,
+			isParent:
+				hasCaret ||
+				node.isGroupHeader === true ||
+				(meta !== null && meta?.isFolder === true),
+		};
 	}
 
 	/**
@@ -740,6 +866,7 @@ export class UnifiedTreeView {
 		this._cancelWindowRender();
 
 		const modelStarted = performance.now();
+		const anchor = this._heightIndex.anchorForOffset(this.containerEl.scrollTop);
 		const delta = this._replaceVisibleDescendants(rootId);
 		if (!delta) return;
 		this._rebuildScopePreviewIndex();
@@ -758,15 +885,19 @@ export class UnifiedTreeView {
 			this._subtreeEnd = null;
 		}
 
-		const rowHeight = this.rowHeight();
+		this._heightIndex.setRows(this._rows.map((row) => row.id));
+		this._syncKeyboardModel();
 		if (this._spacerEl) {
-			this._spacerEl.style.height = `${this._rows.length * rowHeight}px`;
+			this._spacerEl.style.height = `${this._heightIndex.totalHeight()}px`;
 		}
+		const restoredAnchor = anchor
+			? this._heightIndex.offsetForAnchor(anchor)
+			: null;
 		this.containerEl.scrollTop = Math.min(
-			this.containerEl.scrollTop,
+			restoredAnchor ?? this.containerEl.scrollTop,
 			Math.max(
 				0,
-				this._rows.length * rowHeight - this.containerEl.clientHeight,
+				this._heightIndex.totalHeight() - this.containerEl.clientHeight,
 			),
 		);
 		vaultmanPerfMonitor.record(
@@ -856,19 +987,24 @@ export class UnifiedTreeView {
 	scrollRowUnderStickyStack(id: string): void {
 		const index = this._indexById.get(id);
 		if (index === undefined) return;
-		const rowHeight = this.rowHeight();
+		const rowHeight = this._heightIndex.getEstimate();
 		if (rowHeight <= 0) return;
 		const survivors = stickyTreeRows(this._rows, {
 			rowHeight,
-			scrollTop: index * rowHeight,
+			scrollTop: this._heightIndex.topForIndex(index),
 			viewportHeight: this.containerEl.clientHeight,
 			maxFraction: this._opts?.stickyMaxFraction,
 			parentIndex: this._parentIndex ?? undefined,
 			subtreeEnd: this._subtreeEnd ?? undefined,
+			variable: this._heightIndex,
 		}).filter((sticky) => sticky.index !== index);
+		const stackHeight = survivors.reduce(
+			(acc, sticky) => acc + this._heightIndex.heightForIndex(sticky.index),
+			0,
+		);
 		this.containerEl.scrollTop = Math.max(
 			0,
-			(index - survivors.length) * rowHeight,
+			this._heightIndex.topForIndex(index) - stackHeight,
 		);
 		this._renderWindow();
 	}
@@ -933,7 +1069,10 @@ export class UnifiedTreeView {
 			: [];
 		this._rows.splice(firstChildIndex, removedNodes.length, ...insertedNodes);
 
-		for (const node of removedNodes) this._indexById.delete(node.id);
+		for (const node of removedNodes) {
+			this._indexById.delete(node.id);
+			this._heightIndex.deleteKey(node.id);
+		}
 		// Only the changed suffix can move. Do not rebuild the complete index.
 		for (let index = firstChildIndex; index < this._rows.length; index += 1) {
 			const node = this._rows[index];
@@ -946,11 +1085,9 @@ export class UnifiedTreeView {
 		const changed =
 			this._hasRenderedExpandedState &&
 			!this._areExpandedSetsEqual(this._lastExpandedIds, expandedIds);
-		if (changed) {
+		if (changed && this._opts?.expansionAnimation) {
 			this._startStructureAnimation();
-			if (this._opts?.expansionAnimation) {
-				this.containerEl.addClass('vaultman-tree-drawer-animating');
-			}
+			this.containerEl.addClass('vaultman-tree-drawer-animating');
 		}
 		this._lastExpandedIds = new Set(expandedIds);
 		this._hasRenderedExpandedState = true;
@@ -992,9 +1129,11 @@ export class UnifiedTreeView {
 		const rootIdx = this._indexById.get(rootId);
 		if (rootIdx === undefined) return;
 
-		const rowHeight = this.rowHeight();
-		const drawerTop = (rootIdx + 1) * rowHeight;
-		const fullHeight = insertedCount * rowHeight;
+		const drawerTop = this._heightIndex.topForIndex(rootIdx + 1);
+		const fullHeight =
+			this._heightIndex.topForIndex(
+				Math.min(this._rows.length, rootIdx + 1 + insertedCount),
+			) - drawerTop;
 
 		const doc = this.containerEl.ownerDocument;
 		const drawer = doc.createElement('div');
@@ -1009,7 +1148,7 @@ export class UnifiedTreeView {
 			if (!node) continue;
 			const rowEl = this.rowEls.get(node.id);
 			if (!rowEl) continue;
-			rowEl.style.top = `${i * rowHeight - drawerTop}px`;
+			rowEl.style.top = `${this._heightIndex.topForIndex(i) - drawerTop}px`;
 			drawer.appendChild(rowEl);
 		}
 
@@ -1046,6 +1185,7 @@ export class UnifiedTreeView {
 			// in _contentEl at their correct absolute positions.
 			for (const child of Array.from(this._drawerEl.children)) {
 				if (child instanceof HTMLElement && child.dataset.id) {
+					this._unobserveRow(child);
 					this.rowEls.delete(child.dataset.id);
 				}
 			}
@@ -1060,8 +1200,12 @@ export class UnifiedTreeView {
 	}
 
 	private _ensureScaffold(): void {
-		if (this._spacerEl && this.containerEl.contains(this._spacerEl)) return;
+		if (this._spacerEl && this.containerEl.contains(this._spacerEl)) {
+			this._ensureRowObserver();
+			return;
+		}
 		this.containerEl.removeEventListener('scroll', this._onScroll);
+		for (const row of this.rowEls.values()) this._unobserveRow(row);
 		this.containerEl.empty();
 		this.rowEls.clear();
 		this.stickyRowEls.clear();
@@ -1082,6 +1226,125 @@ export class UnifiedTreeView {
 		// Bound once with the scaffold: a click that reaches the viewport itself
 		// landed on none of the rows, because a row would have handled it.
 		this.containerEl.addEventListener('click', this._onViewportClick);
+		// U130 native polish: one owner-local keyboard boundary for this tree
+		// instance. Container-level, never document-global.
+		this.containerEl.addEventListener('keydown', this._onTreeKeyDown);
+		this._keyboardBoundaryOff = bindTreeKeyboardBoundary(this.containerEl, event => this._onTreeKeyDown(event, true));
+		this.containerEl.addEventListener('focusin', this._onTreeFocusIn);
+		this._containerWidth = this.containerEl.clientWidth;
+		this._ensureRowObserver();
+		// Theme/font changes arrive through the bridge rebuild, not scroll.
+		if (!this._geometryUnsubscribe) {
+			const doc = this.containerEl.ownerDocument;
+			if (doc) {
+				this._geometryUnsubscribe = onBridgeGeometryInvalidated(doc, () => {
+					this.invalidateRowGeometry();
+				});
+			}
+		}
+	}
+
+	/**
+	 * U130 native polish: a single ResizeObserver for mounted geometry only.
+	 * Row slots report their grouped entry heights (no per-row sync reads);
+	 * the container itself reports width changes, which invalidate cached
+	 * geometry while keeping the anchor node and its viewport position.
+	 */
+	private _ensureRowObserver(): void {
+		if (this._rowObserver) return;
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver((entries) => {
+			const anchor = this._heightIndex.anchorForOffset(this.containerEl.scrollTop);
+			let geometryMoved = false;
+			for (const entry of entries) {
+				const target = entry.target;
+				if (
+					!(target instanceof HTMLElement) ||
+					target.ownerDocument !== this.containerEl.ownerDocument ||
+					!target.isConnected
+				) {
+					observer.unobserve(target);
+					continue;
+				}
+				if (target === this.containerEl) {
+					this._handleContainerResize();
+					continue;
+				}
+				const key = target.dataset.id;
+				if (!key) continue;
+				if (this._heightIndex.setMeasured(key, readObserverEntryHeight(entry))) {
+					geometryMoved = true;
+				}
+			}
+			if (geometryMoved) {
+				if (anchor) {
+					const restored = this._heightIndex.offsetForAnchor(anchor);
+					if (restored !== null) this.containerEl.scrollTop = restored;
+				}
+				if (this._spacerEl) {
+					this._spacerEl.style.height = `${this._heightIndex.totalHeight()}px`;
+				}
+				this._scheduleWindowRender();
+			}
+		});
+		this._rowObserver = observer;
+		observer.observe(this.containerEl);
+	}
+
+	private _observeRow(rowEl: HTMLElement): void {
+		if (!this._nativeTreeEnabled()) {
+			this._unobserveRow(rowEl);
+			return;
+		}
+		this._rowObserver?.observe(rowEl, { box: 'border-box' });
+	}
+
+	private _invalidateRowMeasurements(): void {
+		this._heightIndex.invalidateAll();
+		// A cache reset needs fresh entries even when natural sizes are unchanged.
+		for (const row of this.rowEls.values()) {
+			this._unobserveRow(row);
+			this._observeRow(row);
+		}
+	}
+
+	private _unobserveRow(rowEl: HTMLElement): void {
+		this._rowObserver?.unobserve(rowEl);
+	}
+
+	private _handleContainerResize(): void {
+		const width = this.containerEl.clientWidth;
+		if (width === this._containerWidth) return;
+		// Width reflows wrapping/padding: drop cached heights but keep the
+		// anchor node exactly where the viewport points.
+		const anchor = this._heightIndex.anchorForOffset(this.containerEl.scrollTop);
+		this._containerWidth = width;
+		this._invalidateRowMeasurements();
+		if (anchor) {
+			const restored = this._heightIndex.offsetForAnchor(anchor);
+			if (restored !== null) this.containerEl.scrollTop = restored;
+		}
+		if (this._spacerEl) {
+			this._spacerEl.style.height = `${this._heightIndex.totalHeight()}px`;
+		}
+		this._scheduleWindowRender();
+	}
+
+	/** Invalidate cached row geometry, e.g. after a theme/font change. */
+	invalidateRowGeometry(): void {
+		syncNativeTreeIndentation(this.containerEl, this._opts?.nativeScene === 'files' && this._nativeTreeEnabled());
+		const anchor = this._heightIndex.anchorForOffset(this.containerEl.scrollTop);
+		this._heightIndex.setEstimate(this.rowHeight());
+		this._invalidateRowMeasurements();
+		if (anchor) {
+			const restored = this._heightIndex.offsetForAnchor(anchor);
+			if (restored !== null) this.containerEl.scrollTop = restored;
+		}
+		if (this._spacerEl) {
+			this._spacerEl.style.height = `${this._heightIndex.totalHeight()}px`;
+		}
+		this._cancelWindowRender();
+		this._renderWindow();
 	}
 
 	private readonly _onViewportClick = (event: MouseEvent): void => {
@@ -1089,6 +1352,213 @@ export class UnifiedTreeView {
 		if (!(target instanceof HTMLElement)) return;
 		if (target.closest('.vaultman-tree-row')) return;
 		this._opts?.onEmptySpaceClick?.();
+	};
+
+	/**
+	 * U130 native polish: homologous container anatomy. Compatible scenes
+	 * expose the native container class so unchanged themes/snippets match;
+	 * locked scenes (or scenes with no native counterpart) expose none. The
+	 * workspace `data-type` is never touched.
+	 */
+	private _applyNativeTreeCompat(): void {
+		const scene = this._opts?.nativeScene ?? null;
+		if (scene) this.containerEl.dataset.vaultmanNativeScene = scene;
+		else delete this.containerEl.dataset.vaultmanNativeScene;
+		const mode = resolveNativeCompatMode('tree', undefined, this._opts?.nativeCompat);
+		if (this.containerEl.classList.contains('vaultman-native-tree-compat') !== Boolean(scene && mode === 'compatible')) {
+			// Locked keeps the shipped density pitch, including its row gap.
+			this._invalidateRowMeasurements();
+		}
+		const previous = this.containerEl.dataset.vaultmanNativeContainer;
+		if (previous) {
+			this.containerEl.removeClass(previous);
+			delete this.containerEl.dataset.vaultmanNativeContainer;
+		}
+		this.containerEl.removeClass('vaultman-native-tree-compat');
+		this.containerEl.removeClass('vaultman-native-tree-locked');
+		// The scrollport doubles as the tab container: paint the independent
+		// container boundary here too, from the same effective policy.
+		const containerMode = resolveNativeCompatMode(
+			'container',
+			undefined,
+			this._opts?.nativeCompat,
+		);
+		this.containerEl.classList.remove('vaultman-native-container-compat');
+		this.containerEl.classList.remove('vaultman-native-container-locked');
+		this.containerEl.classList.add(`vaultman-native-container-${containerMode === 'compatible' ? 'compat' : 'locked'}`);
+		if (!scene || mode !== 'compatible') {
+			this.containerEl.addClass('vaultman-native-tree-locked');
+			syncNativeTreeIndentation(this.containerEl, false);
+			return;
+		}
+		const profile = NATIVE_TREE_PROFILES[scene];
+		this.containerEl.addClass('vaultman-native-tree-compat');
+		this.containerEl.addClass(profile.container);
+		this.containerEl.dataset.vaultmanNativeContainer = profile.container;
+		syncNativeTreeIndentation(this.containerEl, scene === 'files');
+	}
+
+	/** Whether this tree emits native row/self/label classes. */
+	private _nativeTreeEnabled(): boolean {
+		if (!this._opts?.nativeScene) return false;
+		return (
+			resolveNativeCompatMode('tree', undefined, this._opts?.nativeCompat) ===
+			'compatible'
+		);
+	}
+
+	private _profileForNode(node: TreeNode): {
+		row: readonly string[];
+		self: readonly string[];
+	} | null {
+		const scene = this._opts?.nativeScene;
+		if (!scene || !this._nativeTreeEnabled()) return null;
+		const profile = NATIVE_TREE_PROFILES[scene];
+		const isParent = Boolean(node.children?.length || node.showCaret || (scene === 'files' && hasNativeFolderIdentity(node.meta)));
+		return isParent
+			? { row: profile.parentRow, self: profile.parentSelf }
+			: { row: profile.leafRow, self: profile.leafSelf };
+	}
+
+	private _labelInnerClasses(node: TreeNode): string[] {
+		const scene = this._opts?.nativeScene;
+		if (!scene || !this._nativeTreeEnabled()) return [];
+		const profile = NATIVE_TREE_PROFILES[scene];
+		return [...(node.children?.length || node.showCaret || (scene === 'files' && hasNativeFolderIdentity(node.meta))
+			? profile.parentLabelInner ?? profile.labelInner : profile.labelInner)];
+	}
+
+	/** Display case for a label cell. Identities and inputs never pass here. */
+	private _displayLabel(label: string, cellId: string): string {
+		const mode = resolveTextCase(cellId, undefined, this._opts?.textCase);
+		return applyTextCase(label, mode);
+	}
+
+	private _keyboardBoundaryOff: (() => void) | null = null;
+	private _syncKeyboardModel(): void {
+		const expanded = this._opts?.expandedIds;
+		this._keyboard = {
+			rows: this._rows.map((node) => ({
+				id: node.id,
+				depth: node.depth,
+				hasChildren: Boolean(node.children?.length || node.showCaret),
+				isExpanded: expanded?.has(node.id) ?? false,
+			})),
+			focusedId:
+				this._keyboard.focusedId !== null &&
+				this._indexById.has(this._keyboard.focusedId)
+					? this._keyboard.focusedId
+					: null,
+			anchorId:
+				this._keyboard.anchorId !== null &&
+				this._indexById.has(this._keyboard.anchorId)
+					? this._keyboard.anchorId
+					: null,
+		};
+	}
+
+	private readonly _onTreeFocusIn = (event: FocusEvent): void => {
+		const target = event.target;
+		if (!(target instanceof HTMLElement)) return;
+		const row = target.closest('.vaultman-tree-row');
+		const id = row instanceof HTMLElement ? row.dataset.id : undefined;
+		if (!id || !this._indexById.has(id)) return;
+		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
+	};
+
+	private _keyboardCallbacks(): TreeKeyboardCallbacks {
+		return {
+			onFocus: (id) => {
+				this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
+				const row = this.rowEls.get(id);
+				if (row) {
+					this.scrollToId(id, 'nearest', 'auto');
+					this.rowEls.get(id)?.focus({ preventScroll: true });
+				} else {
+					this.scrollToId(id, 'nearest', 'auto');
+					this._treeWindow().requestAnimationFrame(() => {
+						this.rowEls.get(id)?.focus({ preventScroll: true });
+					});
+				}
+			},
+			onToggleExpand: (id) => {
+				this._opts?.onToggle(id);
+			},
+			onActivate: (id, modifiers) => {
+				const node = this._rows[this._indexById.get(id) ?? -1];
+				if (this._opts?.onKeyboardActivate) {
+					this._opts.onKeyboardActivate(id, modifiers);
+					return;
+				}
+				if (node?.isGroupHeader === true) {
+					this._activateGroupRow(node, this._opts as TreeViewOptions);
+					return;
+				}
+				// No cast: a keyboard activation is not a pointer event.
+				this._opts?.onRowClick(id);
+			},
+			onRangeSelect: (anchorId, focusId) => {
+				if (this._opts?.onRangeSelect) {
+					this._opts.onRangeSelect(anchorId, focusId);
+					return;
+				}
+				// Degraded: no scene range seam, focus still moves.
+				this._keyboardCallbacks().onFocus(focusId);
+			},
+			onClearSelection: () => {
+				if (this._opts?.onClearSelection) {
+					this._opts.onClearSelection();
+					return;
+				}
+				const active = this.containerEl.ownerDocument.activeElement;
+				if (active instanceof HTMLElement) active.blur();
+			},
+			onRename: (id) => {
+				this._opts?.onRenameRequest?.(id);
+			},
+			canRename: (id) => this._opts?.canRenameNode?.(id) === true,
+		};
+	};
+
+	private readonly _onTreeKeyDown = (event: KeyboardEvent, fromScope = false): boolean => {
+		if (!this._opts || event.isComposing || (!fromScope && event.defaultPrevented)) return false;
+		// Sticky twins duplicate mounted ids; the event's own row disambiguates.
+		// Duck-typed (no `instanceof HTMLElement`): the engine also runs
+		// under test doubles without DOM globals.
+		const maybeClosest = event.target as unknown as {
+			closest?: (selector: string) => HTMLElement | null;
+		} | null;
+		const rowEl =
+			maybeClosest !== null &&
+			typeof maybeClosest === 'object' &&
+			typeof maybeClosest.closest === 'function'
+				? maybeClosest.closest('.vaultman-tree-row')
+				: null;
+		if (isEditableKeyboardTarget(event.target, rowEl)) return false;
+		const modelRows: readonly TreeKeyboardRow[] = this._keyboard.rows.length
+			? this._keyboard.rows
+			: this._rows.map((node) => ({
+					id: node.id,
+					depth: node.depth,
+					hasChildren: Boolean(node.children?.length || node.showCaret),
+					isExpanded: this._opts?.expandedIds.has(node.id) ?? false,
+				}));
+		let focusedId = this._keyboard.focusedId;
+		if (focusedId === null && rowEl?.dataset.id) {
+			focusedId = rowEl.dataset.id;
+		}
+		const { handled, next } = handleTreeKeyboardKey(
+			event,
+			{ rows: modelRows, focusedId, anchorId: this._keyboard.anchorId },
+			this._keyboardCallbacks(),
+			this._opts.keyboardExtensions,
+		);
+		if (handled) {
+			event.preventDefault();
+			event.stopPropagation();
+			this._keyboard = next;
+		}
+		return handled;
 	};
 	/**
 	 * One perf action per gesture, not per event: scroll fires at the panel's
@@ -1127,35 +1597,31 @@ export class UnifiedTreeView {
 
 	private _scheduleWindowRender(): void {
 		if (this._pendingRaf !== null || this._pendingScrollTimer !== null) return;
+		const treeWindow = this._treeWindow();
 		const run = () => {
 			this._cancelWindowRender();
 			this._renderWindow();
 		};
-		this._pendingRaf = window.requestAnimationFrame(run);
-		this._pendingScrollTimer = window.setTimeout(run, 32);
+		this._pendingRaf = treeWindow.requestAnimationFrame(run);
+		this._pendingScrollTimer = treeWindow.setTimeout(run, 32);
 	}
 
 	private _cancelWindowRender(): void {
+		const treeWindow = this._treeWindow();
 		if (this._pendingRaf !== null) {
-			window.cancelAnimationFrame(this._pendingRaf);
+			treeWindow.cancelAnimationFrame(this._pendingRaf);
 		}
 		if (this._pendingScrollTimer !== null) {
-			window.clearTimeout(this._pendingScrollTimer);
+			treeWindow.clearTimeout(this._pendingScrollTimer);
 		}
 		this._pendingRaf = null;
 		this._pendingScrollTimer = null;
 	}
 
 	private _hasVisibleRenderedRows(): boolean {
-		if (this.rowEls.size === 0) return false;
-		const viewport = this.containerEl.getBoundingClientRect();
-		for (const row of this.rowEls.values()) {
-			const rect = row.getBoundingClientRect();
-			if (rect.bottom > viewport.top + 1 && rect.top < viewport.bottom - 1) {
-				return true;
-			}
-		}
-		return false;
+		// The virtual window owns the mounted set. Do not force layout on every
+		// scroll just to rediscover whether that set intersects the viewport.
+		return this.rowEls.size > 0;
 	}
 
 	private _renderWindow(): void {
@@ -1163,13 +1629,15 @@ export class UnifiedTreeView {
 		const started = performance.now();
 		const scrollTop = this.containerEl.scrollTop;
 		const viewportHeight = this.containerEl.clientHeight;
-		const rowHeight = this.rowHeight();
+		const rowHeight = this._heightIndex.getEstimate();
 		if (this._opts.stickyParentRows) this._applyStickyTopOffset();
-		const projection = buildVirtualTreeWindow({
+		// U130 native polish: variable-height window over the shared index.
+		// Offscreen rows keep estimates; mounted slots report real heights.
+		const projection = buildVariableTreeWindow({
 			rows: this._rows,
+			geometry: this._heightIndex,
 			scrollTop,
 			viewportHeight,
-			rowHeight,
 			overscan: this._overscan,
 		});
 		const visibleIds = new Set(
@@ -1181,6 +1649,9 @@ export class UnifiedTreeView {
 			const rowEl = this._renderRow(row.node, this._contentEl, this._opts);
 			rowEl.addClass('vaultman-tree-row--virtual');
 			rowEl.style.top = `${row.top}px`;
+			// Measured heights position rows; they must not pin their natural size.
+			rowEl.style.removeProperty('height');
+			this._observeRow(rowEl);
 		}
 		this._renderStickyRows(scrollTop, viewportHeight, rowHeight);
 		this._focusEditingRow(this._opts);
@@ -1201,6 +1672,8 @@ export class UnifiedTreeView {
 	): void {
 		for (const [id, row] of rowMap) {
 			if (visibleIds.has(id)) continue;
+			if (rowMap === this.rowEls) this._unobserveRow(row);
+			this._opts?.cellContributions?.unbind(row);
 			row.remove();
 			rowMap.delete(id);
 		}
@@ -1208,6 +1681,7 @@ export class UnifiedTreeView {
 
 	private _renderStickyRows(scrollTop: number, viewportHeight: number, rowHeight: number): void {
 		if (!this._stickyLayerEl || !this._opts?.stickyParentRows) {
+			if (this._contentEl) this._contentEl.style.clipPath = '';
 			this.removeStaleRows(new Set(), this.stickyRowEls);
 			this._syncStickyTwins(new Set());
 			return;
@@ -1219,12 +1693,23 @@ export class UnifiedTreeView {
 			maxFraction: this._opts?.stickyMaxFraction,
 			parentIndex: this._parentIndex ?? undefined,
 			subtreeEnd: this._subtreeEnd ?? undefined,
+			// U130 native polish: header tops and push-off edges agree with
+			// the same measured index the window and reveal math read.
+			variable: this._heightIndex,
 		});
 		const visibleIds = new Set(
 			stickyRows.map(({ index }) => this._rows[index]?.id).filter(Boolean),
 		);
 		this.removeStaleRows(visibleIds, this.stickyRowEls);
 		this._syncStickyTwins(visibleIds);
+		if (this._contentEl) {
+			const covered = stickyRows.reduce((bottom, sticky) => Math.max(bottom,
+				sticky.top + this._heightIndex.heightForIndex(sticky.index)), 0);
+			// Cut only scrolling rows out of the stack's band. The original
+			// container/theme background remains visible behind transparent headers.
+			this._contentEl.style.clipPath = covered > 0 && this._nativeTreeEnabled()
+				? `inset(${scrollTop + covered}px 0 0)` : '';
+		}
 		for (const [slot, sticky] of stickyRows.entries()) {
 			const node = this._rows[sticky.index];
 			if (!node) continue;
@@ -1242,12 +1727,8 @@ export class UnifiedTreeView {
 			row.toggleClass('is-stuck', slot === stickyRows.length - 1);
 			row.dataset.sticky = 'true';
 			row.style.top = `${sticky.top}px`;
-			// The stack steps by `rowHeight`, but a row's box is shorter than
-			// that: the remainder is its bottom margin, which inside the sticky
-			// layer becomes a slit of scrolling content between two headers.
-			// Height comes from the number that decides `top`, so the two
-			// cannot drift apart.
-			row.style.height = `${rowHeight}px`;
+			// Do not pin an intrinsic height on the sticky clone. Native/theme CSS
+			// must remain free to change its box; the index only positions slots.
 			// A pushed-off row travels up through the slots above it, so the
 			// shallower ancestor has to paint over it on the way out.
 			row.style.zIndex = `${stickyRows.length - slot}`;
@@ -1365,6 +1846,9 @@ export class UnifiedTreeView {
 			bubbleDot,
 			node.id,
 			node.label,
+			node.flatParentLabel ?? '',
+			node.flatOwnLabel ?? '',
+			opts.nativeRootColors?.get(node.flatParentLabel?.split('/')[0] ?? '') ?? '',
 			node.depth,
 			node.cls ?? '',
 			node.icon ?? '',
@@ -1398,6 +1882,9 @@ export class UnifiedTreeView {
 			opts.selectionCheckboxPosition ?? 'start',
 			badges,
 			cells,
+			opts.nativeScene ?? '',
+			opts.nativeCompat?.tree ?? '',
+			opts.textCase ? JSON.stringify(opts.textCase) : '',
 		].join('\u001f');
 	}
 
@@ -1438,6 +1925,7 @@ export class UnifiedTreeView {
 		cellId: string,
 		opts: TreeViewOptions,
 	): void {
+		projectTextCaseElement(element, opts.textCase?.[cellId] ?? 'provided');
 		if (opts.tooltipsEnabled === false) {
 			element.removeAttribute('title');
 			return;
@@ -1509,6 +1997,7 @@ export class UnifiedTreeView {
 		isSelected: boolean;
 	}): void {
 		row.toggleClass('mod-collapsible', showCaret);
+		row.toggleClass('is-collapsed', this._nativeTreeEnabled() && (hasChildren || showCaret) && !isExpanded);
 		row.toggleClass('vaultman-search-highlight', isHighlighted);
 		row.toggleClass('is-selected', isSelected);
 		const selectionCheckbox = row.querySelector<HTMLInputElement>(
@@ -1539,44 +2028,52 @@ export class UnifiedTreeView {
 	private applyCoreRowClasses(row: HTMLElement, node: TreeNode): void {
 		if (!node.coreCls) return;
 		for (const className of node.coreCls.trim().split(/\s+/)) {
+			// Legacy providers put native self classes on the old flat row.
+			// The homologous profile now owns them on the inner decoration box.
+			if (this._opts?.nativeScene && ['tree-item-self', 'nav-file-title', 'nav-folder-title'].includes(className)) continue;
 			if (className) row.addClass(className);
 		}
 	}
 
-	private _stickyRowsAbove(index: number, rowHeight: number): number {
-		if (!this._opts?.stickyParentRows || rowHeight <= 0) return 0;
+	/** Stacked header height above `index` (0 when sticky is off). */
+	private _stickyHeightAbove(index: number): number {
+		if (!this._opts?.stickyParentRows) return 0;
+		const rowHeight = this._heightIndex.getEstimate();
+		if (rowHeight <= 0) return 0;
 		const sticky = stickyTreeRows(this._rows, {
 			rowHeight,
-			scrollTop: index * rowHeight,
+			scrollTop: this._heightIndex.topForIndex(index),
 			viewportHeight: this.containerEl.clientHeight,
 			maxFraction: this._opts?.stickyMaxFraction,
 			parentIndex: this._parentIndex ?? undefined,
 			subtreeEnd: this._subtreeEnd ?? undefined,
+			variable: this._heightIndex,
 		}).filter((s) => s.index !== index);
-		return sticky.length;
+		return sticky.reduce(
+			(acc, s) => acc + this._heightIndex.heightForIndex(s.index),
+			0,
+		);
 	}
 
 	private _scrollTopForIndex(
 		index: number,
 		block: ScrollLogicalPosition,
 	): number {
-		const rowHeight = this.rowHeight();
-		const rowTop = index * rowHeight;
+		const rowHeight = this._heightIndex.heightForIndex(index);
+		const rowTop = this._heightIndex.topForIndex(index);
 		const rowBottom = rowTop + rowHeight;
 		const viewportHeight = this.containerEl.clientHeight;
 		const currentTop = this.containerEl.scrollTop;
 		const currentBottom = currentTop + viewportHeight;
 		let target = currentTop;
 		if (block === 'start') {
-			const stickyCount = this._stickyRowsAbove(index, rowHeight);
-			target = Math.max(0, (index - stickyCount) * rowHeight);
+			target = Math.max(0, rowTop - this._stickyHeightAbove(index));
 		} else if (block === 'end') {
 			target = rowBottom - viewportHeight;
 		} else if (block === 'nearest') {
-			const stickyCount = this._stickyRowsAbove(index, rowHeight);
-			const effectiveTop = currentTop + stickyCount * rowHeight;
+			const effectiveTop = currentTop + this._stickyHeightAbove(index);
 			if (rowTop < effectiveTop) {
-				target = Math.max(0, (index - stickyCount) * rowHeight);
+				target = Math.max(0, rowTop - this._stickyHeightAbove(index));
 			} else if (rowBottom > currentBottom) {
 				target = rowBottom - viewportHeight;
 			}
@@ -1585,7 +2082,7 @@ export class UnifiedTreeView {
 		}
 		const maxScroll = Math.max(
 			0,
-			this._rows.length * rowHeight - viewportHeight,
+			this._heightIndex.totalHeight() - viewportHeight,
 		);
 		return Math.max(0, Math.min(maxScroll, target));
 	}
@@ -1655,6 +2152,10 @@ export class UnifiedTreeView {
 			showCaretCell &&
 			opts.caretPosition !== 'hidden';
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
+		const showContributedIcon = showIcon &&
+			(opts.contributedIconScope === 'files' ? !hasNativeFolderIdentity(node.meta) :
+				opts.contributedIconScope === 'folders' ? hasNativeFolderIdentity(node.meta) : true);
+		const contributionVisibility = { icons: showContributedIcon, addons: !visibleCells || visibleCells.has('addons') };
 		const showLabel = visibleCells
 			? visibleCells.has('text') || visibleCells.has('name')
 			: true;
@@ -1690,10 +2191,28 @@ export class UnifiedTreeView {
 		// the leaf scheduled a viewport refresh that churned the row mid-press.
 		if (row.parentElement !== parent) parent.appendChild(row);
 		row.dataset.id = node.id;
+		this.applyDataPath(row, node);
+		if (opts.nativeScene === 'files' && this._nativeTreeEnabled()) {
+			const index = this._indexById.get(node.id);
+			let rootIndex = index;
+			while (rootIndex !== undefined && (this._parentIndex?.[rootIndex] ?? -1) >= 0) {
+				rootIndex = this._parentIndex?.[rootIndex];
+			}
+			const rootNode = rootIndex === undefined ? undefined : this._rows[rootIndex];
+			const rootPath = row.dataset.path?.split('/')[0];
+			const ordinal = opts.nativeRootOrdinal?.(rootPath ?? '') ?? this._nativeRootOrdinals.get(rootPath ?? (rootNode ? this.nodeDataPath(rootNode) ?? rootNode.id : ''));
+			const tokens = ordinal !== undefined
+				? getNativeRootNthTokens(this.containerEl.ownerDocument, ordinal) : '';
+			const root = String(row.dataset.path ? row.dataset.path === rootPath : index !== undefined && index === rootIndex);
+			if (row.dataset.vaultmanNativeRoot !== root) row.dataset.vaultmanNativeRoot = root;
+			if (row.dataset.vaultmanNativeRootNth !== tokens) row.dataset.vaultmanNativeRootNth = tokens;
+		} else {
+			delete row.dataset.vaultmanNativeRoot;
+			delete row.dataset.vaultmanNativeRootNth;
+		}
 		row.setAttribute('role', 'button');
 		row.setAttribute('aria-label', node.label);
 		row.tabIndex = 0;
-		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
 		const caretPos = opts.caretPosition ?? 'start';
 		const indentMode = opts.treeIndentMode ?? 'all';
@@ -1724,6 +2243,7 @@ export class UnifiedTreeView {
 		// Carets removed from start (end or hidden), or indent toggled off
 		// with mode 'all' or 'parent' for non-caret rows, removes the 24px start gutter.
 		const removeStartParentIndent =
+			!showCaretCell ||
 			caretPos === 'end' ||
 			caretPos === 'hidden' ||
 			(effectiveIndent === false &&
@@ -1733,10 +2253,12 @@ export class UnifiedTreeView {
 		if (removeStartParentIndent) {
 			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-start': 'var(--size-4-1)',
+				'--vaultman-native-row-padding-start': 'var(--size-4-1)',
 			});
 		} else {
 			setRowCssProps(row, {
 				'--vaultman-tree-row-padding-start': '',
+				'--vaultman-native-row-padding-start': '',
 			});
 		}
 
@@ -1777,16 +2299,12 @@ export class UnifiedTreeView {
 			}
 			opts.onRowClick(node.id, event);
 		};
-		row.onkeydown = (event) => {
-			if (event.target !== row) return;
-			if (event.key !== 'Enter' && event.key !== ' ') return;
-			event.preventDefault();
-			if (node.isGroupHeader === true) {
-				this._activateGroupRow(node, opts);
-				return;
-			}
-			opts.onRowClick(node.id, event as unknown as MouseEvent);
-		};
+		// U130 native polish: keyboard lives on the owner-local container
+		// boundary (`_onTreeKeyDown`), which owns Up/Down/Shift/Left/Right/
+		// Enter/Space/Escape/F2 plus the extension seam. A per-row keydown
+		// would double-handle every keystroke and has no range context.
+		// A KeyboardEvent is never cast to a MouseEvent on any path.
+		row.onkeydown = null;
 		row.ondblclick = opts.onRowDoubleClick || opts.onRecursiveSelect
 			? (event) => {
 					if (this._recursiveExpandGesture.isActivationSuppressed()) {
@@ -1873,11 +2391,39 @@ export class UnifiedTreeView {
 				isSelected,
 			});
 			row.toggleClass('is-active', this._activeId === node.id);
+			// U130 native polish: rows painted before the slot/self split
+			// have no self; the markup version bump repaints them below.
+			const fastSelf = row.querySelector<HTMLElement>(
+				':scope > .vaultman-tree-self',
+			);
+			fastSelf?.toggleClass('is-active', this._activeId === node.id);
+			fastSelf?.toggleClass('is-selected', isSelected);
+			fastSelf?.toggleClass('is-editing', opts.editingId === node.id);
+			fastSelf?.toggleClass('is-being-renamed', this._nativeTreeEnabled() && opts.editingId === node.id);
+			opts.cellContributions?.bind(row, this._nativeTreeEnabled(), contributionVisibility);
 			return row;
 		}
 		row.empty();
 		row.className = 'vaultman-tree-row';
+		// U130 native polish: the slot owns absolute position and observer
+		// geometry only. Homologous native row classes land here so
+		// descendant selectors match; decoration lives on the inner self.
+		const nativeProfile = this._profileForNode(node);
+		if (nativeProfile) {
+			for (const cls of nativeProfile.row) row.addClass(cls);
+		}
 		row.dataset.renderSignature = signature;
+		// Inner native decoration container: `tree-item-self` + the scene
+		// profile, so unchanged themes/snippets match and their `::before`
+		// active decoration has a free pseudo-element on both levels.
+		const self = row.createDiv({ cls: 'vaultman-tree-self' });
+		if (nativeProfile) {
+			for (const cls of nativeProfile.self) self.addClass(cls);
+		}
+		// Ancestry guides are a structural element, never a native row
+		// pseudo-element, so native `::before` decorations survive.
+		const guides = row.createSpan({ cls: 'vaultman-tree-guides' });
+		guides.setAttribute('aria-hidden', 'true');
 		// The Files explorer colors label and icon together, so a glyph color
 		// always arrives as a labelColor there. The panel explorers color the
 		// glyph alone — Iconic and the addon icon overrides only ever set
@@ -1896,19 +2442,27 @@ export class UnifiedTreeView {
 			for (const c of node.cls.trim().split(/\s+/)) row.addClass(c);
 		}
 		row.toggleClass('is-active', this._activeId === node.id);
+		row.toggleClass('is-collapsed', Boolean(nativeProfile) && (hasChildren || showCaret) && !isExpanded);
 		if (isActive) row.addClass('is-active-filter');
 		if (isExcluded) row.addClass('is-excluded-filter');
 		if (highlight.hover) row.addClass('is-explorer-hover-highlight');
 		if (highlight.deletion) row.addClass('is-deletion-highlight');
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (isEditing) row.addClass('is-editing');
+		// Mirror interaction states onto the native self so theme selectors
+		// like `.tree-item-self.is-active` match without Vaultman prefixes.
+		self.toggleClass('is-active', this._activeId === node.id);
+		self.toggleClass('is-selected', isSelected);
+		self.toggleClass('is-editing', isEditing);
+		self.toggleClass('is-being-renamed', Boolean(nativeProfile) && isEditing);
+		self.toggleClass('mod-collapsible', showCaret);
 
 		rowMap.set(node.id, row);
 
 		const emitSelectionCheckbox = (position: 'start' | 'end'): void => {
 			if (!opts.onSelectionToggle || !isNodeSelectable) return;
 			if (visibleCells && !visibleCells.has('checkbox')) return;
-			const checkbox = row.createEl('input', {
+			const checkbox = self.createEl('input', {
 				type: 'checkbox',
 				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,
 				attr: { 'aria-label': `Select ${node.label}` },
@@ -1959,7 +2513,7 @@ export class UnifiedTreeView {
 
 		const emitCaret = (position: 'start' | 'end'): void => {
 			if (!showCaret) return;
-			const toggleEl = row.createDiv({
+			const toggleEl = self.createDiv({
 				cls: `vaultman-tree-toggle tree-item-icon collapse-icon vaultman-tree-caret--${position}`,
 			});
 			setIcon(toggleEl, 'right-triangle');
@@ -1998,20 +2552,52 @@ export class UnifiedTreeView {
 			const iconSpan = parent.createSpan({ cls: 'vaultman-tree-icon' });
 			renderIconValue(iconSpan, node.icon, node.iconColor);
 		};
-		const emitLabel = (parent: HTMLElement): void => {
+		const emitLabel = (parent: HTMLElement, cellId = 'text'): void => {
 			if (!showLabel) return;
-			if (opts.renderLabel?.(parent, node)) return;
-			const label = parent.createSpan({
-				cls: 'vaultman-tree-label',
-				text: node.label,
+			const target = flatTreeLabelTarget(parent, node);
+			const host = target.host;
+			if (host !== parent) {
+				host.toggleClass('vaultman-tree-flat-file', opts.nativeScene === 'files' && !hasNativeFolderIdentity(node.meta));
+				const context = host.querySelector<HTMLElement>('.vaultman-tree-flat-parent');
+				if (context) {
+					const color = this._nativeTreeEnabled() ? opts.nativeRootColors?.get(node.flatParentLabel?.split('/')[0] ?? '') : undefined;
+					if (color) context.style.color = color;
+					context.dataset.cell = opts.nativeScene === 'files' ? 'path' : 'parent';
+					projectTextCaseElement(context, resolveTextCase(context.dataset.cell, undefined, opts.textCase));
+				}
+			}
+			const mode = resolveTextCase(host !== parent && (cellId === 'path' || cellId === 'parent') ? 'name' : cellId, undefined, opts.textCase);
+			if (opts.renderLabel?.(host, target.node)) {
+				// Scene-owned markup: adopt the inner native classes on its
+				// label spans and project display case over text nodes only.
+				// Markup, actions and inputs survive; aria/input keep the
+				// provided spelling.
+				const inner = this._labelInnerClasses(node);
+				if (inner.length > 0 || mode !== 'provided') {
+					for (const el of host.querySelectorAll(
+						':scope > span.vaultman-tree-label',
+					)) {
+						if (!(el instanceof HTMLElement)) continue;
+						for (const cls of inner) el.addClass(cls);
+						projectTextCaseElement(el, mode);
+					}
+				}
+				return;
+			}
+			// Inner native label classes free `::before` for the native
+			// active decoration; text-case is display-only (aria/input keep
+			// the provided spelling).
+			const label = host.createSpan({
+				cls: ['vaultman-tree-label', ...this._labelInnerClasses(node)].join(' '),
+				text: applyTextCase(target.node.label, mode),
 			});
 			if (node.labelColor) label.style.color = node.labelColor;
 		};
-		const emitType = (parent: HTMLElement): void => {
+		const emitType = (parent: HTMLElement, cellId = visibleCells?.has('ext') ? 'ext' : 'type'): void => {
 			if (!showType || !node.typeText) return;
 			parent.createSpan({
 				cls: 'vaultman-tree-type nav-file-tag',
-				text: node.typeText,
+				text: this._displayLabel(node.typeText, cellId),
 			});
 		};
 		// U121-027: the three date cells share one class, so `data-cell` gives
@@ -2079,7 +2665,7 @@ export class UnifiedTreeView {
 			});
 			this.applyCellTooltip(cell, 'count', opts);
 		};
-		const cellEmitters: Record<string, (parent: HTMLElement) => void> = {
+		const cellEmitters: Record<string, (parent: HTMLElement, cellId?: string) => void> = {
 			icon: emitIcon,
 			name: emitLabel,
 			text: emitLabel,
@@ -2117,19 +2703,19 @@ export class UnifiedTreeView {
 		const usesActivationOrder = Boolean(activationOrder?.length) && !isEditing;
 		if (usesActivationOrder) {
 			row.addClass('vaultman-tree-row--activation-order');
-			const emitted = new Set<(parent: HTMLElement) => void>();
+			const emitted = new Set<(parent: HTMLElement, cellId?: string) => void>();
 			for (const cellId of activationOrder ?? []) {
 				const emit = cellEmitters[cellId];
 				// Aliases (name/text/path) share one emitter; never emit twice.
 				if (!emit || emitted.has(emit)) continue;
 				emitted.add(emit);
-				emit(row);
+				emit(self, cellId);
 			}
 		}
 
 		// Icon
 		if (!usesActivationOrder && node.icon && showIcon) {
-			const iconSpan = row.createSpan({ cls: 'vaultman-tree-icon' });
+			const iconSpan = self.createSpan({ cls: 'vaultman-tree-icon' });
 			renderIconValue(iconSpan, node.icon, node.iconColor);
 		}
 
@@ -2138,7 +2724,7 @@ export class UnifiedTreeView {
 			const initialValue = opts.getEditingValue
 				? opts.getEditingValue(node)
 				: (node.label === 'empty' ? '' : node.label);
-			const input = row.createEl('input', {
+			const input = self.createEl('input', {
 				cls: 'vaultman-tree-input',
 				value: initialValue,
 			});
@@ -2199,7 +2785,7 @@ export class UnifiedTreeView {
 			});
 
 			if (opts.onOpenRichRename) {
-				const btn = row.createSpan({ cls: 'vaultman-tree-rename-rich-btn clickable-icon', attr: { 'aria-label': 'Open detailed rename' } });
+				const btn = self.createSpan({ cls: 'vaultman-tree-rename-rich-btn clickable-icon', attr: { 'aria-label': 'Open detailed rename' } });
 				setIcon(btn, 'lucide-maximize-2');
 				btn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent input blur
 				btn.addEventListener('click', (e) => {
@@ -2215,7 +2801,7 @@ export class UnifiedTreeView {
 			) {
 				const range = node.counterRange;
 				const mode = this._editingCounterRange?.mode ?? 'adjust';
-				const editor = row.createSpan({
+				const editor = self.createSpan({
 					cls: 'vaultman-counter-range-editor',
 					attr: { role: 'group', 'aria-label': node.label },
 				});
@@ -2369,24 +2955,16 @@ export class UnifiedTreeView {
 						if (!done && !editor.contains(editor.ownerDocument.activeElement)) commit();
 					});
 				});
-				row.createSpan({
+				self.createSpan({
 					cls: 'vaultman-cell-text-status',
 					text: mode === 'slice' ? 'Slice' : 'Adjust',
 				});
 				return row;
 			}
-			if (opts.renderLabel?.(row, node)) {
-				// Custom renderer emitted the complete label cell.
-			} else {
-				const label = row.createSpan({
-					cls: 'vaultman-tree-label',
-					text: node.label,
-				});
-				if (node.labelColor) label.style.color = node.labelColor;
-			}
+			emitLabel(self, visibleCells?.has('name') ? 'name' : visibleCells?.has('path') ? 'path' : 'text');
 		}
 
-		if (!usesActivationOrder) emitType(row);
+		if (!usesActivationOrder) emitType(self);
 
 		// Multi-zone Badges container
 		if (
@@ -2406,7 +2984,7 @@ export class UnifiedTreeView {
 			node.bubbleDot ||
 			hasFilterBubbleDot
 		) {
-			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+			const badgeZone = self.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
 			if (!usesActivationOrder) {
 				emitDate(
@@ -2538,6 +3116,7 @@ export class UnifiedTreeView {
 		// each partially built row (and forcing layout between DOM writes).
 		row.style.removeProperty('--vaultman-tree-guide-start');
 
+		opts.cellContributions?.bind(row, this._nativeTreeEnabled(), contributionVisibility);
 		return row;
 	}
 

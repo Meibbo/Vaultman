@@ -161,6 +161,10 @@
 		type GroupPreset,
 	} from '../../types/typeGroupPreset';
 	import {
+		applyNativeCompatClasses,
+		resolveNativeCompatMode,
+	} from '../../logic/logicNativeTreeCompat';
+	import {
 		openGroupSuggesterModal,
 		planGroupMembershipBatch,
 	} from '../../modals/modalGroupSuggester';
@@ -385,6 +389,7 @@
 		toolbarShown = true,
 		autoRevealGlobal = false,
 		taskCellDisplayGlobal = 'done-total' as TaskCellDisplayMode,
+		globalNativeCompat = {},
 		savedLayouts = [],
 		onSaveLayout,
 		onLayoutLoaded,
@@ -989,6 +994,66 @@
 							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
 						).base + 1
 					: (levelOfScope(cursor) ?? undefined);
+		const effectivePreset = resolveScopeSet(
+			scopeState,
+			{ level, parentId },
+			{ groupPreset: { kind: 'none', direction: 'asc' } },
+		).groupPreset ?? { kind: 'none', direction: 'asc' };
+		const sortState = { ...currentSort, scopeState };
+		commitConfig(tab, { sortState, groupPreset: effectivePreset });
+		applySortState(tab, sortState);
+		applyGroupPreset(tab, effectivePreset);
+	}
+
+	/**
+	 * U130 native polish: flip name+range vs names-only for one scope
+	 * target. Mirrors `setCounterRangesFor`: same scope resolution, same
+	 * commit road; only the presentation bit changes, bounds/names/order
+	 * ride along untouched.
+	 */
+	function setPartitionPresentationFor(
+		tab: FiltersTab,
+		presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+		target: ScopeTarget,
+	): void {
+		const currentSort = normalizeSortState(
+			tab,
+			sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
+		const scopeState = currentSort.scopeState
+			? cloneScopeState(currentSort.scopeState)
+			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
+		const targetParentId = parentOfScope(target);
+		const targetLevel = target === 'all'
+			? undefined
+			: targetParentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0).base + 1
+				: (levelOfScope(target) ?? undefined);
+		const preset =
+			scopeState.sets[target]?.groupPreset ??
+			resolveScopeSet(
+				scopeState,
+				{ level: targetLevel, parentId: targetParentId },
+				{ groupPreset: { kind: 'none', direction: 'asc' } },
+			).groupPreset;
+		if (!preset || preset.kind === 'none') return;
+		scopeState.sets[target] = {
+			...(scopeState.sets[target] ?? {}),
+			groupPreset: {
+				...cloneGroupPreset(preset),
+				partitionPresentation: presentation,
+			},
+		};
+		const cursor = storageScope(
+			currentSort,
+			currentSort.activeScope,
+		) as ScopeTarget;
+		const parentId = parentOfScope(cursor);
+		const level = cursor === 'all'
+			? undefined
+			: parentId
+				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
+				: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -2408,6 +2473,15 @@
 			indent?: boolean;
 			/** U130 polishing: view_option `tooltips`, per_instance. */
 			tooltips?: boolean;
+			/** U130 native polish: resolved per-cell display case (global + scene). */
+			textCase?: Record<string, import('../../logic/logicTextCaseProjection').TextCaseOption>;
+			/** U130 native polish: compatible/locked policy per boundary. */
+			nativeCompat?: Partial<
+				Record<
+					'tree' | 'toolbar' | 'container' | 'menu',
+					import('../../logic/logicNativeTreeCompat').NativeCompatMode
+				>
+			>;
 			groupPreset?: GroupPreset;
 			hiddenGroupIds?: readonly string[];
 			/** U130-09: the custom groups of this scene (`SceneConfig.groupMemberships`). */
@@ -2448,6 +2522,8 @@
 					...(config.tooltips !== undefined
 						? { tooltips: config.tooltips }
 						: {}),
+					...(config.textCase ? { textCase: config.textCase } : {}),
+					...(config.nativeCompat ? { nativeCompat: config.nativeCompat } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2468,6 +2544,8 @@
 					applyCompactFolders(tab, config.compactFolders);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
+				if (config.textCase) applyTextCase(tab, config.textCase);
+				if (config.nativeCompat) applyNativeCompat(tab, config.nativeCompat);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2495,6 +2573,8 @@
 					...(config.tooltips !== undefined
 						? { tooltips: config.tooltips }
 						: {}),
+					...(config.textCase ? { textCase: config.textCase } : {}),
+					...(config.nativeCompat ? { nativeCompat: config.nativeCompat } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2513,6 +2593,8 @@
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
+				if (config.textCase) applyTextCase(tab, config.textCase);
+				if (config.nativeCompat) applyNativeCompat(tab, config.nativeCompat);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2538,6 +2620,8 @@
 					...(config.tooltips !== undefined
 						? { tooltips: config.tooltips }
 						: {}),
+					...(config.textCase ? { textCase: config.textCase } : {}),
+					...(config.nativeCompat ? { nativeCompat: config.nativeCompat } : {}),
 					...(config.groupPreset ? { groupPreset: config.groupPreset } : {}),
 					...(config.hiddenGroupIds
 						? { hiddenGroupIds: config.hiddenGroupIds }
@@ -2556,6 +2640,8 @@
 					applyStickyRows(tab, config.stickyRows);
 				if (config.indent !== undefined) applyIndent(tab, config.indent);
 				if (config.tooltips !== undefined) applyTooltips(tab, config.tooltips);
+				if (config.textCase) applyTextCase(tab, config.textCase);
+				if (config.nativeCompat) applyNativeCompat(tab, config.nativeCompat);
 				if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 				if (config.hiddenGroupIds)
 					applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2576,6 +2662,8 @@
 			if (config.interactionMode)
 				applyInteractionMode(tab, config.interactionMode);
 			if (config.indent !== undefined) applyIndent(tab, config.indent);
+			if (config.textCase) applyTextCase(tab, config.textCase);
+			if (config.nativeCompat) applyNativeCompat(tab, config.nativeCompat);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -2592,6 +2680,8 @@
 			if (config.interactionMode)
 				applyInteractionMode(tab, config.interactionMode);
 			if (config.indent !== undefined) applyIndent(tab, config.indent);
+			if (config.textCase) applyTextCase(tab, config.textCase);
+			if (config.nativeCompat) applyNativeCompat(tab, config.nativeCompat);
 			if (config.groupPreset) applyGroupPreset(tab, config.groupPreset);
 			if (config.hiddenGroupIds)
 				applyHiddenGroupIds(tab, config.hiddenGroupIds);
@@ -3147,6 +3237,8 @@
 				onClick: () => toggleTooltipsFor(activeTab),
 			}),
 		);
+		// Presentation actions are indexed in SASI, not projected into this
+		// menu until the multi-axis scope contract and per-instance UX exist.
 		if (nestedAct && activeTab === 'files') {
 			const effectiveOptions = effectiveEngineOptionsFor(activeTab);
 			const parentsFirst =
@@ -4103,6 +4195,27 @@
 		explorerPortForTab(tab)?.setTooltipsEnabled?.(enabled);
 	}
 
+	/** U130 native polish: resolved per-cell display case → scene port. */
+	function applyTextCase(
+		tab: FiltersTab,
+		textCase: Record<string, import('../../logic/logicTextCaseProjection').TextCaseOption>,
+	) {
+		explorerPortForTab(tab)?.setTextCase?.(textCase);
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary → scene port. */
+	function applyNativeCompat(
+		tab: FiltersTab,
+		policy: Partial<
+			Record<
+				'tree' | 'toolbar' | 'container' | 'menu',
+				import('../../logic/logicNativeTreeCompat').NativeCompatMode
+				>
+		>,
+	) {
+		explorerPortForTab(tab)?.setNativeCompat?.(policy);
+	}
+
 	function toggleTooltipsFor(tab: FiltersTab) {
 		const next = !tooltipsEnabledFor(tab);
 		commitConfig(tab, { tooltips: next });
@@ -4113,6 +4226,19 @@
 	// los nodos del toolbar siguen al override per-instance; los aria-label
 	// (a11y) no se tocan.
 	const toolbarTooltipsEnabled = $derived(tooltipsEnabledFor(activeTab));
+
+	// U130 native polish: the toolbar boundary of the active scene paints
+	// itself compatible (native selectors match) or locked (Vaultman kept).
+	$effect(() => {
+		if (!navbarEl) return;
+		navbarEl.dataset.vaultmanNativeScene = activeTab;
+		const policy = configByTab[activeTab]?.nativeCompat;
+		applyNativeCompatClasses(
+			navbarEl,
+			'toolbar',
+			resolveNativeCompatMode('toolbar', globalNativeCompat, policy),
+		);
+	});
 	function toolbarNodeTitle(label: string | undefined): string | undefined {
 		if (minimalStyle || !toolbarTooltipsEnabled) return undefined;
 		return label;
@@ -4726,6 +4852,9 @@
 		);
 		port?.setCounterRangesChangeHandler?.((ranges, target) =>
 			setCounterRangesFor(tab, ranges, target),
+		);
+		port?.setPartitionPresentationChangeHandler?.((presentation, target) =>
+			setPartitionPresentationFor(tab, presentation, target),
 		);
 		if (tab === 'props' && propExplorer) {
 			propExplorer.setInteractionModeChangeHandler?.((mode) => {
