@@ -552,10 +552,10 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.state',
 		icon: 'lucide-toggle-right',
 		sortId: 'state',
-		supports: [
-			{ explorer: 'snippets', fixedRank: 40, defaultOn: true },
-			{ explorer: 'plugins', fixedRank: 40, defaultOn: true },
-		],
+			supports: [
+				{ explorer: 'snippets', fixedRank: 40, defaultOn: true },
+				{ explorer: 'plugins', fixedRank: 40, defaultOn: true },
+			],
 	},
 	{
 		id: 'config',
@@ -563,6 +563,14 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		labelKey: 'viewmode.pill.config',
 		icon: 'lucide-settings',
 		supports: [{ explorer: 'plugins', fixedRank: 50, defaultOn: true }],
+	},
+	{
+		id: 'cell_update',
+		role: 'control',
+		labelKey: 'viewmode.pill.cell_update',
+		icon: 'lucide-download',
+		sortId: 'cell_update',
+		supports: [{ explorer: 'plugins', fixedRank: 50, defaultOn: false }],
 	},
 	{
 		id: 'installed',

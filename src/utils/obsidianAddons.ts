@@ -18,6 +18,7 @@ interface ObsidianCommunityPluginManifest {
 	id: string;
 	name: string;
 	version?: string;
+	fundingUrl?: string;
 	author?: string;
 	description?: string;
 	isDesktopOnly?: boolean;
@@ -25,6 +26,7 @@ interface ObsidianCommunityPluginManifest {
 
 interface ObsidianCommunityPluginManager {
 	manifests?: Record<string, ObsidianCommunityPluginManifest>;
+	updates?: Record<string, { version?: string }>;
 	enabledPlugins?: Set<string>;
 	plugins?: Record<string, { _loaded?: boolean }>;
 	enablePluginAndSave?: (id: string) => MaybePromise<void>;
@@ -75,6 +77,7 @@ export interface CommunityPluginEntry {
 	loaded: boolean;
 	installedTime?: number;
 	updatedTime?: number;
+	fundingUrl?: string;
 }
 
 interface AddonFileTimes {
@@ -136,7 +139,7 @@ export function communityPluginStateSignature(app: App): string {
 	const enabled = manager?.enabledPlugins ?? new Set<string>();
 	return Object.keys(manifests)
 		.sort()
-		.map((id) => `${id}:${enabled.has(id) ? 1 : 0}`)
+		.map((id) => `${id}:${enabled.has(id) ? 1 : 0}:${manifests[id]?.version ?? ''}:${manager?.updates?.[id]?.version ?? ''}`)
 		.join('|');
 }
 
@@ -211,6 +214,7 @@ export async function listCommunityPluginEntries(
 				pluginId: manifest.id,
 				name: manifest.name,
 				version: manifest.version,
+				fundingUrl: manifest.fundingUrl,
 				author: manifest.author,
 				description: manifest.description,
 				isDesktopOnly: manifest.isDesktopOnly,

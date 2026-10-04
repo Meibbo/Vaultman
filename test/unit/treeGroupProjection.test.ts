@@ -772,7 +772,13 @@ describe('resolveCustomGroups', () => {
 				filtered: false,
 				preset: { kind: 'note', direction: 'asc' },
 				sortByNote: true,
-				memberKeyOf: (n: any) => n.meta?.propName ?? n.label,
+				memberKeyOf: (n: TreeNode<unknown>) => {
+					const meta: unknown = n.meta;
+					const propName = typeof meta === 'object' && meta !== null && 'propName' in meta && typeof meta.propName === 'string'
+						? meta.propName
+						: undefined;
+					return propName ?? n.label;
+				},
 			});
 			expect(asc[0]?.children?.map((c) => c.label)).toEqual(['Status', 'Type']);
 
@@ -789,7 +795,13 @@ describe('resolveCustomGroups', () => {
 				filtered: false,
 				preset: { kind: 'note', direction: 'desc' },
 				sortByNote: true,
-				memberKeyOf: (n: any) => n.meta?.propName ?? n.label,
+				memberKeyOf: (n: TreeNode<unknown>) => {
+					const meta: unknown = n.meta;
+					const propName = typeof meta === 'object' && meta !== null && 'propName' in meta && typeof meta.propName === 'string'
+						? meta.propName
+						: undefined;
+					return propName ?? n.label;
+				},
 			});
 			expect(desc[0]?.children?.map((c) => c.label)).toEqual(['Type', 'Status']);
 		});

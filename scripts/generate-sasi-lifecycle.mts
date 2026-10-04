@@ -20,7 +20,7 @@ function keys(text: string): Set<string> {
 		const value = match[1];
 		if (!value) continue;
 		const key = value.includes('${') ? value.slice(0, value.indexOf('${')) : value;
-		if (!/^[a-zA-Z][a-zA-Z0-9_.:\/-]*$/.test(key)) continue;
+		if (!/^[a-zA-Z][a-zA-Z0-9_.:/-]*$/.test(key)) continue;
 		const before = text.slice(Math.max(0, (match.index ?? 0) - 30), match.index);
 		if (/^(vaultman\.|chrome:|view_menu[.:]|sort_menu[.:]|scene_menu[.:]|node_|cell_|panel|settings-|barTransaction|searchbox|apply-queue$|open$|open-updates$|focus-)/.test(key) || /\bid\s*:\s*$/.test(before)) result.add(key);
 	}

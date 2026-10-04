@@ -425,7 +425,7 @@
 				<div class="vaultman-sort-vertcol-drawer">
 					<!-- Spec 08 §3.1: `Scope: <variable>` — All levels / Select a parent /
 					     Select a level, then the parents and levels with their own sort. -->
-					{#each scopeModel?.items ?? [] as opt (opt.id)}
+					{#each scopeModel?.items ?? [] as opt (opt.kind + ':' + opt.id)}
 						{#if opt.kind === 'separator'}
 							<div
 								class="vaultman-sort-drawer-separator"

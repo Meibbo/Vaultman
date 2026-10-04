@@ -139,14 +139,14 @@ class TinyElement {
 		const classes = selector
 			.split(',')
 			.map((s) => s.trim().replace(/^\./, ''));
-		let current: TinyElement | null = this;
-		while (current) {
+		const findAncestor = (node: TinyElement | null): TinyElement | null => {
+			if (!node) return null;
 			for (const cls of classes) {
-				if (cls && current.classList.contains(cls)) return current;
+				if (cls && node.classList.contains(cls)) return node;
 			}
-			current = current.parentElement;
-		}
-		return null;
+			return findAncestor(node.parentElement);
+		};
+		return findAncestor(this);
 	}
 
 	empty(): void {

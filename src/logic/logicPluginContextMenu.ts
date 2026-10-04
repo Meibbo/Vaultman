@@ -14,10 +14,13 @@ import {
 import {
 	canToggleCommunityPlugin,
 	canUninstallCommunityPlugin,
+	openPluginSettings,
+	pluginSettingTabIds,
 	toggleCommunityPlugin,
 } from './logicAddonCells';
 import type { PluginMeta } from '../types/typeTree';
-import type { App } from 'obsidian';
+import { Notice, type App } from 'obsidian';
+import { nativeCommunityPluginAction } from './logicPluginNativeActions';
 
 interface InternalApp extends App {
 	plugins?: {
@@ -27,6 +30,104 @@ interface InternalApp extends App {
 
 export function registerPluginActions(plugin: VaultmanPlugin): void {
 	const svc = plugin.contextMenuService;
+
+	svc.registerAction({
+		id: 'plugin.config',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.open_settings'),
+		icon: 'lucide-settings',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return meta ? pluginSettingTabIds(plugin.app).has(meta.pluginId) : false;
+		},
+		run: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (meta) openPluginSettings(plugin.app, meta.pluginId);
+		},
+	});
+
+	svc.registerAction({
+		id: 'plugin.update',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.update'),
+		icon: 'lucide-download',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return meta ? plugin.pluginUpdatesService.getPluginUpdate(meta.pluginId) !== undefined : false;
+		},
+		run: async (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (!meta) return;
+			const result = await plugin.pluginUpdatesService.updatePlugin(meta.pluginId);
+			if (result.status !== 'success') new Notice(result.message ?? translate('addons.update_failed'));
+		},
+	});
+
+	svc.registerAction({
+		id: 'plugin.view-details',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.view_details'),
+		icon: 'lucide-info',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return !!meta && !!nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-info');
+		},
+		run: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (meta) nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-info')?.();
+		},
+	});
+
+	svc.registerAction({
+		id: 'plugin.community-page',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.community_page'),
+		icon: 'lucide-external-link',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return !!meta && !!nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-globe');
+		},
+		run: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (meta) nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-globe')?.();
+		},
+	});
+
+	svc.registerAction({
+		id: 'plugin.donate',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.donate'),
+		icon: 'lucide-heart-handshake',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return !!meta && !!nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-heart');
+		},
+		run: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (meta) nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-heart')?.();
+		},
+	});
+
+	svc.registerAction({
+		id: 'plugin.reveal',
+		nodeTypes: ['plugin'],
+		surfaces: ['panel'],
+		label: () => translate('addons.reveal'),
+		icon: 'lucide-folder-open',
+		when: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			return !!meta && !!nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-folder-open');
+		},
+		run: (ctx) => {
+			const meta = ctx.node?.meta as PluginMeta | undefined;
+			if (meta) nativeCommunityPluginAction(plugin.app, meta.pluginId, 'lucide-folder-open')?.();
+		},
+	});
 
 	svc.registerAction({
 		id: 'plugin.change-icon',

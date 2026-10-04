@@ -46,6 +46,10 @@ export interface PluginUpdateAdapter {
 	getInstalledVersion(id: string): string | undefined | Promise<string | undefined>;
 }
 
+export interface PluginUpdateRunOptions {
+	selfUpdateId?: string;
+}
+
 type QueuePolicyDecision =
 	| { kind: 'accept' }
 	| { kind: 'duplicate' }
@@ -396,11 +400,17 @@ export class OperationQueueService extends Component {
 	runPluginUpdates(
 		items: readonly PluginUpdateItem[],
 		adapter: PluginUpdateAdapter,
+		options: PluginUpdateRunOptions = {},
 	): Promise<PluginUpdateBatchResult> {
 		if (this.pluginUpdateRun) return this.pluginUpdateRun;
 
 		this.pluginUpdateItems = [...items]
-			.sort((a, b) => a.id.localeCompare(b.id))
+			.sort((a, b) => {
+				const aIsSelf = options.selfUpdateId === a.id;
+				const bIsSelf = options.selfUpdateId === b.id;
+				if (aIsSelf !== bIsSelf) return aIsSelf ? 1 : -1;
+				return a.id.localeCompare(b.id);
+			})
 			.map((item) => ({ ...item }));
 		this.pluginUpdateResults = [];
 		this.pluginUpdateCancelled = false;

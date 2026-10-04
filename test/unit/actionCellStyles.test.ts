@@ -31,4 +31,10 @@ describe('U130-05 estilos de la celda', () => {
 			expect(scss).toContain(v);
 		}
 	});
+
+	it('provides a reduced-motion-safe busy spinner for addon cells', () => {
+		expect(scss).toContain('vaultman-action-cell-spin');
+		expect(scss).toContain('prefers-reduced-motion: reduce');
+		expect(scss).toContain('animation: none');
+	});
 });

@@ -91,10 +91,37 @@ settings:
 	scale: 1.2;
 }
 
+.vaultman-addon-cell.is-busy .vaultman-badge-icon svg,
+.vaultman-addon-toggle-cell.is-busy svg {
+	animation: vaultman-action-cell-spin 0.9s linear infinite;
+}
+
+.vaultman-addon-toggle-cell.is-busy {
+	position: relative;
+	&::before,
+	&::after { opacity: 0; }
+}
+
+.vaultman-addon-cell-spinner {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+}
+
+@keyframes vaultman-action-cell-spin {
+	to { transform: rotate(1turn); }
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.vaultman-action-cell,
-	.vaultman-action-cell svg {
+	.vaultman-action-cell svg,
+	.vaultman-addon-cell.is-busy .vaultman-badge-icon svg,
+	.vaultman-addon-toggle-cell.is-busy svg {
 		transition: none;
+		animation: none;
 	}
 }
 

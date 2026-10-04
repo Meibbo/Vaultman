@@ -48,10 +48,10 @@
 	color: var(--text-muted);
 }
 
-.vaultman-counter-range-editor input.is-invalid {
-	border: 1px solid var(--text-error, #e53935) !important;
-	background: rgba(229, 57, 53, 0.08) !important;
-	outline: none !important;
+.vaultman-counter-range-editor.vaultman-counter-range-editor input.is-invalid {
+	border: 1px solid var(--text-error, #e53935);
+	background: rgba(229, 57, 53, 0.08);
+	outline: none;
 }
 
 .vaultman-cell-text-status {

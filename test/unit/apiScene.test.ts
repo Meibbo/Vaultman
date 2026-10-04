@@ -15,6 +15,7 @@ import {
 	buildApiSceneNodes,
 	isApiSceneNode,
 	projectApiSceneTree,
+	nestApiScenePluginKinds,
 	type ApiSceneGroupMeta,
 	type ApiSceneNodeMeta,
 	type ApiScenePublisherView,
@@ -47,6 +48,16 @@ function fakePublisher(
 		...extra,
 	};
 }
+
+it('projects community and core plugin types as children of their plugin kind', () => {
+	const nodes = buildApiSceneNodes(createVaultmanSasi().registry);
+	const nested = nestApiScenePluginKinds(nodes);
+	const kind = nested.find((node) => node.meta.catalogKind === 'node_plugin');
+	const children = kind?.children?.map((node) => node.meta.catalogKind);
+	// The children remain real SASI rows, not duplicate root-level kinds.
+		expect(children?.sort()).toEqual(['node_plugin_community', 'node_plugin_core']);
+		expect(nested.some((node) => node.meta.catalogKind === 'node_plugin_core')).toBe(false);
+});
 
 function fakeInstances(): InstanceRegistryData {
 	return {
@@ -181,6 +192,20 @@ describe('U130L apiScene: ejes kind/provider poblados', () => {
 		expect(kindIds.has('action')).toBe(false);
 		expect(kindIds.has('operation')).toBe(false);
 		expect(kindIds.has('command')).toBe(false);
+	});
+
+	it('publishes plugin kind and core/community child types to apiScene', () => {
+		const { registry } = createVaultmanSasi();
+		const kindIds = registry.list('kind').map((def) => def.id);
+		expect(kindIds).toEqual(
+			expect.arrayContaining(['node_plugin', 'node_plugin_core', 'node_plugin_community']),
+		);
+		const kindRows = buildApiSceneNodes(registry, fakePublisher()).filter(
+			(node) => node.meta.group === 'kind',
+		);
+		expect(kindRows.map((node) => node.meta.catalogKind)).toEqual(
+			expect.arrayContaining(['node_plugin', 'node_plugin_core', 'node_plugin_community']),
+		);
 	});
 
 	it('los providers del contrato Scene estan registrados', () => {

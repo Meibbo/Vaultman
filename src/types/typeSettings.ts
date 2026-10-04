@@ -216,6 +216,8 @@ export interface VaultmanSettings {
 	openVaultmanBehavior: 'direct' | 'search_modal';
 	/** Opt-in: keep opened files selected in the files explorer when using input=open. Default false. */
 	selectOpenedFile: boolean;
+	/** Opt-in: mirror the owning instance's active scene in its workspace tab. */
+	workspaceTabMirrorsScene: boolean;
 	/** Record every file-open event in addition to the latest timestamp per file. */
 	recordAllFileOpens: boolean;
 	/**
@@ -617,6 +619,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	openMode: 'main',
 	openVaultmanBehavior: 'direct',
 	selectOpenedFile: false,
+	workspaceTabMirrorsScene: false,
 	recordAllFileOpens: false,
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',

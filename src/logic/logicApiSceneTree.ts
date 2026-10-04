@@ -12,6 +12,19 @@ import {
 } from './logicApiSceneModel';
 import type { NodeGroupDef } from './logicNodeGroup';
 import type { TreeNode } from '../types/typeTree';
+import type { SasiCatalogKind } from './logicSasiRegistry';
+
+export function nestApiScenePluginKinds<T extends { catalogKind?: SasiCatalogKind }>(
+	nodes: readonly TreeNode<T>[],
+): TreeNode<T>[] {
+	const pluginKind = nodes.find((node) => node.meta.catalogKind === 'node_plugin');
+	if (!pluginKind) return [...nodes];
+	const pluginTypes = nodes.filter((node) =>
+		node.meta.catalogKind === 'node_plugin_core' || node.meta.catalogKind === 'node_plugin_community');
+	return nodes.filter((node) => !pluginTypes.includes(node)).map((node) => node === pluginKind
+		? { ...node, children: pluginTypes.map((child) => ({ ...child, depth: node.depth + 1 })), showCaret: pluginTypes.length > 0 }
+		: node);
+}
 
 export interface ProjectApiSceneOptions {
 	expandedIds?: ReadonlySet<string>;
@@ -42,9 +55,10 @@ export function projectApiSceneTree(
 ): readonly TreeNode<ApiSceneNodeMeta | ApiSceneGroupMeta>[] {
 	type Meta = ApiSceneNodeMeta | ApiSceneGroupMeta;
 	const groups: readonly NodeGroupDef[] = buildApiSceneGroups(options.labelOf);
-	const memberships = apiSceneMemberships(nodes);
+	const hierarchy = nestApiScenePluginKinds(nodes);
+	const memberships = apiSceneMemberships(hierarchy);
 	const projected = projectGroupedTree<Meta>({
-		nodes,
+		nodes: hierarchy,
 		groups,
 		memberships,
 		providerId: API_SCENE_PROVIDER_ID,

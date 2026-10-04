@@ -1,5 +1,6 @@
 import { Platform, setIcon } from 'obsidian';
 import { translate } from '../../i18n/index';
+import { setRowCssProps } from './viewTree';
 import {
 	clampNodeTableColumnWidth,
 	resolveNodeTableLayout,
@@ -481,7 +482,7 @@ export class NodeTableView<TMeta = unknown> {
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = '100%';
+		setRowCssProps(row, { width: '100%' });
 		row.style.setProperty('--depth', String(node.depth));
 		bindLongPressGesture(
 			row,

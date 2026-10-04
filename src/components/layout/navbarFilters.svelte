@@ -816,7 +816,11 @@
 		applyGroupMemberships(tab, next);
 	}
 	/** U130-GGC-016: rename desde el sort drawer o cmenu. Modal de texto, renombra clave preservando target. */
-	async function renameCustomGroup(tab: FiltersTab, id: string, nextNameParam?: string) {
+	async function renameCustomGroup(
+		tab: FiltersTab,
+		id: string,
+		nextNameParam?: string,
+	) {
 		const memberships = configByTab[tab].groupMemberships;
 		if (!Object.prototype.hasOwnProperty.call(memberships, id)) return;
 		const parsed = parseScopedGroupKey(id);
@@ -935,11 +939,14 @@
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
 		const targetParentId = parentOfScope(target);
-		const targetLevel = target === 'all'
-			? undefined
-			: targetParentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0).base + 1
-				: (levelOfScope(target) ?? undefined);
+		const targetLevel =
+			target === 'all'
+				? undefined
+				: targetParentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0,
+						).base + 1
+					: (levelOfScope(target) ?? undefined);
 		const preset =
 			scopeState.sets[target]?.groupPreset ??
 			resolveScopeSet(
@@ -974,11 +981,14 @@
 			currentSort.activeScope,
 		) as ScopeTarget;
 		const parentId = parentOfScope(cursor);
-		const level = cursor === 'all'
-			? undefined
-			: parentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
-				: (levelOfScope(cursor) ?? undefined);
+		const level =
+			cursor === 'all'
+				? undefined
+				: parentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
+						).base + 1
+					: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -1417,6 +1427,10 @@
 	);
 	const panelWidgetNodeId = (localId: string): string =>
 		`${providerId}:${localId}`;
+	const PLUGIN_UPDATE_TOOLBAR_ACTIONS = [
+		['check_plugin_updates', 'addons.check_updates', 'lucide-refresh-cw'],
+		['update_all_plugins', 'addons.update_all', 'lucide-download-cloud'],
+	] as const;
 	// U130 change-icon: override per-instance del icono de un nodo (alt-cmenu
 	// "Change icon"). Ausencia de clave = icono de serie.
 	const panelWidgetNodeIcon = (localId: string, fallback: string): string =>
@@ -1523,6 +1537,22 @@
 				true,
 				30,
 			);
+		}
+		if (activeTab === 'plugins') {
+			for (const [
+				index,
+				[id, labelKey, iconName],
+			] of PLUGIN_UPDATE_TOOLBAR_ACTIONS.entries()) {
+				append(
+					id,
+					translate(labelKey),
+					iconName,
+					'button',
+					true,
+					true,
+					35 + index,
+				);
+			}
 		}
 		if (
 			activeTab === 'files' &&
@@ -2622,11 +2652,14 @@
 		) as ScopeTarget;
 		scopeState.cursor = target;
 		const parentId = parentOfScope(target);
-		const level = target === 'all'
-			? undefined
-			: parentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
-				: (levelOfScope(target) ?? undefined);
+		const level =
+			target === 'all'
+				? undefined
+				: parentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
+						).base + 1
+					: (levelOfScope(target) ?? undefined);
 		const effective = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -2834,11 +2867,14 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = target === 'all'
-			? undefined
-			: parentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
-				: (levelOfScope(target) ?? undefined);
+		const level =
+			target === 'all'
+				? undefined
+				: parentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
+						).base + 1
+					: (levelOfScope(target) ?? undefined);
 		const resolved = resolveScopeSet(state.scopeState, {
 			level,
 			parentId,
@@ -2857,11 +2893,14 @@
 		);
 		const target = storageScope(state, state.activeScope) as ScopeTarget;
 		const parentId = parentOfScope(target);
-		const level = target === 'all'
-			? undefined
-			: parentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
-				: (levelOfScope(target) ?? undefined);
+		const level =
+			target === 'all'
+				? undefined
+				: parentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
+						).base + 1
+					: (levelOfScope(target) ?? undefined);
 		const defaults: ScopeSet = {
 			nested: (
 				visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
@@ -2974,9 +3013,7 @@
 					);
 				}
 			}
-			layoutChildren.push(
-				nativeMenuDivider('view_menu.layouts.divider.save'),
-			);
+			layoutChildren.push(nativeMenuDivider('view_menu.layouts.divider.save'));
 			layoutChildren.push(
 				nativeMenuItem('view_menu.layouts.save', {
 					title: translate('viewmenu.save_layout'),
@@ -3017,9 +3054,11 @@
 					title: translate(
 						providerId === 'sasi' && entry.id === 'state'
 							? 'sasi.apiscene.cell.published'
-							: providerId === 'sasi' && (entry.id === 'installed' || entry.id === 'ctime')
+							: providerId === 'sasi' &&
+								  (entry.id === 'installed' || entry.id === 'ctime')
 								? 'viewmode.pill.ctime'
-								: providerId === 'sasi' && (entry.id === 'updated' || entry.id === 'mtime')
+								: providerId === 'sasi' &&
+									  (entry.id === 'updated' || entry.id === 'mtime')
 									? 'viewmode.pill.mtime'
 									: cellLabelKey(entry.definition, activeTab, activeView),
 					),
@@ -3372,30 +3411,32 @@
 	function openToolbarEmptyMenu(event: MouseEvent): void {
 		const menu = new Menu();
 		if (sceneConfigPort.readInstanceRecord()) {
-		menu.addItem((item) => {
-			item
-				.setTitle(translate('toolbar.instance_info'))
-				.setIcon('lucide-info')
-				.onClick(() => {
-					if (!app) return;
-					const record = sceneConfigPort.readInstanceRecord();
-					if (!record) return;
-					const records = (readInstanceRecords?.() ?? [record]).filter(
-						(candidate) => !candidate.tombstoned,
-					);
-					new InstanceInfoModal(
-						app,
-						record,
-						records,
-						onSwitchInstance,
-					).open();
-				});
-		});
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.instance_info'))
+					.setIcon('lucide-info')
+					.onClick(() => {
+						if (!app) return;
+						const record = sceneConfigPort.readInstanceRecord();
+						if (!record) return;
+						const records = (readInstanceRecords?.() ?? [record]).filter(
+							(candidate) => !candidate.tombstoned,
+						);
+						new InstanceInfoModal(
+							app,
+							record,
+							records,
+							onSwitchInstance,
+						).open();
+					});
+			});
 		}
 		const providedNodes = panelWidgetNodes.filter((node) => {
 			const prefix = `${providerId}:`;
-			return node.id.startsWith(prefix) &&
-				!node.id.slice(prefix.length).startsWith('command:');
+			return (
+				node.id.startsWith(prefix) &&
+				!node.id.slice(prefix.length).startsWith('command:')
+			);
 		});
 		if (providedNodes.length > 0) {
 			menu.addSeparator();
@@ -4089,7 +4130,8 @@
 	// esta implementada en el arbol.
 	function applyCompactFolders(tab: FiltersTab, enabled: boolean) {
 		if (tab === 'files') fileList?.setCompactFoldersEnabled?.(enabled);
-		if (tab === 'snippets') snippetsExplorer?.setCompactFoldersEnabled?.(enabled);
+		if (tab === 'snippets')
+			snippetsExplorer?.setCompactFoldersEnabled?.(enabled);
 		if (tab === 'plugins') pluginsExplorer?.setCompactFoldersEnabled?.(enabled);
 	}
 
@@ -4316,14 +4358,14 @@
 			nodes.push(
 				nativeMenuItem(`sort_menu.sort.${activeTab}.${option.id}`, {
 					title: `${translate(
-						providerId === 'sasi' && (option.id === 'installed' || option.id === 'ctime')
+						providerId === 'sasi' &&
+							(option.id === 'installed' || option.id === 'ctime')
 							? 'sort.by.created'
-							: providerId === 'sasi' && (option.id === 'updated' || option.id === 'mtime')
+							: providerId === 'sasi' &&
+								  (option.id === 'updated' || option.id === 'mtime')
 								? 'sort.by.modified'
 								: option.labelKey,
-					)}${
-						isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
-					}`,
+					)}${isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''}`,
 					icon: option.icon,
 					checked: isActive,
 					onClick: () => handleSortChange(nextSortState(option.id)),
@@ -4679,7 +4721,9 @@
 			renameCustomGroup(tab, groupId, nextName),
 		);
 		port?.setGroupCopyHandler?.((groupId) => copyCustomGroup(tab, groupId));
-		port?.setGroupScopeHandler?.((groupId) => updateCustomGroupScope(tab, groupId));
+		port?.setGroupScopeHandler?.((groupId) =>
+			updateCustomGroupScope(tab, groupId),
+		);
 		port?.setCounterRangesChangeHandler?.((ranges, target) =>
 			setCounterRangesFor(tab, ranges, target),
 		);
@@ -5011,6 +5055,29 @@
 									expansionIcon,
 								)}
 							></div>
+						{/if}
+						{#if activeTab === 'plugins'}
+							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
+								{#if toolbarNodeVisible(id)}
+									<div
+										class={headerActionClass}
+										data-panel-widget-node-id={panelWidgetNodeId(id)}
+										style:order={panelWidgetNodeOrder(id)}
+										role="button"
+										tabindex="0"
+										aria-label={translate(labelKey)}
+										title={toolbarNodeTitle(translate(labelKey))}
+										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
+										onkeydown={(event) => {
+											if (event.key === 'Enter' || event.key === ' ') {
+												event.preventDefault();
+												invokeSceneAction(id, 'keyboard');
+											}
+										}}
+										use:icon={panelWidgetNodeIcon(id, iconName)}
+									></div>
+								{/if}
+							{/each}
 						{/if}
 						{#if activeTab === 'files' && effectiveCreateActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->

@@ -184,6 +184,7 @@ export class PluginsExplorerPanel
 	private refreshRevision = 0;
 	private cellStyle: AddonCellStyle;
 	private readonly pendingToggleIds = new Set<string>();
+	private readonly pendingUpdateIds = new Set<string>();
 	private interactionMode: InteractionMode = 'open';
 	private selectedNodeIds = new Set<string>();
 	/** U130-GGC-022/024: per-instance/scene range anchor (occurrence row id). */
@@ -289,6 +290,19 @@ export class PluginsExplorerPanel
 		this.register(() =>
 			this.plugin.queueService.off('changed', this._handleQueueChange),
 		);
+		const pluginUpdates = this.plugin.pluginUpdatesService;
+		if (pluginUpdates) {
+			const stopPluginUpdateListening = pluginUpdates.onChanged(() => {
+				if (this.destroyed) return;
+				this.entries = this.entries.map((entry) => ({
+					...entry,
+					version: pluginUpdates.getInstalledVersion(entry.pluginId) ?? entry.version,
+					updateVersion: pluginUpdates.getPluginUpdate(entry.pluginId)?.version,
+				}));
+				this.rebuildNodes();
+			});
+			this.register(stopPluginUpdateListening);
+		}
 		// U121-108: live repaint of selectionCheckboxPosition (start/end/hidden)
 		// across every mounted scene. Reuses the icon-rebuild coalescer (one
 		// rebuild per burst) instead of adding a second timer.
@@ -371,6 +385,7 @@ export class PluginsExplorerPanel
 		if (this.destroyed || revision !== this.refreshRevision) return;
 		this.entries = entries.map((entry) => ({
 			...entry,
+			updateVersion: this.plugin.pluginUpdatesService?.getPluginUpdate(entry.pluginId)?.version,
 			isVaultman: entry.pluginId === manifestId,
 		}));
 		this.rebuildNodes();
@@ -973,7 +988,7 @@ export class PluginsExplorerPanel
 	 * grupo. Sin preset no hay nada que plegar.
 	 */
 	private _expansionEnabled(): boolean {
-		return this.groupPreset.kind !== 'none';
+		return this.groupPreset.kind !== 'none' || this.nodes.some((node) => (node.children?.length ?? 0) > 0);
 	}
 
 	/** U130 parity B (F1): la proyección anidada sigue a la cell `nested`
@@ -1038,6 +1053,7 @@ export class PluginsExplorerPanel
 				name: stub.name,
 				enabled: stub.enabled,
 				pluginId: stub.pluginId,
+				updateVersion: this.plugin.pluginUpdatesService?.getPluginUpdate(stub.pluginId)?.version,
 			})),
 			scopeSort,
 		).map((stub) => ({
@@ -1201,6 +1217,18 @@ export class PluginsExplorerPanel
 					label: translate('addons.open_settings'),
 				});
 			}
+			const update = this.plugin.pluginUpdatesService?.getPluginUpdate(entry.pluginId);
+			if (update) {
+				cells.push({
+					id: 'cell_update',
+					kind: 'action',
+					appearance: 'badge',
+					icon: 'lucide-download',
+					label: translate('addons.update'),
+					disabled: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
+					busy: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
+				});
+			}
 			cells.push({
 				id: 'state',
 				kind: 'toggle',
@@ -1210,6 +1238,7 @@ export class PluginsExplorerPanel
 					entry.enabled ? 'addons.enabled' : 'addons.disabled',
 				),
 				disabled: this.pendingToggleIds.has(entry.pluginId),
+				busy: this.pendingToggleIds.has(entry.pluginId),
 			});
 			// BT5-019 precedence: Vaultman override > Iconic ribbon > plugin
 			// emitted ribbon icon > generic plug (supersedes D35).
@@ -1343,6 +1372,13 @@ export class PluginsExplorerPanel
 					const labelKey = API_SCENE_GROUP_LABEL_KEYS[sasiKey];
 					if (labelKey) {
 						header.label = translate(labelKey);
+						// The header intentionally drops the borrowed child meta:
+						// sasi/apiScene consumers key off identityKind/group, and
+						// a child's pluginId must never leak onto a group header.
+						// PluginMeta cannot express this marker (see
+						// ApiSceneGroupMeta), hence the documented escape below
+						// with zero runtime change.
+						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- intentional non-PluginMeta group marker, see comment above
 						header.meta = {
 							identityKind: API_SCENE_GROUP_KIND,
 							group: sasiKey,
@@ -1415,6 +1451,7 @@ export class PluginsExplorerPanel
 								: 'addons.disabled',
 					),
 					disabled: pending,
+					busy: pending,
 				},
 			];
 			return { ...row, cells };
@@ -1593,6 +1630,7 @@ export class PluginsExplorerPanel
 				if (cellId === 'config') {
 					openPluginSettings(this.plugin.app, node.meta.pluginId);
 				}
+				if (cellId === 'cell_update') void this.updatePlugin(node.meta);
 			},
 			rowTooltip: (node) => {
 				const row = this.findNode(node.id);
@@ -2044,6 +2082,25 @@ export class PluginsExplorerPanel
 		} finally {
 			this.pendingToggleIds.delete(meta.pluginId);
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
+		}
+	}
+
+	private async updatePlugin(meta: PluginMeta): Promise<void> {
+		if (this.pendingUpdateIds.has(meta.pluginId)) return;
+		this.pendingUpdateIds.add(meta.pluginId);
+		this.rebuildNodes();
+		try {
+			if (!this.plugin.pluginUpdatesService) return;
+			const result = await this.plugin.pluginUpdatesService.updatePlugin(meta.pluginId);
+			if (result.status !== 'success') {
+				new Notice(result.message ?? translate('addons.update_failed'));
+			}
+		} catch (error) {
+			new Notice(translate('addons.update_failed'));
+			console.error('Vaultman plugin update failed', error);
+		} finally {
+			this.pendingUpdateIds.delete(meta.pluginId);
+			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 }

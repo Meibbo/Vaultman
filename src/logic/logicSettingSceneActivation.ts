@@ -222,11 +222,10 @@ function navigateToSettingTarget(
 				}
 				const pagePath = nativePagePath(group['pagePath']);
 				if (
-					def === '' &&
-					pageNames.size > 0 &&
-					!pageNames.has(nativeId(group['page'])) &&
-					!pageNames.has(nativeName(group['page'])) &&
-					!pageNames.has(pagePath.at(-1) ?? '')
+					(target.pagePath.trim() !== '' && pagePath.join(' > ') !== target.pagePath.trim()) ||
+					(target.pagePath.trim() === '' && target.page.trim() !== '' &&
+					 nativeName(group['page']) !== target.page.trim() &&
+					 pagePath.at(-1) !== target.page.trim())
 				) {
 					continue;
 				}
@@ -238,12 +237,12 @@ function navigateToSettingTarget(
 						const entry = item['entry'];
 						if (!isRecord(entry)) continue;
 						if (nativeName(entry['definition']) !== def) continue;
-						navigate(group, item);
+						navigate.call(settings, group, item);
 						return 'exact';
 					}
 					continue;
 				}
-				navigate(group);
+				navigate.call(settings, group);
 				return 'exact';
 			}
 		}

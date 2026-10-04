@@ -2667,7 +2667,8 @@ export class PropsExplorerPanel extends Component {
 			e.shiftKey ? this._orderedVisibleTreeIds() : undefined,
 		);
 		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
-		const self = this;
+		const selectedNodeIds = this.selectedNodeIds;
+		const orderedVisibleTreeIds = (): string[] => this._orderedVisibleTreeIds();
 		this.plugin.contextMenuService.openPanelMenu(
 			{
 				nodeType,
@@ -2675,8 +2676,8 @@ export class PropsExplorerPanel extends Component {
 				surface: 'panel',
 				selectedIds: this.selectedNodeIds,
 				get orderedIds(): string[] | undefined {
-					return self.selectedNodeIds.size > 1
-						? self._orderedVisibleTreeIds()
+					return selectedNodeIds.size > 1
+						? orderedVisibleTreeIds()
 						: undefined;
 				},
 				...this._groupCreationMenuCtx(),
@@ -4317,6 +4318,12 @@ export class PropsExplorerPanel extends Component {
 		// off — off would paint the raw model word, on would render an empty
 		// widget.
 		if ((node.meta.rawValue ?? '') === '') {
+			if (node.meta.flatLabelPrefix) {
+				container.createSpan({
+					cls: 'vaultman-property-value-prefix',
+					text: node.meta.flatLabelPrefix,
+				});
+			}
 			if (this.visibleCells.has('format')) {
 				const propType = node.meta.propType ?? 'text';
 				const label = container.createSpan({

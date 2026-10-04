@@ -106,17 +106,21 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 		target.remove();
 	});
 
-	it('pinta las filas fijas All/Level1 y el target configurado con su resumen', () => {
+	it('pinta los picks fijos y el target configurado con su resumen', () => {
 		const el = render();
 		const drawer = openScopeDrawer(el);
 		expect(drawer).not.toBeNull();
 		// Icon-only drawer (Spec 08 §4): labels live in aria-label/title.
+		// Dynamic scope list: fixed picks (Select all/parent/level), then the
+		// configured targets with summaries; no fixed Level 1 scope-row.
 		const labels = [
 			...drawer!.querySelectorAll('.vaultman-sort-drawer-item'),
 		].map((b) => b.getAttribute('aria-label') ?? '');
 		const text = labels.join(' | ');
+		expect(text).toContain('Select all');
+		expect(text).toContain('Select a parent');
+		expect(text).toContain('Select a level');
 		expect(text).toContain('All levels');
-		expect(text).toContain('Level 1');
 		expect(text).toContain('Level 2');
 		expect(text).toContain('modified');
 	});
@@ -139,8 +143,10 @@ describe('U130-GGC-029 scope config rows montadas', () => {
 		);
 		expect(confirm).not.toBeNull();
 		const buttons = [...confirm!.querySelectorAll('button')];
-		// select + hide + delete + cancel.
-		expect(buttons).toHaveLength(4);
+		// Scope confirm answers select + hide + delete (no cancel: disarm
+		// runs on timeout via createConfirmRow; cancel lives in the group
+		// drawer confirm instead).
+		expect(buttons).toHaveLength(3);
 		buttons[2].click();
 		flushSync();
 		expect(onDeleteScope).toHaveBeenCalledWith('level:2');

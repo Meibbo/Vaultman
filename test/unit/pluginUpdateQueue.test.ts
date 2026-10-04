@@ -69,6 +69,29 @@ describe('plugin update queue contract', () => {
 		expect(adapter.installPlugin).toHaveBeenCalledTimes(2);
 	});
 
+	it('keeps the Vaultman self-update last while preserving lexical order for others', async () => {
+		const service = new OperationQueueService({} as App);
+		const versions: Record<string, string | undefined> = {
+			vaultman: '1.0.0',
+			alpha: '1.0.0',
+			zeta: '1.0.0',
+		};
+		const adapter = adapterFor(versions);
+		const calls: string[] = [];
+		vi.mocked(adapter.installPlugin).mockImplementation(async (id) => {
+			calls.push(id);
+			versions[id] = '2.0.0';
+		});
+
+		await service.runPluginUpdates(
+			[item('vaultman'), item('zeta'), item('alpha')],
+			adapter,
+			{ selfUpdateId: 'vaultman' },
+		);
+
+		expect(calls).toEqual(['alpha', 'zeta', 'vaultman']);
+	});
+
 	it('warns when the plugin is absent from the post-install state', async () => {
 		const service = new OperationQueueService({} as App);
 		const versions: Record<string, string | undefined> = { gone: '1.0.0' };

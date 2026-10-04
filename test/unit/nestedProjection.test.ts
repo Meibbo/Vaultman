@@ -71,9 +71,10 @@ describe('U130 parity B · projection source guards', () => {
 
 	it('branches projection on nested state in rebuildNodes', () => {
 		// Nested on: attaches spec-07 children via _getPluginSettingsChildren
-		// (matched by call shape, not by the destructured local name, which
-		// the A2 two-level wiring spells `tabNodes`).
-		expect(pluginsSource).toContain('this.nodes = buildCanonicalRestRoots({');
+		// (matched by call shape, not by the assignment target: since the
+		// canonical core/community grouping the call assigns `rawRoots`
+		// before `this.nodes`, not `this.nodes` directly).
+		expect(pluginsSource).toContain('buildCanonicalRestRoots({');
 		// Nested off: flat rows — children cleared, no caret expansion
 		expect(pluginsSource).toContain("node.children = []");
 		expect(pluginsSource).toContain("node.showCaret = false");
@@ -84,8 +85,10 @@ describe('U130 parity B · projection source guards', () => {
 	});
 
 	it('default visibleCells for plugins includes nested', () => {
+		// No `checkbox`: intentionally off by default since the checkbox-flash
+		// fix (panel starts without checkbox flash by design).
 		expect(pluginsSource).toContain(
-			"new Set(['checkbox', 'icon', 'text', 'state', 'config', 'nested'])",
+			"new Set(['icon', 'text', 'state', 'config', 'nested'])",
 		);
 	});
 

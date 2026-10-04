@@ -18,6 +18,7 @@ import {
 	PUBLISH_CELL_ID,
 	apiSceneUrnOf,
 	buildApiSceneNodes,
+	nestApiScenePluginKinds,
 	isApiSceneNode,
 	type ApiSceneGroupMeta,
 	type ApiSceneNodeMeta,
@@ -221,7 +222,7 @@ export class SasiInspectorModal extends Modal {
 			instances,
 		);
 		this.flat = flat;
-		return flat.map((node) => {
+		const nodes = flat.map((node) => {
 			const lifecycle = this.plugin.sasiProvider.lifecycleFor(node.meta.sasiId);
 			const instance = node.meta.group === 'instance' ? instances?.instances[node.meta.sasiId] : undefined;
 			const createdAt = instance?.createdAt ?? lifecycle?.createdAt;
@@ -241,6 +242,7 @@ export class SasiInspectorModal extends Modal {
 			meta: { ...node.meta, pluginId: node.id, name: node.label, enabled: node.meta.published, loaded: false, isVaultman: false, installedTime: createdAt, updatedTime: updatedAt },
 			};
 		});
+		return nestApiScenePluginKinds(nodes);
 	}
 
 	private async openInstanceFromRow(rowId: string): Promise<void> {
