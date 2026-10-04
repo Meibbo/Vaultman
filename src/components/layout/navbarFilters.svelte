@@ -137,6 +137,7 @@
 		searchNeedsOwnRow,
 	} from '../../logic/logicPanelWidgetOverflow';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import { isPluginUpdateToolbarActionVisible } from '../../services/pendingUpdateSupport';
 	import {
 		applyLayoutToPort,
 		captureSavedViewConfig,
@@ -1538,6 +1539,8 @@
 				index,
 				[id, labelKey, iconName],
 			] of PLUGIN_UPDATE_TOOLBAR_ACTIONS.entries()) {
+				// C2: mount update_all only when the eligible pending count > 0.
+				if (!isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)) continue;
 				append(
 					id,
 					translate(labelKey),
@@ -1638,6 +1641,19 @@
 		) &&
 		(toolbarOverflowStrategy !== 'condensed' ||
 			!forcedOverflowIds.includes(panelWidgetNodeId(localId)));
+	// C2: eligible pending count (badge-contract feed from C3) gating
+	// `update_all_plugins`. The subscription mirrors the explorer panel's own
+	// update listener; the gate never disturbs sibling toolbar actions.
+	let pendingUpdateCount = $state(0);
+	$effect(() => {
+		const panel = pluginsExplorer;
+		const sync = () => {
+			pendingUpdateCount = panel?.getPendingUpdateCount?.() ?? 0;
+		};
+		sync();
+		const stop = panel?.onPendingUpdatesChanged?.(() => sync());
+		return () => stop?.();
+	});
 	let panelWidgetPreviewOrder = $state<string[] | null>(null);
 	const panelWidgetNodeOrder = (localId: string): number => {
 		const previewIndex = panelWidgetPreviewOrder?.indexOf(localId) ?? -1;
@@ -5003,7 +5019,6 @@
 								role="button"
 								tabindex="0"
 								aria-label={expansionLabel}
-								title={toolbarNodeTitle(expansionLabel)}
 								onclick={(event) => toggleExplorerExpansion('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -5027,7 +5042,7 @@
 						{/if}
 						{#if activeTab === 'plugins'}
 							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
-								{#if toolbarNodeVisible(id)}
+								{#if toolbarNodeVisible(id) && isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)}
 									<div
 										class={headerActionClass}
 										data-panel-widget-node-id={panelWidgetNodeId(id)}
@@ -5035,7 +5050,6 @@
 										role="button"
 										tabindex="0"
 										aria-label={translate(labelKey)}
-										title={toolbarNodeTitle(translate(labelKey))}
 										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
 										onkeydown={(event) => {
 											if (event.key === 'Enter' || event.key === ' ') {
