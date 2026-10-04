@@ -13,6 +13,7 @@ import {
 	SHOW_OPTIONS_OVERRIDES,
 	showOptionsMenuActionId,
 } from './logicSettingSceneOptions';
+import { DIVIDER_MARK } from './logicFilesContextMenu';
 
 export const TOOLBAR_MENU_KINDS = [
 	'scene_menu',
@@ -237,6 +238,36 @@ export const TOOLBAR_MENU_CANONICAL_ORDER: Readonly<
 	scene_menu: SCENE_MENU_ACTIONS.map((action) => action.id),
 	view_menu: VIEW_MENU_ACTIONS.map((action) => action.id),
 	sort_menu: SORT_MENU_ACTIONS.map((action) => action.id),
+};
+
+/**
+ * A1/A2: authoritative default order with section dividers so
+ * `defaultFilesMenuLayout` materializes the same divider structure the
+ * settings editor shows after a reset. Derived from the catalog `section`
+ * field (no duplicated runtime divider ids). `TOOLBAR_MENU_CANONICAL_ORDER`
+ * stays pure action ids for SASI parity and `toolbarMenuActionIds`.
+ */
+function withSectionDividers(
+	actions: readonly ToolbarMenuActionDefinition[],
+): readonly string[] {
+	const order: string[] = [];
+	let lastSection: string | undefined;
+	for (const action of actions) {
+		if (lastSection !== undefined && action.section !== lastSection) {
+			order.push(DIVIDER_MARK);
+		}
+		order.push(action.id);
+		lastSection = action.section;
+	}
+	return order;
+}
+
+export const TOOLBAR_MENU_DEFAULT_ORDER: Readonly<
+	Record<ToolbarMenuKind, readonly string[]>
+> = {
+	scene_menu: withSectionDividers(SCENE_MENU_ACTIONS),
+	view_menu: withSectionDividers(VIEW_MENU_ACTIONS),
+	sort_menu: withSectionDividers(SORT_MENU_ACTIONS),
 };
 
 export function toolbarMenuCatalog(

@@ -3,7 +3,7 @@ import {
 	type FilesMenuItem,
 } from './logicFilesContextMenu';
 import {
-	TOOLBAR_MENU_CANONICAL_ORDER,
+	TOOLBAR_MENU_DEFAULT_ORDER,
 	toolbarMenuActionIds,
 	toolbarMenuCatalog,
 	type ToolbarMenuKind,
@@ -135,7 +135,7 @@ function readLayout(
 	const merged = mergeFilesMenuLayout(
 		saved,
 		toolbarMenuActionIds(kind),
-		TOOLBAR_MENU_CANONICAL_ORDER[kind],
+		TOOLBAR_MENU_DEFAULT_ORDER[kind],
 	);
 	const positions = new Map<string, number>();
 	const visibility = new Map<string, boolean>();

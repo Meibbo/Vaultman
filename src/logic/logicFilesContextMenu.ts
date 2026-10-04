@@ -351,6 +351,24 @@ export function addFilesMenuSubmenu(
 	];
 }
 
+/**
+ * A1/A2: drop one menu's persisted override so dynamic native/provider
+ * defaults return on next merge/projection. Pure: the input is never
+ * mutated; an absent key returns the input unchanged (idempotent no-op) and
+ * an emptied map collapses to `undefined`. The same operation backs toolbar
+ * (`toolbarMenuLayouts`) and panel (`contextMenuLayouts`) resets; `files`
+ * keeps a required array and re-materializes its default instead.
+ */
+export function removeMenuOverride<K extends string>(
+	layouts: Partial<Record<K, FilesMenuItem[]>> | undefined,
+	kind: K,
+): Partial<Record<K, FilesMenuItem[]>> | undefined {
+	if (!layouts || !(kind in layouts)) return layouts;
+	const next = { ...layouts };
+	delete next[kind];
+	return Object.keys(next).length > 0 ? next : undefined;
+}
+
 export function removeFilesMenuItem(
 	items: readonly FilesMenuItem[],
 	id: string,
