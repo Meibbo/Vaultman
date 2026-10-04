@@ -119,6 +119,13 @@ export interface PanelWidgetExplorerPort {
 	sortNodeLabel?(id: string): string | null;
 	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
 	setTooltipsEnabled?(enabled: boolean): void;
+	/**
+	 * C2/C3 badge-contract feed: eligible pending plugin-update count backing
+	 * the `update_all_plugins` toolbar gate, plus its change subscription.
+	 * Flat explorers without an update badge omit both (gate stays hidden).
+	 */
+	getPendingUpdateCount?(): number;
+	onPendingUpdatesChanged?(callback: () => void): () => void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
 	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */

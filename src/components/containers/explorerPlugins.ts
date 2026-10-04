@@ -1,5 +1,6 @@
 import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import { tooltipPlacementForSetting } from '../../logic/logicCellTooltip';
+import { pluginUpdateTargetLabel } from '../../services/pendingUpdateSupport';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import { pluginAliasTokens, prefixesFromSettings } from '../../services/serviceNodeBinding';
@@ -975,6 +976,21 @@ export class PluginsExplorerPanel
 	}
 
 	/**
+	 * C2/C3 badge-contract feed: eligible pending count backing the
+	 * `update_all_plugins` toolbar gate. Display-only; installs still
+	 * require live native authority inside PluginUpdatesService.
+	 */
+	getPendingUpdateCount(): number {
+		if (this.dataSource || !this.plugin.pluginUpdatesService) return 0;
+		return this.entries.reduce((count, entry) =>
+			count + (this.plugin.pluginUpdatesService?.getPluginUpdate(entry.pluginId) ? 1 : 0), 0);
+	}
+
+	onPendingUpdatesChanged(callback: () => void): () => void {
+		return this.plugin.pluginUpdatesService?.onChanged(callback) ?? (() => undefined);
+	}
+
+	/**
 	 * A07: la unica expansibilidad de un explorer plano son sus cabeceras de
 	 * grupo. Sin preset no hay nada que plegar.
 	 */
@@ -1212,7 +1228,7 @@ export class PluginsExplorerPanel
 					kind: 'action',
 					appearance: 'badge',
 					icon: 'lucide-download',
-					label: translate('addons.update'),
+					label: pluginUpdateTargetLabel(update.version),
 					disabled: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
 					busy: this.pendingUpdateIds.has(entry.pluginId) || this.plugin.pluginUpdatesService.isUpdating(entry.pluginId),
 				});
