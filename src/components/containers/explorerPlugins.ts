@@ -255,20 +255,22 @@ export class PluginsExplorerPanel
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.metadataCache.on('changed', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('create', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('create', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('delete', this._scheduleNodeNoteRender),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleNodeNoteRender),
+		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', this._scheduleNodeNoteRender),
+			);
+		}
 		// BT5-019: external icon edits repaint through the existing adapter
 		// event — no new timer — and the subscription is released on unload.
 		const iconic = this.plugin.iconicService;
@@ -1448,13 +1450,14 @@ export class PluginsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (!this.dataSource && this.visibleCells.has('format')) {
-			this._decorateNodeNotes(this.nodes);
-		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (!this.dataSource && this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+			this._decorateNodeNotes(this._lastProjectedTree);
+		}
 		this.treeView.render({
 			surface: 'plugins',
 			nodes: this._lastProjectedTree,
@@ -1980,11 +1983,13 @@ export class PluginsExplorerPanel
 		try {
 			let failed = 0;
 			for (const meta of todo) {
-				const changed = await setCommunityPluginEnabled(
-					this.plugin.app,
-					meta.pluginId,
-					target,
-				);
+				const changed = isCorePlugin(this.plugin.app, meta.pluginId)
+					? await toggleCorePlugin(this.plugin.app, meta.pluginId, target)
+					: await setCommunityPluginEnabled(
+							this.plugin.app,
+							meta.pluginId,
+							target,
+					  );
 				if (!changed) failed += 1;
 			}
 			if (failed > 0) {
