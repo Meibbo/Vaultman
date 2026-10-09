@@ -31,6 +31,7 @@ import {
 	sameExplorerSortState,
 } from '../../logic/logicScopedSort';
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
 import {
@@ -1156,6 +1157,17 @@ export class SnippetsExplorerPanel
 				this.render();
 			},
 			onClearSelection: () => this.clearSelection(),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE tree-wide
+			// sort (snippets have no per-level sorts). `jump` arrives with
+			// the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
+					sortOf: () => activeScopeSort('snippets', this.sortState),
+					labelOf: (id: string) => this.findNode(id)?.label ?? null,
+				},
+			},
 			onCellClick: (id, cellId) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// Spec 07 §2: `state` sobre una fila de grupo despacha a N

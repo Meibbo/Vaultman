@@ -8,6 +8,7 @@ import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import {
 	findNodeLevel,
 	findParentId,
@@ -1726,6 +1727,17 @@ export class PluginsExplorerPanel
 				this.render();
 			},
 			onClearSelection: () => this.clearSelection(),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE tree-wide
+			// sort (plugins have no per-level sorts). `jump` arrives with
+			// the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
+					sortOf: () => activeScopeSort('plugins', this.sortState),
+					labelOf: (id: string) => this.findNode(id)?.label ?? null,
+				},
+			},
 			onCellClick: (id, cellId) => {
 				if (this.dataSource) {
 					const node = this.findNode(id);
