@@ -777,7 +777,16 @@
 		projectionLevel: string;
 	}[] {
 		const memberships = configByTab[tab].groupMemberships;
-		const hidden = new Set(configByTab[tab].hiddenGroupIds);
+		const autoHidden =
+			tab === 'props'
+				? propExplorer?.getAutoHiddenGroupIds?.()
+				: tab === 'tags'
+					? tagsExplorer?.getAutoHiddenGroupIds?.()
+					: undefined;
+		const hidden = new Set([
+			...configByTab[tab].hiddenGroupIds,
+			...(autoHidden ?? []),
+		]);
 		return Object.keys(memberships).flatMap((id) => {
 			const parsed = parseScopedGroupKey(id);
 			if (selectedTarget && parsed.target !== selectedTarget) return [];
@@ -798,6 +807,10 @@
 	}
 	/** Spec 08 §4 `hide`: per instance, reversible; the group survives in the layout. */
 	function setGroupHidden(tab: FiltersTab, id: string, hidden: boolean) {
+		if (!hidden) {
+			if (tab === 'props') propExplorer?.unhideRevealGroup?.(id);
+			if (tab === 'tags') tagsExplorer?.unhideRevealGroup?.(id);
+		}
 		const current = configByTab[tab].hiddenGroupIds;
 		const next = hidden
 			? current.includes(id)

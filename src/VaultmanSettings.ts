@@ -439,6 +439,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.auto_hide_empty_reveal_groups'),
+			desc: translate('settings.auto_hide_empty_reveal_groups.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.autoHideEmptyRevealGroups ?? false)
+						.onChange(async (value) => {
+							this.plugin.settings.autoHideEmptyRevealGroups = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {

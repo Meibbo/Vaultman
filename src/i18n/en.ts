@@ -552,6 +552,10 @@ export const en: Record<string, string> = {
 	'settings.reveal_direct_write': 'Direct write in Reveal mode',
 	'settings.reveal_direct_write.desc':
 		'Write property changes directly to the active file in Reveal mode, even when queue staging is enabled.',
+	'settings.auto_hide_empty_reveal_groups':
+		'Auto-hide empty custom groups in Reveal mode',
+	'settings.auto_hide_empty_reveal_groups.desc':
+		'Automatically hide custom groups that have no children in Reveal mode (while having members in vault mode). Runs once per note so groups can still be shown manually.',
 	'settings.bulk_operation_warning': 'Bulk operation warning',
 	'settings.bulk_operation_warning.desc':
 		'Warn before action presets stage very large file sets.',

@@ -86,6 +86,7 @@ export interface PanelPluginCtx {
 		nativeCompatDefaults?: Partial<
 			Record<'tree' | 'toolbar' | 'container' | 'menu', import('../../logic/logicNativeTreeCompat').NativeCompatMode>
 		>;
+		autoHideEmptyRevealGroups?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -136,6 +137,10 @@ import {
 	toggleGroupMembers,
 	type GroupProjectionInput,
 } from '../../logic/logicTreeGroupProjection';
+import {
+	resolveEmptyRevealCustomGroupIds,
+	groupHasMatchingChildren,
+} from '../../logic/logicRevealAutoHiddenGroups';
 import {
 	cloneGroupPreset,
 	NO_GROUP_PRESET,
@@ -314,6 +319,8 @@ export class TagsExplorerPanel extends Component {
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	private _revealAutoHiddenGroups = new Set<string>();
+	private _revealAutoHiddenPath: string | null = null;
 	/** U130 native polish: scene-owned presentation flip for partition headers. */
 	private partitionPresentationChangeHandler?: (
 		presentation: import('../../types/typeGroupPreset').PartitionPresentation,
@@ -637,8 +644,49 @@ export class TagsExplorerPanel extends Component {
 		// navbar desde la cascada, igual que `hiddenGroupIds`. Ya no se busca
 		// un layout por nombre: el layout solo copia su foto en la scene.
 		const memberships = this.groupMemberships;
-		const groups = resolveCustomGroups(memberships).filter(
-			(group) => !this.hiddenGroupIds.has(group.id),
+		const allCustomGroups = resolveCustomGroups(memberships);
+
+		if (this.isRevealingActiveFile() && this.plugin.settings?.autoHideEmptyRevealGroups) {
+			const revealPath = this._revealPath();
+			if (this._revealAutoHiddenPath !== revealPath) {
+				this._revealAutoHiddenPath = revealPath;
+				this._revealAutoHiddenGroups.clear();
+				const emptyIds = resolveEmptyRevealCustomGroupIds({
+					groups: allCustomGroups,
+					memberships,
+					revealNodes: nodes,
+					providerId: 'tags',
+					urnOf: (node) => this._membershipUrnOf(node),
+				});
+				for (const id of emptyIds) {
+					if (!this.hiddenGroupIds.has(id)) {
+						this._revealAutoHiddenGroups.add(id);
+					}
+				}
+			} else if (this._revealAutoHiddenGroups.size > 0) {
+				for (const id of [...this._revealAutoHiddenGroups]) {
+					if (
+						groupHasMatchingChildren({
+							groupId: id,
+							memberships,
+							nodes,
+							providerId: 'tags',
+							urnOf: (node) => this._membershipUrnOf(node),
+						})
+					) {
+						this._revealAutoHiddenGroups.delete(id);
+					}
+				}
+			}
+		} else if (this._revealAutoHiddenGroups.size > 0) {
+			this._revealAutoHiddenGroups.clear();
+			this._revealAutoHiddenPath = null;
+		}
+
+		const groups = allCustomGroups.filter(
+			(group) =>
+				!this.hiddenGroupIds.has(group.id) &&
+				!this._revealAutoHiddenGroups.has(group.id),
 		);
 		this._groupIds.clear();
 		for (const group of groups) this._groupIds.add(group.id);
@@ -927,6 +975,9 @@ export class TagsExplorerPanel extends Component {
 
 	setHiddenGroupIds(ids: readonly string[]): void {
 		const next = new Set(ids);
+		for (const id of next) {
+			this._revealAutoHiddenGroups.delete(id);
+		}
 		if (
 			next.size === this.hiddenGroupIds.size &&
 			[...next].every((id) => this.hiddenGroupIds.has(id))
@@ -935,6 +986,16 @@ export class TagsExplorerPanel extends Component {
 		}
 		this.hiddenGroupIds = next;
 		this._render();
+	}
+
+	unhideRevealGroup(groupId: string): void {
+		if (this._revealAutoHiddenGroups.delete(groupId)) {
+			this._render();
+		}
+	}
+
+	getAutoHiddenGroupIds(): readonly string[] {
+		return [...this._revealAutoHiddenGroups];
 	}
 
 	setGroupMemberships(
@@ -1511,8 +1572,13 @@ export class TagsExplorerPanel extends Component {
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
 		this.revealCycle = null;
-		if (this.revealActiveFile) this._startRevealWatch();
-		else this._stopRevealWatch();
+		if (this.revealActiveFile) {
+			this._startRevealWatch();
+		} else {
+			this._stopRevealWatch();
+			this._revealAutoHiddenGroups.clear();
+			this._revealAutoHiddenPath = null;
+		}
 		this.revealChangeHandler?.();
 		this._render();
 	}
@@ -1555,6 +1621,8 @@ export class TagsExplorerPanel extends Component {
 		this.stopRevealWatch = undefined;
 		this.revealActivePath = null;
 		this.revealCycle = null;
+		this._revealAutoHiddenGroups.clear();
+		this._revealAutoHiddenPath = null;
 	}
 
 	/**
@@ -2693,8 +2761,13 @@ export class TagsExplorerPanel extends Component {
 								: this._isCustomGroupId(groupId)
 									? 'custom'
 									: 'preset',
-						groupHidden: this.hiddenGroupIds.has(groupId),
-						hideGroup: this.groupHideHandler,
+						groupHidden:
+							this.hiddenGroupIds.has(groupId) ||
+							this._revealAutoHiddenGroups.has(groupId),
+						hideGroup: (id: string, hidden: boolean) => {
+							if (!hidden) this.unhideRevealGroup(id);
+							this.groupHideHandler?.(id, hidden);
+						},
 						deleteGroup: this.groupDeleteHandler,
 						groupExpanded: this.expandedIds.has(id),
 						adjustGroupRange:

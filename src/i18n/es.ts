@@ -556,6 +556,10 @@ export const es: Record<string, string> = {
 	'settings.reveal_direct_write': 'Escritura directa en modo Reveal',
 	'settings.reveal_direct_write.desc':
 		'Escribe cambios de propiedades directamente al archivo activo en modo Reveal, incluso con la cola activa.',
+	'settings.auto_hide_empty_reveal_groups':
+		'Ocultar grupos personalizados vacíos en modo Reveal',
+	'settings.auto_hide_empty_reveal_groups.desc':
+		'Oculta automáticamente los grupos personalizados que queden sin hijos en modo Reveal (teniendo miembros en modo vault). Se ejecuta una sola vez por nota para permitir mostrarlos manualmente.',
 	'settings.bulk_operation_warning': 'Aviso de operación masiva',
 	'settings.bulk_operation_warning.desc':
 		'Avisa antes de que los presets de acción preparen conjuntos muy grandes de archivos.',
