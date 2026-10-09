@@ -1,5 +1,7 @@
-import { ItemView, Scope, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Platform, Scope, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
 import { routeTreeKeyboardEvent } from './logic/logicTreeKeyboardBoundary';
+import { getNativeTreeScopeChords, getTreeLetterScopeChords, isTreeLetterJumpChord } from './logic/logicTreeKeyboardAllowlist';
+import { routeTreeClipboardEvent } from './logic/logicTreeClipboard';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
@@ -63,7 +65,22 @@ export class VaultmanFrame extends ItemView {
 		super(leaf);
 		this.plugin = plugin;
 		this.scope = new Scope(this.app.scope);
-		this.scope.register(null, null, routeTreeKeyboardEvent);
+		for (const chord of getNativeTreeScopeChords(Platform.isMacOS)) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
+		// U130 tree Navco: narrow printable routes so the active-leaf BODY
+		// fallback can reach the visible tree for letter jump. Unmodified
+		// (+Shift) glyphs only — modified hotkeys and other views are never
+		// stolen: routing still obeys the editable guard and frame scoping,
+		// and the view bubbles non-name levels and no-match glyphs.
+		for (const chord of getTreeLetterScopeChords()) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				if (!isTreeLetterJumpChord(event)) return undefined;
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
 		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
@@ -352,5 +369,17 @@ export class VaultmanFrame extends ItemView {
 			);
 		}
 		this.surfacePositionFrame = null;
+	}
+
+	handleCopy(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('copy', event, { frameEl: this.containerEl });
+	}
+
+	handleCut(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('cut', event, { frameEl: this.containerEl });
+	}
+
+	handlePaste(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('paste', event, { frameEl: this.containerEl });
 	}
 }

@@ -49,6 +49,17 @@ import {
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
 import {
+	canMoveOrCopyPath,
+	filterDescendantPaths,
+	OBSIDIAN_FILES_MIME,
+	parseObsidianFilesClipboard,
+	registerTreeClipboardHandler,
+	serializeObsidianFilesClipboard,
+	type TreeClipboardHandler,
+} from '../../logic/logicTreeClipboard';
+import { buildNodeMoveQueueChanges, stageNodeMovePlan } from '../../logic/logicNodeMoveProceed';
+import type { NodeMoveOperation } from '../../logic/logicNodeMoveMode';
+import {
 	makeScopedGroupKey,
 	parseScopedGroupKey,
 } from '../../logic/logicScopedCustomGroups';
@@ -204,6 +215,7 @@ import {
 	collectExpandableSubtreeIds,
 	toggleExpandableSubtreeIds,
 } from '../../logic/logicTreeExpansion';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import {
 	normalizeFilesIconScope,
 	resolveScopedFileIcon,
@@ -373,13 +385,14 @@ export function fileTaskMetricValue(
 /** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
 export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
-export class FilesExplorerPanel extends Component {
+export class FilesExplorerPanel extends Component implements TreeClipboardHandler {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
 	private logic: FilesLogic;
 	private tableView: FilesTableView | null = null;
 	private gridView: FilesGridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
+	private readonly _cutPaths = new Set<string>();
 	private _cellContributions: ExplorerCellMounts | undefined;
 	private _nativeRootOrdinal: ((path: string) => number | undefined) | undefined;
 	private _nativeRootColors: (() => ReadonlyMap<string, string>) | undefined;
@@ -650,6 +663,7 @@ export class FilesExplorerPanel extends Component {
 		this.register(() =>
 			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
 		);
+		this.register(registerTreeClipboardHandler(this.containerEl, this));
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -3815,29 +3829,27 @@ export class FilesExplorerPanel extends Component {
 						this._activateGroupRow(id);
 						return;
 					}
-					if (modifiers.shift || modifiers.ctrl || modifiers.meta || modifiers.alt) {
-						const gesture = fileSelectionGesture(
-							{
-								altKey: modifiers.alt,
-								shiftKey: modifiers.shift,
-								ctrlKey: modifiers.ctrl,
-								metaKey: modifiers.meta,
-							},
-							true,
-						);
-						const ordered = gesture === 'range' ? this._orderedSelectableIds() : [];
-						this._applyFileSelection(
-							updateFileSelection(
-								{
-									selectedPaths: this.selectedFilePaths,
-									anchorPath: this.selectionAnchorPath,
-								},
-								ordered,
-								id,
-								gesture,
-							),
-						);
-						return;
+					if (modifiers.ctrl || modifiers.meta) {
+						// Mod+Enter native parity: open in new tab/leaf!
+						const node =
+							this._findNode(id, projectedTree) ??
+							this._findNode(id, renderTree);
+						if (node?.meta.file) {
+							const workspace = this.plugin.app.workspace as {
+								getLeaf?(type?: string): import('obsidian').WorkspaceLeaf;
+								setActiveLeaf?(leaf: import('obsidian').WorkspaceLeaf, opts?: { focus?: boolean }): void;
+							};
+							const leaf = workspace.getLeaf?.('tab');
+							if (leaf) {
+								void leaf.openFile(node.meta.file, { active: true });
+								workspace.setActiveLeaf?.(leaf, { focus: true });
+							}
+							return;
+						}
+						if (node?.meta.isFolder) {
+							this._treeRenderOpts?.onRowClick?.(id);
+							return;
+						}
 					}
 					this._treeRenderOpts?.onRowClick?.(id);
 				},
@@ -3854,12 +3866,54 @@ export class FilesExplorerPanel extends Component {
 						),
 					);
 				},
+				onAdditiveSelect: (previousId: string, currentId: string) => {
+					const next = new Set(this.selectedFilePaths);
+					next.add(previousId);
+					next.add(currentId);
+					this._applyFileSelection({
+						selectedPaths: next,
+						anchorPath: this.selectionAnchorPath ?? previousId,
+					});
+				},
 				onClearSelection: () => {
-					if (this.selectedFilePaths.size === 0) return;
+					if (this.selectedFilePaths.size === 0) return false;
 					this._applyFileSelection({
 						selectedPaths: new Set<string>(),
 						anchorPath: null,
 					});
+					return true;
+				},
+				onCollapseAll: () => {
+					this.collapseAll();
+				},
+				onModStepOpen: (id: string) => {
+					const node =
+						this._findNode(id, projectedTree) ??
+						this._findNode(id, renderTree);
+					if (node?.meta.file) {
+						const workspace = this.plugin.app.workspace as {
+							getUnpinnedLeaf?(newLeaf?: boolean): import('obsidian').WorkspaceLeaf;
+							getLeaf?(type?: boolean): import('obsidian').WorkspaceLeaf;
+						};
+						const leaf =
+							typeof workspace.getUnpinnedLeaf === 'function'
+								? workspace.getUnpinnedLeaf(false)
+								: typeof workspace.getLeaf === 'function'
+									? workspace.getLeaf(false)
+									: null;
+						if (leaf) {
+							void leaf.openFile(node.meta.file, { active: false });
+						}
+					}
+				},
+				onDeleteRequest: (id: string) => {
+					this._onDeleteKeyRequest(id, projectedTree, renderTree);
+				},
+				isItemCut: (id: string) => {
+					const clean = id.startsWith('folder:')
+						? id.slice('folder:'.length).replace(/^\/|\/$/g, '')
+						: id;
+					return this._cutPaths.has(id) || this._cutPaths.has(clean);
 				},
 				onRenameRequest: (id: string) => {
 					if (!this._canRenameNode(id)) return;
@@ -3867,6 +3921,21 @@ export class FilesExplorerPanel extends Component {
 					this._render();
 				},
 				canRenameNode: (id: string) => this._canRenameNode(id),
+				// U130 tree Navco: letter jump gated on the EFFECTIVE sibling
+				// sort (parent → level → all; group-aware ownership, not blind
+				// depth+1). `jump` arrives with the shared Floating Index
+				// helper (other lane); until then letters bubble.
+				navco: {
+					letterJump: {
+						resolveScope: (focusedId: string, fallbackDepth: number) =>
+							resolveGroupAwareScope(projectedTree, focusedId, fallbackDepth),
+						sortOf: (scope) =>
+							siblingScopeSort('files', this.sortState, scope.parentId, scope.level),
+						labelOf: (id: string) =>
+							this._findNode(id, projectedTree)?.label ??
+							this._findNode(id, renderTree)?.label ?? null,
+					},
+				},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// U130 Slice B (spec-03 §24-40): las cabeceras abren el
@@ -6544,6 +6613,130 @@ export class FilesExplorerPanel extends Component {
 			});
 		}
 		for (const folder of targets.folders) this._queueFolderDelete(folder);
+	}
+
+	private _onDeleteKeyRequest(
+		id: string,
+		projectedTree: TreeNode<FileMeta>[],
+		renderTree: TreeNode<FileMeta>[],
+	): void {
+		const node = this._findNode(id, projectedTree) ?? this._findNode(id, renderTree);
+		if (!node) return;
+		const targets =
+			this.selectedFilePaths.has(node.id) || this.selectedFilePaths.has(id)
+				? this._selectedTargets()
+				: {
+						files: node.meta.file ? [node.meta.file] : [],
+						folders:
+							node.meta.isFolder && node.meta.folderPath
+								? ([
+										this.plugin.app.vault.getAbstractFileByPath(
+											node.meta.folderPath,
+										),
+									].filter((f): f is TFolder => f instanceof TFolder))
+								: [],
+					};
+		if (targets.files.length === 0 && targets.folders.length === 0) return;
+		this._queueDeleteTargets(targets);
+	}
+
+	handleCopy(event: ClipboardEvent): void {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return;
+		event.preventDefault();
+		event.clipboardData?.setData(
+			OBSIDIAN_FILES_MIME,
+			serializeObsidianFilesClipboard({ operation: 'copy', paths: filtered }),
+		);
+	}
+
+	handleCut(event: ClipboardEvent): void {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return;
+		this._cutPaths.clear();
+		for (const p of filtered) this._cutPaths.add(p);
+		this._render();
+		event.preventDefault();
+		event.clipboardData?.setData(
+			OBSIDIAN_FILES_MIME,
+			serializeObsidianFilesClipboard({ operation: 'cut', paths: filtered }),
+		);
+	}
+
+	async handlePaste(event: ClipboardEvent): Promise<void> {
+		const raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
+		const payload = parseObsidianFilesClipboard(raw);
+		if (!payload || payload.paths.length === 0) return;
+		event.preventDefault();
+
+		const focusedId = this.treeView?.focusedId;
+		let targetFolder: TFolder | null = null;
+		if (focusedId) {
+			const node = this._findNode(focusedId, this._lastRenderTree);
+			if (node?.meta.file) {
+				targetFolder = node.meta.file.parent;
+			} else if (node?.meta.isFolder && node.meta.folderPath) {
+				const folder = this.plugin.app.vault.getAbstractFileByPath(node.meta.folderPath);
+				if (folder instanceof TFolder) targetFolder = folder;
+			}
+		}
+		if (!targetFolder) {
+			targetFolder = this.plugin.app.vault.getRoot();
+		}
+
+		const vault = this.plugin.app.vault;
+		const destination = targetFolder.isRoot() ? '' : targetFolder.path;
+		const operations: NodeMoveOperation[] = [];
+		for (const sourcePath of filterDescendantPaths(payload.paths)) {
+			const source = vault.getAbstractFileByPath(sourcePath);
+			if (!(source instanceof TFile || source instanceof TFolder) || !canMoveOrCopyPath(source.path, destination)) continue;
+			operations.push({
+				originId: source.path,
+				originCanonicalId: source.path,
+				originKind: source instanceof TFolder ? 'folder' : 'file',
+				destinationId: destination,
+				destinationCanonicalId: destination,
+				write: 'append',
+				originDisposition: payload.operation === 'cut' ? 'move' : 'copy',
+			});
+		}
+		const plan = buildNodeMoveQueueChanges(operations, {
+			findFile: (path) => {
+				const file = vault.getAbstractFileByPath(path);
+				return file instanceof TFile ? file : null;
+			},
+			listFilesInFolder: (path) => {
+				const folder = vault.getAbstractFileByPath(path);
+				return folder instanceof TFolder ? this._filesInsideFolder(folder) : [];
+			},
+		});
+		// Navigation parity must not silently introduce a native mutation bypass.
+		const outcome = stageNodeMovePlan(this.plugin.queueService, plan, { confirmed: false });
+		if (outcome.requiresConfirmation) {
+			new Notice('Paste requires confirmation in bypass mode. Use the existing Move/Copy action.');
+			return;
+		}
+		if (outcome.staged === 0) return;
+		this._cutPaths.clear();
+		this._render();
+	}
+
+	private _collectClipboardTargetPaths(): string[] {
+		if (this.selectedFilePaths.size > 0) {
+			return Array.from(this.selectedFilePaths).map((id) =>
+				id.startsWith('folder:') ? id.slice('folder:'.length).replace(/^\/|\/$/g, '') : id,
+			);
+		}
+		const focusedId = this.treeView?.focusedId;
+		if (focusedId) {
+			const clean = focusedId.startsWith('folder:')
+				? focusedId.slice('folder:'.length).replace(/^\/|\/$/g, '')
+				: focusedId;
+			return [clean];
+		}
+		return [];
 	}
 
 	private _orderedVisibleFilePaths(): string[] {
