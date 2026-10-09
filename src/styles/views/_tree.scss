@@ -927,6 +927,26 @@ body.vaultman-resizing {
   color: inherit;
 }
 
+/* Functional focus/cut/source states also exist when the native bridge is off. */
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-self.has-focus {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+/* U130 tree Navco: the same visible focus ring when the native bridge is in
+   compatible mode (native decoration, Vaultman-owned focus marker). */
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-compat .vaultman-tree-self.has-focus {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.vaultman-native-tree-locked .vaultman-tree-self.is-cut {
+  opacity: 0.5;
+}
+
+.vaultman-native-tree-locked .vaultman-tree-self.is-being-dragged {
+  color: var(--text-on-accent);
+  background-color: var(--interactive-accent);
+}
+
 .vaultman-native-tree-locked .vaultman-tree-row {
   height: 27px;
 }

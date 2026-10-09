@@ -65,6 +65,15 @@ import {
 	type TreeKeyboardState,
 } from '../../logic/logicTreeKeyboard';
 import {
+	nextLetterTarget,
+	isLetterJumpKey,
+	rowOrderFingerprint,
+	runNavcoKeyOverrides,
+	shouldLetterJump,
+	type NavcoPort,
+	type TreeLetterCursor,
+} from '../../logic/logicTreeNavigation';
+import {
 	readObserverEntryHeight,
 	TreeHeightIndex,
 } from '../../logic/logicTreeHeightIndex';
@@ -314,6 +323,13 @@ export interface TreeViewOptions {
 	/** Owner-local extra key bindings for this tree instance. */
 	keyboardExtensions?: TreeKeyboardExtensions;
 	/**
+	 * U130 tree Navco port: smallest typed key/action override seam.
+	 * `keyOverrides` run BEFORE `keyboardExtensions` (and native); `true`
+	 * consumes. `letterJump` gates printable glyphs on the scene's EFFECTIVE
+	 * sibling sort (name asc/desc only). Absent = exact native behavior.
+	 */
+	navco?: NavcoPort;
+	/**
 	 * Enter/Space activation with real modifier flags. Absent falls back to
 	 * `onRowClick(id)` with NO event — a KeyboardEvent is never cast to a
 	 * MouseEvent.
@@ -321,12 +337,22 @@ export interface TreeViewOptions {
 	onKeyboardActivate?: (id: string, modifiers: TreeKeyboardModifiers) => void;
 	/** Shift+Up/Down additive range. Absent = focus moves, selection untouched. */
 	onRangeSelect?: (anchorId: string, focusId: string) => void;
-	/** Escape. Absent = release DOM focus. */
-	onClearSelection?: () => void;
+	/** Shift+Up/Down native additive selection step (previous + current). */
+	onAdditiveSelect?: (previousId: string, currentId: string) => void;
+	/** Escape. Absent = release DOM focus. Returns false if nothing was selected. */
+	onClearSelection?: () => boolean | void;
 	/** F2. The scene's own rename affordance. */
 	onRenameRequest?: (id: string) => void;
-	/** Whether F2 rename is available for this row. Absent = unavailable. */
+	/** Whether rename is available for this row. Absent = unavailable. */
 	canRenameNode?: (id: string) => boolean;
+	/** Delete (Win/Linux) or Mod+Backspace (macOS) deletion request. */
+	onDeleteRequest?: (id: string) => void;
+	/** ArrowLeft on root-level file: collapse all folders. */
+	onCollapseAll?: () => void;
+	/** Mod+ArrowDown/Up: open file in background without moving active focus. */
+	onModStepOpen?: (id: string) => void;
+	/** Visual indicator whether a node is in cut state (.is-cut class). */
+	isItemCut?: (id: string) => boolean;
 }
 
 export class UnifiedTreeView {
@@ -392,6 +418,11 @@ export class UnifiedTreeView {
 	private _rowObserver: ResizeObserver | null = null;
 	private _containerWidth = 0;
 	private _keyboard: TreeKeyboardState = { rows: [], focusedId: null, anchorId: null };
+	/** Owner-local letter-jump cursor (previous jump for first/next/wrap). */
+	private _letterPrevious: TreeLetterCursor | null = null;
+	/** Scope+order fingerprint the cursor was produced for; change resets it. */
+	private _letterScopeFp: string | null = null;
+	private _letterOrderFp: string | null = null;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
 	/**
 	 * U121-106: pulsacion larga sobre el CHECKBOX. Gesto propio y no el de la
@@ -623,6 +654,30 @@ export class UnifiedTreeView {
 				row?.toggleClass('is-active', active);
 				row?.querySelector<HTMLElement>('.vaultman-tree-self')?.toggleClass('is-active', active);
 			}
+		}
+	}
+
+	get focusedId(): string | null {
+		return this._keyboard.focusedId;
+	}
+
+	setFocusedId(id: string | null, reveal = true): void {
+		const prevId = this._keyboard.focusedId;
+		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
+		// Manual focus moves break the letter-jump chain; the letter path
+		// assigns `_letterPrevious` after focusing, so this reset is safe.
+		this._letterPrevious = null;
+		this._letterScopeFp = null;
+		for (const rows of [this.rowEls, this.stickyRowEls]) {
+			for (const [nodeId, focused] of [[prevId, false], [id, true]] as const) {
+				if (!nodeId) continue;
+				const row = rows.get(nodeId);
+				row?.toggleClass('has-focus', focused);
+				row?.querySelector<HTMLElement>('.vaultman-tree-self')?.toggleClass('has-focus', focused);
+			}
+		}
+		if (id && reveal) {
+			this.scrollToId(id, 'nearest', 'auto');
 		}
 	}
 
@@ -1455,6 +1510,18 @@ export class UnifiedTreeView {
 					? this._keyboard.anchorId
 					: null,
 		};
+		// Member-order changes break the letter-jump chain (the shared jump
+		// helper also restarts on changed member order via previous.memberIds).
+		const orderFp = rowOrderFingerprint(this._keyboard.rows);
+		if (this._letterOrderFp !== null && this._letterOrderFp !== orderFp) {
+			this._letterPrevious = null;
+			this._letterScopeFp = null;
+		}
+		this._letterOrderFp = orderFp;
+		if (this._keyboard.focusedId === null) {
+			this._letterPrevious = null;
+			this._letterScopeFp = null;
+		}
 	}
 
 	private readonly _onTreeFocusIn = (event: FocusEvent): void => {
@@ -1464,22 +1531,22 @@ export class UnifiedTreeView {
 		const id = row instanceof HTMLElement ? row.dataset.id : undefined;
 		if (!id || !this._indexById.has(id)) return;
 		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
+		// Manual DOM focus breaks the letter-jump chain.
+		this._letterPrevious = null;
+		this._letterScopeFp = null;
 	};
 
 	private _keyboardCallbacks(): TreeKeyboardCallbacks {
 		return {
 			onFocus: (id) => {
-				this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
-				const row = this.rowEls.get(id);
-				if (row) {
-					this.scrollToId(id, 'nearest', 'auto');
-					this.rowEls.get(id)?.focus({ preventScroll: true });
-				} else {
-					this.scrollToId(id, 'nearest', 'auto');
-					this._treeWindow().requestAnimationFrame(() => {
-						this.rowEls.get(id)?.focus({ preventScroll: true });
-					});
+				// Native navigation blurs DOM focus; logical focus survives recycling.
+				const doc = this.containerEl.ownerDocument;
+				const active = doc?.activeElement;
+				if (active && active !== doc.body && !isEditableKeyboardTarget(active, null) && 'blur' in active && typeof active.blur === 'function') {
+					active.blur();
 				}
+				doc?.getSelection()?.removeAllRanges();
+				this.setFocusedId(id);
 			},
 			onToggleExpand: (id) => {
 				this._opts?.onToggle(id);
@@ -1502,21 +1569,36 @@ export class UnifiedTreeView {
 					this._opts.onRangeSelect(anchorId, focusId);
 					return;
 				}
-				// Degraded: no scene range seam, focus still moves.
 				this._keyboardCallbacks().onFocus(focusId);
+			},
+			onAdditiveSelect: (prevId, currId) => {
+				if (this._opts?.onAdditiveSelect) {
+					this._opts.onAdditiveSelect(prevId, currId);
+					return;
+				}
+				this._opts?.onRangeSelect?.(prevId, currId);
 			},
 			onClearSelection: () => {
 				if (this._opts?.onClearSelection) {
-					this._opts.onClearSelection();
-					return;
+					return this._opts.onClearSelection();
 				}
-				const active = this.containerEl.ownerDocument.activeElement;
+				const active = this.containerEl.ownerDocument?.activeElement;
 				if (active instanceof HTMLElement) active.blur();
+				return false;
 			},
 			onRename: (id) => {
 				this._opts?.onRenameRequest?.(id);
 			},
 			canRename: (id) => this._opts?.canRenameNode?.(id) === true,
+			onDelete: (id) => {
+				this._opts?.onDeleteRequest?.(id);
+			},
+			onCollapseAll: () => {
+				this._opts?.onCollapseAll?.();
+			},
+			onModStepOpen: (id) => {
+				this._opts?.onModStepOpen?.(id);
+			},
 		};
 	};
 
@@ -1547,19 +1629,79 @@ export class UnifiedTreeView {
 		if (focusedId === null && rowEl?.dataset.id) {
 			focusedId = rowEl.dataset.id;
 		}
+		// U130 Navco: typed override seam runs BEFORE legacy extensions and
+		// native. `true` consumes with action context; `false` falls through.
+		// Native stays the default when no port is wired.
+		if (this._opts.navco?.keyOverrides) {
+			const consumed = runNavcoKeyOverrides(
+				this._opts.navco.keyOverrides,
+				event,
+				{ focusedId, rows: modelRows },
+			);
+			if (consumed) {
+				event.preventDefault();
+				event.stopPropagation();
+				this._letterPrevious = null;
+				this._letterScopeFp = null;
+				return true;
+			}
+		}
 		const { handled, next } = handleTreeKeyboardKey(
 			event,
 			{ rows: modelRows, focusedId, anchorId: this._keyboard.anchorId },
 			this._keyboardCallbacks(),
 			this._opts.keyboardExtensions,
+			{ isMacOS: Platform.isMacOS },
 		);
 		if (handled) {
 			event.preventDefault();
 			event.stopPropagation();
-			this._keyboard = next;
+			// Expansion callbacks may have synchronously rebuilt the visible model.
+			this._keyboard = { ...next, rows: this._keyboard.rows };
+			// Native navigation breaks the letter-jump chain (letters never
+			// reach native: the allowlist rejects them).
+			this._letterPrevious = null;
+			this._letterScopeFp = null;
 		}
-		return handled;
+		if (handled) return true;
+		return this._onTreeLetterJump(event, modelRows, focusedId);
 	};
+
+	/**
+	 * U130 Navco letter jump: printable glyphs cycle within the focused
+	 * sibling level ONLY when the scene's EFFECTIVE sort there is name
+	 * asc/desc. Non-name levels, no-match glyphs and editable targets bubble.
+	 * Focus moves through the existing reveal path (selection untouched) so
+	 * virtualization and sticky copies keep working.
+	 */
+	private _onTreeLetterJump(
+		event: KeyboardEvent,
+		modelRows: readonly TreeKeyboardRow[],
+		focusedId: string | null,
+	): boolean {
+		const port = this._opts?.navco?.letterJump;
+		if (!port) return false;
+		if (!isLetterJumpKey(event)) return false;
+		const focusedIndex = focusedId === null ? 0 : modelRows.findIndex((row) => row.id === focusedId);
+		if (focusedIndex < 0) return false;
+		const focusedRow = modelRows[focusedIndex];
+		if (!focusedRow) return false;
+		const scope = port.resolveScope(focusedRow.id, focusedRow.depth);
+		const sort = port.sortOf(scope);
+		if (!shouldLetterJump(sort.sortBy)) return false;
+		const scopeFp = `${scope.parentId ?? ''} level:${scope.level} sort:${sort.sortBy}:${sort.direction}`;
+		const previous = this._letterScopeFp === scopeFp ? this._letterPrevious : null;
+		const cursor = nextLetterTarget({ key: event.key, rows: modelRows, focusedIndex,
+			labelOf: port.labelOf, sortBy: sort.sortBy, jump: port.jump, previous });
+		if (!cursor) return false;
+		// Reveal/focus path only: no selection mutation from letter navigation.
+		this._keyboardCallbacks().onFocus(cursor.targetId);
+		this._letterPrevious = cursor;
+		this._letterScopeFp = scopeFp;
+		event.preventDefault();
+		event.stopPropagation();
+		return true;
+	}
 	/**
 	 * One perf action per gesture, not per event: scroll fires at the panel's
 	 * refresh rate, so recording each callback would evict the action ring
@@ -2212,8 +2354,7 @@ export class UnifiedTreeView {
 		}
 		row.setAttribute('role', 'button');
 		row.setAttribute('aria-label', node.label);
-		row.tabIndex = 0;
-		row.draggable = Boolean(opts.onDragStart);
+		row.draggable = Boolean(opts.onDragStart) && opts.editingId == null;
 		const caretPos = opts.caretPosition ?? 'start';
 		const indentMode = opts.treeIndentMode ?? 'all';
 		const effectiveIndent = node.scopeIndent ?? opts.indent;
@@ -2293,6 +2434,7 @@ export class UnifiedTreeView {
 				event.stopPropagation();
 				return;
 			}
+			this.setFocusedId(node.id, false);
 			if (node.isGroupHeader === true) {
 				this._activateGroupRow(node, opts);
 				return;
@@ -2351,6 +2493,7 @@ export class UnifiedTreeView {
 			this._recursiveExpandGesture.cancel();
 			row.addClass('is-being-dragged');
 			opts.onDragStart?.(node.id, event);
+			if (event.defaultPrevented) row.removeClass('is-being-dragged');
 		};
 		row.ondragend = () => row.removeClass('is-being-dragged');
 		row.ondragover = (event) =>
@@ -2400,6 +2543,12 @@ export class UnifiedTreeView {
 			fastSelf?.toggleClass('is-selected', isSelected);
 			fastSelf?.toggleClass('is-editing', opts.editingId === node.id);
 			fastSelf?.toggleClass('is-being-renamed', this._nativeTreeEnabled() && opts.editingId === node.id);
+			const focused = this._keyboard.focusedId === node.id;
+			const cut = opts.isItemCut?.(node.id) === true;
+			row.toggleClass('has-focus', focused);
+			row.toggleClass('is-cut', cut);
+			fastSelf?.toggleClass('has-focus', focused);
+			fastSelf?.toggleClass('is-cut', cut);
 			opts.cellContributions?.bind(row, this._nativeTreeEnabled(), contributionVisibility);
 			return row;
 		}
@@ -2456,6 +2605,12 @@ export class UnifiedTreeView {
 		self.toggleClass('is-editing', isEditing);
 		self.toggleClass('is-being-renamed', Boolean(nativeProfile) && isEditing);
 		self.toggleClass('mod-collapsible', showCaret);
+		const isFocused = this._keyboard.focusedId === node.id;
+		row.toggleClass('has-focus', isFocused);
+		self.toggleClass('has-focus', isFocused);
+		const isCut = opts.isItemCut?.(node.id) === true;
+		row.toggleClass('is-cut', isCut);
+		self.toggleClass('is-cut', isCut);
 
 		rowMap.set(node.id, row);
 
