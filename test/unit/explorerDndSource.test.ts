@@ -71,12 +71,9 @@ describe('explorer drag and drop source guards', () => {
 		expect(filesSource).toContain(
 			"void this._moveDraggedNodesIntoFolder(payload, '')",
 		);
-		expect(filesSource).toContain(
-			"dragManager.dragFile?.(event, entries[0], 'file-explorer')",
-		);
-		expect(filesSource).toContain(
-			"dragManager.dragFiles?.(event, entries, 'file-explorer')",
-		);
+		// The behavior suite tests file/folder/multi descriptors and lifecycle entry.
+		expect(filesSource).toContain('beginNativeExplorerDrag({');
+		expect(filesSource).not.toContain('dragManager.draggable = draggable');
 		expect(propsSource).toContain('private _handlePropDrop');
 		expect(propsSource).toContain('this._copyDraggedValueToProperty');
 		expect(propsSource).toContain('this.plugin.showDragActionGuide?.');

@@ -57,6 +57,7 @@ import {
 	serializeObsidianFilesClipboard,
 	type TreeClipboardHandler,
 } from '../../logic/logicTreeClipboard';
+import { beginNativeExplorerDrag, nativeExplorerDragManager } from '../../logic/logicNativeExplorerDragStart';
 import { buildNodeMoveQueueChanges, stageNodeMovePlan } from '../../logic/logicNodeMoveProceed';
 import type { NodeMoveOperation } from '../../logic/logicNodeMoveMode';
 import {
@@ -4513,23 +4514,8 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 			selection?: VaultmanDragNodePayload[];
 		},
 	): void {
-		const dragManager = (
-			this.plugin.app as unknown as {
-				dragManager?: {
-					draggable?: unknown;
-					dragFile?: (
-						event: DragEvent,
-						file: TFile,
-						source?: string,
-					) => unknown;
-					dragFiles?: (
-						event: DragEvent,
-						files: Array<TFile | TFolder>,
-						source?: string,
-					) => unknown;
-				};
-			}
-		).dragManager;
+		const app = this.plugin.app;
+		const dragManager = nativeExplorerDragManager('dragManager' in app ? app.dragManager : null);
 		if (!dragManager) return;
 		const entries = this._fileDragNodes(payload)
 			.map((node) => this.plugin.app.vault.getAbstractFileByPath(node.path))
@@ -4538,11 +4524,17 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 					entry instanceof TFile || entry instanceof TFolder,
 			);
 		if (entries.length === 0) return;
-		const draggable =
-			entries.length === 1 && entries[0] instanceof TFile
-				? dragManager.dragFile?.(event, entries[0], 'file-explorer')
-				: dragManager.dragFiles?.(event, entries, 'file-explorer');
-		if (draggable !== undefined) dragManager.draggable = draggable;
+		const paths = new Set(entries.map(entry => entry.path));
+		const sourceElements = Array.from(this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row'))
+			.filter(row => row.dataset.path !== undefined && paths.has(row.dataset.path))
+			.map(row => row.querySelector<HTMLElement>('.vaultman-tree-self') ?? row);
+		if (!beginNativeExplorerDrag({
+			event,
+			entries: entries.map(file => file instanceof TFile ? { kind: 'file' as const, file } : { kind: 'folder' as const, file }),
+			sourceElements,
+			manager: dragManager,
+			isRenaming: this._editingId !== null,
+		})) event.preventDefault();
 	}
 
 	private _fileDropGuide(
