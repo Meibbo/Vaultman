@@ -174,6 +174,7 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	TOOLBAR_SEARCHBOX_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 	SEARCH_CREATE_TARGET_ID,
+	'go_to_setting_scene',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -655,6 +656,13 @@ export class VaultmanPlugin extends Plugin {
 				handler: () => { this.runPluginNativeAction(id); },
 			});
 		}
+		this.sasiCommandPublisher.register({
+			id: 'go_to_setting_scene',
+			name: translate('sasi.settingScene.action.go_to_setting_scene'),
+			handler: () => {
+				void this.goToSettingSceneCommand();
+			},
+		});
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -818,6 +826,11 @@ export class VaultmanPlugin extends Plugin {
 	private async switchSceneCommand(tab: StatisticsDataTab): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		view?.switchScene(tab);
+	}
+
+	private async goToSettingSceneCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.switchScene('plugins');
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

@@ -8,6 +8,7 @@ export const SETTING_SCENE_ACTION_IDS = [
 	'open_restricted_mode',
 	'group_toggle_cascade',
 	'go_to_setting_content',
+	'go_to_setting_scene',
 ] as const;
 
 const SETTING_SCENE_SURFACE = 'settingScene';
@@ -140,6 +141,17 @@ export function registerSettingSceneCatalog(registry: SasiRegistry): void {
 				panelType: 'panelContent',
 				mode: 'settings-content',
 			},
+		],
+	});
+	registry.register({
+		id: 'go_to_setting_scene',
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.settingScene.action.go_to_setting_scene',
+		icon: 'lucide-sliders',
+		supports: [
+			{ surface: SETTING_SCENE_SURFACE },
+			{ surface: 'panelWidget' },
 		],
 	});
 }

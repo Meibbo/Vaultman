@@ -1201,6 +1201,7 @@ export const es: Record<string, string> = {
 	'sasi.settingScene.kind.node_plugin_community': 'Plugin de la comunidad',
 	'sasi.settingScene.action.browse_community_plugins': 'Examinar plugins de la comunidad',
 	'sasi.settingScene.action.open_restricted_mode': 'Abrir modo restringido',
+	'sasi.settingScene.action.go_to_setting_scene': 'Ir a settingScene',
 	'addons.installed': 'Instalado',
 	'addons.updated': 'Actualizado',
 	'viewmode.pill.cell_update': 'Actualización del plugin',
