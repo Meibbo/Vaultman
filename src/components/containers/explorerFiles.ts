@@ -1057,6 +1057,15 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', () => {
+					if (this.visibleCells.has('format')) {
+						this._scheduleRefresh();
+					}
+				}),
+			);
+		}
 		// Hydration/clear need a rebuild; ordinary opens already use the incremental
 		// file-open handler below and must not trigger a second full render.
 		this.register(this.plugin.lastOpenedService.onReset(() => this._render()));
@@ -3864,20 +3873,9 @@ export class FilesExplorerPanel extends Component {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === "string") aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === "string") {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
 
 		const visit = (list: TreeNode<FileMeta>[]) => {
 			for (const node of list) {
@@ -3905,9 +3903,8 @@ export class FilesExplorerPanel extends Component {
 					}
 				}
 
-				if (hasBoundNote) {
-					node.meta.hasNodeNote = true;
-				}
+				node.meta.hasNodeNote = hasBoundNote;
+				node.hasNodeNote = hasBoundNote;
 
 				if (node.children?.length) {
 					visit(node.children);

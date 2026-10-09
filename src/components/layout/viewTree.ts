@@ -1398,6 +1398,7 @@ export class UnifiedTreeView {
 			opts.selectionCheckboxPosition ?? 'start',
 			badges,
 			cells,
+			((node.hasNodeNote ?? (node.meta as { hasNodeNote?: boolean } | undefined)?.hasNodeNote) ? '1' : '0'),
 		].join('\u001f');
 	}
 

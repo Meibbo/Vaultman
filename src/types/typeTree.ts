@@ -161,6 +161,7 @@ export interface TreeNode<TMeta = unknown> {
 	meta: TMeta;
 	cls?: string;
 	coreCls?: string;
+	hasNodeNote?: boolean;
 }
 
 export interface TagMeta {

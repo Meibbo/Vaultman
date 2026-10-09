@@ -427,6 +427,16 @@ export class VaultmanPlugin extends Plugin {
 				this.filterService.scheduleMetadataRefresh();
 			}),
 		);
+		this.registerEvent(
+			this.app.metadataCache.on('changed', () => {
+				this.nodeBindingService.invalidateAliasCache();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('create', () => {
+				this.nodeBindingService.invalidateAliasCache();
+			}),
+		);
 
 		// BT5-013: `file-open` fires on a real activation only — hover previews
 		// never reach it, so previewing a note cannot age it to "just opened".
@@ -443,8 +453,12 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
-				this.nodeBindingService.invalidateAliasCache();
-				this.lastOpenedService.handleDelete(file.path);
+				const path = file?.path;
+				this.nodeBindingService.invalidateAliasCache(path);
+				if (path) this.lastOpenedService.handleDelete(path);
+				setTimeout(() => {
+					this.nodeBindingService.invalidateAliasCache();
+				}, 60);
 			}),
 		);
 

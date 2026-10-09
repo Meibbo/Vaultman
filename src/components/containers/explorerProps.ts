@@ -744,6 +744,16 @@ export class PropsExplorerPanel extends Component {
 				}
 			}),
 		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', () => {
+					if (this.visibleCells.has('format')) {
+						this.logic.invalidate();
+						this._deferRender();
+					}
+				}),
+			);
+		}
 		// Re-render after Iconic loads/changes; both are registered for cleanup
 		// and coalesced (BT4-002 twin of the tags panel fix).
 		const iconic = this.plugin.iconicService;
@@ -2898,15 +2908,12 @@ export class PropsExplorerPanel extends Component {
 					if (!meta.isValueNode) {
 						const propName = meta.propName ?? node.label;
 						const propTokens = propAliasTokens(propName, prefixesFromSettings(this.plugin.settings));
-						if (propTokens.some((t) => aliasSet.has(t))) {
-							meta.hasNodeNote = true;
-						}
-				} else {
-					const rawValue = meta.rawValue ?? node.label;
-					if (valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t))) {
-						meta.hasNodeNote = true;
+						meta.hasNodeNote = propTokens.some((t) => aliasSet.has(t));
+					} else {
+						const rawValue = meta.rawValue ?? node.label;
+						meta.hasNodeNote = valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t));
 					}
-				}
+					node.hasNodeNote = meta.hasNodeNote;
 				}
 				if (node.children?.length) {
 					visit(node.children);
