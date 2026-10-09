@@ -454,6 +454,14 @@ export function setIcon(_el: HTMLElement, _name: string): void {
 	// no-op for tests
 }
 
+export function setTooltip(
+	_el: HTMLElement,
+	_text: string,
+	_options?: Record<string, unknown>,
+): void {
+	// no-op for tests
+}
+
 export const parseYaml = parseYamlImpl;
 export const stringifyYaml = stringifyYamlImpl;
 

@@ -9,6 +9,10 @@
 	} from '../../logic/logicGlyphColor';
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
 	import {
+		nextIndexJump,
+		type IndexJumpCursor,
+	} from '../../logic/logicIndexJump';
+	import {
 		niagaraActionOrder,
 		niagaraClampToFrame,
 		niagaraPullSplit,
@@ -148,6 +152,7 @@
 		}
 	}
 	function invokeAction(actionId: FloatingTocActionId): void {
+		jumpCursor = null;
 		switch (actionId) {
 			case 'close':
 				onClose();
@@ -203,6 +208,7 @@
 	let gestureMoved = false;
 	let lastJumpedGroupIndex = -1;
 	let suppressNextTrackClick = false;
+	let jumpCursor: IndexJumpCursor | null = null;
 	let holdTimer: number | null = null;
 	let clickResetTimer: number | null = null;
 	const trackEls: Array<HTMLElement | undefined> = [];
@@ -381,6 +387,7 @@
 			const { groupIndex } = target;
 			if (groupIndex !== lastJumpedGroupIndex) {
 				lastJumpedGroupIndex = groupIndex;
+				jumpCursor = null;
 				onJump(groups[groupIndex].firstId);
 			}
 		}
@@ -473,7 +480,14 @@
 	function handleGroupClick(event: MouseEvent, groupIndex: number): void {
 		if (consumeSuppressedClick(event)) return;
 		const group = groups[groupIndex];
-		if (group) onJump(group.firstId);
+		if (!group) return;
+		const next = nextIndexJump(group, jumpCursor);
+		if (next) {
+			jumpCursor = next;
+			onJump(next.targetId);
+		} else {
+			onJump(group.firstId);
+		}
 	}
 
 	// ─── Exact proto Niagara wave ───────────────────────────────────────────────
