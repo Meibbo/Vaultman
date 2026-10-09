@@ -5553,8 +5553,8 @@ export class PropsExplorerPanel extends Component {
 			property: propName,
 			action: 'rename',
 			details: label
-				? `Convert "${oldValue}" to ${label}`
-				: `Rename value "${oldValue}" → "${String(newValue)}"`,
+				? `Convert "${propName}: ${oldValue}" to ${label}`
+				: `Rename value "${propName}: ${oldValue}" → "${String(newValue)}"`,
 			files,
 			value: String(newValue),
 			oldValue: oldValue,
