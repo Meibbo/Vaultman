@@ -79,5 +79,6 @@ describe('BT5-032 one tooltip owner per row', () => {
 		expect(navbarFiltersSource).not.toMatch(
 			/PLUGIN_UPDATE_TOOLBAR_ACTIONS[\s\S]*?title=\{toolbarNodeTitle\(translate\(labelKey\)\)\}/,
 		);
+		expect(navbarFiltersSource).not.toContain('title={toolbarNodeTitle(');
 	});
 });

@@ -4287,10 +4287,14 @@
 			resolveNativeCompatMode('toolbar', globalNativeCompat, policy),
 		);
 	});
-	function toolbarNodeTitle(label: string | undefined): string | undefined {
-		if (minimalStyle || !toolbarTooltipsEnabled) return undefined;
-		return label;
-	}
+
+	// U130 polish: Limpiar tooltips huérfanos al alternar vistas/escenas
+	$effect(() => {
+		if (activeTab) {
+			const doc = activeDocument ?? (typeof document !== 'undefined' ? document : null);
+			doc?.querySelectorAll?.('.tooltip')?.forEach?.((el) => el.remove());
+		}
+	});
 
 	function compactFoldersEnabledFor(tab: FiltersTab): boolean {
 		return (
@@ -4998,7 +5002,6 @@
 							role="button"
 							tabindex="0"
 							aria-label={currentTabsLabel}
-							title={toolbarNodeTitle(currentTabsLabel)}
 							onclick={(event: MouseEvent) => openScenePopup(event)}
 							oncontextmenu={(e: MouseEvent) => {
 								e.preventDefault();
@@ -5043,7 +5046,6 @@
 								aria-label={action.label}
 								aria-pressed={action.checked}
 								aria-disabled={action.disabled ? 'true' : undefined}
-								title={toolbarNodeTitle(action.label)}
 								onclick={(event: MouseEvent) => {
 									if (action.disabled) return;
 									invokeSceneAction(`header:${action.id}`, 'pointer', event);
@@ -5080,7 +5082,6 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.viewmode_btn')}
-								title={toolbarNodeTitle(translate('filter.viewmode_btn'))}
 								onclick={(event: MouseEvent) => openViewModePopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -5108,7 +5109,6 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.sort_btn')}
-								title={toolbarNodeTitle(translate('filter.sort_btn'))}
 								onclick={(event: MouseEvent) => openSortPopup(event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -5139,7 +5139,6 @@
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
 								aria-pressed={searchExpanded}
-								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={toggleSearch}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -5163,7 +5162,6 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
-								title={toolbarNodeTitle(translate('explorer.btn.search'))}
 								onclick={expandSearch}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
@@ -5185,7 +5183,6 @@
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.auto_reveal')}
-								title={toolbarNodeTitle(translate('filter.auto_reveal'))}
 								onclick={(event) => revealActiveExplorerFile('pointer', event)}
 								oncontextmenu={(e: MouseEvent) => {
 									e.preventDefault();
@@ -5270,7 +5267,6 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_note')}
-									title={toolbarNodeTitle(translate('folder.ctx.new_note'))}
 									onclick={(event) =>
 										invokeSceneAction('create-file', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -5302,7 +5298,6 @@
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_folder')}
-									title={toolbarNodeTitle(translate('folder.ctx.new_folder'))}
 									onclick={(event) =>
 										invokeSceneAction('create-folder', 'pointer', event)}
 									oncontextmenu={(e: MouseEvent) => {
@@ -5340,14 +5335,6 @@
 									role="button"
 									tabindex="0"
 									aria-label={command.label}
-									title={toolbarNodeTitle(
-										command.available
-											? command.label
-											: translate('command.unavailable').replace(
-													'{id}',
-													command.id,
-												),
-									)}
 									onclick={() => {
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');

@@ -246,4 +246,21 @@ describe('B1/B3: eliminate native/styled hover-tooltip duplication', () => {
 		});
 		expect(setTooltip).toHaveBeenCalled();
 	});
+
+	it('removes orphaned tooltips from document when tree view is destroyed', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const view = new UnifiedTreeView(container);
+
+		const orphan = document.createElement('div');
+		orphan.className = 'tooltip';
+		orphan.textContent = 'Orphaned tooltip text';
+		document.body.appendChild(orphan);
+		expect(document.querySelectorAll('.tooltip').length).toBe(1);
+
+		view.destroy();
+		expect(document.querySelectorAll('.tooltip').length).toBe(0);
+	});
 });

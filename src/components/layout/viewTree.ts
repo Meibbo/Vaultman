@@ -718,6 +718,8 @@ export class UnifiedTreeView {
 		this.containerEl.removeClass('vaultman-tree-virtual-viewport');
 		this.containerEl.removeClass('vaultman-tree-nested-guides');
 		this.containerEl.removeClass('vaultman-tree-structure-animating');
+		const doc = this._treeWindow()?.document ?? (typeof activeDocument !== 'undefined' ? activeDocument : null) ?? (typeof document !== 'undefined' ? document : null);
+		doc?.querySelectorAll?.('.tooltip')?.forEach?.((el: Element) => el.remove());
 		this._spacerEl?.remove();
 		this._spacerEl = null;
 		this._contentEl = null;

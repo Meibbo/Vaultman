@@ -40,7 +40,7 @@
 		icon,
 		onInvoke,
 		translate,
-		tooltipsEnabled = true,
+		tooltipsEnabled: _tooltipsEnabled = true,
 	}: Props = $props();
 
 	const node = $derived(resolve(actionId));
@@ -59,7 +59,6 @@
 	disabled={!available}
 	aria-label={label}
 	aria-pressed={toggle ? toggle.on : undefined}
-	title={tooltipsEnabled ? label : undefined}
 	use:icon={node?.icon ?? 'lucide-circle-help'}
 	onclick={() => available && onInvoke?.(actionId)}
 ></button>

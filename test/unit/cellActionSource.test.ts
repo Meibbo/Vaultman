@@ -44,4 +44,8 @@ describe('U130-05 cellAction', () => {
 		expect(src).toContain('disabled');
 		expect(src).not.toMatch(/\{#if\s+available\}/);
 	});
+
+	it('B1: no renderiza native title junto a aria-label para evitar doble tooltip', () => {
+		expect(src).not.toContain('title={');
+	});
 });
