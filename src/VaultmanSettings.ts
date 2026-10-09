@@ -424,6 +424,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.reveal_direct_write'),
+			desc: translate('settings.reveal_direct_write.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.revealDirectWrite ?? false)
+						.onChange(async (value) => {
+							this.plugin.settings.revealDirectWrite = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {

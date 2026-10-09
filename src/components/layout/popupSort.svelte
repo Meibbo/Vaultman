@@ -91,9 +91,14 @@
 		nestedActive?: boolean;
 		revealActive?: boolean;
 		treeCapable?: boolean;
-		/** Spec 08 §3.2: the groups submenu, per instance. */
 		groupPreset?: GroupPreset;
-		customGroups?: readonly { id: string; label: string; hidden?: boolean }[];
+		customGroups?: readonly {
+			id: string;
+			label: string;
+			hidden?: boolean;
+			scopeLabel?: string;
+			projectionLevel?: string;
+		}[];
 		canCreateGroup?: boolean;
 		onGroupPresetChange?: (kind: GroupPresetKind) => void;
 		onNewGroup?: () => void;

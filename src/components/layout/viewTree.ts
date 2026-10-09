@@ -2027,6 +2027,7 @@ export class UnifiedTreeView {
 			opts.nativeScene ?? '',
 			opts.nativeCompat?.tree ?? '',
 			opts.textCase ? JSON.stringify(opts.textCase) : '',
+			((node.hasNodeNote ?? (node.meta as { hasNodeNote?: boolean } | undefined)?.hasNodeNote) ? '1' : '0'),
 		].join('\u001f');
 	}
 

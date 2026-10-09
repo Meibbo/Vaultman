@@ -54,10 +54,12 @@ import {
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 import {
+	isCorePlugin,
 	normalizeAddonCellStyle,
 	openPluginSettings,
 	pluginSettingTabIds,
-	toggleCommunityPlugin,
+	toggleCorePlugin,
+	togglePlugin,
 } from '../../logic/logicAddonCells';
 import {
 	executeSettingSceneActivation,
@@ -281,20 +283,22 @@ export class PluginsExplorerPanel
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.metadataCache.on('changed', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('create', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('create', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('delete', this._scheduleNodeNoteRender),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleNodeNoteRender),
+		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', this._scheduleNodeNoteRender),
+			);
+		}
 		// BT5-019: external icon edits repaint through the existing adapter
 		// event — no new timer — and the subscription is released on unload.
 		const iconic = this.plugin.iconicService;
@@ -326,6 +330,18 @@ export class PluginsExplorerPanel
 		this.register(
 			this.plugin.onSettingsChange(this._scheduleIconRebuild),
 		);
+		const internal = (this.plugin.app as unknown as { internalPlugins?: { on?: (name: string, cb: () => void) => void; off?: (name: string, cb: () => void) => void } }).internalPlugins;
+		if (internal && typeof internal.on === 'function') {
+			const onCoreChange = () => {
+				if (!this.destroyed) this.rebuildNodes();
+			};
+			internal.on('change', onCoreChange);
+			this.register(() => {
+				if (typeof internal.off === 'function') {
+					internal.off('change', onCoreChange);
+				}
+			});
+		}
 	}
 
 	private readonly _handleQueueChange = (): void => {
@@ -360,6 +376,46 @@ export class PluginsExplorerPanel
 			if (!this.destroyed) this.rebuildNodes();
 		}, 0);
 	};
+
+	private _nodeNoteRenderScheduled = false;
+
+	/** Coalesce bursts of metadata/alias/vault changes into one node-note repaint. */
+	private readonly _scheduleNodeNoteRender = (): void => {
+		if (this.destroyed || this._nodeNoteRenderScheduled) return;
+		this._nodeNoteRenderScheduled = true;
+		queueMicrotask(() => {
+			this._nodeNoteRenderScheduled = false;
+			if (!this.destroyed && this.visibleCells.has('format')) {
+				this.render();
+				this._patchVisibleNodeNoteCells();
+			}
+		});
+	};
+
+	private _patchVisibleNodeNoteCells(): void {
+		if (!this.containerEl) return;
+		const rows = this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row[data-id]');
+		const aliasSet = this.plugin.nodeBindingService?.getVaultAliasSet() ?? new Set<string>();
+		const prefixes = prefixesFromSettings(this.plugin.settings);
+		for (const row of Array.from(rows)) {
+			const id = row.dataset.id;
+			if (!id) continue;
+			const pluginId = id.startsWith('plugin:') ? id.slice(7) : (id.includes(':') ? null : id);
+			if (!pluginId) continue;
+			const labelEl = row.querySelector<HTMLElement>('.vaultman-tree-label');
+			if (!labelEl) continue;
+			const pluginName = labelEl.textContent?.trim() ?? '';
+			const tokens = pluginAliasTokens(pluginId, pluginName, prefixes);
+			const hasNote = tokens.some((t) => aliasSet.has(t));
+			const isFormatted = this.visibleCells.has('format');
+			const shouldHaveLink = isFormatted && hasNote;
+			if (shouldHaveLink) {
+				labelEl.classList.add('vaultman-node-note-link');
+			} else {
+				labelEl.classList.remove('vaultman-node-note-link');
+			}
+		}
+	}
 
 	private _lastExternalSignature = '';
 
@@ -1333,32 +1389,29 @@ export class PluginsExplorerPanel
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
+
+		const visit = (list: TreeNode<PluginMeta>[]) => {
+			for (const node of list) {
+				// U130 Slice A: las filas `node_settings` no son plugins y no
+				// enlazan notas de nodo (su `pluginId` es '').
+				if (node.meta?.pluginId) {
+					const pluginId = node.meta.pluginId;
+					const pluginName = node.meta?.name ?? node.label;
+					const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
+					const hasNote = pluginTokens.some((t) => aliasSet.has(t));
+					node.meta.hasNodeNote = hasNote;
+					node.hasNodeNote = hasNote;
+				}
+				if (node.children?.length) {
+					visit(node.children);
 				}
 			}
-		}
+		};
 
-		for (const node of nodes) {
-			// U130 Slice A: las filas `node_settings` no son plugins y no
-			// enlazan notas de nodo (su `pluginId` es '').
-			if (!node.meta?.pluginId) continue;
-			const pluginId = node.meta.pluginId;
-			const pluginName = node.meta?.name ?? node.label;
-			const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
-			if (pluginTokens.some((t) => aliasSet.has(t))) {
-				node.meta.hasNodeNote = true;
-			}
-		}
+		visit(nodes);
 	}
 
 	private projectedNodes(): TreeNode<PluginMeta>[] {
@@ -1519,13 +1572,14 @@ export class PluginsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (!this.dataSource && this.visibleCells.has('format')) {
-			this._decorateNodeNotes(this.nodes);
-		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (!this.dataSource && this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+			this._decorateNodeNotes(this._lastProjectedTree);
+		}
 		this.treeView.render({
 			surface: 'plugins',
 			nodes: this._lastProjectedTree,
@@ -2171,11 +2225,13 @@ export class PluginsExplorerPanel
 		try {
 			let failed = 0;
 			for (const meta of todo) {
-				const changed = await setCommunityPluginEnabled(
-					this.plugin.app,
-					meta.pluginId,
-					target,
-				);
+				const changed = isCorePlugin(this.plugin.app, meta.pluginId)
+					? await toggleCorePlugin(this.plugin.app, meta.pluginId, target)
+					: await setCommunityPluginEnabled(
+							this.plugin.app,
+							meta.pluginId,
+							target,
+					  );
 				if (!changed) failed += 1;
 			}
 			if (failed > 0) {
@@ -2189,19 +2245,28 @@ export class PluginsExplorerPanel
 			if (!selfOff && !this.destroyed) await this.refresh();
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
-			console.error('Vaultman community plugin group toggle failed', error);
+			console.error('Vaultman plugin group toggle failed', error);
 		} finally {
 			for (const meta of todo) this.pendingToggleIds.delete(meta.pluginId);
 			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 
-	private async toggle(meta: PluginMeta): Promise<void> {		if (this.pendingToggleIds.has(meta.pluginId)) return;
+	private async toggle(meta: PluginMeta): Promise<void> {
+		if (this.pendingToggleIds.has(meta.pluginId)) return;
 		this.pendingToggleIds.add(meta.pluginId);
 		this.rebuildNodes();
+		// Crucial: yield to the event loop so the browser paints the loading spinner (rueda de carga)
+		await new Promise<void>((resolve) => {
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(() => setTimeout(resolve, 0));
+			} else {
+				setTimeout(resolve, 0);
+			}
+		});
 		let callerWillUnload = false;
 		try {
-			const changed = await toggleCommunityPlugin(this.plugin.app, meta);
+			const changed = await togglePlugin(this.plugin.app, meta);
 			if (!changed) {
 				new Notice(translate('addons.plugins.unavailable'));
 				return;
@@ -2210,7 +2275,7 @@ export class PluginsExplorerPanel
 			if (!callerWillUnload && !this.destroyed) await this.refresh();
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
-			console.error('Vaultman community plugin toggle failed', error);
+			console.error('Vaultman plugin toggle failed', error);
 		} finally {
 			this.pendingToggleIds.delete(meta.pluginId);
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();

@@ -475,6 +475,8 @@ export interface VaultmanSettings {
 	persistInteractionMode?: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
+	/** Direct frontmatter write in props reveal mode even when bypassOperations is false */
+	revealDirectWrite: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
 	suppressBulkOperationWarning: boolean;
 	/** Queue warning threshold for operations that target many files */
@@ -734,6 +736,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	defaultInteractionModeByTab: {},
 	persistInteractionMode: true,
 	bypassOperations: false,
+	revealDirectWrite: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 200,
 	propMoveTypeConflict: 'coerce',

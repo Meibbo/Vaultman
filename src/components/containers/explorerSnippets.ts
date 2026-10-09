@@ -203,20 +203,22 @@ export class SnippetsExplorerPanel
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.metadataCache.on('changed', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('create', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('create', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('delete', this._scheduleNodeNoteRender),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleNodeNoteRender),
+		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', this._scheduleNodeNoteRender),
+			);
+		}
 		// BT5-019: Iconic never resolves snippets, but its adapter also fires
 		// when the icon library itself changes; repaint through that existing
 		// event (no new timer) and release the subscription on unload.
@@ -251,6 +253,46 @@ export class SnippetsExplorerPanel
 			if (!this.destroyed) this.rebuildNodes();
 		}, 0);
 	};
+
+	private _nodeNoteRenderScheduled = false;
+
+	/** Coalesce bursts of metadata/alias/vault changes into one node-note repaint. */
+	private readonly _scheduleNodeNoteRender = (): void => {
+		if (this.destroyed || this._nodeNoteRenderScheduled) return;
+		this._nodeNoteRenderScheduled = true;
+		queueMicrotask(() => {
+			this._nodeNoteRenderScheduled = false;
+			if (!this.destroyed && this.visibleCells.has('format')) {
+				this.render();
+				this._patchVisibleNodeNoteCells();
+			}
+		});
+	};
+
+	private _patchVisibleNodeNoteCells(): void {
+		if (!this.containerEl) return;
+		const rows = this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row[data-id]');
+		const aliasSet = this.plugin.nodeBindingService?.getVaultAliasSet() ?? new Set<string>();
+		const prefixes = prefixesFromSettings(this.plugin.settings);
+		for (const row of Array.from(rows)) {
+			const id = row.dataset.id;
+			if (!id) continue;
+			const snippetName = id.startsWith('snippet:') ? id.slice(8) : (id.includes(':') ? null : id);
+			if (!snippetName) continue;
+			const labelEl = row.querySelector<HTMLElement>('.vaultman-tree-label');
+			if (!labelEl) continue;
+			const displayName = labelEl.textContent?.trim() ?? snippetName;
+			const tokens = snippetAliasTokens(displayName, prefixes);
+			const hasNote = tokens.some((t) => aliasSet.has(t));
+			const isFormatted = this.visibleCells.has('format');
+			const shouldHaveLink = isFormatted && hasNote;
+			if (shouldHaveLink) {
+				labelEl.classList.add('vaultman-node-note-link');
+			} else {
+				labelEl.classList.remove('vaultman-node-note-link');
+			}
+		}
+	}
 
 	private _lastExternalSignature = '';
 
@@ -853,28 +895,26 @@ export class SnippetsExplorerPanel
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
+
+		const visit = (list: TreeNode<SnippetMeta>[]) => {
+			for (const node of list) {
+				if (node.meta) {
+					const snippetName = node.meta.name ?? node.label;
+					const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
+					const hasNote = snippetTokens.some((t) => aliasSet.has(t));
+					node.meta.hasNodeNote = hasNote;
+					node.hasNodeNote = hasNote;
+				}
+				if (node.children?.length) {
+					visit(node.children);
 				}
 			}
-		}
+		};
 
-		for (const node of nodes) {
-			const snippetName = node.meta?.name ?? node.label;
-			const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
-			if (snippetTokens.some((t) => aliasSet.has(t))) {
-				node.meta.hasNodeNote = true;
-			}
-		}
+		visit(nodes);
 	}
 
 	private projectedNodes(): TreeNode<SnippetMeta>[] {
@@ -966,13 +1006,14 @@ export class SnippetsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (this.visibleCells.has('format')) {
-			this._decorateNodeNotes(this.nodes);
-		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+			this._decorateNodeNotes(this._lastProjectedTree);
+		}
 		this.treeView.render({
 			surface: 'snippets',
 			nodes: this._lastProjectedTree,

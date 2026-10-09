@@ -515,6 +515,15 @@ export class TagsExplorerPanel extends Component {
 				}
 			}),
 		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', () => {
+					if (this.visibleCells.has('format')) {
+						this._deferRender();
+					}
+				}),
+			);
+		}
 		// Re-render after Iconic loads/changes; both are registered for cleanup
 		// and coalesced — un-registered onLoaded retained unloaded panels and
 		// per-event renders froze large vaults (BT4-002).
@@ -1793,20 +1802,9 @@ export class TagsExplorerPanel extends Component {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
 
 		const visit = (list: TreeNode<TagMeta>[]) => {
 			for (const node of list) {
@@ -1815,9 +1813,9 @@ export class TagsExplorerPanel extends Component {
 					tagPath,
 					prefixesFromSettings(this.plugin.settings),
 				);
-				if (tagTokens.some((t) => aliasSet.has(t))) {
-					node.meta.hasNodeNote = true;
-				}
+				const hasNote = tagTokens.some((t) => aliasSet.has(t));
+				node.meta.hasNodeNote = hasNote;
+				node.hasNodeNote = hasNote;
 				if (node.children?.length) {
 					visit(node.children);
 				}

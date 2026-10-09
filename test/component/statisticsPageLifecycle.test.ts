@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import StatisticsPage from '../../src/components/pages/pageStatistics.svelte';
+import type { VaultmanPlugin } from '../../src/main';
 
 type Listener = (...args: unknown[]) => void;
 
@@ -66,7 +67,7 @@ function createPlugin() {
 		},
 		lastOpenedService: { openedTodayCount: () => 9 },
 		sasiRegistry: {},
-	};
+	} as unknown as VaultmanPlugin;
 	return {
 		plugin,
 		statisticsCache,
