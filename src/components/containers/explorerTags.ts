@@ -191,6 +191,7 @@ import {
 	collectExpandableSubtreeIds,
 	toggleExpandableSubtreeIds,
 } from '../../logic/logicTreeExpansion';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import { queueDeletesSubject } from '../../logic/logicDeletionDecoration';
 import {
@@ -2651,6 +2652,18 @@ export class TagsExplorerPanel extends Component {
 				void this._render();
 			},
 			canRenameNode: (id: string) => this._canRenameNode(id),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE sibling
+			// sort (parent → level → all; group-aware ownership). `jump`
+			// arrives with the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(projected, focusedId, fallbackDepth),
+					sortOf: (scope) =>
+						siblingScopeSort('tags', this.sortState, scope.parentId, scope.level),
+					labelOf: (id: string) => this._findNode(id, projected)?.label ?? null,
+				},
+			},
 		onContextMenu: (id: string, e: MouseEvent) => {
 			if (isGroupHeader(id, this._groupIds)) {
 				// U130 Slice B (spec-03 §24-40): cmenu universal de grupo.
