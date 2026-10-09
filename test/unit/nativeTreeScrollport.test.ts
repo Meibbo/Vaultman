@@ -36,13 +36,13 @@ it('keeps native container paint while excluding its intrinsic content from view
 
 it('qualifies the compatible slot reset above legacy host indentation and hover rules', () => {
 	const css = compile('src/styles/views/_tree.scss').css;
-	const reset = css.match(/([^{}]+)\{\s*padding-block: 0;\s*padding-inline-start: calc\(var\(--depth, 0\)/)?.[1];
+	const reset = css.match(/([^{}]+)\{\s*padding-block: 0;\s*padding-inline-start: 0;/)?.[1];
 	expect(reset).toMatch(/\.workspace-leaf-content\[data-type="?vaultman-frame"?\]/);
 	expect(reset).toMatch(/\.workspace-leaf-content\[data-type="?vaultman-view"?\]/);
 });
 
 it('retains the opaque sticky base when resetting compatible slot decoration', () => {
 	const css = compile('src/styles/views/_tree.scss').css;
-	const reset = css.match(/[^{}]+\{\s*padding-block: 0;\s*padding-inline-start: calc\(var\(--depth, 0\)[^}]+\}/)?.[0];
+	const reset = css.match(/[^{}]+\{\s*padding-block: 0;\s*padding-inline-start: 0;[^}]+\}/)?.[0];
 	expect(reset).toContain('background-color: var(--vaultman-row-bg-base, transparent)');
 });
