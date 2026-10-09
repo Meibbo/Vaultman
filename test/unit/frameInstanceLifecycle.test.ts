@@ -27,6 +27,7 @@ const svelteMocks = vi.hoisted(() => {
 });
 
 vi.mock('obsidian', () => ({
+	Platform: { isMacOS: false },
 	ItemView: class {
 		readonly app;
 		readonly contentEl;
