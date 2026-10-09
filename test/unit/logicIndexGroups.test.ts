@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildIndexGroups,
+	indexKeyFor,
 	indexLevel,
 	scopeAfterExpansionChange,
 } from '../../src/logic/logicIndexGroups';
@@ -54,6 +55,24 @@ describe('buildIndexGroups', () => {
 	it('tolerates null/undefined input', () => {
 		expect(buildIndexGroups(null)).toEqual([]);
 		expect(buildIndexGroups(undefined)).toEqual([]);
+	});
+
+	it('retains all member IDs in encounter order in memberIds', () => {
+		const groups = buildIndexGroups(refs('alpha', 'Arbol', 'avena', 'beta'));
+		expect(groups[0].memberIds).toEqual([
+			'id-0-alpha',
+			'id-1-Arbol',
+			'id-2-avena',
+		]);
+		expect(groups[1].memberIds).toEqual(['id-3-beta']);
+	});
+
+	it('exports indexKeyFor reusing canonical normalization', () => {
+		expect(indexKeyFor('  alpha  ')).toBe('A');
+		expect(indexKeyFor('  123  ')).toBe('1');
+		expect(indexKeyFor('  _special  ')).toBe('_');
+		expect(indexKeyFor('  ')).toBeNull();
+		expect(indexKeyFor('')).toBeNull();
 	});
 });
 

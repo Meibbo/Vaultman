@@ -24,6 +24,7 @@ export interface IndexGroup {
 	/** Label of the group's first node — shown as the Niagara scrub name cell. */
 	firstLabel: string;
 	count: number;
+	readonly memberIds: readonly string[];
 }
 
 /** Minimal shape a tree node must satisfy to be projected into an index level. */
@@ -37,7 +38,7 @@ export type FloatingTocExpansionChange =
 	| { type: 'collapse-node'; id: string }
 	| { type: 'collapse-all' };
 
-function indexKeyFor(label: string): string | null {
+export function indexKeyFor(label: string): string | null {
 	const [ch] = Array.from((label ?? '').trim());
 	if (!ch) return null;
 	const [upper] = Array.from(ch.toLocaleUpperCase());
@@ -212,13 +213,24 @@ export function buildIndexGroups(
 	predicate: IndexGroupPredicate = (node) => indexKeyFor(node.label),
 ): IndexGroup[] {
 	const order: string[] = [];
-	const groups = new Map<string, IndexGroup>();
+	const groups = new Map<
+		string,
+		{
+			key: string;
+			label: string;
+			firstId: string;
+			firstLabel: string;
+			count: number;
+			memberIds: string[];
+		}
+	>();
 	for (const node of nodes ?? []) {
 		const key = predicate(node);
 		if (key === null) continue;
 		const existing = groups.get(key);
 		if (existing) {
 			existing.count += 1;
+			existing.memberIds.push(node.id);
 		} else {
 			groups.set(key, {
 				key,
@@ -226,9 +238,12 @@ export function buildIndexGroups(
 				firstId: node.id,
 				firstLabel: node.label,
 				count: 1,
+				memberIds: [node.id],
 			});
 			order.push(key);
 		}
 	}
 	return order.map((key) => groups.get(key)!);
 }
+
+export { type IndexJumpCursor, nextIndexJump } from './logicIndexJump';
