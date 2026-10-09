@@ -5,10 +5,21 @@
  * scrollport, never document-global). Navigation runs over the flattened
  * visible model — not merely mounted DOM rows — with stable occurrence
  * identity. Modifier activation uses a keyboard-appropriate callback and
- * never pretends a KeyboardEvent is a MouseEvent. No destructive Delete
- * binding ships by default; future bindings arrive through the owner-local
- * extension seam.
+ * never pretends a KeyboardEvent is a MouseEvent. Delete prompts via native
+ * host confirmation and never executes silent direct deletion.
+ *
+ * Native official source reference: Obsidian 1.14.4 app.js:
+ * - offset 1489371 (initializeKeyboardNav / Scope allowlist)
+ * - offset 1494236 (onKeyArrowDown)
+ * - offset 1493836 (onKeyArrowUp)
+ * - offset 1494533 (onKeyArrowLeft)
+ * - offset 1495130 & 1505768 (onKeyArrowRight)
+ * - offset 1494145 (onKeyEscape)
+ * - offset 1490150 (Enter macOS rename vs open)
+ * - offset 1490717 (Delete / Mod+Backspace deletion prompt)
  */
+
+import { isNativeTreeKeyboardChord } from './logicTreeKeyboardAllowlist';
 
 export interface TreeKeyboardRow {
 	id: string;
@@ -33,12 +44,20 @@ export interface TreeKeyboardCallbacks {
 	onActivate(id: string, modifiers: TreeKeyboardModifiers): void;
 	/** Shift+Up/Down additive range from the anchor through the new focus. */
 	onRangeSelect(anchorId: string, focusId: string): void;
-	/** Escape: clear the current selection. */
-	onClearSelection(): void;
-	/** F2: rename when the scene offers it. */
+	/** Shift+Up/Down native additive selection step (adds previous and current). */
+	onAdditiveSelect?(previousId: string, currentId: string): void;
+	/** Escape: clear the current selection. Returns false if selection was already empty. */
+	onClearSelection(): boolean | void;
+	/** F2 or macOS Enter: rename when the scene offers it. */
 	onRename(id: string): void;
-	/** Whether F2 rename is available for this row. Absent = unavailable. */
+	/** Whether rename is available for this row. Absent = unavailable. */
 	canRename?(id: string): boolean;
+	/** Delete (Win/Linux) or Mod+Backspace (macOS): prompt deletion for the row or selection. */
+	onDelete?(id: string): void;
+	/** ArrowLeft on root-level file: collapse all folders across the scene. */
+	onCollapseAll?(): void;
+	/** Mod+ArrowDown/Up: open file in background without moving active focus. */
+	onModStepOpen?(id: string): void;
 }
 
 /**
@@ -55,6 +74,10 @@ export type TreeKeyboardExtensions = Readonly<
 	Record<string, TreeKeyboardExtensionHandler>
 >;
 
+export interface TreeKeyboardOptions {
+	isMacOS?: boolean;
+}
+
 export function modifiersOf(event: KeyboardEvent): TreeKeyboardModifiers {
 	return {
 		shift: event.shiftKey,
@@ -67,7 +90,7 @@ export function modifiersOf(event: KeyboardEvent): TreeKeyboardModifiers {
 /**
  * Editable-control guard: keyboard handling must not steal keystrokes from
  * rename boxes, filter inputs, textareas or contenteditable regions. The row
- * element itself (role=button, tabIndex=0) is NOT editable and stays handled.
+ * element itself (role=button) is NOT editable and stays handled.
  */
 export function isEditableKeyboardTarget(
 	target: unknown,
@@ -114,14 +137,17 @@ function indexOf(rows: readonly TreeKeyboardRow[], id: string | null): number {
 }
 
 /**
- * Handle one keydown. Returns `true` when the event was consumed (the caller
- * then preventDefaults). Pure apart from the callbacks it invokes.
+ * Handle one keydown. Returns `handled: true` when the event was consumed.
+ * Native Scope allowlist: plain/Shift/Mod Up/Down; plain/Mod Left/Right;
+ * plain Esc, Enter, Space, F2, Delete (Win) / Mod+Backspace (Mac).
+ * Alt modifier is never handled and bubbles to the platform.
  */
 export function handleTreeKeyboardKey(
 	event: KeyboardEvent,
 	state: TreeKeyboardState,
 	callbacks: TreeKeyboardCallbacks,
 	extensions?: TreeKeyboardExtensions,
+	options?: TreeKeyboardOptions,
 ): { handled: boolean; next: TreeKeyboardState } {
 	const focused = state.focusedId;
 	const ext = extensions?.[event.key];
@@ -129,8 +155,16 @@ export function handleTreeKeyboardKey(
 		const consumed = ext(event, { focusedId: focused });
 		if (consumed) return { handled: true, next: state };
 	}
+
+	const isMac = Boolean(options?.isMacOS);
+	if (!isNativeTreeKeyboardChord(event, isMac)) {
+		return { handled: false, next: state };
+	}
+
 	const index = indexOf(state.rows, focused);
 	const row = index >= 0 ? state.rows[index] : undefined;
+	const isMod = event.ctrlKey || event.metaKey;
+
 	switch (event.key) {
 		case 'ArrowDown':
 		case 'ArrowUp': {
@@ -142,12 +176,26 @@ export function handleTreeKeyboardKey(
 			}
 			const next = state.rows[nextIndex];
 			if (event.shiftKey) {
-				const anchor = state.anchorId ?? focused ?? next.id;
-				callbacks.onRangeSelect(anchor, next.id);
+				if (callbacks.onAdditiveSelect) {
+					callbacks.onAdditiveSelect(focused ?? next.id, next.id);
+				} else {
+					const anchor = state.anchorId ?? focused ?? next.id;
+					callbacks.onRangeSelect(anchor, next.id);
+				}
 				callbacks.onFocus(next.id);
 				return {
 					handled: true,
-					next: { ...state, focusedId: next.id, anchorId: anchor },
+					next: { ...state, focusedId: next.id, anchorId: state.anchorId ?? focused ?? next.id },
+				};
+			}
+			if (isMod) {
+				callbacks.onFocus(next.id);
+				if (!next.hasChildren) {
+					callbacks.onModStepOpen?.(next.id);
+				}
+				return {
+					handled: true,
+					next: { ...state, focusedId: next.id, anchorId: next.id },
 				};
 			}
 			callbacks.onFocus(next.id);
@@ -163,14 +211,29 @@ export function handleTreeKeyboardKey(
 				return { handled: true, next: state };
 			}
 			const parent = parentIndexOf(state.rows, index);
+			if (row.hasChildren && !row.isExpanded) {
+				if (parent >= 0) {
+					const target = state.rows[parent];
+					callbacks.onFocus(target.id);
+					return {
+						handled: true,
+						next: { ...state, focusedId: target.id, anchorId: target.id },
+					};
+				}
+				return { handled: true, next: state };
+			}
+			// File case (non-collapsible row):
 			if (parent >= 0) {
 				const target = state.rows[parent];
+				callbacks.onToggleExpand(target.id, false);
 				callbacks.onFocus(target.id);
 				return {
 					handled: true,
 					next: { ...state, focusedId: target.id, anchorId: target.id },
 				};
 			}
+			// Root file: collapse all
+			callbacks.onCollapseAll?.();
 			return { handled: true, next: state };
 		}
 		case 'ArrowRight': {
@@ -179,33 +242,65 @@ export function handleTreeKeyboardKey(
 				callbacks.onToggleExpand(row.id, true);
 				return { handled: true, next: state };
 			}
-			const child = state.rows[index + 1];
-			if (child && child.depth > row.depth) {
-				callbacks.onFocus(child.id);
-				return {
-					handled: true,
-					next: { ...state, focusedId: child.id, anchorId: child.id },
-				};
+			if (row.hasChildren && row.isExpanded) {
+				const child = state.rows[index + 1];
+				if (child && child.depth > row.depth) {
+					callbacks.onFocus(child.id);
+					return {
+						handled: true,
+						next: { ...state, focusedId: child.id, anchorId: child.id },
+					};
+				}
+				return { handled: true, next: state };
 			}
+			// File case: opens the file (FO.prototype.onKeyArrowRight parity)
+			callbacks.onActivate(row.id, modifiersOf(event));
 			return { handled: true, next: state };
 		}
-		case 'Enter':
+		case 'Enter': {
+			if (!row) return { handled: false, next: state };
+			if (isMac && !isMod) {
+				if (callbacks.canRename && callbacks.canRename(row.id)) {
+					callbacks.onRename(row.id);
+					return { handled: true, next: state };
+				}
+			}
+			callbacks.onActivate(row.id, modifiersOf(event));
+			return { handled: true, next: state };
+		}
 		case ' ': {
 			if (!row) return { handled: false, next: state };
 			callbacks.onActivate(row.id, modifiersOf(event));
 			return { handled: true, next: state };
 		}
 		case 'Escape': {
-			callbacks.onClearSelection();
+			const cleared = callbacks.onClearSelection();
+			if (cleared === false) {
+				// No active selection to clear: bubble to global modals/popups.
+				return { handled: false, next: state };
+			}
 			return { handled: true, next: state };
 		}
 		case 'F2': {
-			// Rename only when the scene offers it (`canRename` absent = unavailable).
 			if (!row || !callbacks.canRename || !callbacks.canRename(row.id)) {
 				return { handled: false, next: state };
 			}
 			callbacks.onRename(row.id);
 			return { handled: true, next: state };
+		}
+		case 'Delete': {
+			if (isMac) return { handled: false, next: state };
+			if (!callbacks.onDelete) return { handled: false, next: state };
+			callbacks.onDelete(row?.id ?? focused ?? '');
+			return { handled: true, next: state };
+		}
+		case 'Backspace': {
+			if (isMac && isMod) {
+				if (!callbacks.onDelete) return { handled: false, next: state };
+				callbacks.onDelete(row?.id ?? focused ?? '');
+				return { handled: true, next: state };
+			}
+			return { handled: false, next: state };
 		}
 		default: {
 			return { handled: false, next: state };
