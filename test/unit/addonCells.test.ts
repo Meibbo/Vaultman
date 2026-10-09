@@ -37,4 +37,50 @@ describe('add-on cell settings adapter', () => {
 		expect(open).toHaveBeenCalledOnce();
 		expect(openTabById).toHaveBeenCalledWith('alpha');
 	});
+
+	it('detects and toggles core plugins via internalPlugins API', async () => {
+		const enable = vi.fn().mockResolvedValue(undefined);
+		const disable = vi.fn();
+		const requestSaveConfig = vi.fn();
+		const app = {
+			internalPlugins: {
+				plugins: {
+					canvas: { enabled: false, enable, disable },
+					bookmarks: { enabled: true, enable, disable },
+				},
+				getPluginById: (id: string) => {
+					if (id === 'canvas') return { enabled: false, enable, disable };
+					if (id === 'bookmarks') return { enabled: true, enable, disable };
+					return null;
+				},
+				requestSaveConfig,
+			},
+		} as never;
+
+		const { isCorePlugin, toggleCorePlugin, togglePlugin } = await import('../../src/logic/logicAddonCells');
+
+		expect(isCorePlugin(app, 'canvas')).toBe(true);
+		expect(isCorePlugin(app, 'dataview')).toBe(false);
+
+		// Enable core plugin
+		const enabledRes = await toggleCorePlugin(app, 'canvas', true);
+		expect(enabledRes).toBe(true);
+		expect(enable).toHaveBeenCalledWith(true);
+		expect(requestSaveConfig).toHaveBeenCalled();
+
+		// Disable core plugin
+		const disabledRes = await toggleCorePlugin(app, 'bookmarks', false);
+		expect(disabledRes).toBe(true);
+		expect(disable).toHaveBeenCalledWith(true);
+
+		// Unified togglePlugin on core plugin
+		const toggleRes = await togglePlugin(app, {
+			pluginId: 'canvas',
+			name: 'Canvas',
+			enabled: false,
+			loaded: true,
+			isVaultman: false,
+		});
+		expect(toggleRes).toBe(true);
+	});
 });

@@ -316,6 +316,38 @@ export class FilterService extends Component {
 		if (changed) this.applyFilters();
 	}
 
+	/** Replace the file exclusion polarity and publish one filter change. */
+	setFileNodePolarity(filePath: string, next: FilterPolarity): void {
+		let changed = this.removeRulesMatching(
+			this.activeFilter,
+			(rule) =>
+				rule.filterType === 'file_exclude' &&
+				rule.values.includes(filePath),
+		);
+
+		if (next === 'exclusive') {
+			const exists = this.activeFilter.children.some(
+				(node) =>
+					node.type === 'rule' &&
+					node.filterType === 'file_exclude' &&
+					node.values.includes(filePath),
+			);
+			if (!exists) {
+				this.activeFilter.children.push({
+					type: 'rule',
+					filterType: 'file_exclude',
+					property: '',
+					values: [filePath],
+					id: Math.random().toString(36).substring(2, 11),
+					enabled: true,
+				});
+				changed = true;
+			}
+		}
+
+		if (changed) this.applyFilters();
+	}
+
 	/** Replace both possible tag polarities and publish one filter change. */
 	setFolderNodePolarity(folderPath: string, next: FilterPolarity): void {
 		let changed = this.removeRulesMatching(
@@ -342,7 +374,7 @@ export class FilterService extends Component {
 	}
 
 	applyIntent(
-		type: 'folder' | 'tag' | 'prop' | 'value',
+		type: 'folder' | 'tag' | 'prop' | 'value' | 'file',
 		property: string,
 		intent: 'include' | 'exclude' | 'remove',
 		value?: string,
@@ -357,6 +389,8 @@ export class FilterService extends Component {
 			this.setFolderNodePolarity(property, polarity);
 		} else if (type === 'tag') {
 			this.setTagNodePolarity(property, polarity);
+		} else if (type === 'file') {
+			this.setFileNodePolarity(property, polarity);
 		} else if (type === 'prop' || type === 'value') {
 			this.setPropertyNodePolarity(property, value, polarity);
 		}
@@ -675,7 +709,7 @@ export class FilterService extends Component {
 	}
 
 	getFilterState(
-		type: 'folder' | 'tag' | 'prop' | 'value',
+		type: 'folder' | 'tag' | 'prop' | 'value' | 'file',
 		property: string,
 		value?: string,
 	): 'included' | 'excluded' | 'none' {
@@ -705,6 +739,13 @@ export class FilterService extends Component {
 				} else if (
 					type === 'folder' &&
 					node.filterType === 'folder_exclude' &&
+					node.values.includes(property)
+				) {
+					matched = true;
+					isExcluded = true;
+				} else if (
+					type === 'file' &&
+					node.filterType === 'file_exclude' &&
 					node.values.includes(property)
 				) {
 					matched = true;

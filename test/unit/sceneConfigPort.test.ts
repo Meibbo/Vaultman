@@ -42,6 +42,8 @@ const defaults = {
 	toolbarNodeOrder: [],
 	groupMemberships: {},
 	showOptionsOverride: 'inherit' as const,
+	textCase: {},
+	nativeCompat: {},
 };
 
 function harness() {

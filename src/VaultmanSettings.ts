@@ -425,6 +425,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.reveal_direct_write'),
+			desc: translate('settings.reveal_direct_write.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.revealDirectWrite ?? false)
+						.onChange(async (value) => {
+							this.plugin.settings.revealDirectWrite = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.open_mode'),
 			desc: translate('settings.open_mode.desc'),
 			render: (setting: Setting) => {
@@ -453,6 +468,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			},
 		});
 
+		items.push({
+			name: translate('settings.open_vaultman_behavior'),
+			desc: translate('settings.open_vaultman_behavior.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							direct: translate('settings.open_vaultman_behavior.direct'),
+							search_modal: translate('settings.open_vaultman_behavior.search_modal'),
+						})
+						.setValue(this.plugin.settings.openVaultmanBehavior ?? 'direct')
+						.onChange(async (value) => {
+							this.plugin.settings.openVaultmanBehavior = value as 'direct' | 'search_modal';
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
 		items.push(getLastOpenedCaptureSetting(this.plugin));
 		items.push({
 			name: translate('settings.workspace_tab_mirrors_scene'),
@@ -464,6 +498,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						this.plugin.settings.workspaceTabMirrorsScene = value;
 						await this.plugin.saveSettings();
 					}));
+			},
+		});
+
+		items.push({
+			name: translate('settings.select_opened_file'),
+			desc: translate('settings.select_opened_file.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.selectOpenedFile ?? false)
+						.onChange(async (value) => {
+							this.plugin.settings.selectOpenedFile = value;
+							await this.plugin.saveSettings();
+						}),
+				);
 			},
 		});
 
@@ -499,17 +548,17 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addDropdown((dropdown) =>
 					dropdown
 						.addOptions({
-							'level:1': translate('sort.scope.level_n', { n: 1 }),
 							all: translate('sort.level.all'),
+							'level:1': translate('sort.scope.level_n', { n: 1 }),
 						})
 						.setValue(
-							this.plugin.settings.scopeDefaultCursor === 'all'
-								? 'all'
-								: 'level:1',
+							this.plugin.settings.scopeDefaultCursor === 'level:1'
+								? 'level:1'
+								: 'all',
 						)
 						.onChange(async (value) => {
 							this.plugin.settings.scopeDefaultCursor =
-								value === 'all' ? 'all' : 'level:1';
+								value === 'level:1' ? 'level:1' : 'all';
 							await this.plugin.saveSettings();
 						}),
 				);
@@ -1782,6 +1831,62 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			},
 		});
+
+		items.push(
+			settingSection(translate('settings.native_style.section')),
+		);
+
+		items.push({
+			name: translate('settings.text_case'),
+			desc: translate('settings.text_case.desc'),
+			render: (setting: Setting) => {
+				setting.addDropdown((dropdown) =>
+					dropdown
+						.addOption('provided', translate('settings.text_case.provided'))
+						.addOption('lowercase', translate('settings.text_case.lowercase'))
+						.addOption('titlecase', translate('settings.text_case.titlecase'))
+						.addOption('uppercase', translate('settings.text_case.uppercase'))
+						.setValue(
+							this.plugin.settings.textCaseByCell?.['text'] ?? 'provided',
+						)
+						.onChange(async (value) => {
+							this.plugin.settings.textCaseByCell = {
+								...(this.plugin.settings.textCaseByCell ?? {}),
+								text: value as 'provided' | 'lowercase' | 'titlecase' | 'uppercase',
+							};
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		for (const boundary of ['tree', 'toolbar', 'container', 'menu'] as const) {
+			items.push({
+				name: translate(`settings.native_style.${boundary}`),
+				desc: translate(`settings.native_style.${boundary}.desc`),
+				render: (setting: Setting) => {
+					setting.addDropdown((dropdown) =>
+						dropdown
+							.addOption(
+								'compatible',
+								translate('settings.native_style.compatible'),
+							)
+							.addOption('locked', translate('settings.native_style.locked'))
+							.setValue(
+								this.plugin.settings.nativeCompatDefaults?.[boundary] ??
+									'compatible',
+							)
+							.onChange(async (value) => {
+								this.plugin.settings.nativeCompatDefaults = {
+									...(this.plugin.settings.nativeCompatDefaults ?? {}),
+									[boundary]: value as 'compatible' | 'locked',
+								};
+								await this.plugin.saveSettings();
+							}),
+					);
+				},
+			});
+		}
 
 		items.push({
 			name: translate('settings.selection_checkbox_position'),

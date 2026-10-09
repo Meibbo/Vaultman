@@ -55,12 +55,14 @@ describe('U130-110 toolbar menu SASI parity', () => {
 		}
 	});
 
-	it('las 15 acciones vaultman.scene.* siguen intactas', () => {
+	it('las 27 acciones vaultman.scene.* siguen intactas', () => {
 		const { registry } = createVaultmanSasi();
 		const sceneIds = registry
 			.list('function')
 			.map((def) => def.id)
 			.filter((id) => id.startsWith('vaultman.scene.'));
-		expect(sceneIds.length).toBe(15);
+		// Fifteen existing engine/goto actions plus twelve indexed-only
+		// presentation identities (mirrors sasiSceneActions.test.ts).
+		expect(sceneIds.length).toBe(27);
 	});
 });

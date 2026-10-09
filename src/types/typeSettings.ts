@@ -65,6 +65,18 @@ export interface SavedViewConfig {
 	compactFolders?: boolean;
 	indent?: boolean;
 	/**
+	 * U130 native polish: per-text-cell display case photo of that scene
+	 * (cell id -> case). Legacy photos lack it and leave the live value alone.
+	 */
+	textCase?: Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>;
+	/**
+	 * U130 native polish: compatible/locked photo of that scene per boundary.
+	 * Legacy photos lack it and leave the live value alone.
+	 */
+	nativeCompat?: Partial<
+		Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+	>;
+	/**
 	 * U130 spec-02: el override Options de esa scene (copia profunda en la
 	 * foto; el legacy sin campo no toca lo vivo al restaurar).
 	 */
@@ -212,6 +224,10 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: left sidebar, right sidebar, main view, new instance, or both (legacy = new_instance) */
 	openMode: 'left_sidebar' | 'right_sidebar' | 'main' | 'new_instance' | 'both';
+	/** Behavior of the explicit "Open Vaultman" command: direct or via search modal. */
+	openVaultmanBehavior: 'direct' | 'search_modal';
+	/** Opt-in: keep opened files selected in the files explorer when using input=open. Default false. */
+	selectOpenedFile: boolean;
 	/** Opt-in: mirror the owning instance's active scene in its workspace tab. */
 	workspaceTabMirrorsScene: boolean;
 	/** Record every file-open event in addition to the latest timestamp per file. */
@@ -406,6 +422,20 @@ export interface VaultmanSettings {
 	iconInCaretSlot?: boolean;
 	/** Edge used by the tree expander caret cell: 'start' | 'end' | 'hidden'. */
 	caretPosition: 'start' | 'end' | 'hidden';
+	/**
+	 * U130 native polish: global per-text-cell display case defaults
+	 * (cell id -> case). Per-scene `SceneConfig.textCase` overrides per cell;
+	 * absent everywhere = `provided`. Display only.
+	 */
+	textCaseByCell?: Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>;
+	/**
+	 * U130 native polish: global compatible/locked defaults per boundary.
+	 * Per-scene `SceneConfig.nativeCompat` overrides per boundary; absent
+	 * everywhere = `compatible`. `locked` disables the bridge, never isolates CSS.
+	 */
+	nativeCompatDefaults?: Partial<
+		Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+	>;
 	/** What the view_option indent removes: 'all' (depth + parent), 'depth' only, or 'parent' only. */
 	treeIndentMode: 'all' | 'depth' | 'parent';
 	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
@@ -445,6 +475,8 @@ export interface VaultmanSettings {
 	persistInteractionMode?: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
+	/** Direct frontmatter write in props reveal mode even when bypassOperations is false */
+	revealDirectWrite: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
 	suppressBulkOperationWarning: boolean;
 	/** Queue warning threshold for operations that target many files */
@@ -602,7 +634,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	settingSceneGoToTarget: 'modal',
 	settingSceneShowOptionsByDefault: false,
 	explorerOperationScope: 'auto',
-	scopeDefaultCursor: 'level:1',
+	scopeDefaultCursor: 'all',
 	explorerFileMoveMode: 'inline',
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',
@@ -613,6 +645,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'main',
+	openVaultmanBehavior: 'direct',
+	selectOpenedFile: false,
 	workspaceTabMirrorsScene: false,
 	recordAllFileOpens: false,
 	timestampRelative: true,
@@ -693,6 +727,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	caretPosition: 'start',
+	textCaseByCell: {},
+	nativeCompatDefaults: {},
 	treeIndentMode: 'all',
 	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
@@ -700,6 +736,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	defaultInteractionModeByTab: {},
 	persistInteractionMode: true,
 	bypassOperations: false,
+	revealDirectWrite: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 200,
 	propMoveTypeConflict: 'coerce',

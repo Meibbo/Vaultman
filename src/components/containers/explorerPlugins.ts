@@ -9,6 +9,14 @@ import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
+import {
+	findNodeLevel,
+	findParentId,
+	findScopeParentId,
+	hasScopeParentNodes,
+	indexLevel,
+} from '../../logic/logicIndexGroups';
 import {
 	deletionBadge,
 	findDeletionMatch,
@@ -47,10 +55,12 @@ import {
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 import {
+	isCorePlugin,
 	normalizeAddonCellStyle,
 	openPluginSettings,
 	pluginSettingTabIds,
-	toggleCommunityPlugin,
+	toggleCorePlugin,
+	togglePlugin,
 } from '../../logic/logicAddonCells';
 import {
 	executeSettingSceneActivation,
@@ -137,7 +147,20 @@ import {
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 import { projectAddonDataNodes, type AddonExplorerDataSource } from '../../logic/logicAddonDataSource';
+import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -218,9 +241,14 @@ export class PluginsExplorerPanel
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	private stickyRowsOverride: boolean | undefined = undefined;
 	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
+	private onSortStateChange?: (state: ExplorerSortState) => void;
 	/** Spec 08 §3.3: set by the navbar; receives the selection's membership URNs. */
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
@@ -256,20 +284,22 @@ export class PluginsExplorerPanel
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.metadataCache.on('changed', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('create', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('create', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('delete', this._scheduleNodeNoteRender),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleNodeNoteRender),
+		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', this._scheduleNodeNoteRender),
+			);
+		}
 		// BT5-019: external icon edits repaint through the existing adapter
 		// event — no new timer — and the subscription is released on unload.
 		const iconic = this.plugin.iconicService;
@@ -301,6 +331,18 @@ export class PluginsExplorerPanel
 		this.register(
 			this.plugin.onSettingsChange(this._scheduleIconRebuild),
 		);
+		const internal = (this.plugin.app as unknown as { internalPlugins?: { on?: (name: string, cb: () => void) => void; off?: (name: string, cb: () => void) => void } }).internalPlugins;
+		if (internal && typeof internal.on === 'function') {
+			const onCoreChange = () => {
+				if (!this.destroyed) this.rebuildNodes();
+			};
+			internal.on('change', onCoreChange);
+			this.register(() => {
+				if (typeof internal.off === 'function') {
+					internal.off('change', onCoreChange);
+				}
+			});
+		}
 	}
 
 	private readonly _handleQueueChange = (): void => {
@@ -335,6 +377,46 @@ export class PluginsExplorerPanel
 			if (!this.destroyed) this.rebuildNodes();
 		}, 0);
 	};
+
+	private _nodeNoteRenderScheduled = false;
+
+	/** Coalesce bursts of metadata/alias/vault changes into one node-note repaint. */
+	private readonly _scheduleNodeNoteRender = (): void => {
+		if (this.destroyed || this._nodeNoteRenderScheduled) return;
+		this._nodeNoteRenderScheduled = true;
+		queueMicrotask(() => {
+			this._nodeNoteRenderScheduled = false;
+			if (!this.destroyed && this.visibleCells.has('format')) {
+				this.render();
+				this._patchVisibleNodeNoteCells();
+			}
+		});
+	};
+
+	private _patchVisibleNodeNoteCells(): void {
+		if (!this.containerEl) return;
+		const rows = this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row[data-id]');
+		const aliasSet = this.plugin.nodeBindingService?.getVaultAliasSet() ?? new Set<string>();
+		const prefixes = prefixesFromSettings(this.plugin.settings);
+		for (const row of Array.from(rows)) {
+			const id = row.dataset.id;
+			if (!id) continue;
+			const pluginId = id.startsWith('plugin:') ? id.slice(7) : (id.includes(':') ? null : id);
+			if (!pluginId) continue;
+			const labelEl = row.querySelector<HTMLElement>('.vaultman-tree-label');
+			if (!labelEl) continue;
+			const pluginName = labelEl.textContent?.trim() ?? '';
+			const tokens = pluginAliasTokens(pluginId, pluginName, prefixes);
+			const hasNote = tokens.some((t) => aliasSet.has(t));
+			const isFormatted = this.visibleCells.has('format');
+			const shouldHaveLink = isFormatted && hasNote;
+			if (shouldHaveLink) {
+				labelEl.classList.add('vaultman-node-note-link');
+			} else {
+				labelEl.classList.remove('vaultman-node-note-link');
+			}
+		}
+	}
 
 	private _lastExternalSignature = '';
 
@@ -957,6 +1039,48 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this.render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this.render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'plugins', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase'> {
+		return {
+			nativeScene: 'plugins',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
@@ -1012,16 +1136,19 @@ export class PluginsExplorerPanel
 		this.onExpansionChange = handler;
 	}
 
+	setSortStateChangeHandler(
+		handler?: (state: ExplorerSortState) => void,
+	): void {
+		this.onSortStateChange = handler;
+	}
+
 	expandAll(): void {
 		if (!this._expansionEnabled()) return;
-		const expand = (rows: readonly TreeNode<PluginMeta>[]): void => {
-			for (const row of rows) {
-				if (!row.children?.length) continue;
-				this._expandedGroupIds.add(row.id);
-				expand(row.children);
+		for (const root of this.projectedNodes()) {
+			for (const id of collectExpandableSubtreeIds(root)) {
+				this._expandedGroupIds.add(id);
 			}
-		};
-		expand(this.projectedNodes());
+		}
 		this.onExpansionChange?.();
 		this.render();
 	}
@@ -1278,32 +1405,29 @@ export class PluginsExplorerPanel
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
+
+		const visit = (list: TreeNode<PluginMeta>[]) => {
+			for (const node of list) {
+				// U130 Slice A: las filas `node_settings` no son plugins y no
+				// enlazan notas de nodo (su `pluginId` es '').
+				if (node.meta?.pluginId) {
+					const pluginId = node.meta.pluginId;
+					const pluginName = node.meta?.name ?? node.label;
+					const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
+					const hasNote = pluginTokens.some((t) => aliasSet.has(t));
+					node.meta.hasNodeNote = hasNote;
+					node.hasNodeNote = hasNote;
+				}
+				if (node.children?.length) {
+					visit(node.children);
 				}
 			}
-		}
+		};
 
-		for (const node of nodes) {
-			// U130 Slice A: las filas `node_settings` no son plugins y no
-			// enlazan notas de nodo (su `pluginId` es '').
-			if (!node.meta?.pluginId) continue;
-			const pluginId = node.meta.pluginId;
-			const pluginName = node.meta?.name ?? node.label;
-			const pluginTokens = pluginAliasTokens(pluginId, pluginName, prefixesFromSettings(this.plugin.settings));
-			if (pluginTokens.some((t) => aliasSet.has(t))) {
-				node.meta.hasNodeNote = true;
-			}
-		}
+		visit(nodes);
 	}
 
 	private projectedNodes(): TreeNode<PluginMeta>[] {
@@ -1464,13 +1588,14 @@ export class PluginsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (!this.dataSource && this.visibleCells.has('format')) {
-			this._decorateNodeNotes(this.nodes);
-		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (!this.dataSource && this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+			this._decorateNodeNotes(this._lastProjectedTree);
+		}
 		this.treeView.render({
 			surface: 'plugins',
 			nodes: this._lastProjectedTree,
@@ -1484,6 +1609,7 @@ export class PluginsExplorerPanel
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			tooltipPlacement: tooltipPlacementForSetting(
@@ -1616,6 +1742,72 @@ export class PluginsExplorerPanel
 				this._touchSelection();
 				this.render();
 			},
+			// U130 native polish: owner-local keyboard delegates (real modifier
+			// flags, never a cast MouseEvent; plain activation minus the pointer).
+			onKeyboardActivate: (id, modifiers) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					this._activateGroupRow(id);
+					return;
+				}
+				if (this.interactionMode !== 'select') {
+					if (this.dataSource) {
+						const node = this.findNode(id);
+						if (node) this.dataSource.activate(entityIdOf(node));
+						return;
+					}
+					this._activateSettingSceneRow(id);
+					return;
+				}
+				if (modifiers.shift || modifiers.ctrl || modifiers.meta) {
+					const { selectedIds, anchorId } = resolveContextClickSelection({
+						selectedIds: this.selectedNodeIds,
+						anchorId: this.selectionAnchorId,
+						orderedVisibleIds: this._orderedVisibleTreeIds(),
+						invokedId: id,
+						modifiers: {
+							ctrlKey: modifiers.ctrl,
+							metaKey: modifiers.meta,
+							shiftKey: modifiers.shift,
+						},
+					});
+					this.selectedNodeIds = selectedIds;
+					this.selectionAnchorId = anchorId;
+				} else if (this.selectedNodeIds.has(id)) {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				} else {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				}
+				this._touchSelection();
+				this.render();
+			},
+			onRangeSelect: (anchorId: string, focusId: string) => {
+				if (this.interactionMode !== 'select') return;
+				const { selectedIds, anchorId: nextAnchor } = resolveContextClickSelection({
+					selectedIds: this.selectedNodeIds,
+					anchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(),
+					invokedId: focusId,
+					modifiers: { shiftKey: true },
+				});
+				this.selectedNodeIds = selectedIds;
+				this.selectionAnchorId = nextAnchor;
+				this._touchSelection();
+				this.render();
+			},
+			onClearSelection: () => this.clearSelection(),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE tree-wide
+			// sort (plugins have no per-level sorts). `jump` arrives with
+			// the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
+					sortOf: () => activeScopeSort('plugins', this.sortState),
+					labelOf: (id: string) => this.findNode(id)?.label ?? null,
+				},
+			},
 			onCellClick: (id, cellId) => {
 				if (this.dataSource) {
 					const node = this.findNode(id);
@@ -1670,6 +1862,7 @@ export class PluginsExplorerPanel
 								depth: 0,
 							},
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							groupId: id,
 							groupOwner: this._isCustomGroupId(id) ? 'custom' : 'preset',
 							groupHidden: this.hiddenGroupIds.has(id),
@@ -1897,13 +2090,23 @@ export class PluginsExplorerPanel
 
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
+	private _scopeTree(): TreeNode<PluginMeta>[] {
+		return this._lastProjectedTree.length > 0
+			? this._lastProjectedTree
+			: this.projectedNodes();
+	}
+
+	private static _isScopeParent(node: TreeNode<PluginMeta>): boolean {
+		return (
+			Boolean('isGroupHeader' in node && node.isGroupHeader) ||
+			(node.children?.length ?? 0) > 0
+		);
+	}
+
 	getIndexNodes(rootId: string | null): IndexNodeRef[] {
-		if (rootId !== null) return [];
-		return this.nodes.map((node) => ({
-			id: node.id,
-			label: node.label,
-			isContainer: false,
-		}));
+		return indexLevel(this._scopeTree(), rootId, (node) =>
+			PluginsExplorerPanel._isScopeParent(node),
+		);
 	}
 
 	isIndexableSort(): boolean {
@@ -1918,11 +2121,30 @@ export class PluginsExplorerPanel
 	}
 
 	supportsDrill(): boolean {
-		return false;
+		return true;
 	}
 
-	scopeRootForNode(_id: string): string | null {
-		return null;
+	scopeRootForNode(id: string): string | null {
+		return findParentId(this._scopeTree(), id);
+	}
+
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
+		this.treeView?.setScopePickMode(mode);
+	}
+
+	scopeParentForNode(id: string): string | null {
+		return findScopeParentId(
+			this._scopeTree(),
+			id,
+			undefined,
+			(node) => PluginsExplorerPanel._isScopeParent(node),
+		);
+	}
+
+	hasScopeParentNodes(): boolean {
+		return hasScopeParentNodes(this._scopeTree(), (node) =>
+			PluginsExplorerPanel._isScopeParent(node),
+		);
 	}
 
 	sortNodeLabel(id: string): string | null {
@@ -1930,11 +2152,33 @@ export class PluginsExplorerPanel
 		return node?.label ?? null;
 	}
 
-	scopeLevelForNode(_id: string): number | string | null {
-		return null;
+	scopeLevelForNode(id: string): number | string | null {
+		return findNodeLevel(this._scopeTree(), id);
 	}
 
-	expandNodeById(_id: string): void {}
+	hasSortNode(id: string): boolean {
+		return Boolean(findProjectedNode(this._scopeTree(), id));
+	}
+
+	expandNodeById(id: string): void {
+		if (this._expandedGroupIds.has(id)) return;
+		this._expandedGroupIds.add(id);
+		this.onExpansionChange?.();
+		this.render();
+	}
+
+	/** D31: the floating index drill can drive the sort scope. */
+	applyExternalSortScope(drillNodeId: string | null): void {
+		const next = normalizeExplorerSortState('plugins', {
+			...this.sortState,
+			activeScope: drillNodeId ? 'drill' : 'all',
+			drillNodeId,
+		});
+		if (sameExplorerSortState(this.sortState, next)) return;
+		this.sortState = next;
+		this.onSortStateChange?.(this.sortState);
+		this.rebuildNodes();
+	}
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
 		if (!this.findNode(id)) return false;
@@ -1955,6 +2199,7 @@ export class PluginsExplorerPanel
 				),
 				orderedIds: this.nodes.map((node) => node.meta.pluginId),
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(this.findNode(meta.pluginId) ?? { id: meta.pluginId, label: meta.name, depth: 0, meta }),
 			},
@@ -1996,11 +2241,13 @@ export class PluginsExplorerPanel
 		try {
 			let failed = 0;
 			for (const meta of todo) {
-				const changed = await setCommunityPluginEnabled(
-					this.plugin.app,
-					meta.pluginId,
-					target,
-				);
+				const changed = isCorePlugin(this.plugin.app, meta.pluginId)
+					? await toggleCorePlugin(this.plugin.app, meta.pluginId, target)
+					: await setCommunityPluginEnabled(
+							this.plugin.app,
+							meta.pluginId,
+							target,
+					  );
 				if (!changed) failed += 1;
 			}
 			if (failed > 0) {
@@ -2014,19 +2261,28 @@ export class PluginsExplorerPanel
 			if (!selfOff && !this.destroyed) await this.refresh();
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
-			console.error('Vaultman community plugin group toggle failed', error);
+			console.error('Vaultman plugin group toggle failed', error);
 		} finally {
 			for (const meta of todo) this.pendingToggleIds.delete(meta.pluginId);
 			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 
-	private async toggle(meta: PluginMeta): Promise<void> {		if (this.pendingToggleIds.has(meta.pluginId)) return;
+	private async toggle(meta: PluginMeta): Promise<void> {
+		if (this.pendingToggleIds.has(meta.pluginId)) return;
 		this.pendingToggleIds.add(meta.pluginId);
 		this.rebuildNodes();
+		// Crucial: yield to the event loop so the browser paints the loading spinner (rueda de carga)
+		await new Promise<void>((resolve) => {
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(() => setTimeout(resolve, 0));
+			} else {
+				setTimeout(resolve, 0);
+			}
+		});
 		let callerWillUnload = false;
 		try {
-			const changed = await toggleCommunityPlugin(this.plugin.app, meta);
+			const changed = await togglePlugin(this.plugin.app, meta);
 			if (!changed) {
 				new Notice(translate('addons.plugins.unavailable'));
 				return;
@@ -2035,7 +2291,7 @@ export class PluginsExplorerPanel
 			if (!callerWillUnload && !this.destroyed) await this.refresh();
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
-			console.error('Vaultman community plugin toggle failed', error);
+			console.error('Vaultman plugin toggle failed', error);
 		} finally {
 			this.pendingToggleIds.delete(meta.pluginId);
 			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();

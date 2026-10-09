@@ -50,6 +50,8 @@ const defaults: Required<SceneConfig> = {
 	toolbarNodeOrder: [],
 	groupMemberships: {},
 	showOptionsOverride: 'inherit' as const,
+	textCase: {},
+	nativeCompat: {},
 };
 
 function instance(id: string) {

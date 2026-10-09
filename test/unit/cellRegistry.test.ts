@@ -51,6 +51,7 @@ describe('shared explorer cell registry', () => {
 			'name',
 			'format',
 			'ext',
+			'addons',
 			'filters',
 			'nested',
 		]);
@@ -99,6 +100,7 @@ describe('shared explorer cell registry', () => {
 			'tasks',
 			'tags',
 			'count',
+			'addons',
 			'filters',
 			'checkbox',
 			'nested',
@@ -137,6 +139,7 @@ describe('shared explorer cell registry', () => {
 			'tasks',
 			'tags',
 			'count',
+			'addons',
 			'filters',
 			'checkbox',
 		]);

@@ -49,6 +49,8 @@ import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
+import { ExplorerCellContributions } from './services/serviceExplorerCellContributions';
+import { fileExplorerCellTranslations } from './logic/logicFileExplorerCellTranslations';
 import {
 	readVaultmanDragPayload,
 	type VaultmanDragNodePayload,
@@ -70,6 +72,7 @@ import {
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
 import { SasiInspectorModal } from './modals/modalSasiInspector';
+import { InstanceSearchModal } from './modals/modalInstanceSearch';
 import {
 	openUpdatesBulletin,
 	shouldShowUpdates,
@@ -87,6 +90,7 @@ import {
 	mintInstanceId,
 	reconcileRegistry,
 } from './logic/logicInstanceRegistry';
+import { registerDefaultScopeCursorProvider } from './logic/logicScopedSort';
 import { addressForLeaf } from './logic/logicSurfaceAddress';
 import {
 	InstanceMountRegistry,
@@ -183,6 +187,8 @@ export class VaultmanPlugin extends Plugin {
 	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
 
 	// Core services — public so components/modals can access them
+	/** Public additive cell contributions; registrations return an unload disposer. */
+	readonly explorerCellContributions = new ExplorerCellContributions();
 	propertyIndex!: PropertyIndexService;
 	filterService!: FilterService;
 	queueService!: OperationQueueService;
@@ -264,6 +270,8 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async onload(): Promise<void> {
+		for (const provider of fileExplorerCellTranslations) this.register(this.explorerCellContributions.register(provider));
+		this.register(() => this.explorerCellContributions.destroy());
 		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
 			if (leaf?.view instanceof VaultmanFrame) this.lastFocusedFrameLeaf = leaf;
 		}));
@@ -276,6 +284,9 @@ export class VaultmanPlugin extends Plugin {
 			if (leaf) this.lastFocusedFrameLeaf = leaf;
 		});
 		await this.loadSettings();
+		registerDefaultScopeCursorProvider(
+			() => this.settings.scopeDefaultCursor ?? 'all',
+		);
 		this.surfaceHost = new SurfaceHost({
 			workspace: this.app.workspace,
 			frameType: VAULTMAN_FRAME_TYPE,
@@ -427,6 +438,16 @@ export class VaultmanPlugin extends Plugin {
 				this.filterService.scheduleMetadataRefresh();
 			}),
 		);
+		this.registerEvent(
+			this.app.metadataCache.on('changed', () => {
+				this.nodeBindingService.invalidateAliasCache();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('create', () => {
+				this.nodeBindingService.invalidateAliasCache();
+			}),
+		);
 
 		// BT5-013: `file-open` fires on a real activation only — hover previews
 		// never reach it, so previewing a note cannot age it to "just opened".
@@ -443,8 +464,12 @@ export class VaultmanPlugin extends Plugin {
 		);
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
-				this.nodeBindingService.invalidateAliasCache();
-				this.lastOpenedService.handleDelete(file.path);
+				const path = file?.path;
+				this.nodeBindingService.invalidateAliasCache(path);
+				if (path) this.lastOpenedService.handleDelete(path);
+				setTimeout(() => {
+					this.nodeBindingService.invalidateAliasCache();
+				}, 60);
 			}),
 		);
 
@@ -1233,9 +1258,13 @@ export class VaultmanPlugin extends Plugin {
 	/** Declares a durable home; openWorkspaceInstance accepts one-open overrides. */
 	async createAndOpenWorkspaceInstance(
 		homeSurface: HomeSurfaceIntent = DEFAULT_HOME_SURFACE,
+		customId?: string,
 	): Promise<OpenWorkspaceInstanceResult<WorkspaceLeaf>> {
 		const registry = this.settings.instanceRegistry ?? { schema: 1, instances: {} };
-		const instanceId = mintInstanceId(registry);
+		const instanceId =
+			customId && customId.trim().length > 0
+				? customId.trim()
+				: mintInstanceId(registry);
 		this.settings.instanceRegistry = declareWorkspaceInstance(
 			registry,
 			instanceId,
@@ -1371,6 +1400,13 @@ export class VaultmanPlugin extends Plugin {
 	 * always an extra frame in new_instance mode.
 	 */
 	async activateView(): Promise<void> {
+		if (
+			this.settings.openVaultmanBehavior === 'search_modal' ||
+			(this.settings.openMode as string) === 'search_modal'
+		) {
+			new InstanceSearchModal(this.app, this).open();
+			return;
+		}
 		const existingLeaves = this.app.workspace.getLeavesOfType(
 			VAULTMAN_FRAME_TYPE,
 		);
@@ -1399,6 +1435,7 @@ export class VaultmanPlugin extends Plugin {
 		);
 		if (existing) {
 			await this.app.workspace.revealLeaf(existing);
+			this.app.workspace.setActiveLeaf(existing, { focus: true });
 			return existing;
 		}
 		return this.openVaultmanView();

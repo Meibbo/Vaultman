@@ -31,6 +31,7 @@ import {
 	sameExplorerSortState,
 } from '../../logic/logicScopedSort';
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
 import {
@@ -95,6 +96,18 @@ import {
 	shouldClearExplorerSelectionOnEscape,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -148,6 +161,10 @@ export class SnippetsExplorerPanel
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	private stickyRowsOverride: boolean | undefined = undefined;
 	private compactFoldersOverride: boolean | undefined = undefined;
 	private onExpansionChange?: () => void;
@@ -186,20 +203,22 @@ export class SnippetsExplorerPanel
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('changed', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.metadataCache.on('changed', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('create', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('create', this._scheduleNodeNoteRender),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', () => {
-				if (this.visibleCells.has('format')) this.render();
-			}),
+			this.plugin.app.vault.on('delete', this._scheduleNodeNoteRender),
 		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleNodeNoteRender),
+		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', this._scheduleNodeNoteRender),
+			);
+		}
 		// BT5-019: Iconic never resolves snippets, but its adapter also fires
 		// when the icon library itself changes; repaint through that existing
 		// event (no new timer) and release the subscription on unload.
@@ -234,6 +253,46 @@ export class SnippetsExplorerPanel
 			if (!this.destroyed) this.rebuildNodes();
 		}, 0);
 	};
+
+	private _nodeNoteRenderScheduled = false;
+
+	/** Coalesce bursts of metadata/alias/vault changes into one node-note repaint. */
+	private readonly _scheduleNodeNoteRender = (): void => {
+		if (this.destroyed || this._nodeNoteRenderScheduled) return;
+		this._nodeNoteRenderScheduled = true;
+		queueMicrotask(() => {
+			this._nodeNoteRenderScheduled = false;
+			if (!this.destroyed && this.visibleCells.has('format')) {
+				this.render();
+				this._patchVisibleNodeNoteCells();
+			}
+		});
+	};
+
+	private _patchVisibleNodeNoteCells(): void {
+		if (!this.containerEl) return;
+		const rows = this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row[data-id]');
+		const aliasSet = this.plugin.nodeBindingService?.getVaultAliasSet() ?? new Set<string>();
+		const prefixes = prefixesFromSettings(this.plugin.settings);
+		for (const row of Array.from(rows)) {
+			const id = row.dataset.id;
+			if (!id) continue;
+			const snippetName = id.startsWith('snippet:') ? id.slice(8) : (id.includes(':') ? null : id);
+			if (!snippetName) continue;
+			const labelEl = row.querySelector<HTMLElement>('.vaultman-tree-label');
+			if (!labelEl) continue;
+			const displayName = labelEl.textContent?.trim() ?? snippetName;
+			const tokens = snippetAliasTokens(displayName, prefixes);
+			const hasNote = tokens.some((t) => aliasSet.has(t));
+			const isFormatted = this.visibleCells.has('format');
+			const shouldHaveLink = isFormatted && hasNote;
+			if (shouldHaveLink) {
+				labelEl.classList.add('vaultman-node-note-link');
+			} else {
+				labelEl.classList.remove('vaultman-node-note-link');
+			}
+		}
+	}
 
 	private _lastExternalSignature = '';
 
@@ -664,6 +723,48 @@ export class SnippetsExplorerPanel
 		this.render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this.render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this.render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'snippets', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase'> {
+		return {
+			nativeScene: 'snippets',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
@@ -794,28 +895,26 @@ export class SnippetsExplorerPanel
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === 'string') aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === 'string') {
-					aliasSet.add(fm.aliases.trim());
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
+
+		const visit = (list: TreeNode<SnippetMeta>[]) => {
+			for (const node of list) {
+				if (node.meta) {
+					const snippetName = node.meta.name ?? node.label;
+					const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
+					const hasNote = snippetTokens.some((t) => aliasSet.has(t));
+					node.meta.hasNodeNote = hasNote;
+					node.hasNodeNote = hasNote;
+				}
+				if (node.children?.length) {
+					visit(node.children);
 				}
 			}
-		}
+		};
 
-		for (const node of nodes) {
-			const snippetName = node.meta?.name ?? node.label;
-			const snippetTokens = snippetAliasTokens(snippetName, prefixesFromSettings(this.plugin.settings));
-			if (snippetTokens.some((t) => aliasSet.has(t))) {
-				node.meta.hasNodeNote = true;
-			}
-		}
+		visit(nodes);
 	}
 
 	private projectedNodes(): TreeNode<SnippetMeta>[] {
@@ -907,13 +1006,14 @@ export class SnippetsExplorerPanel
 
 	private render(): void {
 		if (!this.treeView) return;
-		if (this.visibleCells.has('format')) {
-			this._decorateNodeNotes(this.nodes);
-		}
 		this.emptyEl?.remove();
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (this.visibleCells.has('format')) {
+			this._decorateNodeNotes(this.nodes);
+			this._decorateNodeNotes(this._lastProjectedTree);
+		}
 		this.treeView.render({
 			surface: 'snippets',
 			nodes: this._lastProjectedTree,
@@ -924,6 +1024,7 @@ export class SnippetsExplorerPanel
 			indentGuides: this.groupPreset.kind !== 'none',
 			indent: this.indentOverride ?? true,
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			stickyParentRows: this.stickyRowsOverride ?? this.plugin.settings?.stickyParentRows !== false,
 			stickyMaxFraction: this.plugin.settings?.stickyParentRowsMaxFraction,
 			tooltipPlacement: tooltipPlacementForSetting(this.plugin.settings?.tooltipPlacement),
@@ -1045,6 +1146,69 @@ export class SnippetsExplorerPanel
 				this._touchSelection();
 				this.render();
 			},
+			// U130 native polish: owner-local keyboard delegates (real modifier
+			// flags, never a cast MouseEvent; plain activation minus the pointer).
+			onKeyboardActivate: (id, modifiers) => {
+				if (isGroupHeader(id, this._groupIds)) {
+					this._activateGroupRow(id);
+					return;
+				}
+				if (this.interactionMode !== 'select') {
+					// The native Settings counterpart activates the snippet toggle.
+					const node = this.findNode(id);
+					if (node) void this.toggle(node.meta);
+					return;
+				}
+				if (modifiers.shift || modifiers.ctrl || modifiers.meta) {
+					const { selectedIds, anchorId } = resolveContextClickSelection({
+						selectedIds: this.selectedNodeIds,
+						anchorId: this.selectionAnchorId,
+						orderedVisibleIds: this._orderedVisibleTreeIds(),
+						invokedId: id,
+						modifiers: {
+							ctrlKey: modifiers.ctrl,
+							metaKey: modifiers.meta,
+							shiftKey: modifiers.shift,
+						},
+					});
+					this.selectedNodeIds = selectedIds;
+					this.selectionAnchorId = anchorId;
+				} else if (this.selectedNodeIds.has(id)) {
+					this.selectedNodeIds.delete(id);
+					if (this.selectionAnchorId === id) this.selectionAnchorId = null;
+				} else {
+					this.selectedNodeIds.add(id);
+					this.selectionAnchorId = id;
+				}
+				this._touchSelection();
+				this.render();
+			},
+			onRangeSelect: (anchorId: string, focusId: string) => {
+				if (this.interactionMode !== 'select') return;
+				const { selectedIds, anchorId: nextAnchor } = resolveContextClickSelection({
+					selectedIds: this.selectedNodeIds,
+					anchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(),
+					invokedId: focusId,
+					modifiers: { shiftKey: true },
+				});
+				this.selectedNodeIds = selectedIds;
+				this.selectionAnchorId = nextAnchor;
+				this._touchSelection();
+				this.render();
+			},
+			onClearSelection: () => this.clearSelection(),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE tree-wide
+			// sort (snippets have no per-level sorts). `jump` arrives with
+			// the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
+					sortOf: () => activeScopeSort('snippets', this.sortState),
+					labelOf: (id: string) => this.findNode(id)?.label ?? null,
+				},
+			},
 			onCellClick: (id, cellId) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// Spec 07 §2: `state` sobre una fila de grupo despacha a N
@@ -1081,6 +1245,7 @@ export class SnippetsExplorerPanel
 							depth: 0,
 						},
 						surface: 'panel',
+						...this._nativeMenuPolicy(),
 						groupId: id,
 						groupOwner: this._isCustomGroupId(id) ? 'custom' : 'preset',
 						groupHidden: this.hiddenGroupIds.has(id),
@@ -1235,6 +1400,10 @@ export class SnippetsExplorerPanel
 		return null;
 	}
 
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
+		this.treeView?.setScopePickMode(mode);
+	}
+
 	expandNodeById(_id: string): void {}
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
@@ -1257,6 +1426,7 @@ export class SnippetsExplorerPanel
 				),
 				orderedIds: this.nodes.map((node) => node.meta.name),
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				...this._groupCreationMenuCtx(),
 				...this._degroupMenuCtx(this.findNode(meta.name) ?? { id: meta.name, label: meta.name, depth: 0, meta }),
 			},

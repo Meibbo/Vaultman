@@ -96,6 +96,8 @@ export type SceneFacets = Pick<
 	| 'toolbarCommandActions'
 	| 'createActionsPlacement'
 	| 'toolbarNodeOrder'
+	| 'textCase'
+	| 'nativeCompat'
 >;
 
 /** La foto de una scene: copias, nunca referencias al estado vivo. */
@@ -120,6 +122,9 @@ export function captureSceneFacets(
 		toolbarCommandActions: [...(config.toolbarCommandActions ?? [])],
 		createActionsPlacement: config.createActionsPlacement,
 		toolbarNodeOrder: [...(config.toolbarNodeOrder ?? [])],
+		// U130 native polish: sparse display/compat maps (copies, never live refs).
+		textCase: { ...(config.textCase ?? {}) },
+		nativeCompat: { ...(config.nativeCompat ?? {}) },
 	};
 }
 
@@ -146,6 +151,8 @@ export function captureSavedViewConfig(
 		indent: facets.indent,
 		taskCellDisplayMode: facets.taskCellDisplayMode,
 		showOptionsOverride: facets.showOptionsOverride,
+		textCase: facets.textCase,
+		nativeCompat: facets.nativeCompat,
 		navigationComposer: {
 			sceneLabelMode: facets.sceneLabelMode,
 			autoRevealMode: facets.autoRevealMode,
@@ -172,6 +179,10 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 	}
 	if (saved.indent !== undefined) out.indent = saved.indent;
 	if (saved.taskCellDisplayMode !== undefined) out.taskCellDisplayMode = saved.taskCellDisplayMode;
+	// U130 native polish: the legacy photo without these keys leaves the live
+	// values alone (`applyLayoutToPort` preserves what the photo does not carry).
+	if (saved.textCase) out.textCase = { ...saved.textCase };
+	if (saved.nativeCompat) out.nativeCompat = { ...saved.nativeCompat };
 	// U130 spec-02: el legacy sin campo no produce faceta y lo vivo se
 	// preserva en `applyLayoutToPort` (nunca se toca lo que la foto no trae).
 	if (saved.showOptionsOverride !== undefined) {
@@ -199,6 +210,8 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 	}
 	return out;
 }
+
+
 
 export interface SavedLayoutConfig {
 	viewModeByTab: Partial<Record<ExplorerTabId, ExplorerViewMode>>;
@@ -246,6 +259,8 @@ export async function applyLayoutToPort(
 			createActionsPlacement: facets.createActionsPlacement ?? current.createActionsPlacement,
 			toolbarNodeOrder: facets.toolbarNodeOrder ?? current.toolbarNodeOrder,
 			tooltips: current.tooltips,
+			textCase: facets.textCase ?? current.textCase,
+			nativeCompat: facets.nativeCompat ?? current.nativeCompat,
 			groupMemberships: facets.groupMemberships ?? current.groupMemberships,
 			// U130 spec-02: lo que la foto no trae (legacy) se preserva.
 			showOptionsOverride:

@@ -42,7 +42,14 @@ export function validateCounterRangeEdit(
 		candidate.lo <= range.hi,
 	);
 	if (overlap) return { ok: false, reason: 'overlap' };
-	return { ok: true, range: candidate };
+	// U130 native polish: a bound edit rebuilds the triple from parsed
+	// input; re-attach the stored display name so reconstruction never drops
+	// it (the partition engine does the same by id lookup).
+	const stored = allRanges.find((range) => range.id === edit.id)?.displayName;
+	return {
+		ok: true,
+		range: stored === undefined ? candidate : { ...candidate, displayName: stored },
+	};
 }
 
 export function updateCounterRange(

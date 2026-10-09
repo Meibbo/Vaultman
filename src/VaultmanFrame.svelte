@@ -51,6 +51,7 @@
 	import { refreshExplorerViewport } from './logic/logicExplorerViewportActivation';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
+	import { acquireNativeBridge } from './services/serviceNativeBridge';
 	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { NO_GROUP_PRESET } from './types/typeGroupPreset';
@@ -435,6 +436,10 @@
 			// global `settingSceneShowOptionsByDefault` decide hasta que el
 			// menú del toolbar fije el override de esta scene.
 			showOptionsOverride: 'inherit',
+			// U130 native polish: sin overrides de case ni compat por scene;
+			// heredan los globales (`textCaseByCell`, `nativeCompatDefaults`).
+			textCase: {},
+			nativeCompat: {},
 		}),
 	});
 
@@ -573,6 +578,7 @@
 		activeGeneration = sceneController.begin(
 			page === 'statistics' ? 'statistics' : filtersActiveTab,
 		);
+		activePanelWidgetEnvelope = null;
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -583,6 +589,7 @@
 		void sceneConfigPort.proposeActiveScene(tab);
 		activeGeneration = sceneController.begin(tab);
 		activePage = 'filters';
+		activePanelWidgetEnvelope = null;
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -908,6 +915,10 @@
 
 	// ResizeObserver on .vaultman-view updates nav state
 	function bindViewRoot(el: HTMLElement) {
+		const releaseBridge = acquireNativeBridge(el.ownerDocument, (cb) => {
+			const ref = plugin.app.workspace.on('css-change', cb);
+			return () => plugin.app.workspace.offref(ref);
+		});
 		const onBlankClick = (event: MouseEvent): void => {
 			if (
 				event.target instanceof Element &&
@@ -939,6 +950,7 @@
 		applyFrameHeight(target.offsetHeight);
 		return {
 			destroy() {
+				releaseBridge();
 				ro.disconnect();
 				el.removeEventListener('click', onBlankClick);
 				viewRootEl = null;
@@ -1036,6 +1048,7 @@
 	function stopTocPick(): void {
 		tocPickCleanup?.();
 		tocPickCleanup = null;
+		activeFloatingTocPanel()?.setScopePickMode?.(null);
 		tocPickMode = false;
 	}
 	// Panels call this synchronously from their render; coalesce + defer the state
@@ -1220,6 +1233,7 @@
 			'.vaultman-filters-tab-pane.is-active',
 		);
 		if (!pane) return;
+		activeFloatingTocPanel()?.setScopePickMode?.('drill');
 		const onPick = (event: MouseEvent) => {
 			const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
 				'[data-id]',
@@ -1663,81 +1677,83 @@
 	>
 		{#each pageOrder as pageId (pageId)}
 			<div class="vaultman-page" data-page={pageId}>
-				{#key pageRenderKey}
-					{#if pageId === 'statistics'}
-						<StatisticsPage
-							{plugin}
-							active={activePage === pageId}
-							sceneInstanceId={sceneController.sceneInstanceId}
-							generation={activeGeneration}
-							{settingsRevision}
-							onNavigateToDataTab={navigateToDataTab}
-							toolbarShown={frameShowToolbar}
-							onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
-							filterRuleCount={displayedFilterRuleCount}
-							filteredCount={displayedFilteredCount}
-							{queuedCount}
-							{queueWarningCount}
-							onOpenFilters={openFiltersLauncher}
-							onClearFilters={clearActiveFilters}
-							onOpenQueue={openQueueLauncher}
-							onClearQueue={clearQueueQuick}
-							onPublishPanelWidget={publishPanelWidget}
-							onClearPanelWidget={clearPanelWidget}
-						/>
-					{:else if pageId === 'filters'}
-						<FiltersPage
-							{plugin}
-							{sceneConfigPort}
-							{frameWidth}
-							sceneInstanceId={sceneController.sceneInstanceId}
-							generation={activeGeneration}
-							bind:filtersActiveTab
-							bind:filtersSearchByTab
-							bind:filtersSearchCategory
-							bind:fileList
-							bind:selectedCount
-							bind:tagsExplorer
-							bind:propExplorer
-							bind:snippetsExplorer
-							bind:pluginsExplorer
-							{settingsRevision}
-							{floatingTocEnabled}
-							onToggleFloatingToc={toggleFloatingToc}
-							{getFloatingTocState}
-							{applyFloatingTocState}
-							getSelectedFiles={() =>
-								fileList?.getSelectedFiles() ??
-								plugin.filterService.selectedFiles}
-							filteredCount={displayedFilteredCount}
-							filterRuleCount={displayedFilterRuleCount}
-							{contentSearchScopeRevision}
-							{contentScopeFilteredCount}
-							contentScopeTotalCount={plugin.app.vault.getFiles().length}
-							contentScopeFilterCount={displayedFilterRuleCount}
-							clearFiltersRevision={filtersClearRevision}
-							{showDock}
-							{queuedCount}
-							{queueWarningCount}
-							onOpenFilters={openFiltersLauncher}
-							onViewFiltersChanged={notifyViewFiltersChanged}
-							onContentFilterChanged={refreshFiles}
-							onClearFilters={clearActiveFilters}
-							onOpenQueue={openQueueLauncher}
-							onClearQueue={clearQueueQuick}
-							onOpenStatistics={() => navigateTo('statistics')}
-							{addOpCount}
-							expansionRevision={displayedFilterRuleCount +
-								displayedFilteredCount}
-							{icon}
-							initialShowToolbar={frameShowToolbar}
-							onShowToolbarChange={handleShowToolbarChange}
-							onPublishPanelWidget={publishPanelWidget}
-							onClearPanelWidget={clearPanelWidget}
-							bind:this={filtersPageRef}
-						/>
-					{/if}
-				{/key}
+				{#if pageId === activePage}
+					{#key pageRenderKey}
+						{#if pageId === 'statistics'}
+							<StatisticsPage
+								{plugin}
+								active={activePage === pageId}
+								sceneInstanceId={sceneController.sceneInstanceId}
+								generation={activeGeneration}
+								{settingsRevision}
+								onNavigateToDataTab={navigateToDataTab}
+								toolbarShown={frameShowToolbar}
+								onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
+								filterRuleCount={displayedFilterRuleCount}
+								filteredCount={displayedFilteredCount}
+								{queuedCount}
+								{queueWarningCount}
+								onOpenFilters={openFiltersLauncher}
+								onClearFilters={clearActiveFilters}
+								onOpenQueue={openQueueLauncher}
+								onClearQueue={clearQueueQuick}
+								onPublishPanelWidget={publishPanelWidget}
+								onClearPanelWidget={clearPanelWidget}
+							/>
+						{:else if pageId === 'filters'}
+							<FiltersPage
+								{plugin}
+								{sceneConfigPort}
+								{frameWidth}
+								sceneInstanceId={sceneController.sceneInstanceId}
+								generation={activeGeneration}
+								bind:filtersActiveTab
+								bind:filtersSearchByTab
+								bind:filtersSearchCategory
+								bind:fileList
+								bind:selectedCount
+								bind:tagsExplorer
+								bind:propExplorer
+								bind:snippetsExplorer
+								bind:pluginsExplorer
+								{settingsRevision}
+								{floatingTocEnabled}
+								onToggleFloatingToc={toggleFloatingToc}
+								{getFloatingTocState}
+								{applyFloatingTocState}
+								getSelectedFiles={() =>
+									fileList?.getSelectedFiles() ??
+									plugin.filterService.selectedFiles}
+								filteredCount={displayedFilteredCount}
+								filterRuleCount={displayedFilterRuleCount}
+								{contentSearchScopeRevision}
+								{contentScopeFilteredCount}
+								contentScopeTotalCount={plugin.app.vault.getFiles().length}
+								contentScopeFilterCount={displayedFilterRuleCount}
+								clearFiltersRevision={filtersClearRevision}
+								{showDock}
+								{queuedCount}
+								{queueWarningCount}
+								onOpenFilters={openFiltersLauncher}
+								onViewFiltersChanged={notifyViewFiltersChanged}
+								onContentFilterChanged={refreshFiles}
+								onClearFilters={clearActiveFilters}
+								onOpenQueue={openQueueLauncher}
+								onClearQueue={clearQueueQuick}
+								onOpenStatistics={() => navigateTo('statistics')}
+								{addOpCount}
+								expansionRevision={displayedFilterRuleCount +
+									displayedFilteredCount}
+								{icon}
+								initialShowToolbar={frameShowToolbar}
+								onShowToolbarChange={handleShowToolbarChange}
+								onPublishPanelWidget={publishPanelWidget}
+								onClearPanelWidget={clearPanelWidget}
+								bind:this={filtersPageRef}
+							/>
+						{/if}
+					{/key}
+				{/if}
 			</div>
 		{/each}
 	</div>

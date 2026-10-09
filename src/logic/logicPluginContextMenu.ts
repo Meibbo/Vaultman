@@ -16,7 +16,7 @@ import {
 	canUninstallCommunityPlugin,
 	openPluginSettings,
 	pluginSettingTabIds,
-	toggleCommunityPlugin,
+	togglePlugin,
 } from './logicAddonCells';
 import type { PluginMeta } from '../types/typeTree';
 import { Notice, type App } from 'obsidian';
@@ -55,13 +55,41 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 		icon: 'lucide-download',
 		when: (ctx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			return meta ? plugin.pluginUpdatesService.getPluginUpdate(meta.pluginId) !== undefined : false;
+			if (!meta) return false;
+			const ids = resolveSelectionTargets(
+				meta.pluginId,
+				ctx.selectedIds ?? new Set<string>(),
+				ctx.orderedIds,
+			);
+			return ids.some(
+				(id) => plugin.pluginUpdatesService.getPluginUpdate(id) !== undefined,
+			);
 		},
 		run: async (ctx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
 			if (!meta) return;
-			const result = await plugin.pluginUpdatesService.updatePlugin(meta.pluginId);
-			if (result.status !== 'success') new Notice(result.message ?? translate('addons.update_failed'));
+			const ids = resolveSelectionTargets(
+				meta.pluginId,
+				ctx.selectedIds ?? new Set<string>(),
+				ctx.orderedIds,
+			);
+			const toUpdate = ids.filter(
+				(id) => plugin.pluginUpdatesService.getPluginUpdate(id) !== undefined,
+			);
+			if (toUpdate.length === 0) return;
+			if (toUpdate.length === 1) {
+				const result = await plugin.pluginUpdatesService.updatePlugin(toUpdate[0]);
+				if (result.status !== 'success') new Notice(result.message ?? translate('addons.update_failed'));
+				return;
+			}
+			let failed = 0;
+			for (const id of toUpdate) {
+				const result = await plugin.pluginUpdatesService.updatePlugin(id);
+				if (result.status !== 'success') failed++;
+			}
+			if (failed > 0) {
+				new Notice(translate('addons.update_failed'));
+			}
 		},
 	});
 
@@ -207,7 +235,7 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 		run: async (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
 			if (!meta) return;
-			await toggleCommunityPlugin(plugin.app, meta);
+			await togglePlugin(plugin.app, meta);
 		},
 	});
 

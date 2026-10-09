@@ -111,6 +111,10 @@ const FILE_CARD_MODES = ['cards', 'grid'] as const;
 
 export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 	{
+		id: 'addons', role: 'value', labelKey: 'viewmode.pill.addons', icon: 'lucide-puzzle',
+		supports: [{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 900, defaultOn: true }],
+	},
+	{
 		id: 'filters',
 		role: 'control',
 		labelKey: 'viewmode.pill.filters',
@@ -840,9 +844,9 @@ export function createExplorerCellRegistry(
 				.filter(
 					(definition) =>
 						definition.id !== 'caret' ||
-						shouldOfferCaretViewOption(
+						((!active || active.has('nested')) && shouldOfferCaretViewOption(
 							options?.caretPosition,
-						),
+						)),
 				);
 		},
 		defaultVisibleCells(explorer, viewMode) {

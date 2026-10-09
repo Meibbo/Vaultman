@@ -61,6 +61,13 @@ export interface PanelPluginCtx {
 		treeExpansionAnimation?: boolean;
 		treeIndentMode?: 'all' | 'depth' | 'parent';
 		groupNodeTooltips?: boolean;
+		/** U130 native polish: global per-cell display case defaults. */
+		textCaseByCell?: Record<string, import('../../logic/logicTextCaseProjection').TextCaseOption>;
+		/** U130 native polish: global compatible/locked defaults per boundary. */
+		nativeCompatDefaults?: Partial<
+			Record<'tree' | 'toolbar' | 'container' | 'menu', import('../../logic/logicNativeTreeCompat').NativeCompatMode>
+		>;
+		revealDirectWrite?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -193,6 +200,7 @@ import {
 	collectExpandableSubtreeIds,
 	toggleExpandableSubtreeIds,
 } from '../../logic/logicTreeExpansion';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import { ConfirmModal } from '../../modals/modalConfirm';
 import {
@@ -218,6 +226,23 @@ import {
 	type AddToFilesTarget,
 } from '../../logic/logicAddToFiles';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	scopePartitionPresentation,
+	togglePartitionPresentation,
+} from '../../logic/logicPartitionNaming';
+import { setCounterRangeDisplayName } from '../../logic/logicCounterRangePartitions';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 import {
 	buildValueMoveOperations,
 	enterValueMoveMode,
@@ -327,6 +352,10 @@ export class PropsExplorerPanel extends Component {
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
@@ -346,6 +375,11 @@ export class PropsExplorerPanel extends Component {
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130 native polish: scene-owned presentation flip for partition headers. */
+	private partitionPresentationChangeHandler?: (
+		presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+		target: import('../../types/typeUI').ScopeTarget,
+	) => void;
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
 	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
@@ -743,6 +777,16 @@ export class PropsExplorerPanel extends Component {
 				}
 			}),
 		);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', () => {
+					if (this.visibleCells.has('format')) {
+						this.logic.invalidate();
+						this._deferRender();
+					}
+				}),
+			);
+		}
 		// Re-render after Iconic loads/changes; both are registered for cleanup
 		// and coalesced (BT4-002 twin of the tags panel fix).
 		const iconic = this.plugin.iconicService;
@@ -1008,13 +1052,17 @@ export class PropsExplorerPanel extends Component {
 		// commit/blur/cancel paths refresh afterwards, so skipping here loses
 		// nothing.
 		const active = this.containerEl.ownerDocument.activeElement;
-		if (
+		const isTextEditing =
 			active instanceof HTMLElement &&
 			this.containerEl.contains(active) &&
-			(active.tagName === 'INPUT' ||
+			((active instanceof HTMLInputElement &&
+				active.type !== 'checkbox' &&
+				active.type !== 'radio' &&
+				active.type !== 'button' &&
+				active.type !== 'submit') ||
 				active.tagName === 'TEXTAREA' ||
-				active.isContentEditable)
-		) {
+				active.isContentEditable);
+		if (isTextEditing) {
 			return;
 		}
 		this.deferredRender.invalidate(this.containerEl.isShown(), () =>
@@ -1144,6 +1192,12 @@ export class PropsExplorerPanel extends Component {
 		const membershipsChanged =
 			config.groupMemberships !== undefined &&
 			!sameGroupMemberships(this.groupMemberships, config.groupMemberships);
+		const textCaseChanged =
+			config.textCase !== undefined &&
+			!sameTextCaseMap(this.textCaseOverride, config.textCase);
+		const nativeCompatChanged =
+			config.nativeCompat !== undefined &&
+			!sameNativeCompatPolicy(this.nativeCompatOverride, config.nativeCompat);
 
 		if (
 			!viewChanged &&
@@ -1153,7 +1207,9 @@ export class PropsExplorerPanel extends Component {
 			!stickyChanged &&
 			!indentChanged &&
 			!presetChanged &&
-			!membershipsChanged
+			!membershipsChanged &&
+			!textCaseChanged &&
+			!nativeCompatChanged
 		) {
 			return;
 		}
@@ -1197,6 +1253,12 @@ export class PropsExplorerPanel extends Component {
 		if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 		if (membershipsChanged && config.groupMemberships) {
 			this.groupMemberships = cloneGroupMemberships(config.groupMemberships);
+		}
+		if (textCaseChanged && config.textCase) {
+			this.textCaseOverride = { ...config.textCase };
+		}
+		if (nativeCompatChanged && config.nativeCompat) {
+			this.nativeCompatOverride = { ...config.nativeCompat };
 		}
 
 		this._render();
@@ -1260,10 +1322,67 @@ export class PropsExplorerPanel extends Component {
 		this.groupScopeHandler = handler;
 	}
 
+	/**
+	 * U130 native polish: `Name partition` — display-name one counter/date
+	 * slice without touching its bounds. Empty input clears the override;
+	 * cancelling leaves everything untouched.
+	 */
+	private _namePartitionRange(_headerId: string, header: TreeNode<PropMeta>): boolean {
+		const range = header.counterRange;
+		const ranges = header.counterRanges;
+		const domain = header.counterDomain;
+		if (!range || !ranges || !domain || !this.counterRangesChangeHandler) return false;
+		const target = header.groupScopeTarget ?? 'all';
+		const commit = this.counterRangesChangeHandler;
+		const current = range.displayName ?? '';
+		void (async () => {
+			const name = await showInputModal(this.plugin.app, translate('group.counter.name_partition'), {
+				placeholder: translate('group.counter.name_partition_placeholder'),
+				initialValue: current,
+			});
+			if (name === null) return;
+			const result = setCounterRangeDisplayName(ranges, range.id, name, domain);
+			if (!result.ok) {
+				new Notice(translate('group.counter.invalid'));
+				return;
+			}
+			commit(result.ranges, target);
+		})().catch(() => {
+			new Notice(translate('group.counter.invalid'));
+		});
+		return true;
+	}
+
+	/** U130 native polish: header presentation of the preset behind this header. */
+	private _scopePartitionPresentation(
+		header: TreeNode<PropMeta> | null | undefined,
+	): import('../../types/typeGroupPreset').PartitionPresentation {
+		const target = header?.groupScopeTarget ?? 'all';
+		return scopePartitionPresentation(this.sortState, this.groupPreset, target);
+	}
+
+	/** U130 native polish: flip name+range vs names-only for the header scope. */
+	private _cyclePartitionPresentation(header: TreeNode<PropMeta>): void {
+		if (!this.partitionPresentationChangeHandler) return;
+		const target = header.groupScopeTarget ?? 'all';
+		const current = scopePartitionPresentation(this.sortState, this.groupPreset, target);
+		this.partitionPresentationChangeHandler(togglePartitionPresentation(current), target);
+	}
+
 	setCounterRangesChangeHandler(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
 		this.counterRangesChangeHandler = handler;
+	}
+
+	/** U130 native polish: persist the header presentation flip (navbar-owned). */
+	setPartitionPresentationChangeHandler(
+		handler?: (
+			presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+			target: import('../../types/typeUI').ScopeTarget,
+		) => void,
+	): void {
+		this.partitionPresentationChangeHandler = handler;
 	}
 
 	createCounterRangeSlice(): boolean {
@@ -1307,6 +1426,15 @@ export class PropsExplorerPanel extends Component {
 
 	private _touchSelection(): void {
 		noteSelectionState(this._selectionKey(), this.selectedNodeIds);
+	}
+
+	/** U130 native polish: F2 rename availability (never headers/action rows). */
+	private _canRenameNode(id: string): boolean {
+		const node =
+			this._findNode(id, this._lastProjectedTree) ??
+			this._findNode(id, this._lastRenderTree);
+		if (!node || node.isGroupHeader === true) return false;
+		return (node.meta as PropMeta | undefined)?.isAddPropertyRow !== true;
 	}
 
 	private _applyPropSelection(next: Set<string>, anchor?: string | null): void {
@@ -1615,13 +1743,55 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this._render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this._render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'props', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase'> {
+		return {
+			nativeScene: 'props',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings?.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings?.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
 		this._render();
 	}
 
-	setScopePickMode(mode: 'parent' | 'level' | null): void {
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
 		if (this.viewMode !== 'tree') return;
 		this.view.setScopePickMode(mode);
 	}
@@ -2674,6 +2844,7 @@ export class PropsExplorerPanel extends Component {
 				nodeType,
 				node,
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				selectedIds: this.selectedNodeIds,
 				get orderedIds(): string[] | undefined {
 					return selectedNodeIds.size > 1
@@ -2893,15 +3064,12 @@ export class PropsExplorerPanel extends Component {
 					if (!meta.isValueNode) {
 						const propName = meta.propName ?? node.label;
 						const propTokens = propAliasTokens(propName, prefixesFromSettings(this.plugin.settings));
-						if (propTokens.some((t) => aliasSet.has(t))) {
-							meta.hasNodeNote = true;
-						}
-				} else {
-					const rawValue = meta.rawValue ?? node.label;
-					if (valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t))) {
-						meta.hasNodeNote = true;
+						meta.hasNodeNote = propTokens.some((t) => aliasSet.has(t));
+					} else {
+						const rawValue = meta.rawValue ?? node.label;
+						meta.hasNodeNote = valueMatchesBoundAlias(rawValue, node.label, (t) => aliasSet.has(t));
 					}
-				}
+					node.hasNodeNote = meta.hasNodeNote;
 				}
 				if (node.children?.length) {
 					visit(node.children);
@@ -3210,6 +3378,7 @@ export class PropsExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,
@@ -3263,6 +3432,7 @@ export class PropsExplorerPanel extends Component {
 							nodeType: 'value',
 							node,
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 						});
 					}
 					return;
@@ -3531,6 +3701,62 @@ export class PropsExplorerPanel extends Component {
 				if (!node) return;
 				this._handleNodeClick(node, event);
 			},
+			// U130 native polish: owner-local keyboard delegates (real modifier
+			// flags, never a cast MouseEvent; plain activation minus the pointer).
+			onKeyboardActivate: (id: string, modifiers) => {
+				if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) {
+					this._startAddPropertyInReveal();
+					return;
+				}
+				if (isGroupHeader(id, this._groupIds)) {
+					this._activateGroupRow(id);
+					return;
+				}
+				const node = this._findNode(id, projected);
+				if (!node) return;
+				if (modifiers.shift || modifiers.ctrl || modifiers.meta || modifiers.alt) {
+					const result = resolveCheckboxSelection({
+						selectedIds: this.selectedNodeIds, anchorId: this.selectionAnchorId,
+						orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: id, selected: true,
+						modifiers: {
+							shiftKey: modifiers.shift,
+							ctrlKey: modifiers.ctrl,
+							metaKey: modifiers.meta,
+							altKey: modifiers.alt,
+						},
+					});
+					this._applyPropSelection(result.selectedIds, result.anchorId);
+					return;
+				}
+				this._handleNodeClick(node);
+			},
+			onRangeSelect: (anchorId: string, focusId: string) => {
+				const result = resolveCheckboxSelection({
+					selectedIds: this.selectedNodeIds, anchorId,
+					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: focusId, selected: true,
+					modifiers: { shiftKey: true },
+				});
+				this._applyPropSelection(result.selectedIds, result.anchorId);
+			},
+			onClearSelection: () => this._applyPropSelection(new Set(), null),
+			onRenameRequest: (id: string) => {
+				if (!this._canRenameNode(id)) return;
+				this._editingId = id;
+				void this._render();
+			},
+			canRenameNode: (id: string) => this._canRenameNode(id),
+			// U130 tree Navco: letter jump gated on the EFFECTIVE sibling
+			// sort (parent → level → all; group-aware ownership). `jump`
+			// arrives with the shared Floating Index helper (other lane).
+			navco: {
+				letterJump: {
+					resolveScope: (focusedId: string, fallbackDepth: number) =>
+						resolveGroupAwareScope(projected, focusedId, fallbackDepth),
+					sortOf: (scope) =>
+						siblingScopeSort('props', this.sortState, scope.parentId, scope.level),
+					labelOf: (id: string) => this._findNode(id, projected)?.label ?? null,
+				},
+			},
 		onContextMenu: (id: string, e: MouseEvent) => {
 			if (id === PropsExplorerPanel.ADD_PROPERTY_ROW_ID) return;
 			if (isGroupHeader(id, this._groupIds)) {
@@ -3550,6 +3776,7 @@ export class PropsExplorerPanel extends Component {
 							depth: 0,
 						},
 						surface: 'panel',
+						...this._nativeMenuPolicy(),
 						groupId,
 						groupOwner:
 							this.groupPreset.kind === 'note'
@@ -3568,6 +3795,15 @@ export class PropsExplorerPanel extends Component {
 						sliceGroupRange:
 							header?.counterRange && header.counterDomain
 								? () => this.view?.beginCounterRangeEdit(id, 'slice')
+								: undefined,
+						namePartitionRange:
+							header?.counterRange && header.counterDomain && header.counterRanges
+								? () => this._namePartitionRange(id, header)
+								: undefined,
+						partitionPresentation: this._scopePartitionPresentation(header),
+						cyclePartitionPresentation:
+							header?.counterRange && header.counterDomain
+								? () => this._cyclePartitionPresentation(header)
 								: undefined,
 						materializePreset:
 							this.groupPreset.kind === 'note' ||
@@ -4396,10 +4632,19 @@ export class PropsExplorerPanel extends Component {
 				// string verbatim let a checkbox toggle hand a boolean property the
 				// text `"true"`, and Obsidian re-inferred the property's type from
 				// that data — the same flip was available on number and date.
+				const coerced = coercePropertyValueForWidget(next, propType);
+				if (this.isRevealingActiveFile() && this.plugin.settings?.revealDirectWrite) {
+					void this._replaceValueDirectInReveal(
+						node.meta.propName,
+						rawValue,
+						coerced,
+					);
+					return;
+				}
 				void this._replaceValueInVault(
 					node.meta.propName,
 					rawValue,
-					coercePropertyValueForWidget(next, propType),
+					coerced,
 				);
 			},
 		});
@@ -5487,12 +5732,43 @@ export class PropsExplorerPanel extends Component {
 		oldValue: string,
 		checked: boolean,
 	): Promise<void> {
+		const parsed = parsePropertyValue(String(checked), 'checkbox');
+		if (this.isRevealingActiveFile() && this.plugin.settings?.revealDirectWrite) {
+			await this._replaceValueDirectInReveal(
+				propName,
+				oldValue,
+				parsed,
+			);
+			return;
+		}
 		await this._replaceValueInVault(
 			propName,
 			oldValue,
-			parsePropertyValue(String(checked), 'checkbox'),
+			parsed,
 			checked ? 'checked' : 'unchecked',
 		);
+	}
+
+	private async _replaceValueDirectInReveal(
+		propName: string,
+		oldValue: string,
+		newValue: unknown,
+	): Promise<void> {
+		if (String(newValue) === oldValue) return;
+		await this._updateRevealFrontmatter((fm) => {
+			const current = fm[propName];
+			if (Array.isArray(current)) {
+				const idx = current.findIndex((v) => String(v) === oldValue);
+				if (idx >= 0) {
+					current[idx] = newValue;
+				} else {
+					current.push(newValue);
+				}
+			} else {
+				fm[propName] = newValue;
+			}
+		});
+		void this._render();
 	}
 
 	private async _replaceValueInVault(
@@ -5508,8 +5784,8 @@ export class PropsExplorerPanel extends Component {
 			property: propName,
 			action: 'rename',
 			details: label
-				? `Convert "${oldValue}" to ${label}`
-				: `Rename value "${oldValue}" → "${String(newValue)}"`,
+				? `Convert "${propName}: ${oldValue}" to ${label}`
+				: `Rename value "${propName}: ${oldValue}" → "${String(newValue)}"`,
 			files,
 			value: String(newValue),
 			oldValue: oldValue,

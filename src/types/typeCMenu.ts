@@ -76,6 +76,16 @@ export interface MenuCtx {
 	adjustGroupRange?: () => boolean | void;
 	/** Adds or triggers a counter slice for a counter/date preset header. */
 	sliceGroupRange?: () => boolean | void;
+	/**
+	 * U130 native polish: `Name partition` — renames the display label of
+	 * one counter/date slice without touching its bounds. Separate from
+	 * bound editing; empty input clears the override.
+	 */
+	namePartitionRange?: () => boolean | void;
+	/** U130 native polish: current header presentation of the preset. */
+	partitionPresentation?: import('../types/typeGroupPreset').PartitionPresentation;
+	/** U130 native polish: flip name+range vs names-only for the preset. */
+	cyclePartitionPresentation?: () => void;
 	/** Scene-owned rename mutation for custom/note group headers. */
 	renameGroup?: (groupId: string) => Promise<void> | void;
 	/** Note group: opens the backing note file. */
@@ -84,6 +94,14 @@ export interface MenuCtx {
 	updateGroupScope?: () => Promise<void> | void;
 	/** Creates a copy of the group with enumerated name/ID and snapshot of members. */
 	makeACopy?: () => Promise<import('../logic/logicGroupSelectionTransaction').GroupMutationResult> | import('../logic/logicGroupSelectionTransaction').GroupMutationResult | void;
+	/**
+	 * U130 native polish: this menu's explicit scene policy for the menu
+	 * boundary (portal-mounted). `locked` disables CSS aliases, not native
+	 * actions; absent = compatible. Set by the
+	 * invoking scene — never inferred from the active instance.
+	 */
+	menuNativeCompat?: import('../logic/logicNativeTreeCompat').NativeCompatMode;
+	menuNativeScene?: import('../logic/logicNativeTreeCompat').NativeSceneId;
 	/** FilesScene only: preview and commit one physical folder conversion. */
 	convertGroupToFolder?: () => Promise<void> | void;
 	/** Opens group creation modal prefilled to create a subgroup under this group. */

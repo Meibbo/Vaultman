@@ -1,4 +1,7 @@
-import { ItemView, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Platform, Scope, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { routeTreeKeyboardEvent } from './logic/logicTreeKeyboardBoundary';
+import { getNativeTreeScopeChords, getTreeLetterScopeChords, isTreeLetterJumpChord } from './logic/logicTreeKeyboardAllowlist';
+import { routeTreeClipboardEvent } from './logic/logicTreeClipboard';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
@@ -61,6 +64,23 @@ export class VaultmanFrame extends ItemView {
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.scope = new Scope(this.app.scope);
+		for (const chord of getNativeTreeScopeChords(Platform.isMacOS)) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
+		// U130 tree Navco: narrow printable routes so the active-leaf BODY
+		// fallback can reach the visible tree for letter jump. Unmodified
+		// (+Shift) glyphs only — modified hotkeys and other views are never
+		// stolen: routing still obeys the editable guard and frame scoping,
+		// and the view bubbles non-name levels and no-match glyphs.
+		for (const chord of getTreeLetterScopeChords()) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				if (!isTreeLetterJumpChord(event)) return undefined;
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
 		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
@@ -99,7 +119,15 @@ export class VaultmanFrame extends ItemView {
 		this.tabIdentitySignature = signature;
 		const leafWithHeader = this.leaf as WorkspaceLeaf & { updateHeader?: () => void };
 		const updateHeader = leafWithHeader.updateHeader;
-		if (typeof updateHeader === 'function') updateHeader();
+		// Best-effort cosmetic: Obsidian core has no tab header yet during
+		// the startup settings cascade, so a throwing updateHeader must never
+		// break saveSettings/notifySettingsChanged.
+		if (typeof updateHeader !== 'function') return;
+		try {
+			updateHeader();
+		} catch {
+			// Ignore: the next settings change re-derives the identity.
+		}
 	}
 
 	getState(): Record<string, unknown> {
@@ -341,5 +369,17 @@ export class VaultmanFrame extends ItemView {
 			);
 		}
 		this.surfacePositionFrame = null;
+	}
+
+	handleCopy(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('copy', event, { frameEl: this.containerEl });
+	}
+
+	handleCut(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('cut', event, { frameEl: this.containerEl });
+	}
+
+	handlePaste(event: ClipboardEvent): void {
+		routeTreeClipboardEvent('paste', event, { frameEl: this.containerEl });
 	}
 }

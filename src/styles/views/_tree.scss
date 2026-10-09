@@ -878,18 +878,20 @@ body.vaultman-resizing {
   position: absolute;
   inset: 0 0 auto;
   width: 100%;
+  height: 100%;
 }
 
 .vaultman-tree-row {
   --vaultman-row-bg-base: transparent;
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 5px;
   padding-block: 0;
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
-  height: 27px;
+  /* U130 native polish: the slot sizes to its content (native CSS may add
+     padding/wrapping) and the shared height index measures it. Fixed-height
+     styling would clip compatible themes and blind the observer. */
+  height: auto;
+  min-height: 27px;
   margin-inline: var(--size-4-1, 4px);
   margin-bottom: 1px;
   cursor: pointer;
@@ -907,10 +909,57 @@ body.vaultman-resizing {
   transform: translateZ(0);
 }
 
-.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self,
-.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row.tree-item-self {
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
+/* U130 native polish: inner native decoration container. Owns the flex
+   layout and the homologous `tree-item-self` classes; the slot owns
+   absolute position and observer geometry only. Both levels keep a free
+   `::before` for the native active decoration. */
+.vaultman-tree-self {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.vaultman-native-tree-locked .vaultman-tree-self {
+  gap: 5px;
+  border-radius: inherit;
+  color: inherit;
+}
+
+/* Functional focus/cut/source states also exist when the native bridge is off. */
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-self.has-focus {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+/* U130 tree Navco: the same visible focus ring when the native bridge is in
+   compatible mode (native decoration, Vaultman-owned focus marker). */
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-compat .vaultman-tree-self.has-focus {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.vaultman-native-tree-locked .vaultman-tree-self.is-cut {
+  opacity: 0.5;
+}
+
+.vaultman-native-tree-locked .vaultman-tree-self.is-being-dragged {
+  color: var(--text-on-accent);
+  background-color: var(--interactive-accent);
+}
+
+.vaultman-native-tree-locked .vaultman-tree-row {
+  height: 27px;
+}
+
+.is-mobile .vaultman-native-tree-locked .vaultman-tree-row,
+.is-phone .vaultman-native-tree-locked .vaultman-tree-row {
+  height: 37px;
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport:not(.vaultman-native-tree-compat) .vaultman-tree-row > .vaultman-tree-self.tree-item-self,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport:not(.vaultman-native-tree-compat) .vaultman-tree-row > .vaultman-tree-self.tree-item-self {
+  padding-inline-start: 0;
+  padding-inline-end: 0;
 }
 
 .vaultman-tree-row--virtual {
@@ -1109,8 +1158,10 @@ body:not(.is-grabbing) .vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is
   margin-inline-end: var(--size-4-1, 4px);
 }
 
-.vaultman-tree-row::before {
-  content: '';
+/* U130 native polish: ancestry guides are a structural element, never a
+   native row pseudo-element — `::before` on both slot and self stays free
+   for the native active decoration. */
+.vaultman-tree-guides {
   position: absolute;
   inset-block: 0 -1px;
   inset-inline-start: var(--vaultman-tree-guide-start);
@@ -1124,13 +1175,15 @@ body:not(.is-grabbing) .vaultman-tree-sticky-layer .vaultman-tree-row--sticky.is
     transparent var(--vaultman-tree-indent-line-width),
     transparent var(--vaultman-tree-indent-unit)
   );
-  background-size: var(--vaultman-tree-indent-unit) 100%;
-  background-repeat: repeat-x;
+  /* The gradient already repeats. Tiling it again rounds fractional native
+     pitches separately and can paint a spurious line through the caret. */
+  background-size: auto 100%;
+  background-repeat: no-repeat;
 }
 
-.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before,
-.vaultman-tree-row[style*="--depth: 0"]::before,
-.vaultman-tree-row:not([style*="--depth"])::before {
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-guides,
+.vaultman-tree-row[style*="--depth: 0"] .vaultman-tree-guides,
+.vaultman-tree-row:not([style*="--depth"]) .vaultman-tree-guides {
   display: none;
 }
 
@@ -1192,20 +1245,22 @@ body:not(.is-grabbing) .vaultman-tree-row.is-clickable:hover,
   color: var(--nav-item-color-highlighted);
 }
 
-.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self,
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self {
-  gap: normal;
-  height: 37px;
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row {
   margin-bottom: 0;
+  min-height: 37px;
+}
+
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row > .vaultman-tree-self.tree-item-self,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row > .vaultman-tree-self.tree-item-self {
+  gap: normal;
   padding-block: 8px;
-  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
-  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
   line-height: 20.8px;
   color: var(--text-normal);
 }
 
-.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before,
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row .vaultman-tree-guides,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row .vaultman-tree-guides {
   inset-inline-start: var(--vaultman-tree-guide-start);
 }
 
@@ -1214,8 +1269,8 @@ body:not(.is-grabbing) .vaultman-tree-row.is-clickable:hover,
    .is-mobile. Opt-in: some themes (Oxygen/Velocity) enlarge that token
    enough that the is-active-filter left accent bar tapers short of the
    row's rounded top/bottom corners instead of reaching them. */
-body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self,
-body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row.tree-item-self {
+body.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row > .vaultman-tree-self.tree-item-self,
+body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-pages-viewport.vaultman-mobile-rounded-rows .vaultman-tree-row > .vaultman-tree-self.tree-item-self {
   border-radius: var(--nav-item-radius, var(--radius-s));
 }
 
@@ -1270,6 +1325,30 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   margin-right: auto;
 }
 
+.vaultman-tree-flat-label {
+  display: inline-flex;
+  min-width: 0;
+  gap: 0;
+}
+
+.vaultman-tree-flat-parent {
+  color: var(--nav-item-color, var(--text-muted));
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vaultman-tree-flat-separator {
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+
+:where(.vaultman-tree-flat-file) > .vaultman-tree-label {
+  --nav-item-color: var(--vaultman-native-flat-file-color, var(--text-normal));
+  color: var(--nav-item-color);
+}
+
 .metadata-add-button-divider {
   border-top: 1px solid var(--divider-color, var(--background-modifier-border));
   margin: 8px 12px 6px 12px;
@@ -1291,4 +1370,79 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 
 .vaultman-tree-compact-segment:last-child {
   color: inherit;
+}
+
+/* Native container paint participates, but its intrinsic content must never
+   size the virtual scrollport. A half-million-pixel spacer is scroll extent,
+   not a flex item's minimum height. These are structural, not theme tokens. */
+.vaultman-page:has(.vaultman-filters-tab-pane.is-active > .vaultman-native-container-compat) {
+  padding-inline: 0;
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport.vaultman-tree-virtual-viewport,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport.vaultman-tree-virtual-viewport {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  flex: 1 1 0px;
+  contain: size paint;
+}
+
+/* Compatible native self boxes own padding, ancestry indentation and decoration.
+   Keep the host-qualified positioning slot unindented too: its specificity
+   otherwise outranks the generic slot reset and doubles the depth offset. */
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row.vaultman-tree-row,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row.vaultman-tree-row {
+  padding-block: 0;
+  padding-inline-start: 0;
+  padding-inline-end: 0;
+  margin: 0;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  background-color: var(--vaultman-row-bg-base, transparent);
+  box-shadow: none;
+  color: inherit;
+  overflow: visible;
+}
+
+/* Every explorer's full-width self owns depth padding; its structural slot
+    must not shift either the decoration or the ancestry guides to the right. */
+.vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row.vaultman-tree-row.vaultman-tree-row {
+  padding-inline-start: 0;
+  cursor: auto;
+}
+
+.vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row > .vaultman-tree-self {
+  padding-inline-start: calc(var(--vaultman-native-row-padding-start, var(--vaultman-native-self-padding-start, var(--vaultman-tree-row-padding-start))) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
+  min-height: var(--vaultman-native-self-min-height, 0px);
+}
+
+.vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row--sticky.vaultman-tree-row--sticky.vaultman-tree-row--sticky {
+  --vaultman-row-bg-base: transparent;
+}
+
+/* A translated pseudo contribution becomes an addressable cell, not a second
+   invisible flex item that changes height and feeds geometry churn. */
+.vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-self[data-vaultman-translated-before]::before,
+.vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-self[data-vaultman-translated-after]::after {
+  content: none;
+  display: none;
+}
+
+.vaultman-explorer-cell-text {
+  font-size: 0.8em;
+  flex: 1 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.vaultman-native-tree-compat[data-vaultman-native-scene="files"]) .vaultman-tree-label:is(.nav-file-title-content, .nav-folder-title-content) {
+  flex: 0 1 auto;
+}
+
+.vaultman-native-tree-compat .vaultman-tree-self > .vaultman-tree-icon[data-vaultman-contributed-icon] {
+  display: flex;
 }

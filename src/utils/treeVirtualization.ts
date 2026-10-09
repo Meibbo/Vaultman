@@ -122,6 +122,65 @@ export function buildVirtualTreeWindow({
 	};
 }
 
+/**
+ * U130 native polish: variable-height window over a shared height index.
+ * Offscreen rows keep their estimates; only the window boundaries and tops
+ * come from measured geometry. Overscan semantics match the fixed window.
+ */
+export interface VariableTreeGeometry {
+	topForIndex(index: number): number;
+	heightForIndex(index: number): number;
+	totalHeight(): number;
+	indexForOffset(offset: number): number;
+}
+
+export interface VariableTreeWindowInput {
+	rows: TreeNode[];
+	geometry: VariableTreeGeometry;
+	scrollTop: number;
+	viewportHeight: number;
+	overscan: number;
+}
+
+export function buildVariableTreeWindow({
+	rows,
+	geometry,
+	scrollTop,
+	viewportHeight,
+	overscan,
+}: VariableTreeWindowInput): Omit<VirtualTreeProjection, 'indexById'> {
+	const safeViewportHeight = Math.max(0, viewportHeight);
+	const safeScrollTop = Math.max(0, scrollTop);
+	const safeOverscan = Math.max(0, overscan);
+	const first = geometry.indexForOffset(safeScrollTop);
+	const startIndex = Math.max(0, first - safeOverscan);
+	const viewportBottom = safeScrollTop + safeViewportHeight;
+	let endIndex = Math.min(rows.length, first + 1);
+	while (
+		endIndex < rows.length &&
+		geometry.topForIndex(endIndex) < viewportBottom
+	) {
+		endIndex += 1;
+	}
+	endIndex = Math.min(rows.length, endIndex + safeOverscan);
+	const totalHeight = geometry.totalHeight();
+	const rowHeight =
+		rows.length > 0 ? totalHeight / rows.length : 0;
+	const topForIndex = (index: number) => geometry.topForIndex(index);
+	return {
+		rows,
+		visibleRows: rows.slice(startIndex, endIndex).map((node, offset) => {
+			const index = startIndex + offset;
+			return { node, index, top: topForIndex(index) };
+		}),
+		totalHeight,
+		startIndex,
+		endIndex,
+		rowHeight,
+		topForIndex,
+	};
+}
+
 export function buildVirtualTreeProjection({
 	nodes,
 	expandedIds,

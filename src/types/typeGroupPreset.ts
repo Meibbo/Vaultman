@@ -29,12 +29,44 @@ export interface GroupPreset {
 	direction: ExplorerSortDirection;
 	/** Explicit closed numeric intervals for counter/date presets. */
 	counterRanges?: readonly CounterRange[];
+	/**
+	 * U130 native polish: how a named partition header reads. `name-range`
+	 * (default, absent) shows `name (generated range)` and falls back to the
+	 * generated label when the slice is unnamed; `name-only` shows just the
+	 * name with the same fallback. Display only: grouping membership
+	 * predicates never read this.
+	 */
+	partitionPresentation?: PartitionPresentation;
 }
+
+/** U130 native polish: header presentation of a named counter/date slice. */
+export type PartitionPresentation = 'name-range' | 'name-only';
 
 export interface CounterRange {
 	id: string;
 	lo: number;
 	hi: number;
+	/**
+	 * U130 native polish: optional persisted display name for the slice.
+	 * Absent/empty = unnamed (generated range label). Display only: never
+	 * part of grouping membership, search/sort values or identity.
+	 */
+	displayName?: string;
+}
+
+/**
+ * U130 native polish: longest persisted partition name. Longer input is
+ * trimmed to this on normalize, never rejected, so a legacy payload with a
+ * long name still loads.
+ */
+export const MAX_PARTITION_DISPLAY_NAME_LENGTH = 80;
+
+/** Normalize a raw display name to its persisted form (`undefined` = unnamed). */
+export function normalizePartitionDisplayName(value: unknown): string | undefined {
+	if (typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	return Array.from(trimmed).slice(0, MAX_PARTITION_DISPLAY_NAME_LENGTH).join('');
 }
 
 /** Transient limits of the counter values fetched for the current projection. */
@@ -129,6 +161,7 @@ export function normalizeGroupPreset(
 		kind?: unknown;
 		direction?: unknown;
 		counterRanges?: unknown;
+		partitionPresentation?: unknown;
 	};
 	// Note groups are meaningful only while the props/tags explorer is
 	// actually revealing a note.  Do not let a persisted `kind: note` leak
@@ -145,11 +178,25 @@ export function normalizeGroupPreset(
 	const direction: ExplorerSortDirection =
 		raw.direction === 'desc' ? 'desc' : 'asc';
 	const counterRanges = normalizeCounterRanges(kind, raw.counterRanges);
-	return counterRanges ? { kind, direction, counterRanges } : { kind, direction };
+	const out: GroupPreset = counterRanges
+		? { kind, direction, counterRanges }
+		: { kind, direction };
+	if (
+		raw.partitionPresentation === 'name-range' ||
+		raw.partitionPresentation === 'name-only'
+	) {
+		out.partitionPresentation = raw.partitionPresentation;
+	}
+	return out;
 }
 
 export function sameGroupPreset(a: GroupPreset, b: GroupPreset): boolean {
 	if (a.kind !== b.kind || (a.kind !== 'none' && a.direction !== b.direction))
+		return false;
+	if (
+		(a.partitionPresentation ?? 'name-range') !==
+		(b.partitionPresentation ?? 'name-range')
+	)
 		return false;
 	const ar = a.counterRanges;
 	const br = b.counterRanges;
@@ -160,7 +207,8 @@ export function sameGroupPreset(a: GroupPreset, b: GroupPreset): boolean {
 			(range, index) =>
 				range.id === br[index]?.id &&
 				range.lo === br[index]?.lo &&
-				range.hi === br[index]?.hi,
+				range.hi === br[index]?.hi &&
+				(range.displayName ?? undefined) === (br[index]?.displayName ?? undefined),
 		)
 	);
 }
@@ -185,7 +233,12 @@ export function normalizeCounterRanges(
 	const ids = new Set<string>();
 	for (const item of value) {
 		if (typeof item !== 'object' || item === null) return undefined;
-		const raw = item as { id?: unknown; lo?: unknown; hi?: unknown };
+		const raw = item as {
+			id?: unknown;
+			lo?: unknown;
+			hi?: unknown;
+			displayName?: unknown;
+		};
 		if (
 			typeof raw.id !== 'string' ||
 			raw.id.length === 0 ||
@@ -201,7 +254,14 @@ export function normalizeCounterRanges(
 			return undefined;
 		}
 		ids.add(raw.id);
-		ranges.push({ id: raw.id, lo: raw.lo as number, hi: raw.hi as number });
+		const next: CounterRange = {
+			id: raw.id,
+			lo: raw.lo as number,
+			hi: raw.hi as number,
+		};
+		const displayName = normalizePartitionDisplayName(raw.displayName);
+		if (displayName !== undefined) next.displayName = displayName;
+		ranges.push(next);
 	}
 	const ordered = [...ranges].sort((a, b) => a.lo - b.lo || a.hi - b.hi);
 	for (let index = 1; index < ordered.length; index += 1) {
@@ -214,6 +274,9 @@ export function cloneGroupPreset(preset: GroupPreset): GroupPreset {
 	return {
 		kind: preset.kind,
 		direction: preset.direction,
+		...(preset.partitionPresentation
+			? { partitionPresentation: preset.partitionPresentation }
+			: {}),
 		...(preset.counterRanges
 			? { counterRanges: preset.counterRanges.map((range) => ({ ...range })) }
 			: {}),

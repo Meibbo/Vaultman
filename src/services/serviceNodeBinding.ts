@@ -18,7 +18,7 @@ function isTFile(file: unknown): file is TFile {
  * 6. Non-markdown files (`.pdf`, `.canvas`, etc.): support linked node-notes via `aliases: ["file.ext"]`.
  */
 
-import { Notice, TFile, type App } from "obsidian";
+import { Events, Notice, TFile, type App } from "obsidian";
 import { parseWikilink } from "../utils/renderPropertyValue";
 
 /**
@@ -362,13 +362,30 @@ export async function ensureFolderExists(app: App, folderPath: string): Promise<
 	}
 }
 
-export class NodeBindingService {
+export class NodeBindingService extends Events {
 	private cachedAliasSet: Set<string> | null = null;
+	private deletedPaths = new Set<string>();
+	private recentlyCreatedTokens = new Map<string, { path: string; exp: number } | number>();
 
-	constructor(private deps: NodeBindingDeps) {}
+	constructor(private deps: NodeBindingDeps) {
+		super();
+	}
 
-	invalidateAliasCache(): void {
+	invalidateAliasCache(deletedPath?: string): void {
+		if (deletedPath) {
+			this.deletedPaths.add(deletedPath);
+			for (const [tok, val] of this.recentlyCreatedTokens.entries()) {
+				const path = typeof val === 'number' ? '' : val.path;
+				if (path === deletedPath) {
+					this.recentlyCreatedTokens.delete(tok);
+				}
+			}
+			setTimeout(() => {
+				this.deletedPaths.delete(deletedPath);
+			}, 2000);
+		}
 		this.cachedAliasSet = null;
+		this.trigger('changed');
 	}
 
 	getVaultAliasSet(): Set<string> {
@@ -377,6 +394,8 @@ export class NodeBindingService {
 		const aliasSet = new Set<string>();
 		const markdownFiles = app.vault?.getMarkdownFiles?.() ?? [];
 		for (const file of markdownFiles) {
+			if (this.deletedPaths.has(file.path)) continue;
+			if (app.vault?.getAbstractFileByPath && !app.vault.getAbstractFileByPath(file.path)) continue;
 			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
 			if (fm?.aliases) {
 				if (Array.isArray(fm.aliases)) {
@@ -386,6 +405,17 @@ export class NodeBindingService {
 				} else if (typeof fm.aliases === 'string') {
 					aliasSet.add(fm.aliases.trim());
 				}
+			}
+		}
+		const now = Date.now();
+		for (const [tok, val] of this.recentlyCreatedTokens.entries()) {
+			const exp = typeof val === 'number' ? val : val.exp;
+			const path = typeof val === 'number' ? '' : val.path;
+			const fileExists = !path || (app.vault?.getAbstractFileByPath ? Boolean(app.vault.getAbstractFileByPath(path)) : true);
+			if (now < exp && fileExists) {
+				aliasSet.add(tok);
+			} else {
+				this.recentlyCreatedTokens.delete(tok);
 			}
 		}
 		this.cachedAliasSet = aliasSet;
@@ -496,6 +526,10 @@ export class NodeBindingService {
 					}
 				});
 			}
+			this.recentlyCreatedTokens.set(token, { path: existing.path, exp: Date.now() + 5000 });
+			const aliasSet = this.getVaultAliasSet();
+			aliasSet.add(token);
+			this.trigger('changed');
 			await this.openLeaf(existing, newLeaf);
 			return { outcome: "adopted", token, matchCount: 1, filePath: existing.path };
 		}
@@ -503,6 +537,10 @@ export class NodeBindingService {
 		// Create fresh note with canonical aliases frontmatter
 		const yaml = "---\naliases:\n  - " + quoteYamlValue(token) + "\n---\n";
 		const created = await app.vault.create(path, yaml);
+		this.recentlyCreatedTokens.set(token, { path: created.path, exp: Date.now() + 5000 });
+		const aliasSet = this.getVaultAliasSet();
+		aliasSet.add(token);
+		this.trigger('changed');
 		await this.openLeaf(created, newLeaf);
 		return { outcome: "created", token, matchCount: 0, filePath: created.path };
 	}

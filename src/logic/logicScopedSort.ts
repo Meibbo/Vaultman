@@ -485,34 +485,41 @@ export function migrateLegacyScopeKey(scope: string): string {
 }
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
-	props: 'level:1',
-	files: 'level:1',
-	tags: 'level:1',
+	props: 'all',
+	files: 'all',
+	tags: 'all',
 	snippets: 'all',
 	plugins: 'all',
 };
 
+let activeDefaultScopeCursorProvider: (() => ScopeDefaultCursor) | null = null;
+
+export function registerDefaultScopeCursorProvider(
+	provider: () => ScopeDefaultCursor,
+): void {
+	activeDefaultScopeCursorProvider = provider;
+}
+
 /**
- * U130-GGC-025: the scope a brand-new scene opens with. Hierarchical tabs
- * open on `level:1`; flat add-on tabs stay on `all`. A persisted Settings
- * override (`scopeDefaultCursor`) only selects the initial cursor between
- * these two visitable targets — it never rewrites existing sets. Passing an
- * override that the tab cannot project falls back to the tab default.
+ * U130-GGC-025: the scope a brand-new scene opens with. Default is 'all'.
+ * A persisted Settings override (`scopeDefaultCursor`) selects the initial cursor
+ * between 'all' and 'level:1' — it never rewrites existing sets.
  */
 export type ScopeDefaultCursor = 'level:1' | 'all';
 
 export function normalizeScopeDefaultCursor(value: unknown): ScopeDefaultCursor {
-	return value === 'all' ? 'all' : 'level:1';
+	return value === 'level:1' ? 'level:1' : 'all';
 }
 
 export function defaultScopeForTab(
 	tab: ExplorerTabId,
 	preferred?: string,
 ): ScopeTarget {
-	if (preferred === 'all' || preferred === 'level:1') {
-		if (isScopeAllowed(tab, preferred)) return preferred;
+	const candidate = preferred ?? activeDefaultScopeCursorProvider?.();
+	if (candidate === 'all' || candidate === 'level:1') {
+		if (isScopeAllowed(tab, candidate)) return candidate;
 	}
-	return DEFAULT_SCOPE_BY_TAB[tab] as ScopeTarget;
+	return (DEFAULT_SCOPE_BY_TAB[tab] ?? 'all') as ScopeTarget;
 }
 
 function isHierarchicalTab(tab: ExplorerTabId): boolean {
@@ -526,6 +533,7 @@ function isNodeProviderTab(tab: ExplorerTabId): boolean {
 
 interface NormalizeSortOptions {
 	isValidDrillNode?: (id: string) => boolean;
+	preferredScope?: string;
 }
 
 interface SortableTreeNode<TNode> {
@@ -553,10 +561,10 @@ function normalizeScopeSort(value: unknown): ScopeSort | null {
 	};
 }
 
-function defaultState(tab: ExplorerTabId): ExplorerSortState {
+function defaultState(tab: ExplorerTabId, preferredScope?: string): ExplorerSortState {
 	return {
 		sorts: {},
-		activeScope: DEFAULT_SCOPE_BY_TAB[tab],
+		activeScope: defaultScopeForTab(tab, preferredScope),
 		...(isHierarchicalTab(tab) ? { drillNodeId: null } : {}),
 		nodeTypeFilter: null,
 		// Explicit rather than absent, and only where they mean something:
@@ -625,7 +633,7 @@ export function normalizeExplorerSortState(
 	value: unknown,
 	options: NormalizeSortOptions = {},
 ): ExplorerSortState {
-	const fallback = defaultState(tab);
+	const fallback = defaultState(tab, options.preferredScope);
 	if (!isRecord(value)) return fallback;
 
 	const nodeFilters = normalizeNodeFilters(value);

@@ -806,7 +806,13 @@ export class OperationQueueService extends Component {
 			// Apply frontmatter changes in the secured context
 			for (const [key, value] of Object.entries(updates)) {
 				if (key === DELETE_PROP) {
-					delete fm[value as string];
+					if (Array.isArray(value)) {
+						for (const p of value) delete fm[p as string];
+					} else {
+						delete fm[value as string];
+					}
+				} else if (value === undefined) {
+					delete fm[key];
 				} else if (key === REORDER_ALL) {
 					const ordered = value as string[];
 					const copy = { ...fm };
@@ -1087,7 +1093,13 @@ export class OperationQueueService extends Component {
 				const after = { ...base };
 				for (const [key, value] of Object.entries(updates)) {
 					if (key === DELETE_PROP) {
-						delete after[value as string];
+						if (Array.isArray(value)) {
+							for (const p of value) delete after[p as string];
+						} else {
+							delete after[value as string];
+						}
+					} else if (value === undefined) {
+						delete after[key];
 					} else if (key === REORDER_ALL) {
 						// Simulate key reordering
 						const ordered = value as string[];

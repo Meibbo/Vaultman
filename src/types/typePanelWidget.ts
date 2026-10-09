@@ -97,6 +97,21 @@ export interface PanelWidgetExplorerProjectionConfig {
 	 * nombre: recibe el mapa de su scene como recibe `hiddenGroupIds`.
 	 */
 	groupMemberships?: Readonly<Record<string, readonly string[]>>;
+	/**
+	 * U130 native polish: resolved per-cell display case for this scene
+	 * (global + scene already merged by the provider). Display only.
+	 */
+	textCase?: Readonly<Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>>;
+	/**
+	 * U130 native polish: scene policy per compatibility boundary. The tree
+	 * reads `tree`; toolbar/container/menu hosts read theirs from the same
+	 * object. Absent = all compatible.
+	 */
+	nativeCompat?: Readonly<
+		Partial<
+			Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+		>
+	>;
 }
 
 export interface PanelWidgetExplorerPort {
@@ -111,7 +126,7 @@ export interface PanelWidgetExplorerPort {
 	setCompactFoldersEnabled?(enabled: boolean): void;
 	setIndentEnabled?(enabled: boolean): void;
 	/** Owner-local hover outline while choosing a parent or level scope. */
-	setScopePickMode?(mode: 'parent' | 'level' | null): void;
+	setScopePickMode?(mode: 'parent' | 'level' | 'drill' | null): void;
 	/** Optional scope-tree capabilities; flat explorers may omit them. */
 	scopeParentForNode?(id: string): string | null;
 	hasScopeParentNodes?(): boolean;
@@ -126,6 +141,16 @@ export interface PanelWidgetExplorerPort {
 	 */
 	getPendingUpdateCount?(): number;
 	onPendingUpdatesChanged?(callback: () => void): () => void;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase?(textCase: Readonly<Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>>): void;
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat?(
+		policy: Readonly<
+			Partial<
+				Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+			>
+		>,
+	): void;
 	/** Spec 08 §3.2: the grouping switch, per instance. */
 	setGroupPreset?(preset: GroupPreset): void;
 	/** Spec 08 §4: custom groups hidden (not deleted) in this instance. */
@@ -168,6 +193,16 @@ export interface PanelWidgetExplorerPort {
 	): void;
 	/** Add one counter bucket inside the current fetched min/max domain. */
 	createCounterRangeSlice?(): boolean;
+	/**
+	 * U130 native polish: persist the name+range vs names-only flip for one
+	 * scope target (navbar-owned, mirrors `setCounterRangesChangeHandler`).
+	 */
+	setPartitionPresentationChangeHandler?(
+		handler?: (
+			presentation: import('../types/typeGroupPreset').PartitionPresentation,
+			target: import('../types/typeUI').ScopeTarget,
+		) => void,
+	): void;
 	/** Identidad de scene/instancia para la guarda de reconciliación. */
 	setSelectionScope?(scope: { instanceId: string | null; revision: number | null; scene: string }): void;
 	configurePanelWidgetProjection?(
@@ -369,6 +404,14 @@ export interface NavbarPanelWidgetState {
 	 * toggle per-instance (el override vive en SceneConfig.autoReveal). */
 	autoRevealGlobal?: boolean;
 	taskCellDisplayGlobal?: import('../logic/logicTaskMetric').TaskCellDisplayMode;
+	/** U130 native polish: global per-cell display case defaults for toggle labels. */
+	globalTextCase?: Readonly<Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>>;
+	/** U130 native polish: global compatible/locked defaults for toggle labels. */
+	globalNativeCompat?: Readonly<
+		Partial<
+			Record<'tree' | 'toolbar' | 'container' | 'menu', import('../logic/logicNativeTreeCompat').NativeCompatMode>
+		>
+	>;
 	savedLayouts?: SavedLayout[];
 	onSaveLayout?: (layout: SavedLayout) => void;
 	onLayoutLoaded?: (layout: SavedLayout) => void;

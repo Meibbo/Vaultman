@@ -27,6 +27,7 @@ const svelteMocks = vi.hoisted(() => {
 });
 
 vi.mock('obsidian', () => ({
+	Platform: { isMacOS: false },
 	ItemView: class {
 		readonly app;
 		readonly contentEl;
@@ -44,6 +45,10 @@ vi.mock('obsidian', () => ({
 			return {};
 		}
 		async setState(_state: unknown, _result: unknown): Promise<void> {}
+	},
+	Scope: class {
+		constructor(_parent?: unknown) {}
+		register(): void {}
 	},
 }));
 vi.mock('svelte', () => ({ mount: svelteMocks.mount, unmount: svelteMocks.unmount }));

@@ -28,11 +28,16 @@ function checkboxComputedStyle(position: 'start' | 'end'): CSSStyleDeclaration {
 	// obsidianmd/no-static-styles-assignment (static literals only).
 	const rowDepthStyle = '--depth: 0';
 	row.setAttribute('style', rowDepthStyle);
+	// U130 native polish: live rows nest controls inside the inner native
+	// self; the checkbox rule targets that structure.
+	const self = jsdomDocument.createElement('div');
+	self.className = 'vaultman-tree-self tree-item-self';
+	row.appendChild(self);
 	const checkbox = jsdomDocument.createElement('input');
 	checkbox.setAttribute('type', 'checkbox');
 	checkbox.className =
 		`metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`;
-	row.appendChild(checkbox);
+	self.appendChild(checkbox);
 	jsdomDocument.body.appendChild(row);
 	return dom.window.getComputedStyle(checkbox);
 }

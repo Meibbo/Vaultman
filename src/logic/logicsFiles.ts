@@ -128,6 +128,8 @@ export class FilesLogic {
 					// old folder-relative hybrid was neither, so a flat list is now
 					// genuinely flat until Path is switched on.
 					label,
+					flatOwnLabel: options.stripExtension ? file.basename : file.name,
+					flatParentLabel: folderPath,
 					icon: this.iconForExtension(file.extension),
 					showCaret: false,
 					depth: 0,
@@ -165,6 +167,8 @@ export class FilesLogic {
 							? rebaseInfo.visualPath
 							: (parts[parts.length - 1] ?? folder.name),
 					icon: 'lucide-folder',
+					flatOwnLabel: parts[parts.length - 1] ?? folder.name,
+					flatParentLabel: parts.slice(0, -1).join('/'),
 					showCaret: false,
 					depth: 0,
 					coreCls: 'tree-item-self nav-folder-title is-clickable',

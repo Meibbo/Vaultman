@@ -14,6 +14,8 @@ import { FilesLogic, type BuildFileTreeOptions } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
 import { GridView as FilesTableView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
+import { ExplorerCellMounts, explorerNativeRowSource } from '../../services/serviceExplorerCellMounts';
+import { scheduleNativeBridgeRebuild } from '../../services/serviceNativeBridge';
 import type {
 	TreeNode,
 	FileMeta,
@@ -46,6 +48,18 @@ import {
 	parseMembershipUrn,
 	sameGroupMemberships,
 } from '../../logic/logicMembershipUrn';
+import {
+	canMoveOrCopyPath,
+	filterDescendantPaths,
+	OBSIDIAN_FILES_MIME,
+	parseObsidianFilesClipboard,
+	registerTreeClipboardHandler,
+	serializeObsidianFilesClipboard,
+	type TreeClipboardHandler,
+} from '../../logic/logicTreeClipboard';
+import { beginNativeExplorerDrag, nativeExplorerDragManager } from '../../logic/logicNativeExplorerDragStart';
+import { buildNodeMoveQueueChanges, stageNodeMovePlan } from '../../logic/logicNodeMoveProceed';
+import type { NodeMoveOperation } from '../../logic/logicNodeMoveMode';
 import {
 	makeScopedGroupKey,
 	parseScopedGroupKey,
@@ -202,6 +216,7 @@ import {
 	collectExpandableSubtreeIds,
 	toggleExpandableSubtreeIds,
 } from '../../logic/logicTreeExpansion';
+import { resolveGroupAwareScope } from '../../logic/logicTreeNavigation';
 import {
 	normalizeFilesIconScope,
 	resolveScopedFileIcon,
@@ -261,6 +276,23 @@ import {
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	scopePartitionPresentation,
+	togglePartitionPresentation,
+} from '../../logic/logicPartitionNaming';
+import { setCounterRangeDisplayName } from '../../logic/logicCounterRangePartitions';
+import {
+	mergeTextCaseMaps,
+	sameTextCaseMap,
+	type TextCaseOption,
+} from '../../logic/logicTextCaseProjection';
+import {
+	resolveNativeCompatMode,
+	resolveNativeCompatPolicy,
+	sameNativeCompatPolicy,
+	type NativeCompatMode,
+} from '../../logic/logicNativeTreeCompat';
+import type { TreeViewOptions } from '../layout/viewTree';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 import {
@@ -355,13 +387,17 @@ export function fileTaskMetricValue(
 /** U130-02 ui-dom: el dueño es (instancia, Scene), no (provider, generation). */
 export type NodeMoveSceneOwner = { instanceId: string; scene: string };
 
-export class FilesExplorerPanel extends Component {
+export class FilesExplorerPanel extends Component implements TreeClipboardHandler {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
 	private logic: FilesLogic;
 	private tableView: FilesTableView | null = null;
 	private gridView: FilesGridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
+	private readonly _cutPaths = new Set<string>();
+	private _cellContributions: ExplorerCellMounts | undefined;
+	private _nativeRootOrdinal: ((path: string) => number | undefined) | undefined;
+	private _nativeRootColors: (() => ReadonlyMap<string, string>) | undefined;
 	private expandedIds = new Set<string>();
 	/** BT5-017: descendant-activity index, rebuilt with the projection only. */
 	private bubbleIndex: BubbleIndex<FileMeta> | null = null;
@@ -543,6 +579,10 @@ export class FilesExplorerPanel extends Component {
 	 *  indented geometry of today. */
 	private indentOverride: boolean | undefined;
 	private tooltipsOverride: boolean | undefined;
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	private textCaseOverride: Record<string, TextCaseOption> | undefined;
+	/** U130 native polish: compatible/locked policy overrides for this scene. */
+	private nativeCompatOverride: Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>> | undefined;
 	/** Spec 08 §3.2: the grouping switch IS this selection; `none` = off. */
 	private groupPreset: GroupPreset = { ...NO_GROUP_PRESET };
 	/** U130 transacción: el navbar recibe el snapshot y devuelve el resultado. */
@@ -563,6 +603,11 @@ export class FilesExplorerPanel extends Component {
 	private selectionRevision: number | null = null;
 	/** Spec 08 §4: hidden custom groups of this instance; they project as `No group`. */
 	private hiddenGroupIds: ReadonlySet<string> = new Set();
+	/** U130 native polish: scene-owned presentation flip for partition headers. */
+	private partitionPresentationChangeHandler?: (
+		presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+		target: import('../../types/typeUI').ScopeTarget,
+	) => void;
 	/** U130-09: custom groups of this scene of this instance (`SceneConfig.groupMemberships`). */
 	private groupMemberships: Readonly<Record<string, readonly string[]>> = {};
 	/** Group headers this explorer has already shown once (they open on first sight). */
@@ -598,6 +643,16 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		const contributions = this.plugin.explorerCellContributions;
+		if (contributions) {
+			const source = explorerNativeRowSource(this.plugin.app);
+			this._nativeRootOrdinal = source.rootOrdinal;
+			this._nativeRootColors = source.rootColors;
+			this._cellContributions = new ExplorerCellMounts(contributions, source, this.containerEl.ownerDocument);
+			this.register(() => this._cellContributions?.destroy());
+			this.register(contributions.onChange(() => scheduleNativeBridgeRebuild(this.containerEl.ownerDocument)));
+			scheduleNativeBridgeRebuild(this.containerEl.ownerDocument);
+		}
 		const iconic = this.plugin.iconicService;
 		if (iconic) {
 			// BT5-031: `onLoaded` fires once, so Files was the only explorer that
@@ -610,6 +665,7 @@ export class FilesExplorerPanel extends Component {
 		this.register(() =>
 			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
 		);
+		this.register(registerTreeClipboardHandler(this.containerEl, this));
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -638,25 +694,28 @@ export class FilesExplorerPanel extends Component {
 			id: 'file.exclude',
 			nodeTypes: ['file'],
 			surfaces: ['panel'],
-			label: translate('file.ctx.exclude'),
+			label: (ctx: MenuCtx) => this._fileFilterMenuLabel(ctx),
 			icon: 'lucide-eye-off',
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, true) as TFile[];
-				for (const file of targets) {
-					const path = file.path;
+				let paths = targets.map((file) => file.path);
+				if (paths.length === 0) {
+					const invoked = this._filePathFromCtx(ctx);
+					if (invoked) paths = [invoked];
+				}
+				for (const path of paths) {
 					// BT5-009: exclusion is a filter node now, so it hides through the
 					// pipeline and shows again by removing its chip — coherent with
 					// exclude-folder — instead of a parallel list applied in render.
-					if (isFileExcluded(this.plugin.filterService.activeFilter, path)) {
-						continue;
-					}
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'file_exclude',
-						property: '',
-						values: [path],
-					});
+					const excluded =
+						this.plugin.filterService.getFilterState('file', path) ===
+							'excluded' ||
+						isFileExcluded(this.plugin.filterService.activeFilter, path);
+					this.plugin.filterService.setFileNodePolarity(
+						path,
+						excluded ? 'none' : 'exclusive',
+					);
 				}
 			},
 		});
@@ -904,18 +963,27 @@ export class FilesExplorerPanel extends Component {
 			id: 'folder.filter_include',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
-			label: translate('folder.ctx.filter_include'),
+			label: (ctx: MenuCtx) =>
+				this._folderFilterMenuLabel(ctx, 'included', 'folder.ctx.filter_include'),
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
-				for (const folder of targets) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'folder',
-						property: '',
-						values: [folder.path],
-					});
+				const paths =
+					targets.length > 0
+						? targets.map((folder) => folder.path)
+						: (() => {
+								const invoked = this._folderPathFromCtx(ctx);
+								return invoked ? [invoked] : [];
+							})();
+				for (const folderPath of paths) {
+					const included =
+						this.plugin.filterService.getFilterState('folder', folderPath) ===
+						'included';
+					this.plugin.filterService.setFolderNodePolarity(
+						folderPath,
+						included ? 'none' : 'inclusive',
+					);
 				}
 			},
 		});
@@ -924,19 +992,28 @@ export class FilesExplorerPanel extends Component {
 			id: 'folder.filter_exclude',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
-			label: translate('folder.ctx.filter_exclude'),
+			label: (ctx: MenuCtx) =>
+				this._folderFilterMenuLabel(ctx, 'excluded', 'folder.ctx.filter_exclude'),
 			icon: 'lucide-filter-x',
 			separatorBefore: true,
 			run: (ctx: MenuCtx) => {
 				// U130-p2: actúa sobre la selección si el invocado está en ella
 				const targets = this._resolveSelectionTargets(ctx, false) as TFolder[];
-				for (const folder of targets) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'folder_exclude',
-						property: '',
-						values: [folder.path],
-					});
+				const paths =
+					targets.length > 0
+						? targets.map((folder) => folder.path)
+						: (() => {
+								const invoked = this._folderPathFromCtx(ctx);
+								return invoked ? [invoked] : [];
+							})();
+				for (const folderPath of paths) {
+					const excluded =
+						this.plugin.filterService.getFilterState('folder', folderPath) ===
+						'excluded';
+					this.plugin.filterService.setFolderNodePolarity(
+						folderPath,
+						excluded ? 'none' : 'exclusive',
+					);
 				}
 			},
 		});
@@ -1058,6 +1135,15 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
+		if (this.plugin.nodeBindingService) {
+			this.registerEvent(
+				this.plugin.nodeBindingService.on('changed', () => {
+					if (this.visibleCells.has('format')) {
+						this._scheduleRefresh();
+					}
+				}),
+			);
+		}
 		// Hydration/clear need a rebuild; ordinary opens already use the incremental
 		// file-open handler below and must not trigger a second full render.
 		this.register(this.plugin.lastOpenedService.onReset(() => this._render()));
@@ -1181,6 +1267,8 @@ export class FilesExplorerPanel extends Component {
 			if (config.tooltips !== undefined) {
 				this.setTooltipsEnabled(config.tooltips);
 			}
+			if (config.textCase) this.setTextCase(config.textCase);
+			if (config.nativeCompat) this.setNativeCompat(config.nativeCompat);
 			if (config.groupPreset) this.setGroupPreset(config.groupPreset);
 			if (config.hiddenGroupIds) this.setHiddenGroupIds(config.hiddenGroupIds);
 			if (config.groupMemberships) {
@@ -1368,10 +1456,67 @@ export class FilesExplorerPanel extends Component {
 		});
 	}
 
+	/**
+	 * U130 native polish: `Name partition` — display-name one counter/date
+	 * slice without touching its bounds. Empty input clears the override;
+	 * cancelling leaves everything untouched.
+	 */
+	private _namePartitionRange(_headerId: string, header: TreeNode<FileMeta>): boolean {
+		const range = header.counterRange;
+		const ranges = header.counterRanges;
+		const domain = header.counterDomain;
+		if (!range || !ranges || !domain || !this.counterRangesChangeHandler) return false;
+		const target = header.groupScopeTarget ?? 'all';
+		const commit = this.counterRangesChangeHandler;
+		const current = range.displayName ?? '';
+		void (async () => {
+			const name = await showInputModal(this.plugin.app, translate('group.counter.name_partition'), {
+				placeholder: translate('group.counter.name_partition_placeholder'),
+				initialValue: current,
+			});
+			if (name === null) return;
+			const result = setCounterRangeDisplayName(ranges, range.id, name, domain);
+			if (!result.ok) {
+				new Notice(translate('group.counter.invalid'));
+				return;
+			}
+			commit(result.ranges, target);
+		})().catch(() => {
+			new Notice(translate('group.counter.invalid'));
+		});
+		return true;
+	}
+
+	/** U130 native polish: header presentation of the preset behind this header. */
+	private _scopePartitionPresentation(
+		header: TreeNode<FileMeta> | null | undefined,
+	): import('../../types/typeGroupPreset').PartitionPresentation {
+		const target = header?.groupScopeTarget ?? 'all';
+		return scopePartitionPresentation(this.sortState, this.groupPreset, target);
+	}
+
+	/** U130 native polish: flip name+range vs names-only for the header scope. */
+	private _cyclePartitionPresentation(header: TreeNode<FileMeta>): void {
+		if (!this.partitionPresentationChangeHandler) return;
+		const target = header.groupScopeTarget ?? 'all';
+		const current = scopePartitionPresentation(this.sortState, this.groupPreset, target);
+		this.partitionPresentationChangeHandler(togglePartitionPresentation(current), target);
+	}
+
 	setCounterRangesChangeHandler(
 		handler?: (ranges: readonly CounterRange[], target: ScopeTarget) => void,
 	): void {
 		this.counterRangesChangeHandler = handler;
+	}
+
+	/** U130 native polish: persist the header presentation flip (navbar-owned). */
+	setPartitionPresentationChangeHandler(
+		handler?: (
+			presentation: import('../../types/typeGroupPreset').PartitionPresentation,
+			target: import('../../types/typeUI').ScopeTarget,
+		) => void,
+	): void {
+		this.partitionPresentationChangeHandler = handler;
 	}
 
 	createCounterRangeSlice(): boolean {
@@ -1634,13 +1779,59 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	/** U130 native polish: per-cell display case overrides for this scene. */
+	setTextCase(textCase: Readonly<Record<string, TextCaseOption>>): void {
+		if (sameTextCaseMap(this.textCaseOverride, textCase)) return;
+		this.textCaseOverride = { ...textCase };
+		this._render();
+	}
+
+	/** U130 native polish: compatible/locked policy per boundary for this scene. */
+	setNativeCompat(
+		policy: Readonly<
+			Partial<Record<'tree' | 'toolbar' | 'container' | 'menu', NativeCompatMode>>
+		>,
+	): void {
+		if (sameNativeCompatPolicy(this.nativeCompatOverride, policy)) return;
+		this.nativeCompatOverride = { ...policy };
+		this._render();
+	}
+
+	/** U130 native polish: this scene's explicit menu-boundary policy for portals. */
+	private _nativeMenuPolicy(): Pick<MenuCtx, 'menuNativeCompat' | 'menuNativeScene'> {
+		return { menuNativeScene: 'files', menuNativeCompat: resolveNativeCompatMode(
+			'menu',
+			this.plugin.settings?.nativeCompatDefaults,
+			this.nativeCompatOverride,
+		) };
+	}
+
+	/** U130 native polish: homolog scene + resolved display/compat for the tree. */
+	protected _nativeTreeBaseOpts(): Pick<TreeViewOptions, 'nativeScene' | 'nativeCompat' | 'textCase' | 'cellContributions' | 'contributedIconScope' | 'nativeRootOrdinal' | 'nativeRootColors'> {
+		return {
+			nativeRootColors: this._nativeRootColors?.(),
+			nativeRootOrdinal: this._nativeRootOrdinal,
+			cellContributions: this._cellContributions,
+			contributedIconScope: normalizeFilesIconScope(this.plugin.settings.filesIconScope),
+			nativeScene: 'files',
+			nativeCompat: resolveNativeCompatPolicy(
+				this.plugin.settings.nativeCompatDefaults,
+				this.nativeCompatOverride,
+			),
+			textCase: mergeTextCaseMaps(
+				this.plugin.settings.textCaseByCell,
+				this.textCaseOverride,
+			),
+		};
+	}
+
 	setIndentEnabled(enabled: boolean): void {
 		if (this.indentOverride === enabled) return;
 		this.indentOverride = enabled;
 		this._render();
 	}
 
-	setScopePickMode(mode: 'parent' | 'level' | null): void {
+	setScopePickMode(mode: 'parent' | 'level' | 'drill' | null): void {
 		if (this.viewMode !== 'tree') return;
 		this.treeView?.setScopePickMode(mode);
 	}
@@ -2201,6 +2392,7 @@ export class FilesExplorerPanel extends Component {
 				nodeType: 'file',
 				node: syntheticNode,
 				surface: 'panel',
+				...this._nativeMenuPolicy(),
 				selectedIds: this.selectedFilePaths,
 				orderedIds,
 				...this._groupCreationMenuCtx(),
@@ -2313,7 +2505,18 @@ export class FilesExplorerPanel extends Component {
 			).open();
 			return;
 		}
-		this._applyFileSelection(selection);
+		if (this.plugin.settings.selectOpenedFile) {
+			this._applyFileSelection(selection);
+		} else {
+			if (this.selectedFilePaths.size > 0) {
+				this._applyFileSelection({
+					selectedPaths: new Set<string>(),
+					anchorPath: file.path,
+				});
+			} else {
+				this.selectionAnchorPath = file.path;
+			}
+		}
 		const paneType = Keymap.isModEvent(event);
 		void this.plugin.app.workspace.getLeaf(paneType).openFile(file);
 	}
@@ -2986,6 +3189,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,
@@ -3291,6 +3495,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,
@@ -3620,6 +3825,121 @@ export class FilesExplorerPanel extends Component {
 						}
 					}
 				},
+				// U130 native polish: owner-local keyboard delegates. Enter/Space
+				// arrive with real modifier flags (never a cast MouseEvent);
+				// plain activation reuses the row-click path minus the pointer.
+				onKeyboardActivate: (id: string, modifiers) => {
+					if (isGroupHeader(id, this._groupIds)) {
+						this._activateGroupRow(id);
+						return;
+					}
+					if (modifiers.ctrl || modifiers.meta) {
+						// Mod+Enter native parity: open in new tab/leaf!
+						const node =
+							this._findNode(id, projectedTree) ??
+							this._findNode(id, renderTree);
+						if (node?.meta.file) {
+							const workspace = this.plugin.app.workspace as {
+								getLeaf?(type?: string): import('obsidian').WorkspaceLeaf;
+								setActiveLeaf?(leaf: import('obsidian').WorkspaceLeaf, opts?: { focus?: boolean }): void;
+							};
+							const leaf = workspace.getLeaf?.('tab');
+							if (leaf) {
+								void leaf.openFile(node.meta.file, { active: true });
+								workspace.setActiveLeaf?.(leaf, { focus: true });
+							}
+							return;
+						}
+						if (node?.meta.isFolder) {
+							this._treeRenderOpts?.onRowClick?.(id);
+							return;
+						}
+					}
+					this._treeRenderOpts?.onRowClick?.(id);
+				},
+				onRangeSelect: (anchorId: string, focusId: string) => {
+					this._applyFileSelection(
+						updateFileSelection(
+							{
+								selectedPaths: this.selectedFilePaths,
+								anchorPath: anchorId,
+							},
+							this._orderedSelectableIds(),
+							focusId,
+							'range',
+						),
+					);
+				},
+				onAdditiveSelect: (previousId: string, currentId: string) => {
+					const next = new Set(this.selectedFilePaths);
+					next.add(previousId);
+					next.add(currentId);
+					this._applyFileSelection({
+						selectedPaths: next,
+						anchorPath: this.selectionAnchorPath ?? previousId,
+					});
+				},
+				onClearSelection: () => {
+					if (this.selectedFilePaths.size === 0) return false;
+					this._applyFileSelection({
+						selectedPaths: new Set<string>(),
+						anchorPath: null,
+					});
+					return true;
+				},
+				onCollapseAll: () => {
+					this.collapseAll();
+				},
+				onModStepOpen: (id: string) => {
+					const node =
+						this._findNode(id, projectedTree) ??
+						this._findNode(id, renderTree);
+					if (node?.meta.file) {
+						const workspace = this.plugin.app.workspace as {
+							getUnpinnedLeaf?(newLeaf?: boolean): import('obsidian').WorkspaceLeaf;
+							getLeaf?(type?: boolean): import('obsidian').WorkspaceLeaf;
+						};
+						const leaf =
+							typeof workspace.getUnpinnedLeaf === 'function'
+								? workspace.getUnpinnedLeaf(false)
+								: typeof workspace.getLeaf === 'function'
+									? workspace.getLeaf(false)
+									: null;
+						if (leaf) {
+							void leaf.openFile(node.meta.file, { active: false });
+						}
+					}
+				},
+				onDeleteRequest: (id: string) => {
+					this._onDeleteKeyRequest(id, projectedTree, renderTree);
+				},
+				isItemCut: (id: string) => {
+					const clean = id.startsWith('folder:')
+						? id.slice('folder:'.length).replace(/^\/|\/$/g, '')
+						: id;
+					return this._cutPaths.has(id) || this._cutPaths.has(clean);
+				},
+				onRenameRequest: (id: string) => {
+					if (!this._canRenameNode(id)) return;
+					this._editingId = id;
+					this._render();
+				},
+				canRenameNode: (id: string) => this._canRenameNode(id),
+				// U130 tree Navco: letter jump gated on the EFFECTIVE sibling
+				// sort (parent → level → all; group-aware ownership, not blind
+				// depth+1). `jump` arrives with the shared Floating Index
+				// helper (other lane); until then letters bubble.
+				navco: {
+					letterJump: {
+						resolveScope: (focusedId: string, fallbackDepth: number) =>
+							resolveGroupAwareScope(projectedTree, focusedId, fallbackDepth),
+						sortOf: (scope) =>
+							siblingScopeSort('files', this.sortState, scope.parentId, scope.level),
+						labelOf: (id: string) =>
+							this._findNode(id, projectedTree)?.label ??
+							this._findNode(id, renderTree)?.label ?? null,
+					},
+				},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				if (isGroupHeader(id, this._groupIds)) {
 					// U130 Slice B (spec-03 §24-40): las cabeceras abren el
@@ -3653,6 +3973,7 @@ export class FilesExplorerPanel extends Component {
 								depth: 0,
 							},
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							groupId,
 							groupOwner,
 							convertGroupToFolder: conversionPlan && header && folderOwner
@@ -3669,6 +3990,15 @@ export class FilesExplorerPanel extends Component {
 							sliceGroupRange:
 								header?.counterRange && header.counterDomain
 									? () => this.treeView?.beginCounterRangeEdit(id, 'slice')
+									: undefined,
+							namePartitionRange:
+								header?.counterRange && header.counterDomain && header.counterRanges
+									? () => this._namePartitionRange(id, header)
+									: undefined,
+							partitionPresentation: this._scopePartitionPresentation(header),
+							cyclePartitionPresentation:
+								header?.counterRange && header.counterDomain
+									? () => this._cyclePartitionPresentation(header)
 									: undefined,
 							materializePreset:
 								this._isCustomGroupId(groupId) || !header || !this.materializePresetHandler
@@ -3740,6 +4070,7 @@ export class FilesExplorerPanel extends Component {
 								nodeType: 'folder',
 								node,
 								surface: 'panel',
+								...this._nativeMenuPolicy(),
 								selectedIds: this.selectedFilePaths,
 								orderedIds,
 								...this._groupCreationMenuCtx(),
@@ -3756,6 +4087,7 @@ export class FilesExplorerPanel extends Component {
 							nodeType: 'file',
 							node,
 							surface: 'panel',
+							...this._nativeMenuPolicy(),
 							selectedIds: this.selectedFilePaths,
 							orderedIds,
 							...this._groupCreationMenuCtx(),
@@ -3858,20 +4190,9 @@ export class FilesExplorerPanel extends Component {
 		const app = this.plugin.app;
 		if (!app?.vault) return;
 
-		const aliasSet = new Set<string>();
-		const markdownFiles = app.vault.getMarkdownFiles?.() ?? [];
-		for (const file of markdownFiles) {
-			const fm = app.metadataCache?.getFileCache(file)?.frontmatter;
-			if (fm?.aliases) {
-				if (Array.isArray(fm.aliases)) {
-					for (const a of fm.aliases) {
-						if (typeof a === "string") aliasSet.add(a.trim());
-					}
-				} else if (typeof fm.aliases === "string") {
-					aliasSet.add(fm.aliases.trim());
-				}
-			}
-		}
+		const aliasSet =
+			this.plugin.nodeBindingService?.getVaultAliasSet() ??
+			new Set<string>();
 
 		const visit = (list: TreeNode<FileMeta>[]) => {
 			for (const node of list) {
@@ -3899,9 +4220,8 @@ export class FilesExplorerPanel extends Component {
 					}
 				}
 
-				if (hasBoundNote) {
-					node.meta.hasNodeNote = true;
-				}
+				node.meta.hasNodeNote = hasBoundNote;
+				node.hasNodeNote = hasBoundNote;
 
 				if (node.children?.length) {
 					visit(node.children);
@@ -4185,23 +4505,8 @@ export class FilesExplorerPanel extends Component {
 			selection?: VaultmanDragNodePayload[];
 		},
 	): void {
-		const dragManager = (
-			this.plugin.app as unknown as {
-				dragManager?: {
-					draggable?: unknown;
-					dragFile?: (
-						event: DragEvent,
-						file: TFile,
-						source?: string,
-					) => unknown;
-					dragFiles?: (
-						event: DragEvent,
-						files: Array<TFile | TFolder>,
-						source?: string,
-					) => unknown;
-				};
-			}
-		).dragManager;
+		const app = this.plugin.app;
+		const dragManager = nativeExplorerDragManager('dragManager' in app ? app.dragManager : null);
 		if (!dragManager) return;
 		const entries = this._fileDragNodes(payload)
 			.map((node) => this.plugin.app.vault.getAbstractFileByPath(node.path))
@@ -4210,11 +4515,17 @@ export class FilesExplorerPanel extends Component {
 					entry instanceof TFile || entry instanceof TFolder,
 			);
 		if (entries.length === 0) return;
-		const draggable =
-			entries.length === 1 && entries[0] instanceof TFile
-				? dragManager.dragFile?.(event, entries[0], 'file-explorer')
-				: dragManager.dragFiles?.(event, entries, 'file-explorer');
-		if (draggable !== undefined) dragManager.draggable = draggable;
+		const paths = new Set(entries.map(entry => entry.path));
+		const sourceElements = Array.from(this.containerEl.querySelectorAll<HTMLElement>('.vaultman-tree-row'))
+			.filter(row => row.dataset.path !== undefined && paths.has(row.dataset.path))
+			.map(row => row.querySelector<HTMLElement>('.vaultman-tree-self') ?? row);
+		if (!beginNativeExplorerDrag({
+			event,
+			entries: entries.map(file => file instanceof TFile ? { kind: 'file' as const, file } : { kind: 'folder' as const, file }),
+			sourceElements,
+			manager: dragManager,
+			isRenaming: this._editingId !== null,
+		})) event.preventDefault();
 	}
 
 	private _fileDropGuide(
@@ -4240,6 +4551,59 @@ export class FilesExplorerPanel extends Component {
 	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
 		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
 		return meta?.folder ?? null;
+	}
+
+	private _folderPathFromCtx(ctx: MenuCtx): string | null {
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		const fromFolder = meta?.folder?.path;
+		if (fromFolder !== undefined) return fromFolder;
+		const fromMeta = meta?.folderPath;
+		if (typeof fromMeta === 'string' && fromMeta.length > 0) return fromMeta;
+		const id = ctx.node.id;
+		if (typeof id === 'string' && id.startsWith('folder:')) {
+			return id.slice('folder:'.length).replace(/^\/|\/$/g, '');
+		}
+		if (typeof id === 'string' && id.length > 0) return id;
+		return null;
+	}
+
+	private _filePathFromCtx(ctx: MenuCtx): string | null {
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		const fromFile = meta?.file?.path;
+		if (typeof fromFile === 'string' && fromFile.length > 0) return fromFile;
+		if (typeof ctx.file?.path === 'string' && ctx.file.path.length > 0) {
+			return ctx.file.path;
+		}
+		const id = ctx.node.id;
+		if (typeof id === 'string' && id.length > 0 && !id.startsWith('folder:')) {
+			return id;
+		}
+		return null;
+	}
+
+	private _folderFilterMenuLabel(
+		ctx: MenuCtx,
+		activeState: 'included' | 'excluded',
+		fallback: 'folder.ctx.filter_include' | 'folder.ctx.filter_exclude',
+	): string {
+		const folderPath = this._folderPathFromCtx(ctx);
+		if (folderPath === null) return translate(fallback);
+		return this.plugin.filterService.getFilterState('folder', folderPath) ===
+			activeState
+			? translate('explorer.ctx.filter_clean')
+			: translate(fallback);
+	}
+
+	private _fileFilterMenuLabel(ctx: MenuCtx): string {
+		const filePath = this._filePathFromCtx(ctx);
+		if (filePath === null) return translate('file.ctx.exclude');
+		const state = this.plugin.filterService.getFilterState('file', filePath);
+		const excluded =
+			state === 'excluded' ||
+			isFileExcluded(this.plugin.filterService.activeFilter, filePath);
+		return excluded
+			? translate('explorer.ctx.filter_clean')
+			: translate('file.ctx.exclude');
 	}
 
 	/**
@@ -6234,6 +6598,130 @@ export class FilesExplorerPanel extends Component {
 		for (const folder of targets.folders) this._queueFolderDelete(folder);
 	}
 
+	private _onDeleteKeyRequest(
+		id: string,
+		projectedTree: TreeNode<FileMeta>[],
+		renderTree: TreeNode<FileMeta>[],
+	): void {
+		const node = this._findNode(id, projectedTree) ?? this._findNode(id, renderTree);
+		if (!node) return;
+		const targets =
+			this.selectedFilePaths.has(node.id) || this.selectedFilePaths.has(id)
+				? this._selectedTargets()
+				: {
+						files: node.meta.file ? [node.meta.file] : [],
+						folders:
+							node.meta.isFolder && node.meta.folderPath
+								? ([
+										this.plugin.app.vault.getAbstractFileByPath(
+											node.meta.folderPath,
+										),
+									].filter((f): f is TFolder => f instanceof TFolder))
+								: [],
+					};
+		if (targets.files.length === 0 && targets.folders.length === 0) return;
+		this._queueDeleteTargets(targets);
+	}
+
+	handleCopy(event: ClipboardEvent): void {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return;
+		event.preventDefault();
+		event.clipboardData?.setData(
+			OBSIDIAN_FILES_MIME,
+			serializeObsidianFilesClipboard({ operation: 'copy', paths: filtered }),
+		);
+	}
+
+	handleCut(event: ClipboardEvent): void {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return;
+		this._cutPaths.clear();
+		for (const p of filtered) this._cutPaths.add(p);
+		this._render();
+		event.preventDefault();
+		event.clipboardData?.setData(
+			OBSIDIAN_FILES_MIME,
+			serializeObsidianFilesClipboard({ operation: 'cut', paths: filtered }),
+		);
+	}
+
+	async handlePaste(event: ClipboardEvent): Promise<void> {
+		const raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
+		const payload = parseObsidianFilesClipboard(raw);
+		if (!payload || payload.paths.length === 0) return;
+		event.preventDefault();
+
+		const focusedId = this.treeView?.focusedId;
+		let targetFolder: TFolder | null = null;
+		if (focusedId) {
+			const node = this._findNode(focusedId, this._lastRenderTree);
+			if (node?.meta.file) {
+				targetFolder = node.meta.file.parent;
+			} else if (node?.meta.isFolder && node.meta.folderPath) {
+				const folder = this.plugin.app.vault.getAbstractFileByPath(node.meta.folderPath);
+				if (folder instanceof TFolder) targetFolder = folder;
+			}
+		}
+		if (!targetFolder) {
+			targetFolder = this.plugin.app.vault.getRoot();
+		}
+
+		const vault = this.plugin.app.vault;
+		const destination = targetFolder.isRoot() ? '' : targetFolder.path;
+		const operations: NodeMoveOperation[] = [];
+		for (const sourcePath of filterDescendantPaths(payload.paths)) {
+			const source = vault.getAbstractFileByPath(sourcePath);
+			if (!(source instanceof TFile || source instanceof TFolder) || !canMoveOrCopyPath(source.path, destination)) continue;
+			operations.push({
+				originId: source.path,
+				originCanonicalId: source.path,
+				originKind: source instanceof TFolder ? 'folder' : 'file',
+				destinationId: destination,
+				destinationCanonicalId: destination,
+				write: 'append',
+				originDisposition: payload.operation === 'cut' ? 'move' : 'copy',
+			});
+		}
+		const plan = buildNodeMoveQueueChanges(operations, {
+			findFile: (path) => {
+				const file = vault.getAbstractFileByPath(path);
+				return file instanceof TFile ? file : null;
+			},
+			listFilesInFolder: (path) => {
+				const folder = vault.getAbstractFileByPath(path);
+				return folder instanceof TFolder ? this._filesInsideFolder(folder) : [];
+			},
+		});
+		// Navigation parity must not silently introduce a native mutation bypass.
+		const outcome = stageNodeMovePlan(this.plugin.queueService, plan, { confirmed: false });
+		if (outcome.requiresConfirmation) {
+			new Notice('Paste requires confirmation in bypass mode. Use the existing Move/Copy action.');
+			return;
+		}
+		if (outcome.staged === 0) return;
+		this._cutPaths.clear();
+		this._render();
+	}
+
+	private _collectClipboardTargetPaths(): string[] {
+		if (this.selectedFilePaths.size > 0) {
+			return Array.from(this.selectedFilePaths).map((id) =>
+				id.startsWith('folder:') ? id.slice('folder:'.length).replace(/^\/|\/$/g, '') : id,
+			);
+		}
+		const focusedId = this.treeView?.focusedId;
+		if (focusedId) {
+			const clean = focusedId.startsWith('folder:')
+				? focusedId.slice('folder:'.length).replace(/^\/|\/$/g, '')
+				: focusedId;
+			return [clean];
+		}
+		return [];
+	}
+
 	private _orderedVisibleFilePaths(): string[] {
 		if (this.viewMode === 'tree') {
 			return (
@@ -6285,6 +6773,13 @@ export class FilesExplorerPanel extends Component {
 		)
 			.map((node) => node.id)
 			.filter((id) => !isGroupHeader(id, this._groupIds));
+	}
+
+	/** U130 native polish: F2 rename availability (files + folders, never group headers). */
+	private _canRenameNode(id: string): boolean {
+		if (isGroupHeader(id, this._groupIds)) return false;
+		const meta = this._findNode(id, this._lastRenderTree)?.meta;
+		return Boolean(meta && (meta.file || meta.isFolder));
 	}
 
 	private _applyFileSelection({
@@ -6783,6 +7278,7 @@ export class FilesExplorerPanel extends Component {
 			indent: this.indentOverride ?? true,
 			treeIndentMode: this.plugin.settings?.treeIndentMode ?? 'all',
 			tooltipsEnabled: this.tooltipsOverride ?? true,
+			...this._nativeTreeBaseOpts(),
 			tooltipPlacement: tooltipPlacementForSetting(
 				this.plugin.settings?.tooltipPlacement,
 				this.containerEl,

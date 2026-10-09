@@ -199,20 +199,23 @@ class TinyElement {
 	}
 
 	querySelector(selector: string): TinyElement | null {
+		if (selector.startsWith(':scope > .')) {
+			return this.children.find(child => child.classList.contains(selector.slice(':scope > .'.length))) ?? null;
+		}
 		if (!selector.startsWith('.')) return null;
 		const className = selector.slice(1);
-		return this.find((el) => el.classList.contains(className));
+		return this.findDescendant((el) => el.classList.contains(className));
 	}
 
 	findByDataId(id: string): TinyElement | null {
 		if (this.dataset.id === id) return this;
-		return this.find((el) => el.dataset.id === id);
+		return this.findDescendant((el) => el.dataset.id === id);
 	}
 
-	private find(predicate: (el: TinyElement) => boolean): TinyElement | null {
+	private findDescendant(predicate: (el: TinyElement) => boolean): TinyElement | null {
 		for (const child of this.children) {
 			if (predicate(child)) return child;
-			const descendant = child.find(predicate);
+			const descendant = child.findDescendant(predicate);
 			if (descendant) return descendant;
 		}
 		return null;
@@ -247,6 +250,36 @@ describe('UnifiedTreeView behavior', () => {
 			},
 			cancelAnimationFrame: () => {},
 		});
+	});
+
+	it('retains logical keyboard focus after a pointer activation without a row tab stop', async () => {
+		vi.stubGlobal('HTMLElement', TinyElement);
+		vi.stubGlobal('MouseEvent', Event);
+		const { UnifiedTreeView } = await import('../../src/components/layout/viewTree');
+		const container = new HTMLElement();
+		const view = new UnifiedTreeView(container);
+		view.render({ nodes: [{ id: 'a.md', label: 'a', depth: 0, meta: {} }], expandedIds: new Set(), onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {} });
+		const row = container.querySelector('.vaultman-tree-row');
+		if (!(row instanceof TinyElement)) throw new Error('Rendered row absent');
+		row.onclick?.(new MouseEvent('click'));
+		expect(view.focusedId).toBe('a.md');
+		expect(row.classList.contains('has-focus')).toBe(true);
+	});
+
+	it('refreshes cut state without rebuilding unchanged row markup', async () => {
+		vi.stubGlobal('HTMLElement', TinyElement);
+		const { UnifiedTreeView } = await import('../../src/components/layout/viewTree');
+		const container = new HTMLElement();
+		const view = new UnifiedTreeView(container);
+		let cut = false;
+		const options = { nodes: [{ id: 'a.md', label: 'a', depth: 0, meta: {} }], expandedIds: new Set<string>(), onToggle: () => {}, onRowClick: () => {}, onContextMenu: () => {}, isItemCut: () => cut };
+		view.render(options);
+		const original = container.querySelector('.vaultman-tree-self');
+		cut = true;
+		view.render(options);
+		const current = container.querySelector('.vaultman-tree-self');
+		expect(current).toBe(original);
+		expect(current?.classList.contains('is-cut')).toBe(true);
 	});
 
 	it('prepares only virtual-window nodes before their row signatures render', async () => {
@@ -373,6 +406,8 @@ describe('UnifiedTreeView behavior', () => {
 		expect(row?.classList.contains('mod-collapsible')).toBe(true);
 		expect(caret?.classList.contains('tree-item-icon')).toBe(true);
 		expect(caret?.classList.contains('collapse-icon')).toBe(true);
+		// Guides use the positioning slot, not the indented decoration box.
+		expect(container.querySelector('.vaultman-tree-guides')?.parentElement).toBe(row);
 	});
 
 	it('marks expanded set changes for temporary virtual row structure animation', async () => {
@@ -415,6 +450,7 @@ describe('UnifiedTreeView behavior', () => {
 			onToggle: () => {},
 			onRowClick: () => {},
 			onContextMenu: () => {},
+			expansionAnimation: true,
 		};
 
 		view.render({ ...baseOptions, expandedIds: new Set<string>() });
@@ -438,6 +474,50 @@ describe('UnifiedTreeView behavior', () => {
 		expect(
 			(container as unknown as TinyElement).classList.contains(
 				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+	});
+
+	it('leaves the tree static when the expansion animation is off', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const root: TreeNode = {
+			id: 'folder:Projects',
+			label: 'Projects',
+			depth: 0,
+			meta: {},
+			coreCls: 'tree-item-self nav-folder-title is-clickable',
+			children: [
+				{
+					id: 'file:Projects/Alpha.md',
+					label: 'Alpha.md',
+					depth: 1,
+					meta: {},
+				},
+			],
+		};
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const baseOptions = {
+			nodes: [root],
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, expandedIds: new Set<string>() });
+		view.render({
+			...baseOptions,
+			expandedIds: new Set<string>(['folder:Projects']),
+		});
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-drawer-animating',
 			),
 		).toBe(false);
 	});
@@ -911,6 +991,67 @@ describe('UnifiedTreeView behavior', () => {
 		expect(row?.classList.contains('is-active-filter')).toBe(true);
 		expect(row?.classList.contains('is-excluded-filter')).toBe(true);
 		expect(row?.classList.contains('is-deletion-highlight')).toBe(true);
+	});
+
+	it('keeps keyboard focus on the folder across expansion', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+		const nodes = [
+			{
+				id: 'folder',
+				label: 'Folder',
+				depth: 0,
+				meta: {},
+				children: [{ id: 'folder/file.md', label: 'file', depth: 1, meta: {} }],
+			},
+		];
+		const baseOptions = {
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, nodes, expandedIds: new Set<string>() });
+		view.setFocusedId('folder', false);
+		expect(container.findByDataId('folder')?.classList.contains('has-focus')).toBe(true);
+
+		// Expand: the focused folder row is repainted, not rebuilt from
+		// scratch, and the revealed child starts unfocused.
+		view.render({ ...baseOptions, nodes, expandedIds: new Set<string>(['folder']) });
+		expect(view.focusedId).toBe('folder');
+		expect(container.findByDataId('folder')?.classList.contains('has-focus')).toBe(true);
+		expect(
+			container.findByDataId('folder/file.md')?.classList.contains('has-focus'),
+		).toBe(false);
+	});
+
+	it('carries keyboard focus across a recycled re-render', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+		const nodes = [
+			{ id: 'alpha.md', label: 'Alpha', depth: 0, meta: {} },
+			{ id: 'beta.md', label: 'Beta', depth: 0, meta: {} },
+		];
+		const baseOptions = {
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, nodes, expandedIds: new Set<string>() });
+		view.setFocusedId('beta.md', false);
+		view.render({ ...baseOptions, nodes, expandedIds: new Set<string>() });
+		expect(view.focusedId).toBe('beta.md');
+		expect(container.findByDataId('beta.md')?.classList.contains('has-focus')).toBe(true);
+		expect(container.findByDataId('alpha.md')?.classList.contains('has-focus')).toBe(false);
 	});
 
 	it('renders at most two generic collapsed status dots before operation badges', async () => {

@@ -15,14 +15,18 @@ export interface ScopePreviewRow {
 	isParent?: boolean;
 }
 
-export type ScopePreviewMode = 'parent' | 'level';
+export type ScopePreviewMode = 'parent' | 'level' | 'drill';
 
 export interface ScopePreviewInput {
 	rows: readonly ScopePreviewRow[];
+	/** Variable-window callers may provide bounded row access instead of a
+	 * materialized projection. The legacy `rows` array remains supported. */
+	rowCount?: number;
+	rowAt?: (index: number) => ScopePreviewRow | undefined;
 	parentIndex: readonly number[];
 	subtreeEnd: readonly number[];
 	hoveredIndex: number;
-	mode: 'parent' | 'level';
+	mode: ScopePreviewMode;
 	rowHeight: number;
 	scrollTop: number;
 	viewportHeight: number;
@@ -32,11 +36,23 @@ export interface ScopePreviewInput {
 	leafRowPaddingStart?: number;
 	indentUnit: number;
 	indentEnabled: boolean;
+	/** A full-width decoration box does not inherit its label's depth/gutter. */
+	fullWidthRows?: boolean;
 	/** Optional render-time index. When present, hover does not scan all rows. */
 	levelIndices?: ReadonlyMap<number, readonly number[]>;
+	levelBounds?: ReadonlyMap<number, { readonly first: number; readonly last: number }>;
 	/** Visible row index window used to avoid creating off-screen segments. */
 	visibleStartIndex?: number;
 	visibleEndIndex?: number;
+	/**
+	 * U130 native polish: measured row tops/heights from the shared height
+	 * index. When present, segment tops agree with the virtual window;
+	 * `rowHeight` remains the estimate fallback. Absent keeps today's formula.
+	 */
+	tops?: readonly number[];
+	heights?: readonly number[];
+	topAt?: (index: number) => number;
+	heightAt?: (index: number) => number;
 }
 
 export interface ScopePreviewSegment {
@@ -63,6 +79,7 @@ function leftForRow(
 	row: ScopePreviewRow,
 	input: ScopePreviewInput,
 ): number {
+	if (input.fullWidthRows) return Math.max(0, input.rowInset);
 	const paddingStart =
 		!input.indentEnabled && !row.hasCaret
 			? (input.leafRowPaddingStart ?? input.rowPaddingStart)
@@ -105,7 +122,8 @@ function sortedPositionAtOrAfter(values: readonly number[], value: number): numb
 export function scopePreviewGeometry(
 	input: ScopePreviewInput,
 ): ScopePreviewResult {
-	const rowCount = input.rows.length;
+	const rowCount = input.rowCount ?? input.rows.length;
+	const rowAt = input.rowAt ?? ((index: number) => input.rows[index]);
 	const hovered = Math.trunc(input.hoveredIndex);
 	if (hovered < 0 || hovered >= rowCount || rowCount === 0) {
 		return { targetIndices: [], segments: [] };
@@ -113,23 +131,40 @@ export function scopePreviewGeometry(
 
 	const targetIndices: number[] = [];
 	let allTargetIndices: readonly number[] | null = null;
+	let levelBoundDepth: number | undefined;
 	let rangeStart = hovered;
 	let rangeEnd = hovered + 1;
-	if (input.mode === 'level') {
-		const depth = input.rows[hovered]?.depth;
+	// The floating TOC drill is one gesture with two meanings: hovering a
+	// child previews its parent (like the parent pick), hovering a p-node
+	// previews its whole level (like the level pick).
+	const effectiveMode =
+		input.mode === 'drill'
+			? ((rowAt(hovered)?.isParent ?? rowAt(hovered)?.hasCaret)
+					? 'level'
+					: 'parent')
+			: input.mode;
+	if (effectiveMode === 'level') {
+		const depth = rowAt(hovered)?.depth;
 		if (depth === undefined) return { targetIndices, segments: [] };
 		const indexed = input.levelIndices?.get(depth);
 		if (indexed) {
 			allTargetIndices = indexed;
+		} else if (input.levelBounds?.get(depth)) {
+			const bounds = input.levelBounds.get(depth);
+			if (bounds) {
+				rangeStart = bounds.first;
+				rangeEnd = bounds.last + 1;
+				levelBoundDepth = depth;
+			}
 		} else {
 			const indices: number[] = [];
 			for (let index = 0; index < rowCount; index += 1) {
-				if (input.rows[index]?.depth === depth) indices.push(index);
+				if (rowAt(index)?.depth === depth) indices.push(index);
 			}
 			allTargetIndices = indices;
 		}
 	} else {
-		const hoveredRow = input.rows[hovered];
+		const hoveredRow = rowAt(hovered);
 		// A p-node owns itself; a gc/leaf resolves to its nearest structural
 		// parent. This mirrors the acceptance resolver and never skips upward.
 		const ownsScope = hoveredRow?.isParent ?? hoveredRow?.hasCaret;
@@ -145,6 +180,14 @@ export function scopePreviewGeometry(
 	}
 	const visibleStart = Math.max(0, input.visibleStartIndex ?? 0);
 	const visibleEnd = Math.min(rowCount, input.visibleEndIndex ?? rowCount);
+	if (levelBoundDepth !== undefined) {
+		const first = Math.max(rangeStart, visibleStart);
+		const last = Math.min(rangeEnd, visibleEnd);
+		allTargetIndices = Array.from(
+			{ length: Math.max(0, last - first) },
+			(_, offset) => first + offset,
+		).filter((index) => rowAt(index)?.depth === levelBoundDepth);
+	}
 	let visibleTargetIndices: readonly number[];
 	if (allTargetIndices) {
 		if (input.visibleStartIndex === undefined) {
@@ -182,12 +225,17 @@ export function scopePreviewGeometry(
 	const segments: ScopePreviewSegment[] = [];
 	for (let position = 0; position < visibleTargetIndices.length; position += 1) {
 		const index = visibleTargetIndices[position];
-		const rawTop = index * rowHeight - scrollTop;
-		const rawBottom = rawTop + rowHeight;
+		const row = rowAt(index);
+		if (!row) continue;
+		const measuredTop = input.topAt?.(index) ?? input.tops?.[index];
+		const measuredHeight = input.heightAt?.(index) ?? input.heights?.[index];
+		const rawTop =
+			measuredTop !== undefined ? measuredTop - scrollTop : index * rowHeight - scrollTop;
+		const rawBottom =
+			rawTop + (measuredHeight !== undefined ? measuredHeight : rowHeight);
 		if (rawBottom <= 0 || rawTop >= viewportHeight) continue;
 		const top = Math.max(0, rawTop);
 		const bottom = Math.min(viewportHeight, rawBottom);
-		const row = input.rows[index];
 		const left = Math.min(width, leftForRow(row, input));
 		const right = Math.max(left, width - Math.max(0, input.rowInset));
 		const fullPosition = allTargetIndices
@@ -203,10 +251,10 @@ export function scopePreviewGeometry(
 			: index + 1 < rangeEnd
 				? index + 1
 				: undefined;
-		const targetContinuesAbove = input.mode === 'parent'
+		const targetContinuesAbove = effectiveMode === 'parent'
 			? index > rangeStart
 			: previousTarget === index - 1;
-		const targetContinuesBelow = input.mode === 'parent'
+		const targetContinuesBelow = effectiveMode === 'parent'
 			? index + 1 < rangeEnd
 			: nextTarget === index + 1;
 		segments.push({
