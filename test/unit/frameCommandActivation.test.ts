@@ -35,6 +35,21 @@ describe('BT5-067 frame command activation', () => {
 		expect(helper).not.toContain('activateView');
 	});
 
+	it('focuses the selected existing frame after reveal when its scene is already active', () => {
+		const ensureBlock = mainSource.slice(
+			mainSource.indexOf('async ensureVaultmanFrame()'),
+		);
+		const revealCall = 'await this.app.workspace.revealLeaf(existing);';
+		const focusCall =
+			'this.app.workspace.setActiveLeaf(existing, { focus: true });';
+
+		expect(ensureBlock).toContain(revealCall);
+		expect(ensureBlock).toContain(focusCall);
+		expect(ensureBlock.indexOf(revealCall)).toBeLessThan(
+			ensureBlock.indexOf(focusCall),
+		);
+	});
+
 	it('keeps the explicit open command available', () => {
 		expect(mainSource).toContain('async activateView');
 		expect(mainSource).toContain('void this.activateView()');

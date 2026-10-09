@@ -578,6 +578,7 @@
 		activeGeneration = sceneController.begin(
 			page === 'statistics' ? 'statistics' : filtersActiveTab,
 		);
+		activePanelWidgetEnvelope = null;
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -588,6 +589,7 @@
 		void sceneConfigPort.proposeActiveScene(tab);
 		activeGeneration = sceneController.begin(tab);
 		activePage = 'filters';
+		activePanelWidgetEnvelope = null;
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -1675,81 +1677,83 @@
 	>
 		{#each pageOrder as pageId (pageId)}
 			<div class="vaultman-page" data-page={pageId}>
-				{#key pageRenderKey}
-					{#if pageId === 'statistics'}
-						<StatisticsPage
-							{plugin}
-							active={activePage === pageId}
-							sceneInstanceId={sceneController.sceneInstanceId}
-							generation={activeGeneration}
-							{settingsRevision}
-							onNavigateToDataTab={navigateToDataTab}
-							toolbarShown={frameShowToolbar}
-							onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
-							filterRuleCount={displayedFilterRuleCount}
-							filteredCount={displayedFilteredCount}
-							{queuedCount}
-							{queueWarningCount}
-							onOpenFilters={openFiltersLauncher}
-							onClearFilters={clearActiveFilters}
-							onOpenQueue={openQueueLauncher}
-							onClearQueue={clearQueueQuick}
-							onPublishPanelWidget={publishPanelWidget}
-							onClearPanelWidget={clearPanelWidget}
-						/>
-					{:else if pageId === 'filters'}
-						<FiltersPage
-							{plugin}
-							{sceneConfigPort}
-							{frameWidth}
-							sceneInstanceId={sceneController.sceneInstanceId}
-							generation={activeGeneration}
-							bind:filtersActiveTab
-							bind:filtersSearchByTab
-							bind:filtersSearchCategory
-							bind:fileList
-							bind:selectedCount
-							bind:tagsExplorer
-							bind:propExplorer
-							bind:snippetsExplorer
-							bind:pluginsExplorer
-							{settingsRevision}
-							{floatingTocEnabled}
-							onToggleFloatingToc={toggleFloatingToc}
-							{getFloatingTocState}
-							{applyFloatingTocState}
-							getSelectedFiles={() =>
-								fileList?.getSelectedFiles() ??
-								plugin.filterService.selectedFiles}
-							filteredCount={displayedFilteredCount}
-							filterRuleCount={displayedFilterRuleCount}
-							{contentSearchScopeRevision}
-							{contentScopeFilteredCount}
-							contentScopeTotalCount={plugin.app.vault.getFiles().length}
-							contentScopeFilterCount={displayedFilterRuleCount}
-							clearFiltersRevision={filtersClearRevision}
-							{showDock}
-							{queuedCount}
-							{queueWarningCount}
-							onOpenFilters={openFiltersLauncher}
-							onViewFiltersChanged={notifyViewFiltersChanged}
-							onContentFilterChanged={refreshFiles}
-							onClearFilters={clearActiveFilters}
-							onOpenQueue={openQueueLauncher}
-							onClearQueue={clearQueueQuick}
-							onOpenStatistics={() => navigateTo('statistics')}
-							{addOpCount}
-							expansionRevision={displayedFilterRuleCount +
-								displayedFilteredCount}
-							{icon}
-							initialShowToolbar={frameShowToolbar}
-							onShowToolbarChange={handleShowToolbarChange}
-							onPublishPanelWidget={publishPanelWidget}
-							onClearPanelWidget={clearPanelWidget}
-							bind:this={filtersPageRef}
-						/>
-					{/if}
-				{/key}
+				{#if pageId === activePage}
+					{#key pageRenderKey}
+						{#if pageId === 'statistics'}
+							<StatisticsPage
+								{plugin}
+								active={activePage === pageId}
+								sceneInstanceId={sceneController.sceneInstanceId}
+								generation={activeGeneration}
+								{settingsRevision}
+								onNavigateToDataTab={navigateToDataTab}
+								toolbarShown={frameShowToolbar}
+								onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
+								filterRuleCount={displayedFilterRuleCount}
+								filteredCount={displayedFilteredCount}
+								{queuedCount}
+								{queueWarningCount}
+								onOpenFilters={openFiltersLauncher}
+								onClearFilters={clearActiveFilters}
+								onOpenQueue={openQueueLauncher}
+								onClearQueue={clearQueueQuick}
+								onPublishPanelWidget={publishPanelWidget}
+								onClearPanelWidget={clearPanelWidget}
+							/>
+						{:else if pageId === 'filters'}
+							<FiltersPage
+								{plugin}
+								{sceneConfigPort}
+								{frameWidth}
+								sceneInstanceId={sceneController.sceneInstanceId}
+								generation={activeGeneration}
+								bind:filtersActiveTab
+								bind:filtersSearchByTab
+								bind:filtersSearchCategory
+								bind:fileList
+								bind:selectedCount
+								bind:tagsExplorer
+								bind:propExplorer
+								bind:snippetsExplorer
+								bind:pluginsExplorer
+								{settingsRevision}
+								{floatingTocEnabled}
+								onToggleFloatingToc={toggleFloatingToc}
+								{getFloatingTocState}
+								{applyFloatingTocState}
+								getSelectedFiles={() =>
+									fileList?.getSelectedFiles() ??
+									plugin.filterService.selectedFiles}
+								filteredCount={displayedFilteredCount}
+								filterRuleCount={displayedFilterRuleCount}
+								{contentSearchScopeRevision}
+								{contentScopeFilteredCount}
+								contentScopeTotalCount={plugin.app.vault.getFiles().length}
+								contentScopeFilterCount={displayedFilterRuleCount}
+								clearFiltersRevision={filtersClearRevision}
+								{showDock}
+								{queuedCount}
+								{queueWarningCount}
+								onOpenFilters={openFiltersLauncher}
+								onViewFiltersChanged={notifyViewFiltersChanged}
+								onContentFilterChanged={refreshFiles}
+								onClearFilters={clearActiveFilters}
+								onOpenQueue={openQueueLauncher}
+								onClearQueue={clearQueueQuick}
+								onOpenStatistics={() => navigateTo('statistics')}
+								{addOpCount}
+								expansionRevision={displayedFilterRuleCount +
+									displayedFilteredCount}
+								{icon}
+								initialShowToolbar={frameShowToolbar}
+								onShowToolbarChange={handleShowToolbarChange}
+								onPublishPanelWidget={publishPanelWidget}
+								onClearPanelWidget={clearPanelWidget}
+								bind:this={filtersPageRef}
+							/>
+						{/if}
+					{/key}
+				{/if}
 			</div>
 		{/each}
 	</div>

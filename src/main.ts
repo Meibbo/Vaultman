@@ -1421,6 +1421,7 @@ export class VaultmanPlugin extends Plugin {
 		);
 		if (existing) {
 			await this.app.workspace.revealLeaf(existing);
+			this.app.workspace.setActiveLeaf(existing, { focus: true });
 			return existing;
 		}
 		return this.openVaultmanView();
