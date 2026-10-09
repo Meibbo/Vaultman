@@ -1889,7 +1889,7 @@
 				measureSceneSync(
 					'scene.action.reveal-active-file.files',
 					undefined,
-					() => fileList?.autoRevealActiveFile(),
+					() => fileList?.autoRevealActiveFile({ focusKeyboard: true }),
 				);
 				return true;
 			}
