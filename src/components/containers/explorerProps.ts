@@ -61,6 +61,7 @@ export interface PanelPluginCtx {
 		treeExpansionAnimation?: boolean;
 		treeIndentMode?: 'all' | 'depth' | 'parent';
 		groupNodeTooltips?: boolean;
+		revealDirectWrite?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -1008,13 +1009,17 @@ export class PropsExplorerPanel extends Component {
 		// commit/blur/cancel paths refresh afterwards, so skipping here loses
 		// nothing.
 		const active = this.containerEl.ownerDocument.activeElement;
-		if (
+		const isTextEditing =
 			active instanceof HTMLElement &&
 			this.containerEl.contains(active) &&
-			(active.tagName === 'INPUT' ||
+			((active instanceof HTMLInputElement &&
+				active.type !== 'checkbox' &&
+				active.type !== 'radio' &&
+				active.type !== 'button' &&
+				active.type !== 'submit') ||
 				active.tagName === 'TEXTAREA' ||
-				active.isContentEditable)
-		) {
+				active.isContentEditable);
+		if (isTextEditing) {
 			return;
 		}
 		this.deferredRender.invalidate(this.containerEl.isShown(), () =>
@@ -4396,10 +4401,19 @@ export class PropsExplorerPanel extends Component {
 				// string verbatim let a checkbox toggle hand a boolean property the
 				// text `"true"`, and Obsidian re-inferred the property's type from
 				// that data — the same flip was available on number and date.
+				const coerced = coercePropertyValueForWidget(next, propType);
+				if (this.isRevealingActiveFile() && this.plugin.settings?.revealDirectWrite) {
+					void this._replaceValueDirectInReveal(
+						node.meta.propName,
+						rawValue,
+						coerced,
+					);
+					return;
+				}
 				void this._replaceValueInVault(
 					node.meta.propName,
 					rawValue,
-					coercePropertyValueForWidget(next, propType),
+					coerced,
 				);
 			},
 		});
@@ -5487,12 +5501,43 @@ export class PropsExplorerPanel extends Component {
 		oldValue: string,
 		checked: boolean,
 	): Promise<void> {
+		const parsed = parsePropertyValue(String(checked), 'checkbox');
+		if (this.isRevealingActiveFile() && this.plugin.settings?.revealDirectWrite) {
+			await this._replaceValueDirectInReveal(
+				propName,
+				oldValue,
+				parsed,
+			);
+			return;
+		}
 		await this._replaceValueInVault(
 			propName,
 			oldValue,
-			parsePropertyValue(String(checked), 'checkbox'),
+			parsed,
 			checked ? 'checked' : 'unchecked',
 		);
+	}
+
+	private async _replaceValueDirectInReveal(
+		propName: string,
+		oldValue: string,
+		newValue: unknown,
+	): Promise<void> {
+		if (String(newValue) === oldValue) return;
+		await this._updateRevealFrontmatter((fm) => {
+			const current = fm[propName];
+			if (Array.isArray(current)) {
+				const idx = current.findIndex((v) => String(v) === oldValue);
+				if (idx >= 0) {
+					current[idx] = newValue;
+				} else {
+					current.push(newValue);
+				}
+			} else {
+				fm[propName] = newValue;
+			}
+		});
+		void this._render();
 	}
 
 	private async _replaceValueInVault(

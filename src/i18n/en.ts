@@ -549,6 +549,9 @@ export const en: Record<string, string> = {
 	'settings.bypass_operations': 'Bypass operations',
 	'settings.bypass_operations.desc':
 		'Run operations immediately instead of staging them in the queue.',
+	'settings.reveal_direct_write': 'Direct write in Reveal mode',
+	'settings.reveal_direct_write.desc':
+		'Write property changes directly to the active file in Reveal mode, even when queue staging is enabled.',
 	'settings.bulk_operation_warning': 'Bulk operation warning',
 	'settings.bulk_operation_warning.desc':
 		'Warn before action presets stage very large file sets.',

@@ -553,6 +553,9 @@ export const es: Record<string, string> = {
 	'settings.bypass_operations': 'Omitir cola de operaciones',
 	'settings.bypass_operations.desc':
 		'Ejecuta operaciones inmediatamente en vez de prepararlas en la cola.',
+	'settings.reveal_direct_write': 'Escritura directa en modo Reveal',
+	'settings.reveal_direct_write.desc':
+		'Escribe cambios de propiedades directamente al archivo activo en modo Reveal, incluso con la cola activa.',
 	'settings.bulk_operation_warning': 'Aviso de operación masiva',
 	'settings.bulk_operation_warning.desc':
 		'Avisa antes de que los presets de acción preparen conjuntos muy grandes de archivos.',
