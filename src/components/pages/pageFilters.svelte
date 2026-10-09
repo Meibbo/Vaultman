@@ -684,6 +684,22 @@
 		return () => explorer?.setValueMoveChangeHandler(undefined);
 	});
 
+	let revealRevision = $state(0);
+	$effect(() => {
+		const explorer = propExplorer;
+		explorer?.setRevealChangeHandler(() => {
+			revealRevision += 1;
+		});
+		return () => explorer?.setRevealChangeHandler(undefined);
+	});
+	$effect(() => {
+		const explorer = tagsExplorer;
+		explorer?.setRevealChangeHandler(() => {
+			revealRevision += 1;
+		});
+		return () => explorer?.setRevealChangeHandler(undefined);
+	});
+
 	// U130-02 ui-dom: el modo files vive en el motor NodeMove por
 	// (instancia, Scene). El host solo lo proyecta en el slot existente y
 	// respeta ownership: otra Scene oculta, otra instancia desmonta.
@@ -780,6 +796,7 @@
 	// checked the moment the mode flips either way.
 	const revealingActiveFile = $derived.by(() => {
 		void valueMoveRevision;
+		void revealRevision;
 		if (filtersActiveTab === 'props') {
 			return propExplorer?.isRevealingActiveFile() ?? false;
 		}
@@ -1859,11 +1876,13 @@
 				if (explorerActiveTab === 'props') {
 					if (!propExplorer) return false;
 					propExplorer.toggleRevealActiveFile();
+					revealRevision += 1;
 					return true;
 				}
 				if (explorerActiveTab === 'tags') {
 					if (!tagsExplorer) return false;
 					tagsExplorer.toggleRevealActiveFile();
+					revealRevision += 1;
 					return true;
 				}
 				if (explorerActiveTab !== 'files' || !fileList) return false;
@@ -1883,6 +1902,7 @@
 				if (explorerActiveTab === 'props') {
 					if (!propExplorer) return false;
 					void propExplorer.addPropertyInReveal();
+					revealRevision += 1;
 					return true;
 				}
 				return false;

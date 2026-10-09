@@ -1502,11 +1502,18 @@ export class TagsExplorerPanel extends Component {
 		);
 	}
 
+	private revealChangeHandler?: () => void;
+
+	setRevealChangeHandler(handler?: () => void): void {
+		this.revealChangeHandler = handler;
+	}
+
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
 		this.revealCycle = null;
 		if (this.revealActiveFile) this._startRevealWatch();
 		else this._stopRevealWatch();
+		this.revealChangeHandler?.();
 		this._render();
 	}
 

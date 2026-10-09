@@ -1955,10 +1955,17 @@ export class PropsExplorerPanel extends Component {
 		);
 	}
 
+	private revealChangeHandler?: () => void;
+
+	setRevealChangeHandler(handler?: () => void): void {
+		this.revealChangeHandler = handler;
+	}
+
 	toggleRevealActiveFile(): void {
 		this.revealActiveFile = !this.revealActiveFile;
 		if (this.revealActiveFile) this._startRevealWatch();
 		else this._stopRevealWatch();
+		this.revealChangeHandler?.();
 		// One projection revision, exactly like changing `nested` or the engine.
 		void this._render();
 	}
