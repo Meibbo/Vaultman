@@ -342,6 +342,7 @@
 
 .vaultman-tree-row--activation-order > .vaultman-tree-self > .vaultman-tree-label {
   flex-shrink: 1;
+  min-width: 0;
 }
 
 .vaultman-tree-label {

@@ -1319,7 +1319,8 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
    El margin-right:auto absorbe el espacio libre para que los cells del
    costado derecho (files, extension, etc.) conserven su posición. */
 .vaultman-tree-label.vaultman-node-note-link {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   width: fit-content;
   max-width: 100%;
   margin-right: auto;

@@ -806,6 +806,7 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 
 .vaultman-tree-label {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
