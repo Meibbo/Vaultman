@@ -193,6 +193,44 @@
 		return true;
 	}
 
+	export async function addPropertyInReveal(): Promise<boolean> {
+		if (activePage !== 'filters' || filtersActiveTab !== 'props') {
+			navigateToDataTab('props');
+			await tick();
+		}
+		if (!propExplorer) {
+			await tick();
+		}
+		if (propExplorer) {
+			await propExplorer.addPropertyInReveal();
+			return true;
+		}
+		return false;
+	}
+
+	export function openFilterScene(): boolean {
+		if (activePage !== 'filters') {
+			navigateTo('filters');
+		}
+		if (filtersIslandOpen) {
+			closeFiltersIsland();
+			return true;
+		}
+		closeQueueIsland();
+		openFiltersIsland();
+		return true;
+	}
+
+	export function openQueue(): boolean {
+		if (queueIslandOpen) {
+			closeQueueIsland();
+			return true;
+		}
+		closeFiltersIsland();
+		openQueueIsland();
+		return true;
+	}
+
 	// ─── Page navigation ──────────────────────────────────────────────────────
 
 	function resolvedPageOrder(): string[] {

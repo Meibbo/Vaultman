@@ -130,6 +130,8 @@ import {
 	sceneGotoActionId,
 	sceneGotoLabelKey,
 	type SceneEngineSurface,
+	PROPS_ADD_PROPERTY_COMMAND_ID,
+	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
 import {
@@ -174,6 +176,10 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	TOOLBAR_SEARCHBOX_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 	SEARCH_CREATE_TARGET_ID,
+	'go_to_setting_scene',
+	PROPS_ADD_PROPERTY_COMMAND_ID,
+	'open-filter-scene',
+	'open-queue',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -655,6 +661,35 @@ export class VaultmanPlugin extends Plugin {
 				handler: () => { this.runPluginNativeAction(id); },
 			});
 		}
+		this.sasiCommandPublisher.register({
+			id: 'go_to_setting_scene',
+			name: translate('sasi.settingScene.action.go_to_setting_scene'),
+			handler: () => {
+				void this.goToSettingSceneCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: PROPS_ADD_PROPERTY_COMMAND_ID,
+			name: translate('sasi.props.action.add_property'),
+			composes: PROPS_ADD_PROPERTY_MACRO_COMPOSES,
+			handler: () => {
+				void this.addPropertyCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'open-filter-scene',
+			name: translate('command.open_filter_scene'),
+			handler: () => {
+				void this.openFilterSceneCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'open-queue',
+			name: translate('command.open_queue'),
+			handler: () => {
+				void this.openQueueCommand();
+			},
+		});
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -818,6 +853,28 @@ export class VaultmanPlugin extends Plugin {
 	private async switchSceneCommand(tab: StatisticsDataTab): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		view?.switchScene(tab);
+	}
+
+	private async goToSettingSceneCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.switchScene('plugins');
+	}
+
+	private async addPropertyCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) {
+			await view.addPropertyInReveal();
+		}
+	}
+
+	private async openFilterSceneCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.openFilterScene();
+	}
+
+	private async openQueueCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.openQueue();
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

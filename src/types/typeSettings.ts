@@ -386,6 +386,8 @@ export interface VaultmanSettings {
 	 * note into view — until it is switched back off.
 	 */
 	autoRevealActiveFile: boolean;
+	/** Auto-hide custom groups in reveal mode when they have no children for the active file */
+	autoHideEmptyRevealGroups: boolean;
 	/** BT5-040: folders show the recursive sum of countable cells of their files */
 	folderAggregateCells: boolean;
 	/** Tasks cell presentation; grouping always uses pending tasks. */
@@ -709,6 +711,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	floatingTocStickyActions: true,
 	mobileRoundedRows: false,
 	autoRevealActiveFile: false,
+	autoHideEmptyRevealGroups: false,
 	sparseAutoExpandTopLevel: true,
 	folderAggregateCells: false,
 	taskCellDisplayMode: 'done-total',

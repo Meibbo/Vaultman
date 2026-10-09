@@ -681,6 +681,18 @@ export class UnifiedTreeView {
 		}
 	}
 
+	focusRow(id: string): void {
+		this.setFocusedId(id, true);
+		const row = this.rowEls.get(id);
+		if (row) {
+			row.tabIndex = -1;
+			row.focus({ preventScroll: true });
+		} else {
+			this.containerEl.tabIndex = -1;
+			this.containerEl.focus({ preventScroll: true });
+		}
+	}
+
 	destroy(): void {
 		this._keyboardBoundaryOff?.();
 		this._keyboardBoundaryOff = null;

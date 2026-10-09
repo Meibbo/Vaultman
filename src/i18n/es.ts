@@ -556,6 +556,10 @@ export const es: Record<string, string> = {
 	'settings.reveal_direct_write': 'Escritura directa en modo Reveal',
 	'settings.reveal_direct_write.desc':
 		'Escribe cambios de propiedades directamente al archivo activo en modo Reveal, incluso con la cola activa.',
+	'settings.auto_hide_empty_reveal_groups':
+		'Ocultar grupos personalizados vacíos en modo Reveal',
+	'settings.auto_hide_empty_reveal_groups.desc':
+		'Oculta automáticamente los grupos personalizados que queden sin hijos en modo Reveal (teniendo miembros en modo vault). Se ejecuta una sola vez por nota para permitir mostrarlos manualmente.',
 	'settings.bulk_operation_warning': 'Aviso de operación masiva',
 	'settings.bulk_operation_warning.desc':
 		'Avisa antes de que los presets de acción preparen conjuntos muy grandes de archivos.',
@@ -755,6 +759,8 @@ export const es: Record<string, string> = {
 		'No hay un campo de busqueda de Vaultman disponible.',
 	'command.open_updates': 'Abrir novedades de Vaultman',
 	'command.open_settings': 'Abrir configuración',
+	'command.open_filter_scene': 'Abrir filterScene',
+	'command.open_queue': 'Abrir cola de operaciones',
 	'updates.title': 'Novedades de Vaultman · {version}',
 	'updates.notice':
 		'Vaultman {version} está listo. Descubre lo más importante.',
@@ -1201,6 +1207,8 @@ export const es: Record<string, string> = {
 	'sasi.settingScene.kind.node_plugin_community': 'Plugin de la comunidad',
 	'sasi.settingScene.action.browse_community_plugins': 'Examinar plugins de la comunidad',
 	'sasi.settingScene.action.open_restricted_mode': 'Abrir modo restringido',
+	'sasi.settingScene.action.go_to_setting_scene': 'Ir a settingScene',
+	'sasi.props.action.add_property': 'Añadir una propiedad',
 	'addons.installed': 'Instalado',
 	'addons.updated': 'Actualizado',
 	'viewmode.pill.cell_update': 'Actualización del plugin',

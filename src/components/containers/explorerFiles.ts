@@ -2047,7 +2047,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		this.autoRevealOverride = value;
 	}
 
-	autoRevealActiveFile(): void {
+	autoRevealActiveFile(options?: { focusKeyboard?: boolean }): void {
 		const file = this.plugin.app.workspace.getActiveFile();
 		if (!file) return;
 		this._syncActiveFilePath(file);
@@ -2062,6 +2062,11 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 			this._refreshCompleteTreeExpansion(changedFolderIds);
 		}
 		this.revealNode(file.path, { behavior: 'auto' });
+		if (options?.focusKeyboard) {
+			if (this.viewMode === 'tree' && this.treeView) {
+				this.treeView.focusRow(file.path);
+			}
+		}
 	}
 
 	async createFromSearch(category: number, term: string): Promise<void> {

@@ -12,6 +12,7 @@ const ACTION_IDS = [
 	'open_restricted_mode',
 	'group_toggle_cascade',
 	'go_to_setting_content',
+	'go_to_setting_scene',
 ];
 
 describe('U130 Slice C SASI settingScene catalog', () => {

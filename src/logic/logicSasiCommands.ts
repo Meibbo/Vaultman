@@ -20,6 +20,7 @@ export interface SasiCommandDescriptor {
 	name: string;
 	handler: SasiCommandHandler | SasiCheckableHandler;
 	checkable?: boolean;
+	composes?: readonly string[];
 }
 
 interface PublishedCommand {

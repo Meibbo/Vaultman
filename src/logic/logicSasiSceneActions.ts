@@ -5,6 +5,10 @@ import {
 	viewModesForDataSurface,
 } from './logicExplorerViewModes';
 import type { SasiRegistry } from './logicSasiRegistry';
+import { TOOLBAR_REVEAL_ACTIVE_FILE_ID } from './logicSasiToolbarActions';
+
+export const PROPS_ADD_PROPERTY_ACTION_ID = 'vaultman.props.addProperty';
+export const PROPS_ADD_PROPERTY_COMMAND_ID = 'add-property';
 
 /**
  * U130: las opciones de instancia de escena como acciones SASI.
@@ -91,7 +95,21 @@ export function registerSceneInstanceActions(registry: SasiRegistry): void {
 			supports: [{ surface: 'panelWidget' }],
 		});
 	}
+	registry.register({
+		id: PROPS_ADD_PROPERTY_ACTION_ID,
+		axis: 'function',
+		kind: 'action',
+		labelKey: 'sasi.props.action.add_property',
+		icon: 'lucide-list-plus',
+		supports: [{ surface: 'panelWidget' }, { surface: 'props' }],
+	});
 }
+
+export const PROPS_ADD_PROPERTY_MACRO_COMPOSES: readonly string[] = [
+	sceneGotoActionId('props'),
+	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
+	PROPS_ADD_PROPERTY_ACTION_ID,
+];
 
 /** Los modos publicables por superficie, sin los `locked`. Para tests. */
 export function sceneEngineModes(
