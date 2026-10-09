@@ -132,6 +132,8 @@ export interface PanelWidgetExplorerPort {
 	hasScopeParentNodes?(): boolean;
 	scopeLevelForNode?(id: string): number | string | null;
 	sortNodeLabel?(id: string): string | null;
+	unhideRevealGroup?(id: string): void;
+	getAutoHiddenGroupIds?(): readonly string[];
 	/** U130 polishing: apaga los tooltips de nodos y cells del explorer. */
 	setTooltipsEnabled?(enabled: boolean): void;
 	/**
