@@ -1368,13 +1368,13 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   contain: size paint;
 }
 
-/* Compatible native self boxes own padding and decoration. The positioning
-   slot contributes only missing virtual ancestry indentation, not another
-   copy of the native row's padding, margin, hover background or shadow. */
+/* Compatible native self boxes own padding, ancestry indentation and decoration.
+   Keep the host-qualified positioning slot unindented too: its specificity
+   otherwise outranks the generic slot reset and doubles the depth offset. */
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row.vaultman-tree-row,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row.vaultman-tree-row {
   padding-block: 0;
-  padding-inline-start: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-start: 0;
   padding-inline-end: 0;
   margin: 0;
   width: 100%;

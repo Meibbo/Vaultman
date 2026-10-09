@@ -7,6 +7,12 @@ const stylesSource = readFileSync(
 ).replace(/\r\n/g, '\n');
 
 describe('virtual scroll CSS source guards', () => {
+	it('keeps host-qualified compatible slots unindented when the native self owns depth padding', () => {
+		const slot = stylesSource.match(/\.workspace-leaf-content\[data-type="vaultman-frame"\] \.vaultman-tree-virtual-viewport\.vaultman-native-tree-compat \.vaultman-tree-row\.vaultman-tree-row,[\s\S]*?\{/);
+		const declarations = slot ? stylesSource.slice(slot.index).split('}')[0] : '';
+		expect(declarations).toContain('padding-inline-start: 0;');
+		expect(declarations).not.toContain('var(--depth');
+	});
 	it('does not tile the repeating guide gradient at fractional native indent pitches', () => {
 		const guide = stylesSource.match(/\.vaultman-tree-guides\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
 		expect(guide).toContain('background-size: auto 100%');
