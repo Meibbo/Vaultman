@@ -734,22 +734,54 @@
 		const parentId = target.slice('parent:'.length);
 		return `lvl: ${treePanelForTab(tab)?.sortNodeLabel?.(parentId) ?? parentId}`;
 	}
+	function customGroupProjectionLevel(
+		tab: FiltersTab,
+		target: ScopedCustomTarget,
+	): string {
+		if (target === 'all') return '0+1';
+		if (target.startsWith('level:')) {
+			const parsed = parseScopeLevel(target.slice('level:'.length));
+			const parentLevel = Math.max(0, parsed.base - 1);
+			return `${parentLevel}+${parsed.offset + 1}`;
+		}
+		if (target.startsWith('parent:')) {
+			const parentId = target.slice('parent:'.length);
+			const parentLevel = treePanelForTab(tab)?.scopeLevelForNode?.(parentId);
+			if (parentLevel !== null && parentLevel !== undefined) {
+				const parsed = parseScopeLevel(parentLevel);
+				return `${parsed.base}+${parsed.offset + 1}`;
+			}
+			const depth = parentId.split('/').filter(Boolean).length;
+			return `${depth || 1}+1`;
+		}
+		return '0+1';
+	}
 	function customGroupsForMenu(
 		tab: FiltersTab,
 		selectedTarget?: ScopedCustomTarget,
-	): { id: string; label: string; hidden: boolean }[] {
+	): {
+		id: string;
+		label: string;
+		hidden: boolean;
+		scopeLabel: string;
+		projectionLevel: string;
+	}[] {
 		const memberships = configByTab[tab].groupMemberships;
 		const hidden = new Set(configByTab[tab].hiddenGroupIds);
 		return Object.keys(memberships).flatMap((id) => {
 			const parsed = parseScopedGroupKey(id);
 			if (selectedTarget && parsed.target !== selectedTarget) return [];
+			const scopeLabel = customGroupScopeLabel(tab, parsed.target);
+			const projectionLevel = customGroupProjectionLevel(tab, parsed.target);
 			return [
 				{
 					id,
 					label: selectedTarget
 						? parsed.name
-						: `${parsed.name} · ${customGroupScopeLabel(tab, parsed.target)}`,
+						: `${parsed.name} · ${projectionLevel}`,
 					hidden: hidden.has(id),
+					scopeLabel,
+					projectionLevel,
 				},
 			];
 		});
@@ -4301,6 +4333,12 @@
 							title: translate('group.row.delete'),
 							icon: 'lucide-trash-2',
 							onClick: () => deleteCustomGroup(activeTab, entry.id),
+						}),
+						nativeMenuDivider(`sort_menu.groups.custom.${entry.id}.divider.scope`),
+						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.scope`, {
+							title: `${translate('sort.scope.title')}: ${entry.scopeLabel ?? ''}`,
+							icon: 'lucide-layers',
+							disabled: true,
 						}),
 					],
 				),

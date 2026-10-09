@@ -604,6 +604,8 @@ export interface GroupMenuCustomGroupItem {
 	label: string;
 	/** Spec 08 §4: hidden in this instance (not deleted). */
 	hidden: boolean;
+	scopeLabel?: string;
+	projectionLevel?: string;
 }
 
 export interface GroupMenuSeparatorItem {
@@ -634,7 +636,13 @@ export interface GroupMenuModel {
 export function groupMenuModel(
 	tab: ExplorerTabId,
 	preset: GroupPreset,
-	customGroups: readonly { id: string; label: string; hidden?: boolean }[],
+	customGroups: readonly {
+		id: string;
+		label: string;
+		hidden?: boolean;
+		scopeLabel?: string;
+		projectionLevel?: string;
+	}[],
 	canCreateGroup: boolean,
 	revealActive = false,
 ): GroupMenuModel {
@@ -668,6 +676,8 @@ export function groupMenuModel(
 			icon: group.hidden ? 'lucide-eye-off' : 'lucide-box',
 			label: group.label,
 			hidden: group.hidden === true,
+			scopeLabel: group.scopeLabel,
+			projectionLevel: group.projectionLevel,
 		});
 	}
 	return { items };
