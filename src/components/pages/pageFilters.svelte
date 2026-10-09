@@ -1875,6 +1875,19 @@
 				return true;
 			}
 
+			if (
+				invocation.actionId === 'vaultman.props.addProperty' ||
+				invocation.actionId === 'add-property' ||
+				invocation.actionId === 'add-property-in-reveal'
+			) {
+				if (explorerActiveTab === 'props') {
+					if (!propExplorer) return false;
+					void propExplorer.addPropertyInReveal();
+					return true;
+				}
+				return false;
+			}
+
 			if (invocation.actionId === 'toggle-expansion') {
 				// A07: los explorers de addons ya exponen la misma maquinaria
 				// de expansion (cabeceras de grupo) que files/props/tags.

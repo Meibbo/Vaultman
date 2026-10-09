@@ -44,6 +44,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	setSceneEngine?(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean;
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
 	switchScene?(tab: StatisticsDataTab): boolean;
+	addPropertyInReveal?(): Promise<boolean>;
 };
 
 /**
@@ -293,6 +294,10 @@ export class VaultmanFrame extends ItemView {
 
 	switchScene(tab: StatisticsDataTab): boolean {
 		return this.svelteApp?.switchScene?.(tab) ?? false;
+	}
+
+	async addPropertyInReveal(): Promise<boolean> {
+		return (await this.svelteApp?.addPropertyInReveal?.()) ?? false;
 	}
 
 	onResize(): void {

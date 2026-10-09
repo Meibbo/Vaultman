@@ -193,6 +193,21 @@
 		return true;
 	}
 
+	export async function addPropertyInReveal(): Promise<boolean> {
+		if (activePage !== 'filters' || filtersActiveTab !== 'props') {
+			navigateToDataTab('props');
+			await tick();
+		}
+		if (!propExplorer) {
+			await tick();
+		}
+		if (propExplorer) {
+			await propExplorer.addPropertyInReveal();
+			return true;
+		}
+		return false;
+	}
+
 	// ─── Page navigation ──────────────────────────────────────────────────────
 
 	function resolvedPageOrder(): string[] {

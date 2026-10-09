@@ -1233,6 +1233,7 @@ export const en: Record<string, string> = {
 	'sasi.settingScene.action.browse_community_plugins': 'Browse community plugins',
 	'sasi.settingScene.action.open_restricted_mode': 'Open restricted mode',
 	'sasi.settingScene.action.go_to_setting_scene': 'Go to settingScene',
+	'sasi.props.action.add_property': 'Add a property',
 	'addons.installed': 'Installed',
 	'addons.updated': 'Updated',
 	'viewmode.pill.cell_update': 'Plugin update',

@@ -130,6 +130,8 @@ import {
 	sceneGotoActionId,
 	sceneGotoLabelKey,
 	type SceneEngineSurface,
+	PROPS_ADD_PROPERTY_COMMAND_ID,
+	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
 import {
@@ -175,6 +177,7 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	SEARCH_CYCLE_CATEGORY_ID,
 	SEARCH_CREATE_TARGET_ID,
 	'go_to_setting_scene',
+	PROPS_ADD_PROPERTY_COMMAND_ID,
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -663,6 +666,14 @@ export class VaultmanPlugin extends Plugin {
 				void this.goToSettingSceneCommand();
 			},
 		});
+		this.sasiCommandPublisher.register({
+			id: PROPS_ADD_PROPERTY_COMMAND_ID,
+			name: translate('sasi.props.action.add_property'),
+			composes: PROPS_ADD_PROPERTY_MACRO_COMPOSES,
+			handler: () => {
+				void this.addPropertyCommand();
+			},
+		});
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -831,6 +842,13 @@ export class VaultmanPlugin extends Plugin {
 	private async goToSettingSceneCommand(): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		view?.switchScene('plugins');
+	}
+
+	private async addPropertyCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) {
+			await view.addPropertyInReveal();
+		}
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

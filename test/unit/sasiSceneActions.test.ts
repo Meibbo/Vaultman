@@ -11,6 +11,7 @@ import {
 	sceneEngineActionId,
 	sceneEngineModes,
 	sceneGotoActionId,
+	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from '../../src/logic/logicSasiSceneActions';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
@@ -106,5 +107,20 @@ describe('U130 SASI scene instance actions', () => {
 		expect(mainSource).toContain('switchSceneCommand');
 		// Nacen ocultos: el inspector SASI los publica a pedido.
 		expect(mainSource).not.toMatch(/setPublished\('vaultman\.scene\./);
+	});
+
+	it('registra addProperty como action y exporta PROPS_ADD_PROPERTY_MACRO_COMPOSES', () => {
+		const registry = createSasiRegistry();
+		registerSceneInstanceActions(registry);
+
+		const actionDef = registry.resolve('vaultman.props.addProperty').def;
+		expect(actionDef).not.toBeNull();
+		expect(actionDef?.kind).toBe('action');
+
+		expect(PROPS_ADD_PROPERTY_MACRO_COMPOSES).toEqual([
+			'vaultman.scene.goto.props',
+			'vaultman.toolbar.revealActiveFile',
+			'vaultman.props.addProperty',
+		]);
 	});
 });

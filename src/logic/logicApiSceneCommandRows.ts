@@ -90,7 +90,7 @@ export function appendApiSceneCommandNodes({
 				id: entry.id,
 				label: entry.descriptor?.name ?? entry.id,
 				supports: [],
-				composes: [],
+				composes: (entry.descriptor as { composes?: readonly string[] } | undefined)?.composes ?? [],
 			},
 		);
 	}

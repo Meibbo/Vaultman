@@ -3948,6 +3948,23 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
+	async addPropertyInReveal(): Promise<void> {
+		if (!this.isRevealingActiveFile()) {
+			this.toggleRevealActiveFile();
+		}
+		if (!this._revealPath()) {
+			const activeFile = this.plugin.app.workspace.getActiveFile();
+			if (activeFile) {
+				this.revealActivePath = activeFile.path;
+			}
+		}
+		this._startAddPropertyInReveal();
+	}
+
+	startAddPropertyInReveal(): void {
+		this._startAddPropertyInReveal();
+	}
+
 	private _startAddPropertyInReveal(): void {
 		if (!this.isRevealingActiveFile()) return;
 		const path = this._revealPath();
