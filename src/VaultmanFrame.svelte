@@ -208,6 +208,29 @@
 		return false;
 	}
 
+	export function openFilterScene(): boolean {
+		if (activePage !== 'filters') {
+			navigateTo('filters');
+		}
+		if (filtersIslandOpen) {
+			closeFiltersIsland();
+			return true;
+		}
+		closeQueueIsland();
+		openFiltersIsland();
+		return true;
+	}
+
+	export function openQueue(): boolean {
+		if (queueIslandOpen) {
+			closeQueueIsland();
+			return true;
+		}
+		closeFiltersIsland();
+		openQueueIsland();
+		return true;
+	}
+
 	// ─── Page navigation ──────────────────────────────────────────────────────
 
 	function resolvedPageOrder(): string[] {

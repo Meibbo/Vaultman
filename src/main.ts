@@ -178,6 +178,8 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	SEARCH_CREATE_TARGET_ID,
 	'go_to_setting_scene',
 	PROPS_ADD_PROPERTY_COMMAND_ID,
+	'open-filter-scene',
+	'open-queue',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -674,6 +676,20 @@ export class VaultmanPlugin extends Plugin {
 				void this.addPropertyCommand();
 			},
 		});
+		this.sasiCommandPublisher.register({
+			id: 'open-filter-scene',
+			name: translate('command.open_filter_scene'),
+			handler: () => {
+				void this.openFilterSceneCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'open-queue',
+			name: translate('command.open_queue'),
+			handler: () => {
+				void this.openQueueCommand();
+			},
+		});
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -849,6 +865,16 @@ export class VaultmanPlugin extends Plugin {
 		if (view) {
 			await view.addPropertyInReveal();
 		}
+	}
+
+	private async openFilterSceneCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.openFilterScene();
+	}
+
+	private async openQueueCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.openQueue();
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

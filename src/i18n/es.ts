@@ -755,6 +755,8 @@ export const es: Record<string, string> = {
 		'No hay un campo de busqueda de Vaultman disponible.',
 	'command.open_updates': 'Abrir novedades de Vaultman',
 	'command.open_settings': 'Abrir configuración',
+	'command.open_filter_scene': 'Abrir filterScene',
+	'command.open_queue': 'Abrir cola de operaciones',
 	'updates.title': 'Novedades de Vaultman · {version}',
 	'updates.notice':
 		'Vaultman {version} está listo. Descubre lo más importante.',

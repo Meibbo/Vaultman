@@ -744,6 +744,8 @@ export const en: Record<string, string> = {
 	'command.focus_search_unavailable': 'No Vaultman search field is available.',
 	'command.open_updates': 'Open Vaultman updates',
 	'command.open_settings': 'Open settings',
+	'command.open_filter_scene': 'Open filterScene',
+	'command.open_queue': 'Open queue',
 	'updates.title': 'Vaultman Updates · {version}',
 	'updates.notice': 'Vaultman {version} is ready. See the highlights.',
 	'updates.intro':

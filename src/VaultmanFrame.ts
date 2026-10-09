@@ -45,6 +45,8 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
 	switchScene?(tab: StatisticsDataTab): boolean;
 	addPropertyInReveal?(): Promise<boolean>;
+	openFilterScene?(): boolean;
+	openQueue?(): boolean;
 };
 
 /**
@@ -298,6 +300,14 @@ export class VaultmanFrame extends ItemView {
 
 	async addPropertyInReveal(): Promise<boolean> {
 		return (await this.svelteApp?.addPropertyInReveal?.()) ?? false;
+	}
+
+	openFilterScene(): boolean {
+		return this.svelteApp?.openFilterScene?.() ?? false;
+	}
+
+	openQueue(): boolean {
+		return this.svelteApp?.openQueue?.() ?? false;
 	}
 
 	onResize(): void {

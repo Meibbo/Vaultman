@@ -123,4 +123,16 @@ describe('U130 SASI scene instance actions', () => {
 			'vaultman.props.addProperty',
 		]);
 	});
+
+	it('registra los comandos open-filter-scene y open-queue en main.ts y en sasiPublishedDefault', () => {
+		const mainSource = readFileSync(`${REPO_ROOT}/src/main.ts`, 'utf8');
+		expect(mainSource).toContain("id: 'open-filter-scene'");
+		expect(mainSource).toContain("id: 'open-queue'");
+		expect(mainSource).toContain("'open-filter-scene'");
+		expect(mainSource).toContain("'open-queue'");
+		expect(en['command.open_filter_scene']).toBeTruthy();
+		expect(es['command.open_filter_scene']).toBeTruthy();
+		expect(en['command.open_queue']).toBeTruthy();
+		expect(es['command.open_queue']).toBeTruthy();
+	});
 });
