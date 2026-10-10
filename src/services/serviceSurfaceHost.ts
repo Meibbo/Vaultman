@@ -207,8 +207,8 @@ function leafFor<Leaf extends SurfaceLeaf>(
 			return workspace.getLeaf('tab');
 		case 'sidebar':
 			return (surface.edge === 'start') !== isRtl
-				? workspace.getLeftLeaf(true)
-				: workspace.getRightLeaf(true);
+				? workspace.getLeftLeaf(false)
+				: workspace.getRightLeaf(false);
 		default:
 			return assertNever(surface);
 	}

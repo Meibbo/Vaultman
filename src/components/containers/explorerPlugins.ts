@@ -1592,6 +1592,13 @@ export class PluginsExplorerPanel
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
+		if (this.searchTerm.trim().length > 0) {
+			for (const root of this._lastProjectedTree) {
+				for (const id of collectExpandableSubtreeIds(root)) {
+					this._expandedGroupIds.add(id);
+				}
+			}
+		}
 		if (!this.dataSource && this.visibleCells.has('format')) {
 			this._decorateNodeNotes(this.nodes);
 			this._decorateNodeNotes(this._lastProjectedTree);

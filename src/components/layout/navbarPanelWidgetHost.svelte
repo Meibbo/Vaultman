@@ -18,6 +18,7 @@
 		onSwitchInstance,
 		onRenameInstance,
 		onMoveSurface,
+		onSplitInstance,
 		app,
 		readInstanceRecords,
 	}: {
@@ -33,6 +34,7 @@
 			id: string,
 			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
 		) => void | Promise<void>;
+		onSplitInstance?: (id: string) => void | Promise<void>;
 		app?: App;
 		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 	} = $props();
@@ -82,6 +84,7 @@
 			{onSwitchInstance}
 			{onRenameInstance}
 			{onMoveSurface}
+			{onSplitInstance}
 			app={app ?? mountedState.app}
 			{readInstanceRecords}
 		/>

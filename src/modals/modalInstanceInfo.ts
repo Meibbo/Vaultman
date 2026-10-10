@@ -1,4 +1,5 @@
-import { Modal, type App } from 'obsidian';
+import { Modal, Platform, type App } from 'obsidian';
+import { isMobile } from '../platform/platformProfile';
 import { translate } from '../i18n/index';
 import type {
 	SceneConfig,
@@ -87,6 +88,7 @@ export class InstanceInfoModal extends Modal {
 		id: string,
 		surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
 	) => void | Promise<void>;
+	private readonly onSplitInstance?: (id: string) => void | Promise<void>;
 
 	constructor(
 		app: App,
@@ -98,6 +100,7 @@ export class InstanceInfoModal extends Modal {
 			id: string,
 			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
 		) => void | Promise<void>,
+		onSplitInstance?: (id: string) => void | Promise<void>,
 	) {
 		super(app);
 		this.record = record;
@@ -105,6 +108,7 @@ export class InstanceInfoModal extends Modal {
 		this.onSwitchInstance = onSwitchInstance;
 		this.onRenameInstance = onRenameInstance;
 		this.onMoveSurface = onMoveSurface;
+		this.onSplitInstance = onSplitInstance;
 	}
 
 	onOpen(): void {
@@ -167,6 +171,19 @@ export class InstanceInfoModal extends Modal {
 			await this.onMoveSurface?.(model.id, target);
 			this.close();
 		});
+
+		if (Platform.isMobile || isMobile(contentEl.ownerDocument)) {
+			meta.createEl('dt', { text: translate('toolbar.instance_info.split') });
+			const splitDd = meta.createEl('dd', { cls: 'vaultman-instance-info-split-cell' });
+			const splitBtn = splitDd.createEl('button', {
+				cls: 'mod-cta vaultman-instance-info-split-btn',
+				text: translate('toolbar.instance_info.create_split'),
+			});
+			splitBtn.addEventListener('click', async () => {
+				await this.onSplitInstance?.(model.id);
+				this.close();
+			});
+		}
 
 		row(
 			'toolbar.instance_info.created',

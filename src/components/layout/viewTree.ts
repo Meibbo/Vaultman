@@ -2321,10 +2321,14 @@ export class UnifiedTreeView {
 			? visibleCells.has('type') || visibleCells.has('ext')
 			: false;
 		const showMtime = visibleCells
-			? visibleCells.has('mtime') || visibleCells.has('updated')
+			? opts.surface === 'plugins' || opts.surface === 'snippets'
+				? visibleCells.has('updated')
+				: visibleCells.has('mtime') || visibleCells.has('updated')
 			: false;
 		const showCtime = visibleCells
-			? visibleCells.has('ctime') || visibleCells.has('installed')
+			? opts.surface === 'plugins' || opts.surface === 'snippets'
+				? visibleCells.has('installed')
+				: visibleCells.has('ctime') || visibleCells.has('installed')
 			: false;
 		const showOpened = visibleCells ? visibleCells.has('opened') : false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;

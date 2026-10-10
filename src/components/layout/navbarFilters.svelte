@@ -205,6 +205,7 @@
 			id: string,
 			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
 		) => void | Promise<void>;
+		onSplitInstance?: (id: string) => void | Promise<void>;
 		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
@@ -218,6 +219,8 @@
 		};
 	};
 
+	let searchReturnFocusElement: HTMLElement | null = null;
+
 	export async function invokeToolbarSasiAction(
 		actionId: string,
 	): Promise<boolean> {
@@ -225,7 +228,32 @@
 			actionId === TOOLBAR_SEARCHBOX_ID ||
 			actionId === TOOLBAR_FOCUS_SEARCH_ID
 		) {
-			expandSearch();
+			const isSearchOpenAndFocused =
+				minimalStyle
+					? searchExpanded
+					: searchInputs().some(
+							(input) =>
+								document.activeElement === input ||
+								input.contains(document.activeElement),
+					  );
+
+			if (isSearchOpenAndFocused) {
+				if (minimalStyle) {
+					setSearchExpanded(false);
+				}
+				blurSearchInputs();
+				if (
+					searchReturnFocusElement &&
+					searchReturnFocusElement.isConnected
+				) {
+					searchReturnFocusElement.focus();
+				}
+				searchReturnFocusElement = null;
+			} else {
+				searchReturnFocusElement =
+					(document.activeElement as HTMLElement) ?? null;
+				expandSearch();
+			}
 			return true;
 		}
 		if (
@@ -413,6 +441,7 @@
 		onSwitchInstance,
 		onRenameInstance,
 		onMoveSurface,
+		onSplitInstance,
 		readInstanceRecords,
 	}: NavbarRendererState = $props();
 
@@ -3090,11 +3119,34 @@
 	function toggleVisibleCell(id: string) {
 		const viewMode = viewModeByTab[activeTab] ?? 'tree';
 		const cells = new Set(visibleCellsForScope(activeTab));
-		if (cells.has(id)) {
+		const isDateCreated = id === 'installed' || id === 'ctime';
+		const isDateModified = id === 'updated' || id === 'mtime';
+
+		if (
+			cells.has(id) ||
+			(isDateCreated && (cells.has('installed') || cells.has('ctime'))) ||
+			(isDateModified && (cells.has('updated') || cells.has('mtime')))
+		) {
 			if (!canToggleIdentity(cells, id, viewMode)) return;
 			cells.delete(id);
+			if (isDateCreated) {
+				cells.delete('installed');
+				cells.delete('ctime');
+			}
+			if (isDateModified) {
+				cells.delete('updated');
+				cells.delete('mtime');
+			}
 		} else {
 			cells.add(id);
+			if (isDateCreated && activeTab === 'plugins') {
+				cells.add('installed');
+				cells.delete('ctime');
+			}
+			if (isDateModified && activeTab === 'plugins') {
+				cells.add('updated');
+				cells.delete('mtime');
+			}
 		}
 		handlePillsChange(Array.from(cells));
 	}
@@ -3593,6 +3645,7 @@
 							onSwitchInstance,
 							onRenameInstance,
 							onMoveSurface,
+							onSplitInstance,
 						).open();
 					});
 			});

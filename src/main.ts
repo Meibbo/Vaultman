@@ -1412,6 +1412,53 @@ export class VaultmanPlugin extends Plugin {
 		return false;
 	}
 
+	async splitWorkspaceInstance(instanceId: string): Promise<boolean> {
+		const currentLease = this.instanceMounts.get(instanceId);
+		const oldLeaf = currentLease?.address.leaf;
+
+		const currentPos: 'left-sidebar' | 'right-sidebar' | 'main-leaf' =
+			currentLease?.address.kind === 'main'
+				? 'main-leaf'
+				: currentLease?.address.edge === (this.isRtlDirection() ? 'end' : 'start')
+					? 'left-sidebar'
+					: 'right-sidebar';
+
+		let splitLeaf: WorkspaceLeaf | null = null;
+		if (currentPos === 'left-sidebar') {
+			splitLeaf = this.app.workspace.getLeftLeaf(true);
+		} else if (currentPos === 'right-sidebar') {
+			splitLeaf = this.app.workspace.getRightLeaf(true);
+		} else {
+			if (oldLeaf) {
+				splitLeaf = this.app.workspace.createLeafBySplit(oldLeaf, 'horizontal');
+			} else {
+				splitLeaf = this.app.workspace.getLeftLeaf(true);
+			}
+		}
+
+		if (!splitLeaf) return false;
+
+		if (currentLease) {
+			this.instanceMounts.release(currentLease);
+		}
+		if (oldLeaf) {
+			oldLeaf.detach();
+		}
+
+		const adopted = this.adoptWorkspaceMount(instanceId, splitLeaf);
+		if (!adopted.ok) return false;
+
+		await splitLeaf.setViewState({
+			type: VAULTMAN_FRAME_TYPE,
+			active: true,
+			state: { workspaceInstanceId: instanceId },
+		});
+		await this.app.workspace.revealLeaf(splitLeaf);
+		this.lastFocusedFrameLeaf = splitLeaf;
+		this.app.workspace.setActiveLeaf(splitLeaf, { focus: true });
+		return true;
+	}
+
 	private enrollExactLiveFrame(
 		instanceId: string,
 	): MountReservationResult<WorkspaceLeaf> | null {

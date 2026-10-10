@@ -8,11 +8,18 @@ import type { VaultmanPlugin } from '../main';
 export function createApiSceneConfigPort(plugin: VaultmanPlugin): SceneConfigPort {
 	const id = 'sasi.apiscene.config';
 	const record = createInstanceRecord(id);
-	record.scenes.plugins = plugin.settings.apiSceneConfig ?? {};
+	const stored = { ...(plugin.settings.apiSceneConfig ?? {}) };
+	if (stored.visibleCells) {
+		const set = new Set(stored.visibleCells);
+		if (set.has('ctime')) { set.delete('ctime'); set.add('installed'); }
+		if (set.has('mtime')) { set.delete('mtime'); set.add('updated'); }
+		stored.visibleCells = Array.from(set);
+	}
+	record.scenes.plugins = stored;
 	let registry: InstanceRegistryData = { schema: 1, instances: { [id]: record } };
 	const defaults: Required<SceneConfig> = {
 		viewMode: 'tree', interactionMode: 'open',
-		visibleCells: ['caret', 'icon', 'format', 'text', 'state', 'ctime', 'mtime', 'installed', 'updated'],
+		visibleCells: ['caret', 'icon', 'format', 'text', 'state', 'installed', 'updated'],
 		taskCellDisplayMode: 'auto', sortState: normalizeExplorerSortState('plugins', null),
 		stickyRows: true, compactFolders: false, indent: true, tooltips: true,
 		groupPreset: { kind: 'sections', direction: 'asc' }, hiddenGroupIds: [],

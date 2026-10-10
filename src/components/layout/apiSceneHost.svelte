@@ -75,8 +75,6 @@
 			'state',
 			'installed',
 			'updated',
-			'ctime',
-			'mtime',
 			'format',
 		],
 		toolbarMenuLayouts: plugin.settings.toolbarMenuLayouts,

@@ -45,7 +45,7 @@ describe('SurfaceHost', () => {
 		const result = await h.host.openWorkspaceInstance('vm-a', { kind: 'sidebar', edge: 'start' });
 
 		expect(result.ok).toBe(true);
-		expect(h.workspace.getLeftLeaf).toHaveBeenCalledWith(true);
+		expect(h.workspace.getLeftLeaf).toHaveBeenCalledWith(false);
 		expect(h.left.setViewState).toHaveBeenCalledWith({
 			type: 'vaultman-frame',
 			active: true,
@@ -70,7 +70,7 @@ describe('SurfaceHost', () => {
 		const h = harness(true);
 		await h.host.openWorkspaceInstance('vm-a', { kind: 'sidebar', edge: 'start' });
 
-		expect(h.workspace.getRightLeaf).toHaveBeenCalledWith(true);
+		expect(h.workspace.getRightLeaf).toHaveBeenCalledWith(false);
 		expect(h.workspace.getLeftLeaf).not.toHaveBeenCalled();
 	});
 

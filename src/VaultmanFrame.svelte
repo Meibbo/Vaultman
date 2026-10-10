@@ -112,6 +112,10 @@
 		await plugin.relocateWorkspaceInstance(id, surface);
 	}
 
+	async function splitWorkspaceInstance(id: string): Promise<void> {
+		await plugin.splitWorkspaceInstance(id);
+	}
+
 	async function switchWorkspaceInstance(id: string): Promise<void> {
 		try {
 			const result = await plugin.openWorkspaceInstance(id);
@@ -1724,6 +1728,7 @@
 		onSwitchInstance={switchWorkspaceInstance}
 		onRenameInstance={renameWorkspaceInstance}
 		onMoveSurface={moveWorkspaceInstanceSurface}
+		onSplitInstance={splitWorkspaceInstance}
 		app={plugin.app}
 		readInstanceRecords={() =>
 			Object.values(plugin.settings.instanceRegistry?.instances ?? {})}
