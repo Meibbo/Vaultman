@@ -53,6 +53,7 @@ export interface SavedViewConfig {
 		autoRevealMode?: 'auto' | 'on' | 'off';
 		hiddenToolbarNodes?: string[];
 		toolbarNodeIcons?: Record<string, string>;
+		toolbarNodeLabels?: Record<string, "on" | "off">;
 		toolbarCommandActions?: string[];
 		createActionsPlacement?: 'auto' | 'searchbox' | 'toolbar';
 		toolbarNodeOrder?: string[];
@@ -523,6 +524,8 @@ export interface VaultmanSettings {
 	 * futuras si el comando vuelve.
 	 */
 	sasiPublishedCommands?: Record<string, boolean>;
+	sasiCommandCustomNames?: Record<string, string>;
+	sasiCustomCommands?: Record<string, { id: string; name: string; composes: readonly string[]; scope?: string }>;
 	/** API inspector options are not workspace instance declarations. */
 	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
@@ -753,4 +756,6 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	contextMenuHideRules: [],
 	instanceRegistry: { schema: 1, instances: {} },
 	sasiPublishedCommands: {},
+	sasiCommandCustomNames: {},
+	sasiCustomCommands: {},
 };

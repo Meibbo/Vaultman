@@ -48,7 +48,7 @@ describe('BT5-024 custom command toolbar actions', () => {
 	});
 
 	it('projects resolved commands as toolbar nodes that run by id', () => {
-		expect(navbarSource).toContain('{#each commandActions as command');
+		expect(navbarSource).toContain('{#each effectiveCommandActions as command');
 		expect(navbarSource).toContain('invokeSceneAction(`command:${command.id}`');
 		// A retired command is disabled and labelled, not silently dropped.
 		expect(navbarSource).toContain('class:is-disabled={!command.available}');

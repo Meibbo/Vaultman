@@ -1,4 +1,5 @@
-import { Modal, Notice, type App } from 'obsidian';
+import { Modal, Notice, Menu, type App } from 'obsidian';
+import { showInputModal } from '../utils/inputModal';
 import { translate } from '../i18n/index';
 import type {
 	SasiAxis,
@@ -191,6 +192,51 @@ export class SasiInspectorModal extends Modal {
 				const row = this.flat.find((candidate) => candidate.id === entityIdOf(node));
 				return row ? this.rowTooltip(row) : node.label;
 			},
+			contextMenu: (node, event, selectedIds) => {
+				const group = (node.meta as unknown as ApiSceneNodeMeta)?.group;
+				if (group === 'action') {
+					const menu = new Menu();
+					const selectedActions: TreeNode<ApiSceneNodeMeta>[] = [];
+					for (const selId of selectedIds) {
+						const row = this.flat.find((c) => c.id === selId);
+						if (row && row.meta.group === 'action') {
+							selectedActions.push(row);
+						}
+					}
+					if (selectedActions.length === 0) {
+						const clicked = this.flat.find((c) => c.id === node.id);
+						if (clicked) selectedActions.push(clicked);
+					}
+					const isMultiple = selectedActions.length > 1;
+					const title = isMultiple
+						? (translate('sasi.apiscene.cmenu.create_compound_command') || 'Crear comando único con seleccionados')
+						: (translate('sasi.apiscene.cmenu.create_command') || 'Crear comando');
+					menu.addItem((item) => {
+						item
+							.setTitle(title)
+							.setIcon('lucide-plus-circle')
+							.onClick(() => {
+								void this.promptCreateCommand(selectedActions, selectedIds);
+							});
+					});
+					menu.showAtMouseEvent(event);
+					return true;
+				}
+				if (group === 'command') {
+					const menu = new Menu();
+					menu.addItem((item) => {
+						item
+							.setTitle(translate('sasi.apiscene.cmenu.rename') || translate('group.row.rename') || 'Renombrar')
+							.setIcon('lucide-edit-3')
+							.onClick(() => {
+								void this.promptRenameCommand(node);
+							});
+					});
+					menu.showAtMouseEvent(event);
+					return true;
+				}
+				return false;
+			},
 		});
 		this.panel.load();
 		const toolbar = mount(ApiSceneHost, {
@@ -212,6 +258,32 @@ export class SasiInspectorModal extends Modal {
 		return createApiScenePublisherView(publisher);
 	}
 
+	private projectRowChildren(
+		children: TreeNode<ApiSceneNodeMeta>[] | undefined,
+		cTime?: number,
+		mTime?: number,
+	): TreeNode<PluginMeta>[] | undefined {
+		if (!children || children.length === 0) return undefined;
+		return children.map((ch) => ({
+			...ch,
+			children: this.projectRowChildren(ch.children, cTime, mTime),
+			showCaret: Boolean(ch.children?.length),
+			ctimeText: formatAddonTimestamp(cTime),
+			mtimeText: formatAddonTimestamp(mTime),
+			label: translate(ch.meta?.labelKey ?? '') || ch.label,
+			meta: {
+				...ch.meta,
+				pluginId: ch.id,
+				name: ch.label,
+				enabled: false,
+				loaded: false,
+				isVaultman: false,
+				installedTime: cTime,
+				updatedTime: mTime,
+			},
+		}));
+	}
+
 	private addonNodes(): TreeNode<PluginMeta>[] {
 		const publisherView = this.publisherView();
 		const instances =
@@ -229,7 +301,8 @@ export class SasiInspectorModal extends Modal {
 			const updatedAt = instance?.lastActiveAt ?? lifecycle?.updatedAt;
 			return {
 			...node,
-			children: undefined,
+			children: this.projectRowChildren(node.children, createdAt, updatedAt),
+			showCaret: Boolean(node.children?.length),
 			ctimeText: formatAddonTimestamp(createdAt),
 			mtimeText: formatAddonTimestamp(updatedAt),
 			label: translate(node.meta.labelKey) || node.label,
@@ -300,6 +373,103 @@ export class SasiInspectorModal extends Modal {
 		}
 		parts.push(apiSceneUrnOf(node));
 		return parts.filter(Boolean).join(' · ');
+	}
+
+	private async promptCreateCommand(
+		actions: TreeNode<ApiSceneNodeMeta>[],
+		selectedIds: ReadonlySet<string>,
+	): Promise<void> {
+		if (actions.length === 0) return;
+		const actionIds = actions.map((a) => a.meta.sasiId);
+		const defaultName = actions.map((a) => translate(a.meta.labelKey) || a.label).join(' + ');
+
+		let detectedScope: string | undefined = undefined;
+		for (const selId of selectedIds) {
+			const candidate = this.flat.find((c) => c.id === selId);
+			if (candidate) {
+				if (candidate.meta.group === 'scope') {
+					detectedScope = candidate.meta.sasiId;
+					break;
+				} else if (candidate.meta.group === 'instance') {
+					detectedScope = 'instance:' + candidate.meta.sasiId;
+					break;
+				}
+			}
+		}
+
+		const chosenName = await showInputModal(
+			this.app,
+			translate('sasi.apiscene.create_command.title') || 'Crear comando',
+			{
+				initialValue: defaultName,
+				placeholder: translate('sasi.apiscene.create_command.placeholder') || 'Nombre del comando...',
+			},
+		);
+
+		if (!chosenName || chosenName.trim() === '') return;
+
+		const commandName = chosenName.trim();
+		const commandId = 'custom-' + Date.now();
+		const scope = detectedScope ?? 'workspace:last_focused';
+
+		this.publisher?.register({
+			id: commandId,
+			name: commandName,
+			composes: actionIds,
+			handler: async () => {
+				for (const actId of actionIds) {
+					await this.plugin.invokeActionById(actId, scope);
+				}
+			},
+		});
+		this.publisher?.setPublished(commandId, true);
+
+		if (!this.plugin.settings.sasiCustomCommands) {
+			this.plugin.settings.sasiCustomCommands = {};
+		}
+		this.plugin.settings.sasiCustomCommands[commandId] = {
+			id: commandId,
+			name: commandName,
+			composes: actionIds,
+			scope,
+		};
+		await this.plugin.saveData(this.plugin.settings);
+
+		void this.panel?.refresh();
+		new Notice(translate('sasi.apiscene.command_created') || 'Comando creado con éxito');
+	}
+
+	private async promptRenameCommand(
+		node: TreeNode<PluginMeta>,
+	): Promise<void> {
+		const sasiId = (node.meta as unknown as ApiSceneNodeMeta)?.sasiId ?? node.id;
+		const currentName = node.label;
+
+		const newName = await showInputModal(
+			this.app,
+			translate('sasi.apiscene.rename_command.title') || translate('group.row.rename') || 'Renombrar comando',
+			{
+				initialValue: currentName,
+				placeholder: currentName,
+			},
+		);
+
+		if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
+
+		const trimmed = newName.trim();
+		this.publisher?.rename(sasiId, trimmed);
+
+		if (!this.plugin.settings.sasiCommandCustomNames) {
+			this.plugin.settings.sasiCommandCustomNames = {};
+		}
+		this.plugin.settings.sasiCommandCustomNames[sasiId] = trimmed;
+		if (this.plugin.settings.sasiCustomCommands?.[sasiId]) {
+			this.plugin.settings.sasiCustomCommands[sasiId].name = trimmed;
+		}
+		await this.plugin.saveData(this.plugin.settings);
+
+		void this.panel?.refresh();
+		new Notice(translate('sasi.apiscene.command_renamed') || 'Comando renombrado');
 	}
 
 	onClose(): void {

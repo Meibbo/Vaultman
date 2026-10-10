@@ -35,7 +35,7 @@ const defaults = {
 	sceneLabelMode: 'auto' as const,
 	autoRevealMode: 'auto' as const,
 	hiddenToolbarNodes: [],
-	toolbarNodeIcons: {},
+	toolbarNodeIcons: {}, toolbarNodeLabels: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto' as const,
 	tooltips: true,

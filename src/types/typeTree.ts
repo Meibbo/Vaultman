@@ -220,6 +220,7 @@ export interface SnippetMeta {
 
 export interface PluginMeta {
 	pluginId: string;
+	catalogKind?: import('../logic/logicSasiRegistry').SasiCatalogKind;
 	hasNodeNote?: boolean;
 	name: string;
 	enabled: boolean;

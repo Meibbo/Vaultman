@@ -73,7 +73,7 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		sceneLabelMode: 'auto',
 		autoRevealMode: 'auto',
 		hiddenToolbarNodes: [],
-		toolbarNodeIcons: {},
+		toolbarNodeIcons: {}, toolbarNodeLabels: {},
 		toolbarCommandActions: [],
 		createActionsPlacement: 'auto',
 		tooltips: true,

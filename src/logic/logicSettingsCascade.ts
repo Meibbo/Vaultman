@@ -57,6 +57,7 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		autoRevealMode: input.defaults.autoRevealMode,
 		hiddenToolbarNodes: cloneCells(input.defaults.hiddenToolbarNodes),
 		toolbarNodeIcons: { ...input.defaults.toolbarNodeIcons },
+		toolbarNodeLabels: { ...input.defaults.toolbarNodeLabels },
 		toolbarCommandActions: cloneCells(input.defaults.toolbarCommandActions),
 		createActionsPlacement: input.defaults.createActionsPlacement,
 		toolbarNodeOrder: cloneCells(input.defaults.toolbarNodeOrder),
@@ -92,6 +93,9 @@ export function resolveSceneConfig(input: CascadeInput): Required<SceneConfig> {
 		}
 		if (layer.toolbarNodeIcons !== undefined) {
 			out.toolbarNodeIcons = { ...layer.toolbarNodeIcons };
+		}
+		if (layer.toolbarNodeLabels !== undefined) {
+			out.toolbarNodeLabels = { ...layer.toolbarNodeLabels };
 		}
 		if (layer.toolbarCommandActions !== undefined) {
 			out.toolbarCommandActions = cloneCells(layer.toolbarCommandActions);
@@ -183,6 +187,12 @@ export function diffSceneConfig(
 		JSON.stringify(baseline.toolbarNodeIcons)
 	) {
 		patch.toolbarNodeIcons = { ...next.toolbarNodeIcons };
+	}
+	if (
+		JSON.stringify(next.toolbarNodeLabels) !==
+		JSON.stringify(baseline.toolbarNodeLabels)
+	) {
+		patch.toolbarNodeLabels = { ...next.toolbarNodeLabels };
 	}
 	if (
 		next.toolbarCommandActions.length !== baseline.toolbarCommandActions.length ||

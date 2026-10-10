@@ -165,6 +165,53 @@ function appendSceneNodes(
 	);
 }
 
+function appendScopeNodes(
+	context: NodeBuildContext,
+	instances: InstanceRegistryData | undefined,
+): void {
+	const scopes: Array<{ id: string; label: string; labelKey: string; icon: string }> = [
+		{ id: 'workspace:all', label: 'sasi.scope.workspace_all', labelKey: 'sasi.scope.workspace_all', icon: 'lucide-globe' },
+		{ id: 'workspace:last_focused', label: 'sasi.scope.last_focused', labelKey: 'sasi.scope.last_focused', icon: 'lucide-crosshair' },
+		{ id: 'scene:depth_scope', label: 'sasi.scope.depth_scope', labelKey: 'sasi.scope.depth_scope', icon: 'lucide-layers' },
+		{ id: 'surface:left-sidebar', label: 'sasi.scope.surface.left-sidebar', labelKey: 'sasi.scope.surface.left-sidebar', icon: 'lucide-panel-left' },
+		{ id: 'surface:right-sidebar', label: 'sasi.scope.surface.right-sidebar', labelKey: 'sasi.scope.surface.right-sidebar', icon: 'lucide-panel-right' },
+		{ id: 'surface:main', label: 'sasi.scope.surface.main', labelKey: 'sasi.scope.surface.main', icon: 'lucide-layout-template' },
+	];
+	const records = Object.values(instances?.instances ?? {}).sort((a, b) =>
+		a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+	);
+	for (const record of records) {
+		const name = record.cell_name ? record.cell_name + ' (' + record.id + ')' : record.id;
+		scopes.push({
+			id: 'instance:' + record.id,
+			label: 'instance: ' + name,
+			labelKey: 'instance: ' + name,
+			icon: 'lucide-app-window',
+		});
+	}
+	for (const sc of scopes) {
+		context.out.push(
+			toApiSceneNode({
+				spec: {
+					group: 'scope',
+					rowId: 'sasi:scope:' + sc.id,
+					canonicalId: 'scope:' + sc.id,
+					sasiId: sc.id,
+					label: sc.label,
+					labelKey: sc.labelKey,
+					icon: sc.icon,
+					sasiKind: null,
+					supports: [],
+					composes: [],
+					mutatesVault: false,
+				},
+				publisher: context.publisher,
+				snapshotIds: context.snapshotIds,
+			}),
+		);
+	}
+}
+
 export function buildApiSceneNodes(
 	registry: SasiRegistry,
 	publisher?: ApiScenePublisherView,
@@ -207,6 +254,7 @@ export function buildApiSceneNodes(
 	appendInstanceNodes(context, instances);
 	appendSceneNodes(context, registry);
 	appendAxisNodes(context, registry.list('surface'), 'surface');
+	appendScopeNodes(context, instances);
 
 	return out;
 }

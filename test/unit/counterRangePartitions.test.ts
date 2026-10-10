@@ -444,7 +444,7 @@ const defaults: Required<SceneConfig> = {
 	sceneLabelMode: 'auto',
 	autoRevealMode: 'auto',
 	hiddenToolbarNodes: [],
-	toolbarNodeIcons: {},
+	toolbarNodeIcons: {}, toolbarNodeLabels: {},
 	toolbarCommandActions: [],
 	createActionsPlacement: 'auto',
 	tooltips: true,

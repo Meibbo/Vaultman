@@ -80,7 +80,7 @@ describe('navbarFilters monta BarTransaction', () => {
 						sceneLabelMode: 'auto',
 						autoRevealMode: 'auto',
 						hiddenToolbarNodes: [],
-						toolbarNodeIcons: {},
+						toolbarNodeIcons: {}, toolbarNodeLabels: {},
 						toolbarCommandActions: [],
 						createActionsPlacement: 'auto',
 						tooltips: true,

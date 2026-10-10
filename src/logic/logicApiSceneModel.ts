@@ -15,7 +15,8 @@ export type ApiSceneGroupName =
 	| 'provider'
 	| 'instance'
 	| 'scene'
-	| 'surface';
+	| 'surface'
+	| 'scope';
 
 export const API_SCENE_GROUP_NAMES: readonly ApiSceneGroupName[] = [
 	'action',
@@ -26,6 +27,7 @@ export const API_SCENE_GROUP_NAMES: readonly ApiSceneGroupName[] = [
 	'instance',
 	'scene',
 	'surface',
+	'scope',
 ];
 
 export const API_SCENE_GROUP_IDS: Record<ApiSceneGroupName, string> = {
@@ -37,6 +39,7 @@ export const API_SCENE_GROUP_IDS: Record<ApiSceneGroupName, string> = {
 	instance: 'sasi.group.instance',
 	scene: 'sasi.group.scene',
 	surface: 'sasi.group.surface',
+	scope: 'sasi.group.scope',
 };
 
 export const API_SCENE_GROUP_LABEL_KEYS: Record<ApiSceneGroupName, string> = {
@@ -48,6 +51,7 @@ export const API_SCENE_GROUP_LABEL_KEYS: Record<ApiSceneGroupName, string> = {
 	instance: 'sasi.apiscene.group.instance',
 	scene: 'sasi.apiscene.group.scene',
 	surface: 'sasi.apiscene.group.surface',
+	scope: 'sasi.apiscene.group.scope',
 };
 
 export const API_SCENE_TABS = [

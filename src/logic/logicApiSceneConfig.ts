@@ -24,7 +24,7 @@ export function createApiSceneConfigPort(plugin: VaultmanPlugin): SceneConfigPor
 		stickyRows: true, compactFolders: false, indent: true, tooltips: true,
 		groupPreset: { kind: 'sections', direction: 'asc' }, hiddenGroupIds: [],
 		sceneLabelMode: 'on', autoRevealMode: 'auto', hiddenToolbarNodes: [],
-		toolbarNodeIcons: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
+		toolbarNodeIcons: {}, toolbarNodeLabels: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
 		toolbarNodeOrder: [], groupMemberships: {}, showOptionsOverride: 'inherit',
 		textCase: {}, nativeCompat: {},
 	};

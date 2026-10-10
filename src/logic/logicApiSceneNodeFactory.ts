@@ -17,7 +17,8 @@ export interface ApiSceneLeafSpec {
 		| 'provider'
 		| 'instance'
 		| 'scene'
-		| 'surface';
+		| 'surface'
+		| 'scope';
 	rowId: string;
 	canonicalId: string;
 	sasiId: string;

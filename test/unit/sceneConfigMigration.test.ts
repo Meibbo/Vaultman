@@ -24,7 +24,7 @@ function fakePort(): SceneConfigPort & { calls: [string, unknown][] } {
 			sceneLabelMode: 'auto',
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
-			toolbarNodeIcons: {},
+			toolbarNodeIcons: {}, toolbarNodeLabels: {},
 			toolbarCommandActions: [],
 			createActionsPlacement: 'auto',
 			tooltips: true,

@@ -42,7 +42,7 @@ const defaults = {
 	sceneLabelMode: 'auto' as const,
 	autoRevealMode: 'auto' as const,
 	hiddenToolbarNodes: [] as string[],
-	toolbarNodeIcons: {} as Record<string, string>,
+	toolbarNodeIcons: {} as Record<string, string>, toolbarNodeLabels: {} as Record<string, "on" | "off">,
 	toolbarCommandActions: [] as string[],
 	createActionsPlacement: 'auto' as const,
 	tooltips: true,

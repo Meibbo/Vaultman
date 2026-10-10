@@ -13,6 +13,7 @@ export interface AddonExplorerDataSource {
 	activate(id: string): void;
 	cell(id: string, cellId: string): void;
 	tooltip(node: TreeNode<PluginMeta>): string;
+	contextMenu?(node: TreeNode<PluginMeta>, event: MouseEvent, selectedNodeIds: ReadonlySet<string>): boolean | void;
 }
 
 export function projectAddonDataNodes(nodes: readonly TreeNode<PluginMeta>[], term: string, sort: ScopeSort): TreeNode<PluginMeta>[] {

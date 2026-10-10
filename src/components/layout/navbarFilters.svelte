@@ -1763,6 +1763,16 @@
 			config: effectivePvpuiConfig,
 		}),
 	);
+	const getNodeLabel = (localId: string): string => {
+		const node = panelWidgetNodes.find(
+			(candidate) => candidate.id === panelWidgetNodeId(localId),
+		);
+		return node?.label ?? localId;
+	};
+	const isNodeLabelVisible = (localId: string): boolean => {
+		if (localId === 'tabs') return tabsButtonLabelEffective;
+		return configByTab[activeTab]?.toolbarNodeLabels?.[localId] === 'on';
+	};
 	const forcedOverflowIds = $derived.by(() => {
 		if (
 			!minimalStyle ||
@@ -2373,6 +2383,7 @@
 	$effect(() => {
 		void panelWidgetProjection;
 		void tabsButtonLabelEffective;
+		void configByTab[activeTab]?.toolbarNodeLabels;
 		void searchExpanded;
 		void showSearchInput;
 		void toolbarOverflowStrategy;
@@ -3569,6 +3580,27 @@
 							autoRevealMode: alwaysReveal ? 'off' : 'on',
 						});
 						fileList?.setAutoRevealOverride?.(!alwaysReveal);
+					});
+			});
+			menu.addSeparator();
+		}
+		if (localId !== 'tabs') {
+			const labelActive =
+				configByTab[activeTab]?.toolbarNodeLabels?.[localId] === 'on';
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.cell_name'))
+					.setIcon('lucide-tag')
+					.setChecked(labelActive)
+					.onClick(() => {
+						const currentLabels =
+							configByTab[activeTab]?.toolbarNodeLabels ?? {};
+						commitConfig(activeTab, {
+							toolbarNodeLabels: {
+								...currentLabels,
+								[localId]: labelActive ? 'off' : 'on',
+							},
+						});
 					});
 			});
 			menu.addSeparator();
@@ -5114,6 +5146,7 @@
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
 								class:is-active={action.checked}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(`header:${action.id}`)}
 								class:vaultman-reveal-out-of-list={headerRevealFaint &&
 									REVEAL_HEADER_ACTION_IDS.has(action.id)}
 								data-panel-widget-node-id={panelWidgetNodeId(
@@ -5145,17 +5178,28 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon(
-									`header:${action.id}`,
-									action.icon,
-								)}
-							></div>
+							>
+								<span
+									class="vaultman-header-action-icon"
+									aria-hidden="true"
+									use:icon={panelWidgetNodeIcon(
+										`header:${action.id}`,
+										action.icon,
+									)}
+								></span>
+								{#if isNodeLabelVisible(`header:${action.id}`)}
+									<span class="vaultman-header-action-label">
+										{action.label}
+									</span>
+								{/if}
+							</div>
 						{/if}
 					{/each}
 					{#if showExplorerControls}
 						{#if toolbarNodeVisible('view')}
 							<div
 								class={headerActionClass}
+								class:vaultman-header-action-with-label={isNodeLabelVisible('view')}
 								data-panel-widget-node-id={panelWidgetNodeId('view')}
 								style:order={panelWidgetNodeOrder('view')}
 								role="button"
@@ -5177,12 +5221,23 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon('view', 'lucide-layout-list')}
-							></div>
+							>
+								<span
+									class="vaultman-header-action-icon"
+									aria-hidden="true"
+									use:icon={panelWidgetNodeIcon('view', 'lucide-layout-list')}
+								></span>
+								{#if isNodeLabelVisible('view')}
+									<span class="vaultman-header-action-label">
+										{getNodeLabel('view')}
+									</span>
+								{/if}
+							</div>
 						{/if}
 						{#if toolbarNodeVisible('sort')}
 							<div
 								class={headerActionClass}
+								class:vaultman-header-action-with-label={isNodeLabelVisible('sort')}
 								data-panel-widget-node-id={panelWidgetNodeId('sort')}
 								style:order={panelWidgetNodeOrder('sort')}
 								role="button"
@@ -5204,8 +5259,18 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon('sort', 'lucide-arrow-up-down')}
-							></div>
+							>
+								<span
+									class="vaultman-header-action-icon"
+									aria-hidden="true"
+									use:icon={panelWidgetNodeIcon('sort', 'lucide-arrow-up-down')}
+								></span>
+								{#if isNodeLabelVisible('sort')}
+									<span class="vaultman-header-action-label">
+										{getNodeLabel('sort')}
+									</span>
+								{/if}
+							</div>
 						{/if}
 						{#if minimalStyle && toolbarNodeVisible('search')}
 							<div
@@ -5255,6 +5320,7 @@
 							<div
 								class={headerActionClass}
 								class:vaultman-reveal-out-of-list={filesRevealFaint}
+								class:vaultman-header-action-with-label={isNodeLabelVisible('reveal-active-file')}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									'reveal-active-file',
 								)}
@@ -5277,15 +5343,26 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon(
-									'reveal-active-file',
-									'lucide-gallery-vertical',
-								)}
-							></div>
+							>
+								<span
+									class="vaultman-header-action-icon"
+									aria-hidden="true"
+									use:icon={panelWidgetNodeIcon(
+										'reveal-active-file',
+										'lucide-gallery-vertical',
+									)}
+								></span>
+								{#if isNodeLabelVisible('reveal-active-file')}
+									<span class="vaultman-header-action-label">
+										{getNodeLabel('reveal-active-file')}
+									</span>
+								{/if}
+							</div>
 						{/if}
 						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible('toggle-expansion')}
 							<div
 								class={headerActionClass}
+								class:vaultman-header-action-with-label={isNodeLabelVisible('toggle-expansion')}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									'toggle-expansion',
 								)}
@@ -5308,31 +5385,57 @@
 										);
 									}
 								}}
-								use:icon={panelWidgetNodeIcon(
-									'toggle-expansion',
-									expansionIcon,
-								)}
-							></div>
+							>
+								<span
+									class="vaultman-header-action-icon"
+									aria-hidden="true"
+									use:icon={panelWidgetNodeIcon(
+										'toggle-expansion',
+										expansionIcon,
+									)}
+								></span>
+								{#if isNodeLabelVisible('toggle-expansion')}
+									<span class="vaultman-header-action-label">
+										{getNodeLabel('toggle-expansion')}
+									</span>
+								{/if}
+							</div>
 						{/if}
 						{#if activeTab === 'plugins'}
 							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
 								{#if toolbarNodeVisible(id) && isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)}
 									<div
 										class={headerActionClass}
+										class:vaultman-header-action-with-label={isNodeLabelVisible(id)}
 										data-panel-widget-node-id={panelWidgetNodeId(id)}
 										style:order={panelWidgetNodeOrder(id)}
 										role="button"
 										tabindex="0"
 										aria-label={translate(labelKey)}
 										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
+										oncontextmenu={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											openNodeAltMenu(id, e);
+										}}
 										onkeydown={(event) => {
 											if (event.key === 'Enter' || event.key === ' ') {
 												event.preventDefault();
 												invokeSceneAction(id, 'keyboard');
 											}
 										}}
-										use:icon={panelWidgetNodeIcon(id, iconName)}
-									></div>
+									>
+										<span
+											class="vaultman-header-action-icon"
+											aria-hidden="true"
+											use:icon={panelWidgetNodeIcon(id, iconName)}
+										></span>
+										{#if isNodeLabelVisible(id)}
+											<span class="vaultman-header-action-label">
+												{getNodeLabel(id)}
+											</span>
+										{/if}
+									</div>
 								{/if}
 							{/each}
 						{/if}
@@ -5341,6 +5444,7 @@
 							{#if toolbarNodeVisible('create-file')}
 								<div
 									class={headerActionClass}
+									class:vaultman-header-action-with-label={isNodeLabelVisible('create-file')}
 									data-panel-widget-node-id={panelWidgetNodeId('create-file')}
 									style:order={panelWidgetNodeOrder('create-file')}
 									role="button"
@@ -5363,15 +5467,26 @@
 											);
 										}
 									}}
-									use:icon={panelWidgetNodeIcon(
-										'create-file',
-										'lucide-file-plus',
-									)}
-								></div>
+								>
+									<span
+										class="vaultman-header-action-icon"
+										aria-hidden="true"
+										use:icon={panelWidgetNodeIcon(
+											'create-file',
+											'lucide-file-plus',
+										)}
+									></span>
+									{#if isNodeLabelVisible('create-file')}
+										<span class="vaultman-header-action-label">
+											{getNodeLabel('create-file')}
+										</span>
+									{/if}
+								</div>
 							{/if}
 							{#if toolbarNodeVisible('create-folder')}
 								<div
 									class={headerActionClass}
+									class:vaultman-header-action-with-label={isNodeLabelVisible('create-folder')}
 									data-panel-widget-node-id={panelWidgetNodeId('create-folder')}
 									style:order={panelWidgetNodeOrder('create-folder')}
 									role="button"
@@ -5394,26 +5509,39 @@
 											);
 										}
 									}}
-									use:icon={panelWidgetNodeIcon(
-										'create-folder',
-										'lucide-folder-plus',
-									)}
-								></div>
+								>
+									<span
+										class="vaultman-header-action-icon"
+										aria-hidden="true"
+										use:icon={panelWidgetNodeIcon(
+											'create-folder',
+											'lucide-folder-plus',
+										)}
+									></span>
+									{#if isNodeLabelVisible('create-folder')}
+										<span class="vaultman-header-action-label">
+											{getNodeLabel('create-folder')}
+										</span>
+									{/if}
+								</div>
 							{/if}
 						{/if}
-						{#each commandActions as command (command.id)}
+						{#each effectiveCommandActions as command (command.id)}
 							{#if toolbarNodeVisible(`command:${command.id}`)}
 								<!-- BT5-024: Obsidian commands projected as toolbar nodes. -->
 								<div
 									class={headerActionClass}
 									class:is-disabled={!command.available}
+									class:vaultman-header-action-with-label={isNodeLabelVisible(`command:${command.id}`)}
 									data-panel-widget-node-id={panelWidgetNodeId(
 										`command:${command.id}`,
 									)}
 									style:order={panelWidgetNodeOrder(`command:${command.id}`)}
 									role="button"
 									tabindex="0"
-									aria-label={command.label}
+									aria-label={command.available
+										? command.label
+										: translate('command.unavailable').replace('{id}', command.id)}
 									onclick={() => {
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');
@@ -5433,11 +5561,21 @@
 											invokeSceneAction(`command:${command.id}`, 'keyboard');
 										}
 									}}
-									use:icon={panelWidgetNodeIcon(
-										`command:${command.id}`,
-										command.icon ?? 'lucide-terminal',
-									)}
-								></div>
+								>
+									<span
+										class="vaultman-header-action-icon"
+										aria-hidden="true"
+										use:icon={panelWidgetNodeIcon(
+											`command:${command.id}`,
+											command.icon ?? 'lucide-terminal',
+										)}
+									></span>
+									{#if isNodeLabelVisible(`command:${command.id}`)}
+										<span class="vaultman-header-action-label">
+											{command.label}
+										</span>
+									{/if}
+								</div>
 							{/if}
 						{/each}
 						<span

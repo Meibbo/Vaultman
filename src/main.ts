@@ -130,10 +130,13 @@ import {
 	sceneGotoActionId,
 	sceneGotoLabelKey,
 	type SceneEngineSurface,
+	PROPS_ADD_PROPERTY_ACTION_ID,
 	PROPS_ADD_PROPERTY_COMMAND_ID,
 	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
+import { API_SCENE_SELF_ID } from './logic/logicApiSceneModel';
+import { executeObsidianCommand } from './utils/obsidianCommands';
 import {
 	browseCommunityPlugins,
 	openRestrictedModeSetting,
@@ -180,6 +183,7 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	PROPS_ADD_PROPERTY_COMMAND_ID,
 	'open-filter-scene',
 	'open-queue',
+	'open-api-scene',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -690,6 +694,26 @@ export class VaultmanPlugin extends Plugin {
 				void this.openQueueCommand();
 			},
 		});
+		if (this.settings.sasiCustomCommands) {
+			for (const customCmd of Object.values(this.settings.sasiCustomCommands)) {
+				this.sasiCommandPublisher.register({
+					id: customCmd.id,
+					name: customCmd.name,
+					composes: customCmd.composes,
+					handler: async () => {
+						for (const actId of customCmd.composes) {
+							await this.invokeActionById(actId, customCmd.scope);
+						}
+					},
+				});
+			}
+		}
+		if (this.settings.sasiCommandCustomNames) {
+			for (const [id, customName] of Object.entries(this.settings.sasiCommandCustomNames)) {
+				this.sasiCommandPublisher.rename(id, customName);
+			}
+		}
+
 		// U130L: la decision Published persiste en PSS/settings y sobrevive a
 		// desactivar/reactivar y a reinicios. El default explicito
 		// (`sasiPublishedDefault`) solo se aplica si no hay preferencia
@@ -780,6 +804,93 @@ export class VaultmanPlugin extends Plugin {
 		if (!this.sasiCommandPublisher?.isPublishable(id)) return false;
 		this.sasiCommandPublisher.setPublished(id, published);
 		return true;
+	}
+
+	async invokeActionById(actionId: string, scope?: string): Promise<void> {
+		if (scope && scope.startsWith('instance:')) {
+			const instanceId = scope.slice('instance:'.length);
+			await this.openWorkspaceInstance(instanceId);
+		}
+		if (actionId.startsWith('vaultman.scene.goto.')) {
+			const tab = actionId.slice('vaultman.scene.goto.'.length);
+			if (tab === 'apiscene') {
+				this.openApiScene();
+			} else {
+				void this.switchSceneCommand(tab as StatisticsDataTab);
+			}
+			return;
+		}
+		if (actionId === 'go_to_setting_scene') {
+			void this.goToSettingSceneCommand();
+			return;
+		}
+		if (actionId === 'apply-queue') {
+			void this.queueService.execute();
+			return;
+		}
+		if (actionId === 'open') {
+			void this.activateView();
+			return;
+		}
+		if (actionId === 'open-updates') {
+			this.openUpdates();
+			return;
+		}
+		if (actionId === 'open-filter-scene') {
+			void this.openFilterSceneCommand();
+			return;
+		}
+		if (actionId === 'open-queue') {
+			void this.openQueueCommand();
+			return;
+		}
+		if (actionId === 'open-api-scene' || actionId === API_SCENE_SELF_ID) {
+			this.openApiScene();
+			return;
+		}
+		if (actionId === SETTINGS_OPEN_ID) {
+			this.openSettings();
+			return;
+		}
+		if (actionId === 'check_plugin_updates' || actionId === 'update_all_plugins') {
+			void this.runPluginUpdateAction(actionId);
+			return;
+		}
+		if (actionId === 'browse_community_plugins' || actionId === 'open_restricted_mode') {
+			this.runPluginNativeAction(actionId);
+			return;
+		}
+		if (actionId === PROPS_ADD_PROPERTY_ACTION_ID || actionId === PROPS_ADD_PROPERTY_COMMAND_ID) {
+			void this.addPropertyCommand();
+			return;
+		}
+		if (actionId.startsWith('command:')) {
+			executeObsidianCommand(this.app, actionId.slice('command:'.length));
+			return;
+		}
+		if (
+			actionId === TOOLBAR_REVEAL_ACTIVE_FILE_ID ||
+			actionId === TOOLBAR_TOGGLE_EXPANSION_ID ||
+			actionId === TOOLBAR_SEARCHBOX_ID ||
+			actionId === SEARCH_CYCLE_CATEGORY_ID ||
+			actionId === SEARCH_CREATE_TARGET_ID
+		) {
+			void this.invokeToolbarSasiAction(actionId);
+			return;
+		}
+		if (this.sasiCommandPublisher.isPublishable(actionId)) {
+			const entry = this.sasiCommandPublisher.snapshot().find((e) => e.id === actionId);
+			if (entry?.descriptor?.handler) {
+				const handler = entry.descriptor.handler;
+				if (typeof handler === 'function') {
+					if (handler.length === 0) {
+						void (handler as () => void | Promise<void>)();
+					} else {
+						(handler as (checking: boolean) => boolean)(false);
+					}
+				}
+			}
+		}
 	}
 
 	openApiScene(): void {

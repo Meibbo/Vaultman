@@ -59,9 +59,10 @@ it('projects community and core plugin types as children of their plugin kind', 
 		expect(nested.some((node) => node.meta.catalogKind === 'node_plugin_core')).toBe(false);
 });
 
-function fakeInstances(): InstanceRegistryData {
+function fakeInstances(custom?: Partial<InstanceRegistryData>): InstanceRegistryData {
 	return {
 		schema: 1,
+		...custom,
 		instances: {
 			'vm-instance-aaa': {
 				id: 'vm-instance-aaa',
@@ -83,6 +84,7 @@ function fakeInstances(): InstanceRegistryData {
 				activeScene: 'tags',
 				scenes: {},
 			},
+			...(custom?.instances ?? {}),
 		},
 	};
 }
@@ -99,19 +101,19 @@ function publisherFor(ids: readonly string[]) {
 }
 
 describe('U130L apiScene: grupos', () => {
-	it('los 8 grupos existen con ids estables', () => {
+	it('los 9 grupos existen con ids estables', () => {
 		const groups = buildApiSceneGroups((name) => name);
 		expect(groups.map((g) => g.id)).toEqual(
 			API_SCENE_GROUP_NAMES.map((name) => API_SCENE_GROUP_IDS[name]),
 		);
-		expect(groups).toHaveLength(8);
+		expect(groups).toHaveLength(9);
 	});
 
-	it('la proyeccion emite las 8 cabeceras con meta propia y sin fantasma', () => {
+	it('la proyeccion emite las 9 cabeceras con meta propia y sin fantasma', () => {
 		const { registry } = createVaultmanSasi();
 		const nodes = buildApiSceneNodes(registry, fakePublisher(), fakeInstances());
 		const tree = projectApiSceneTree(nodes);
-		// Sin fantasma `vaultman.group.none`: los 8 grupos particionan todo.
+		// Sin fantasma `vaultman.group.none`: los 9 grupos particionan todo.
 		expect(tree.some((row) => row.id === NO_GROUP_ID)).toBe(false);
 		const headers = tree.filter((row) => row.isGroupHeader === true);
 		expect(headers.map((h) => h.id).sort()).toEqual(
@@ -516,7 +518,7 @@ describe('U130L apiScene: relaciones (supports/composes)', () => {
 		expect('composes' in (first ?? {})).toBe(true);
 	});
 
-	it('memberships cubre los 8 grupos en orden de filas', () => {
+	it('memberships cubre los 9 grupos en orden de filas', () => {
 		const { registry } = createVaultmanSasi();
 		const nodes = buildApiSceneNodes(registry, fakePublisher(), fakeInstances());
 		const memberships = apiSceneMemberships(nodes);
@@ -630,5 +632,65 @@ describe('U130L apiScene: toggle solo en command registrado', () => {
 				.find((n) => n.meta.sasiId === 'vaultman.test.cmd' && n.meta.group === 'command')
 				?.cells?.find((cell) => cell.id === PUBLISH_CELL_ID),
 		).toMatchObject({ enabled: true });
+	});
+});
+
+describe("U130-C1: scopes group y p-nodes de comandos", () => {
+	it("el grupo scope incluye los scopes disponibles en el workspace", () => {
+		const { registry } = createVaultmanSasi();
+		const nodes = buildApiSceneNodes(
+			registry,
+			fakePublisher(),
+			fakeInstances({ instances: { "inst-1": { id: "inst-1", cell_name: "Primary" } as any } })
+		);
+		const scopes = nodes.filter((n) => n.meta.group === "scope");
+		expect(scopes.length).toBeGreaterThanOrEqual(6);
+		expect(scopes.some((n) => n.meta.sasiId === "workspace:all")).toBe(true);
+		expect(scopes.some((n) => n.meta.sasiId === "workspace:last_focused")).toBe(true);
+		expect(scopes.some((n) => n.meta.sasiId === "scene:depth_scope")).toBe(true);
+		expect(scopes.some((n) => n.meta.sasiId === "instance:vm-instance-aaa")).toBe(true);
+	});
+
+	it("los comandos se construyen como p-nodes con hijos de actions y scopes", () => {
+		const { registry } = createVaultmanSasi();
+		const nodes = buildApiSceneNodes(
+			registry,
+			fakePublisher([{ id: "props.add_property", published: true }])
+		);
+		const cmd = nodes.find(
+			(n) => n.meta.group === "command" && n.meta.sasiId === "props.add_property"
+		);
+		expect(cmd).toBeDefined();
+		expect(cmd?.showCaret).toBe(true);
+		expect(cmd?.children?.length).toBeGreaterThan(0);
+		// Debe tener hijos para sus actions y al menos un hijo para su scope
+		const actionChild = cmd?.children?.find((c) => c.meta.group === "action");
+		expect(actionChild).toBeDefined();
+		expect(actionChild?.children?.some((c) => c.meta.group === "scope")).toBe(true);
+		const scopeChild = cmd?.children?.find((c) => c.meta.group === "scope");
+		expect(scopeChild).toBeDefined();
+	});
+
+	it("el publisher permite renombrar comandos actualizando su proyeccion", () => {
+		let removed = "";
+		let added = "";
+		const plugin = {
+			addCommand: (c: any) => { added = c.name; },
+			removeCommand: (id: string) => { removed = id; },
+		};
+		const pub = createSasiCommandPublisher(plugin);
+		pub.register({
+			id: "test-cmd",
+			name: "Initial Name",
+			handler: () => {},
+		});
+		pub.setPublished("test-cmd", true);
+		expect(added).toBe("Initial Name");
+
+		const renamed = pub.rename("test-cmd", "Renamed Name");
+		expect(renamed).toBe(true);
+		expect(removed).toBe("test-cmd");
+		expect(added).toBe("Renamed Name");
+		expect(pub.snapshot().find((e) => e.id === "test-cmd")?.descriptor?.name).toBe("Renamed Name");
 	});
 });

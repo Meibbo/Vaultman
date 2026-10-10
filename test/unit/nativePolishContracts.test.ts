@@ -10,7 +10,7 @@ const defaults: Required<SceneConfig> = {
 	stickyRows: false, compactFolders: false, indent: true, tooltips: true,
 	groupPreset: { kind: 'none', direction: 'asc' }, hiddenGroupIds: [],
 	sceneLabelMode: 'auto', autoRevealMode: 'auto', hiddenToolbarNodes: [],
-	toolbarNodeIcons: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
+	toolbarNodeIcons: {}, toolbarNodeLabels: {}, toolbarCommandActions: [], createActionsPlacement: 'auto',
 	toolbarNodeOrder: [], groupMemberships: {}, showOptionsOverride: 'inherit',
 	textCase: {}, nativeCompat: {},
 };

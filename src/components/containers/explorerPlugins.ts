@@ -1227,14 +1227,14 @@ export class PluginsExplorerPanel
 			return;
 		}
 
-		if (this.settingsSearchUnavailable && !this.searchTerm.trim()) {
+		if (this.settingsSearchUnavailable && !(this.searchTerm ?? '').trim()) {
 			this.nodes = [];
 			this.settingsSearchHighlightIds = new Set<string>();
 			this.render();
 			return;
 		}
 
-		const term = this.searchTerm.trim().toLowerCase();
+		const term = (this.searchTerm ?? '').trim().toLowerCase();
 		const matchedTabs = new Set<string>();
 		const matchedPlugins = new Set<string>();
 		const matchedPages = new Set<string>();
@@ -1592,7 +1592,7 @@ export class PluginsExplorerPanel
 		this.emptyEl = null;
 		// A07b-2: se guarda el proyectado para `_groupCreationMenuCtx`.
 		this._lastProjectedTree = this.projectedNodes();
-		if (this.searchTerm.trim().length > 0) {
+		if ((this.searchTerm ?? '').trim().length > 0) {
 			for (const root of this._lastProjectedTree) {
 				for (const id of collectExpandableSubtreeIds(root)) {
 					this._expandedGroupIds.add(id);
@@ -1918,6 +1918,10 @@ export class PluginsExplorerPanel
 				const node = this.findNode(id);
 				if (this.dataSource && node) {
 					this._includeInvokedInSelection(id, event);
+					if (this.dataSource.contextMenu) {
+						const handled = this.dataSource.contextMenu(node, event, this.selectedNodeIds);
+						if (handled !== false) return;
+					}
 					const menu = new Menu();
 					const create = this._groupCreationMenuCtx().createGroupWithSelected;
 					if (create) menu.addItem((item) => item.setTitle(translate('group.selected')).setIcon('lucide-boxes').onClick(() => { void create(); }));

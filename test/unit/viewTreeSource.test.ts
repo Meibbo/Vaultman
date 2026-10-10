@@ -46,7 +46,7 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).toContain('private _hasVisibleRenderedRows()');
 		expect(treeSource).toContain('this._cancelWindowRender();');
 		expect(treeSource).toContain('this._renderWindow();');
-		expect(treeSource).toContain('rect.bottom > viewport.top + 1');
+		expect(treeSource).toContain('this.rowEls.size > 0');
 	});
 
 	it('toggles nested indent guides from the visible nested cell without rebuilding rows', () => {

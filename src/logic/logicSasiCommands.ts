@@ -33,6 +33,7 @@ export interface SasiCommandPublisher {
 	register(descriptor: SasiCommandDescriptor): void;
 	setPublished(id: string, published: boolean): void;
 	isPublished(id: string): boolean;
+	rename(id: string, newName: string): boolean;
 	/**
 	 * U130L: true solo cuando hay descriptor registrado. Un id de registry
 	 * (provider/kind/action) sin descriptor, o un id retirado, NO es
@@ -216,6 +217,18 @@ export function createSasiCommandPublisher(
 		},
 		isPublished(id) {
 			return commands.get(id)?.published ?? false;
+		},
+		rename(id, newName) {
+			const desc = descriptors.get(id);
+			const entry = commands.get(id);
+			if (!desc || !entry) return false;
+			desc.name = newName;
+			entry.descriptor = desc;
+			if (entry.published) {
+				unpublish(entry);
+				publish(entry);
+			}
+			return true;
 		},
 		isPublishable(id) {
 			return descriptors.has(id);

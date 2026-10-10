@@ -77,6 +77,10 @@ export interface SceneConfig {
 	 */
 	toolbarNodeIcons?: Record<string, string>;
 	/**
+	 * U130 toolbar alt-cmenu: visibilidad per-instance de la etiqueta de cada nodo (ids LOCALES -> on | off).
+	 */
+	toolbarNodeLabels?: Record<string, "on" | "off">;
+	/**
 	 * U130 polishing: ids de comandos Obsidian proyectados como nodos de
 	 * acción en ESTA scene de ESTA instancia. Se suman a los globales de
 	 * `plugin.settings.toolbarCommandActions` antes de resolver; la ausencia

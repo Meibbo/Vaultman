@@ -93,6 +93,7 @@ export type SceneFacets = Pick<
 	| 'autoRevealMode'
 	| 'hiddenToolbarNodes'
 	| 'toolbarNodeIcons'
+	| 'toolbarNodeLabels'
 	| 'toolbarCommandActions'
 	| 'createActionsPlacement'
 	| 'toolbarNodeOrder'
@@ -119,6 +120,7 @@ export function captureSceneFacets(
 		autoRevealMode: config.autoRevealMode,
 		hiddenToolbarNodes: [...(config.hiddenToolbarNodes ?? [])],
 		toolbarNodeIcons: { ...(config.toolbarNodeIcons ?? {}) },
+		toolbarNodeLabels: { ...(config.toolbarNodeLabels ?? {}) },
 		toolbarCommandActions: [...(config.toolbarCommandActions ?? [])],
 		createActionsPlacement: config.createActionsPlacement,
 		toolbarNodeOrder: [...(config.toolbarNodeOrder ?? [])],
@@ -158,6 +160,7 @@ export function captureSavedViewConfig(
 			autoRevealMode: facets.autoRevealMode,
 			hiddenToolbarNodes: facets.hiddenToolbarNodes,
 			toolbarNodeIcons: facets.toolbarNodeIcons,
+			toolbarNodeLabels: facets.toolbarNodeLabels,
 			toolbarCommandActions: facets.toolbarCommandActions,
 			createActionsPlacement: facets.createActionsPlacement,
 			toolbarNodeOrder: facets.toolbarNodeOrder,
@@ -197,6 +200,9 @@ export function sceneFacetsOf(saved: SavedViewConfig): SceneFacets {
 		}
 		if (composer.toolbarNodeIcons !== undefined) {
 			out.toolbarNodeIcons = { ...composer.toolbarNodeIcons };
+		}
+		if (composer.toolbarNodeLabels !== undefined) {
+			out.toolbarNodeLabels = { ...composer.toolbarNodeLabels };
 		}
 		if (composer.toolbarCommandActions !== undefined) {
 			out.toolbarCommandActions = [...composer.toolbarCommandActions];
@@ -255,6 +261,7 @@ export async function applyLayoutToPort(
 			autoRevealMode: facets.autoRevealMode ?? current.autoRevealMode,
 			hiddenToolbarNodes: facets.hiddenToolbarNodes ?? current.hiddenToolbarNodes,
 			toolbarNodeIcons: facets.toolbarNodeIcons ?? current.toolbarNodeIcons,
+			toolbarNodeLabels: facets.toolbarNodeLabels ?? current.toolbarNodeLabels,
 			toolbarCommandActions: facets.toolbarCommandActions ?? current.toolbarCommandActions,
 			createActionsPlacement: facets.createActionsPlacement ?? current.createActionsPlacement,
 			toolbarNodeOrder: facets.toolbarNodeOrder ?? current.toolbarNodeOrder,

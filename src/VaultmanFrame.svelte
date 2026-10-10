@@ -480,7 +480,7 @@
 			sceneLabelMode: 'auto',
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
-			toolbarNodeIcons: {},
+			toolbarNodeIcons: {}, toolbarNodeLabels: {},
 			// U130 polishing: sin comandos extra per-instance por defecto.
 			toolbarCommandActions: [],
 			// U130 polishing: la ubicación de creación sigue al setting
