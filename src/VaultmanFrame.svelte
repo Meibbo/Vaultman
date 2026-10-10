@@ -52,7 +52,7 @@
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
 	import { acquireNativeBridge } from './services/serviceNativeBridge';
-	import { EMPTY_REGISTRY } from './logic/logicInstanceRegistry';
+	import { EMPTY_REGISTRY, setInstanceCellName } from './logic/logicInstanceRegistry';
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { NO_GROUP_PRESET } from './types/typeGroupPreset';
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
@@ -69,12 +69,14 @@
 		workspaceInstanceId: string;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
+		onActiveSceneChange?: (scene: string) => void;
 	}
 	let {
 		plugin,
 		workspaceInstanceId,
 		initialShowToolbar = null,
 		onShowToolbarChange,
+		onActiveSceneChange,
 	}: Props = $props();
 	let frameShowToolbar = $state(
 		untrack(() =>
@@ -93,6 +95,21 @@
 	/** U121-109: el ancla de la hoja llega despues de montar; se adopta aqui. */
 	export function reanchorInstance(id: string): void {
 		sceneConfigPort.setInstanceId(id);
+	}
+
+	async function renameWorkspaceInstance(id: string, name: string): Promise<void> {
+		const registry = plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
+		const next = setInstanceCellName(registry, id, name);
+		if (next === registry) return;
+		plugin.settings.instanceRegistry = next;
+		await plugin.saveSettings();
+	}
+
+	async function moveWorkspaceInstanceSurface(
+		id: string,
+		surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+	): Promise<void> {
+		await plugin.relocateWorkspaceInstance(id, surface);
 	}
 
 	async function switchWorkspaceInstance(id: string): Promise<void> {
@@ -547,6 +564,18 @@
 
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
+
+	const currentActiveScene = $derived(
+		activePage === 'statistics' ? 'statistics' : filtersActiveTab,
+	);
+
+	$effect(() => {
+		const scene = currentActiveScene;
+		if (scene) {
+			void sceneConfigPort.proposeActiveScene(scene);
+			onActiveSceneChange?.(scene);
+		}
+	});
 
 	const activeProviderId = $derived(
 		activePage === 'statistics' ? 'statistics' : filtersActiveTab,
@@ -1693,6 +1722,8 @@
 		providerState={activePanelWidgetState}
 		{sceneConfigPort}
 		onSwitchInstance={switchWorkspaceInstance}
+		onRenameInstance={renameWorkspaceInstance}
+		onMoveSurface={moveWorkspaceInstanceSurface}
 		app={plugin.app}
 		readInstanceRecords={() =>
 			Object.values(plugin.settings.instanceRegistry?.instances ?? {})}

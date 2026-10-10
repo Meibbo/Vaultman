@@ -136,6 +136,9 @@ export interface SceneConfig {
 
 export interface WorkspaceInstanceRecord {
 	id: WorkspaceInstanceId;
+	/** Nombre de proyección / custom cell name de la instancia. */
+	cell_name?: string;
+	customName?: string;
 	/** epoch ms de creación; solo para orden estable y depuración. */
 	createdAt: number;
 	/** epoch ms del último toque de actividad; la reconciliación usa esto para LRU.

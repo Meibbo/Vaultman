@@ -321,6 +321,25 @@ export function dropPristineInstance(
 	return { ...registry, instances: rest };
 }
 
+/** Guarda o limpia el nombre de proyección / cell_name de la instancia. */
+export function setInstanceCellName(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	cellName: string | undefined,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	const normalized = cellName?.trim() || undefined;
+	if (!record || (record.cell_name === normalized && record.customName === normalized)) return registry;
+	const nextRecord: WorkspaceInstanceRecord = {
+		...record,
+		lastActiveAt: Date.now(),
+		revision: record.revision + 1,
+		cell_name: normalized,
+		customName: normalized,
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
+}
+
 /** Recuerda en que scene estaba la instancia. Sin efecto si el id no existe. */
 export function setActiveScene(
 	registry: InstanceRegistryData,

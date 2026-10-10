@@ -365,4 +365,14 @@ describe('instance info model (U130 polishing)', () => {
 		expect(model.scenes.map((s) => s.scene)).toEqual(['files', 'tags']);
 		expect(model.scenes.map((s) => s.active)).toEqual([false, true]);
 	});
+
+	it('projects projection cell_name and surfacePosition', () => {
+		const model = buildInstanceInfoModel({
+			...record,
+			cell_name: 'Custom Cell',
+			surfacePosition: 'left-sidebar',
+		});
+		expect(model.cell_name).toBe('Custom Cell');
+		expect(model.surfacePosition).toBe('left-sidebar');
+	});
 });

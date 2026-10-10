@@ -1,4 +1,4 @@
-import { ItemView, Platform, Scope, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Platform, Scope, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
 import { routeTreeKeyboardEvent } from './logic/logicTreeKeyboardBoundary';
 import { getNativeTreeScopeChords, getTreeLetterScopeChords, isTreeLetterJumpChord } from './logic/logicTreeKeyboardAllowlist';
 import { routeTreeClipboardEvent } from './logic/logicTreeClipboard';
@@ -38,6 +38,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	): Promise<void> | void;
 	focusActiveExplorerSearch?(): Promise<void> | void;
 	refreshActiveExplorerViewport?(): boolean | void;
+	getActiveScene?(): string;
 	setShowToolbar?(value: boolean): void;
 	revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
 	isPropRevealActive?(): boolean;
@@ -102,34 +103,54 @@ export class VaultmanFrame extends ItemView {
 	getViewType(): string {
 		return VAULTMAN_FRAME_TYPE;
 	}
-	getDisplayText(): string {
-		return translate(this.tabIdentity().labelKey);
+	getDisplayText(knownScene?: string): string {
+		return translate(this.tabIdentity(knownScene).labelKey);
 	}
-	getIcon(): string {
-		return this.tabIdentity().icon;
+	getIcon(knownScene?: string): string {
+		return this.tabIdentity(knownScene).icon;
 	}
 
-	private tabIdentity() {
-		const scene = this.workspaceInstanceId
-			? this.plugin.settings.instanceRegistry?.instances[this.workspaceInstanceId]?.activeScene
-			: undefined;
+	private tabIdentity(knownScene?: string) {
+		const scene =
+			knownScene ??
+			(this.workspaceInstanceId
+				? this.plugin.settings.instanceRegistry?.instances[this.workspaceInstanceId]?.activeScene
+				: undefined) ??
+			this.svelteApp?.getActiveScene?.();
 		return workspaceTabIdentity(this.plugin.settings.workspaceTabMirrorsScene === true, scene);
 	}
 
-	private refreshTabIdentity(): void {
-		const signature = `${this.getIcon()}:${this.getDisplayText()}`;
+	private refreshTabIdentity(knownScene?: string): void {
+		const icon = this.getIcon(knownScene);
+		const text = this.getDisplayText(knownScene);
+		const signature = `${icon}:${text}`;
 		if (signature === this.tabIdentitySignature) return;
 		this.tabIdentitySignature = signature;
-		const leafWithHeader = this.leaf as WorkspaceLeaf & { updateHeader?: () => void };
+		const leafWithHeader = this.leaf as WorkspaceLeaf & {
+			updateHeader?: () => void;
+			tabHeaderInnerTitleEl?: HTMLElement;
+			tabHeaderInnerIconEl?: HTMLElement;
+			tabHeaderEl?: HTMLElement;
+		};
 		const updateHeader = leafWithHeader.updateHeader;
 		// Best-effort cosmetic: Obsidian core has no tab header yet during
 		// the startup settings cascade, so a throwing updateHeader must never
 		// break saveSettings/notifySettingsChanged.
-		if (typeof updateHeader !== 'function') return;
-		try {
-			updateHeader();
-		} catch {
-			// Ignore: the next settings change re-derives the identity.
+		if (typeof updateHeader === 'function') {
+			try {
+				updateHeader();
+			} catch {
+				// Ignore: direct element updates handle identity below.
+			}
+		}
+		if (leafWithHeader.tabHeaderInnerTitleEl) {
+			leafWithHeader.tabHeaderInnerTitleEl.setText(text);
+		}
+		if (leafWithHeader.tabHeaderInnerIconEl && icon) {
+			setIcon(leafWithHeader.tabHeaderInnerIconEl, icon);
+		}
+		if (leafWithHeader.tabHeaderEl) {
+			leafWithHeader.tabHeaderEl.setAttribute('aria-label', text);
 		}
 	}
 
@@ -198,10 +219,14 @@ export class VaultmanFrame extends ItemView {
 							this._showToolbar = val;
 							this.app.workspace.requestSaveLayout();
 						},
+						onActiveSceneChange: (scene: string) => {
+							this.refreshTabIdentity(scene);
+						},
 					},
 				}) as VaultmanFrameSvelteApi,
 		);
 		this.scheduleViewportRefresh();
+		this.refreshTabIdentity();
 	}
 
 	private readAnchoredInstanceId(): string | null {
@@ -234,6 +259,8 @@ export class VaultmanFrame extends ItemView {
 		}
 		this.mountLease = adopted.lease;
 		this.workspaceInstanceId = instanceId;
+		this.svelteApp?.reanchorInstance?.(instanceId);
+		this.refreshTabIdentity();
 		const ensured = ensureInstance(registry, instanceId);
 		this.plugin.settings.instanceRegistry = ensured.registry;
 		if (ensured.created || record?.tombstoned) await this.plugin.saveSettings();
@@ -295,7 +322,11 @@ export class VaultmanFrame extends ItemView {
 	}
 
 	switchScene(tab: StatisticsDataTab): boolean {
-		return this.svelteApp?.switchScene?.(tab) ?? false;
+		const handled = this.svelteApp?.switchScene?.(tab) ?? false;
+		if (handled) {
+			this.refreshTabIdentity(tab);
+		}
+		return handled;
 	}
 
 	async addPropertyInReveal(): Promise<boolean> {

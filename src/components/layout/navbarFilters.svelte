@@ -200,6 +200,11 @@
 	type NavbarRendererState = NavbarPanelWidgetState & {
 		sceneConfigPort: SceneConfigPort;
 		onSwitchInstance?: (id: string) => void;
+		onRenameInstance?: (id: string, name: string) => void | Promise<void>;
+		onMoveSurface?: (
+			id: string,
+			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+		) => void | Promise<void>;
 		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 		fileList?: PanelWidgetFilesExplorerPort;
 		propExplorer?: PanelWidgetTreeExplorerPort;
@@ -406,6 +411,8 @@
 		pvpuiConfig = {},
 		sceneConfigPort,
 		onSwitchInstance,
+		onRenameInstance,
+		onMoveSurface,
 		readInstanceRecords,
 	}: NavbarRendererState = $props();
 
@@ -3575,11 +3582,17 @@
 						const records = (readInstanceRecords?.() ?? [record]).filter(
 							(candidate) => !candidate.tombstoned,
 						);
+						const liveRecord: WorkspaceInstanceRecord = {
+							...record,
+							activeScene: activeSectionTab ?? record.activeScene,
+						};
 						new InstanceInfoModal(
 							app,
-							record,
+							liveRecord,
 							records,
 							onSwitchInstance,
+							onRenameInstance,
+							onMoveSurface,
 						).open();
 					});
 			});

@@ -16,6 +16,8 @@
 		onPointerEnter,
 		onPointerLeave,
 		onSwitchInstance,
+		onRenameInstance,
+		onMoveSurface,
 		app,
 		readInstanceRecords,
 	}: {
@@ -26,6 +28,11 @@
 		onPointerEnter?: () => void;
 		onPointerLeave?: () => void;
 		onSwitchInstance?: (id: string) => void;
+		onRenameInstance?: (id: string, name: string) => void | Promise<void>;
+		onMoveSurface?: (
+			id: string,
+			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+		) => void | Promise<void>;
 		app?: App;
 		readInstanceRecords?: () => readonly WorkspaceInstanceRecord[];
 	} = $props();
@@ -73,6 +80,8 @@
 			{...mountedState}
 			{sceneConfigPort}
 			{onSwitchInstance}
+			{onRenameInstance}
+			{onMoveSurface}
 			app={app ?? mountedState.app}
 			{readInstanceRecords}
 		/>

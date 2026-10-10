@@ -6,6 +6,7 @@ import {
 	EMPTY_REGISTRY,
 	setInstanceHomeSurface,
 	setActiveScene,
+	setInstanceCellName,
 	setInstanceFloatingToc,
 } from '../../src/logic/logicInstanceRegistry';
 import { dropPristineInstance, reconcileRegistry, TOMBSTONE_CAP, TOMBSTONE_GRACE_MS, TOMBSTONE_HARD_CAP } from '../../src/logic/logicInstanceRegistry';
@@ -374,6 +375,34 @@ describe('setActiveScene', () => {
 
 	it('ignores an unknown instance instead of throwing', () => {
 		expect(setActiveScene(EMPTY_REGISTRY, 'nope', 'props')).toBe(EMPTY_REGISTRY);
+	});
+});
+
+describe('setInstanceCellName', () => {
+	it('sets projection cell_name and bumps revision', () => {
+		const registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		const next = setInstanceCellName(registry, 'vm-1', 'My Projection');
+		expect(next.instances['vm-1'].cell_name).toBe('My Projection');
+		expect(next.instances['vm-1'].customName).toBe('My Projection');
+		expect(next.instances['vm-1'].revision).toBe(2);
+	});
+
+	it('trims whitespace and clears to undefined if empty', () => {
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		registry = setInstanceCellName(registry, 'vm-1', '  Trimmed Name  ');
+		expect(registry.instances['vm-1'].cell_name).toBe('Trimmed Name');
+		const cleared = setInstanceCellName(registry, 'vm-1', '   ');
+		expect(cleared.instances['vm-1'].cell_name).toBeUndefined();
+	});
+
+	it('returns same registry when unchanged', () => {
+		let registry = ensureInstance(EMPTY_REGISTRY, 'vm-1').registry;
+		registry = setInstanceCellName(registry, 'vm-1', 'Static');
+		expect(setInstanceCellName(registry, 'vm-1', 'Static')).toBe(registry);
+	});
+
+	it('ignores unknown instance', () => {
+		expect(setInstanceCellName(EMPTY_REGISTRY, 'nope', 'Name')).toBe(EMPTY_REGISTRY);
 	});
 });
 

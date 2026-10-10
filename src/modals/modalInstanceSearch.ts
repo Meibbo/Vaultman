@@ -52,16 +52,20 @@ export class InstanceSearchModal extends SuggestModal<InstanceChoice> {
 
 		// 1. Existing instances matching query
 		for (const inst of instances) {
+			const displayName = inst.cell_name || inst.customName;
+			const title = displayName ? `${displayName} · ${inst.id}` : inst.id;
 			const matches =
 				!lowerQuery ||
 				inst.id.toLowerCase().includes(lowerQuery) ||
+				(inst.cell_name && inst.cell_name.toLowerCase().includes(lowerQuery)) ||
+				(inst.customName && inst.customName.toLowerCase().includes(lowerQuery)) ||
 				(inst.activeScene && inst.activeScene.toLowerCase().includes(lowerQuery));
 			if (matches) {
 				const isMounted = mountedIds.has(inst.id);
 				choices.push({
 					kind: 'existing',
 					id: inst.id,
-					title: inst.id,
+					title,
 					activeScene: inst.activeScene ?? 'files',
 					surfacePosition:
 						inst.surfacePosition ?? (inst.homeSurface?.kind ?? 'main'),

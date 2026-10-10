@@ -1356,6 +1356,62 @@ export class VaultmanPlugin extends Plugin {
 		return this.instanceMounts.release(lease);
 	}
 
+	async relocateWorkspaceInstance(
+		instanceId: string,
+		target: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+	): Promise<boolean> {
+		const currentLease = this.instanceMounts.get(instanceId);
+		const oldLeaf = currentLease?.address.leaf;
+
+		const currentPos: 'left-sidebar' | 'right-sidebar' | 'main-leaf' =
+			currentLease?.address.kind === 'main'
+				? 'main-leaf'
+				: currentLease?.address.edge === (this.isRtlDirection() ? 'end' : 'start')
+					? 'left-sidebar'
+					: 'right-sidebar';
+
+		if (currentPos === target && oldLeaf) {
+			await this.app.workspace.revealLeaf(oldLeaf);
+			this.app.workspace.setActiveLeaf(oldLeaf, { focus: true });
+			return true;
+		}
+
+		if (currentLease) {
+			this.instanceMounts.release(currentLease);
+		}
+
+		const surfaceIntent: HomeSurfaceIntent =
+			target === 'main-leaf'
+				? { kind: 'main' }
+				: target === 'left-sidebar'
+					? this.sidebarSurfaceForPhysical('left')
+					: this.sidebarSurfaceForPhysical('right');
+
+		if (oldLeaf) {
+			oldLeaf.detach();
+		}
+
+		const result = await this.surfaceHost.openWorkspaceInstance(instanceId, surfaceIntent);
+		if (result.ok) {
+			this.lastFocusedFrameLeaf = result.address.leaf;
+			this.app.workspace.setActiveLeaf(result.address.leaf, { focus: true });
+
+			const registry = this.settings.instanceRegistry ?? { schema: 1, instances: {} };
+			if (registry.instances[instanceId]) {
+				registry.instances[instanceId] = {
+					...registry.instances[instanceId],
+					homeSurface: surfaceIntent,
+					surfacePosition: target,
+					lastActiveAt: Date.now(),
+				};
+				this.settings.instanceRegistry = registry;
+				await this.saveSettings();
+			}
+			return true;
+		}
+		return false;
+	}
+
 	private enrollExactLiveFrame(
 		instanceId: string,
 	): MountReservationResult<WorkspaceLeaf> | null {

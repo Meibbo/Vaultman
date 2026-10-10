@@ -15,11 +15,13 @@ export interface InstanceInfoSceneEntry {
 
 export interface InstanceInfoModel {
 	id: WorkspaceInstanceId;
+	cell_name?: string;
 	createdAt: number;
 	lastActiveAt: number;
 	revision: number;
 	tombstoned: boolean;
 	activeScene: string | null;
+	surfacePosition: 'left-sidebar' | 'right-sidebar' | 'main-leaf';
 	self: SceneConfig & { surfacePosition?: WorkspaceInstanceRecord['surfacePosition'] };
 	selfOverrideKeys: readonly string[];
 	scenes: readonly InstanceInfoSceneEntry[];
@@ -49,11 +51,13 @@ export function buildInstanceInfoModel(
 	};
 	return {
 		id: record.id,
+		cell_name: record.cell_name ?? record.customName,
 		createdAt: record.createdAt,
 		lastActiveAt: record.lastActiveAt,
 		revision: record.revision,
 		tombstoned: record.tombstoned,
 		activeScene,
+		surfacePosition: record.surfacePosition ?? 'main-leaf',
 		self,
 		selfOverrideKeys: Object.keys(self).sort(),
 		scenes: ordered.map((scene) => {
@@ -78,17 +82,29 @@ export class InstanceInfoModal extends Modal {
 	private readonly record: WorkspaceInstanceRecord;
 	private readonly records: readonly WorkspaceInstanceRecord[];
 	private readonly onSwitchInstance?: (id: string) => void;
+	private readonly onRenameInstance?: (id: string, name: string) => void | Promise<void>;
+	private readonly onMoveSurface?: (
+		id: string,
+		surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+	) => void | Promise<void>;
 
 	constructor(
 		app: App,
 		record: WorkspaceInstanceRecord,
 		records: readonly WorkspaceInstanceRecord[] = [record],
 		onSwitchInstance?: (id: string) => void,
+		onRenameInstance?: (id: string, name: string) => void | Promise<void>,
+		onMoveSurface?: (
+			id: string,
+			surface: 'left-sidebar' | 'right-sidebar' | 'main-leaf',
+		) => void | Promise<void>,
 	) {
 		super(app);
 		this.record = record;
 		this.records = records;
 		this.onSwitchInstance = onSwitchInstance;
+		this.onRenameInstance = onRenameInstance;
+		this.onMoveSurface = onMoveSurface;
 	}
 
 	onOpen(): void {
@@ -106,11 +122,52 @@ export class InstanceInfoModal extends Modal {
 			meta.createEl('dd', { text: value });
 		};
 		row('toolbar.instance_info.id', model.id);
+
+		meta.createEl('dt', { text: translate('toolbar.instance_info.cell_name') });
+		const nameDd = meta.createEl('dd', { cls: 'vaultman-instance-info-name-cell' });
+		const nameInput = nameDd.createEl('input', {
+			type: 'text',
+			value: model.cell_name ?? '',
+			cls: 'vaultman-instance-info-name-input',
+			placeholder: translate('toolbar.instance_info.cell_name_placeholder'),
+		});
+		nameInput.addEventListener('change', () => {
+			void this.onRenameInstance?.(model.id, nameInput.value);
+		});
+
 		row('toolbar.instance_info.revision', String(model.revision));
 		row(
 			'toolbar.instance_info.active_scene',
 			model.activeScene ?? '—',
 		);
+
+		meta.createEl('dt', { text: translate('toolbar.instance_info.surface_position') });
+		const surfaceDd = meta.createEl('dd', { cls: 'vaultman-instance-info-surface-cell' });
+		const surfaceSelect = surfaceDd.createEl('select', {
+			cls: 'dropdown vaultman-instance-info-surface-select',
+			attr: { 'aria-label': translate('toolbar.instance_info.surface_position') },
+		});
+		const surfaceOptions: Array<{ id: 'left-sidebar' | 'main-leaf' | 'right-sidebar'; labelKey: string }> = [
+			{ id: 'left-sidebar', labelKey: 'toolbar.instance_info.surface_left' },
+			{ id: 'main-leaf', labelKey: 'toolbar.instance_info.surface_main' },
+			{ id: 'right-sidebar', labelKey: 'toolbar.instance_info.surface_right' },
+		];
+		for (const optDef of surfaceOptions) {
+			const opt = surfaceSelect.createEl('option', {
+				value: optDef.id,
+				text: translate(optDef.labelKey),
+			});
+			if (optDef.id === model.surfacePosition) {
+				opt.selected = true;
+			}
+		}
+		surfaceSelect.addEventListener('change', async () => {
+			const target = surfaceSelect.value as 'left-sidebar' | 'main-leaf' | 'right-sidebar';
+			if (target === model.surfacePosition) return;
+			await this.onMoveSurface?.(model.id, target);
+			this.close();
+		});
+
 		row(
 			'toolbar.instance_info.created',
 			new Date(model.createdAt).toLocaleString(),
@@ -166,7 +223,7 @@ export class InstanceInfoModal extends Modal {
 		});
 		for (const record of alternatives) {
 			select.createEl('option', {
-				text: record.id,
+				text: record.cell_name ? `${record.cell_name} (${record.id})` : record.id,
 				attr: { value: record.id },
 			});
 		}
