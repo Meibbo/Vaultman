@@ -2314,9 +2314,18 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 			if (sortBy === 'path') {
 				return node.meta.file?.path ?? node.meta.folderPath;
 			}
-			return node.meta.file?.name ?? node.label;
+			return node.meta.file?.basename ?? node.label;
 		};
-		return dir * compareExplorerText(stringValue(a), stringValue(b));
+		let cmp = compareExplorerText(stringValue(a), stringValue(b));
+		if (cmp === 0 && sortBy === 'name') {
+			const extA = a.meta.file?.extension ?? '';
+			const extB = b.meta.file?.extension ?? '';
+			cmp = compareExplorerText(extA, extB);
+		}
+		if (cmp !== 0) return dir * cmp;
+		const pathA = a.meta.file?.path ?? a.meta.folderPath ?? a.id;
+		const pathB = b.meta.file?.path ?? b.meta.folderPath ?? b.id;
+		return dir * compareExplorerText(pathA, pathB);
 	}
 
 	private _filesForDisplay(): TFile[] {

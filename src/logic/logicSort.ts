@@ -146,7 +146,12 @@ export function compareFilesForExplorer(
 			(options.taskCountForFile?.(a) ?? 0) -
 			(options.taskCountForFile?.(b) ?? 0);
 	} else {
-		result = compareExplorerText(a.name, b.name);
+		const baseA = a.basename ?? a.name;
+		const baseB = b.basename ?? b.name;
+		result = compareExplorerText(baseA, baseB);
+		if (result === 0) {
+			result = compareExplorerText(a.extension ?? '', b.extension ?? '');
+		}
 	}
 
 	return result === 0

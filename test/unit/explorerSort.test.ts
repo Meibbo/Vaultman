@@ -189,6 +189,17 @@ describe('explorer sort helpers', () => {
 		).toEqual(['A/a.md', 'z.md']);
 	});
 
+	it('sorts Name prioritizing prefix file over spaced number suffix file like native Obsidian', () => {
+		const prefixFile = makeFile('hola.md', { ctime: 1, mtime: 1 });
+		const spacedFile = makeFile('hola 1 1 1 1.md', { ctime: 1, mtime: 1 });
+
+		expect(
+			[spacedFile, prefixFile]
+				.sort((a, b) => compareFilesForExplorer(a, b, 'name', 'asc'))
+				.map((file) => file.path),
+		).toEqual(['hola.md', 'hola 1 1 1 1.md']);
+	});
+
 	it('detects whether refreshed sort keys cross an existing neighbor', () => {
 		const items = [
 			{ id: 'a', words: 30 },
