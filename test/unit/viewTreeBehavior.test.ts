@@ -252,7 +252,7 @@ describe('UnifiedTreeView behavior', () => {
 		});
 	});
 
-	it('retains logical keyboard focus after a pointer activation without a row tab stop', async () => {
+	it('clears visible keyboard focus after a pointer activation while retaining anchor', async () => {
 		vi.stubGlobal('HTMLElement', TinyElement);
 		vi.stubGlobal('MouseEvent', Event);
 		const { UnifiedTreeView } = await import('../../src/components/layout/viewTree');
@@ -262,8 +262,9 @@ describe('UnifiedTreeView behavior', () => {
 		const row = container.querySelector('.vaultman-tree-row');
 		if (!(row instanceof TinyElement)) throw new Error('Rendered row absent');
 		row.onclick?.(new MouseEvent('click'));
-		expect(view.focusedId).toBe('a.md');
-		expect(row.classList.contains('has-focus')).toBe(true);
+		expect(view.focusedId).toBeNull();
+		expect(view.anchorId).toBe('a.md');
+		expect(row.classList.contains('has-focus')).toBe(false);
 	});
 
 	it('refreshes cut state without rebuilding unchanged row markup', async () => {
@@ -1104,5 +1105,41 @@ describe('UnifiedTreeView behavior', () => {
 			),
 		).toBe(true);
 		expect(zone?.children[2]?.classList.contains('vaultman-badge')).toBe(true);
+	});
+
+	it('resumes keyboard navigation from mouse click anchor without prior visible focus', async () => {
+		vi.stubGlobal('HTMLElement', TinyElement);
+		vi.stubGlobal('MouseEvent', Event);
+		const { UnifiedTreeView } = await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(container as unknown as HTMLElement);
+		view.render({
+			nodes: [
+				{ id: 'a.md', label: 'a', depth: 0, meta: {} },
+				{ id: 'b.md', label: 'b', depth: 0, meta: {} },
+			],
+			expandedIds: new Set(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+		const rowA = container.findByDataId('a.md');
+		const rowB = container.findByDataId('b.md');
+		rowA?.onclick?.(new MouseEvent('click'));
+		expect(rowA?.classList.contains('has-focus')).toBe(false);
+		expect(view.focusedId).toBeNull();
+		expect(view.anchorId).toBe('a.md');
+
+		(view as any)._onTreeKeyDown({
+			key: 'ArrowDown',
+			shiftKey: false,
+			altKey: false,
+			ctrlKey: false,
+			metaKey: false,
+			preventDefault: () => {},
+			stopPropagation: () => {},
+		});
+		expect(view.focusedId).toBe('b.md');
+		expect(rowB?.classList.contains('has-focus')).toBe(true);
 	});
 });

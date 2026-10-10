@@ -661,6 +661,10 @@ export class UnifiedTreeView {
 		return this._keyboard.focusedId;
 	}
 
+	get anchorId(): string | null {
+		return this._keyboard.anchorId;
+	}
+
 	setFocusedId(id: string | null, reveal = true): void {
 		const prevId = this._keyboard.focusedId;
 		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
@@ -705,6 +709,8 @@ export class UnifiedTreeView {
 		this._rowObserver = null;
 		this.containerEl.removeEventListener('keydown', this._onTreeKeyDown);
 		this.containerEl.removeEventListener('focusin', this._onTreeFocusIn);
+		this.containerEl.removeEventListener('click', this._onViewportClick);
+		this.containerEl.removeEventListener('pointerdown', this._onPointerDown);
 		this._coreMetadataView.destroy();
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
@@ -1300,6 +1306,7 @@ export class UnifiedTreeView {
 		this.containerEl.addEventListener('keydown', this._onTreeKeyDown);
 		this._keyboardBoundaryOff = bindTreeKeyboardBoundary(this.containerEl, event => this._onTreeKeyDown(event, true));
 		this.containerEl.addEventListener('focusin', this._onTreeFocusIn);
+		this.containerEl.addEventListener('pointerdown', this._onPointerDown);
 		this._containerWidth = this.containerEl.clientWidth;
 		this._ensureRowObserver();
 		// Theme/font changes arrive through the bridge rebuild, not scroll.
@@ -1416,10 +1423,19 @@ export class UnifiedTreeView {
 		this._renderWindow();
 	}
 
+	private readonly _onPointerDown = (): void => {
+		if (this._keyboard.focusedId !== null) {
+			this.setFocusedId(null, false);
+		}
+	};
+
 	private readonly _onViewportClick = (event: MouseEvent): void => {
 		const target = event.target;
 		if (!(target instanceof HTMLElement)) return;
 		if (target.closest('.vaultman-tree-row')) return;
+		if (this._keyboard.focusedId !== null) {
+			this.setFocusedId(null, false);
+		}
 		this._opts?.onEmptySpaceClick?.();
 	};
 
@@ -1544,7 +1560,7 @@ export class UnifiedTreeView {
 		const row = target.closest('.vaultman-tree-row');
 		const id = row instanceof HTMLElement ? row.dataset.id : undefined;
 		if (!id || !this._indexById.has(id)) return;
-		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
+		this._keyboard = { ...this._keyboard, anchorId: id };
 		// Manual DOM focus breaks the letter-jump chain.
 		this._letterPrevious = null;
 		this._letterScopeFp = null;
@@ -1642,6 +1658,12 @@ export class UnifiedTreeView {
 		let focusedId = this._keyboard.focusedId;
 		if (focusedId === null && rowEl?.dataset.id) {
 			focusedId = rowEl.dataset.id;
+		}
+		if (focusedId === null && this._keyboard.anchorId && this._indexById.has(this._keyboard.anchorId)) {
+			focusedId = this._keyboard.anchorId;
+		}
+		if (focusedId === null && this._activeId && this._indexById.has(this._activeId)) {
+			focusedId = this._activeId;
 		}
 		// U130 Navco: typed override seam runs BEFORE legacy extensions and
 		// native. `true` consumes with action context; `false` falls through.
@@ -2453,7 +2475,8 @@ export class UnifiedTreeView {
 				event.stopPropagation();
 				return;
 			}
-			this.setFocusedId(node.id, false);
+			this.setFocusedId(null, false);
+			this._keyboard = { ...this._keyboard, anchorId: node.id };
 			if (node.isGroupHeader === true) {
 				this._activateGroupRow(node, opts);
 				return;
