@@ -98,6 +98,7 @@ describe('per-scene effective-sort adapters', () => {
 
 describe('visible focus in both native modes', () => {
 	it('rings has-focus under locked and compat bridges', () => {
+		expect(treeScss).toContain('.vaultman-native-tree-locked .vaultman-tree-row.has-focus');
 		expect(treeScss).toContain('.vaultman-native-tree-locked .vaultman-tree-self.has-focus');
 		expect(treeScss).toContain('.vaultman-native-tree-compat .vaultman-tree-self.has-focus');
 	});

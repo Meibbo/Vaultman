@@ -927,9 +927,16 @@ body.vaultman-resizing {
   color: inherit;
 }
 
-/* Functional focus/cut/source states also exist when the native bridge is off. */
+/* Functional focus/cut/source states also exist when the native bridge is off.
+   In locked mode, the focus ring wraps the entire row element so it covers all
+   cells and depth indent identically to native and compatible tree. */
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-row.has-focus,
 body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-self.has-focus {
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-row.has-focus .vaultman-tree-self.has-focus {
+  box-shadow: none;
 }
 
 /* U130 tree Navco: the same visible focus ring when the native bridge is in
