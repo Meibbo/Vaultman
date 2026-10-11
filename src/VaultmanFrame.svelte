@@ -192,10 +192,11 @@
 	 * de sus opciones disponibles. Sin host montado no hay instancia: false.
 	 */
 	export function setSceneEngine(
-		surface: SceneEngineSurface,
+		surface: SceneEngineSurface | undefined,
 		mode: ExplorerViewMode,
 	): boolean {
-		return panelWidgetHostRef?.setSceneEngine?.(surface, mode) ?? false;
+		const targetTab = (surface ?? filtersActiveTab) as FiltersTab;
+		return panelWidgetHostRef?.setSceneEngine?.(targetTab as SceneEngineSurface, mode) ?? false;
 	}
 
 	export async function invokeToolbarSasiAction(
@@ -208,7 +209,7 @@
 	 * U130: comando SASI — lleva la instancia de escena activa a uno de los
 	 * tabs disponibles. Es el mismo camino que el menu de escenas.
 	 */
-	export function switchScene(tab: StatisticsDataTab): boolean {
+	export function switchScene(tab: StatisticsDataTab | 'apiscene'): boolean {
 		if (!SCENE_GOTO_TABS.includes(tab)) return false;
 		navigateToDataTab(tab);
 		return true;
@@ -431,8 +432,8 @@
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
 
 	type FiltersTab =
-		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins';
-	type SearchTab = Exclude<FiltersTab, 'content'>;
+		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins' | 'apiscene';
+	type SearchTab = Exclude<FiltersTab, 'content' | 'apiscene'>;
 	// Se siembra desde el puerto: si esta instancia ya estuvo en una scene, vuelve a ella en vez
 	// de empezar siempre en Files. Lo pidio el dev el 2026-08-20 tras ver que dos instancias
 	// recuperaban su configuracion pero las dos aterrizaban en fileScene.
@@ -443,6 +444,7 @@
 		'content',
 		'snippets',
 		'plugins',
+		'apiscene',
 	];
 	let filtersActiveTab = $state<FiltersTab>('files');
 
@@ -653,7 +655,7 @@
 		applyPageTransform(!minimalStyle);
 	}
 
-	function navigateToDataTab(tab: StatisticsDataTab) {
+	function navigateToDataTab(tab: StatisticsDataTab | 'apiscene') {
 		closeQueueIsland();
 		closeFiltersIsland();
 		filtersActiveTab = tab;
@@ -749,7 +751,8 @@
 	}
 
 	export function refreshActiveExplorerViewport(): boolean {
-		return refreshExplorerViewport(filtersActiveTab, {
+		if (filtersActiveTab === 'apiscene' || filtersActiveTab === 'content') return false;
+		return refreshExplorerViewport(filtersActiveTab as any, {
 			files: fileList,
 			props: propExplorer,
 			tags: tagsExplorer,
@@ -1398,8 +1401,8 @@
 
 	function applyExplorerSearch() {
 		const tab = filtersActiveTab;
-		if (tab === 'content') return;
-		const term = filtersSearchByTab[tab] ?? '';
+		if (tab === 'content' || tab === 'apiscene') return;
+		const term = filtersSearchByTab[tab as SearchTab] ?? '';
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
 		// Route search with per-tab category scoping

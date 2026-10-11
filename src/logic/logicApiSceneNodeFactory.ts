@@ -3,22 +3,14 @@ import {
 	API_SCENE_IDENTITY_KIND,
 	PUBLISH_CELL_ID,
 	apiSceneUrnFor,
+	type ApiSceneGroupName,
 	type ApiSceneNodeMeta,
 	type ApiScenePublisherView,
 } from './logicApiSceneModel';
 import type { TreeNode } from '../types/typeTree';
 
 export interface ApiSceneLeafSpec {
-	group:
-		| 'action'
-		| 'operation'
-		| 'command'
-		| 'kind'
-		| 'provider'
-		| 'instance'
-		| 'scene'
-		| 'surface'
-		| 'scope';
+	group: ApiSceneGroupName;
 	rowId: string;
 	canonicalId: string;
 	sasiId: string;

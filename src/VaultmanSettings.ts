@@ -1064,6 +1064,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.sasi_scene_menu'),
+			desc: translate('settings.sasi_scene_menu.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.showSasiInSceneMenu ?? false)
+						.onChange(async (val) => {
+							this.plugin.settings.showSasiInSceneMenu = val;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.data_transfer'),
 			desc: translate('settings.data_transfer.desc'),
 			render: (setting: Setting) => {

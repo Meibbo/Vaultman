@@ -526,6 +526,8 @@ export interface VaultmanSettings {
 	sasiPublishedCommands?: Record<string, boolean>;
 	sasiCommandCustomNames?: Record<string, string>;
 	sasiCustomCommands?: Record<string, { id: string; name: string; composes: readonly string[]; scope?: string }>;
+	sasiCommandCustomScopes?: Record<string, string>;
+	showSasiInSceneMenu?: boolean;
 	/** API inspector options are not workspace instance declarations. */
 	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
@@ -758,4 +760,6 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	sasiPublishedCommands: {},
 	sasiCommandCustomNames: {},
 	sasiCustomCommands: {},
+	sasiCommandCustomScopes: {},
+	showSasiInSceneMenu: false,
 };

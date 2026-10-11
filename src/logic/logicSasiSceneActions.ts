@@ -29,14 +29,25 @@ export const SCENE_ENGINE_SURFACES = ['files', 'props', 'tags'] as const;
 
 export type SceneEngineSurface = (typeof SCENE_ENGINE_SURFACES)[number];
 
-export const SCENE_GOTO_TABS: readonly StatisticsDataTab[] = [
+export const SCENE_GOTO_TABS: readonly (StatisticsDataTab | 'apiscene')[] = [
 	'files',
 	'props',
 	'tags',
 	'content',
 	'snippets',
 	'plugins',
+	'apiscene',
 ];
+
+export const ENGINE_MODES: readonly ExplorerViewMode[] = ['tree', 'cards', 'table'];
+
+export function engineActionId(mode: ExplorerViewMode): string {
+	return 'vaultman.scene.engine.' + mode;
+}
+
+export function engineLabelKey(mode: ExplorerViewMode): string {
+	return 'sasi.scene.engine.' + mode;
+}
 
 export function sceneEngineActionId(
 	surface: SceneEngineSurface,
@@ -52,21 +63,22 @@ export function sceneEngineLabelKey(
 	return `sasi.scene.engine.${surface}.${mode}`;
 }
 
-export function sceneGotoActionId(tab: StatisticsDataTab): string {
-	return `vaultman.scene.goto.${tab}`;
+export function sceneGotoActionId(tab: StatisticsDataTab | 'apiscene'): string {
+	return 'vaultman.scene.goto.' + tab;
 }
 
-export function sceneGotoLabelKey(tab: StatisticsDataTab): string {
-	return `sasi.scene.goto.${tab}`;
+export function sceneGotoLabelKey(tab: StatisticsDataTab | 'apiscene'): string {
+	return 'sasi.scene.goto.' + tab;
 }
 
-const GOTO_ICONS: Record<StatisticsDataTab, string> = {
+const GOTO_ICONS: Record<StatisticsDataTab | 'apiscene', string> = {
 	files: 'lucide-folder',
 	props: 'lucide-archive',
 	tags: 'lucide-tag',
 	content: 'lucide-file-search',
 	snippets: 'lucide-file-code',
 	plugins: 'lucide-plug',
+	apiscene: 'lucide-cpu',
 };
 
 export function registerSceneInstanceActions(registry: SasiRegistry): void {
@@ -84,6 +96,16 @@ export function registerSceneInstanceActions(registry: SasiRegistry): void {
 				supports: [{ surface: 'panelWidget' }],
 			});
 		}
+	}
+	for (const mode of ENGINE_MODES) {
+		registry.register({
+			id: engineActionId(mode),
+			axis: 'function',
+			kind: 'action',
+			labelKey: engineLabelKey(mode),
+			icon: mode === 'tree' ? 'lucide-folder-tree' : mode === 'cards' ? 'lucide-layout-grid' : 'lucide-table',
+			supports: [{ surface: 'panelWidget' }],
+		});
 	}
 	for (const tab of SCENE_GOTO_TABS) {
 		registry.register({

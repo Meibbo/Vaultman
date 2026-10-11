@@ -106,6 +106,7 @@ const SCENE_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'scene_menu.tab.snippets', labelKey: 'filter.tab.snippets', icon: 'lucide-file-code', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.tab.plugins', labelKey: 'filter.tab.plugins', icon: 'lucide-plug', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.launcher.statistics', labelKey: 'nav.statistics', icon: 'lucide-chart-column', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	{ id: 'scene_menu.tab.apiscene', labelKey: 'sasi.apiscene.scene', icon: 'lucide-cpu', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 ];
 
 const INTERACTION_ICONS: Readonly<Record<InteractionMode, string>> = {

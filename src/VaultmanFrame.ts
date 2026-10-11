@@ -42,9 +42,9 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	setShowToolbar?(value: boolean): void;
 	revealCurrentFileProperty?(request: FrontmatterPropertyRevealRequest): boolean;
 	isPropRevealActive?(): boolean;
-	setSceneEngine?(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean;
+	setSceneEngine?(surface: SceneEngineSurface | undefined, mode: ExplorerViewMode): boolean;
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
-	switchScene?(tab: StatisticsDataTab): boolean;
+	switchScene?(tab: StatisticsDataTab | 'apiscene'): boolean;
 	addPropertyInReveal?(): Promise<boolean>;
 	openFilterScene?(): boolean;
 	openQueue?(): boolean;
@@ -313,7 +313,7 @@ export class VaultmanFrame extends ItemView {
 		return this.svelteApp?.revealCurrentFileProperty?.(request) ?? false;
 	}
 
-	setSceneEngine(surface: SceneEngineSurface, mode: ExplorerViewMode): boolean {
+	setSceneEngine(surface: SceneEngineSurface | undefined, mode: ExplorerViewMode): boolean {
 		return this.svelteApp?.setSceneEngine?.(surface, mode) ?? false;
 	}
 
@@ -321,7 +321,7 @@ export class VaultmanFrame extends ItemView {
 		return (await this.svelteApp?.invokeToolbarSasiAction?.(actionId)) ?? false;
 	}
 
-	switchScene(tab: StatisticsDataTab): boolean {
+	switchScene(tab: StatisticsDataTab | 'apiscene'): boolean {
 		const handled = this.svelteApp?.switchScene?.(tab) ?? false;
 		if (handled) {
 			this.refreshTabIdentity(tab);

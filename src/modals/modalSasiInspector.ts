@@ -1,5 +1,4 @@
-import { Modal, Notice, Menu, type App } from 'obsidian';
-import { showInputModal } from '../utils/inputModal';
+import { Modal, Notice, type App } from 'obsidian';
 import { translate } from '../i18n/index';
 import type {
 	SasiAxis,
@@ -11,23 +10,15 @@ import { mount, unmount } from 'svelte';
 import { PluginsExplorerPanel } from '../components/containers/explorerPlugins';
 import ApiSceneHost from '../components/layout/apiSceneHost.svelte';
 import { createApiSceneConfigPort } from '../logic/logicApiSceneConfig';
+import { createApiSceneDataSource } from '../logic/logicApiSceneDataSource';
 import type { VaultmanPlugin } from '../main';
-import { formatAddonTimestamp } from '../logic/logicAddonExplorer';
 import { isBlankPanelSelectionTarget } from '../logic/logicPanelBlankSelection';
-import {
-	API_SCENE_GROUP_LABEL_KEYS,
-	PUBLISH_CELL_ID,
-	apiSceneUrnOf,
-	buildApiSceneNodes,
-	nestApiScenePluginKinds,
-	isApiSceneNode,
-	type ApiSceneGroupMeta,
-	type ApiSceneNodeMeta,
-	type ApiScenePublisherView,
+import type {
+	ApiSceneNodeMeta,
+	ApiScenePublisherEntry,
+	ApiScenePublisherView,
 } from '../logic/logicApiScene';
-import { entityIdOf } from '../logic/logicTreeGroupProjection';
-import type { PluginMeta, TreeNode } from '../types/typeTree';
-import type { InstanceRegistryData } from '../types/typeInstance';
+import type { TreeNode } from '../types/typeTree';
 
 export interface SasiInspectorEntry {
 	id: string;
@@ -61,26 +52,10 @@ const AXES: readonly { axis: SasiAxis; labelKey: string }[] = [
 	{ axis: 'function', labelKey: 'sasi.inspector.axis.function' },
 ];
 
-/**
- * U130-01: el modelo que el modal pinta. Puro a proposito -- el modal no
- * calcula nada, y asi esto se prueba sin DOM y sin Obsidian.
- *
- * Los tres ejes salen SIEMPRE, tambien los vacios: un eje que desaparece no le
- * dice al agente que consulta que existe pero esta sin poblar, que es justo lo
- * que necesita saber para no reinventar un kind que ya existe.
- *
- * `published` cruza el publisher con la registry: un toggle ON significa que
- * el id esta registrado y publicado como comando de Obsidian, OFF que no. Asi
- * el modal puede pintar y mutar el toggle sin tocar la registry.
- *
- * U130L: legado historico. El modal ahora aloja el apiScene
- * (`logicApiScene` + `UnifiedTreeView`); este modelo por ejes se conserva
- * para los tests que lo cubren y como vista resumida.
- */
 export function buildSasiInspectorModel(
 	registry: SasiRegistry,
 	publisher?: SasiCommandPublisher,
-): readonly SasiInspectorSection[] {
+): SasiInspectorSection[] {
 	return AXES.map(({ axis, labelKey }) => ({
 		axis,
 		labelKey,
@@ -90,29 +65,37 @@ export function buildSasiInspectorModel(
 			icon: def.icon ?? null,
 			kind: def.kind ?? null,
 			mutatesVault: def.mutatesVault === true,
-			surfaces: def.supports.map((support) => support.surface),
+			surfaces: def.supports.map((s) => s.surface),
 			composes: def.composes ?? [],
 			published: publisher?.isPublished(def.id) ?? false,
 		})),
 	}));
 }
 
-type ApiMeta = ApiSceneNodeMeta | ApiSceneGroupMeta;
-type InstanceOpenOutcome =
+export type InstanceOpenOutcome =
 	| boolean
-	| { readonly ok: boolean; readonly reason?: string }
-	| void;
+	| {
+			ok: boolean;
+			reason?: string;
+	  };
 
-export function apiSceneInstanceFailureNoticeKey(reason: string): string {
+export function apiSceneInstanceFailureNoticeKey(
+	reason?: string,
+): string {
 	switch (reason) {
+		case 'tombstoned':
 		case 'tombstoned-instance':
 			return 'sasi.apiscene.instance_open_failed.tombstoned';
+		case 'unsupported':
 		case 'unsupported-surface':
 			return 'sasi.apiscene.instance_open_failed.unsupported';
+		case 'conflict':
 		case 'mount-conflict':
 			return 'sasi.apiscene.instance_open_failed.conflict';
+		case 'surface_unavailable':
 		case 'surface-unavailable':
 			return 'sasi.apiscene.instance_open_failed.surface_unavailable';
+		case 'stale':
 		case 'stale-reservation':
 			return 'sasi.apiscene.instance_open_failed.stale';
 		default:
@@ -125,40 +108,15 @@ export function createApiScenePublisherView(
 ): ApiScenePublisherView {
 	return {
 		isPublished: (id) => publisher.isPublished(id),
-		snapshot: () =>
-			publisher.snapshot().map((entry) => ({
-				id: entry.id,
-				published: entry.published,
-				descriptor: { name: entry.descriptor.name },
-			})),
+		snapshot: (): readonly ApiScenePublisherEntry[] => publisher.snapshot(),
 		isPublishable: (id) => publisher.isPublishable(id),
 	};
 }
 
-/**
- * U130L: SASI proyectado como apiScene dentro de un Modal nativo, sobre el
- * MISMO renderer compartido (`UnifiedTreeView`/`TreeNode`) que cualquier
- * explorer. Sin DOM propio por seccion (nada de h2/ul paralelos) y sin
- * explorer paralelo: las filas salen de `buildApiSceneNodes` (SASI real) y
- * los grupos son p-nodes virtuales `node_groups` via `projectGroupedTree`.
- *
- * No se expone en el `providers_menu` del sidebar para no saturar al
- * usuario comun (intent §7.2).
- */
 export class SasiInspectorModal extends Modal {
-	private readonly registry: SasiRegistry;
-	private readonly publisher: SasiCommandPublisher | undefined;
-	private readonly instances:
-		| InstanceRegistryData
-		| (() => InstanceRegistryData | undefined)
-		| undefined;
-	private readonly onOpenInstance?: (
-		id: string,
-	) => Promise<InstanceOpenOutcome> | InstanceOpenOutcome;
 	private panel: PluginsExplorerPanel | null = null;
 	private disposeToolbar: (() => Promise<void>) | null = null;
 	private host: HTMLElement | null = null;
-	private flat: readonly TreeNode<ApiSceneNodeMeta>[] = [];
 	private readonly plugin: VaultmanPlugin;
 
 	constructor(
@@ -167,10 +125,7 @@ export class SasiInspectorModal extends Modal {
 	) {
 		super(app);
 		this.plugin = plugin;
-		this.registry = plugin.sasiRegistry;
-		this.publisher = plugin.sasiCommandPublisher;
-		this.instances = () => plugin.settings.instanceRegistry;
-		this.onOpenInstance = (id) => plugin.openWorkspaceInstance(id);
+		
 	}
 
 	onOpen(): void {
@@ -180,297 +135,45 @@ export class SasiInspectorModal extends Modal {
 		contentEl.createEl('h2', { text: translate('sasi.inspector.title') });
 		const toolbarHost = contentEl.createDiv();
 		this.host = contentEl.createDiv({ cls: 'vaultman-sasi-apiscene' });
-		this.panel = new PluginsExplorerPanel(this.host, this.plugin, {
-			providerId: 'sasi',
-			groups: [],
-			nodes: () => this.addonNodes(),
-			memberships: () => ({}),
-			urnOf: (node) => this.flat.find((row) => row.id === entityIdOf(node))?.meta.urn ?? '',
-			activate: (id) => { void this.openInstanceFromRow(id); },
-			cell: (id, cellId) => this.handleCell(id, cellId === 'state' ? PUBLISH_CELL_ID : cellId),
-			tooltip: (node) => {
-				const row = this.flat.find((candidate) => candidate.id === entityIdOf(node));
-				return row ? this.rowTooltip(row) : node.label;
-			},
-			contextMenu: (node, event, selectedIds) => {
-				const group = (node.meta as unknown as ApiSceneNodeMeta)?.group;
-				if (group === 'action') {
-					const menu = new Menu();
-					const selectedActions: TreeNode<ApiSceneNodeMeta>[] = [];
-					for (const selId of selectedIds) {
-						const row = this.flat.find((c) => c.id === selId);
-						if (row && row.meta.group === 'action') {
-							selectedActions.push(row);
-						}
+
+		const dataSource = createApiSceneDataSource(this.plugin, {
+			onClose: () => this.close(),
+			onOpenInstance: async (id) => {
+				try {
+					const result = await this.plugin.openWorkspaceInstance(id);
+					if (result.ok) {
+						this.close();
+						return true;
 					}
-					if (selectedActions.length === 0) {
-						const clicked = this.flat.find((c) => c.id === node.id);
-						if (clicked) selectedActions.push(clicked);
-					}
-					const isMultiple = selectedActions.length > 1;
-					const title = isMultiple
-						? (translate('sasi.apiscene.cmenu.create_compound_command') || 'Crear comando único con seleccionados')
-						: (translate('sasi.apiscene.cmenu.create_command') || 'Crear comando');
-					menu.addItem((item) => {
-						item
-							.setTitle(title)
-							.setIcon('lucide-plus-circle')
-							.onClick(() => {
-								void this.promptCreateCommand(selectedActions, selectedIds);
-							});
-					});
-					menu.showAtMouseEvent(event);
-					return true;
+					new Notice(translate(apiSceneInstanceFailureNoticeKey(result.reason)));
+					return false;
+				} catch (error) {
+					const detail = error instanceof Error ? `: ${error.message}` : '';
+					new Notice(`${translate('sasi.apiscene.instance_open_failed')}${detail}`);
+					return false;
 				}
-				if (group === 'command') {
-					const menu = new Menu();
-					menu.addItem((item) => {
-						item
-							.setTitle(translate('sasi.apiscene.cmenu.rename') || translate('group.row.rename') || 'Renombrar')
-							.setIcon('lucide-edit-3')
-							.onClick(() => {
-								void this.promptRenameCommand(node);
-							});
-					});
-					menu.showAtMouseEvent(event);
-					return true;
-				}
-				return false;
 			},
 		});
+
+		this.panel = new PluginsExplorerPanel(this.host, this.plugin, dataSource);
 		this.panel.load();
 		const toolbar = mount(ApiSceneHost, {
 			target: toolbarHost,
-			props: { plugin: this.plugin, explorer: this.panel, sceneConfigPort: createApiSceneConfigPort(this.plugin) },
+			props: {
+				plugin: this.plugin,
+				explorer: this.panel,
+				sceneConfigPort: createApiSceneConfigPort(this.plugin),
+			},
 		});
 		this.disposeToolbar = () => unmount(toolbar);
 		contentEl.addEventListener('click', this.clearBlankSelection);
 	}
 
 	private readonly clearBlankSelection = (event: MouseEvent): void => {
-		if (event.target instanceof Element && isBlankPanelSelectionTarget(event.target)) this.panel?.clearSelection();
+		if (event.target instanceof Element && isBlankPanelSelectionTarget(event.target)) {
+			this.panel?.clearSelection();
+		}
 	};
-
-	/** Vista coherente del publisher: relee el snapshot en cada render. */
-	private publisherView(): ApiScenePublisherView | undefined {
-		const publisher = this.publisher;
-		if (!publisher) return undefined;
-		return createApiScenePublisherView(publisher);
-	}
-
-	private projectRowChildren(
-		children: TreeNode<ApiSceneNodeMeta>[] | undefined,
-		cTime?: number,
-		mTime?: number,
-	): TreeNode<PluginMeta>[] | undefined {
-		if (!children || children.length === 0) return undefined;
-		return children.map((ch) => ({
-			...ch,
-			children: this.projectRowChildren(ch.children, cTime, mTime),
-			showCaret: Boolean(ch.children?.length),
-			ctimeText: formatAddonTimestamp(cTime),
-			mtimeText: formatAddonTimestamp(mTime),
-			label: translate(ch.meta?.labelKey ?? '') || ch.label,
-			meta: {
-				...ch.meta,
-				pluginId: ch.id,
-				name: ch.label,
-				enabled: false,
-				loaded: false,
-				isVaultman: false,
-				installedTime: cTime,
-				updatedTime: mTime,
-			},
-		}));
-	}
-
-	private addonNodes(): TreeNode<PluginMeta>[] {
-		const publisherView = this.publisherView();
-		const instances =
-			typeof this.instances === 'function' ? this.instances() : this.instances;
-		const flat = buildApiSceneNodes(
-			this.registry,
-			publisherView,
-			instances,
-		);
-		this.flat = flat;
-		const nodes = flat.map((node) => {
-			const lifecycle = this.plugin.sasiProvider.lifecycleFor(node.meta.sasiId);
-			const instance = node.meta.group === 'instance' ? instances?.instances[node.meta.sasiId] : undefined;
-			const createdAt = instance?.createdAt ?? lifecycle?.createdAt;
-			const updatedAt = instance?.lastActiveAt ?? lifecycle?.updatedAt;
-			return {
-			...node,
-			children: this.projectRowChildren(node.children, createdAt, updatedAt),
-			showCaret: Boolean(node.children?.length),
-			ctimeText: formatAddonTimestamp(createdAt),
-			mtimeText: formatAddonTimestamp(updatedAt),
-			label: translate(node.meta.labelKey) || node.label,
-			cells: node.cells?.map((cell) =>
-				'label' in cell
-					? { ...cell, id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id, label: translate(cell.label) || cell.label }
-					: cell,
-			),
-			// Compatibility projection for the shared addon engine; semantic API identity stays intact.
-			meta: { ...node.meta, pluginId: node.id, name: node.label, enabled: node.meta.published, loaded: false, isVaultman: false, installedTime: createdAt, updatedTime: updatedAt },
-			};
-		});
-		return nestApiScenePluginKinds(nodes);
-	}
-
-	private async openInstanceFromRow(rowId: string): Promise<void> {
-		const instanceId = apiSceneInstanceIdFromRow(rowId, this.flat);
-		if (!instanceId || !this.onOpenInstance) return;
-		let result: InstanceOpenOutcome;
-		try {
-			result = await this.onOpenInstance(instanceId);
-		} catch (error) {
-			const detail = error instanceof Error ? `: ${error.message}` : '';
-			new Notice(`${translate('sasi.apiscene.instance_open_failed')}${detail}`);
-			return;
-		}
-		if (result === true || (typeof result === 'object' && result?.ok === true)) {
-			this.close();
-		} else if (result === false || (typeof result === 'object' && result?.ok === false)) {
-			const reason = typeof result === 'object' ? result.reason : undefined;
-			new Notice(translate(apiSceneInstanceFailureNoticeKey(reason ?? '')));
-		}
-	}
-
-	private handleCell(rowId: string, cellId: string): void {
-		if (cellId !== PUBLISH_CELL_ID || !this.publisher) return;
-		const node = this.flat.find((leaf) => leaf.id === rowId);
-		if (!node || !node.meta.publishable) return;
-		const next = !node.meta.published;
-		this.publisher.setPublished(node.meta.sasiId, next);
-		// Relee registry + publisher: sin snapshot obsoleta tras el click.
-		void this.panel?.refresh();
-	}
-
-	private rowTooltip(node: TreeNode<ApiMeta>): string {
-		if (!isApiSceneNode(node)) {
-			const meta = node.meta;
-			return translate(API_SCENE_GROUP_LABEL_KEYS[meta.group]) || node.label;
-		}
-		const meta = node.meta;
-		if (meta.group === 'instance') {
-			const parts = [meta.sasiId];
-			if (meta.tombstoned === true) parts.push('tombstoned');
-			if (meta.revision !== undefined) parts.push(`rev ${meta.revision}`);
-			if (meta.activeScene !== undefined) parts.push(meta.activeScene);
-			parts.push(apiSceneUrnOf(node));
-			return parts.filter(Boolean).join(' · ');
-		}
-		const parts = [meta.sasiId];
-		parts.push(meta.sasiKind ?? meta.group);
-		if (meta.mutatesVault)
-			parts.push(translate('sasi.inspector.mutates_vault'));
-		if (meta.supports.length > 0) {
-			parts.push(meta.supports.join(', '));
-		}
-		if (meta.composes.length > 0) {
-			parts.push(`composes: ${meta.composes.join(', ')}`);
-		}
-		parts.push(apiSceneUrnOf(node));
-		return parts.filter(Boolean).join(' · ');
-	}
-
-	private async promptCreateCommand(
-		actions: TreeNode<ApiSceneNodeMeta>[],
-		selectedIds: ReadonlySet<string>,
-	): Promise<void> {
-		if (actions.length === 0) return;
-		const actionIds = actions.map((a) => a.meta.sasiId);
-		const defaultName = actions.map((a) => translate(a.meta.labelKey) || a.label).join(' + ');
-
-		let detectedScope: string | undefined = undefined;
-		for (const selId of selectedIds) {
-			const candidate = this.flat.find((c) => c.id === selId);
-			if (candidate) {
-				if (candidate.meta.group === 'scope') {
-					detectedScope = candidate.meta.sasiId;
-					break;
-				} else if (candidate.meta.group === 'instance') {
-					detectedScope = 'instance:' + candidate.meta.sasiId;
-					break;
-				}
-			}
-		}
-
-		const chosenName = await showInputModal(
-			this.app,
-			translate('sasi.apiscene.create_command.title') || 'Crear comando',
-			{
-				initialValue: defaultName,
-				placeholder: translate('sasi.apiscene.create_command.placeholder') || 'Nombre del comando...',
-			},
-		);
-
-		if (!chosenName || chosenName.trim() === '') return;
-
-		const commandName = chosenName.trim();
-		const commandId = 'custom-' + Date.now();
-		const scope = detectedScope ?? 'workspace:last_focused';
-
-		this.publisher?.register({
-			id: commandId,
-			name: commandName,
-			composes: actionIds,
-			handler: async () => {
-				for (const actId of actionIds) {
-					await this.plugin.invokeActionById(actId, scope);
-				}
-			},
-		});
-		this.publisher?.setPublished(commandId, true);
-
-		if (!this.plugin.settings.sasiCustomCommands) {
-			this.plugin.settings.sasiCustomCommands = {};
-		}
-		this.plugin.settings.sasiCustomCommands[commandId] = {
-			id: commandId,
-			name: commandName,
-			composes: actionIds,
-			scope,
-		};
-		await this.plugin.saveData(this.plugin.settings);
-
-		void this.panel?.refresh();
-		new Notice(translate('sasi.apiscene.command_created') || 'Comando creado con éxito');
-	}
-
-	private async promptRenameCommand(
-		node: TreeNode<PluginMeta>,
-	): Promise<void> {
-		const sasiId = (node.meta as unknown as ApiSceneNodeMeta)?.sasiId ?? node.id;
-		const currentName = node.label;
-
-		const newName = await showInputModal(
-			this.app,
-			translate('sasi.apiscene.rename_command.title') || translate('group.row.rename') || 'Renombrar comando',
-			{
-				initialValue: currentName,
-				placeholder: currentName,
-			},
-		);
-
-		if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
-
-		const trimmed = newName.trim();
-		this.publisher?.rename(sasiId, trimmed);
-
-		if (!this.plugin.settings.sasiCommandCustomNames) {
-			this.plugin.settings.sasiCommandCustomNames = {};
-		}
-		this.plugin.settings.sasiCommandCustomNames[sasiId] = trimmed;
-		if (this.plugin.settings.sasiCustomCommands?.[sasiId]) {
-			this.plugin.settings.sasiCustomCommands[sasiId].name = trimmed;
-		}
-		await this.plugin.saveData(this.plugin.settings);
-
-		void this.panel?.refresh();
-		new Notice(translate('sasi.apiscene.command_renamed') || 'Comando renombrado');
-	}
 
 	onClose(): void {
 		this.contentEl.removeEventListener('click', this.clearBlankSelection);

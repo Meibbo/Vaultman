@@ -40,7 +40,8 @@ export function apiSceneMemberships(
 		memberships[API_SCENE_GROUP_IDS[name]] = [];
 	}
 	for (const node of nodes) {
-		memberships[API_SCENE_GROUP_IDS[node.meta.group]]?.push(node.meta.urn);
+		const g = node.meta.group;
+		memberships[API_SCENE_GROUP_IDS[g]]?.push(node.meta.urn);
 	}
 	return memberships;
 }

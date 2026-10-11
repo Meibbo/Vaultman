@@ -663,12 +663,13 @@ describe("U130-C1: scopes group y p-nodes de comandos", () => {
 		expect(cmd).toBeDefined();
 		expect(cmd?.showCaret).toBe(true);
 		expect(cmd?.children?.length).toBeGreaterThan(0);
-		// Debe tener hijos para sus actions y al menos un hijo para su scope
-		const actionChild = cmd?.children?.find((c) => c.meta.group === "action");
-		expect(actionChild).toBeDefined();
-		expect(actionChild?.children?.some((c) => c.meta.group === "scope")).toBe(true);
-		const scopeChild = cmd?.children?.find((c) => c.meta.group === "scope");
-		expect(scopeChild).toBeDefined();
+		// Tiene dos node_group: uno para actions y otro para scope
+		const actionGroup = cmd?.children?.find((c) => c.typeText === "node_group" && c.id.includes(":group:actions"));
+		expect(actionGroup).toBeDefined();
+		expect(actionGroup?.children?.length).toBeGreaterThan(0);
+		const scopeGroup = cmd?.children?.find((c) => c.typeText === "node_group" && c.id.includes(":group:scope"));
+		expect(scopeGroup).toBeDefined();
+		expect(scopeGroup?.children?.length).toBeGreaterThan(0);
 	});
 
 	it("el publisher permite renombrar comandos actualizando su proyeccion", () => {

@@ -3790,7 +3790,10 @@
 			);
 		}
 		// Add-on explorers section (snippets, then settings).
-		if (addonTabOptions.length > 0) {
+		const showSasiInSceneMenu = Boolean(
+			(app as any)?.plugins?.plugins?.['vaultman']?.settings?.showSasiInSceneMenu,
+		);
+		if (addonTabOptions.length > 0 || showSasiInSceneMenu) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
 			for (const option of addonTabOptions) {
 				const title =
@@ -3803,6 +3806,16 @@
 						icon: option.icon,
 						checked: option.id === activeSectionTab,
 						onClick: () => onSectionTabChange?.(option.id),
+					}),
+				);
+			}
+			if (showSasiInSceneMenu) {
+				nodes.push(
+					nativeMenuItem('scene_menu.tab.apiscene', {
+						title: translate('scene_menu.tab.apiscene') || 'SASI Registry',
+						icon: 'lucide-cpu',
+						checked: activeSectionTab === 'apiscene',
+						onClick: () => onSectionTabChange?.('apiscene'),
 					}),
 				);
 			}

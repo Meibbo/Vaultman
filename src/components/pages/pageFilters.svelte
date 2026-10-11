@@ -20,6 +20,7 @@
 	import TabContent from './tabContent.svelte';
 	import SnippetsTab from './tabSnippets.svelte';
 	import PluginsTab from './tabPlugins.svelte';
+	import TabApiScene from './tabApiScene.svelte';
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
@@ -80,8 +81,8 @@
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab =
-		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins';
-	type SearchTab = Exclude<FiltersTab, 'content'>;
+		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins' | 'apiscene';
+	type SearchTab = Exclude<FiltersTab, 'content' | 'apiscene'>;
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
 		label: string;
@@ -328,6 +329,7 @@
 	let contentRegexError = $state('');
 	let contentSortBy = $state<ContentSortBy>('count');
 	let contentSortDirection = $state<ContentSortDirection>('desc');
+	let apiSceneExplorer = $state<PluginsExplorerPanel | undefined>();
 	let collapsedContentFilePaths = $state<string[]>([]);
 	let activeContentRevealPath = $state<string | null>(null);
 	let activeContentFilePath = $state<string | null>(null);
@@ -340,6 +342,7 @@
 		content: filtersActiveTab === 'content',
 		snippets: filtersActiveTab === 'snippets',
 		plugins: filtersActiveTab === 'plugins',
+		apiscene: filtersActiveTab === 'apiscene',
 	});
 
 	function createNativeSearchAdapter(): NativeSearchAdapter {
@@ -377,6 +380,7 @@
 	$effect(() => {
 		const tab = filtersActiveTab;
 		window.requestAnimationFrame(() => {
+			if (tab === 'apiscene') return;
 			refreshExplorerViewport(tab, {
 				files: fileList,
 				props: propExplorer,
@@ -388,7 +392,7 @@
 	});
 
 	const explorerActiveTab = $derived<SearchTab>(
-		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
+		filtersActiveTab === 'content' || filtersActiveTab === 'apiscene' ? 'props' : filtersActiveTab,
 	);
 	const explorerSearchTab = $derived<SearchTab>(explorerActiveTab);
 	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
@@ -2082,8 +2086,8 @@
 	let nativeHostEl = $state<HTMLElement | null>(null);
 	$effect(() => {
 		void settingsRevision;
-		if (!nativeHostEl) return;
-		const scene = toNativeSceneId(filtersActiveTab);
+		if (!nativeHostEl || filtersActiveTab === 'apiscene') return;
+		const scene = toNativeSceneId(filtersActiveTab as any);
 		const leaf = nativeHostEl.closest<HTMLElement>('.workspace-leaf-content');
 		if (!leaf) return;
 		if (scene) {
@@ -2108,7 +2112,7 @@
 
 {#if !minimalStyle}
 	<NavbarTabs
-		activeTab={filtersActiveTab}
+		activeTab={filtersActiveTab as any}
 		showLabels={showTabLabels}
 		{minimalStyle}
 		onTabChange={switchFiltersTab}
@@ -2220,6 +2224,20 @@
 				active={filtersActiveTab === 'plugins'}
 				searchTerm={filtersSearchByTab.plugins}
 				bind:panel={pluginsExplorer}
+			/>
+		</div>
+	{/if}
+	{#if visitedTabs.apiscene || filtersActiveTab === 'apiscene'}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'apiscene'}
+			aria-hidden={filtersActiveTab !== 'apiscene'}
+		>
+			<TabApiScene
+				{plugin}
+				active={filtersActiveTab === 'apiscene'}
+				searchTerm={filtersSearchByTab.plugins}
+				bind:panel={apiSceneExplorer}
 			/>
 		</div>
 	{/if}

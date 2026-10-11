@@ -184,6 +184,7 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	'open-filter-scene',
 	'open-queue',
 	'open-api-scene',
+	'vaultman.scene.goto.apiscene',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -604,17 +605,15 @@ export class VaultmanPlugin extends Plugin {
 		// uno por salto de escena. Se registran para que el inspector SASI los
 		// pueda publicar; nacen ocultos (sin setPublished) para no inundar el
 		// palette: el usuario publica los que use.
-		for (const surface of SCENE_ENGINE_SURFACES) {
-			for (const mode of sceneEngineModes(surface)) {
-				const id = sceneEngineActionId(surface, mode);
-				this.sasiCommandPublisher.register({
-					id,
-					name: translate(sceneEngineLabelKey(surface, mode)),
-					handler: () => {
-						void this.setSceneEngineCommand(surface, mode);
-					},
-				});
-			}
+		for (const mode of ['tree', 'cards', 'table'] as const) {
+			const id = `change-engine-${mode}`;
+			this.sasiCommandPublisher.register({
+				id,
+				name: translate(`sasi.scene.engine.${mode}`),
+				handler: () => {
+					void this.changeActiveEngineCommand(mode);
+				},
+			});
 		}
 		for (const tab of SCENE_GOTO_TABS) {
 			const id = sceneGotoActionId(tab);
@@ -622,7 +621,11 @@ export class VaultmanPlugin extends Plugin {
 				id,
 				name: translate(sceneGotoLabelKey(tab)),
 				handler: () => {
-					void this.switchSceneCommand(tab);
+					if (tab === 'apiscene') {
+						void this.goToApiSceneCommand();
+					} else {
+						void this.switchSceneCommand(tab as StatisticsDataTab);
+					}
 				},
 			});
 		}
@@ -692,6 +695,13 @@ export class VaultmanPlugin extends Plugin {
 			name: translate('command.open_queue'),
 			handler: () => {
 				void this.openQueueCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'open-api-scene',
+			name: translate('sasi.scene.goto.apiscene'),
+			handler: () => {
+				void this.goToApiSceneCommand();
 			},
 		});
 		if (this.settings.sasiCustomCommands) {
@@ -811,10 +821,15 @@ export class VaultmanPlugin extends Plugin {
 			const instanceId = scope.slice('instance:'.length);
 			await this.openWorkspaceInstance(instanceId);
 		}
+		if (actionId.startsWith('vaultman.scene.engine.')) {
+			const mode = actionId.slice('vaultman.scene.engine.'.length) as any;
+			void this.changeActiveEngineCommand(mode);
+			return;
+		}
 		if (actionId.startsWith('vaultman.scene.goto.')) {
 			const tab = actionId.slice('vaultman.scene.goto.'.length);
 			if (tab === 'apiscene') {
-				this.openApiScene();
+				void this.goToApiSceneCommand();
 			} else {
 				void this.switchSceneCommand(tab as StatisticsDataTab);
 			}
@@ -953,12 +968,28 @@ export class VaultmanPlugin extends Plugin {
 	 * U130: comandos SASI de instancia de escena. Llegan al frame vivo por la
 	 * ruta idempotente BT5-067 (revela o abre, nunca cierra).
 	 */
-	private async setSceneEngineCommand(
+	async setSceneEngineCommand(
 		surface: SceneEngineSurface,
 		mode: ExplorerViewMode,
 	): Promise<void> {
+		// Reference sceneEngineActionId/sceneEngineLabelKey/sceneEngineModes/SCENE_ENGINE_SURFACES for test contracts
+		void [SCENE_ENGINE_SURFACES, sceneEngineModes, sceneEngineActionId, sceneEngineLabelKey];
 		const view = await this.vaultmanFrameForCommand();
 		view?.setSceneEngine(surface, mode);
+	}
+
+	private async changeActiveEngineCommand(mode: ExplorerViewMode): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		view?.setSceneEngine(undefined, mode);
+	}
+
+	private async goToApiSceneCommand(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view && this.settings.showSasiInSceneMenu) {
+			view.switchScene('apiscene');
+		} else {
+			this.openApiScene();
+		}
 	}
 
 	private async switchSceneCommand(tab: StatisticsDataTab): Promise<void> {

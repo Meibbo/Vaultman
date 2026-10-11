@@ -80,6 +80,9 @@ export interface ApiSceneNodeMeta {
 	activeScene?: string;
 	tombstoned?: boolean;
 	revision?: number;
+	cell_name?: string;
+	commandId?: string;
+	subgroup?: string;
 }
 
 export interface ApiSceneGroupMeta {
@@ -90,7 +93,7 @@ export interface ApiSceneGroupMeta {
 export interface ApiScenePublisherEntry {
 	readonly id: string;
 	readonly published: boolean;
-	readonly descriptor?: { readonly name?: string };
+	readonly descriptor?: { readonly name?: string; readonly composes?: readonly string[] };
 }
 
 export interface ApiScenePublisherView {

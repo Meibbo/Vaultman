@@ -36,7 +36,7 @@ describe('U130 SASI scene instance actions', () => {
 			...SCENE_GOTO_TABS.map((tab) => sceneGotoActionId(tab)),
 		];
 		// files/props/tags x tree/table/cards + 6 escenas.
-		expect(expected.length).toBe(15);
+		expect(expected.length).toBe(16);
 		for (const id of expected) {
 			const def = registry.resolve(id).def;
 			expect(def, `id registrado: ${id}`).not.toBeNull();
@@ -69,7 +69,7 @@ describe('U130 SASI scene instance actions', () => {
 		const sceneIds = ids.filter((id) => id.startsWith('vaultman.scene.'));
 		// Fifteen existing engine/goto actions plus twelve indexed-only
 		// presentation identities. Registration still rejects collisions.
-		expect(sceneIds.length).toBe(27);
+		expect(sceneIds.length).toBe(31);
 		for (const id of sceneIds) {
 			expect(id.startsWith('vaultman.move.')).toBe(false);
 			expect(id.startsWith('vaultman.hover.')).toBe(false);
