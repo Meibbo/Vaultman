@@ -65,6 +65,7 @@ import {
 	type TreeKeyboardState,
 } from '../../logic/logicTreeKeyboard';
 import {
+	collectSiblingMembers,
 	nextLetterTarget,
 	isLetterJumpKey,
 	rowOrderFingerprint,
@@ -73,6 +74,18 @@ import {
 	type NavcoPort,
 	type TreeLetterCursor,
 } from '../../logic/logicTreeNavigation';
+import {
+	isTreeHomeEndChord,
+	resolveTreeHomeEndTarget,
+} from '../../logic/logicTreeHomeEnd';
+import {
+	isTreePageChord,
+	resolveFrameEdgeTarget,
+	resolveTreePageTarget,
+} from '../../logic/logicTreePageJump';
+import {
+	createIncrementalPrefixJumpStore,
+} from '../../logic/logicTreePrefixJump';
 import {
 	readObserverEntryHeight,
 	TreeHeightIndex,
@@ -423,6 +436,12 @@ export class UnifiedTreeView {
 	/** Scope+order fingerprint the cursor was produced for; change resets it. */
 	private _letterScopeFp: string | null = null;
 	private _letterOrderFp: string | null = null;
+	/** Owner-local incremental prefix buffer (TAREA 7 typeahead over siblings). */
+	private readonly _prefixStore = createIncrementalPrefixJumpStore();
+	/** Scope fingerprint the prefix buffer was accumulated for. */
+	private _prefixScopeFp: string | null = null;
+	/** Set before a prefix-driven focus so setFocusedId keeps the buffer. */
+	private _preservePrefixOnFocus = false;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
 	/**
 	 * U121-106: pulsacion larga sobre el CHECKBOX. Gesto propio y no el de la
@@ -670,8 +689,15 @@ export class UnifiedTreeView {
 		this._keyboard = { ...this._keyboard, focusedId: id, anchorId: id };
 		// Manual focus moves break the letter-jump chain; the letter path
 		// assigns `_letterPrevious` after focusing, so this reset is safe.
+		// The prefix buffer belongs to the same chain (shared Navco seam).
 		this._letterPrevious = null;
 		this._letterScopeFp = null;
+		if (this._preservePrefixOnFocus) {
+			this._preservePrefixOnFocus = false;
+		} else {
+			this._prefixStore.reset();
+			this._prefixScopeFp = null;
+		}
 		for (const rows of [this.rowEls, this.stickyRowEls]) {
 			for (const [nodeId, focused] of [[prevId, false], [id, true]] as const) {
 				if (!nodeId) continue;
@@ -1546,11 +1572,15 @@ export class UnifiedTreeView {
 		if (this._letterOrderFp !== null && this._letterOrderFp !== orderFp) {
 			this._letterPrevious = null;
 			this._letterScopeFp = null;
+			this._prefixStore.reset();
+			this._prefixScopeFp = null;
 		}
 		this._letterOrderFp = orderFp;
 		if (this._keyboard.focusedId === null) {
 			this._letterPrevious = null;
 			this._letterScopeFp = null;
+			this._prefixStore.reset();
+			this._prefixScopeFp = null;
 		}
 	}
 
@@ -1564,6 +1594,8 @@ export class UnifiedTreeView {
 		// Manual DOM focus breaks the letter-jump chain.
 		this._letterPrevious = null;
 		this._letterScopeFp = null;
+		this._prefixStore.reset();
+		this._prefixScopeFp = null;
 	};
 
 	private _keyboardCallbacks(): TreeKeyboardCallbacks {
@@ -1674,13 +1706,15 @@ export class UnifiedTreeView {
 				event,
 				{ focusedId, rows: modelRows },
 			);
-			if (consumed) {
-				event.preventDefault();
-				event.stopPropagation();
-				this._letterPrevious = null;
-				this._letterScopeFp = null;
-				return true;
-			}
+		if (consumed) {
+			event.preventDefault();
+			event.stopPropagation();
+			this._letterPrevious = null;
+			this._letterScopeFp = null;
+			this._prefixStore.reset();
+			this._prefixScopeFp = null;
+			return true;
+		}
 		}
 		const { handled, next } = handleTreeKeyboardKey(
 			event,
@@ -1694,14 +1728,125 @@ export class UnifiedTreeView {
 			event.stopPropagation();
 			// Expansion callbacks may have synchronously rebuilt the visible model.
 			this._keyboard = { ...next, rows: this._keyboard.rows };
-			// Native navigation breaks the letter-jump chain (letters never
-			// reach native: the allowlist rejects them).
-			this._letterPrevious = null;
-			this._letterScopeFp = null;
-		}
-		if (handled) return true;
-		return this._onTreeLetterJump(event, modelRows, focusedId);
+		// Native navigation breaks the letter-jump chain (letters never
+		// reach native: the allowlist rejects them).
+		this._letterPrevious = null;
+		this._letterScopeFp = null;
+		this._prefixStore.reset();
+		this._prefixScopeFp = null;
+	}
+	if (handled) return true;
+	if (this._onTreeHomeEnd(event, modelRows, focusedId)) return true;
+	if (this._onTreePageJump(event, modelRows, focusedId)) return true;
+	return this._onTreeLetterJump(event, modelRows, focusedId);
 	};
+
+	/**
+	 * U130 Navco Home/End navigation:
+	 * Plain Home/End moves to first/last sibling at current depth under parent.
+	 * Ctrl+Home/End (Win/Linux) or Cmd+Home/End (macOS) moves to first/last node in whole explorer.
+	 * Reveal/focus path only: no selection mutation.
+	 */
+	private _onTreeHomeEnd(
+		event: KeyboardEvent,
+		modelRows: readonly TreeKeyboardRow[],
+		focusedId: string | null,
+	): boolean {
+		const chord = isTreeHomeEndChord(event, Platform.isMacOS);
+		if (!chord) return false;
+		let targetId = resolveTreeHomeEndTarget({
+			key: chord.key,
+			isWholeExplorer: chord.isWholeExplorer,
+			rows: modelRows,
+			focusedId,
+		});
+		if (!targetId && !chord.isWholeExplorer) {
+			// No row holds keyboard focus (sibling scope unresolvable).
+			// Windows Explorer never ignores Home/End: fall back to the
+			// frame edge so the key always focuses a row instead of
+			// degrading to bare scroll.
+			const frame = this._frameEdges(modelRows);
+			targetId = resolveFrameEdgeTarget({
+				rows: modelRows,
+				firstVisibleIndex: frame.firstIndex,
+				visibleCount: frame.visibleCount,
+				key: chord.key,
+			});
+		}
+		if (!targetId) return false;
+		this._keyboardCallbacks().onFocus(targetId);
+		event.preventDefault();
+		event.stopPropagation();
+		this._letterPrevious = null;
+		this._letterScopeFp = null;
+		this._prefixStore.reset();
+		this._prefixScopeFp = null;
+		return true;
+	}
+
+	/**
+	 * Current viewport frame over the flattened visible model, from the
+	 * shared height index + scrollport. Degenerate geometry (hidden panel)
+	 * spans the whole list so frame fallbacks stay total.
+	 */
+	private _frameEdges(rows: readonly TreeKeyboardRow[]): {
+		firstIndex: number;
+		visibleCount: number;
+	} {
+		const rowHeight = this._heightIndex.getEstimate();
+		const viewportHeight = this.containerEl.clientHeight;
+		const visibleCount =
+			rowHeight > 0 && viewportHeight > 0
+				? Math.max(1, Math.floor(viewportHeight / rowHeight))
+				: rows.length;
+		const rawFirst = this._heightIndex.indexForOffset(this.containerEl.scrollTop);
+		const firstIndex =
+			rows.length === 0 || !Number.isFinite(rawFirst)
+				? 0
+				: Math.min(Math.max(Math.floor(rawFirst), 0), rows.length - 1);
+		return { firstIndex, visibleCount };
+	}
+
+	/**
+	 * U130 Navco PageUp/PageDown viewport paging:
+	 * PageDown focuses the last VISIBLE row of the frame (advancing one full
+	 * frame when already there); PageUp mirrors to the first VISIBLE row.
+	 * Frame geometry comes from the shared height index + scrollport; the
+	 * pure step runs in `logicTreePageJump`. Reveal/focus path only.
+	 */
+	private _onTreePageJump(
+		event: KeyboardEvent,
+		modelRows: readonly TreeKeyboardRow[],
+		focusedId: string | null,
+	): boolean {
+		const chord = isTreePageChord(event);
+		if (!chord) return false;
+		const frame = this._frameEdges(modelRows);
+		const targetId =
+			focusedId === null
+				? resolveFrameEdgeTarget({
+					rows: modelRows,
+					firstVisibleIndex: frame.firstIndex,
+					visibleCount: frame.visibleCount,
+					key: chord.key,
+				})
+				: resolveTreePageTarget({
+					key: chord.key,
+					rows: modelRows,
+					focusedId,
+					firstVisibleIndex: frame.firstIndex,
+					visibleCount: frame.visibleCount,
+				});
+		if (!targetId) return false;
+		this._keyboardCallbacks().onFocus(targetId);
+		event.preventDefault();
+		event.stopPropagation();
+		this._letterPrevious = null;
+		this._letterScopeFp = null;
+		this._prefixStore.reset();
+		this._prefixScopeFp = null;
+		return true;
+	}
 
 	/**
 	 * U130 Navco letter jump: printable glyphs cycle within the focused
@@ -1726,6 +1871,32 @@ export class UnifiedTreeView {
 		const sort = port.sortOf(scope);
 		if (!shouldLetterJump(sort.sortBy)) return false;
 		const scopeFp = `${scope.parentId ?? ''} level:${scope.level} sort:${sort.sortBy}:${sort.direction}`;
+		// TAREA 7 incremental prefix (shared Navco seam): rapid multi-char
+		// typing narrows the sibling level (r+e+c+i -> "reci"). Single-char
+		// repeats cycle through the store exactly like the classic cursor
+		// below, so both layers agree; a no-match or non-alphanumeric key
+		// reseeds the buffer and falls through to the classic single glyph.
+		if (this._prefixScopeFp !== scopeFp) {
+			this._prefixStore.reset();
+			this._prefixScopeFp = scopeFp;
+		}
+		const prefixHit = this._prefixStore.type(
+			event.key,
+			collectSiblingMembers(modelRows, focusedIndex, port.labelOf),
+		);
+		if (prefixHit) {
+			this._preservePrefixOnFocus = true;
+			this._keyboardCallbacks().onFocus(prefixHit.targetId);
+			this._letterPrevious = null;
+			event.preventDefault();
+			event.stopPropagation();
+			return true;
+		}
+		this._prefixStore.reset();
+		this._prefixStore.type(
+			event.key,
+			collectSiblingMembers(modelRows, focusedIndex, port.labelOf),
+		);
 		const previous = this._letterScopeFp === scopeFp ? this._letterPrevious : null;
 		const cursor = nextLetterTarget({ key: event.key, rows: modelRows, focusedIndex,
 			labelOf: port.labelOf, sortBy: sort.sortBy, jump: port.jump, previous });
