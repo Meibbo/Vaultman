@@ -39,6 +39,7 @@ function appendFunctionNodes(
 					sasiKind: group,
 					supports: def.supports.map((support) => support.surface),
 					composes: def.composes ?? [],
+					scope: def.scope,
 					mutatesVault: group === 'operation' && def.mutatesVault === true,
 				},
 				publisher: context.publisher,
@@ -454,6 +455,16 @@ function appendScopeSubgroups(
 			id: 'scene:depth_scope',
 			labelKey: 'sasi.scope.depth_scope',
 			icon: 'lucide-layers',
+		},
+		{
+			id: 'this.scene -> {scope_depth}',
+			labelKey: 'sasi.scope.scene_depth',
+			icon: 'lucide-layers',
+		},
+		{
+			id: 'this.scene -> this.node',
+			labelKey: 'sasi.scope.scene_node',
+			icon: 'lucide-component',
 		},
 	];
 	for (const sc of workspaceScopes) {

@@ -7,6 +7,12 @@ import {
 } from './logicApiSceneModel';
 import { toApiSceneNode } from './logicApiSceneNodeFactory';
 import type { TreeNode } from '../types/typeTree';
+import {
+	TOOLBAR_SCENE_MENU_ID,
+	TOOLBAR_SORT_MENU_ID,
+	TOOLBAR_TOGGLE_EXPANSION_ID,
+	TOOLBAR_VIEW_MENU_ID,
+} from './logicSasiToolbarActions';
 
 interface CommandNodeContext {
 	publisher: ApiScenePublisherView | undefined;
@@ -45,7 +51,17 @@ const COMMAND_ACTIONS_MAP: Record<string, readonly string[]> = {
 	'sasi.hover.nested-ribbon': ['vaultman.hover.nested-ribbon'],
 	'open-settings': ['vaultman.settings.open'],
 	'reveal-active-file': ['reveal-active-file'],
-	'toggle-expansion': ['toggle-expansion'],
+	[TOOLBAR_TOGGLE_EXPANSION_ID]: [TOOLBAR_TOGGLE_EXPANSION_ID],
+	'toggle-expansion': [TOOLBAR_TOGGLE_EXPANSION_ID],
+	[TOOLBAR_SCENE_MENU_ID]: [TOOLBAR_SCENE_MENU_ID],
+	[TOOLBAR_VIEW_MENU_ID]: [TOOLBAR_VIEW_MENU_ID],
+	[TOOLBAR_SORT_MENU_ID]: [TOOLBAR_SORT_MENU_ID],
+	scene_menu: [TOOLBAR_SCENE_MENU_ID],
+	view_menu: [TOOLBAR_VIEW_MENU_ID],
+	sort_menu: [TOOLBAR_SORT_MENU_ID],
+	tabs: [TOOLBAR_SCENE_MENU_ID],
+	view: [TOOLBAR_VIEW_MENU_ID],
+	sort: [TOOLBAR_SORT_MENU_ID],
 	searchbox: ['searchbox'],
 	'cycle-category': ['cycle-category'],
 	'create-target': ['create-target'],
@@ -93,7 +109,17 @@ const COMMAND_SCOPE_MAP: Record<string, string> = {
 	'sasi.hover.nested-ribbon': 'workspace:all',
 	'open-settings': 'workspace:all',
 	'reveal-active-file': 'scene:depth_scope',
-	'toggle-expansion': 'scene:depth_scope',
+	[TOOLBAR_TOGGLE_EXPANSION_ID]: 'this.scene -> {scope_depth}',
+	'toggle-expansion': 'this.scene -> {scope_depth}',
+	[TOOLBAR_SCENE_MENU_ID]: 'this.scene -> this.node',
+	[TOOLBAR_VIEW_MENU_ID]: 'this.scene -> this.node',
+	[TOOLBAR_SORT_MENU_ID]: 'this.scene -> this.node',
+	scene_menu: 'this.scene -> this.node',
+	view_menu: 'this.scene -> this.node',
+	sort_menu: 'this.scene -> this.node',
+	tabs: 'this.scene -> this.node',
+	view: 'this.scene -> this.node',
+	sort: 'this.scene -> this.node',
 	searchbox: 'scene:depth_scope',
 	'cycle-category': 'workspace:last_focused',
 	'create-target': 'workspace:last_focused',

@@ -146,6 +146,9 @@ import {
 	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 	TOOLBAR_SEARCHBOX_ID,
 	TOOLBAR_TOGGLE_EXPANSION_ID,
+	TOOLBAR_SCENE_MENU_ID,
+	TOOLBAR_VIEW_MENU_ID,
+	TOOLBAR_SORT_MENU_ID,
 } from './logic/logicSasiToolbarActions';
 import {
 	SEARCH_CREATE_TARGET_ID,
@@ -180,6 +183,9 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	TOOLBAR_SEARCHBOX_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 	SEARCH_CREATE_TARGET_ID,
+	TOOLBAR_SCENE_MENU_ID,
+	TOOLBAR_VIEW_MENU_ID,
+	TOOLBAR_SORT_MENU_ID,
 	'go_to_setting_scene',
 	PROPS_ADD_PROPERTY_COMMAND_ID,
 	'open-filter-scene',
@@ -646,6 +652,9 @@ export class VaultmanPlugin extends Plugin {
 			[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
 			[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
 			[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+			[TOOLBAR_SCENE_MENU_ID, 'sasi.toolbar.scene_menu'],
+			[TOOLBAR_VIEW_MENU_ID, 'sasi.toolbar.view_menu'],
+			[TOOLBAR_SORT_MENU_ID, 'sasi.toolbar.sort_menu'],
 		] as const;
 		for (const [id, labelKey] of toolbarCommands) {
 			this.sasiCommandPublisher.register({
@@ -908,7 +917,17 @@ export class VaultmanPlugin extends Plugin {
 			actionId === TOOLBAR_TOGGLE_EXPANSION_ID ||
 			actionId === TOOLBAR_SEARCHBOX_ID ||
 			actionId === SEARCH_CYCLE_CATEGORY_ID ||
-			actionId === SEARCH_CREATE_TARGET_ID
+			actionId === SEARCH_CREATE_TARGET_ID ||
+			actionId === TOOLBAR_SCENE_MENU_ID ||
+			actionId === TOOLBAR_VIEW_MENU_ID ||
+			actionId === TOOLBAR_SORT_MENU_ID ||
+			actionId === 'scene_menu' ||
+			actionId === 'view_menu' ||
+			actionId === 'sort_menu' ||
+			actionId === 'tabs' ||
+			actionId === 'view' ||
+			actionId === 'sort' ||
+			actionId === 'toggle-expansion'
 		) {
 			void this.invokeToolbarSasiAction(actionId);
 			return;

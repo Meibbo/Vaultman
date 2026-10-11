@@ -23,6 +23,9 @@
 		TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 		TOOLBAR_SEARCHBOX_ID,
 		TOOLBAR_TOGGLE_EXPANSION_ID,
+		TOOLBAR_SCENE_MENU_ID,
+		TOOLBAR_VIEW_MENU_ID,
+		TOOLBAR_SORT_MENU_ID,
 	} from '../../logic/logicSasiToolbarActions';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SasiNode } from '../../services/serviceSasiProvider';
@@ -261,6 +264,30 @@
 			actionId === SEARCH_CREATE_TARGET_ID
 		) {
 			runSearchCell(actionId);
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_SCENE_MENU_ID ||
+			actionId === 'scene_menu' ||
+			actionId === 'tabs'
+		) {
+			openNativeSceneMenu(eventForNode('tabs'));
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_VIEW_MENU_ID ||
+			actionId === 'view_menu' ||
+			actionId === 'view'
+		) {
+			openNativeViewMenu(eventForNode('view'));
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_SORT_MENU_ID ||
+			actionId === 'sort_menu' ||
+			actionId === 'sort'
+		) {
+			openNativeSortMenu(eventForNode('sort'));
 			return true;
 		}
 		const localId =
@@ -2401,6 +2428,21 @@
 		});
 	}
 
+	function eventForNode(localId: string): MouseEvent {
+		const el = actionsEl?.querySelector(
+			`[data-panel-widget-node-id="${panelWidgetNodeId(localId)}"]`,
+		) as HTMLElement | null;
+		if (el) return menuEventFromElement(el);
+		const rect = actionsEl?.getBoundingClientRect();
+		return new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: (rect?.left ?? 100) + 50,
+			clientY: (rect?.bottom ?? 100) + 10,
+			view: window,
+		});
+	}
+
 	function openSortPopup(event?: MouseEvent) {
 		if (minimalStyle && event) {
 			openNativeSortMenu(event);
@@ -3580,6 +3622,23 @@
 							autoRevealMode: alwaysReveal ? 'off' : 'on',
 						});
 						fileList?.setAutoRevealOverride?.(!alwaysReveal);
+					});
+			});
+			menu.addSeparator();
+		}
+		if (localId === 'toggle-expansion') {
+			const vaultmanPlugin = (app as any)?.plugins?.plugins?.vaultman;
+			const anchorScope = Boolean(vaultmanPlugin?.settings?.sasiAnchorScope);
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.anchor_scope') || 'Anchor scope')
+					.setIcon('lucide-anchor')
+					.setChecked(anchorScope)
+					.onClick(() => {
+						if (vaultmanPlugin?.settings) {
+							vaultmanPlugin.settings.sasiAnchorScope = !anchorScope;
+							void vaultmanPlugin.saveData(vaultmanPlugin.settings);
+						}
 					});
 			});
 			menu.addSeparator();

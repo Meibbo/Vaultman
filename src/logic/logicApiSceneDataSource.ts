@@ -442,6 +442,29 @@ export function createApiSceneDataSource(
 								void promptChangeScope(cmdId);
 							});
 					});
+					if (
+						cmdId === 'toggle-expansion' ||
+						cmdId === 'vaultman.toolbar.toggleExpansion' ||
+						node.id.includes('toggleExpansion') ||
+						node.id.includes('toggle-expansion')
+					) {
+						const isAnchored = Boolean(plugin.settings.sasiAnchorScope);
+						menu.addItem((item) => {
+							item
+								.setTitle(translate('sasi.apiscene.cmenu.anchor_scope') || 'Anchor scope')
+								.setIcon('lucide-anchor')
+								.setChecked(isAnchored)
+								.onClick(() => {
+									plugin.settings.sasiAnchorScope = !isAnchored;
+									void plugin.saveData(plugin.settings);
+									new Notice(
+										(translate('sasi.apiscene.cmenu.anchor_scope') || 'Anchor scope') +
+											': ' +
+											(!isAnchored ? 'ON' : 'OFF'),
+									);
+								});
+						});
+					}
 					menu.showAtMouseEvent(event);
 					return true;
 				}

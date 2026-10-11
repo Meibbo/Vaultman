@@ -8,12 +8,18 @@ export const TOOLBAR_REVEAL_ACTIVE_FILE_ID = 'vaultman.toolbar.revealActiveFile'
 export const TOOLBAR_TOGGLE_EXPANSION_ID = 'vaultman.toolbar.toggleExpansion';
 export const TOOLBAR_SEARCHBOX_ID = 'vaultman.toolbar.searchbox';
 export const TOOLBAR_FOCUS_SEARCH_ID = 'focus-active-explorer-search';
+export const TOOLBAR_SCENE_MENU_ID = 'vaultman.toolbar.sceneMenu';
+export const TOOLBAR_VIEW_MENU_ID = 'vaultman.toolbar.viewMenu';
+export const TOOLBAR_SORT_MENU_ID = 'vaultman.toolbar.sortMenu';
 
 const TOOLBAR_ACTIONS = [
 	{ id: TOOLBAR_REVEAL_ACTIVE_FILE_ID, labelKey: 'sasi.toolbar.reveal_active_file', icon: 'lucide-gallery-vertical' },
-	{ id: TOOLBAR_TOGGLE_EXPANSION_ID, labelKey: 'sasi.toolbar.toggle_expansion', icon: 'lucide-chevrons-up-down' },
+	{ id: TOOLBAR_TOGGLE_EXPANSION_ID, labelKey: 'sasi.toolbar.toggle_expansion', icon: 'lucide-chevrons-up-down', scope: 'this.scene -> {scope_depth}' },
 	{ id: TOOLBAR_SEARCHBOX_ID, labelKey: 'sasi.toolbar.searchbox', icon: 'lucide-search' },
 	{ id: TOOLBAR_FOCUS_SEARCH_ID, labelKey: 'sasi.toolbar.searchbox', icon: 'lucide-search' },
+	{ id: TOOLBAR_SCENE_MENU_ID, labelKey: 'sasi.toolbar.scene_menu', icon: 'lucide-folder', scope: 'this.scene -> this.node' },
+	{ id: TOOLBAR_VIEW_MENU_ID, labelKey: 'sasi.toolbar.view_menu', icon: 'lucide-layout-list', scope: 'this.scene -> this.node' },
+	{ id: TOOLBAR_SORT_MENU_ID, labelKey: 'sasi.toolbar.sort_menu', icon: 'lucide-arrow-up-down', scope: 'this.scene -> this.node' },
 ] as const;
 
 /**
