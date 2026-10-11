@@ -1,6 +1,12 @@
 import { ItemView, Platform, Scope, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
 import { routeTreeKeyboardEvent } from './logic/logicTreeKeyboardBoundary';
-import { getNativeTreeScopeChords, getTreeLetterScopeChords, isTreeLetterJumpChord } from './logic/logicTreeKeyboardAllowlist';
+import {
+	getNativeTreeScopeChords,
+	getTreeHomeEndScopeChords,
+	getTreeLetterScopeChords,
+	getTreePageScopeChords,
+	isTreeLetterJumpChord,
+} from './logic/logicTreeKeyboardAllowlist';
 import { routeTreeClipboardEvent } from './logic/logicTreeClipboard';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
@@ -74,11 +80,27 @@ export class VaultmanFrame extends ItemView {
 				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
 			});
 		}
+		// U130 tree Navco: Home/End and Mod+Home/End routes so active-leaf
+		// BODY / neutral frame fallback can reach the visible tree.
+		for (const chord of getTreeHomeEndScopeChords()) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
+		// U130 tree Navco: plain PageUp/PageDown routes so active-leaf BODY /
+		// neutral frame fallback can reach the visible tree for frame paging.
+		for (const chord of getTreePageScopeChords()) {
+			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
+				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
+			});
+		}
 		// U130 tree Navco: narrow printable routes so the active-leaf BODY
 		// fallback can reach the visible tree for letter jump. Unmodified
 		// (+Shift) glyphs only — modified hotkeys and other views are never
 		// stolen: routing still obeys the editable guard and frame scoping,
 		// and the view bubbles non-name levels and no-match glyphs.
+		// Registered LAST: the null-key wildcard matches every unmodified key,
+		// so specific Home/End/Page chords must win first.
 		for (const chord of getTreeLetterScopeChords()) {
 			this.scope.register([...chord.modifiers], chord.key, (event: KeyboardEvent) => {
 				if (!isTreeLetterJumpChord(event)) return undefined;

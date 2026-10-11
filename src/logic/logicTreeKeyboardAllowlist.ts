@@ -64,3 +64,32 @@ export function isTreeLetterJumpChord(event: KeyboardEvent): boolean {
 export function getTreeLetterScopeChords(): readonly { readonly modifiers: readonly 'Shift'[]; readonly key: null }[] {
 	return [{ modifiers: [], key: null }, { modifiers: ['Shift'], key: null }];
 }
+
+/**
+ * U130 tree Navco Home/End routes: plain Home/End and Mod+Home/End (whole-explorer
+ * where Mod is Cmd on macOS and Ctrl on Windows/Linux).
+ * Deliberately SEPARATE from the frozen native allowlist above.
+ * These routes allow active-leaf BODY / neutral frame fallback to reach the visible tree.
+ */
+export function getTreeHomeEndScopeChords(): readonly ScopeKeyChord[] {
+	return [
+		{ modifiers: [], key: 'Home' },
+		{ modifiers: [], key: 'End' },
+		{ modifiers: ['Mod'], key: 'Home' },
+		{ modifiers: ['Mod'], key: 'End' },
+	];
+}
+
+/**
+ * U130 tree Navco PageUp/PageDown routes: plain keys only (any modifier
+ * bubbles: Shift+Page belongs to range selection, Ctrl/Meta+Page to the
+ * platform). Deliberately SEPARATE from the frozen native allowlist above.
+ * These routes allow active-leaf BODY / neutral frame fallback to reach the
+ * visible tree, where the view resolves frame-relative targets.
+ */
+export function getTreePageScopeChords(): readonly ScopeKeyChord[] {
+	return [
+		{ modifiers: [], key: 'PageUp' },
+		{ modifiers: [], key: 'PageDown' },
+	];
+}

@@ -72,6 +72,21 @@ describe('guarded Scope routes for the BODY fallback', () => {
 		expect(vaultmanFrameSource).toContain('getTreeLetterScopeChords');
 		expect(vaultmanFrameSource).toContain('getNativeTreeScopeChords');
 	});
+	it('registers specific Home/End/Page chords before the null-key letter wildcard', () => {
+		// The letter route uses key=null (wildcard over unmodified keys). If it
+		// registered first, plain Home/End/PageUp/PageDown would match it,
+		// fail the glyph guard and never reach their specific handlers.
+		expect(vaultmanFrameSource).toContain('getTreeHomeEndScopeChords');
+		expect(vaultmanFrameSource).toContain('getTreePageScopeChords');
+		const homeAt = vaultmanFrameSource.indexOf('for (const chord of getTreeHomeEndScopeChords())');
+		const pageAt = vaultmanFrameSource.indexOf('for (const chord of getTreePageScopeChords())');
+		const letterAt = vaultmanFrameSource.indexOf('for (const chord of getTreeLetterScopeChords())');
+		expect(homeAt).toBeGreaterThanOrEqual(0);
+		expect(pageAt).toBeGreaterThanOrEqual(0);
+		expect(letterAt).toBeGreaterThanOrEqual(0);
+		expect(homeAt).toBeLessThan(letterAt);
+		expect(pageAt).toBeLessThan(letterAt);
+	});
 });
 
 describe('per-scene effective-sort adapters', () => {
@@ -111,5 +126,25 @@ describe('smallest typed seam (no persisted policy subsystem)', () => {
 		expect(navigationSource).toContain('NavcoLetterJumpPort');
 		expect(navigationSource).not.toContain('persist');
 		expect(navigationSource).not.toContain('SASI');
+	});
+});
+
+describe('Home/End Navco navigation on the tree view', () => {
+	it('wires pure Home/End resolver directly from logicTreeHomeEnd before letter jump', () => {
+		expect(viewTreeSource).toContain('_onTreeHomeEnd');
+		expect(viewTreeSource).toContain('resolveTreeHomeEndTarget');
+		expect(viewTreeSource).toContain('isTreeHomeEndChord');
+		expect(viewTreeSource).toContain("from '../../logic/logicTreeHomeEnd'");
+		expect(navigationSource).not.toContain("from './logicTreeHomeEnd'");
+	});
+
+	it('preserves reveal/focus and never mutates selection on Home/End', () => {
+		const homeEnd = viewTreeSource.match(
+			/_onTreeHomeEnd\([\s\S]*?stopPropagation\(\);/,
+		)?.[0];
+		expect(homeEnd).toBeDefined();
+		expect(homeEnd).toContain('onFocus');
+		expect(homeEnd).not.toContain('onRangeSelect');
+		expect(homeEnd).not.toContain('onAdditiveSelect');
 	});
 });
