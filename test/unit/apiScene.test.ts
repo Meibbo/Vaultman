@@ -1,3 +1,4 @@
+import { installCommandPaletteFilter } from '../../src/logic/logicCommandPaletteInterceptor';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('../../src/components/layout/apiSceneHost.svelte', () => ({ default: {} }));
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
@@ -5,6 +6,9 @@ import { createVaultmanSasi } from '../../src/logic/logicSasiBootstrap';
 import {
 	API_SCENE_GROUP_IDS,
 	API_SCENE_IDENTITY_KIND,
+	apiSceneIdentityKindFor,
+	findApiSceneNode,
+	flattenApiSceneNodes,
 	API_SCENE_GROUP_KIND,
 	API_SCENE_GROUP_NAMES,
 	API_SCENE_SELF_ID,
@@ -38,7 +42,10 @@ function fakePublisher(
 	extra?: Partial<ApiScenePublisherView>,
 ): ApiScenePublisherView {
 	return {
-		isPublished: (id) => entries.find((e) => e.id === id)?.published ?? false,
+		isPublished: (id) => {
+			const entry = entries.find((e) => e.id === id);
+			return entry !== undefined ? entry.published : true;
+		},
 		snapshot: () =>
 			entries.map((e) => ({
 				id: e.id,
@@ -137,16 +144,17 @@ describe('U130L apiScene: grupos', () => {
 });
 
 describe('U130L apiScene: identidad', () => {
-	it('todo leaf es node_apis con URN estable parseable', () => {
+	it('todo leaf tiene identidad especifica (node_actions, node_commands, etc.) con URN estable parseable', () => {
 		const { registry } = createVaultmanSasi();
 		const nodes = buildApiSceneNodes(registry, fakePublisher(), fakeInstances());
 		expect(nodes.length).toBeGreaterThan(0);
 		for (const node of nodes) {
-			expect(node.meta.identityKind).toBe(API_SCENE_IDENTITY_KIND);
+			const expectedKind = apiSceneIdentityKindFor(node.meta.group);
+			expect(node.meta.identityKind).toBe(expectedKind);
 			const ref = parseMembershipUrn(node.meta.urn);
 			expect(ref).not.toBeNull();
 			expect(ref?.providerId).toBe('sasi');
-			expect(ref?.kind).toBe(API_SCENE_IDENTITY_KIND);
+			expect(ref?.kind).toBe(expectedKind);
 			expect(apiSceneUrnOf(node)).toBe(node.meta.urn);
 			expect(isApiSceneNode(node as TreeNode<ApiSceneNodeMeta | ApiSceneGroupMeta>)).toBe(
 				true,
@@ -445,7 +453,8 @@ describe('U130L apiScene: publisher command descriptors', () => {
 			registry,
 			createApiScenePublisherView(publisher),
 		);
-		const command = nodes.find(
+		const command = findApiSceneNode(
+			nodes,
 			(node) =>
 				node.meta.group === 'command' &&
 				node.meta.sasiId === 'focus-active-explorer-search',
@@ -460,10 +469,12 @@ describe('U130L apiScene: publisher command descriptors', () => {
 
 		expect(registry.listCommands()).toEqual([]);
 		const nodes = buildApiSceneNodes(registry, publisher);
-		const command = nodes.find(
+		const command = findApiSceneNode(
+			nodes,
 			(node) => node.meta.group === 'command' && node.meta.sasiId === commandId,
 		);
-		const action = nodes.find(
+		const action = findApiSceneNode(
+			nodes,
 			(node) => node.meta.group === 'action' && node.meta.sasiId === commandId,
 		);
 
@@ -481,7 +492,8 @@ describe('U130L apiScene: publisher command descriptors', () => {
 		const commandId = 'focus-active-explorer-search';
 		const first = publisherFor([commandId]);
 		first.restorePublished({ [commandId]: true });
-		const published = buildApiSceneNodes(registry, first).find(
+		const published = findApiSceneNode(
+			buildApiSceneNodes(registry, first),
 			(node) => node.meta.group === 'command' && node.meta.sasiId === commandId,
 		);
 		expect(published?.meta.published).toBe(true);
@@ -489,7 +501,8 @@ describe('U130L apiScene: publisher command descriptors', () => {
 		first.setPublished(commandId, false);
 		const second = publisherFor([commandId]);
 		second.restorePublished({ [commandId]: false });
-		const hidden = buildApiSceneNodes(registry, second).find(
+		const hidden = findApiSceneNode(
+			buildApiSceneNodes(registry, second),
 			(node) => node.meta.group === 'command' && node.meta.sasiId === commandId,
 		);
 		expect(hidden?.meta.published).toBe(false);
@@ -528,7 +541,7 @@ describe('U130L apiScene: relaciones (supports/composes)', () => {
 		const actionUrns = memberships[API_SCENE_GROUP_IDS.action] ?? [];
 		expect(actionUrns.length).toBeGreaterThan(0);
 		for (const urn of actionUrns) {
-			expect(parseMembershipUrn(urn)?.kind).toBe(API_SCENE_IDENTITY_KIND);
+			expect(parseMembershipUrn(urn)?.kind).toBe('node_actions');
 		}
 	});
 });
@@ -562,14 +575,16 @@ describe('U130L apiScene: toggle solo en command registrado', () => {
 				isPublishable: (id) => id === 'vaultman.test.cmd',
 			}),
 		);
+		const allFlat = flattenApiSceneNodes(nodes);
 		expect(
-			nodes.filter(
+			allFlat.filter(
 				(node) =>
 					node.meta.group === 'command' &&
 					node.meta.sasiId === 'vaultman.test.cmd',
 			),
 		).toHaveLength(1);
-		const cmd = nodes.find(
+		const cmd = findApiSceneNode(
+			nodes,
 			(n) => n.meta.group === 'command' && n.meta.sasiId === 'vaultman.test.cmd',
 		);
 		expect(cmd?.meta.publishable).toBe(true);
@@ -585,7 +600,8 @@ describe('U130L apiScene: toggle solo en command registrado', () => {
 			registry,
 			fakePublisher([], { isPublishable: () => false }),
 		);
-		const cmd = nodes.find(
+		const cmd = findApiSceneNode(
+			nodes,
 			(n) => n.meta.group === 'command' && n.meta.sasiId === 'vaultman.test.cmd',
 		);
 		expect(cmd?.meta.publishable).toBe(false);
@@ -616,10 +632,12 @@ describe('U130L apiScene: toggle solo en command registrado', () => {
 				isPublishable: (id) => id === 'vaultman.test.cmd',
 			}),
 		);
+		const beforeCmd = findApiSceneNode(
+			before,
+			(n) => n.meta.sasiId === 'vaultman.test.cmd' && n.meta.group === 'command',
+		);
 		expect(
-			before
-				.find((n) => n.meta.sasiId === 'vaultman.test.cmd' && n.meta.group === 'command')
-				?.cells?.find((cell) => cell.id === PUBLISH_CELL_ID),
+			beforeCmd?.cells?.find((cell) => cell.id === PUBLISH_CELL_ID),
 		).toMatchObject({ enabled: false });
 		const after = buildApiSceneNodes(
 			registry,
@@ -627,10 +645,12 @@ describe('U130L apiScene: toggle solo en command registrado', () => {
 				isPublishable: (id) => id === 'vaultman.test.cmd',
 			}),
 		);
+		const afterCmd = findApiSceneNode(
+			after,
+			(n) => n.meta.sasiId === 'vaultman.test.cmd' && n.meta.group === 'command',
+		);
 		expect(
-			after
-				.find((n) => n.meta.sasiId === 'vaultman.test.cmd' && n.meta.group === 'command')
-				?.cells?.find((cell) => cell.id === PUBLISH_CELL_ID),
+			afterCmd?.cells?.find((cell) => cell.id === PUBLISH_CELL_ID),
 		).toMatchObject({ enabled: true });
 	});
 });
@@ -657,7 +677,8 @@ describe("U130-C1: scopes group y p-nodes de comandos", () => {
 			registry,
 			fakePublisher([{ id: "props.add_property", published: true }])
 		);
-		const cmd = nodes.find(
+		const cmd = findApiSceneNode(
+			nodes,
 			(n) => n.meta.group === "command" && n.meta.sasiId === "props.add_property"
 		);
 		expect(cmd).toBeDefined();
@@ -693,5 +714,135 @@ describe("U130-C1: scopes group y p-nodes de comandos", () => {
 		expect(removed).toBe("test-cmd");
 		expect(added).toBe("Renamed Name");
 		expect(pub.snapshot().find((e) => e.id === "test-cmd")?.descriptor?.name).toBe("Renamed Name");
+	});
+});
+
+describe('U130-C1: separación en subgrupos de commands, sublevels de provided y command palette filter', () => {
+	it('organiza los commands en subgrupos 0+1: Vaultman, Custom y Provided', () => {
+		const { registry } = createVaultmanSasi();
+		const publisher = fakePublisher([{ id: 'focus-active-explorer-search', published: true }]);
+		const customCommands = {
+			'custom-1': { id: 'custom-1', name: 'My Custom', composes: ['focus-active-explorer-search', 'vaultman.scene.goto.files'] },
+		};
+		const providedCommands = [
+			{ id: 'app:open-vault', name: 'Open vault' },
+			{ id: 'dataview:rebuild-view', name: 'Dataview: Rebuild view' },
+		];
+
+		const nodes = buildApiSceneNodes(registry, publisher, undefined, {
+			customCommands,
+			providedCommands,
+			communityPluginNames: { dataview: 'Dataview' },
+		});
+
+		const commandSubgroups = nodes.filter((n) => n.meta.group === 'command');
+		expect(commandSubgroups.some((n) => n.id === 'sasi:command:subgroup:vaultman')).toBe(true);
+		expect(commandSubgroups.some((n) => n.id === 'sasi:command:subgroup:custom')).toBe(true);
+		expect(commandSubgroups.some((n) => n.id === 'sasi:command:subgroup:provided')).toBe(true);
+
+		const vaultmanGroup = commandSubgroups.find((n) => n.id === 'sasi:command:subgroup:vaultman');
+		expect(vaultmanGroup?.typeText).toBe('node_group');
+		expect(vaultmanGroup?.showCaret).toBe(true);
+		expect(vaultmanGroup?.children?.length).toBeGreaterThan(0);
+
+		const customGroup = commandSubgroups.find((n) => n.id === 'sasi:command:subgroup:custom');
+		expect(customGroup?.typeText).toBe('node_group');
+		expect(customGroup?.children?.some((c) => c.meta.sasiId === 'custom-1')).toBe(true);
+
+		const providedGroup = commandSubgroups.find((n) => n.id === 'sasi:command:subgroup:provided');
+		expect(providedGroup?.typeText).toBe('node_group');
+		// Provided tiene subnivel 0+3 distinguiendo Core vs Community
+		const coreGroup = providedGroup?.children?.find((c) => c.id === 'sasi:command:provided:subgroup:core');
+		expect(coreGroup).toBeDefined();
+		expect(coreGroup?.label).toBe('Obsidian');
+		expect(coreGroup?.children?.some((c) => c.meta.sasiId === 'app:open-vault')).toBe(true);
+
+		const dataviewGroup = providedGroup?.children?.find((c) => c.id === 'sasi:command:provided:subgroup:dataview');
+		expect(dataviewGroup).toBeDefined();
+		expect(dataviewGroup?.label).toBe('Dataview');
+		expect(dataviewGroup?.children?.some((c) => c.meta.sasiId === 'dataview:rebuild-view')).toBe(true);
+	});
+
+	it('los comandos custom y vaultman pueden componer tanto acciones como otros node_commands', () => {
+		const { registry } = createVaultmanSasi();
+		const customCommands = {
+			'custom-macro': {
+				id: 'custom-macro',
+				name: 'Macro with command and action',
+				composes: ['focus-active-explorer-search', 'vaultman.scene.goto.files'],
+			},
+		};
+
+		const nodes = buildApiSceneNodes(registry, fakePublisher(), undefined, {
+			customCommands,
+		});
+
+		const macroNode = findApiSceneNode(nodes, (n) => n.meta.sasiId === 'custom-macro');
+		expect(macroNode).toBeDefined();
+		const actionsGroup = macroNode?.children?.find((c) => c.id.includes(':group:actions'));
+		expect(actionsGroup).toBeDefined();
+
+		// Compone un comando (typeText: command, identityKind: node_commands) y una acción (typeText: action, identityKind: node_actions)
+		const subCmdChild = actionsGroup?.children?.find((c) => c.meta.sasiId === 'focus-active-explorer-search');
+		expect(subCmdChild?.typeText).toBe('command');
+		expect(subCmdChild?.meta.identityKind).toBe('node_commands');
+
+		const subActionChild = actionsGroup?.children?.find((c) => c.meta.sasiId === 'vaultman.scene.goto.files');
+		expect(subActionChild?.typeText).toBe('action');
+		expect(subActionChild?.meta.identityKind).toBe('node_actions');
+	});
+
+	it('los comandos de la paleta son node_command_provided, activos por defecto con cell_toggle y secuestran proyeccion en off', () => {
+		const { registry } = createVaultmanSasi();
+		const providedCommands = [
+			{ id: 'editor:fold-all', name: 'Fold all' },
+			{ id: 'quickadd:choice:123', name: 'QuickAdd choice' },
+		];
+
+		const nodes = buildApiSceneNodes(registry, fakePublisher(), undefined, {
+			providedCommands,
+		});
+
+		const foldCmd = findApiSceneNode(nodes, (n) => n.meta.sasiId === 'editor:fold-all');
+		expect(foldCmd).toBeDefined();
+		expect(foldCmd?.typeText).toBe('node_command_provided');
+		expect(foldCmd?.meta.publishable).toBe(true);
+		expect(foldCmd?.meta.published).toBe(true);
+		expect(foldCmd?.cells).toContainEqual(
+			expect.objectContaining({ id: PUBLISH_CELL_ID, kind: 'toggle', enabled: true }),
+		);
+
+		// Intercepción en la paleta de comandos nativa
+		const mockCpInstance = {
+			getCommands: () => [
+				{ id: 'editor:fold-all', name: 'Fold all' },
+				{ id: 'quickadd:choice:123', name: 'QuickAdd choice' },
+			],
+			modal: { commands: [] as any },
+		};
+		const mockApp = {
+			internalPlugins: {
+				getPluginById: (id: string) => (id === 'command-palette' ? { instance: mockCpInstance } : null),
+			},
+		} as any;
+
+		let publishedState: Record<string, boolean> = {
+			'editor:fold-all': false,
+			'quickadd:choice:123': true,
+		};
+
+		const cleanup = installCommandPaletteFilter(mockApp, (id) => publishedState[id] ?? true);
+
+		// Cuando está toggled a off, la proyección a la paleta nativa filtra ese comando
+		const projected = mockCpInstance.getCommands();
+		expect(projected.map((c: any) => c.id)).toEqual(['quickadd:choice:123']);
+		expect(mockCpInstance.modal.commands).toBeNull(); // Caché invalidada
+
+		cleanup();
+		// Al limpiar o restaurar, vuelven a proyectarse
+		expect(mockCpInstance.getCommands().map((c: any) => c.id)).toEqual([
+			'editor:fold-all',
+			'quickadd:choice:123',
+		]);
 	});
 });

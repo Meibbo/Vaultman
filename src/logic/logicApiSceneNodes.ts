@@ -1,6 +1,5 @@
 import type { SasiDef, SasiRegistry } from './logicSasiRegistry';
 import {
-	API_SCENE_IDENTITY_KIND,
 	API_SCENE_SELF_ID,
 	API_SCENE_TABS,
 	apiSceneUrnFor,
@@ -181,8 +180,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		typeText: 'file_type',
 		depth: 2,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`kind:nodes:files:${item.id}`, item.label),
+			identityKind: 'node_kinds',
+			urn: apiSceneUrnFor(`kind:nodes:files:${item.id}`, item.label, 'node_kinds'),
 			group: 'kind',
 			subgroup: 'kind.nodes',
 			sasiId: `file:${item.id}`,
@@ -205,8 +204,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		showCaret: true,
 		children: filesChildren,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor('kind:nodes:files', 'Files'),
+			identityKind: 'node_kinds',
+			urn: apiSceneUrnFor('kind:nodes:files', 'Files', 'node_kinds'),
 			group: 'kind',
 			subgroup: 'kind.nodes',
 			sasiId: 'node:files',
@@ -234,8 +233,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		typeText: 'value_type',
 		depth: 2,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`kind:nodes:values:${item.id}`, item.label),
+			identityKind: 'node_kinds',
+			urn: apiSceneUrnFor(`kind:nodes:values:${item.id}`, item.label, 'node_kinds'),
 			group: 'kind',
 			subgroup: 'kind.nodes',
 			sasiId: `value:${item.id}`,
@@ -258,8 +257,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		showCaret: true,
 		children: valuesChildren,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor('kind:nodes:values', 'Values'),
+			identityKind: 'node_kinds',
+			urn: apiSceneUrnFor('kind:nodes:values', 'Values', 'node_kinds'),
 			group: 'kind',
 			subgroup: 'kind.nodes',
 			sasiId: 'node:values',
@@ -284,8 +283,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		typeText: 'node_type',
 		depth: 1,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`kind:nodes:${item.id}`, item.label),
+			identityKind: 'node_kinds',
+			urn: apiSceneUrnFor(`kind:nodes:${item.id}`, item.label, 'node_kinds'),
 			group: 'kind',
 			subgroup: 'kind.nodes',
 			sasiId: `node:${item.id}`,
@@ -319,8 +318,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			typeText: 'cell_kind',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`kind:cells:${cell.id}`, cell.label),
+				identityKind: 'node_kinds',
+				urn: apiSceneUrnFor(`kind:cells:${cell.id}`, cell.label, 'node_kinds'),
 				group: 'kind',
 				subgroup: 'kind.cells',
 				sasiId: `cell:${cell.id}`,
@@ -355,8 +354,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			typeText: 'surface_kind',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`kind:surfaces:${surface.id}`, surface.label),
+				identityKind: 'node_kinds',
+				urn: apiSceneUrnFor(`kind:surfaces:${surface.id}`, surface.label, 'node_kinds'),
 				group: 'kind',
 				subgroup: 'kind.surfaces',
 				sasiId: `surface:${surface.id}`,
@@ -387,8 +386,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			typeText: 'sort_kind',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`kind:sorts:${sort.id}`, sort.label),
+				identityKind: 'node_kinds',
+				urn: apiSceneUrnFor(`kind:sorts:${sort.id}`, sort.label, 'node_kinds'),
 				group: 'kind',
 				subgroup: 'kind.sorts',
 				sasiId: `sort:${sort.id}`,
@@ -417,8 +416,8 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			typeText: 'group_kind',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`kind:groups:${group.id}`, group.label),
+				identityKind: 'node_kinds',
+				urn: apiSceneUrnFor(`kind:groups:${group.id}`, group.label, 'node_kinds'),
 				group: 'kind',
 				subgroup: 'kind.groups',
 				sasiId: `group:${group.id}`,
@@ -465,8 +464,8 @@ function appendScopeSubgroups(
 			typeText: 'scope',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`scope:workspace:${sc.id}`, sc.id),
+				identityKind: 'node_scopes',
+				urn: apiSceneUrnFor(`scope:workspace:${sc.id}`, sc.id, 'node_scopes'),
 				group: 'scope',
 				subgroup: 'scope.workspace',
 				sasiId: sc.id,
@@ -494,8 +493,8 @@ function appendScopeSubgroups(
 			typeText: 'scope',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`scope:instances:${record.id}`, record.id),
+				identityKind: 'node_scopes',
+				urn: apiSceneUrnFor(`scope:instances:${record.id}`, record.id, 'node_scopes'),
 				group: 'scope',
 				subgroup: 'scope.instances',
 				sasiId: `instance:${record.id}`,
@@ -521,8 +520,8 @@ function appendScopeSubgroups(
 			typeText: 'scope',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`scope:surfaces:${surface.id}`, surface.id),
+				identityKind: 'node_scopes',
+				urn: apiSceneUrnFor(`scope:surfaces:${surface.id}`, surface.id, 'node_scopes'),
 				group: 'scope',
 				subgroup: 'scope.surfaces',
 				sasiId: `surface:${surface.id}`,
@@ -546,8 +545,8 @@ function appendScopeSubgroups(
 			typeText: 'scope',
 			depth: 1,
 			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`scope:scenes:${tab}`, tab),
+				identityKind: 'node_scopes',
+				urn: apiSceneUrnFor(`scope:scenes:${tab}`, tab, 'node_scopes'),
 				group: 'scope',
 				subgroup: 'scope.scenes',
 				sasiId: `scene:${tab}`,
@@ -571,6 +570,7 @@ export interface BuildApiSceneNodesOptions {
 	customScopes?: Record<string, string>;
 	customNames?: Record<string, string>;
 	providedCommands?: readonly { id: string; name: string; icon?: string }[];
+	communityPluginNames?: Record<string, string>;
 }
 
 export function buildApiSceneNodes(
@@ -598,6 +598,7 @@ export function buildApiSceneNodes(
 		customScopes: options.customScopes,
 		customNames: options.customNames,
 		providedCommands: options.providedCommands,
+		communityPluginNames: options.communityPluginNames,
 	});
 	appendAxisNodes(context, registry.list('kind'), 'kind');
 	appendKindSubgroups(context);

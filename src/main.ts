@@ -137,6 +137,7 @@ import {
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
 import { API_SCENE_SELF_ID } from './logic/logicApiSceneModel';
 import { executeObsidianCommand } from './utils/obsidianCommands';
+import { installCommandPaletteFilter } from './logic/logicCommandPaletteInterceptor';
 import {
 	browseCommunityPlugins,
 	openRestrictedModeSetting,
@@ -229,6 +230,7 @@ export class VaultmanPlugin extends Plugin {
 	 * otro sitio rompe la guarda negativa del SASI bridge.
 	 */
 	sasiCommandPublisher!: SasiCommandPublisher;
+	private cleanupCommandPaletteFilter?: () => void;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -748,6 +750,22 @@ export class VaultmanPlugin extends Plugin {
 			if (needsSave) await this.saveData(this.settings);
 		}
 
+		this.cleanupCommandPaletteFilter = installCommandPaletteFilter(
+			this.app,
+			(commandId) => {
+				if (
+					this.settings.sasiPublishedCommands &&
+					commandId in this.settings.sasiPublishedCommands
+				) {
+					return this.settings.sasiPublishedCommands[commandId];
+				}
+				if (this.sasiCommandPublisher?.isPublishable(commandId)) {
+					return this.sasiCommandPublisher.isPublished(commandId);
+				}
+				return true;
+			},
+		);
+
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener(
 			'dragover',
@@ -800,6 +818,8 @@ export class VaultmanPlugin extends Plugin {
 	 * `restorePublished`. Por eso aqui no se toca settings.
 	 */
 	onunload(): void {
+		this.cleanupCommandPaletteFilter?.();
+		this.cleanupCommandPaletteFilter = undefined;
 		this.sasiCommandPublisher?.revokeAll();
 	}
 

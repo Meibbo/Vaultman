@@ -9,13 +9,15 @@ import {
 	type ApiScenePublisherView,
 } from './logicApiSceneModel';
 import { buildApiSceneNodes } from './logicApiSceneNodes';
+import { flattenApiSceneNodes } from './logicApiSceneCommandRows';
 import { apiSceneMemberships, nestApiScenePluginKinds } from './logicApiSceneTree';
 import { formatAddonTimestamp } from './logicAddonExplorer';
 import { resolveGroupToggleTarget } from './logicAddonGroupToggle';
 import { setInstanceCellName } from './logicInstanceRegistry';
 import { showInputModal } from '../utils/inputModal';
 import { entityIdOf } from './logicTreeGroupProjection';
-import { listObsidianCommands } from '../utils/obsidianCommands';
+import { executeObsidianCommand, listObsidianCommands } from '../utils/obsidianCommands';
+import { refreshCommandPaletteCache } from './logicCommandPaletteInterceptor';
 import type { PluginMeta, TreeNode } from '../types/typeTree';
 
 export interface ApiSceneDataSourceOptions {
@@ -31,11 +33,16 @@ export function createApiSceneDataSource(
 
 	const publisherView = (): ApiScenePublisherView | undefined => {
 		const pub = plugin.sasiCommandPublisher;
-		if (!pub) return undefined;
 		return {
-			isPublished: (id) => pub.isPublished(id),
-			snapshot: () => pub.snapshot(),
-			isPublishable: (id) => pub.isPublishable(id),
+			isPublished: (id) => {
+				if (plugin.settings.sasiPublishedCommands && id in plugin.settings.sasiPublishedCommands) {
+					return plugin.settings.sasiPublishedCommands[id];
+				}
+				if (pub?.isPublishable(id)) return pub.isPublished(id);
+				return true;
+			},
+			snapshot: () => pub?.snapshot() ?? [],
+			isPublishable: (_id) => true,
 		};
 	};
 
@@ -52,6 +59,11 @@ export function createApiSceneDataSource(
 			ctimeText: formatAddonTimestamp(cTime),
 			mtimeText: formatAddonTimestamp(mTime),
 			label: translate(ch.meta?.labelKey ?? '') || ch.label,
+			cells: ch.cells?.map((cell) =>
+				'label' in cell
+					? { ...cell, id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id, label: translate(cell.label) || cell.label }
+					: cell,
+			),
 			meta: {
 				...ch.meta,
 				pluginId: ch.id,
@@ -69,6 +81,16 @@ export function createApiSceneDataSource(
 		const instances = plugin.settings.instanceRegistry;
 		const view = publisherView();
 		const provided = listObsidianCommands(plugin.app);
+		const manifests = (plugin.app as any).plugins?.manifests;
+		const communityPluginNames: Record<string, string> = {};
+		if (manifests) {
+			for (const [id, m] of Object.entries(manifests)) {
+				if (m && typeof (m as any).name === 'string') {
+					communityPluginNames[id] = (m as any).name;
+				}
+			}
+		}
+
 		const rawNodes = buildApiSceneNodes(
 			plugin.sasiRegistry,
 			view,
@@ -78,9 +100,10 @@ export function createApiSceneDataSource(
 				customScopes: plugin.settings.sasiCommandCustomScopes,
 				customNames: plugin.settings.sasiCommandCustomNames,
 				providedCommands: provided,
+				communityPluginNames,
 			},
 		);
-		flatNodes = rawNodes;
+		flatNodes = flattenApiSceneNodes(rawNodes);
 
 		const mapped = rawNodes.map((node) => {
 			const lifecycle = plugin.sasiProvider.lifecycleFor(node.meta.sasiId);
@@ -120,23 +143,27 @@ export function createApiSceneDataSource(
 		const node = flatNodes.find((leaf) => leaf.id === rowId);
 		if (!node || !node.meta.publishable) return;
 		const next = !node.meta.published;
-		plugin.sasiCommandPublisher?.setPublished(node.meta.sasiId, next);
+		node.meta.published = next;
+		if (plugin.sasiCommandPublisher?.isPublishable(node.meta.sasiId)) {
+			plugin.sasiCommandPublisher.setPublished(node.meta.sasiId, next);
+		}
 		if (!plugin.settings.sasiPublishedCommands) {
 			plugin.settings.sasiPublishedCommands = {};
 		}
 		plugin.settings.sasiPublishedCommands[node.meta.sasiId] = next;
 		void plugin.saveData(plugin.settings);
+		refreshCommandPaletteCache(plugin.app);
 		refresh?.();
 	};
 
 	const promptCreateCommand = async (
-		actions: TreeNode<ApiSceneNodeMeta>[],
+		steps: TreeNode<ApiSceneNodeMeta>[],
 		selectedIds: ReadonlySet<string>,
 		refresh?: () => void,
 	) => {
-		if (actions.length === 0) return;
-		const actionIds = actions.map((a) => a.meta.sasiId);
-		const defaultName = actions.map((a) => translate(a.meta.labelKey) || a.label).join(' + ');
+		if (steps.length === 0) return;
+		const stepIds = steps.map((a) => a.meta.sasiId);
+		const defaultName = steps.map((a) => translate(a.meta.labelKey) || a.label).join(' + ');
 
 		let detectedScope: string | undefined = undefined;
 		for (const selId of selectedIds) {
@@ -170,10 +197,13 @@ export function createApiSceneDataSource(
 		plugin.sasiCommandPublisher?.register({
 			id: commandId,
 			name: commandName,
-			composes: actionIds,
+			composes: stepIds,
 			handler: async () => {
-				for (const actId of actionIds) {
-					await plugin.invokeActionById(actId, scope);
+				for (const stepId of stepIds) {
+					if (executeObsidianCommand(plugin.app, stepId)) {
+						continue;
+					}
+					await plugin.invokeActionById(stepId, scope);
 				}
 			},
 		});
@@ -185,7 +215,7 @@ export function createApiSceneDataSource(
 		plugin.settings.sasiCustomCommands[commandId] = {
 			id: commandId,
 			name: commandName,
-			composes: actionIds,
+			composes: stepIds,
 			scope,
 		};
 		await plugin.saveData(plugin.settings);
@@ -322,35 +352,37 @@ export function createApiSceneDataSource(
 			const group = rawMeta?.group;
 			const menu = new Menu();
 
-			// 1. Actions cmenu: create command or compound command
-			if (group === 'action') {
-				const selectedActions: TreeNode<ApiSceneNodeMeta>[] = [];
+			// 1. Actions / Commands cmenu: create command or compound command
+			if (group === 'action' || group === 'command') {
+				const selectedSteps: TreeNode<ApiSceneNodeMeta>[] = [];
 				for (const selId of selectedIds) {
 					const row = flatNodes.find((c) => c.id === selId);
-					if (row && row.meta.group === 'action') selectedActions.push(row);
+					if (row && (row.meta.group === 'action' || (row.meta.group === 'command' && row.typeText !== 'node_group'))) {
+						selectedSteps.push(row);
+					}
 				}
-				if (selectedActions.length === 0) {
+				if (selectedSteps.length === 0) {
 					const clicked = flatNodes.find((c) => c.id === node.id);
-					if (clicked) selectedActions.push(clicked);
+					if (clicked && clicked.typeText !== 'node_group') selectedSteps.push(clicked);
 				}
-				const isMultiple = selectedActions.length > 1;
-				const title = isMultiple
-					? (translate('sasi.apiscene.cmenu.create_compound_command') || 'Crear comando único con seleccionados')
-					: (translate('sasi.apiscene.cmenu.create_command') || 'Crear comando');
-				menu.addItem((item) => {
-					item
-						.setTitle(title)
-						.setIcon('lucide-plus-circle')
-						.onClick(() => {
-							void promptCreateCommand(selectedActions, selectedIds);
-						});
-				});
-				menu.showAtMouseEvent(event);
-				return true;
+				if (selectedSteps.length > 0) {
+					const isMultiple = selectedSteps.length > 1;
+					const title = isMultiple
+						? (translate('sasi.apiscene.cmenu.create_compound_command') || 'Crear comando único con seleccionados')
+						: (translate('sasi.apiscene.cmenu.create_command') || 'Crear comando');
+					menu.addItem((item) => {
+						item
+							.setTitle(title)
+							.setIcon('lucide-plus-circle')
+							.onClick(() => {
+								void promptCreateCommand(selectedSteps, selectedIds);
+							});
+					});
+				}
 			}
 
 			// 2. Command cmenu: rename, toggle publish, bulk toggle publish
-			if (group?.startsWith('command')) {
+			if (group?.startsWith('command') && node.typeText !== 'node_group') {
 				menu.addItem((item) => {
 					item
 						.setTitle(translate('sasi.apiscene.cmenu.rename') || 'Renombrar')
@@ -380,13 +412,17 @@ export function createApiSceneDataSource(
 									selectedNodes.map((n) => n.meta.published),
 								);
 								for (const sel of selectedNodes) {
-									plugin.sasiCommandPublisher?.setPublished(sel.meta.sasiId, targetEnabled);
+									sel.meta.published = targetEnabled;
+									if (plugin.sasiCommandPublisher?.isPublishable(sel.meta.sasiId)) {
+										plugin.sasiCommandPublisher.setPublished(sel.meta.sasiId, targetEnabled);
+									}
 									if (!plugin.settings.sasiPublishedCommands) {
 										plugin.settings.sasiPublishedCommands = {};
 									}
 									plugin.settings.sasiPublishedCommands[sel.meta.sasiId] = targetEnabled;
 								}
 								void plugin.saveData(plugin.settings);
+								refreshCommandPaletteCache(plugin.app);
 							});
 					});
 				}

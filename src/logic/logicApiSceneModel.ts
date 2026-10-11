@@ -7,6 +7,18 @@ export const API_SCENE_IDENTITY_KIND = 'node_apis';
 export const API_SCENE_GROUP_KIND = 'node_groups';
 export const PUBLISH_CELL_ID = 'publish';
 
+export type ApiSceneIdentityKind =
+	| 'node_actions'
+	| 'node_operations'
+	| 'node_commands'
+	| 'node_scopes'
+	| 'node_kinds'
+	| 'node_providers'
+	| 'node_instances'
+	| 'node_scenes'
+	| 'node_surfaces'
+	| 'node_apis';
+
 export type ApiSceneGroupName =
 	| 'action'
 	| 'operation'
@@ -54,6 +66,39 @@ export const API_SCENE_GROUP_LABEL_KEYS: Record<ApiSceneGroupName, string> = {
 	scope: 'sasi.apiscene.group.scope',
 };
 
+export const API_SCENE_COMMAND_SUBGROUP_LABELS: Record<string, string> = {
+	'command.vaultman': 'sasi.apiscene.commands.vaultman',
+	'command.custom': 'sasi.apiscene.commands.custom',
+	'command.provided': 'sasi.apiscene.commands.provided',
+};
+
+export function apiSceneIdentityKindFor(
+	group: ApiSceneGroupName,
+): ApiSceneIdentityKind {
+	switch (group) {
+		case 'action':
+			return 'node_actions';
+		case 'operation':
+			return 'node_operations';
+		case 'command':
+			return 'node_commands';
+		case 'scope':
+			return 'node_scopes';
+		case 'kind':
+			return 'node_kinds';
+		case 'provider':
+			return 'node_providers';
+		case 'instance':
+			return 'node_instances';
+		case 'scene':
+			return 'node_scenes';
+		case 'surface':
+			return 'node_surfaces';
+		default:
+			return 'node_apis';
+	}
+}
+
 export const API_SCENE_TABS = [
 	'files',
 	'props',
@@ -65,7 +110,7 @@ export const API_SCENE_TABS = [
 export const API_SCENE_SELF_ID = 'vaultman.scene.apiscene';
 
 export interface ApiSceneNodeMeta {
-	identityKind: typeof API_SCENE_IDENTITY_KIND;
+	identityKind: ApiSceneIdentityKind | typeof API_SCENE_IDENTITY_KIND | string;
 	urn: string;
 	group: ApiSceneGroupName;
 	sasiId: string;
@@ -105,10 +150,11 @@ export interface ApiScenePublisherView {
 export function apiSceneUrnFor(
 	canonicalId: string,
 	displayLabel: string,
+	identityKind: string = API_SCENE_IDENTITY_KIND,
 ): string {
 	return formatMembershipUrn({
 		providerId: API_SCENE_PROVIDER_ID,
-		kind: API_SCENE_IDENTITY_KIND,
+		kind: identityKind,
 		canonicalId,
 		displayLabel,
 	});

@@ -1,7 +1,7 @@
 import type { SasiCatalogKind, SasiFunctionKind } from './logicSasiRegistry';
 import {
-	API_SCENE_IDENTITY_KIND,
 	PUBLISH_CELL_ID,
+	apiSceneIdentityKindFor,
 	apiSceneUrnFor,
 	type ApiSceneGroupName,
 	type ApiSceneNodeMeta,
@@ -25,6 +25,8 @@ export interface ApiSceneLeafSpec {
 	activeScene?: string;
 	tombstoned?: boolean;
 	revision?: number;
+	identityKind?: string;
+	typeText?: string;
 }
 
 function resolvePublishable(
@@ -56,12 +58,13 @@ export function toApiSceneNode({
 	const published = publishable
 		? (publisher?.isPublished(spec.sasiId) ?? false)
 		: false;
+	const identityKind = spec.identityKind ?? apiSceneIdentityKindFor(spec.group);
 
 	return {
 		id: spec.rowId,
 		label: spec.label,
 		...(spec.icon ? { icon: spec.icon } : {}),
-		typeText: spec.sasiKind ?? spec.group,
+		typeText: spec.typeText ?? (spec.sasiKind ?? spec.group),
 		depth: 0,
 		...(publishable
 			? {
@@ -79,8 +82,8 @@ export function toApiSceneNode({
 				}
 			: {}),
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(spec.canonicalId, spec.label),
+			identityKind,
+			urn: apiSceneUrnFor(spec.canonicalId, spec.label, identityKind),
 			group: spec.group,
 			sasiId: spec.sasiId,
 			labelKey: spec.labelKey,

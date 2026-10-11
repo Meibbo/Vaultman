@@ -1,6 +1,5 @@
 import type { SasiDef } from './logicSasiRegistry';
 import {
-	API_SCENE_IDENTITY_KIND,
 	apiSceneUrnFor,
 	type ApiSceneNodeMeta,
 	type ApiScenePublisherEntry,
@@ -10,20 +9,21 @@ import { toApiSceneNode } from './logicApiSceneNodeFactory';
 import type { TreeNode } from '../types/typeTree';
 
 interface CommandNodeContext {
-	out: TreeNode<ApiSceneNodeMeta>[];
 	publisher: ApiScenePublisherView | undefined;
 	snapshotIds: ReadonlySet<string>;
 	customScopes?: Record<string, string>;
 	customNames?: Record<string, string>;
+	allCommandIds?: ReadonlySet<string>;
 }
 
 interface CommandNodeSpec {
 	id: string;
 	label: string;
-	groupKind: 'command.default' | 'command.custom';
+	groupKind: 'command.vaultman' | 'command.custom';
 	supports: readonly string[];
 	composes: readonly string[];
 	icon?: string;
+	depth?: number;
 }
 
 const COMMAND_ACTIONS_MAP: Record<string, readonly string[]> = {
@@ -118,6 +118,64 @@ const COMMAND_SCOPE_MAP: Record<string, string> = {
 	'change-engine-table': 'last_focused-scene, +, last_focused-instance',
 };
 
+const CORE_PLUGIN_PREFIXES = new Set([
+	'app',
+	'workspace',
+	'window',
+	'editor',
+	'file-explorer',
+	'command-palette',
+	'global-search',
+	'switcher',
+	'graph',
+	'backlink',
+	'canvas',
+	'daily-notes',
+	'templates',
+	'note-composer',
+	'outgoing-link',
+	'tag-pane',
+	'page-preview',
+	'zk-prefixer',
+	'random-note',
+	'outline',
+	'word-count',
+	'slides',
+	'audio-recorder',
+	'workspaces',
+	'file-recovery',
+	'publish',
+	'sync',
+	'bookmarks',
+	'properties',
+	'theme',
+	'markdown',
+]);
+
+function isSubCommandId(id: string, allCommandIds?: ReadonlySet<string>): boolean {
+	if (
+		id.startsWith('vaultman.scene.') ||
+		id.startsWith('vaultman.workspace.') ||
+		id.startsWith('vaultman.updates.') ||
+		id.startsWith('vaultman.search.') ||
+		id.startsWith('vaultman.hover.') ||
+		id.startsWith('vaultman.queue.') ||
+		id.startsWith('vaultman.move.') ||
+		id.startsWith('vaultman.props.')
+	) {
+		return false;
+	}
+	if (allCommandIds?.has(id)) return true;
+	if (id in COMMAND_ACTIONS_MAP || id in COMMAND_SCOPE_MAP) return true;
+	if (id.startsWith('custom-')) return true;
+	if (id.includes(':')) {
+		const prefix = id.split(':')[0];
+		if (CORE_PLUGIN_PREFIXES.has(prefix)) return true;
+		return true;
+	}
+	return false;
+}
+
 function resolveScopeForCommand(
 	id: string,
 	customScopes?: Record<string, string>,
@@ -137,10 +195,11 @@ function resolveScopeForCommand(
 	return 'workspace:last_focused';
 }
 
-function appendCompoundCommandNode(
+function buildCompoundCommandNode(
 	context: CommandNodeContext,
 	spec: CommandNodeSpec,
-): void {
+): TreeNode<ApiSceneNodeMeta> {
+	const depth = spec.depth ?? 2;
 	const cmdScope = resolveScopeForCommand(spec.id, context.customScopes);
 	const actionIds =
 		spec.composes && spec.composes.length > 0
@@ -148,27 +207,63 @@ function appendCompoundCommandNode(
 			: COMMAND_ACTIONS_MAP[spec.id] ?? [spec.id];
 
 	const actionChildren: TreeNode<ApiSceneNodeMeta>[] = actionIds.map(
-		(actionId) => ({
-			id: `sasi:command:${spec.id}:action:${actionId}`,
-			label: actionId,
-			icon: 'lucide-zap',
-			typeText: 'action',
-			depth: 2,
-			meta: {
-				identityKind: API_SCENE_IDENTITY_KIND,
-				urn: apiSceneUrnFor(`command:${spec.id}:action:${actionId}`, actionId),
-				group: 'action',
-				sasiId: actionId,
-				labelKey: actionId,
-				sasiKind: 'action',
-				supports: [],
-				composes: [],
-				mutatesVault: false,
-				publishable: false,
-				published: false,
-				commandId: spec.id,
-			},
-		}),
+		(stepId) => {
+			const isCmd = isSubCommandId(stepId, context.allCommandIds);
+			if (isCmd) {
+				const cmdLabel = context.customNames?.[stepId] ?? stepId;
+				return {
+					id: `sasi:command:${spec.id}:command:${stepId}`,
+					label: cmdLabel,
+					icon: 'lucide-terminal',
+					typeText: 'command',
+					depth: depth + 2,
+					meta: {
+						identityKind: 'node_commands',
+						urn: apiSceneUrnFor(
+							`command:${spec.id}:command:${stepId}`,
+							cmdLabel,
+							'node_commands',
+						),
+						group: 'command',
+						sasiId: stepId,
+						labelKey: cmdLabel,
+						sasiKind: 'command',
+						supports: [],
+						composes: [],
+						mutatesVault: false,
+						publishable: false,
+						published: false,
+						commandId: spec.id,
+					},
+				};
+			}
+
+			return {
+				id: `sasi:command:${spec.id}:action:${stepId}`,
+				label: stepId,
+				icon: 'lucide-zap',
+				typeText: 'action',
+				depth: depth + 2,
+				meta: {
+					identityKind: 'node_actions',
+					urn: apiSceneUrnFor(
+						`command:${spec.id}:action:${stepId}`,
+						stepId,
+						'node_actions',
+					),
+					group: 'action',
+					sasiId: stepId,
+					labelKey: stepId,
+					sasiKind: 'action',
+					supports: [],
+					composes: [],
+					mutatesVault: false,
+					publishable: false,
+					published: false,
+					commandId: spec.id,
+				},
+			};
+		},
 	);
 
 	const actionsGroupNode: TreeNode<ApiSceneNodeMeta> = {
@@ -176,13 +271,17 @@ function appendCompoundCommandNode(
 		label: 'sasi.apiscene.command.actions_group',
 		icon: 'lucide-folder',
 		typeText: 'node_group',
-		depth: 1,
+		depth: depth + 1,
 		showCaret: actionChildren.length > 0,
 		children: actionChildren,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`command:${spec.id}:group:actions`, 'actions'),
-			group: 'action',
+			identityKind: 'node_commands',
+			urn: apiSceneUrnFor(
+				`command:${spec.id}:group:actions`,
+				'actions',
+				'node_commands',
+			),
+			group: 'command',
 			sasiId: `${spec.id}:actions`,
 			labelKey: 'sasi.apiscene.command.actions_group',
 			sasiKind: null,
@@ -200,10 +299,14 @@ function appendCompoundCommandNode(
 		label: `scope: ${cmdScope}`,
 		icon: 'lucide-crosshair',
 		typeText: 'scope',
-		depth: 2,
+		depth: depth + 2,
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`command:${spec.id}:scope:${cmdScope}`, cmdScope),
+			identityKind: 'node_scopes',
+			urn: apiSceneUrnFor(
+				`command:${spec.id}:scope:${cmdScope}`,
+				cmdScope,
+				'node_scopes',
+			),
 			group: 'scope',
 			sasiId: cmdScope,
 			labelKey: cmdScope,
@@ -222,12 +325,16 @@ function appendCompoundCommandNode(
 		label: 'sasi.apiscene.command.scope_group',
 		icon: 'lucide-folder',
 		typeText: 'node_group',
-		depth: 1,
+		depth: depth + 1,
 		showCaret: true,
 		children: [scopeChildNode],
 		meta: {
-			identityKind: API_SCENE_IDENTITY_KIND,
-			urn: apiSceneUrnFor(`command:${spec.id}:group:scope`, 'scope'),
+			identityKind: 'node_scopes',
+			urn: apiSceneUrnFor(
+				`command:${spec.id}:group:scope`,
+				'scope',
+				'node_scopes',
+			),
 			group: 'scope',
 			sasiId: `${spec.id}:scope`,
 			labelKey: 'sasi.apiscene.command.scope_group',
@@ -241,8 +348,7 @@ function appendCompoundCommandNode(
 		},
 	};
 
-	const displayName =
-		context.customNames?.[spec.id] ?? spec.label;
+	const displayName = context.customNames?.[spec.id] ?? spec.label;
 
 	const node = toApiSceneNode({
 		spec: {
@@ -257,24 +363,35 @@ function appendCompoundCommandNode(
 			supports: spec.supports,
 			composes: spec.composes,
 			mutatesVault: false,
+			typeText:
+				spec.groupKind === 'command.vaultman'
+					? 'node_command_vaultman'
+					: 'node_command_custom',
 		},
 		publisher: context.publisher,
 		snapshotIds: context.snapshotIds,
 		isCommand: true,
 	});
 
+	node.depth = depth;
 	node.children = [actionsGroupNode, scopeGroupNode];
 	node.showCaret = true;
 	node.meta.commandId = spec.id;
 	node.meta.subgroup = spec.groupKind;
-	context.out.push(node);
+	return node;
 }
 
-function appendProvidedCommandNode(
+function buildProvidedCommandNode(
 	context: CommandNodeContext,
 	cmd: { id: string; name: string; icon?: string },
-): void {
+	depth = 3,
+	subgroup = 'command.provided',
+): TreeNode<ApiSceneNodeMeta> {
 	const displayName = context.customNames?.[cmd.id] ?? cmd.name;
+	const isPublished = context.publisher
+		? context.publisher.isPublished(cmd.id)
+		: true;
+
 	const node = toApiSceneNode({
 		spec: {
 			group: 'command',
@@ -288,17 +405,32 @@ function appendProvidedCommandNode(
 			supports: [],
 			composes: [],
 			mutatesVault: false,
+			typeText: 'node_command_provided',
 		},
 		publisher: context.publisher,
 		snapshotIds: context.snapshotIds,
 		isCommand: true,
 	});
 
+	node.depth = depth;
 	node.showCaret = false;
 	node.children = undefined;
+	node.meta.publishable = true;
+	node.meta.published = isPublished;
+	node.cells = [
+		{
+			id: 'publish',
+			kind: 'toggle',
+			enabled: isPublished,
+			style: 'native',
+			label: isPublished
+				? 'sasi.inspector.toggle.on'
+				: 'sasi.inspector.toggle.off',
+		},
+	];
 	node.meta.commandId = cmd.id;
-	node.meta.subgroup = 'command.provided';
-	context.out.push(node);
+	node.meta.subgroup = subgroup;
+	return node;
 }
 
 export interface ApiSceneCommandRowsInput {
@@ -314,6 +446,7 @@ export interface ApiSceneCommandRowsInput {
 	customScopes?: Record<string, string>;
 	customNames?: Record<string, string>;
 	providedCommands?: readonly { id: string; name: string; icon?: string }[];
+	communityPluginNames?: Record<string, string>;
 }
 
 export function appendApiSceneCommandNodes({
@@ -326,67 +459,300 @@ export function appendApiSceneCommandNodes({
 	customScopes = {},
 	customNames = {},
 	providedCommands = [],
+	communityPluginNames = {},
 }: ApiSceneCommandRowsInput): void {
+	const allCommandIds = new Set<string>();
+	for (const def of registryCommands) allCommandIds.add(def.id);
+	for (const entry of publisherEntries) allCommandIds.add(entry.id);
+	for (const id of Object.keys(customCommands)) allCommandIds.add(id);
+	for (const prov of providedCommands) allCommandIds.add(prov.id);
+
 	const descriptors = new Map(
 		publisherEntries.map((entry) => [entry.id, entry] as const),
 	);
 	const projectedIds = new Set<string>();
 	const context: CommandNodeContext = {
-		out,
 		publisher,
 		snapshotIds,
 		customScopes,
 		customNames,
+		allCommandIds,
 	};
 
 	// 1. Vaultman Default Commands
+	const vaultmanNodes: TreeNode<ApiSceneNodeMeta>[] = [];
+
 	for (const def of registryCommands) {
 		if (customCommands[def.id]) continue;
 		const descriptor = descriptors.get(def.id);
 		projectedIds.add(def.id);
-		appendCompoundCommandNode(context, {
-			id: def.id,
-			label: descriptor?.descriptor?.name ?? def.labelKey,
-			groupKind: 'command.default',
-			supports: def.supports.map((support) => support.surface),
-			composes: def.composes ?? [],
-			...(def.icon ? { icon: def.icon } : {}),
-		});
+		vaultmanNodes.push(
+			buildCompoundCommandNode(context, {
+				id: def.id,
+				label: descriptor?.descriptor?.name ?? def.labelKey,
+				groupKind: 'command.vaultman',
+				supports: def.supports.map((support) => support.surface),
+				composes: def.composes ?? [],
+				...(def.icon ? { icon: def.icon } : {}),
+				depth: 2,
+			}),
+		);
 	}
 
 	for (const entry of publisherEntries) {
 		if (projectedIds.has(entry.id) || customCommands[entry.id]) continue;
-		// Skip per-surface legacy engine commands
 		if (entry.id.startsWith('sasi.scene.engine.')) continue;
+
 		projectedIds.add(entry.id);
-		appendCompoundCommandNode(context, {
-			id: entry.id,
-			label: entry.descriptor?.name ?? entry.id,
-			groupKind: 'command.default',
-			supports: [],
-			composes:
-				(entry.descriptor as { composes?: readonly string[] } | undefined)
-					?.composes ?? [],
-		});
+		vaultmanNodes.push(
+			buildCompoundCommandNode(context, {
+				id: entry.id,
+				label: entry.descriptor?.name ?? entry.id,
+				groupKind: 'command.vaultman',
+				supports: [],
+				composes:
+					(entry.descriptor as { composes?: readonly string[] } | undefined)
+						?.composes ?? [],
+				depth: 2,
+			}),
+		);
 	}
 
 	// 2. Custom Commands
+	const customNodes: TreeNode<ApiSceneNodeMeta>[] = [];
 	for (const customCmd of Object.values(customCommands)) {
 		projectedIds.add(customCmd.id);
-		appendCompoundCommandNode(context, {
-			id: customCmd.id,
-			label: customCmd.name,
-			groupKind: 'command.custom',
-			supports: [],
-			composes: customCmd.composes ?? [],
-			icon: 'lucide-sparkles',
-		});
+		customNodes.push(
+			buildCompoundCommandNode(context, {
+				id: customCmd.id,
+				label: customCmd.name,
+				groupKind: 'command.custom',
+				supports: [],
+				composes: customCmd.composes ?? [],
+				icon: 'lucide-sparkles',
+				depth: 2,
+			}),
+		);
 	}
 
 	// 3. Provided Commands (Obsidian palette commands excluding vaultman/custom)
+	const coreProvidedNodes: TreeNode<ApiSceneNodeMeta>[] = [];
+	const communityProvidedMap = new Map<string, TreeNode<ApiSceneNodeMeta>[]>();
+
 	for (const prov of providedCommands) {
 		if (projectedIds.has(prov.id)) continue;
 		projectedIds.add(prov.id);
-		appendProvidedCommandNode(context, prov);
+
+		let pluginId = 'core';
+		if (prov.id.includes(':')) {
+			const prefix = prov.id.split(':')[0];
+			if (!CORE_PLUGIN_PREFIXES.has(prefix)) {
+				pluginId = prefix;
+			}
+		}
+
+		if (pluginId === 'core') {
+			coreProvidedNodes.push(
+				buildProvidedCommandNode(context, prov, 3, 'command.provided.core'),
+			);
+		} else {
+			let list = communityProvidedMap.get(pluginId);
+			if (!list) {
+				list = [];
+				communityProvidedMap.set(pluginId, list);
+			}
+			list.push(
+				buildProvidedCommandNode(
+					context,
+					prov,
+					3,
+					`command.provided.${pluginId}`,
+				),
+			);
+		}
 	}
+
+	// Build Provided subgroups (level 0+3)
+	const providedSubgroups: TreeNode<ApiSceneNodeMeta>[] = [];
+	if (coreProvidedNodes.length > 0) {
+		providedSubgroups.push({
+			id: 'sasi:command:provided:subgroup:core',
+			label: 'Obsidian',
+			icon: 'lucide-app-window',
+			typeText: 'node_group',
+			depth: 2,
+			showCaret: true,
+			children: coreProvidedNodes,
+			meta: {
+				identityKind: 'node_commands',
+				urn: apiSceneUrnFor(
+					'command:provided:subgroup:core',
+					'Obsidian',
+					'node_commands',
+				),
+				group: 'command',
+				subgroup: 'command.provided.core',
+				sasiId: 'provided:core',
+				labelKey: 'Obsidian',
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+				publishable: false,
+				published: false,
+			},
+		});
+	}
+
+	for (const [pluginId, cmdNodes] of communityProvidedMap.entries()) {
+		const pluginName =
+			communityPluginNames[pluginId] ??
+			pluginId.charAt(0).toUpperCase() + pluginId.slice(1);
+		providedSubgroups.push({
+			id: `sasi:command:provided:subgroup:${pluginId}`,
+			label: pluginName,
+			icon: 'lucide-puzzle',
+			typeText: 'node_group',
+			depth: 2,
+			showCaret: true,
+			children: cmdNodes,
+			meta: {
+				identityKind: 'node_commands',
+				urn: apiSceneUrnFor(
+					`command:provided:subgroup:${pluginId}`,
+					pluginName,
+					'node_commands',
+				),
+				group: 'command',
+				subgroup: `command.provided.${pluginId}`,
+				sasiId: `provided:${pluginId}`,
+				labelKey: pluginName,
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+				publishable: false,
+				published: false,
+			},
+		});
+	}
+
+	// 4. Wrap into Subsections (0+1: Vaultman, Custom, Provided)
+	if (vaultmanNodes.length > 0) {
+		out.push({
+			id: 'sasi:command:subgroup:vaultman',
+			label: 'Vaultman',
+			icon: 'lucide-shield',
+			typeText: 'node_group',
+			depth: 1,
+			showCaret: true,
+			children: vaultmanNodes,
+			meta: {
+				identityKind: 'node_commands',
+				urn: apiSceneUrnFor(
+					'command:subgroup:vaultman',
+					'Vaultman',
+					'node_commands',
+				),
+				group: 'command',
+				subgroup: 'command.vaultman',
+				sasiId: 'subgroup:vaultman',
+				labelKey: 'sasi.apiscene.commands.vaultman',
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+				publishable: false,
+				published: false,
+			},
+		});
+	}
+
+	if (customNodes.length > 0) {
+		out.push({
+			id: 'sasi:command:subgroup:custom',
+			label: 'Custom',
+			icon: 'lucide-sparkles',
+			typeText: 'node_group',
+			depth: 1,
+			showCaret: true,
+			children: customNodes,
+			meta: {
+				identityKind: 'node_commands',
+				urn: apiSceneUrnFor(
+					'command:subgroup:custom',
+					'Custom',
+					'node_commands',
+				),
+				group: 'command',
+				subgroup: 'command.custom',
+				sasiId: 'subgroup:custom',
+				labelKey: 'sasi.apiscene.commands.custom',
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+				publishable: false,
+				published: false,
+			},
+		});
+	}
+
+	if (providedSubgroups.length > 0) {
+		out.push({
+			id: 'sasi:command:subgroup:provided',
+			label: 'Provided',
+			icon: 'lucide-terminal',
+			typeText: 'node_group',
+			depth: 1,
+			showCaret: true,
+			children: providedSubgroups,
+			meta: {
+				identityKind: 'node_commands',
+				urn: apiSceneUrnFor(
+					'command:subgroup:provided',
+					'Provided',
+					'node_commands',
+				),
+				group: 'command',
+				subgroup: 'command.provided',
+				sasiId: 'subgroup:provided',
+				labelKey: 'sasi.apiscene.commands.provided',
+				sasiKind: null,
+				supports: [],
+				composes: [],
+				mutatesVault: false,
+				publishable: false,
+				published: false,
+			},
+		});
+	}
+}
+
+export function flattenApiSceneNodes(
+	nodes: readonly TreeNode<ApiSceneNodeMeta>[],
+): TreeNode<ApiSceneNodeMeta>[] {
+	const out: TreeNode<ApiSceneNodeMeta>[] = [];
+	function walk(n: TreeNode<ApiSceneNodeMeta>) {
+		out.push(n);
+		if (n.children) {
+			for (const ch of n.children) walk(ch);
+		}
+	}
+	for (const n of nodes) walk(n);
+	return out;
+}
+
+export function findApiSceneNode(
+	nodes: readonly TreeNode<ApiSceneNodeMeta>[],
+	predicate: (node: TreeNode<ApiSceneNodeMeta>) => boolean,
+): TreeNode<ApiSceneNodeMeta> | undefined {
+	for (const node of nodes) {
+		if (predicate(node)) return node;
+		if (node.children) {
+			const found = findApiSceneNode(node.children, predicate);
+			if (found) return found;
+		}
+	}
+	return undefined;
 }

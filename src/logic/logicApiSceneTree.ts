@@ -3,7 +3,6 @@ import {
 	API_SCENE_GROUP_IDS,
 	API_SCENE_GROUP_KIND,
 	API_SCENE_GROUP_NAMES,
-	API_SCENE_IDENTITY_KIND,
 	API_SCENE_PROVIDER_ID,
 	buildApiSceneGroups,
 	type ApiSceneGroupMeta,
@@ -90,7 +89,11 @@ export function projectApiSceneTree(
 export function isApiSceneNode(
 	node: TreeNode<ApiSceneNodeMeta | ApiSceneGroupMeta>,
 ): node is TreeNode<ApiSceneNodeMeta> {
-	return node.meta.identityKind === API_SCENE_IDENTITY_KIND;
+	return (
+		typeof node.meta.identityKind === 'string' &&
+		node.meta.identityKind.startsWith('node_') &&
+		node.meta.identityKind !== API_SCENE_GROUP_KIND
+	);
 }
 
 export function apiScenePublishState(node: TreeNode<ApiSceneNodeMeta>): {
