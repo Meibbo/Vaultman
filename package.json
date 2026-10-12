@@ -51,7 +51,7 @@
 		"obsidian-launcher": "3.0.2",
 		"prettier": "3.8.3",
 		"prettier-plugin-svelte": "3.5.2",
-		"stylelint": "17.12.0",
+		"stylelint": "17.15.0",
 		"stylelint-config-recommended": "18.0.0",
 		"stylelint-declaration-block-no-ignored-properties": "3.0.0",
 		"svelte": "5.55.9",
