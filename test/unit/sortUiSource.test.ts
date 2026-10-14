@@ -198,7 +198,7 @@ describe('explorer sort UI source', () => {
 		expect(filesSource).toContain(
 			'wordCountForFile: (file) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileWordCount(file) ?? 0',
 		);
-		expect(filesSource).toContain('node.meta.file?.name ?? node.label');
+		expect(filesSource).toContain('node.meta.file?.basename ?? node.label');
 		expect(en['sort.by.words']).toBe('Words');
 		expect(es['sort.by.words']).toBe('Palabras');
 		expect(en['sort.by.tags']).toBe('Tags');

@@ -900,6 +900,7 @@ export class PropsExplorerPanel extends Component {
 		const memberships = this.groupMemberships;
 		const allCustomGroups = resolveCustomGroups(memberships);
 
+		if (!this._revealAutoHiddenGroups) this._revealAutoHiddenGroups = new Set<string>();
 		if (this.isRevealingActiveFile() && this.plugin.settings?.autoHideEmptyRevealGroups) {
 			const revealPath = this._revealPath();
 			if (this._revealAutoHiddenPath !== revealPath) {
