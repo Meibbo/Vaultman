@@ -50,6 +50,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	isPropRevealActive?(): boolean;
 	setSceneEngine?(surface: SceneEngineSurface | undefined, mode: ExplorerViewMode): boolean;
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
+	invokeScenePresentationSasiAction?(actionId: string, scope?: string): Promise<boolean>;
 	switchScene?(tab: StatisticsDataTab | 'apiscene'): boolean;
 	addPropertyInReveal?(): Promise<boolean>;
 	openFilterScene?(): boolean;
@@ -341,6 +342,17 @@ export class VaultmanFrame extends ItemView {
 
 	async invokeToolbarSasiAction(actionId: string): Promise<boolean> {
 		return (await this.svelteApp?.invokeToolbarSasiAction?.(actionId)) ?? false;
+	}
+
+	async invokeScenePresentationSasiAction(
+		actionId: string,
+		scope?: string,
+	): Promise<boolean> {
+		return (await this.svelteApp?.invokeScenePresentationSasiAction?.(actionId, scope)) ?? false;
+	}
+
+	async invokeIslandSasiAction(actionId: string): Promise<boolean> {
+		return (await this.svelteApp?.invokeIslandSasiAction?.(actionId)) ?? false;
 	}
 
 	switchScene(tab: StatisticsDataTab | 'apiscene'): boolean {

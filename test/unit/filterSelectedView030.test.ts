@@ -24,6 +24,7 @@ interface MockElement {
 	createEl: () => MockElement;
 	createDiv: (options?: { cls?: string; attr?: Record<string, string> }) => MockElement;
 	createSpan: (options?: { cls?: string; text?: string }) => MockElement;
+	querySelectorAll: (selector: string) => MockElement[];
 	addEventListener: (type: string, listener: () => void) => void;
 	remove: () => void;
 }
@@ -98,6 +99,7 @@ describe('U130-GGC-030 — FilterScene node_filters / node_selected squircle tog
 				span.innerText = opts?.text ?? '';
 				return span;
 			}),
+			querySelectorAll: vi.fn(() => []),
 			addEventListener(type: string, listener: () => void) {
 				listeners.push({ type, listener });
 			},

@@ -2084,8 +2084,15 @@
 		}
 	}
 	let nativeHostEl = $state<HTMLElement | null>(null);
+	let sceneConfigRevision = $state(0);
+	$effect(() =>
+		sceneConfigPort.onConfigChange?.(() => {
+			sceneConfigRevision += 1;
+		}),
+	);
 	$effect(() => {
 		void settingsRevision;
+		void sceneConfigRevision;
 		if (!nativeHostEl || filtersActiveTab === 'apiscene') return;
 		const scene = toNativeSceneId(filtersActiveTab as any);
 		const leaf = nativeHostEl.closest<HTMLElement>('.workspace-leaf-content');

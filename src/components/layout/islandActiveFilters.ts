@@ -7,6 +7,16 @@ import {
 	currentSelectionToken,
 	selectionKeyFor,
 } from '../../logic/logicGroupSelectionTransaction';
+import {
+	FILTERS_BASES_INTEROP_ID,
+	FILTERS_TEMPLATES_ID,
+} from '../../logic/logicSasiFilterQueueActions';
+import {
+	focusFirstIslandControl,
+	handleIslandKeydown,
+	menuEventForElement,
+	wireIslandButton,
+} from '../../utils/islandKeyboard';
 
 export interface ActiveFilterViewState {
 	id: string;
@@ -110,6 +120,8 @@ export class ActiveFiltersIslandComponent {
 	private headerEl: HTMLElement | null = null;
 	private viewToggleBtn: HTMLElement | null = null;
 	private clearAllBtn: HTMLElement | null = null;
+	private templatesBtn: HTMLElement | null = null;
+	private basesBtn: HTMLElement | null = null;
 
 	private currentView: 'filters' | 'selected' = 'filters';
 
@@ -122,6 +134,7 @@ export class ActiveFiltersIslandComponent {
 		private readonly getDisplayedCount?: () => { filtered: number; total: number },
 		private readonly getSelectedSnapshot?: () => SelectedNodesSnapshot | readonly SelectedNodeItem[],
 		private readonly onClearSelection?: () => void,
+		private readonly focusOnMount = true,
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -139,6 +152,10 @@ export class ActiveFiltersIslandComponent {
 		this.islandEl = this.containerEl.createDiv({
 			cls: 'vaultman-active-filters-island',
 		});
+		this.islandEl.tabIndex = -1;
+		this.islandEl.addEventListener('keydown', (event: KeyboardEvent) => {
+			handleIslandKeydown(event, this.islandEl, this.onClose);
+		});
 
 		// 1. Squircle action buttons row
 		const btnRow = this.islandEl.createDiv({
@@ -155,7 +172,7 @@ export class ActiveFiltersIslandComponent {
 			},
 		});
 		setIcon(this.clearAllBtn, 'lucide-trash-2');
-		this.clearAllBtn.addEventListener('click', () => {
+		const clearAll = () => {
 			if (this.currentView === 'selected') {
 				if (this.onClearSelection) {
 					this.onClearSelection();
@@ -167,7 +184,9 @@ export class ActiveFiltersIslandComponent {
 			} else {
 				this.onClearAll();
 			}
-		});
+		};
+		this.clearAllBtn.addEventListener('click', clearAll);
+		wireIslandButton(this.clearAllBtn, clearAll);
 
 		// View Toggle: node_filters <-> node_selected (U130-GGC-030)
 		this.viewToggleBtn = btnRow.createDiv({
@@ -184,40 +203,37 @@ export class ActiveFiltersIslandComponent {
 			this.toggleViewMode();
 		};
 		this.viewToggleBtn.addEventListener('click', handleToggle);
-		this.viewToggleBtn.addEventListener('keydown', (e: KeyboardEvent) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				handleToggle();
-			}
-		});
+		wireIslandButton(this.viewToggleBtn, handleToggle);
 
 		// Templates
-		const templateBtn = btnRow.createDiv({
+		const templateBtn = (this.templatesBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
 				'aria-label': translate('filters.popup.templates'),
 				role: 'button',
 				tabindex: '0',
 			},
-		});
+		}));
 		setIcon(templateBtn, 'lucide-bookmark');
 		templateBtn.addEventListener('click', (e) => {
-			openFilterTemplateMenu(this.plugin, e, this.onClose);
+			this.openTemplatesMenu(e);
 		});
+		wireIslandButton(templateBtn, () => this.openTemplatesMenu());
 
 		// Bases Interop
-		const basesBtn = btnRow.createDiv({
+		const basesBtn = (this.basesBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
 				'aria-label': translate('filters.bases.menu'),
 				role: 'button',
 				tabindex: '0',
 			},
-		});
+		}));
 		setIcon(basesBtn, 'lucide-database-zap');
 		basesBtn.addEventListener('click', (e) => {
-			openBasesFilterInteropMenu(this.plugin, e, this.onClose);
+			this.openBasesInteropMenu(e);
 		});
+		wireIslandButton(basesBtn, () => this.openBasesInteropMenu());
 
 		// 2. Header
 		this.headerEl = this.islandEl.createDiv({
@@ -231,11 +247,48 @@ export class ActiveFiltersIslandComponent {
 
 		this.render();
 
-		if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-			window.requestAnimationFrame(() => {
-				this.islandEl?.addClass('is-open');
-			});
-		}
+		const view = this.islandEl.ownerDocument?.defaultView;
+		const open = () => {
+			if (!this.islandEl) return;
+			this.islandEl.addClass('is-open');
+			if (this.focusOnMount) this.focusFirstControl();
+		};
+		if (view?.requestAnimationFrame) view.requestAnimationFrame(open);
+		else open();
+	}
+
+	focusFirstControl(): void {
+		focusFirstIslandControl(this.islandEl);
+	}
+
+	showSelectedNodes(): void {
+		this.toggleViewMode('selected');
+	}
+
+	invokeSasiAction(actionId: string): boolean {
+		if (actionId === FILTERS_TEMPLATES_ID) return this.openTemplatesMenu();
+		if (actionId === FILTERS_BASES_INTEROP_ID) return this.openBasesInteropMenu();
+		return false;
+	}
+
+	private openTemplatesMenu(event?: MouseEvent): boolean {
+		if (!this.templatesBtn) return false;
+		openFilterTemplateMenu(
+			this.plugin,
+			event ?? menuEventForElement(this.templatesBtn),
+			this.onClose,
+		);
+		return true;
+	}
+
+	private openBasesInteropMenu(event?: MouseEvent): boolean {
+		if (!this.basesBtn) return false;
+		openBasesFilterInteropMenu(
+			this.plugin,
+			event ?? menuEventForElement(this.basesBtn),
+			this.onClose,
+		);
+		return true;
 	}
 
 	private getSelectedRows(): readonly SelectedNodeItem[] {
@@ -351,6 +404,10 @@ export class ActiveFiltersIslandComponent {
 				this.plugin.filterService.toggleFilterRule(rule.id);
 				this.render();
 			});
+			wireIslandButton(toggle, () => {
+				this.plugin.filterService.toggleFilterRule(rule.id);
+				this.render();
+			});
 
 			const del = actions.createDiv({
 				cls: 'vaultman-active-filter-delete clickable-icon',
@@ -359,6 +416,10 @@ export class ActiveFiltersIslandComponent {
 			setIcon(del, 'lucide-trash-2');
 			del.addEventListener('click', (e) => {
 				e.stopPropagation();
+				this.plugin.filterService.deleteFilterRule(rule.id);
+				this.render();
+			});
+			wireIslandButton(del, () => {
 				this.plugin.filterService.deleteFilterRule(rule.id);
 				this.render();
 			});
@@ -393,6 +454,10 @@ export class ActiveFiltersIslandComponent {
 			setIcon(del, 'lucide-x');
 			del.addEventListener('click', (e) => {
 				e.stopPropagation();
+				viewState.clear();
+				this.render();
+			});
+			wireIslandButton(del, () => {
 				viewState.clear();
 				this.render();
 			});
@@ -451,6 +516,10 @@ export class ActiveFiltersIslandComponent {
 				row.deselect?.();
 				this.render();
 			});
+			wireIslandButton(deselectBtn, () => {
+				row.deselect?.();
+				this.render();
+			});
 		}
 	}
 
@@ -461,6 +530,8 @@ export class ActiveFiltersIslandComponent {
 		this.headerEl = null;
 		this.viewToggleBtn = null;
 		this.clearAllBtn = null;
+		this.templatesBtn = null;
+		this.basesBtn = null;
 	}
 }
 

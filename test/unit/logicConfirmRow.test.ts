@@ -81,7 +81,7 @@ describe('spec 08 §4 — hidden custom groups ride the per-instance cascade', (
 		groupMemberships: {},
 		showOptionsOverride: 'inherit' as const,
 		textCase: {},
-		nativeCompat: {},
+		 nativeCompat: {},
 	};
 
 	it('replaces the list wholesale and diffs only when it changed', () => {

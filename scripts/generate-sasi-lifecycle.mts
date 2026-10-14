@@ -5,7 +5,7 @@ import { readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 const sources = [
 	'logicSasiBootstrap', 'logicSasiMoveActions', 'logicSasiHoverActions',
 	'logicSasiSceneActions', 'logicSasiToolbarActions', 'logicToolbarMenuCatalog',
-	'logicSasiSearchActions', 'logicSasiSettingsActions', 'logicSasiSettingScene',
+	'logicSasiFilterQueueActions', 'logicSasiSearchActions', 'logicSasiSettingsActions', 'logicSasiSettingScene',
 	'logicGroupSelectionTransaction', 'logicApiScene', 'logicApiSceneModel',
 ].map((name) => `src/logic/${name}.ts`);
 sources.push('src/main.ts');

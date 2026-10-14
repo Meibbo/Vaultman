@@ -3737,6 +3737,7 @@
 							onRenameInstance,
 							onMoveSurface,
 							onSplitInstance,
+							sceneConfigPort,
 						).open();
 					});
 			});
@@ -5017,6 +5018,14 @@
 		}),
 	);
 
+	$effect(() =>
+		sceneConfigPort.onConfigChange?.(() => {
+			configByTab = Object.fromEntries(
+				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+			) as Record<FiltersTab, Required<SceneConfig>>;
+		}),
+	);
+
 	// U130 toolbar alt-cmenu: empuja el override per-instance del "always
 	// reveal" al panel de Files. Lee config y ref: se re-ejecuta cuando cambia
 	// cualquiera de los dos (p. ej. al montar files tarde). `auto` devuelve al
@@ -5039,6 +5048,9 @@
 		const stickyRows = configByTab[tab].stickyRows;
 		const compactFolders = configByTab[tab].compactFolders;
 		const indent = configByTab[tab].indent;
+		const tooltips = configByTab[tab].tooltips;
+		const textCase = configByTab[tab].textCase;
+		const nativeCompat = configByTab[tab].nativeCompat;
 		const groupPreset = configByTab[tab].groupPreset;
 		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
 		const groupMemberships = configByTab[tab].groupMemberships;
@@ -5051,6 +5063,9 @@
 			stickyRows,
 			compactFolders,
 			indent,
+			tooltips,
+			textCase,
+			nativeCompat,
 			groupPreset,
 			hiddenGroupIds,
 			groupMemberships,

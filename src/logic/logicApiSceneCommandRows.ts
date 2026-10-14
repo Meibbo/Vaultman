@@ -13,6 +13,9 @@ import {
 	TOOLBAR_TOGGLE_EXPANSION_ID,
 	TOOLBAR_VIEW_MENU_ID,
 } from './logicSasiToolbarActions';
+import {
+	FILTER_QUEUE_ACTIONS,
+} from './logicSasiFilterQueueActions';
 
 interface CommandNodeContext {
 	publisher: ApiScenePublisherView | undefined;
@@ -88,6 +91,9 @@ const COMMAND_ACTIONS_MAP: Record<string, readonly string[]> = {
 	'change-engine-tree': ['vaultman.scene.engine.tree'],
 	'change-engine-cards': ['vaultman.scene.engine.cards'],
 	'change-engine-table': ['vaultman.scene.engine.table'],
+	...Object.fromEntries(
+		FILTER_QUEUE_ACTIONS.map((action) => [action.id, [action.id]]),
+	),
 };
 
 const COMMAND_SCOPE_MAP: Record<string, string> = {
@@ -142,6 +148,9 @@ const COMMAND_SCOPE_MAP: Record<string, string> = {
 	'change-engine-tree': 'last_focused-scene, +, last_focused-instance',
 	'change-engine-cards': 'last_focused-scene, +, last_focused-instance',
 	'change-engine-table': 'last_focused-scene, +, last_focused-instance',
+	...Object.fromEntries(
+		FILTER_QUEUE_ACTIONS.map((action) => [action.id, action.scope]),
+	),
 };
 
 const CORE_PLUGIN_PREFIXES = new Set([

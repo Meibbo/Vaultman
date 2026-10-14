@@ -1,4 +1,5 @@
 import {
+	replaceInstanceSelfConfig,
 	replaceSceneConfig,
 	setActiveScene,
 	setInstanceFloatingToc,
@@ -42,6 +43,15 @@ export interface SceneConfigPort {
 		scene: SceneDefinitionId,
 		next: Required<SceneConfig>,
 	) => Promise<void>;
+	/** Read/write the instance's sparse self layer without disturbing scene layers. */
+	readSelfConfig?: () => SceneConfig;
+	proposeSelfConfig?: (layer: SceneConfig) => Promise<void>;
+	/** Read/write a scene's persisted sparse layer without resolving inherited values. */
+	readSceneOverrides?: (scene: SceneDefinitionId) => SceneConfig;
+	proposeSceneOverrides?: (
+		scene: SceneDefinitionId,
+		layer: SceneConfig,
+	) => Promise<void>;
 	/** La scene en la que estaba la instancia, o `null` si nunca se guardo. */
 	readActiveScene: () => string | null;
 	proposeActiveScene: (scene: string) => Promise<void>;
@@ -61,6 +71,10 @@ export interface SceneConfigPort {
 	setInstanceId: (id: WorkspaceInstanceId) => void;
 	/** Avisa a quien haya cacheado config de que hay que releerla. Devuelve la baja. */
 	onInstanceChange: (listener: () => void) => () => void;
+	/** Notifies mounted scene consumers after any persisted config mutation. */
+	onConfigChange?: (listener: () => void) => () => void;
+	/** Notify mounted consumers after a caller updates the registry directly. */
+	notifyConfigChange?: () => void;
 	/** Propone cambios en múltiples escenas en un solo batch, persistiendo una sola vez. */
 	proposeScenes?: (
 		updates: Partial<Record<SceneDefinitionId, Required<SceneConfig>>>,
@@ -292,14 +306,23 @@ export function createSceneConfigPort(
 	// U121-109: la identidad es tardia, asi que vive en una variable y no en `deps`.
 	let currentId: WorkspaceInstanceId = deps.instanceId;
 	const listeners = new Set<() => void>();
+	const configListeners = new Set<() => void>();
+	const notifyConfigChange = (): void => {
+		for (const listener of [...configListeners]) listener();
+	};
 	const setInstanceId = (id: WorkspaceInstanceId): void => {
 		if (!id || id === currentId) return;
 		currentId = id;
 		for (const listener of [...listeners]) listener();
+		notifyConfigChange();
 	};
 	const onInstanceChange = (listener: () => void): (() => void) => {
 		listeners.add(listener);
 		return () => listeners.delete(listener);
+	};
+	const onConfigChange = (listener: () => void): (() => void) => {
+		configListeners.add(listener);
+		return () => configListeners.delete(listener);
 	};
 
 	const read = (scene: SceneDefinitionId): Required<SceneConfig> => {
@@ -310,6 +333,39 @@ export function createSceneConfigPort(
 			instanceSelf: record?.self,
 			scene: record?.scenes[scene],
 		});
+	};
+
+	const readSelfConfig = (): SceneConfig => {
+		const self = deps.readRegistry().instances[currentId]?.self;
+		return self ? { ...self } : {};
+	};
+
+	const readSceneOverrides = (scene: SceneDefinitionId): SceneConfig => {
+		const layer = deps.readRegistry().instances[currentId]?.scenes[scene];
+		return layer ? { ...layer } : {};
+	};
+
+	const proposeSelfConfig = async (layer: SceneConfig): Promise<void> => {
+		const registry = deps.readRegistry();
+		const next = replaceInstanceSelfConfig(registry, currentId, layer);
+		if (next === registry) return;
+		deps.writeRegistry(next);
+		await deps.persist();
+		notifyConfigChange();
+	};
+
+	const proposeSceneOverrides = async (
+		scene: SceneDefinitionId,
+		layer: SceneConfig,
+	): Promise<void> => {
+		const registry = deps.readRegistry();
+		const current = registry.instances[currentId]?.scenes[scene] ?? {};
+		if (JSON.stringify(current) === JSON.stringify(layer)) return;
+		const next = replaceSceneConfig(registry, currentId, scene, layer);
+		if (next === registry) return;
+		deps.writeRegistry(next);
+		await deps.persist();
+		notifyConfigChange();
 	};
 
 	const propose = async (
@@ -331,6 +387,7 @@ export function createSceneConfigPort(
 		// U121-101: `patch` ES la capa entera, no un retoque: sustituye, no fusiona.
 		deps.writeRegistry(replaceSceneConfig(registry, currentId, scene, patch));
 		await deps.persist();
+		notifyConfigChange();
 	};
 
 	const proposeScenes = async (
@@ -359,6 +416,7 @@ export function createSceneConfigPort(
 		if (changed) {
 			deps.writeRegistry(registry);
 			await deps.persist();
+			notifyConfigChange();
 		}
 	};
 
@@ -371,6 +429,7 @@ export function createSceneConfigPort(
 		if (next === registry) return; // sin cambio: no se escribe ni se persiste
 		deps.writeRegistry(next);
 		await deps.persist();
+		notifyConfigChange();
 	};
 
 	const readFloatingToc = (): SavedFloatingTocState | null =>
@@ -389,6 +448,10 @@ export function createSceneConfigPort(
 	return {
 		read,
 		propose,
+		readSelfConfig,
+		proposeSelfConfig,
+		readSceneOverrides,
+		proposeSceneOverrides,
 		proposeScenes,
 		readActiveScene,
 		proposeActiveScene,
@@ -396,6 +459,8 @@ export function createSceneConfigPort(
 		proposeFloatingToc,
 		setInstanceId,
 		onInstanceChange,
+		onConfigChange,
+		notifyConfigChange,
 		readInstanceRecord: () =>
 			deps.readRegistry().instances[currentId] ?? null,
 	};

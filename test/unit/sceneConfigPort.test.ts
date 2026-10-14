@@ -43,7 +43,7 @@ const defaults = {
 	groupMemberships: {},
 	showOptionsOverride: 'inherit' as const,
 	textCase: {},
-	nativeCompat: {},
+		nativeCompat: {},
 };
 
 function harness() {

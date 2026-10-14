@@ -10,6 +10,7 @@ import { registerSettingsActions } from './logicSasiSettingsActions';
 import { registerSettingSceneCatalog } from './logicSasiSettingScene';
 import { registerCellCounterKinds } from './logicSasiCellCounter';
 import { registerGroupSasiActions } from './logicGroupSelectionTransaction';
+import { registerFilterQueueActions } from './logicSasiFilterQueueActions';
 import {
 	createSasiProvider,
 	type SasiProvider,
@@ -103,6 +104,7 @@ export function createVaultmanSasi(): VaultmanSasi {
 	registerSceneInstanceActions(registry);
 	registerPresentationActions(registry);
 	registerToolbarMenuActions(registry);
+	registerFilterQueueActions(registry);
 	registerSearchActions(registry);
 	registerAddonGroupToggleActions(registry);
 	registerHoverActions(registry);

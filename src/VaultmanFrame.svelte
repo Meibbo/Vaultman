@@ -59,8 +59,23 @@
 	import { defaultVisibleCells } from './logic/logicCellRegistry';
 	import type { SavedFloatingTocState } from './types/typeSettings';
 	import type { FrontmatterPropertyRevealRequest } from './services/serviceFrontmatterPropertyReveal';
+	import {
+		applyScenePresentationAction,
+		isPresentationSceneId,
+		parseScenePresentationAction,
+	} from './logic/logicSasiPresentationActions';
 	import { ClickBurstGesture } from './utils/clickBurstGesture';
 	import { isBlankPanelSelectionTarget } from './logic/logicPanelBlankSelection';
+	import {
+		FILTERS_BASES_INTEROP_ID,
+		FILTERS_CLEAR_ALL_ID,
+		FILTERS_SHOW_SELECTED_ID,
+		FILTERS_TEMPLATES_ID,
+		QUEUE_CLEAR_ID,
+		QUEUE_DETAILS_ID,
+		QUEUE_EXECUTE_ID,
+		QUEUE_TEMPLATES_ID,
+	} from './logic/logicSasiFilterQueueActions';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -199,10 +214,67 @@
 		return panelWidgetHostRef?.setSceneEngine?.(targetTab as SceneEngineSurface, mode) ?? false;
 	}
 
+	/** Apply a scoped SASI presentation action to this live instance's scene layer. */
+	export async function invokeScenePresentationSasiAction(
+		actionId: string,
+		scope?: string,
+	): Promise<boolean> {
+		const action = parseScenePresentationAction(actionId);
+		if (!action) return false;
+		const scopedScene = scope?.startsWith('scene:') ? scope.slice('scene:'.length) : '';
+		const target = isPresentationSceneId(scopedScene)
+			? scopedScene
+			: isPresentationSceneId(filtersActiveTab)
+				? filtersActiveTab
+				: null;
+		if (!target) return false;
+		const current = sceneConfigPort.read(target);
+		const layer = sceneConfigPort.readSceneOverrides?.(target) ?? {};
+		const next = applyScenePresentationAction(layer, target, action, current.viewMode);
+		await sceneConfigPort.proposeSceneOverrides?.(target, next);
+		return true;
+	}
+
 	export async function invokeToolbarSasiAction(
 		actionId: string,
 	): Promise<boolean> {
 		return panelWidgetHostRef?.invokeToolbarSasiAction?.(actionId) ?? false;
+	}
+
+	export function invokeIslandSasiAction(actionId: string): boolean {
+		if (actionId === FILTERS_CLEAR_ALL_ID) {
+			clearActiveFilters();
+			return true;
+		}
+		if (actionId === FILTERS_SHOW_SELECTED_ID) {
+			if (activePage !== 'filters') navigateTo('filters');
+			closeQueueIsland();
+			if (!filtersIslandOpen) openFiltersIsland();
+			filtersIsland?.showSelectedNodes();
+			filtersIsland?.focusFirstControl();
+			return Boolean(filtersIsland);
+		}
+		if (actionId === FILTERS_TEMPLATES_ID || actionId === FILTERS_BASES_INTEROP_ID) {
+			if (activePage !== 'filters') navigateTo('filters');
+			closeQueueIsland();
+			if (!filtersIslandOpen) openFiltersIsland(false);
+			return filtersIsland?.invokeSasiAction(actionId) ?? false;
+		}
+		if (actionId === QUEUE_CLEAR_ID) {
+			clearQueueQuick();
+			return true;
+		}
+		if (actionId === QUEUE_EXECUTE_ID) {
+			closeQueueIsland();
+			void plugin.queueService.execute();
+			return true;
+		}
+		if (actionId === QUEUE_DETAILS_ID || actionId === QUEUE_TEMPLATES_ID) {
+			closeFiltersIsland();
+			if (!queueIslandOpen) openQueueIsland(false);
+			return queueIsland?.invokeSasiAction(actionId) ?? false;
+		}
+		return false;
 	}
 
 	/**
@@ -235,7 +307,7 @@
 			navigateTo('filters');
 		}
 		if (filtersIslandOpen) {
-			closeFiltersIsland();
+			filtersIsland?.focusFirstControl();
 			return true;
 		}
 		closeQueueIsland();
@@ -245,7 +317,7 @@
 
 	export function openQueue(): boolean {
 		if (queueIslandOpen) {
-			closeQueueIsland();
+			queueIsland?.focusFirstControl();
 			return true;
 		}
 		closeFiltersIsland();
@@ -1480,7 +1552,7 @@
 		);
 	}
 
-	function openQueueIsland() {
+	function openQueueIsland(focusOnMount = true) {
 		if (!queueIslandEl) return;
 		queueIslandOpen = true;
 		queueIsland = new QueueIslandComponent(
@@ -1490,6 +1562,7 @@
 			() => {
 				new QueueDetailsModal(plugin.app, plugin.queueService).open();
 			},
+			focusOnMount,
 		);
 		queueIsland.mount();
 	}
@@ -1509,7 +1582,7 @@
 		}
 	}
 
-	function openFiltersIsland() {
+	function openFiltersIsland(focusOnMount = true) {
 		if (!filtersIslandEl) return;
 		filtersIslandOpen = true;
 		filtersIsland = new ActiveFiltersIslandComponent(
@@ -1530,6 +1603,7 @@
 					activeFloatingTocPanel(),
 				),
 			() => clearExplorerSelection(activeFloatingTocPanel()),
+			focusOnMount,
 		);
 		filtersIsland.mount();
 	}

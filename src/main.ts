@@ -135,6 +135,7 @@ import {
 	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
+import { parseScenePresentationAction } from './logic/logicSasiPresentationActions';
 import { API_SCENE_SELF_ID } from './logic/logicApiSceneModel';
 import { executeObsidianCommand } from './utils/obsidianCommands';
 import { installCommandPaletteFilter } from './logic/logicCommandPaletteInterceptor';
@@ -154,6 +155,10 @@ import {
 	SEARCH_CREATE_TARGET_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 } from './logic/logicSasiSearchActions';
+import {
+	FILTER_QUEUE_ACTIONS,
+	FILTER_QUEUE_ACTION_IDS,
+} from './logic/logicSasiFilterQueueActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -665,6 +670,15 @@ export class VaultmanPlugin extends Plugin {
 				},
 			});
 		}
+		for (const action of FILTER_QUEUE_ACTIONS) {
+			this.sasiCommandPublisher.register({
+				id: action.id,
+				name: translate(action.labelKey),
+				handler: () => {
+					void this.invokeIslandSasiAction(action.id);
+				},
+			});
+		}
 		for (const id of ['check_plugin_updates', 'update_all_plugins'] as const) {
 			this.sasiCommandPublisher.register({
 				id,
@@ -850,6 +864,11 @@ export class VaultmanPlugin extends Plugin {
 			const instanceId = scope.slice('instance:'.length);
 			await this.openWorkspaceInstance(instanceId);
 		}
+		if (parseScenePresentationAction(actionId)) {
+			const view = await this.vaultmanFrameForCommand();
+			await view?.invokeScenePresentationSasiAction(actionId, scope);
+			return;
+		}
 		if (actionId.startsWith('vaultman.scene.engine.')) {
 			const mode = actionId.slice('vaultman.scene.engine.'.length) as any;
 			void this.changeActiveEngineCommand(mode);
@@ -886,6 +905,10 @@ export class VaultmanPlugin extends Plugin {
 		}
 		if (actionId === 'open-queue') {
 			void this.openQueueCommand();
+			return;
+		}
+		if (FILTER_QUEUE_ACTION_IDS.has(actionId)) {
+			await this.invokeIslandSasiAction(actionId);
 			return;
 		}
 		if (actionId === 'open-api-scene' || actionId === API_SCENE_SELF_ID) {
@@ -975,6 +998,11 @@ export class VaultmanPlugin extends Plugin {
 	private async invokeToolbarSasiAction(actionId: string): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		if (view) await view.invokeToolbarSasiAction?.(actionId);
+	}
+
+	private async invokeIslandSasiAction(actionId: string): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.invokeIslandSasiAction?.(actionId);
 	}
 
 	private async focusVaultmanContentSearch(
