@@ -58,6 +58,8 @@ export interface TreeKeyboardCallbacks {
 	onCollapseAll?(): void;
 	/** Mod+ArrowDown/Up: open file in background without moving active focus. */
 	onModStepOpen?(id: string): void;
+	/** ContextMenu key or Shift+F10: open context menu for the focused row. */
+	onContextMenu?(id: string): void;
 }
 
 /**
@@ -298,6 +300,18 @@ export function handleTreeKeyboardKey(
 			if (isMac && isMod) {
 				if (!callbacks.onDelete) return { handled: false, next: state };
 				callbacks.onDelete(row?.id ?? focused ?? '');
+				return { handled: true, next: state };
+			}
+			return { handled: false, next: state };
+		}
+		case 'ContextMenu': {
+			if (!row || !callbacks.onContextMenu) return { handled: false, next: state };
+			callbacks.onContextMenu(row.id);
+			return { handled: true, next: state };
+		}
+		case 'F10': {
+			if (event.shiftKey && row && callbacks.onContextMenu) {
+				callbacks.onContextMenu(row.id);
 				return { handled: true, next: state };
 			}
 			return { handled: false, next: state };

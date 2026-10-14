@@ -1661,6 +1661,20 @@ export class UnifiedTreeView {
 			onModStepOpen: (id) => {
 				this._opts?.onModStepOpen?.(id);
 			},
+			onContextMenu: (id) => {
+				const row = this.rowEls.get(id);
+				const rect = row?.getBoundingClientRect();
+				const win = this.containerEl.ownerDocument?.defaultView ?? window;
+				const synthEvent = new win.MouseEvent('contextmenu', {
+					bubbles: true,
+					cancelable: true,
+					clientX: rect ? rect.left + Math.min(rect.width / 2, 80) : 0,
+					clientY: rect ? rect.top + rect.height / 2 : 0,
+					button: 2,
+					buttons: 2,
+				});
+				this._opts?.onContextMenu(id, synthEvent);
+			},
 		};
 	};
 

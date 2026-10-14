@@ -30,6 +30,7 @@ function createMockCallbacks(overrides?: Partial<TreeKeyboardCallbacks>): {
 		onDelete: vi.fn(),
 		onCollapseAll: vi.fn(),
 		onModStepOpen: vi.fn(),
+		onContextMenu: vi.fn(),
 	};
 	const callbacks: TreeKeyboardCallbacks = {
 		onFocus: spies.onFocus,
@@ -42,6 +43,7 @@ function createMockCallbacks(overrides?: Partial<TreeKeyboardCallbacks>): {
 		onDelete: spies.onDelete,
 		onCollapseAll: spies.onCollapseAll,
 		onModStepOpen: spies.onModStepOpen,
+		onContextMenu: spies.onContextMenu,
 		canRename: () => true,
 		...overrides,
 	};
@@ -381,6 +383,36 @@ describe('Tree Keyboard Logic (vanilla Obsidian 1.14.4 parity)', () => {
 			const modA = new KeyboardEvent('keydown', { key: 'a', ctrlKey: true });
 			const result = handleTreeKeyboardKey(modA, state, callbacks);
 			expect(result.handled).toBe(false);
+		});
+	});
+
+	describe('ContextMenu and Shift+F10', () => {
+		it('calls onContextMenu on ContextMenu key press', () => {
+			const { callbacks, spies } = createMockCallbacks();
+			const state: TreeKeyboardState = {
+				rows: SAMPLE_ROWS,
+				focusedId: 'folder-1',
+				anchorId: 'folder-1',
+			};
+
+			const event = new KeyboardEvent('keydown', { key: 'ContextMenu' });
+			const result = handleTreeKeyboardKey(event, state, callbacks);
+			expect(result.handled).toBe(true);
+			expect(spies.onContextMenu).toHaveBeenCalledWith('folder-1');
+		});
+
+		it('calls onContextMenu on Shift+F10 key press', () => {
+			const { callbacks, spies } = createMockCallbacks();
+			const state: TreeKeyboardState = {
+				rows: SAMPLE_ROWS,
+				focusedId: 'folder-1/file-a.md',
+				anchorId: 'folder-1/file-a.md',
+			};
+
+			const event = new KeyboardEvent('keydown', { key: 'F10', shiftKey: true });
+			const result = handleTreeKeyboardKey(event, state, callbacks);
+			expect(result.handled).toBe(true);
+			expect(spies.onContextMenu).toHaveBeenCalledWith('folder-1/file-a.md');
 		});
 	});
 });
