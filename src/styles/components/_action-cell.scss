@@ -1,34 +1,6 @@
-/* @settings
-
-name: Vaultman
-id: vaultman-action-cells
-settings:
-    -
-        id: vaultman-action-cell-variant
-        title: Action cell style
-        description: How action cells and badges are drawn across Vaultman.
-        type: class-select
-        allowEmpty: false
-        default: vaultman-action-cell--icon-only
-        options:
-            -
-                label: Icon only
-                value: vaultman-action-cell--icon-only
-            -
-                label: Icon in a box
-                value: vaultman-action-cell--icon-box
-            -
-                label: Circled
-                value: vaultman-action-cell--border-circle
-    -
-        id: vaultman-action-cell-size
-        title: Action cell size
-        description: Glyph box in pixels. The touch target stays at 36px regardless.
-        type: variable-number
-        default: 24
-        format: px
-
-*/
+/* Style Settings definitions are unified under 'Vaultman' (id: vaultman) in
+ * src/styles/residual/_virtual-scroll-compat.scss to prevent multiple disconnected
+ * categories in Obsidian Style Settings. */
 
 /* U130-05: la celda de accion.
  *
@@ -41,7 +13,7 @@ settings:
  * asi una variante nueva no toca el Svelte. */
 
 .vaultman-action-cell {
-	--vm-action-cell-size: 24px;
+	--vm-action-cell-size: var(--vaultman-action-cell-size, 24px);
 	/* El objetivo de toque no puede depender del glifo. */
 	--vm-action-cell-hit: 36px;
 	--vm-action-cell-radius: 4px;

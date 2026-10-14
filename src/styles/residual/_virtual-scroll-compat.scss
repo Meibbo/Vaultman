@@ -5,8 +5,44 @@
 /* @settings
 
 name: Vaultman
-id: vaultman-tree-indent
+id: vaultman
 settings:
+    -
+        id: vaultman-action-cells-heading
+        title: Action cells
+        type: heading
+        level: 1
+        collapsed: false
+    -
+        id: vaultman-action-cell-variant
+        title: Action cell style
+        description: How action cells and badges are drawn across Vaultman.
+        type: class-select
+        allowEmpty: false
+        default: vaultman-action-cell--icon-only
+        options:
+            -
+                label: Icon only
+                value: vaultman-action-cell--icon-only
+            -
+                label: Icon in a box
+                value: vaultman-action-cell--icon-box
+            -
+                label: Circled
+                value: vaultman-action-cell--border-circle
+    -
+        id: vaultman-action-cell-size
+        title: Action cell size
+        description: Glyph box in pixels. The touch target stays at 36px regardless.
+        type: variable-number
+        default: 24
+        format: px
+    -
+        id: vaultman-tree-heading
+        title: Tree layout & navigation
+        type: heading
+        level: 1
+        collapsed: false
     -
         id: vaultman-tree-indent-unit
         title: Tree indent step
@@ -17,16 +53,61 @@ settings:
         max: 32
         step: 1
         format: px
+    -
+        id: vaultman-tree-node-gutter-left
+        title: Node gutter (left)
+        description: Left gutter margin for each engine tree row.
+        type: variable-number-slider
+        default: 4
+        min: 0
+        max: 32
+        step: 1
+        format: px
+    -
+        id: vaultman-tree-node-gutter-right
+        title: Node gutter (right)
+        description: Right gutter margin between tree rows and the scrollbar or container edge.
+        type: variable-number-slider
+        default: 4
+        min: 0
+        max: 48
+        step: 1
+        format: px
+    -
+        id: vaultman-tree-node-padding-top
+        title: Node padding (top)
+        description: Top padding inside each engine tree row.
+        type: variable-number-slider
+        default: 0
+        min: 0
+        max: 20
+        step: 1
+        format: px
+    -
+        id: vaultman-tree-node-padding-bottom
+        title: Node padding (bottom)
+        description: Bottom padding inside each engine tree row.
+        type: variable-number-slider
+        default: 0
+        min: 0
+        max: 20
+        step: 1
+        format: px
 
 */
 
 :root {
+	--vaultman-action-cell-size: 24px;
 	--vaultman-tree-indent-unit: 16px;
 	--vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));
 	--vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
 	--vaultman-tree-row-padding-start: var(--size-4-6);
 	--vaultman-tree-caret-offset: var(--size-4-5);
 	--vaultman-tree-guide-start: 12px;
+	--vaultman-tree-node-gutter-left: 4px;
+	--vaultman-tree-node-gutter-right: 4px;
+	--vaultman-tree-node-padding-top: 0px;
+	--vaultman-tree-node-padding-bottom: 0px;
 }
 
 .vaultman-tree-virtual-viewport {

@@ -884,7 +884,8 @@ body.vaultman-resizing {
 .vaultman-tree-row {
   --vaultman-row-bg-base: transparent;
   position: relative;
-  padding-block: 0;
+  padding-top: var(--vaultman-tree-node-padding-top, 0px);
+  padding-bottom: var(--vaultman-tree-node-padding-bottom, 0px);
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
   padding-inline-end: var(--vaultman-tree-row-padding-end, 8px);
   /* U130 native polish: the slot sizes to its content (native CSS may add
@@ -892,11 +893,14 @@ body.vaultman-resizing {
      styling would clip compatible themes and blind the observer. */
   height: auto;
   min-height: 27px;
-  margin-inline: var(--size-4-1, 4px);
+  margin-left: var(--vaultman-tree-node-gutter-left, var(--size-4-1, 4px));
+  margin-right: var(--vaultman-tree-node-gutter-right, var(--size-4-1, 4px));
+  margin-inline-start: var(--vaultman-tree-node-gutter-left, var(--size-4-1, 4px));
+  margin-inline-end: var(--vaultman-tree-node-gutter-right, var(--size-4-1, 4px));
   margin-bottom: 1px;
   cursor: var(--cursor, default);
   border-radius: var(--tree-item-radius, var(--nav-item-radius, var(--radius-s)));
-  width: calc(100% - (var(--size-4-1, 4px) * 2));
+  width: calc(100% - var(--vaultman-tree-node-gutter-left, var(--size-4-1, 4px)) - var(--vaultman-tree-node-gutter-right, var(--size-4-1, 4px)));
   box-sizing: border-box;
   overflow: hidden;
   color: var(--text-muted);
@@ -1404,7 +1408,12 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
   padding-block: 0;
   padding-inline-start: 0;
   padding-inline-end: 0;
+  padding-top: 0;
+  padding-bottom: 0;
   margin: 0;
+  margin-left: 0;
+  margin-right: 0;
+  margin-inline: 0;
   width: 100%;
   min-height: 0;
   height: auto;
@@ -1429,7 +1438,10 @@ body.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-fram
 
 .vaultman-tree-virtual-viewport.vaultman-native-tree-compat .vaultman-tree-row--sticky.vaultman-tree-row--sticky.vaultman-tree-row--sticky {
   --vaultman-row-bg-base: transparent;
+  margin: 0;
   margin-inline: 0;
+  margin-left: 0;
+  margin-right: 0;
   width: 100%;
 
   > .vaultman-tree-self {
