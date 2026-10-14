@@ -1634,6 +1634,7 @@
 			condensable = true,
 			available = true,
 			order?: number,
+			busy = false,
 		) => {
 			nodes.push({
 				id: panelWidgetNodeId(localId),
@@ -1646,6 +1647,9 @@
 				available,
 				condensable,
 				action: { id: localId },
+				// U200 polish L1: idle nodes omit the key so projections
+				// and snapshots stay byte-identical at rest.
+				...(busy ? { busy: true as const } : {}),
 			});
 		};
 
@@ -1727,6 +1731,7 @@
 					true,
 					true,
 					35 + index,
+					pluginToolbarBusy(id),
 				);
 			}
 		}
@@ -1832,16 +1837,30 @@
 	// C2: eligible pending count (badge-contract feed from C3) gating
 	// `update_all_plugins`. The subscription mirrors the explorer panel's own
 	// update listener; the gate never disturbs sibling toolbar actions.
+	// U200 polish L1: the same subscription also carries both busy flags
+	// (check in flight / queue batch running) for the toolbar spinners; the
+	// explorer bridges both services into `onPendingUpdatesChanged`, so no
+	// polling loop is needed.
 	let pendingUpdateCount = $state(0);
+	let pluginCheckBusy = $state(false);
+	let pluginBatchBusy = $state(false);
 	$effect(() => {
 		const panel = pluginsExplorer;
 		const sync = () => {
 			pendingUpdateCount = panel?.getPendingUpdateCount?.() ?? 0;
+			pluginCheckBusy = panel?.getPluginUpdateCheckBusy?.() ?? false;
+			pluginBatchBusy = panel?.getPluginUpdateBatchBusy?.() ?? false;
 		};
 		sync();
 		const stop = panel?.onPendingUpdatesChanged?.(() => sync());
 		return () => stop?.();
 	});
+	const pluginToolbarBusy = (localId: string): boolean =>
+		localId === 'check_plugin_updates'
+			? pluginCheckBusy
+			: localId === 'update_all_plugins'
+				? pluginBatchBusy
+				: false;
 	let panelWidgetPreviewOrder = $state<string[] | null>(null);
 	const panelWidgetNodeOrder = (localId: string): number => {
 		const previewIndex = panelWidgetPreviewOrder?.indexOf(localId) ?? -1;
@@ -5499,6 +5518,7 @@
 										role="button"
 										tabindex="0"
 										aria-label={translate(labelKey)}
+										aria-busy={pluginToolbarBusy(id) ? 'true' : undefined}
 										onclick={(event) => invokeSceneAction(id, 'pointer', event)}
 										oncontextmenu={(e: MouseEvent) => {
 											e.preventDefault();
@@ -5514,8 +5534,13 @@
 									>
 										<span
 											class="vaultman-header-action-icon"
+											class:is-busy={pluginToolbarBusy(id)}
 											aria-hidden="true"
-											use:icon={panelWidgetNodeIcon(id, iconName)}
+											use:icon={
+												pluginToolbarBusy(id)
+													? 'lucide-loader-circle'
+													: panelWidgetNodeIcon(id, iconName)
+											}
 										></span>
 										{#if isNodeLabelVisible(id)}
 											<span class="vaultman-header-action-label">
