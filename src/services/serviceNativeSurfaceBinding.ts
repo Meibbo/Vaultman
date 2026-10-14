@@ -379,12 +379,15 @@ export function resolveNativeFileHoverTarget(
 ): { element: HTMLElement; path: string } | null {
 	const base = asElement(target);
 	if (!base) return null;
-	const fileEl = base.closest<HTMLElement>(".nav-file-title[data-path]");
+	const fileEl = base.closest<HTMLElement>(
+		".nav-file-title[data-path], .vaultman-tree-row[data-path], .vaultman-grid-row[data-path], .vaultman-files-grid-card[data-path], [data-path]",
+	);
 	const rawPath = fileEl?.getAttribute?.("data-path") ?? (fileEl?.dataset?.path) ?? null;
 	if (!fileEl || !rawPath) return null;
+	const anchorEl = fileEl.querySelector<HTMLElement>(".nav-file-title, .vaultman-tree-self") ?? fileEl;
 	const files = app?.vault?.getMarkdownFiles?.() ?? [];
 	const match = files.find((f) => f?.path === rawPath);
-	if (match?.path) return { element: fileEl, path: match.path };
+	if (match?.path) return { element: anchorEl, path: match.path };
 	// Fallback sin índice de markdown (izenas con getMarkdownFiles vacío):
 	// lookup directo, excluyendo carpetas por `children`.
 	const direct = app?.vault?.getAbstractFileByPath?.(rawPath) as
@@ -392,7 +395,7 @@ export function resolveNativeFileHoverTarget(
 		| null
 		| undefined;
 	if (direct && direct.path === rawPath && direct.children === undefined) {
-		return { element: fileEl, path: direct.path };
+		return { element: anchorEl, path: direct.path };
 	}
 	return null;
 }
