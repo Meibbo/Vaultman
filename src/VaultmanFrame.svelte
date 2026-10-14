@@ -1593,6 +1593,12 @@
 		updateStats();
 	}
 
+	$effect(() => {
+		if (fileList && !fileList.hasProjection) {
+			refreshFiles();
+		}
+	});
+
 	function refreshActiveFilterHighlights(): void {
 		const props = new Set<string>();
 		const vals = new Map<string, Set<string>>();

@@ -666,6 +666,12 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 			this.containerEl.removeEventListener('keydown', this._handleSelectionEscape),
 		);
 		this.register(registerTreeClipboardHandler(this.containerEl, this));
+		if (!this.hasSourceProjection && this.plugin.filterService) {
+			this.render(
+				this.plugin.filterService.filteredVaultFiles,
+				this.plugin.app.vault.getFiles().length,
+			);
+		}
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -1664,6 +1670,10 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 	clearSelection(): void {
 		if (this.selectedFilePaths.size === 0) return;
 		this._applyFileSelection({ selectedPaths: new Set(), anchorPath: null });
+	}
+
+	get hasProjection(): boolean {
+		return this.hasSourceProjection;
 	}
 
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
