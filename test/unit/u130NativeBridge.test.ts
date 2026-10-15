@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { bridgeAliasForSelector, bridgeAliasesForRule } from '../../src/logic/logicNativeTreeCompat';
-import { acquireNativeBridge, NativeBridge } from '../../src/services/serviceNativeBridge';
+import {
+	acquireNativeBridge,
+	fingerprintPendingAliases,
+	isBridgeRelevantMutation,
+	NativeBridge,
+	onBridgeGeometryInvalidated,
+} from '../../src/services/serviceNativeBridge';
 
 afterEach(() => {
 	document.head.replaceChildren(); document.body.replaceChildren();
@@ -101,5 +107,151 @@ describe('U130 native polish: host-selector bridge', () => {
 		if (!selector) throw new Error('Expected Files alias');
 		expect(document.querySelectorAll(selector).length).toBe(1);
 		expect(host.dataset.type).toBe('vaultman-frame');
+	});
+});
+
+describe('U200 L1: no-op rebuild keeps sheets and tree geometry still', () => {
+	let geometryPings = 0;
+	let releaseGeometry: (() => void) | null = null;
+
+	// jsdom shares one document across tests in this file; the bridge keeps
+	// module-level geometry listeners per document, so every subscription
+	// here is released explicitly.
+	function listenGeometry(): void {
+		releaseGeometry?.();
+		geometryPings = 0;
+		releaseGeometry = onBridgeGeometryInvalidated(document, () => {
+			geometryPings += 1;
+		});
+	}
+
+	afterEach(() => {
+		releaseGeometry?.();
+		releaseGeometry = null;
+	});
+
+	it('second identical rebuild touches nothing and pings no tree', () => {
+		const sheet = stylesheet('.workspace-leaf-content[data-type="file-explorer"] .tree-item-self { color: red; }');
+		const bridge = new NativeBridge(document, ['files']);
+		listenGeometry();
+		const first = bridge.rebuild();
+		expect(first.aliasedRules).toBe(1);
+		expect(first.unchanged).toBe(false);
+		expect(geometryPings).toBe(1);
+		expect(sheet.cssRules.length).toBe(2);
+		const second = bridge.rebuild();
+		expect(second.unchanged).toBe(true);
+		expect(second.aliasedRules).toBe(0);
+		expect(sheet.cssRules.length).toBe(2);
+		expect(geometryPings).toBe(1);
+		expect(typeof second.elapsedMs).toBe('number');
+		bridge.clear();
+	});
+
+	it('a real selector change re-applies and pings exactly once', () => {
+		stylesheet('.workspace-leaf-content[data-type="file-explorer"] .tree-item-self { color: red; }');
+		const bridge = new NativeBridge(document, ['files']);
+		listenGeometry();
+		expect(bridge.rebuild().unchanged).toBe(false);
+		expect(bridge.rebuild().unchanged).toBe(true);
+		expect(geometryPings).toBe(1);
+		stylesheet('.workspace-leaf-content[data-type="file-explorer"] .nav-file-title { color: blue; }');
+		const changed = bridge.rebuild();
+		expect(changed.unchanged).toBe(false);
+		expect(changed.aliasedRules).toBe(2);
+		expect(geometryPings).toBe(2);
+		expect(bridge.rebuild().unchanged).toBe(true);
+		expect(geometryPings).toBe(2);
+		bridge.clear();
+	});
+
+	it('unrelated rules never break the no-op', () => {
+		stylesheet('.workspace-leaf-content[data-type="file-explorer"] .tree-item-self { color: red; }');
+		const bridge = new NativeBridge(document, ['files']);
+		listenGeometry();
+		bridge.rebuild();
+		bridge.rebuild();
+		expect(geometryPings).toBe(1);
+		stylesheet('.unrelated .foo { color: green; }');
+		const again = bridge.rebuild();
+		expect(again.unchanged).toBe(true);
+		expect(geometryPings).toBe(1);
+		bridge.clear();
+	});
+
+	it('clear() forgets the applied set so the next rebuild re-applies', () => {
+		const sheet = stylesheet('.workspace-leaf-content[data-type="file-explorer"] .tree-item-self { color: red; }');
+		const bridge = new NativeBridge(document, ['files']);
+		listenGeometry();
+		bridge.rebuild();
+		bridge.clear();
+		expect(sheet.cssRules.length).toBe(1);
+		const redo = bridge.rebuild();
+		expect(redo.unchanged).toBe(false);
+		expect(redo.aliasedRules).toBe(1);
+		expect(geometryPings).toBe(2);
+		bridge.clear();
+	});
+
+	it('externally removed aliases self-heal on the next rebuild', () => {
+		const sheet = stylesheet('.workspace-leaf-content[data-type="file-explorer"] .tree-item-self { color: red; }');
+		const bridge = new NativeBridge(document, ['files']);
+		listenGeometry();
+		bridge.rebuild();
+		expect(bridge.rebuild().unchanged).toBe(true);
+		// Simulate a same-content sheet swap: the live sheet loses the alias
+		// while the scan still fingerprints identical.
+		sheet.deleteRule(1);
+		expect(sheet.cssRules.length).toBe(1);
+		const healed = bridge.rebuild();
+		expect(healed.unchanged).toBe(false);
+		expect(healed.aliasedRules).toBe(1);
+		expect(sheet.cssRules.length).toBe(2);
+		expect(geometryPings).toBe(2);
+		bridge.clear();
+	});
+
+	it('fingerprint is order-independent over the alias set', () => {
+		const a = fingerprintPendingAliases([
+			{ alias: '.x', declarations: 'color: red;' },
+			{ alias: '.y', declarations: 'color: blue;' },
+		]);
+		const b = fingerprintPendingAliases([
+			{ alias: '.y', declarations: 'color: blue;' },
+			{ alias: '.x', declarations: 'color: red;' },
+		]);
+		expect(a).toBe(b);
+		expect(fingerprintPendingAliases([])).not.toBe(a);
+	});
+
+	it('head prefilter ignores title swaps, keeps style/link churn', () => {
+		const title = document.createElement('title');
+		const text = document.createTextNode('note name');
+		const style = document.createElement('style');
+		const link = document.createElement('link');
+		const div = document.createElement('div');
+		const asRecord = (partial: object): MutationRecord =>
+			partial as unknown as MutationRecord;
+		// Bare title text swap: the per-focus noise that rebuilt every time.
+		expect(isBridgeRelevantMutation(asRecord({
+			type: 'childList', target: title, addedNodes: [text], removedNodes: [],
+		}))).toBe(false);
+		// Style content swap: live declarations may have changed.
+		expect(isBridgeRelevantMutation(asRecord({
+			type: 'childList', target: style, addedNodes: [text], removedNodes: [],
+		}))).toBe(true);
+		// Style/link element arrival under head.
+		expect(isBridgeRelevantMutation(asRecord({
+			type: 'childList', target: document.head, addedNodes: [style], removedNodes: [],
+		}))).toBe(true);
+		expect(isBridgeRelevantMutation(asRecord({
+			type: 'childList', target: document.head, addedNodes: [], removedNodes: [link],
+		}))).toBe(true);
+		// Anything else under head is noise.
+		expect(isBridgeRelevantMutation(asRecord({
+			type: 'childList', target: document.head, addedNodes: [div], removedNodes: [],
+		}))).toBe(false);
+		// Non-childList records (future subscriptions) stay conservative.
+		expect(isBridgeRelevantMutation(asRecord({ type: 'attributes', target: style }))).toBe(true);
 	});
 });

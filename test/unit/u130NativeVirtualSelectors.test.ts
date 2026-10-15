@@ -187,12 +187,16 @@ describe('U130 virtual bridge: conditions and rebuild hygiene', () => {
 		expect(sheet.cssRules.length).toBe(3);
 		expect(getNativeRootNthTokens(document, 3)).toBe('2n+1');
 
-		// The shared bridge path clears before re-scanning: stable rule count.
+		// The shared bridge path no-ops when the scan is unchanged: no
+		// clear()+reinsert churn, stable rule count, no geometry ping
+		// (U200 L1 — the old re-apply flashed every compatible tree).
 		document.head.replaceChildren();
 		const owned = stylesheet('.nav-files-container > div > .nav-folder:nth-child(2n+1) { --folder-color: red; }');
 		const bridge = new NativeBridge(document, ['files']);
 		expect(bridge.rebuild().aliasedRules).toBe(1);
-		expect(bridge.rebuild().aliasedRules).toBe(1);
+		const noop = bridge.rebuild();
+		expect(noop.aliasedRules).toBe(0);
+		expect(noop.unchanged).toBe(true);
 		expect(owned.cssRules.length).toBe(2);
 		bridge.clear();
 

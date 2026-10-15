@@ -38,11 +38,31 @@ export interface NativeBridgeRebuildReport {
 	aliasedRules: number;
 	skippedSheets: number;
 	truncated: boolean;
+	/**
+	 * U200 L1: wall-clock cost of this rebuild call (scan + apply).
+	 * Lets the perf monitor and QA tell a no-op scan from real DOM churn.
+	 */
+	elapsedMs: number;
+	/**
+	 * U200 L1: true when the computed alias set was identical to the last
+	 * applied one, so no sheet was touched and no geometry notification
+	 * was emitted. Same CSS in, same CSS out: trees keep their measured
+	 * heights instead of flashing through the estimate.
+	 */
+	unchanged: boolean;
 }
 
 interface InsertedAlias {
 	container: CSSStyleSheet | CSSGroupingRule;
 	rule: CSSRule;
+}
+
+/** U200 L1: one alias the pure scan phase collected, not yet inserted. */
+interface PendingAlias {
+	container: CSSStyleSheet | CSSGroupingRule;
+	index: number;
+	declarations: string;
+	alias: string;
 }
 
 function isGroupingRule(rule: CSSRule): rule is CSSGroupingRule {
@@ -82,6 +102,12 @@ export class NativeBridge {
 	private timer: ReturnType<typeof setTimeout> | number | null = null;
 	private observer: MutationObserver | null = null;
 	private cssChangeOff: (() => void) | null = null;
+	/**
+	 * U200 L1: fingerprint of the last APPLIED alias set. A rebuild whose
+	 * scan produces the same fingerprint touches no sheet and emits no
+	 * geometry notification (compute-then-compare-then-apply).
+	 */
+	private appliedSignature: string | null = null;
 
 	constructor(doc: Document, scenes: readonly NativeSceneId[]) {
 		this.doc = doc;
@@ -91,11 +117,18 @@ export class NativeBridge {
 	/**
 	 * Start watching: head mutations + the workspace `css-change` event.
 	 * Pass the registrar, e.g. `(cb) => plugin.app.workspace.on('css-change', cb)`.
+	 *
+	 * U200 L1: the head observer only schedules when a record touches a
+	 * STYLE/LINK element (added/removed, its attributes, or its text
+	 * content). Bare `<title>` swaps and other head noise — e.g. what
+	 * Obsidian emits when a note takes focus — never reach the scan.
 	 */
 	watch(registerCssChange?: (cb: () => void) => () => void): void {
 		this.unwatch();
 		if (typeof MutationObserver !== 'undefined' && this.doc.head) {
-			this.observer = new MutationObserver(() => this.scheduleRebuild());
+			this.observer = new MutationObserver((records) => {
+				if (records.some(isBridgeRelevantMutation)) this.scheduleRebuild();
+			});
 			this.observer.observe(this.doc.head, { childList: true, subtree: true });
 		}
 		if (registerCssChange) {
@@ -138,20 +171,105 @@ export class NativeBridge {
 			}
 		}
 		this.inserted = [];
+		// U200 L1: clearing forgets the applied set — the next rebuild must
+		// re-apply from scratch, never no-op on a stale fingerprint.
+		this.appliedSignature = null;
 		clearNativeVirtualState(this.doc);
 	}
 
 	rebuild(): NativeBridgeRebuildReport {
-		this.clear();
+		const started = elapsedNow();
 		const report: NativeBridgeRebuildReport = {
 			scannedSheets: 0,
 			scannedRules: 0,
 			aliasedRules: 0,
 			skippedSheets: 0,
 			truncated: false,
+			elapsedMs: 0,
+			unchanged: false,
 		};
-		const sheets = this.doc.styleSheets ? Array.from(this.doc.styleSheets) : [];
 		const rootNthExpressions = new Set<string>();
+		// U200 L1: pure scan first — no sheet is touched here.
+		const pending = this.collectAliases(report, rootNthExpressions);
+		const signature = fingerprintPendingAliases(pending);
+		if (
+			signature === this.appliedSignature &&
+			this.appliedAliasesAlive()
+		) {
+			// Same CSS in, same CSS out: keep every inserted rule and, above
+			// all, keep the trees' measured heights (no geometry ping).
+			report.unchanged = true;
+			report.elapsedMs = elapsedSince(started);
+			return report;
+		}
+		this.clear();
+		this.applyPendingAliases(pending, report);
+		// Logical ordinals are live before trees re-measure on the pinch below.
+		setNativeRootNthExpressions(this.doc, rootNthExpressions);
+		// Stylesheets changed, so cached row geometry is stale. Trees keep
+		// their anchor node and viewport position through the invalidation.
+		notifyGeometryInvalidated(this.doc);
+		this.appliedSignature = signature;
+		report.elapsedMs = elapsedSince(started);
+		return report;
+	}
+
+	/**
+	 * U200 L1: self-healing guard for the no-op path. A matching fingerprint
+	 * is not enough on its own: a same-content sheet swap would scan
+	 * identical while the fresh sheet lacks our aliases. Verifies, once per
+	 * distinct container, that the owning sheet is still connected and the
+	 * inserted rule is still listed. Read-only; on any doubt the rebuild
+	 * falls through to the full clear()+apply() below.
+	 */
+	private appliedAliasesAlive(): boolean {
+		const byContainer = new Map<object, CSSRule[]>();
+		for (const { container, rule } of this.inserted) {
+			const list = byContainer.get(container);
+			if (list) list.push(rule);
+			else byContainer.set(container, [rule]);
+		}
+		for (const [container, rules] of byContainer) {
+			const sheet =
+				'ownerNode' in container
+					? (container as CSSStyleSheet)
+					: (container as CSSGroupingRule).parentStyleSheet;
+			const owner = sheet?.ownerNode;
+			if (
+				owner?.nodeType === 1 &&
+				typeof (owner as Element).isConnected === 'boolean' &&
+				!(owner as Element).isConnected
+			) {
+				return false;
+			}
+			let live: CSSRule[];
+			try {
+				live = Array.from(
+					(container as CSSStyleSheet | CSSGroupingRule).cssRules ?? [],
+				);
+			} catch {
+				return false;
+			}
+			for (const rule of rules) {
+				if (!live.includes(rule)) return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * U200 L1: read-only pass over every reachable sheet. Collects the
+	 * alias insertions a rebuild WOULD perform (per container, ascending
+	 * index) without mutating any rule list. Reading `cssRules`,
+	 * `selectorText` and `cssText` never forces layout; the DOM churn
+	 * stays in `applyPendingAliases`, which only runs on real change.
+	 */
+	private collectAliases(
+		report: NativeBridgeRebuildReport,
+		rootNthExpressions: Set<string>,
+	): PendingAlias[] {
+		const pending: PendingAlias[] = [];
+		const sheets = this.doc.styleSheets ? Array.from(this.doc.styleSheets) : [];
 		for (const sheet of sheets) {
 			// Our own compiled bundle already targets Vaultman explicitly;
 			// aliasing it would double every rule for no reason.
@@ -168,35 +286,27 @@ export class NativeBridge {
 				// Touching cssRules throws for cross-origin sheets; probe
 				// here so skipped sheets are counted, not silently empty.
 				void sheet.cssRules;
-				this.aliasInContainer(sheet, report, rootNthExpressions);
+				this.collectInContainer(sheet, report, rootNthExpressions, pending);
 			} catch {
 				report.skippedSheets += 1;
 			}
-			if (report.truncated) break;
 		}
-		// Logical ordinals are live before trees re-measure on the pinch below.
-		setNativeRootNthExpressions(this.doc, rootNthExpressions);
-		// Stylesheets changed, so cached row geometry is stale. Trees keep
-		// their anchor node and viewport position through the invalidation.
-		notifyGeometryInvalidated(this.doc);
-		return report;
+		return pending;
 	}
 
-	private aliasInContainer(
+	private collectInContainer(
 		container: CSSStyleSheet | CSSGroupingRule,
 		report: NativeBridgeRebuildReport,
 		rootNthExpressions: Set<string>,
+		pending: PendingAlias[],
 	): void {
 		const rules = eachRuleText(container);
-		// Walk a snapshot: insertion shifts indices, so collect first.
-		const matches: { index: number; declarations: string; alias: string }[] = [];
 		for (let index = 0; index < rules.length; index += 1) {
 			const rule = rules[index];
 			if (!rule) continue;
 			report.scannedRules += 1;
 			if (isGroupingRule(rule)) {
-				this.aliasInContainer(rule, report, rootNthExpressions);
-				if (report.truncated) return;
+				this.collectInContainer(rule, report, rootNthExpressions, pending);
 				// CSSStyleRule also has cssRules/insertRule for native nesting.
 				// Its own declarations still need an alias, not just its children.
 			}
@@ -240,23 +350,37 @@ export class NativeBridge {
 					}
 				}
 			}
-			if (aliases.length) matches.push({ index, declarations, alias: aliases.join(', ') });
+			if (!aliases.length) continue;
+			pending.push({ container, index, declarations, alias: aliases.join(', ') });
 		}
-		// Insert back-to-front so earlier indices stay valid.
-		for (let i = matches.length - 1; i >= 0; i -= 1) {
-			const match = matches[i];
+	}
+
+	/**
+	 * U200 L1: the only mutating half of a rebuild. Inserts back-to-front
+	 * per container (collected ascending) so earlier indices stay valid —
+	 * the same per-list order the old interleaved scan+insert produced.
+	 * `report.aliasedRules` still counts successful insertions with the
+	 * same limit/truncation semantics.
+	 */
+	private applyPendingAliases(
+		pending: readonly PendingAlias[],
+		report: NativeBridgeRebuildReport,
+	): void {
+		for (let i = pending.length - 1; i >= 0; i -= 1) {
+			const match = pending[i];
+			if (!match) continue;
 			if (report.aliasedRules >= NATIVE_BRIDGE_RULE_LIMIT) {
 				report.truncated = true;
 				return;
 			}
 			try {
-				const at = container.insertRule(
+				const at = match.container.insertRule(
 					`${match.alias} { ${match.declarations} }`,
 					match.index + 1,
 				);
-				const insertedRule = container.cssRules[at];
+				const insertedRule = match.container.cssRules[at];
 				if (insertedRule) {
-					this.inserted.push({ container, rule: insertedRule });
+					this.inserted.push({ container: match.container, rule: insertedRule });
 					report.aliasedRules += 1;
 				}
 			} catch {
@@ -264,6 +388,82 @@ export class NativeBridge {
 			}
 		}
 	}
+}
+
+/**
+ * U200 L1: order-independent fingerprint of the alias set a rebuild would
+ * apply. Selector + declarations per alias: the same effective CSS always
+ * fingerprints the same, whatever unrelated rules were added, removed or
+ * moved around it. Positions are intentionally excluded — every alias is
+ * re-anchored right after its source rule on apply, so relative cascade
+ * order is preserved by construction.
+ */
+export function fingerprintPendingAliases(
+	pending: readonly { alias: string; declarations: string }[],
+): string {
+	return pending
+		.map((match) => `${match.alias}{${match.declarations}}`)
+		.sort()
+		.join('\n');
+}
+
+function elapsedNow(): number {
+	return typeof performance !== 'undefined' &&
+		typeof performance.now === 'function'
+		? performance.now()
+		: Date.now();
+}
+
+function elapsedSince(started: number): number {
+	return Math.max(0, elapsedNow() - started);
+}
+
+/**
+ * U200 L1: head-mutation prefilter for the bridge observer. Only STYLE/LINK
+ * arrivals, departures and content swaps can change the alias scan; a bare
+ * `<title>` swap (what Obsidian emits on every note focus) or any other
+ * head noise must not schedule a 20k-rule scan.
+ *
+ * Exported for unit tests. Unknown shapes stay relevant (safe default).
+ */
+export function isBridgeRelevantMutation(record: MutationRecord): boolean {
+	if (record.type !== 'childList') return true;
+	const tag = (record.target as Partial<Element> | null)?.tagName;
+	// A STYLE element swapping its text children edits live declarations.
+	if (tag === 'STYLE') return true;
+	// Title text is never CSS.
+	if (tag === 'TITLE') {
+		for (const list of [record.addedNodes, record.removedNodes]) {
+			if (!list) continue;
+			for (let i = 0; i < list.length; i += 1) {
+				if (isStyleOrLinkNode(list[i])) return true;
+			}
+		}
+		return false;
+	}
+	for (const list of [record.addedNodes, record.removedNodes]) {
+		if (!list) continue;
+		for (let i = 0; i < list.length; i += 1) {
+			const node = list[i];
+			if (!node || node.nodeType !== 1) continue;
+			if (isStyleOrLinkNode(node)) return true;
+		}
+	}
+	return false;
+}
+
+function isStyleOrLinkNode(node: Node): boolean {
+	const tag = (node as { tagName?: unknown }).tagName;
+	if (tag === 'STYLE' || tag === 'LINK') return true;
+	const query = (node as Partial<Element>).querySelector;
+	if (typeof query === 'function') {
+		try {
+			return query.call(node, 'style,link') !== null;
+		} catch {
+			return false;
+		}
+	}
+	return false;
 }
 
 const documentBridges = new WeakMap<Document, { bridge: NativeBridge; users: number }>();

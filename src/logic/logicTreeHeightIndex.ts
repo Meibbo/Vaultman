@@ -23,6 +23,9 @@ export const HEIGHT_EPSILON_PX = 0.5;
 /** Bound for the per-key measurement cache (stable keys persist collapsed). */
 export const MAX_MEASURED_KEYS = 20000;
 
+/** Samples needed before the measured mean replaces the static estimate. */
+export const ADAPTIVE_FALLBACK_MIN_SAMPLES = 8;
+
 export class TreeHeightIndex {
 	private estimate: number;
 	private keys: string[] = [];
@@ -30,6 +33,15 @@ export class TreeHeightIndex {
 	private fenwick: Float64Array = new Float64Array(1);
 	private readonly keyIndex = new Map<string, number>();
 	private readonly measured = new Map<string, number>();
+	/**
+	 * U200 L1: running mean of every accepted measurement. Unknown keys
+	 * (cold expand, first paint) start here instead of the static density
+	 * pitch: under compatible theming the real row box (26.89px en
+	 * Comet) difiere del pitch (28px) y ese +1.1px/fila es el estirón
+	 * visible antes de la corrección del ResizeObserver.
+	 */
+	private measuredMean = 0;
+	private measuredSamples = 0;
 
 	constructor(estimate: number) {
 		this.estimate = Math.max(1, estimate);
@@ -70,6 +82,10 @@ export class TreeHeightIndex {
 	/** Record a mounted slot's entry height. Returns `true` when geometry moved. */
 	setMeasured(key: string, height: number): boolean {
 		if (!Number.isFinite(height) || height <= 0) return false;
+		// U200 L1: feed the adaptive fallback before the epsilon early-out
+		// so repeated identical reports still count as evidence.
+		this.measuredSamples += 1;
+		this.measuredMean += (height - this.measuredMean) / this.measuredSamples;
 		const prev = this.measured.get(key);
 		if (prev !== undefined && Math.abs(prev - height) < HEIGHT_EPSILON_PX) {
 			return false;
@@ -98,7 +114,7 @@ export class TreeHeightIndex {
 	}
 
 	heightForIndex(index: number): number {
-		return this.heights[index] ?? this.estimate;
+		return this.heights[index] ?? this.unknownFallback();
 	}
 
 	topForIndex(index: number): number {
@@ -156,13 +172,26 @@ export class TreeHeightIndex {
 		this.rebuild();
 	}
 
+	/**
+	 * U200 L1: prior for unknown keys. The static density pitch until
+	 * enough mounted slots reported, then their running mean. Deliberately
+	 * NOT reset by `invalidateAll()`: it is only a prior and re-converges
+	 * within a window render either way. `getEstimate()` (density pitch
+	 * for sticky math) is untouched.
+	 */
+	unknownFallback(): number {
+		return this.measuredSamples >= ADAPTIVE_FALLBACK_MIN_SAMPLES
+			? this.measuredMean
+			: this.estimate;
+	}
+
 	indexOfKey(key: string): number {
 		return this.keyIndex.get(key) ?? -1;
 	}
 
 	private rebuild(): void {
 		this.heights = this.keys.map(
-			(key) => this.measured.get(key) ?? this.estimate,
+			(key) => this.measured.get(key) ?? this.unknownFallback(),
 		);
 		this.fenwick = new Float64Array(this.heights.length + 1);
 		for (let index = 0; index < this.heights.length; index += 1) {
