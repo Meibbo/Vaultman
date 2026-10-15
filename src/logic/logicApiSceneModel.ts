@@ -119,6 +119,7 @@ export interface ApiSceneNodeMeta {
 	catalogKind?: SasiCatalogKind;
 	supports: readonly string[];
 	composes: readonly string[];
+	scope?: string;
 	mutatesVault: boolean;
 	publishable: boolean;
 	published: boolean;

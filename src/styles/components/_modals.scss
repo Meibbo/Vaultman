@@ -241,3 +241,136 @@
   font-size: var(--font-ui-smaller);
   font-style: italic;
 }
+
+/* === Instance info / sparse scene-config editor === */
+.vaultman-instance-info {
+  width: min(760px, 90vw);
+}
+
+.vaultman-instance-info h3 {
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.vaultman-instance-info h4 {
+  margin-top: 1em;
+  margin-bottom: 0.35em;
+  color: var(--text-muted);
+}
+
+.vaultman-instance-info-meta {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.4fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  margin: 0.5em 0 1em;
+}
+
+.vaultman-instance-info-meta dt {
+  color: var(--text-muted);
+}
+
+.vaultman-instance-info-meta dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.vaultman-instance-info-name-input,
+.vaultman-instance-info-surface-select {
+  width: 100%;
+}
+
+.vaultman-instance-info-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vaultman-instance-info-field {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+}
+
+.vaultman-instance-info-field > label,
+.vaultman-instance-info-field-label {
+  padding-top: 5px;
+  color: var(--text-muted);
+}
+
+.vaultman-instance-info-field-control {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.vaultman-instance-info-field-control > select,
+.vaultman-instance-info-json-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.vaultman-instance-info-json-input {
+  min-height: 5em;
+  resize: vertical;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-instance-info-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+}
+
+.vaultman-instance-info-reset {
+  flex: 0 0 auto;
+}
+
+.vaultman-instance-info-field-error {
+  align-self: center;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.vaultman-instance-info-native-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.vaultman-instance-info-native-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultman-instance-info-native-control select {
+  min-width: 110px;
+}
+
+.vaultman-instance-info-unknown pre {
+  max-height: 8em;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 600px) {
+  .vaultman-instance-info-meta,
+  .vaultman-instance-info-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .vaultman-instance-info-field > label,
+  .vaultman-instance-info-field-label {
+    padding-top: 0;
+  }
+}

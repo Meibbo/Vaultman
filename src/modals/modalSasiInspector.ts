@@ -29,6 +29,7 @@ export interface SasiInspectorEntry {
 	surfaces: readonly string[];
 	composes: readonly string[];
 	published: boolean;
+	scope?: string;
 }
 
 export interface SasiInspectorSection {
@@ -68,6 +69,7 @@ export function buildSasiInspectorModel(
 			surfaces: def.supports.map((s) => s.surface),
 			composes: def.composes ?? [],
 			published: publisher?.isPublished(def.id) ?? false,
+			...(def.scope ? { scope: def.scope } : {}),
 		})),
 	}));
 }

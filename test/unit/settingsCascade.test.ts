@@ -31,7 +31,7 @@ const defaults: Required<SceneConfig> = {
 	groupMemberships: {},
 	showOptionsOverride: 'inherit' as const,
 	textCase: {},
-	nativeCompat: {},
+		nativeCompat: {},
 };
 
 describe('resolveSceneConfig', () => {

@@ -75,6 +75,8 @@ export interface SasiDef {
 	availability?: SasiAvailability;
 	/** `command`: los ids de action/operation que compone. */
 	composes?: readonly string[];
+	/** Ambito/scope operacional de la accion o comando (ej. 'this.scene -> {scope_depth}'). */
+	scope?: string;
 }
 
 export interface SasiResolved {

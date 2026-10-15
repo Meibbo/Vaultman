@@ -135,6 +135,7 @@ import {
 	PROPS_ADD_PROPERTY_MACRO_COMPOSES,
 } from './logic/logicSasiSceneActions';
 import { SETTINGS_OPEN_ID } from './logic/logicSasiSettingsActions';
+import { parseScenePresentationAction } from './logic/logicSasiPresentationActions';
 import { API_SCENE_SELF_ID } from './logic/logicApiSceneModel';
 import { executeObsidianCommand } from './utils/obsidianCommands';
 import { installCommandPaletteFilter } from './logic/logicCommandPaletteInterceptor';
@@ -146,11 +147,18 @@ import {
 	TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 	TOOLBAR_SEARCHBOX_ID,
 	TOOLBAR_TOGGLE_EXPANSION_ID,
+	TOOLBAR_SCENE_MENU_ID,
+	TOOLBAR_VIEW_MENU_ID,
+	TOOLBAR_SORT_MENU_ID,
 } from './logic/logicSasiToolbarActions';
 import {
 	SEARCH_CREATE_TARGET_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 } from './logic/logicSasiSearchActions';
+import {
+	FILTER_QUEUE_ACTIONS,
+	FILTER_QUEUE_ACTION_IDS,
+} from './logic/logicSasiFilterQueueActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -180,6 +188,9 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	TOOLBAR_SEARCHBOX_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 	SEARCH_CREATE_TARGET_ID,
+	TOOLBAR_SCENE_MENU_ID,
+	TOOLBAR_VIEW_MENU_ID,
+	TOOLBAR_SORT_MENU_ID,
 	'go_to_setting_scene',
 	PROPS_ADD_PROPERTY_COMMAND_ID,
 	'open-filter-scene',
@@ -646,6 +657,9 @@ export class VaultmanPlugin extends Plugin {
 			[TOOLBAR_SEARCHBOX_ID, 'sasi.toolbar.searchbox'],
 			[SEARCH_CYCLE_CATEGORY_ID, 'sasi.search.cycle_category'],
 			[SEARCH_CREATE_TARGET_ID, 'sasi.search.create_target'],
+			[TOOLBAR_SCENE_MENU_ID, 'sasi.toolbar.scene_menu'],
+			[TOOLBAR_VIEW_MENU_ID, 'sasi.toolbar.view_menu'],
+			[TOOLBAR_SORT_MENU_ID, 'sasi.toolbar.sort_menu'],
 		] as const;
 		for (const [id, labelKey] of toolbarCommands) {
 			this.sasiCommandPublisher.register({
@@ -653,6 +667,15 @@ export class VaultmanPlugin extends Plugin {
 				name: translate(labelKey),
 				handler: () => {
 					void this.invokeToolbarSasiAction(id);
+				},
+			});
+		}
+		for (const action of FILTER_QUEUE_ACTIONS) {
+			this.sasiCommandPublisher.register({
+				id: action.id,
+				name: translate(action.labelKey),
+				handler: () => {
+					void this.invokeIslandSasiAction(action.id);
 				},
 			});
 		}
@@ -841,6 +864,11 @@ export class VaultmanPlugin extends Plugin {
 			const instanceId = scope.slice('instance:'.length);
 			await this.openWorkspaceInstance(instanceId);
 		}
+		if (parseScenePresentationAction(actionId)) {
+			const view = await this.vaultmanFrameForCommand();
+			await view?.invokeScenePresentationSasiAction(actionId, scope);
+			return;
+		}
 		if (actionId.startsWith('vaultman.scene.engine.')) {
 			const mode = actionId.slice('vaultman.scene.engine.'.length) as any;
 			void this.changeActiveEngineCommand(mode);
@@ -879,6 +907,10 @@ export class VaultmanPlugin extends Plugin {
 			void this.openQueueCommand();
 			return;
 		}
+		if (FILTER_QUEUE_ACTION_IDS.has(actionId)) {
+			await this.invokeIslandSasiAction(actionId);
+			return;
+		}
 		if (actionId === 'open-api-scene' || actionId === API_SCENE_SELF_ID) {
 			this.openApiScene();
 			return;
@@ -908,7 +940,17 @@ export class VaultmanPlugin extends Plugin {
 			actionId === TOOLBAR_TOGGLE_EXPANSION_ID ||
 			actionId === TOOLBAR_SEARCHBOX_ID ||
 			actionId === SEARCH_CYCLE_CATEGORY_ID ||
-			actionId === SEARCH_CREATE_TARGET_ID
+			actionId === SEARCH_CREATE_TARGET_ID ||
+			actionId === TOOLBAR_SCENE_MENU_ID ||
+			actionId === TOOLBAR_VIEW_MENU_ID ||
+			actionId === TOOLBAR_SORT_MENU_ID ||
+			actionId === 'scene_menu' ||
+			actionId === 'view_menu' ||
+			actionId === 'sort_menu' ||
+			actionId === 'tabs' ||
+			actionId === 'view' ||
+			actionId === 'sort' ||
+			actionId === 'toggle-expansion'
 		) {
 			void this.invokeToolbarSasiAction(actionId);
 			return;
@@ -956,6 +998,11 @@ export class VaultmanPlugin extends Plugin {
 	private async invokeToolbarSasiAction(actionId: string): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		if (view) await view.invokeToolbarSasiAction?.(actionId);
+	}
+
+	private async invokeIslandSasiAction(actionId: string): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.invokeIslandSasiAction?.(actionId);
 	}
 
 	private async focusVaultmanContentSearch(

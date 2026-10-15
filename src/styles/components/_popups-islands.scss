@@ -1299,6 +1299,23 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-normal);
 }
 
+.vaultman-queue-island:focus-visible,
+.vaultman-active-filters-island:focus-visible,
+.vaultman-queue-island [role="button"]:focus-visible,
+.vaultman-active-filters-island [role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .vaultman-queue-island:focus-visible,
+  .vaultman-active-filters-island:focus-visible,
+  .vaultman-queue-island [role="button"]:focus-visible,
+  .vaultman-active-filters-island [role="button"]:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
 .vaultman-squircle.is-accent {
   background: var(--color-accent);
   color: var(--text-on-accent);

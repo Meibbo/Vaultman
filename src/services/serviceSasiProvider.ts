@@ -25,6 +25,7 @@ export interface SasiNode {
 	 * cada comando, que es la mitad de "que es cada cosa y DONDE ESTA".
 	 */
 	composes?: readonly string[];
+	scope?: string;
 	createdAt?: number;
 	updatedAt?: number;
 	dateSource?: string;
@@ -58,6 +59,7 @@ export function createSasiProvider(registry: SasiRegistry): SasiProvider {
 				supports: def.supports,
 				availability: def.availability ?? { status: 'available' },
 				composes: def.composes ?? [],
+				...(def.scope ? { scope: def.scope } : {}),
 				...(lifecycle ? {
 					createdAt: lifecycle.createdAt,
 					updatedAt: lifecycle.updatedAt,

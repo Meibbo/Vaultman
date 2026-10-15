@@ -31,10 +31,15 @@
 					);
 					return true;
 				}
-				if (action.actionId !== 'toggle-expansion') return false;
-				if (explorer.hasExpandedNodes()) explorer.collapseAll();
-				else explorer.expandAll();
-				return true;
+				if (
+					action.actionId === 'toggle-expansion' ||
+					action.actionId === 'vaultman.toolbar.toggleExpansion'
+				) {
+					if (explorer.hasExpandedNodes()) explorer.collapseAll();
+					else explorer.expandAll();
+					return true;
+				}
+				return false;
 			},
 		},
 		icon: (element, name) => {

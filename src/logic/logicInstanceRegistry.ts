@@ -156,7 +156,30 @@ function cloneSceneConfig(config: SceneConfig): SceneConfig {
 	if (config.hiddenToolbarNodes) out.hiddenToolbarNodes = [...config.hiddenToolbarNodes];
 	if (config.toolbarCommandActions) out.toolbarCommandActions = [...config.toolbarCommandActions];
 	if (config.groupMemberships) out.groupMemberships = cloneGroupMemberships(config.groupMemberships);
+	if (config.hiddenGroupIds) out.hiddenGroupIds = [...config.hiddenGroupIds];
+	if (config.toolbarNodeIcons) out.toolbarNodeIcons = { ...config.toolbarNodeIcons };
+	if (config.toolbarNodeLabels) out.toolbarNodeLabels = { ...config.toolbarNodeLabels };
+	if (config.toolbarNodeOrder) out.toolbarNodeOrder = [...config.toolbarNodeOrder];
+	if (config.textCase) out.textCase = { ...config.textCase };
+	if (config.nativeCompat) out.nativeCompat = { ...config.nativeCompat };
 	return out;
+}
+
+/** Replace the instance-level sparse config while preserving scene overrides. */
+export function replaceInstanceSelfConfig(
+	registry: InstanceRegistryData,
+	id: WorkspaceInstanceId,
+	layer: SceneConfig,
+): InstanceRegistryData {
+	const record = registry.instances[id];
+	if (!record || JSON.stringify(record.self) === JSON.stringify(layer)) return registry;
+	const nextRecord: WorkspaceInstanceRecord = {
+		...record,
+		lastActiveAt: Date.now(),
+		revision: record.revision + 1,
+		self: cloneSceneConfig(layer),
+	};
+	return { ...registry, instances: { ...registry.instances, [id]: nextRecord } };
 }
 
 export function setSceneConfig(

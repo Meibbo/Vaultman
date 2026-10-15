@@ -21,6 +21,7 @@ export interface ApiSceneLeafSpec {
 	catalogKind?: SasiCatalogKind;
 	supports: readonly string[];
 	composes: readonly string[];
+	scope?: string;
 	mutatesVault: boolean;
 	activeScene?: string;
 	tombstoned?: boolean;
@@ -91,6 +92,7 @@ export function toApiSceneNode({
 			...(spec.catalogKind ? { catalogKind: spec.catalogKind } : {}),
 			supports: spec.supports,
 			composes: spec.composes,
+			...(spec.scope ? { scope: spec.scope } : {}),
 			mutatesVault: spec.mutatesVault,
 			publishable,
 			published,

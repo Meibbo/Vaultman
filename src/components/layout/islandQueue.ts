@@ -4,6 +4,16 @@ import { translate } from '../../i18n/index';
 import type { VaultmanPlugin } from '../../main';
 import { openQueueTemplateMenu } from '../../utils/queueTemplateMenu';
 import { warningsForQueuedChange } from '../../logic/logicQueueWarnings';
+import {
+	QUEUE_DETAILS_ID,
+	QUEUE_TEMPLATES_ID,
+} from '../../logic/logicSasiFilterQueueActions';
+import {
+	focusFirstIslandControl,
+	handleIslandKeydown,
+	menuEventForElement,
+	wireIslandButton,
+} from '../../utils/islandKeyboard';
 
 /**
  * In-frame floating island showing the pending operation queue.
@@ -26,12 +36,14 @@ export class QueueIslandComponent {
 	private islandEl: HTMLElement | null = null;
 	private listEl: HTMLElement | null = null;
 	private headerEl: HTMLElement | null = null;
+	private templateBtn: HTMLElement | null = null;
 
 	constructor(
 		containerEl: HTMLElement,
 		plugin: VaultmanPlugin,
 		onClose: () => void,
 		onOpenDetails: () => void,
+		private readonly focusOnMount = true,
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -42,6 +54,10 @@ export class QueueIslandComponent {
 
 	mount(): void {
 		this.islandEl = this.containerEl.createDiv({ cls: 'vaultman-queue-island' });
+		this.islandEl.tabIndex = -1;
+		this.islandEl.addEventListener('keydown', (event: KeyboardEvent) => {
+			handleIslandKeydown(event, this.islandEl, this.onClose);
+		});
 
 		// 1. Squircle action buttons (Now first, floating above body via CSS)
 		const btnRow = this.islandEl.createDiv({
@@ -58,9 +74,9 @@ export class QueueIslandComponent {
 		});
 		setIcon(clearBtn, 'lucide-trash'); // Changed from x to trash for "Clear queue"
 		clearBtn.addEventListener('click', () => {
-			this.queueService.clear();
-			this.onClose();
+			this.clearQueue();
 		});
+		wireIslandButton(clearBtn, () => this.clearQueue());
 
 		const detailsBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
@@ -72,21 +88,23 @@ export class QueueIslandComponent {
 		});
 		setIcon(detailsBtn, 'lucide-list');
 		detailsBtn.addEventListener('click', () => {
-			this.onOpenDetails();
+			this.openDetails();
 		});
+		wireIslandButton(detailsBtn, () => this.openDetails());
 
-		const templateBtn = btnRow.createDiv({
+		const templateBtn = (this.templateBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
 			attr: {
 				'aria-label': translate('queue.template.templates'),
 				role: 'button',
 				tabindex: '0',
 			},
-		});
+		}));
 		setIcon(templateBtn, 'lucide-bookmark');
 		templateBtn.addEventListener('click', (event) => {
-			openQueueTemplateMenu(this.plugin, event, this.onClose);
+			this.openTemplatesMenu(event);
 		});
+		wireIslandButton(templateBtn, () => this.openTemplatesMenu());
 
 		const executeBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
@@ -98,9 +116,9 @@ export class QueueIslandComponent {
 		});
 		setIcon(executeBtn, 'lucide-play');
 		executeBtn.addEventListener('click', () => {
-			void this.queueService.execute();
-			this.onClose();
+			this.executeQueue();
 		});
+		wireIslandButton(executeBtn, () => this.executeQueue());
 
 		// 2. Header — count label (Now below squircles)
 		this.headerEl = this.islandEl.createDiv({
@@ -115,9 +133,53 @@ export class QueueIslandComponent {
 		this.render();
 
 		// Slide in after next frame so CSS transition fires
-		window.requestAnimationFrame(() => {
+		const view = this.islandEl.ownerDocument?.defaultView;
+		const open = () => {
+			if (!this.islandEl) return;
 			this.islandEl?.addClass('is-open');
-		});
+			if (this.focusOnMount) this.focusFirstControl();
+		};
+		if (view?.requestAnimationFrame) view.requestAnimationFrame(open);
+		else open();
+	}
+
+	focusFirstControl(): void {
+		focusFirstIslandControl(this.islandEl);
+	}
+
+	invokeSasiAction(actionId: string): boolean {
+		if (actionId === QUEUE_DETAILS_ID) {
+			this.openDetails();
+			return true;
+		}
+		if (actionId === QUEUE_TEMPLATES_ID) {
+			return this.openTemplatesMenu();
+		}
+		return false;
+	}
+
+	private clearQueue(): void {
+		this.queueService.clear();
+		this.onClose();
+	}
+
+	private openDetails(): void {
+		this.onOpenDetails();
+	}
+
+	private openTemplatesMenu(event?: MouseEvent): boolean {
+		if (!this.templateBtn) return false;
+		openQueueTemplateMenu(
+			this.plugin,
+			event ?? menuEventForElement(this.templateBtn),
+			this.onClose,
+		);
+		return true;
+	}
+
+	private executeQueue(): void {
+		void this.queueService.execute();
+		this.onClose();
 	}
 
 	render(): void {
@@ -183,5 +245,6 @@ export class QueueIslandComponent {
 		this.islandEl = null;
 		this.listEl = null;
 		this.headerEl = null;
+		this.templateBtn = null;
 	}
 }

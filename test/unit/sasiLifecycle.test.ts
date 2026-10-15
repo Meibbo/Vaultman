@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sasiLifecycleFor } from '../../src/logic/logicSasiLifecycle';
 import { createSasiRegistry } from '../../src/logic/logicSasiRegistry';
 import { createSasiProvider } from '../../src/services/serviceSasiProvider';
+import { FILTER_QUEUE_ACTIONS } from '../../src/logic/logicSasiFilterQueueActions';
 
 afterEach(() => vi.useRealTimers());
 describe('SASI implementation lifecycle', () => {
@@ -21,6 +22,14 @@ describe('SASI implementation lifecycle', () => {
 		expect(dates?.createdAt).toBeGreaterThan(0);
 		expect(dates?.updatedAt).toBeGreaterThanOrEqual(dates?.createdAt ?? 0);
 		expect(dates?.source).toContain('src/');
+	});
+	it('includes filter and queue actions in the generated lifecycle catalogue', () => {
+		for (const action of FILTER_QUEUE_ACTIONS) {
+			expect(sasiLifecycleFor(action.id)).toMatchObject({
+				source: 'src/logic/logicSasiFilterQueueActions.ts',
+				precision: 'declaration-module',
+			});
+		}
 	});
 	it('does not invent creation dates for unknown consumer extensions', () => {
 		expect(sasiLifecycleFor('unregistered.external.function')).toBeUndefined();

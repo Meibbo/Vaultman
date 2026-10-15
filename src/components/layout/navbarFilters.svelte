@@ -23,6 +23,9 @@
 		TOOLBAR_REVEAL_ACTIVE_FILE_ID,
 		TOOLBAR_SEARCHBOX_ID,
 		TOOLBAR_TOGGLE_EXPANSION_ID,
+		TOOLBAR_SCENE_MENU_ID,
+		TOOLBAR_VIEW_MENU_ID,
+		TOOLBAR_SORT_MENU_ID,
 	} from '../../logic/logicSasiToolbarActions';
 	import { createSasiInvoker } from '../../logic/logicSasiInvoke';
 	import type { SasiNode } from '../../services/serviceSasiProvider';
@@ -261,6 +264,30 @@
 			actionId === SEARCH_CREATE_TARGET_ID
 		) {
 			runSearchCell(actionId);
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_SCENE_MENU_ID ||
+			actionId === 'scene_menu' ||
+			actionId === 'tabs'
+		) {
+			openNativeSceneMenu(eventForNode('tabs'));
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_VIEW_MENU_ID ||
+			actionId === 'view_menu' ||
+			actionId === 'view'
+		) {
+			openNativeViewMenu(eventForNode('view'));
+			return true;
+		}
+		if (
+			actionId === TOOLBAR_SORT_MENU_ID ||
+			actionId === 'sort_menu' ||
+			actionId === 'sort'
+		) {
+			openNativeSortMenu(eventForNode('sort'));
 			return true;
 		}
 		const localId =
@@ -2401,6 +2428,21 @@
 		});
 	}
 
+	function eventForNode(localId: string): MouseEvent {
+		const el = actionsEl?.querySelector(
+			`[data-panel-widget-node-id="${panelWidgetNodeId(localId)}"]`,
+		) as HTMLElement | null;
+		if (el) return menuEventFromElement(el);
+		const rect = actionsEl?.getBoundingClientRect();
+		return new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: (rect?.left ?? 100) + 50,
+			clientY: (rect?.bottom ?? 100) + 10,
+			view: window,
+		});
+	}
+
 	function openSortPopup(event?: MouseEvent) {
 		if (minimalStyle && event) {
 			openNativeSortMenu(event);
@@ -3584,6 +3626,23 @@
 			});
 			menu.addSeparator();
 		}
+		if (localId === 'toggle-expansion') {
+			const vaultmanPlugin = (app as any)?.plugins?.plugins?.vaultman;
+			const anchorScope = Boolean(vaultmanPlugin?.settings?.sasiAnchorScope);
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('toolbar.alt.anchor_scope') || 'Anchor scope')
+					.setIcon('lucide-anchor')
+					.setChecked(anchorScope)
+					.onClick(() => {
+						if (vaultmanPlugin?.settings) {
+							vaultmanPlugin.settings.sasiAnchorScope = !anchorScope;
+							void vaultmanPlugin.saveData(vaultmanPlugin.settings);
+						}
+					});
+			});
+			menu.addSeparator();
+		}
 		if (localId !== 'tabs') {
 			const labelActive =
 				configByTab[activeTab]?.toolbarNodeLabels?.[localId] === 'on';
@@ -3678,6 +3737,7 @@
 							onRenameInstance,
 							onMoveSurface,
 							onSplitInstance,
+							sceneConfigPort,
 						).open();
 					});
 			});
@@ -4958,6 +5018,14 @@
 		}),
 	);
 
+	$effect(() =>
+		sceneConfigPort.onConfigChange?.(() => {
+			configByTab = Object.fromEntries(
+				TABS.map((tab) => [tab, sceneConfigPort.read(tab)]),
+			) as Record<FiltersTab, Required<SceneConfig>>;
+		}),
+	);
+
 	// U130 toolbar alt-cmenu: empuja el override per-instance del "always
 	// reveal" al panel de Files. Lee config y ref: se re-ejecuta cuando cambia
 	// cualquiera de los dos (p. ej. al montar files tarde). `auto` devuelve al
@@ -4980,6 +5048,9 @@
 		const stickyRows = configByTab[tab].stickyRows;
 		const compactFolders = configByTab[tab].compactFolders;
 		const indent = configByTab[tab].indent;
+		const tooltips = configByTab[tab].tooltips;
+		const textCase = configByTab[tab].textCase;
+		const nativeCompat = configByTab[tab].nativeCompat;
 		const groupPreset = configByTab[tab].groupPreset;
 		const hiddenGroupIds = configByTab[tab].hiddenGroupIds;
 		const groupMemberships = configByTab[tab].groupMemberships;
@@ -4992,6 +5063,9 @@
 			stickyRows,
 			compactFolders,
 			indent,
+			tooltips,
+			textCase,
+			nativeCompat,
 			groupPreset,
 			hiddenGroupIds,
 			groupMemberships,
