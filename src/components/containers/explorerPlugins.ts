@@ -1111,7 +1111,37 @@ export class PluginsExplorerPanel
 	}
 
 	onPendingUpdatesChanged(callback: () => void): () => void {
-		return this.plugin.pluginUpdatesService?.onChanged(callback) ?? (() => undefined);
+		// U200 polish L1: one subscription covers both busy sources. Queue
+		// batch transitions (`changed` on start/finish) and check
+		// transitions (`onChanged` on start/finish) both re-sync the gate
+		// count and the toolbar spinners; no polling loop anywhere.
+		const stops: Array<() => void> = [];
+		const updatesStop = this.plugin.pluginUpdatesService?.onChanged(callback);
+		if (updatesStop) stops.push(updatesStop);
+		const queue = this.plugin.queueService;
+		if (queue) {
+			const onQueueChanged = (): void => callback();
+			queue.on('changed', onQueueChanged);
+			stops.push(() => queue.off('changed', onQueueChanged));
+		}
+		return () => {
+			for (const stop of stops) stop();
+		};
+	}
+
+	/**
+	 * U200 polish L1: toolbar busy oracles. Check busy while a discovery
+	 * check is in flight; batch busy while the install queue batch runs.
+	 * Data-source scenes (non-native) never report busy.
+	 */
+	getPluginUpdateCheckBusy(): boolean {
+		if (this.dataSource || !this.plugin.pluginUpdatesService) return false;
+		return this.plugin.pluginUpdatesService.isCheckInFlight();
+	}
+
+	getPluginUpdateBatchBusy(): boolean {
+		if (this.dataSource || !this.plugin.queueService) return false;
+		return this.plugin.queueService.getPluginUpdateQueueState().running;
 	}
 
 	/**

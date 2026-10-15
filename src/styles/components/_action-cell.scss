@@ -64,7 +64,10 @@
 }
 
 .vaultman-addon-cell.is-busy .vaultman-badge-icon svg,
-.vaultman-addon-toggle-cell.is-busy svg {
+.vaultman-addon-toggle-cell.is-busy svg,
+/* U200 polish L1: toolbar plugin-update nodes reuse the same wheel. The
+ * svg box is unchanged (rotation only), so no layout shift at rest or busy. */
+.vaultman-header-action-icon.is-busy svg {
 	animation: vaultman-action-cell-spin 0.9s linear infinite;
 }
 
@@ -91,7 +94,8 @@
 	.vaultman-action-cell,
 	.vaultman-action-cell svg,
 	.vaultman-addon-cell.is-busy .vaultman-badge-icon svg,
-	.vaultman-addon-toggle-cell.is-busy svg {
+	.vaultman-addon-toggle-cell.is-busy svg,
+	.vaultman-header-action-icon.is-busy svg {
 		transition: none;
 		animation: none;
 	}

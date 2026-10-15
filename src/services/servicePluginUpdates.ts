@@ -74,11 +74,21 @@ export class PluginUpdatesService extends Component implements PluginUpdateAdapt
 	async checkPluginUpdates(): Promise<PluginUpdateCheckResult> {
 		if (this.checkInFlight) return this.checkInFlight;
 		this.checkInFlight = this.checkPluginUpdatesOnce();
+		// U200 polish L1: announce the busy transition so toolbar spinners
+		// paint on start, not only when the result lands (mirrors the
+		// start/end notifies around single installs in `updatePlugin`).
+		this.notifyChanged();
 		try {
 			return await this.checkInFlight;
 		} finally {
 			this.checkInFlight = null;
+			this.notifyChanged();
 		}
+	}
+
+	/** U200 polish L1: whether a discovery check is currently running. */
+	isCheckInFlight(): boolean {
+		return this.checkInFlight !== null;
 	}
 
 	private async checkPluginUpdatesOnce(): Promise<PluginUpdateCheckResult> {

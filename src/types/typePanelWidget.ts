@@ -44,6 +44,12 @@ export interface PanelWidgetNode {
 	condensable?: boolean;
 	action?: PanelWidgetActionReference;
 	checked?: boolean;
+	/**
+	 * U200 polish L1: async activity on this node (plugin-update toolbar
+	 * check/batch). Rendered as a `lucide-loader-circle` spinner; idle
+	 * nodes omit the key so snapshots stay byte-identical.
+	 */
+	busy?: boolean;
 }
 
 export interface PanelWidgetPvpuiConfig {
@@ -143,6 +149,15 @@ export interface PanelWidgetExplorerPort {
 	 */
 	getPendingUpdateCount?(): number;
 	onPendingUpdatesChanged?(callback: () => void): () => void;
+	/**
+	 * U200 polish L1: toolbar busy oracles for the plugin-update nodes.
+	 * `getPluginUpdateCheckBusy` is true while a discovery check is in
+	 * flight (backs `check_plugin_updates`); `getPluginUpdateBatchBusy`
+	 * while the install queue batch runs (backs `update_all_plugins`).
+	 * Explorers without an update pipeline omit them (never busy).
+	 */
+	getPluginUpdateCheckBusy?(): boolean;
+	getPluginUpdateBatchBusy?(): boolean;
 	/** U130 native polish: per-cell display case overrides for this scene. */
 	setTextCase?(textCase: Readonly<Record<string, import('../logic/logicTextCaseProjection').TextCaseOption>>): void;
 	/** U130 native polish: compatible/locked policy per boundary for this scene. */
