@@ -40,6 +40,7 @@ function appendFunctionNodes(
 					supports: def.supports.map((support) => support.surface),
 					composes: def.composes ?? [],
 					scope: def.scope,
+					...(def.compatibility ? { compatibility: def.compatibility } : {}),
 					mutatesVault: group === 'operation' && def.mutatesVault === true,
 				},
 				publisher: context.publisher,

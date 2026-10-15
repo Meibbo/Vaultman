@@ -3,7 +3,7 @@ import { readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 
 /** Bake declaration/family provenance into the shipped provider; never consult Git at runtime. */
 const sources = [
-	'logicSasiBootstrap', 'logicSasiMoveActions', 'logicSasiTabMoveActions', 'logicSasiHoverActions',
+	'logicSasiBootstrap', 'logicSasiMoveActions', 'logicSasiTabMoveActions', 'logicScopedPanelMoves', 'logicSasiHoverActions',
 	'logicSasiSceneActions', 'logicSasiToolbarActions', 'logicToolbarMenuCatalog',
 	'logicSasiFilterQueueActions', 'logicSasiSearchActions', 'logicSasiSettingsActions', 'logicSasiSettingScene',
 	'logicGroupSelectionTransaction', 'logicApiScene', 'logicApiSceneModel',

@@ -22,7 +22,8 @@
 //--------------------------------------------------------------------\\
 
 //...----------—————————————(   IMPORTS   )————————————------------...\\
-import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf, WorkspaceRoot, WorkspaceTabs } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf, WorkspaceRoot } from 'obsidian';
+import type { WorkspaceSplit } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import type { ExplorerViewMode } from './types/typeUI';
 import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
@@ -71,7 +72,10 @@ import {
 } from './utils/dragEditorDrop';
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
-import { SasiInspectorModal } from './modals/modalSasiInspector';
+import {
+	SasiInspectorModal,
+	apiSceneInstanceFailureNoticeKey,
+} from './modals/modalSasiInspector';
 import { InstanceSearchModal } from './modals/modalInstanceSearch';
 import {
 	openUpdatesBulletin,
@@ -152,19 +156,30 @@ import {
 	TOOLBAR_SORT_MENU_ID,
 } from './logic/logicSasiToolbarActions';
 import {
-	createTabMoveCommandDescriptors,
-	guardMessageKey,
-	maximizeGuardMessageKey,
 	nextMaximizedState,
-	resolveGroupMoveTarget,
-	resolveTabMoveTarget,
-	resolveToggleMaximize,
 	MAXIMIZE_BODY_CLASS,
-	type GroupMoveDirection,
-	type GroupMoveLayoutSnapshot,
-	type TabMoveDirection,
-	type TabMoveLayoutSnapshot,
+	TOGGLE_MAXIMIZE_ID,
 } from './logic/logicSasiTabMoveActions';
+import {
+	ACTION_ID_FOR_VARIATION,
+	createScopedPanelCommandDescriptors,
+	planScopedMove,
+	resolveScopedFocus,
+	resolveScopedMaximize,
+	scopedMaximizeGuardMessageKey,
+	scopedMoveGuardMessageKey,
+	adjustedInsertIndex,
+	surfaceOfLeaf,
+	SCOPED_PANEL_DEFAULT_SCOPE,
+	MAXIMIZE_LEAF_ATTR,
+	MAXIMIZE_SURFACE_ATTR,
+	MAXIMIZE_TABS_ATTR,
+	type ScopedGroupSnapshot,
+	type ScopedGroupSwapPlan,
+	type ScopedLeafPlan,
+	type ScopedMoveVariation,
+	type ScopedSplitPlan,
+} from './logic/logicScopedPanelMoves';
 import {
 	SEARCH_CREATE_TARGET_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
@@ -222,8 +237,14 @@ export class VaultmanPlugin extends Plugin {
 	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();
 	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
+	/** U200-L4: ultimo panel enfocado de CUALQUIER tipo (editores, laterales, vaultman). */
+	private lastFocusedPanelLeaf: WorkspaceLeaf | null = null;
 	/** U200-L2: reversible maximize flag (additive body class, no visual rule v1). */
 	private l2PanelMaximized = false;
+	/** U200-L4: hoja con el overlay de maximize (null = ninguno). */
+	private maximizedPanelLeaf: WorkspaceLeaf | null = null;
+	/** U200-L4: raiz de superficie con el overlay (para limpieza reversible). */
+	private maximizedSurfaceEl: HTMLElement | null = null;
 
 	// Core services — public so components/modals can access them
 	/** Public additive cell contributions; registrations return an unload disposer. */
@@ -313,6 +334,7 @@ export class VaultmanPlugin extends Plugin {
 		for (const provider of fileExplorerCellTranslations) this.register(this.explorerCellContributions.register(provider));
 		this.register(() => this.explorerCellContributions.destroy());
 		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+			if (leaf) this.lastFocusedPanelLeaf = leaf;
 			if (leaf?.view instanceof VaultmanFrame) this.lastFocusedFrameLeaf = leaf;
 		}));
 		this.registerDomEvent(activeDocument, 'pointerdown', (event) => {
@@ -695,15 +717,14 @@ export class VaultmanPlugin extends Plugin {
 				},
 			});
 		}
-		// U200-L2: tab/group moves + panel maximize skeletons. Born hidden
+		// U200-L4: 16 scoped panel moves + panel maximize. Born hidden
 		// (not in SASI_PUBLISHED_DEFAULT_TRUE): the user publishes them from
 		// the SASI inspector. Handlers are checkable: `checking` answers the
-		// guard silently, execute Notices + false on guard failure.
-		for (const descriptor of createTabMoveCommandDescriptors(translate, {
-			runTabMove: (direction, checking) =>
-				this.runTabMoveCommand(direction, checking),
-			runGroupMove: (direction, checking) =>
-				this.runGroupMoveCommand(direction, checking),
+		// guard silently, execute moves the scoped panel or Notices the
+		// precise blocker + false on guard failure. No placeholder notices.
+		for (const descriptor of createScopedPanelCommandDescriptors(translate, {
+			runPanelMove: (variation, checking) =>
+				this.runPanelMoveCommand(variation, checking),
 			runToggleMaximize: (checking) =>
 				this.runToggleMaximizeCommand(checking),
 		})) {
@@ -1036,76 +1057,131 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	/**
-	 * U200-L2: snapshots planos para los guardas tab/group. Solo API publica
-	 * (`activeLeaf`, `rootSplit`, `parent`, `getContainer`); `children` se lee
-	 * por cast con chequeo de forma: cualquier anomalia lanza hacia dentro y
-	 * el runner degrada a Notice + false. Nunca lanza hacia el toolbar.
+	 * U200-L4: layout de paneles con scope sobre las tres superficies
+	 * principales (`left_sidebar` / `main_leaf` / `right_sidebar`).
+	 * Solo API publica (`activeLeaf`, `rootSplit`/`leftSplit`/`rightSplit`,
+	 * `parent`, `getContainer`); `children` se lee por cast con chequeo de
+	 * forma (interno NO documentado, fragil ante versiones): cualquier
+	 * anomalia devuelve grupos vacios y el runner informa el bloqueador
+	 * preciso en vez de lanzar hacia el toolbar.
 	 */
-	private orderedMainTabGroups(): { ids: string[]; activeId: string | null } {
-		const ids: string[] = [];
-		let activeId: string | null = null;
-		const activeParent = this.app.workspace.activeLeaf?.parent ?? null;
+	private scopedChildrenOf(node: unknown): unknown[] | null {
+		const children = (node as { children?: unknown }).children;
+		return Array.isArray(children) ? children : null;
+	}
+
+	private isLeafLikeNode(node: unknown): node is WorkspaceLeaf {
+		return (
+			typeof (node as { getViewState?: unknown }).getViewState === 'function'
+		);
+	}
+
+	private tabGroupNodes(root: unknown): unknown[] {
+		const out: unknown[] = [];
 		const visit = (node: unknown): void => {
-			if (node instanceof WorkspaceTabs) {
-				const id = `group:${ids.length}`;
-				ids.push(id);
-				if (node === activeParent) activeId = id;
+			const children = this.scopedChildrenOf(node);
+			if (!children) return;
+			if (children.length > 0 && this.isLeafLikeNode(children[0])) {
+				out.push(node);
 				return;
-			}
-			const children = (node as { children?: unknown }).children;
-			if (!Array.isArray(children)) {
-				throw new Error('U200-L2: unexpected workspace shape');
 			}
 			for (const child of children) visit(child);
 		};
-		visit(this.app.workspace.rootSplit);
-		return { ids, activeId };
+		visit(root);
+		return out;
 	}
 
-	private activeLeafIsPopout(): boolean {
-		const activeLeaf = this.app.workspace.activeLeaf;
-		if (!activeLeaf) return false;
-		return !(activeLeaf.getContainer() instanceof WorkspaceRoot);
+	private scopedPanelLayout(): {
+		groups: ScopedGroupSnapshot[];
+		leaves: Map<string, WorkspaceLeaf>;
+		parents: Map<string, unknown>;
+	} {
+		const leaves = new Map<string, WorkspaceLeaf>();
+		const parents = new Map<string, unknown>();
+		const groups: ScopedGroupSnapshot[] = [];
+		const surfaces = [
+			{ surface: 'left_sidebar', root: this.app.workspace.leftSplit },
+			{ surface: 'main_leaf', root: this.app.workspace.rootSplit },
+			{ surface: 'right_sidebar', root: this.app.workspace.rightSplit },
+		] as const;
+		for (const { surface, root } of surfaces) {
+			let counter = 0;
+			for (const groupNode of this.tabGroupNodes(root)) {
+				const children = this.scopedChildrenOf(groupNode) ?? [];
+				const id = `${surface}:${counter++}`;
+				const leafKeys: string[] = [];
+				children.forEach((child, leafIndex) => {
+					if (!this.isLeafLikeNode(child)) return;
+					const key = `${id}:${leafIndex}`;
+					leafKeys.push(key);
+					leaves.set(key, child);
+				});
+				parents.set(id, groupNode);
+				groups.push({ id, surface, leafKeys });
+			}
+		}
+		return { groups, leaves, parents };
 	}
 
-	private tabMoveSnapshot(): TabMoveLayoutSnapshot {
-		const groups = this.orderedMainTabGroups();
-		return {
-			groupIds: groups.ids,
-			activeGroupId: groups.activeId,
-			hasActiveLeaf: this.app.workspace.activeLeaf !== null,
-			isPopout: this.activeLeafIsPopout(),
-		};
+	private leafKeyForLeaf(
+		leaves: ReadonlyMap<string, WorkspaceLeaf>,
+		leaf: WorkspaceLeaf | null,
+	): string | null {
+		if (!leaf) return null;
+		for (const [key, candidate] of leaves) {
+			if (candidate === leaf) return key;
+		}
+		return null;
 	}
 
-	private groupMoveSnapshot(): GroupMoveLayoutSnapshot {
-		const groups = this.orderedMainTabGroups();
-		return {
-			groupIds: groups.ids,
-			activeGroupId: groups.activeId,
-			isPopout: this.activeLeafIsPopout(),
-		};
+	private scopeForPanelAction(actionId: string): string {
+		return (
+			this.settings.sasiCommandCustomScopes?.[actionId] ??
+			SCOPED_PANEL_DEFAULT_SCOPE
+		);
 	}
 
-	private runTabMoveCommand(
-		direction: TabMoveDirection,
+	private activeLeafIsPopout(leaf: WorkspaceLeaf | null): boolean {
+		if (!leaf) return false;
+		return !(leaf.getContainer() instanceof WorkspaceRoot);
+	}
+
+	private runPanelMoveCommand(
+		variation: ScopedMoveVariation,
 		checking: boolean,
 	): boolean {
 		try {
-			const resolution = resolveTabMoveTarget(
-				this.tabMoveSnapshot(),
-				direction,
+			const actionId = ACTION_ID_FOR_VARIATION[variation];
+			const layout = this.scopedPanelLayout();
+			const focus = resolveScopedFocus(
+				{ groups: layout.groups },
+				this.scopeForPanelAction(actionId),
+				this.leafKeyForLeaf(layout.leaves, this.lastFocusedPanelLeaf),
+				this.leafKeyForLeaf(layout.leaves, this.app.workspace.activeLeaf),
 			);
-			if (!resolution.ok) {
+			if (!focus.ok) {
 				if (!checking) {
-					new Notice(translate(guardMessageKey(resolution.reason)));
+					new Notice(translate(scopedMoveGuardMessageKey(focus.reason)));
+				}
+				return false;
+			}
+			const leaf = layout.leaves.get(focus.key) ?? null;
+			const plan = planScopedMove(
+				{
+					groups: layout.groups,
+					focusedKey: focus.key,
+					isPopout: this.activeLeafIsPopout(leaf),
+				},
+				variation,
+			);
+			if (!plan.ok) {
+				if (!checking) {
+					new Notice(translate(scopedMoveGuardMessageKey(plan.reason)));
 				}
 				return false;
 			}
 			if (checking) return true;
-			// Esqueleto: el guarda pasa pero el movimiento interno que muta el
-			// workspace esta diferido (sin API publica de grid). No-op honesto.
-			new Notice(translate('sasi.move.tab_group.coming_soon'));
+			void this.executeScopedMovePlan(layout, plan.move);
 			return true;
 		} catch {
 			if (!checking) {
@@ -1115,57 +1191,477 @@ export class VaultmanPlugin extends Plugin {
 		}
 	}
 
-	private runGroupMoveCommand(
-		direction: GroupMoveDirection,
-		checking: boolean,
-	): boolean {
+	private async executeScopedMovePlan(
+		layout: {
+			leaves: Map<string, WorkspaceLeaf>;
+			parents: Map<string, unknown>;
+		},
+		move: ScopedLeafPlan | ScopedSplitPlan | ScopedGroupSwapPlan,
+	): Promise<void> {
 		try {
-			const resolution = resolveGroupMoveTarget(
-				this.groupMoveSnapshot(),
-				direction,
-			);
-			if (!resolution.ok) {
-				if (!checking) {
-					new Notice(translate(guardMessageKey(resolution.reason)));
-				}
-				return false;
-			}
-			if (checking) return true;
-			// Esqueleto: igual que runTabMoveCommand, movimiento diferido.
-			new Notice(translate('sasi.move.tab_group.coming_soon'));
-			return true;
+			await this.doExecuteScopedMovePlan(layout, move);
 		} catch {
-			if (!checking) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+		}
+	}
+
+	private async doExecuteScopedMovePlan(
+		layout: {
+			leaves: Map<string, WorkspaceLeaf>;
+			parents: Map<string, unknown>;
+		},
+		move: ScopedLeafPlan | ScopedSplitPlan | ScopedGroupSwapPlan,
+	): Promise<void> {
+		if (move.kind === 'group-swap') {
+			const activeParent = layout.parents.get(move.activeGroupId);
+			const neighborParent = layout.parents.get(move.neighborGroupId);
+			const focusedLeaf = layout.leaves.get(move.leafKey) ?? null;
+			if (!activeParent || !neighborParent || !focusedLeaf) {
 				new Notice(translate('sasi.move.tab.unknown_target'));
+				return;
 			}
+			await this.executeGroupSwap(activeParent, neighborParent, focusedLeaf);
+			return;
+		}
+		const leaf = layout.leaves.get(move.leafKey);
+		if (!leaf) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		if (move.kind === 'leaf-split') {
+			await this.executeSplitMove(leaf, move.direction, move.before);
+			return;
+		}
+		const targetParent = layout.parents.get(move.toGroupId);
+		if (!targetParent) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		const sameGroup = move.fromGroupId === move.toGroupId;
+		const fromIndex = this.leafIndexInParent(layout, move);
+		const insertAt =
+			sameGroup && fromIndex >= 0
+				? adjustedInsertIndex(fromIndex, move.toIndex)
+				: move.toIndex;
+		const fresh = await this.transplantLeafState(leaf, targetParent, insertAt);
+		if (!fresh) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+		}
+	}
+
+	private leafIndexInParent(
+		layout: { leaves: Map<string, WorkspaceLeaf> },
+		move: ScopedLeafPlan,
+	): number {
+		const leaf = layout.leaves.get(move.leafKey);
+		if (!leaf) return -1;
+		const siblings = this.scopedChildrenOf(
+			(leaf as { parent?: unknown }).parent,
+		);
+		if (!siblings) return -1;
+		return siblings.indexOf(leaf);
+	}
+
+	private readLeafState(leaf: WorkspaceLeaf): {
+		type: string;
+		state?: Record<string, unknown>;
+		pinned?: boolean;
+		ephemeral?: unknown;
+	} | null {
+		try {
+			const viewState = leaf.getViewState() as {
+				type: string;
+				state?: Record<string, unknown>;
+				pinned?: boolean;
+			};
+			let ephemeral: unknown;
+			try {
+				ephemeral = leaf.getEphemeralState();
+			} catch {
+				ephemeral = undefined;
+			}
+			return { ...viewState, ephemeral };
+		} catch {
+			return null;
+		}
+	}
+
+	private async placeLeafState(
+		target: WorkspaceLeaf,
+		saved: { type: string; state?: Record<string, unknown>; pinned?: boolean; ephemeral?: unknown },
+	): Promise<boolean> {
+		try {
+			await target.setViewState({
+				type: saved.type,
+				state: saved.state,
+				active: true,
+				pinned: saved.pinned,
+			});
+		} catch {
 			return false;
 		}
+		if (saved.ephemeral !== undefined) {
+			try {
+				target.setEphemeralState(saved.ephemeral);
+			} catch {
+				// Best effort: el estado efimero (scroll, cursor) no es critico.
+			}
+		}
+		this.syncVaultmanMountForLeaf(target);
+		return true;
+	}
+
+	/**
+	 * U200-L4: libera el claim de instancia ANTES de trasplantar. El
+	 * re-anclaje (`VaultmanFrame.setState` -> `attachExactInstance` ->
+	 * `adopt`) choca con `instance-owned` si la hoja vieja aun reserva el id;
+	 * liberarlo primero deja que el `setViewState` de la hoja nueva adopte
+	 * limpio. El `onClose` posterior de la vieja es un no-op por token.
+	 * Devuelve el id ligado, si lo habia.
+	 */
+	private freeInstanceClaim(oldLeaf: WorkspaceLeaf): string | null {
+		let instanceId: string | null = null;
+		try {
+			const state = oldLeaf.getViewState().state as
+				| { workspaceInstanceId?: unknown }
+				| undefined;
+			if (typeof state?.workspaceInstanceId === 'string') {
+				instanceId = state.workspaceInstanceId;
+			}
+		} catch {
+			return null;
+		}
+		if (!instanceId) return null;
+		const lease = this.workspaceMountForLeaf(oldLeaf);
+		if (lease && lease.instanceId === instanceId) {
+			this.releaseWorkspaceMount(lease);
+		}
+		return instanceId;
+	}
+
+	private async transplantLeafState(
+		oldLeaf: WorkspaceLeaf,
+		targetParent: unknown,
+		index: number,
+	): Promise<WorkspaceLeaf | null> {
+		const saved = this.readLeafState(oldLeaf);
+		if (!saved) return null;
+		const expectedInstanceId = this.freeInstanceClaim(oldLeaf);
+		let fresh: WorkspaceLeaf;
+		try {
+			fresh = this.app.workspace.createLeafInParent(
+				targetParent as WorkspaceSplit,
+				index,
+			);
+		} catch {
+			return null;
+		}
+		if (!(await this.placeLeafState(fresh, saved))) {
+			try {
+				fresh.detach();
+			} catch {
+				// Best effort: la hoja fresca quedo inutilizable.
+			}
+			return null;
+		}
+		if (!this.verifyInstanceAnchor(fresh, expectedInstanceId)) {
+			try {
+				fresh.detach();
+			} catch {
+				// Best effort.
+			}
+			new Notice(translate(apiSceneInstanceFailureNoticeKey('mount-conflict')));
+			return null;
+		}
+		oldLeaf.detach();
+		await this.app.workspace.revealLeaf(fresh);
+		this.app.workspace.setActiveLeaf(fresh, { focus: true });
+		this.lastFocusedPanelLeaf = fresh;
+		return fresh;
+	}
+
+	private verifyInstanceAnchor(
+		fresh: WorkspaceLeaf,
+		expectedInstanceId: string | null,
+	): boolean {
+		if (!expectedInstanceId) return true;
+		try {
+			const state = fresh.getViewState().state as
+				| { workspaceInstanceId?: unknown }
+				| undefined;
+			return state?.workspaceInstanceId === expectedInstanceId;
+		} catch {
+			return false;
+		}
+	}
+
+	private async executeSplitMove(
+		leaf: WorkspaceLeaf,
+		direction: 'vertical' | 'horizontal',
+		before: boolean,
+	): Promise<void> {
+		const saved = this.readLeafState(leaf);
+		if (!saved) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		const expectedInstanceId = this.freeInstanceClaim(leaf);
+		let splitLeaf: WorkspaceLeaf;
+		try {
+			splitLeaf = this.app.workspace.createLeafBySplit(leaf, direction, before);
+		} catch {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		if (!(await this.placeLeafState(splitLeaf, saved))) {
+			try {
+				splitLeaf.detach();
+			} catch {
+				// Best effort.
+			}
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		if (!this.verifyInstanceAnchor(splitLeaf, expectedInstanceId)) {
+			try {
+				splitLeaf.detach();
+			} catch {
+				// Best effort.
+			}
+			new Notice(translate(apiSceneInstanceFailureNoticeKey('mount-conflict')));
+			return;
+		}
+		leaf.detach();
+		await this.app.workspace.revealLeaf(splitLeaf);
+		this.app.workspace.setActiveLeaf(splitLeaf, { focus: true });
+		this.lastFocusedPanelLeaf = splitLeaf;
+	}
+
+	private async executeGroupSwap(
+		activeParent: unknown,
+		neighborParent: unknown,
+		focusedLeaf: WorkspaceLeaf,
+	): Promise<void> {
+		const activeKids = (this.scopedChildrenOf(activeParent) ?? []).filter(
+			(child): child is WorkspaceLeaf => this.isLeafLikeNode(child),
+		);
+		const neighborKids = (this.scopedChildrenOf(neighborParent) ?? []).filter(
+			(child): child is WorkspaceLeaf => this.isLeafLikeNode(child),
+		);
+		const statesActive = activeKids.map((leaf) => this.readLeafState(leaf));
+		const statesNeighbor = neighborKids.map((leaf) => this.readLeafState(leaf));
+		if (statesActive.includes(null) || statesNeighbor.includes(null)) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		const savedActive = statesActive as NonNullable<(typeof statesActive)[number]>[];
+		const savedNeighbor = statesNeighbor as NonNullable<(typeof statesNeighbor)[number]>[];
+		// Los ids que se intercambian deben liberarse ANTES de escribir:
+		// cada `setViewState` re-ancla via `adopt` y chocaria con el claim
+		// vivo del otro lado (`instance-owned`).
+		for (const kid of [...activeKids, ...neighborKids]) {
+			this.freeInstanceClaim(kid);
+		}
+		try {
+			while (activeKids.length < savedNeighbor.length) {
+				activeKids.push(
+					this.app.workspace.createLeafInParent(
+						activeParent as WorkspaceSplit,
+						activeKids.length,
+					),
+				);
+			}
+			while (neighborKids.length < savedActive.length) {
+				neighborKids.push(
+					this.app.workspace.createLeafInParent(
+						neighborParent as WorkspaceSplit,
+						neighborKids.length,
+					),
+				);
+			}
+		} catch {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		// El foco sigue al estado de la hoja enfocada, que aterriza en el
+		// vecino en su mismo indice.
+		const focusedIndex = activeKids.indexOf(focusedLeaf);
+		let focusTarget: WorkspaceLeaf | null = null;
+		const writeSide = async (
+			kids: WorkspaceLeaf[],
+			states: typeof savedActive,
+		): Promise<boolean> => {
+			for (let i = 0; i < kids.length; i++) {
+				if (i < states.length) {
+					if (!(await this.placeLeafState(kids[i], states[i]))) return false;
+				} else {
+					const stale = this.workspaceMountForLeaf(kids[i]);
+					if (stale) this.releaseWorkspaceMount(stale);
+					kids[i].detach();
+				}
+			}
+			return true;
+		};
+		const okActive = await writeSide(activeKids, savedNeighbor);
+		const okNeighbor = await writeSide(neighborKids, savedActive);
+		if (!okActive || !okNeighbor) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		if (focusedIndex >= 0 && focusedIndex < neighborKids.length) {
+			focusTarget = neighborKids[focusedIndex];
+		}
+		if (focusTarget) {
+			await this.app.workspace.revealLeaf(focusTarget);
+			this.app.workspace.setActiveLeaf(focusTarget, { focus: true });
+			this.lastFocusedPanelLeaf = focusTarget;
+		}
+	}
+
+	/**
+	 * Reenlaza el mount de una instancia Vaultman trasplantada: la hoja nueva
+	 * adopta la identidad y la vieja libera su reserva. Las hojas no-Vaultman
+	 * liberan cualquier reserva rancia que las sobreescriba.
+	 */
+	private syncVaultmanMountForLeaf(leaf: WorkspaceLeaf): void {
+		let instanceId: string | undefined;
+		try {
+			const state = leaf.getViewState().state as
+				| { workspaceInstanceId?: unknown }
+				| undefined;
+			if (typeof state?.workspaceInstanceId === 'string') {
+				instanceId = state.workspaceInstanceId;
+			}
+		} catch {
+			instanceId = undefined;
+		}
+		const staleByLeaf = this.workspaceMountForLeaf(leaf);
+		if (!instanceId) {
+			if (staleByLeaf) this.releaseWorkspaceMount(staleByLeaf);
+			return;
+		}
+		const current = this.instanceMounts.get(instanceId);
+		if (current && current.address.leaf !== leaf) {
+			this.releaseWorkspaceMount(current);
+		}
+		if (this.workspaceMountForLeaf(leaf)?.instanceId !== instanceId) {
+			this.adoptWorkspaceMount(instanceId, leaf);
+		}
+		this.lastFocusedFrameLeaf = leaf;
+	}
+
+	private surfaceRootForLeaf(leaf: WorkspaceLeaf): WorkspaceSplit | null {
+		const roots = [
+			this.app.workspace.leftSplit,
+			this.app.workspace.rootSplit,
+			this.app.workspace.rightSplit,
+		];
+		let node = leaf.parent as unknown as { parent?: unknown } | null;
+		while (node) {
+			for (const root of roots) {
+				if (node === (root as unknown)) return root as unknown as WorkspaceSplit;
+			}
+			node = (node as { parent?: unknown })?.parent as typeof node;
+		}
+		return null;
+	}
+
+	private clearPanelMaximize(): void {
+		const current = this.maximizedPanelLeaf;
+		this.maximizedPanelLeaf = null;
+		this.maximizedSurfaceEl?.removeAttribute(MAXIMIZE_SURFACE_ATTR);
+		this.maximizedSurfaceEl = null;
+		this.l2PanelMaximized = false;
+		activeDocument.body.classList.remove(MAXIMIZE_BODY_CLASS);
+		if (!current) return;
+		try {
+			const tabsEl = (current.parent as unknown as { containerEl?: HTMLElement })
+				?.containerEl;
+			tabsEl?.removeAttribute(MAXIMIZE_TABS_ATTR);
+			current.view.containerEl
+				.closest('.workspace-leaf')
+			?.removeAttribute(MAXIMIZE_LEAF_ATTR);
+		} catch {
+			// Best effort: el DOM ya pudo desaparecer con la hoja.
+		}
+	}
+
+	private applyPanelMaximize(leaf: WorkspaceLeaf): boolean {
+		this.clearPanelMaximize();
+		try {
+			const tabsEl = (leaf.parent as unknown as { containerEl?: HTMLElement })
+				?.containerEl;
+			const leafEl = leaf.view.containerEl.closest('.workspace-leaf');
+			const surfaceRoot = this.surfaceRootForLeaf(leaf);
+			const surfaceEl = (
+				surfaceRoot as unknown as { containerEl?: HTMLElement }
+			)?.containerEl;
+			if (!tabsEl || !leafEl || !surfaceEl) return false;
+			tabsEl.setAttribute(MAXIMIZE_TABS_ATTR, '');
+			leafEl.setAttribute(MAXIMIZE_LEAF_ATTR, '');
+			surfaceEl.setAttribute(MAXIMIZE_SURFACE_ATTR, '');
+			this.maximizedSurfaceEl = surfaceEl;
+		} catch {
+			return false;
+		}
+		this.maximizedPanelLeaf = leaf;
+		this.l2PanelMaximized = nextMaximizedState(false);
+		activeDocument.body.classList.toggle(
+			MAXIMIZE_BODY_CLASS,
+			this.l2PanelMaximized,
+		);
+		return true;
 	}
 
 	private runToggleMaximizeCommand(checking: boolean): boolean {
 		try {
-			const leaves = this.app.workspace.getLeavesOfType(
-				VAULTMAN_FRAME_TYPE,
+			const layout = this.scopedPanelLayout();
+			const focus = resolveScopedFocus(
+				{ groups: layout.groups },
+				this.scopeForPanelAction(TOGGLE_MAXIMIZE_ID),
+				this.leafKeyForLeaf(layout.leaves, this.lastFocusedPanelLeaf),
+				this.leafKeyForLeaf(layout.leaves, this.app.workspace.activeLeaf),
 			);
-			const resolution = resolveToggleMaximize({
-				hasVaultmanLeaf: leaves.length > 0,
+			if (!focus.ok) {
+				if (!checking) {
+					new Notice(translate(scopedMoveGuardMessageKey(focus.reason)));
+				}
+				return false;
+			}
+			const leaf = layout.leaves.get(focus.key) ?? null;
+			const surface = leaf
+				? surfaceOfLeaf(leaf, {
+						left: this.app.workspace.leftSplit,
+						main: this.app.workspace.rootSplit,
+						right: this.app.workspace.rightSplit,
+					})
+				: 'unknown';
+			const groupCount =
+				surface === 'unknown'
+					? 0
+					: layout.groups.filter((group) => group.surface === surface).length;
+			const resolution = resolveScopedMaximize({
+				focusedKey: focus.key,
+				groupCount,
+				isPopout: this.activeLeafIsPopout(leaf),
 			});
 			if (!resolution.ok) {
 				if (!checking) {
-					new Notice(translate(maximizeGuardMessageKey()));
+					new Notice(translate(scopedMaximizeGuardMessageKey(resolution.reason)));
 				}
 				return false;
 			}
 			if (checking) return true;
-			this.l2PanelMaximized = nextMaximizedState(this.l2PanelMaximized);
-			activeDocument.body.classList.toggle(
-				MAXIMIZE_BODY_CLASS,
-				this.l2PanelMaximized,
-			);
-			return true;
+			if (this.maximizedPanelLeaf === leaf) {
+				this.clearPanelMaximize();
+				return true;
+			}
+			if (leaf && this.applyPanelMaximize(leaf)) return true;
+			new Notice(translate('sasi.toolbar.maximize_no_target'));
+			return false;
 		} catch {
 			if (!checking) {
-				new Notice(translate(maximizeGuardMessageKey()));
+				new Notice(translate('sasi.toolbar.maximize_no_target'));
 			}
 			return false;
 		}

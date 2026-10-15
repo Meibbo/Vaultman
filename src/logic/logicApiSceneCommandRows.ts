@@ -1,4 +1,4 @@
-import type { SasiDef } from './logicSasiRegistry';
+import type { SasiCompatibility, SasiDef } from './logicSasiRegistry';
 import {
 	apiSceneUrnFor,
 	type ApiSceneNodeMeta,
@@ -31,6 +31,7 @@ interface CommandNodeSpec {
 	groupKind: 'command.vaultman' | 'command.custom';
 	supports: readonly string[];
 	composes: readonly string[];
+	compatibility?: SasiCompatibility;
 	icon?: string;
 	depth?: number;
 }
@@ -102,6 +103,26 @@ const COMMAND_SCOPE_MAP: Record<string, string> = {
 	'open-updates': 'workspace:all',
 	'focus-content-search': 'workspace:last_focused',
 	'focus-active-explorer-search': 'workspace:last_focused',
+	// U200-L4: scoped panel moves + maximize. Mismo default que los colegas
+	// (`workspace:last_focused`); el usuario lo edita por comando y el cambio
+	// decide que objetos se ven afectados (ver `resolveScopedFocus`).
+	'vaultman.move.tabLeftInGroup': 'workspace:last_focused',
+	'vaultman.move.tabRightInGroup': 'workspace:last_focused',
+	'vaultman.move.tabToStartOfGroup': 'workspace:last_focused',
+	'vaultman.move.tabToEndOfGroup': 'workspace:last_focused',
+	'vaultman.move.tabToPreviousGroup': 'workspace:last_focused',
+	'vaultman.move.tabToNextGroup': 'workspace:last_focused',
+	'vaultman.move.tabToFirstGroup': 'workspace:last_focused',
+	'vaultman.move.tabToLastGroup': 'workspace:last_focused',
+	'vaultman.move.tabToLeftGroup': 'workspace:last_focused',
+	'vaultman.move.tabToRightGroup': 'workspace:last_focused',
+	'vaultman.move.tabToAboveGroup': 'workspace:last_focused',
+	'vaultman.move.tabToBelowGroup': 'workspace:last_focused',
+	'vaultman.move.groupLeft': 'workspace:last_focused',
+	'vaultman.move.groupRight': 'workspace:last_focused',
+	'vaultman.move.groupUp': 'workspace:last_focused',
+	'vaultman.move.groupDown': 'workspace:last_focused',
+	'vaultman.toolbar.toggleMaximize': 'workspace:last_focused',
 	'sasi.hover.left-sidebar.hover': 'surface:left-sidebar',
 	'sasi.hover.left-sidebar.pin': 'surface:left-sidebar',
 	'sasi.hover.left-sidebar.hide': 'surface:left-sidebar',
@@ -397,6 +418,7 @@ function buildCompoundCommandNode(
 			sasiKind: 'command',
 			supports: spec.supports,
 			composes: spec.composes,
+			...(spec.compatibility ? { compatibility: spec.compatibility } : {}),
 			mutatesVault: false,
 			typeText:
 				spec.groupKind === 'command.vaultman'
@@ -528,6 +550,7 @@ export function appendApiSceneCommandNodes({
 				groupKind: 'command.vaultman',
 				supports: def.supports.map((support) => support.surface),
 				composes: def.composes ?? [],
+				...(def.compatibility ? { compatibility: def.compatibility } : {}),
 				...(def.icon ? { icon: def.icon } : {}),
 				depth: 2,
 			}),

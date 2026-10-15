@@ -1,4 +1,8 @@
-import type { SasiCatalogKind, SasiFunctionKind } from './logicSasiRegistry';
+import type {
+	SasiCatalogKind,
+	SasiCompatibility,
+	SasiFunctionKind,
+} from './logicSasiRegistry';
 import {
 	PUBLISH_CELL_ID,
 	apiSceneIdentityKindFor,
@@ -22,6 +26,7 @@ export interface ApiSceneLeafSpec {
 	supports: readonly string[];
 	composes: readonly string[];
 	scope?: string;
+	compatibility?: SasiCompatibility;
 	mutatesVault: boolean;
 	activeScene?: string;
 	tombstoned?: boolean;
@@ -93,6 +98,7 @@ export function toApiSceneNode({
 			supports: spec.supports,
 			composes: spec.composes,
 			...(spec.scope ? { scope: spec.scope } : {}),
+			...(spec.compatibility ? { compatibility: spec.compatibility } : {}),
 			mutatesVault: spec.mutatesVault,
 			publishable,
 			published,

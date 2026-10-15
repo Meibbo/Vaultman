@@ -1,0 +1,26 @@
+/* === U200-L4 scoped panel maximize — reversible overlay, no layout destruction ===
+ * `main.ts` sets `data-vaultman-maxsurface` on the surface root container of
+ * the focused leaf plus `data-vaultman-maxpanel(-leaf)` on its tab group and
+ * leaf; clearing all three restores the layout untouched. The surface anchor
+ * is required because CSS cannot reach preceding groups from the active one,
+ * but can hide every non-maximized leaf from their common root. Only the
+ * focused leaf's own surface is affected, matching the catalog compatibility.
+ * Single-group and popout layouts never reach this CSS: they are explicit
+ * documented no-ops with their own guard reason. */
+.workspace-split[data-vaultman-maxsurface]
+  .workspace-tab-header-container {
+  display: none;
+}
+
+.workspace-split[data-vaultman-maxsurface]
+  .workspace-tab-container
+  > .workspace-leaf:not([data-vaultman-maxpanel-leaf]) {
+  display: none;
+}
+
+.workspace-split[data-vaultman-maxsurface]
+  .workspace-tab-container
+  > .workspace-leaf[data-vaultman-maxpanel-leaf] {
+  display: flex;
+  flex: 1 1 auto;
+}

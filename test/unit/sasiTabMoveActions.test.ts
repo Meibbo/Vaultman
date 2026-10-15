@@ -42,7 +42,6 @@ const NEW_I18N_KEYS = [
 	'sasi.move.tab.ambiguous_target',
 	'sasi.move.tab.single_group',
 	'sasi.move.tab.popout_unsupported',
-	'sasi.move.tab_group.coming_soon',
 	'sasi.toolbar.toggle_maximize',
 	'sasi.toolbar.maximize_no_target',
 ];
@@ -278,7 +277,7 @@ describe('U200-L2 descriptores y paleta via publisher', () => {
 			'Move active tab to next group',
 			'Move active tab group left',
 			'Move active tab group right',
-			'Toggle Vaultman panel maximize',
+			'Toggle focused panel maximize',
 		]);
 		// Checkable por aridad (handler.length >= 1): el bridge los publica
 		// con checkCallback, como el resto de comandos con guarda.
@@ -318,7 +317,7 @@ describe('U200-L2 descriptores y paleta via publisher', () => {
 		for (const id of ALL_IDS) expect(publisher.isPublishable(id)).toBe(true);
 		publisher.setPublished(TOGGLE_MAXIMIZE_ID, true);
 		expect(added.get(TOGGLE_MAXIMIZE_ID)?.name).toBe(
-			'Toggle Vaultman panel maximize',
+			'Toggle focused panel maximize',
 		);
 		// Execute path llega al runner con checking=false y devuelve true.
 		const result = added.get(TOGGLE_MAXIMIZE_ID)?.checkCallback?.(false);
@@ -333,16 +332,19 @@ describe('U200-L2 cableado en main.ts (presencia + no-regresion)', () => {
 	const mainSrc = () =>
 		readFileSync(new URL('../../src/main.ts', import.meta.url), 'utf8');
 
-	it('registra la fabrica y los tres runners con guarda Notice+false', () => {
+	it('registra la fabrica y los runners con guarda Notice+false (L4: sin esqueletos)', () => {
 		const src = mainSrc();
-		expect(src).toContain('createTabMoveCommandDescriptors');
-		expect(src).toContain('runTabMoveCommand');
-		expect(src).toContain('runGroupMoveCommand');
+		expect(src).toContain('createScopedPanelCommandDescriptors');
+		expect(src).toContain('runPanelMoveCommand');
 		expect(src).toContain('runToggleMaximizeCommand');
-		expect(src).toContain('orderedMainTabGroups');
-		expect(src).toContain('new Notice(translate(guardMessageKey');
+		expect(src).toContain('scopedPanelLayout');
+		expect(src).toContain('planScopedMove');
+		expect(src).toContain('new Notice(translate(scopedMoveGuardMessageKey');
 		expect(src).toContain('MAXIMIZE_BODY_CLASS');
-		expect(src).toContain("translate('sasi.move.tab_group.coming_soon')");
+		// L4: cero avisos placeholder en la ruta move/maximize.
+		expect(src).not.toContain('coming_soon');
+		expect(src).not.toContain('coming soon');
+		expect(src).not.toContain('follow-up');
 	});
 
 	it('los flujos move/split existentes siguen intactos', () => {

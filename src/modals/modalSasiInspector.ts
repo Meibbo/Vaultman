@@ -2,6 +2,7 @@ import { Modal, Notice, type App } from 'obsidian';
 import { translate } from '../i18n/index';
 import type {
 	SasiAxis,
+	SasiCompatibility,
 	SasiFunctionKind,
 	SasiRegistry,
 } from '../logic/logicSasiRegistry';
@@ -30,6 +31,7 @@ export interface SasiInspectorEntry {
 	composes: readonly string[];
 	published: boolean;
 	scope?: string;
+	compatibility?: SasiCompatibility;
 }
 
 export interface SasiInspectorSection {
@@ -70,6 +72,7 @@ export function buildSasiInspectorModel(
 			composes: def.composes ?? [],
 			published: publisher?.isPublished(def.id) ?? false,
 			...(def.scope ? { scope: def.scope } : {}),
+			...(def.compatibility ? { compatibility: def.compatibility } : {}),
 		})),
 	}));
 }

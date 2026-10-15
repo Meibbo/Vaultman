@@ -53,6 +53,18 @@ export interface SasiSupport {
 	context?: 'settingScene.toolbar' | 'node_plugin.cmenu' | 'node_group.cmenu';
 }
 
+/**
+ * U200-L4: valor de compatibilidad por accion. Fuente unica de los limites de
+ * cada accion (superficies soportadas, alcances, que queda explicitamente
+ * fuera de rango). Se renderiza donde el catalogo ya muestra limites
+ * (entrada del inspector + meta de nodos ApiScene).
+ */
+export interface SasiCompatibility {
+	surfaces: readonly string[];
+	scopes: readonly string[];
+	outOfRange: readonly string[];
+}
+
 export interface SasiDef {
 	/** Authoritative implementation dates, when maintained explicitly by the owner. */
 	lifecycle?: import('./logicSasiLifecycle').SasiLifecycle;
@@ -77,6 +89,8 @@ export interface SasiDef {
 	composes?: readonly string[];
 	/** Ambito/scope operacional de la accion o comando (ej. 'this.scene -> {scope_depth}'). */
 	scope?: string;
+	/** U200-L4: limites de la accion (superficies, alcances, fuera de rango). */
+	compatibility?: SasiCompatibility;
 }
 
 export interface SasiResolved {
