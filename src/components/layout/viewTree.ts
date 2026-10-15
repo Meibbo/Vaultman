@@ -2548,8 +2548,7 @@ export class UnifiedTreeView {
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const showTags = visibleCells ? visibleCells.has('tags') : false;
 		const nodeCells = (node.cells ?? []).filter(
-			(cell) =>
-				!visibleCells || visibleCells.has(cell.id) || cell.id === 'cell_update',
+			(cell) => !visibleCells || visibleCells.has(cell.id),
 		);
 
 		const row =
