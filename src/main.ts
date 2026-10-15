@@ -22,7 +22,7 @@
 //--------------------------------------------------------------------\\
 
 //...----------—————————————(   IMPORTS   )————————————------------...\\
-import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Menu, Notice, Plugin, TFile, WorkspaceLeaf, WorkspaceRoot, WorkspaceTabs } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import type { ExplorerViewMode } from './types/typeUI';
 import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
@@ -152,6 +152,20 @@ import {
 	TOOLBAR_SORT_MENU_ID,
 } from './logic/logicSasiToolbarActions';
 import {
+	createTabMoveCommandDescriptors,
+	guardMessageKey,
+	maximizeGuardMessageKey,
+	nextMaximizedState,
+	resolveGroupMoveTarget,
+	resolveTabMoveTarget,
+	resolveToggleMaximize,
+	MAXIMIZE_BODY_CLASS,
+	type GroupMoveDirection,
+	type GroupMoveLayoutSnapshot,
+	type TabMoveDirection,
+	type TabMoveLayoutSnapshot,
+} from './logic/logicSasiTabMoveActions';
+import {
 	SEARCH_CREATE_TARGET_ID,
 	SEARCH_CYCLE_CATEGORY_ID,
 } from './logic/logicSasiSearchActions';
@@ -208,6 +222,8 @@ export class VaultmanPlugin extends Plugin {
 	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();
 	private lastFocusedFrameLeaf: WorkspaceLeaf | null = null;
+	/** U200-L2: reversible maximize flag (additive body class, no visual rule v1). */
+	private l2PanelMaximized = false;
 
 	// Core services — public so components/modals can access them
 	/** Public additive cell contributions; registrations return an unload disposer. */
@@ -679,6 +695,20 @@ export class VaultmanPlugin extends Plugin {
 				},
 			});
 		}
+		// U200-L2: tab/group moves + panel maximize skeletons. Born hidden
+		// (not in SASI_PUBLISHED_DEFAULT_TRUE): the user publishes them from
+		// the SASI inspector. Handlers are checkable: `checking` answers the
+		// guard silently, execute Notices + false on guard failure.
+		for (const descriptor of createTabMoveCommandDescriptors(translate, {
+			runTabMove: (direction, checking) =>
+				this.runTabMoveCommand(direction, checking),
+			runGroupMove: (direction, checking) =>
+				this.runGroupMoveCommand(direction, checking),
+			runToggleMaximize: (checking) =>
+				this.runToggleMaximizeCommand(checking),
+		})) {
+			this.sasiCommandPublisher.register(descriptor);
+		}
 		for (const id of ['check_plugin_updates', 'update_all_plugins'] as const) {
 			this.sasiCommandPublisher.register({
 				id,
@@ -1003,6 +1033,142 @@ export class VaultmanPlugin extends Plugin {
 	private async invokeIslandSasiAction(actionId: string): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
 		if (view) await view.invokeIslandSasiAction?.(actionId);
+	}
+
+	/**
+	 * U200-L2: snapshots planos para los guardas tab/group. Solo API publica
+	 * (`activeLeaf`, `rootSplit`, `parent`, `getContainer`); `children` se lee
+	 * por cast con chequeo de forma: cualquier anomalia lanza hacia dentro y
+	 * el runner degrada a Notice + false. Nunca lanza hacia el toolbar.
+	 */
+	private orderedMainTabGroups(): { ids: string[]; activeId: string | null } {
+		const ids: string[] = [];
+		let activeId: string | null = null;
+		const activeParent = this.app.workspace.activeLeaf?.parent ?? null;
+		const visit = (node: unknown): void => {
+			if (node instanceof WorkspaceTabs) {
+				const id = `group:${ids.length}`;
+				ids.push(id);
+				if (node === activeParent) activeId = id;
+				return;
+			}
+			const children = (node as { children?: unknown }).children;
+			if (!Array.isArray(children)) {
+				throw new Error('U200-L2: unexpected workspace shape');
+			}
+			for (const child of children) visit(child);
+		};
+		visit(this.app.workspace.rootSplit);
+		return { ids, activeId };
+	}
+
+	private activeLeafIsPopout(): boolean {
+		const activeLeaf = this.app.workspace.activeLeaf;
+		if (!activeLeaf) return false;
+		return !(activeLeaf.getContainer() instanceof WorkspaceRoot);
+	}
+
+	private tabMoveSnapshot(): TabMoveLayoutSnapshot {
+		const groups = this.orderedMainTabGroups();
+		return {
+			groupIds: groups.ids,
+			activeGroupId: groups.activeId,
+			hasActiveLeaf: this.app.workspace.activeLeaf !== null,
+			isPopout: this.activeLeafIsPopout(),
+		};
+	}
+
+	private groupMoveSnapshot(): GroupMoveLayoutSnapshot {
+		const groups = this.orderedMainTabGroups();
+		return {
+			groupIds: groups.ids,
+			activeGroupId: groups.activeId,
+			isPopout: this.activeLeafIsPopout(),
+		};
+	}
+
+	private runTabMoveCommand(
+		direction: TabMoveDirection,
+		checking: boolean,
+	): boolean {
+		try {
+			const resolution = resolveTabMoveTarget(
+				this.tabMoveSnapshot(),
+				direction,
+			);
+			if (!resolution.ok) {
+				if (!checking) {
+					new Notice(translate(guardMessageKey(resolution.reason)));
+				}
+				return false;
+			}
+			if (checking) return true;
+			// Esqueleto: el guarda pasa pero el movimiento interno que muta el
+			// workspace esta diferido (sin API publica de grid). No-op honesto.
+			new Notice(translate('sasi.move.tab_group.coming_soon'));
+			return true;
+		} catch {
+			if (!checking) {
+				new Notice(translate('sasi.move.tab.unknown_target'));
+			}
+			return false;
+		}
+	}
+
+	private runGroupMoveCommand(
+		direction: GroupMoveDirection,
+		checking: boolean,
+	): boolean {
+		try {
+			const resolution = resolveGroupMoveTarget(
+				this.groupMoveSnapshot(),
+				direction,
+			);
+			if (!resolution.ok) {
+				if (!checking) {
+					new Notice(translate(guardMessageKey(resolution.reason)));
+				}
+				return false;
+			}
+			if (checking) return true;
+			// Esqueleto: igual que runTabMoveCommand, movimiento diferido.
+			new Notice(translate('sasi.move.tab_group.coming_soon'));
+			return true;
+		} catch {
+			if (!checking) {
+				new Notice(translate('sasi.move.tab.unknown_target'));
+			}
+			return false;
+		}
+	}
+
+	private runToggleMaximizeCommand(checking: boolean): boolean {
+		try {
+			const leaves = this.app.workspace.getLeavesOfType(
+				VAULTMAN_FRAME_TYPE,
+			);
+			const resolution = resolveToggleMaximize({
+				hasVaultmanLeaf: leaves.length > 0,
+			});
+			if (!resolution.ok) {
+				if (!checking) {
+					new Notice(translate(maximizeGuardMessageKey()));
+				}
+				return false;
+			}
+			if (checking) return true;
+			this.l2PanelMaximized = nextMaximizedState(this.l2PanelMaximized);
+			activeDocument.body.classList.toggle(
+				MAXIMIZE_BODY_CLASS,
+				this.l2PanelMaximized,
+			);
+			return true;
+		} catch {
+			if (!checking) {
+				new Notice(translate(maximizeGuardMessageKey()));
+			}
+			return false;
+		}
 	}
 
 	private async focusVaultmanContentSearch(
