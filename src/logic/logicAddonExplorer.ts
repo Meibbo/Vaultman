@@ -71,6 +71,18 @@ export function sortAddonEntries<T extends AddonEntryProjection>(
 	});
 }
 
+/**
+ * U200-L4 (cluster teclado): tiebreak declarado del sort de addons para el
+ * gate de letter/prefix jump. `sortAddonEntries` ordena por el primario
+ * (`state`, `cell_update`, fechas…) y SIEMPRE desempatan por `name`, asi que
+ * los hermanos van alfabéticos dentro de cada bloque y el tecleo salta al
+ * primer match renderizado. Si el comparador cambia, este helper cambia
+ * con el: es la unica fuente del fallback.
+ */
+export function addonSortFallbackSortBy(): 'name' {
+	return 'name';
+}
+
 export function filterAddonEntries<T>(
 	entries: readonly T[],
 	term: string,

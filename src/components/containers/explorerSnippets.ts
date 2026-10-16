@@ -19,6 +19,7 @@ import {
 	resolveAddonIcon,
 } from '../../logic/logicAddonIcons';
 import {
+	addonSortFallbackSortBy,
 	buildAddonHoverInfo,
 	filterAddonEntries,
 	formatAddonTimestamp,
@@ -1207,7 +1208,10 @@ export class SnippetsExplorerPanel
 				letterJump: {
 					resolveScope: (focusedId: string, fallbackDepth: number) =>
 						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
-					sortOf: () => activeScopeSort('snippets', this.sortState),
+					sortOf: () => ({
+						...activeScopeSort('snippets', this.sortState),
+						fallbackSortBy: addonSortFallbackSortBy(),
+					}),
 					labelOf: (id: string) => this.findNode(id)?.label ?? null,
 				},
 			},

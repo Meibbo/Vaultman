@@ -42,6 +42,7 @@ import {
 	GLOBAL_SETTINGS_GROUP_ID,
 	GLOBAL_SETTINGS_GROUP_LABEL,
 	isSettingsSearchActive,
+	addonSortFallbackSortBy,
 	listCorePluginStubs,
 	pluginCanonicalGroup,
 	sortAddonEntries,
@@ -1859,7 +1860,10 @@ export class PluginsExplorerPanel
 				letterJump: {
 					resolveScope: (focusedId: string, fallbackDepth: number) =>
 						resolveGroupAwareScope(this._lastProjectedTree, focusedId, fallbackDepth),
-					sortOf: () => activeScopeSort('plugins', this.sortState),
+					sortOf: () => ({
+						...activeScopeSort('plugins', this.sortState),
+						fallbackSortBy: addonSortFallbackSortBy(),
+					}),
 					labelOf: (id: string) => this.findNode(id)?.label ?? null,
 				},
 			},

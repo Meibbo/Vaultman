@@ -17,6 +17,7 @@ import {
 	resolveGroupAwareScope,
 	runNavcoKeyOverrides,
 	shouldLetterJump,
+	allowsLetterJump,
 	type TreeLetterCursor,
 	type TreeLetterGroup,
 } from '../../src/logic/logicTreeNavigation';
@@ -121,6 +122,26 @@ describe('effective name-sort gate', () => {
 		});
 		expect(target).toBeNull();
 		expect(jump).not.toHaveBeenCalled();
+	});
+
+	it('allows letter jump when fallbackSortBy is name (e.g. state sort with name tiebreak)', () => {
+		expect(allowsLetterJump({ sortBy: 'state', fallbackSortBy: 'name' })).toBe(true);
+		expect(allowsLetterJump({ sortBy: 'state' })).toBe(false);
+		expect(allowsLetterJump({ sortBy: 'state', fallbackSortBy: 'mtime' })).toBe(false);
+		expect(allowsLetterJump({ sortBy: 'name' })).toBe(true);
+
+		const target = nextLetterTarget({
+			key: 'b',
+			rows: ROWS,
+			focusedIndex: 1,
+			labelOf: (id) => LABELS.get(id) ?? null,
+			sortBy: 'state',
+			fallbackSortBy: 'name',
+			jump: (group, previous) => stubJump(group, previous, LABELS),
+			previous: null,
+		});
+		expect(target).not.toBeNull();
+		expect(target?.targetId).toBe('folder-1/banana.md');
 	});
 
 	it('bubbles when no sibling matches the glyph', () => {

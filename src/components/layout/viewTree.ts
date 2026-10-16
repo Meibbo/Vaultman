@@ -70,7 +70,7 @@ import {
 	isLetterJumpKey,
 	rowOrderFingerprint,
 	runNavcoKeyOverrides,
-	shouldLetterJump,
+	allowsLetterJump,
 	type NavcoPort,
 	type TreeLetterCursor,
 } from '../../logic/logicTreeNavigation';
@@ -1883,8 +1883,9 @@ export class UnifiedTreeView {
 		if (!focusedRow) return false;
 		const scope = port.resolveScope(focusedRow.id, focusedRow.depth);
 		const sort = port.sortOf(scope);
-		if (!shouldLetterJump(sort.sortBy)) return false;
-		const scopeFp = `${scope.parentId ?? ''} level:${scope.level} sort:${sort.sortBy}:${sort.direction}`;
+		if (!allowsLetterJump(sort)) return false;
+		const fallbackPart = sort.fallbackSortBy ? `:${sort.fallbackSortBy}` : '';
+		const scopeFp = `${scope.parentId ?? ''} level:${scope.level} sort:${sort.sortBy}:${sort.direction}${fallbackPart}`;
 		// TAREA 7 incremental prefix (shared Navco seam): rapid multi-char
 		// typing narrows the sibling level (r+e+c+i -> "reci"). Single-char
 		// repeats cycle through the store exactly like the classic cursor
@@ -1913,7 +1914,7 @@ export class UnifiedTreeView {
 		);
 		const previous = this._letterScopeFp === scopeFp ? this._letterPrevious : null;
 		const cursor = nextLetterTarget({ key: event.key, rows: modelRows, focusedIndex,
-			labelOf: port.labelOf, sortBy: sort.sortBy, jump: port.jump, previous });
+			labelOf: port.labelOf, sortBy: sort.sortBy, fallbackSortBy: sort.fallbackSortBy, jump: port.jump, previous });
 		if (!cursor) return false;
 		// Reveal/focus path only: no selection mutation from letter navigation.
 		this._keyboardCallbacks().onFocus(cursor.targetId);

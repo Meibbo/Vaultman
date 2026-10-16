@@ -60,6 +60,13 @@ export interface TreeLetterScope {
 export interface TreeLetterSort {
 	readonly sortBy: string;
 	readonly direction: 'asc' | 'desc';
+	/**
+	 * U200-L4 (cluster teclado): tiebreak alfabetico que la escena declara
+	 * sobre su comparador (ej. addons: `state` primario, `name` secundario
+	 * en `sortAddonEntries`). Ausente = el primario manda solo (conducta
+	 * historica).
+	 */
+	readonly fallbackSortBy?: string | undefined;
 }
 
 /** Scene-owned wiring: the view asks, the scene resolves from live sortState. */
@@ -116,6 +123,23 @@ export function isLetterJumpKey(event: KeyboardEvent): boolean {
 /** Letter jump is allowed only on sibling levels effectively sorted by name. */
 export function shouldLetterJump(sortBy: string): boolean {
 	return sortBy === 'name';
+}
+
+/**
+ * U200-L4 (cluster teclado): gate con fallback declarado. El primario
+ * `name` deja pasar como siempre; si no, un tiebreak `name` del comparador
+ * de la escena (ej. addon sort `state` con secundario `name`) tambien
+ * ordena a los hermanos por nombre dentro de cada bloque y el tecleo salta
+ * al primer match renderizado. Sin fallback declarado la conducta es la
+ * historica.
+ */
+export function allowsLetterJump(
+	sort: Pick<TreeLetterSort, 'sortBy' | 'fallbackSortBy'>,
+): boolean {
+	if (shouldLetterJump(sort.sortBy)) return true;
+	return (
+		sort.fallbackSortBy !== undefined && shouldLetterJump(sort.fallbackSortBy)
+	);
 }
 
 function parentIndexOfRow(rows: readonly TreeKeyboardRow[], index: number): number {
@@ -177,6 +201,8 @@ export interface NextLetterTargetArgs {
 	readonly focusedIndex: number;
 	readonly labelOf: (id: string) => string | null;
 	readonly sortBy: string;
+	/** U200-L4: tiebreak declarado por la escena (ver `TreeLetterSort`). */
+	readonly fallbackSortBy?: string | undefined;
 	readonly jump: TreeLetterJumpFn | null | undefined;
 	readonly previous: TreeLetterCursor | null;
 }
@@ -190,7 +216,7 @@ export interface NextLetterTargetArgs {
  * the target through the existing reveal/focus path.
  */
 export function nextLetterTarget(args: NextLetterTargetArgs): TreeLetterCursor | null {
-	if (!shouldLetterJump(args.sortBy)) return null;
+	if (!allowsLetterJump({ sortBy: args.sortBy, fallbackSortBy: args.fallbackSortBy })) return null;
 	if (Array.from(args.key).length !== 1 || args.key === ' ') return null;
 	const members = collectSiblingMembers(args.rows, args.focusedIndex, args.labelOf);
 	if (members.length === 0) return null;
