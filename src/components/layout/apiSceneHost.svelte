@@ -2,8 +2,11 @@
 	import NavbarPanelWidgetHost from './navbarPanelWidgetHost.svelte';
 	import type { VaultmanPlugin } from '../../main';
 	import type { PluginsExplorerPanel } from '../containers/explorerPlugins';
-	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
-	import type { NavbarPanelWidgetState } from '../../types/typePanelWidget';
+	import type {
+		NavbarPanelWidgetState,
+		NavbarPanelWidgetTabOption,
+		PanelWidgetHeaderMenuAction,
+	} from '../../types/typePanelWidget';
 	import { translate } from '../../i18n/index';
 	import { setIcon } from 'obsidian';
 	import { executeObsidianCommand } from '../../utils/obsidianCommands';
@@ -11,10 +14,18 @@
 		plugin,
 		explorer,
 		sceneConfigPort,
+		tabOptions,
+		tabMenuActions,
+		activeSectionTab = 'plugins',
+		onSectionTabChange,
 	}: {
 		plugin: VaultmanPlugin;
 		explorer: PluginsExplorerPanel;
 		sceneConfigPort: SceneConfigPort;
+		tabOptions?: NavbarPanelWidgetTabOption[];
+		tabMenuActions?: PanelWidgetHeaderMenuAction[];
+		activeSectionTab?: string;
+		onSectionTabChange?: (tab: string) => void;
 	} = $props();
 	let search = $state('');
 	let visible = $state(true);
@@ -57,14 +68,16 @@
 			explorer.setSearchTerm(value);
 		},
 		minimalStyle: true,
-		activeSectionTab: 'plugins',
-		tabOptions: [
+		activeSectionTab,
+		tabOptions: tabOptions ?? [
 			{
 				id: 'plugins',
 				label: translate('sasi.apiscene.scene'),
 				icon: 'lucide-code',
 			},
 		],
+		tabMenuActions: tabMenuActions ?? [],
+		onSectionTabChange,
 		toolbarShown: visible,
 		onToggleToolbar: () => {
 			visible = !visible;

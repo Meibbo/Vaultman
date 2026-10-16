@@ -6,16 +6,29 @@
 	import { createApiSceneConfigPort } from '../../logic/logicApiSceneConfig';
 	import { createApiSceneDataSource } from '../../logic/logicApiSceneDataSource';
 
+	import type {
+		NavbarPanelWidgetTabOption,
+		PanelWidgetHeaderMenuAction,
+	} from '../../types/typePanelWidget';
+
 	let {
 		plugin,
 		active = false,
 		searchTerm = '',
 		panel = $bindable(),
+		tabOptions,
+		tabMenuActions,
+		activeSectionTab,
+		onSectionTabChange,
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
 		searchTerm?: string;
 		panel?: PluginsExplorerPanel;
+		tabOptions?: NavbarPanelWidgetTabOption[];
+		tabMenuActions?: PanelWidgetHeaderMenuAction[];
+		activeSectionTab?: string;
+		onSectionTabChange?: (tab: string) => void;
 	} = $props();
 
 	let toolbarHost: HTMLElement | undefined = $state();
@@ -42,6 +55,10 @@
 					plugin,
 					explorer: panel,
 					sceneConfigPort: createApiSceneConfigPort(plugin),
+					tabOptions,
+					tabMenuActions,
+					activeSectionTab,
+					onSectionTabChange,
 				},
 			});
 			disposeToolbar = () => unmount(toolbar);
