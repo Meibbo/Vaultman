@@ -49,7 +49,7 @@
 		sceneInstanceId?: string;
 		generation?: number;
 		settingsRevision?: number;
-		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
+		onNavigateToDataTab?: (tab: StatisticsDataTab | 'apiscene') => void;
 		toolbarShown?: boolean;
 		onToggleToolbar?: () => void;
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
@@ -380,9 +380,10 @@
 			tab === 'tags' ||
 			tab === 'content' ||
 			tab === 'snippets' ||
-			tab === 'plugins'
+			tab === 'plugins' ||
+			tab === 'apiscene'
 		) {
-			onNavigateToDataTab?.(tab as StatisticsDataTab);
+			onNavigateToDataTab?.(tab as StatisticsDataTab | 'apiscene');
 		}
 	}
 

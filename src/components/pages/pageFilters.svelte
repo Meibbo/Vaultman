@@ -1095,7 +1095,8 @@
 			tab === 'tags' ||
 			tab === 'content' ||
 			tab === 'snippets' ||
-			tab === 'plugins'
+			tab === 'plugins' ||
+			tab === 'apiscene'
 		);
 	}
 
