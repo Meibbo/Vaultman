@@ -63,6 +63,14 @@ export interface SasiCompatibility {
 	surfaces: readonly string[];
 	scopes: readonly string[];
 	outOfRange: readonly string[];
+	/**
+	 * U200-L5 (tabs-2): vocabulario display exacto por accion (fuente unica
+	 * con `scopes`). `scope` = de donde sale el panel, `target` = adonde va.
+	 * Solo los movimientos entre superficies lo rellenan
+	 * (`surface_panel:current` / `→surface:X`); el resto lo deja undefined.
+	 */
+	scope?: string;
+	target?: string;
 }
 
 export interface SasiDef {

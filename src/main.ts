@@ -168,17 +168,23 @@ import {
 	resolveScopedMaximize,
 	scopedMaximizeGuardMessageKey,
 	scopedMoveGuardMessageKey,
-	adjustedInsertIndex,
+	variationForActionId,
+	reorderChildWithinParent,
 	surfaceOfLeaf,
 	SCOPED_PANEL_DEFAULT_SCOPE,
+	SCOPED_SURFACE_PANEL_SCOPE,
 	MAXIMIZE_LEAF_ATTR,
 	MAXIMIZE_SURFACE_ATTR,
 	MAXIMIZE_TABS_ATTR,
 	type ScopedGroupSnapshot,
 	type ScopedGroupSwapPlan,
+	type ScopedGroupTrailSegment,
+	type ReorderParentLike,
 	type ScopedLeafPlan,
 	type ScopedMoveVariation,
+	type ScopedReorderPlan,
 	type ScopedSplitPlan,
+	type ScopedSurfaceNewGroupPlan,
 } from './logic/logicScopedPanelMoves';
 import {
 	SEARCH_CREATE_TARGET_ID,
@@ -717,7 +723,7 @@ export class VaultmanPlugin extends Plugin {
 				},
 			});
 		}
-		// U200-L4: 16 scoped panel moves + panel maximize. Born hidden
+		// U200-L5: 19 scoped panel moves + panel maximize. Born hidden
 		// (not in SASI_PUBLISHED_DEFAULT_TRUE): the user publishes them from
 		// the SASI inspector. Handlers are checkable: `checking` answers the
 		// guard silently, execute moves the scoped panel or Notices the
@@ -1076,18 +1082,32 @@ export class VaultmanPlugin extends Plugin {
 		);
 	}
 
-	private tabGroupNodes(root: unknown): unknown[] {
-		const out: unknown[] = [];
-		const visit = (node: unknown): void => {
+	private splitDirectionOf(node: unknown): 'vertical' | 'horizontal' | null {
+		const direction = (node as { direction?: unknown }).direction;
+		return direction === 'vertical' || direction === 'horizontal'
+			? direction
+			: null;
+	}
+
+	private tabGroupNodes(
+		root: unknown,
+	): { node: unknown; trail: ScopedGroupTrailSegment[] }[] {
+		const out: { node: unknown; trail: ScopedGroupTrailSegment[] }[] = [];
+		const visit = (node: unknown, trail: ScopedGroupTrailSegment[]): void => {
 			const children = this.scopedChildrenOf(node);
 			if (!children) return;
 			if (children.length > 0 && this.isLeafLikeNode(children[0])) {
-				out.push(node);
+				out.push({ node, trail });
 				return;
 			}
-			for (const child of children) visit(child);
+			// U200-L5 (tabs-3): la direccion del split ancestro alimenta la
+			// regla direccional geometrica (`findDirectionalNeighbor`).
+			const direction = this.splitDirectionOf(node);
+			children.forEach((child, index) => {
+				visit(child, [...trail, { direction, index }]);
+			});
 		};
-		visit(root);
+		visit(root, []);
 		return out;
 	}
 
@@ -1106,7 +1126,7 @@ export class VaultmanPlugin extends Plugin {
 		] as const;
 		for (const { surface, root } of surfaces) {
 			let counter = 0;
-			for (const groupNode of this.tabGroupNodes(root)) {
+			for (const { node: groupNode, trail } of this.tabGroupNodes(root)) {
 				const children = this.scopedChildrenOf(groupNode) ?? [];
 				const id = `${surface}:${counter++}`;
 				const leafKeys: string[] = [];
@@ -1117,7 +1137,7 @@ export class VaultmanPlugin extends Plugin {
 					leaves.set(key, child);
 				});
 				parents.set(id, groupNode);
-				groups.push({ id, surface, leafKeys });
+				groups.push({ id, surface, leafKeys, trail });
 			}
 		}
 		return { groups, leaves, parents };
@@ -1135,10 +1155,19 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	private scopeForPanelAction(actionId: string): string {
-		return (
-			this.settings.sasiCommandCustomScopes?.[actionId] ??
-			SCOPED_PANEL_DEFAULT_SCOPE
-		);
+		const custom = this.settings.sasiCommandCustomScopes?.[actionId];
+		if (custom) return custom;
+		// U200-L5 (tabs-2): los movimientos entre superficies nacen con el
+		// alcance honesto de su fuente (`surface_panel:current`).
+		const variation = variationForActionId(actionId);
+		if (
+			variation === 'surface-left' ||
+			variation === 'surface-right' ||
+			variation === 'surface-main'
+		) {
+			return SCOPED_SURFACE_PANEL_SCOPE;
+		}
+		return SCOPED_PANEL_DEFAULT_SCOPE;
 	}
 
 	private activeLeafIsPopout(leaf: WorkspaceLeaf | null): boolean {
@@ -1196,7 +1225,12 @@ export class VaultmanPlugin extends Plugin {
 			leaves: Map<string, WorkspaceLeaf>;
 			parents: Map<string, unknown>;
 		},
-		move: ScopedLeafPlan | ScopedSplitPlan | ScopedGroupSwapPlan,
+		move:
+		| ScopedLeafPlan
+		| ScopedReorderPlan
+		| ScopedSplitPlan
+		| ScopedSurfaceNewGroupPlan
+		| ScopedGroupSwapPlan,
 	): Promise<void> {
 		try {
 			await this.doExecuteScopedMovePlan(layout, move);
@@ -1210,7 +1244,12 @@ export class VaultmanPlugin extends Plugin {
 			leaves: Map<string, WorkspaceLeaf>;
 			parents: Map<string, unknown>;
 		},
-		move: ScopedLeafPlan | ScopedSplitPlan | ScopedGroupSwapPlan,
+		move:
+		| ScopedLeafPlan
+		| ScopedReorderPlan
+		| ScopedSplitPlan
+		| ScopedSurfaceNewGroupPlan
+		| ScopedGroupSwapPlan,
 	): Promise<void> {
 		if (move.kind === 'group-swap') {
 			const activeParent = layout.parents.get(move.activeGroupId);
@@ -1232,34 +1271,98 @@ export class VaultmanPlugin extends Plugin {
 			await this.executeSplitMove(leaf, move.direction, move.before);
 			return;
 		}
+		if (move.kind === 'surface-new-group') {
+			await this.executeSurfaceNewGroupMove(leaf, move);
+			return;
+		}
+		if (
+			move.kind === 'reorder' ||
+			(move.kind === 'leaf' && move.fromGroupId === move.toGroupId)
+		) {
+			// U200-L5 (tabs-1): fuente y destino coinciden -> reorden SIN
+			// recrear (misma hoja/vista). Defensa en profundidad: aunque el
+			// plan llegase como `leaf`, el trasplante esta prohibido aqui.
+			if (!(await this.reorderLeafWithinParent(leaf, move.toIndex))) {
+				new Notice(translate('sasi.move.tab.unknown_target'));
+			}
+			return;
+		}
 		const targetParent = layout.parents.get(move.toGroupId);
 		if (!targetParent) {
 			new Notice(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
-		const sameGroup = move.fromGroupId === move.toGroupId;
-		const fromIndex = this.leafIndexInParent(layout, move);
-		const insertAt =
-			sameGroup && fromIndex >= 0
-				? adjustedInsertIndex(fromIndex, move.toIndex)
-				: move.toIndex;
-		const fresh = await this.transplantLeafState(leaf, targetParent, insertAt);
+		const fresh = await this.transplantLeafState(leaf, targetParent, move.toIndex);
 		if (!fresh) {
 			new Notice(translate('sasi.move.tab.unknown_target'));
 		}
 	}
 
-	private leafIndexInParent(
-		layout: { leaves: Map<string, WorkspaceLeaf> },
-		move: ScopedLeafPlan,
-	): number {
-		const leaf = layout.leaves.get(move.leafKey);
-		if (!leaf) return -1;
-		const siblings = this.scopedChildrenOf(
-			(leaf as { parent?: unknown }).parent,
-		);
-		if (!siblings) return -1;
-		return siblings.indexOf(leaf);
+	/**
+	 * U200-L5 (tabs-1): reordena la hoja existente dentro de su contenedor
+	 * preservando hoja, vista y `containerEl` (`reorderChildWithinParent`).
+	 * Sin `detach`, sin `setViewState`, sin recarga del fichero.
+	 */
+	private async reorderLeafWithinParent(
+		leaf: WorkspaceLeaf,
+		toIndex: number,
+	): Promise<boolean> {
+		const parent = (leaf as { parent?: unknown }).parent ?? null;
+		let moved = false;
+		try {
+			moved = reorderChildWithinParent(
+				parent as unknown as ReorderParentLike,
+				leaf as unknown,
+				toIndex,
+			);
+		} catch {
+			moved = false;
+		}
+		if (!moved) return false;
+		try {
+			await this.app.workspace.revealLeaf(leaf);
+			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+		} catch {
+			return false;
+		}
+		this.lastFocusedPanelLeaf = leaf;
+		return true;
+	}
+
+	/**
+	 * U200-L5 (tabs-2): la superficie destino no tiene grupos: la hoja
+	 * aterriza en un grupo nuevo bajo la raiz de esa superficie. Misma cola
+	 * de trasplante (claim de instancia, verificacion, foco) que el resto.
+	 */
+	private async executeSurfaceNewGroupMove(
+		leaf: WorkspaceLeaf,
+		move: ScopedSurfaceNewGroupPlan,
+	): Promise<void> {
+		const root =
+			move.surface === 'left_sidebar'
+				? this.app.workspace.leftSplit
+				: move.surface === 'right_sidebar'
+					? this.app.workspace.rightSplit
+					: this.app.workspace.rootSplit;
+		const saved = this.readLeafState(leaf);
+		if (!saved) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		const expectedInstanceId = this.freeInstanceClaim(leaf);
+		let fresh: WorkspaceLeaf;
+		try {
+			fresh = this.app.workspace.createLeafInParent(
+				root as unknown as WorkspaceSplit,
+				0,
+			);
+		} catch {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+			return;
+		}
+		if (!(await this.adoptFreshLeaf(leaf, fresh, saved, expectedInstanceId))) {
+			new Notice(translate('sasi.move.tab.unknown_target'));
+		}
 	}
 
 	private readLeafState(leaf: WorkspaceLeaf): {
@@ -1356,6 +1459,20 @@ export class VaultmanPlugin extends Plugin {
 		} catch {
 			return null;
 		}
+		return this.adoptFreshLeaf(oldLeaf, fresh, saved, expectedInstanceId);
+	}
+
+	/**
+	 * Cola comun de trasplante: coloca el estado guardado en la hoja fresca,
+	 * verifica el anclaje de instancia, separa la vieja y restaura el foco.
+	 * `null` = fallo (el llamante informa el bloqueador preciso).
+	 */
+	private async adoptFreshLeaf(
+		oldLeaf: WorkspaceLeaf,
+		fresh: WorkspaceLeaf,
+		saved: { type: string; state?: Record<string, unknown>; pinned?: boolean; ephemeral?: unknown },
+		expectedInstanceId: string | null,
+	): Promise<WorkspaceLeaf | null> {
 		if (!(await this.placeLeafState(fresh, saved))) {
 			try {
 				fresh.detach();

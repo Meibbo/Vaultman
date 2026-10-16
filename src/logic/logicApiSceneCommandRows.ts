@@ -118,6 +118,12 @@ const COMMAND_SCOPE_MAP: Record<string, string> = {
 	'vaultman.move.tabToRightGroup': 'workspace:last_focused',
 	'vaultman.move.tabToAboveGroup': 'workspace:last_focused',
 	'vaultman.move.tabToBelowGroup': 'workspace:last_focused',
+	// U200-L5 (tabs-2): movimientos entre superficies. El alcance honesto es
+	// la fuente (el panel enfocado en su superficie actual); el destino lo
+	// fija la accion (`→surface:X` en `SasiCompatibility.target`).
+	'vaultman.move.tabToLeftSidebar': 'surface_panel:current',
+	'vaultman.move.tabToRightSidebar': 'surface_panel:current',
+	'vaultman.move.tabToMainLeaf': 'surface_panel:current',
 	'vaultman.move.groupLeft': 'workspace:last_focused',
 	'vaultman.move.groupRight': 'workspace:last_focused',
 	'vaultman.move.groupUp': 'workspace:last_focused',

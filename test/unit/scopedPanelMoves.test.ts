@@ -17,10 +17,14 @@ import {
 	SCOPED_MAXIMIZE_COMPATIBILITY,
 	SCOPED_MOVE_COMPATIBILITY,
 	SCOPED_PANEL_DEFAULT_SCOPE,
-	adjustedInsertIndex,
+	SCOPED_SURFACE_PANEL_SCOPE,
+	axisOfDirectionVariation,
 	createScopedPanelCommandDescriptors,
+	findDirectionalNeighbor,
+	findGroupMoveNeighbor,
 	isKnownPanelScope,
 	planScopedMove,
+	reorderChildWithinParent,
 	resolveScopedFocus,
 	resolveScopedMaximize,
 	scopedCandidateKeys,
@@ -29,34 +33,122 @@ import {
 	surfaceOfLeaf,
 	variationForActionId,
 	TOGGLE_MAXIMIZE_ID,
+	TAB_TO_LEFT_SIDEBAR_ID,
+	TAB_TO_RIGHT_SIDEBAR_ID,
+	TAB_TO_MAIN_LEAF_ID,
 	type ScopedLayoutSnapshot,
 	type ScopedMoveVariation,
 } from '../../src/logic/logicScopedPanelMoves';
 
+/**
+ * U200-L5: plano con trails geometricos. Superficie main bajo UN split
+ * vertical (columnas lado a lado); el sidebar es un unico grupo. Con padre
+ * vertical, left/right mueven entre vecinos y above/below piden split
+ * (regla madura: el eje manda, no el orden de caminata).
+ */
 function layout(
 	focusedKey: string | null,
 	isPopout = false,
 ): ScopedLayoutSnapshot {
 	return {
 		groups: [
-			{ id: 'main_leaf:0', surface: 'main_leaf', leafKeys: ['a1', 'a2'] },
+			{
+				id: 'main_leaf:0',
+				surface: 'main_leaf',
+				leafKeys: ['a1', 'a2'],
+				trail: [{ direction: 'vertical', index: 0 }],
+			},
 			{
 				id: 'main_leaf:1',
 				surface: 'main_leaf',
 				leafKeys: ['editor-tab-2', 'b2', 'b3'],
+				trail: [{ direction: 'vertical', index: 1 }],
 			},
-			{ id: 'main_leaf:2', surface: 'main_leaf', leafKeys: ['c1'] },
-			{ id: 'left_sidebar:0', surface: 'left_sidebar', leafKeys: ['v1', 'v2'] },
+			{
+				id: 'main_leaf:2',
+				surface: 'main_leaf',
+				leafKeys: ['c1'],
+				trail: [{ direction: 'vertical', index: 2 }],
+			},
+			{
+				id: 'left_sidebar:0',
+				surface: 'left_sidebar',
+				leafKeys: ['v1', 'v2'],
+				trail: [{ direction: 'horizontal', index: 0 }],
+			},
 		],
 		focusedKey,
 		isPopout,
 	};
 }
 
-describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
-	it('registra las 17 como actions con las tres superficies', () => {
+/**
+ * U200-L5: anidado real (columna + subfilas). Main: split vertical con
+ * [columna A, split horizontal [B, C]]. Trails de dos niveles para la
+ * busqueda geometrica con subida de nivel.
+ */
+function nestedLayout(focusedKey: string | null): ScopedLayoutSnapshot {
+	return {
+		groups: [
+			{
+				id: 'main_leaf:0',
+				surface: 'main_leaf',
+				leafKeys: ['a1'],
+				trail: [{ direction: 'vertical', index: 0 }],
+			},
+			{
+				id: 'main_leaf:1',
+				surface: 'main_leaf',
+				leafKeys: ['b1'],
+				trail: [
+					{ direction: 'vertical', index: 1 },
+					{ direction: 'horizontal', index: 0 },
+				],
+			},
+			{
+				id: 'main_leaf:2',
+				surface: 'main_leaf',
+				leafKeys: ['c1'],
+				trail: [
+					{ direction: 'vertical', index: 1 },
+					{ direction: 'horizontal', index: 1 },
+				],
+			},
+		],
+		focusedKey,
+		isPopout: false,
+	};
+}
+
+/**
+ * U200-L5 (tabs-4): par horizontal apilado (arriba 2 tabs, abajo 1),
+ * como el caso de aceptacion A/B.
+ */
+function pairLayout(focusedKey: string | null): ScopedLayoutSnapshot {
+	return {
+		groups: [
+			{
+				id: 'main_leaf:0',
+				surface: 'main_leaf',
+				leafKeys: ['t1', 't2'],
+				trail: [{ direction: 'horizontal', index: 0 }],
+			},
+			{
+				id: 'main_leaf:1',
+				surface: 'main_leaf',
+				leafKeys: ['d1'],
+				trail: [{ direction: 'horizontal', index: 1 }],
+			},
+		],
+		focusedKey,
+		isPopout: false,
+	};
+}
+
+describe('U200-L5 registro: 20 acciones con scope y compatibilidad', () => {
+	it('registra las 20 como actions con las tres superficies', () => {
 		const { registry } = createVaultmanSasi();
-		expect(ALL_SCOPED_PANEL_ACTION_IDS).toHaveLength(17);
+		expect(ALL_SCOPED_PANEL_ACTION_IDS).toHaveLength(20);
 		for (const id of ALL_SCOPED_PANEL_ACTION_IDS) {
 			const resolved = registry.resolve(id);
 			expect(resolved.def, id).not.toBeNull();
@@ -67,8 +159,21 @@ describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
 				(resolved.def?.supports ?? []).map((s) => s.surface).sort(),
 				id,
 			).toEqual(['left_sidebar', 'main_leaf', 'right_sidebar']);
-			expect(resolved.def?.scope, id).toBe(SCOPED_PANEL_DEFAULT_SCOPE);
-			expect(resolved.def?.scope, id).toBe('workspace:last_focused');
+		}
+		// 16+maximize con el alcance global; 3 entre-superficies con la fuente.
+		for (const id of ALL_SCOPED_PANEL_ACTION_IDS) {
+			const scope = registry.resolve(id).def?.scope;
+			if (
+				id === TAB_TO_LEFT_SIDEBAR_ID ||
+				id === TAB_TO_RIGHT_SIDEBAR_ID ||
+				id === TAB_TO_MAIN_LEAF_ID
+			) {
+				expect(scope, id).toBe(SCOPED_SURFACE_PANEL_SCOPE);
+				expect(scope, id).toBe('surface_panel:current');
+			} else {
+				expect(scope, id).toBe(SCOPED_PANEL_DEFAULT_SCOPE);
+				expect(scope, id).toBe('workspace:last_focused');
+			}
 		}
 	});
 
@@ -82,7 +187,6 @@ describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
 				'main_leaf',
 				'right_sidebar',
 			]);
-			expect(compat?.scopes, id).toContain('workspace:last_focused');
 			expect(compat?.outOfRange.join('|'), id).toContain('popout windows');
 			expect(compat?.outOfRange.join('|'), id).toContain('new window');
 		}
@@ -95,6 +199,38 @@ describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
 		expect(SCOPED_MAXIMIZE_COMPATIBILITY.scopes).toEqual(
 			SCOPED_MOVE_COMPATIBILITY.scopes,
 		);
+		// tabs-2: vocabulario exacto solo en los 3 entre-superficies.
+		expect(
+			registry.resolve(TAB_TO_LEFT_SIDEBAR_ID).def?.compatibility,
+		).toMatchObject({
+			scope: 'surface_panel:current',
+			target: '→surface:left_sidebar',
+			scopes: ['surface_panel:current'],
+		});
+		expect(
+			registry.resolve(TAB_TO_RIGHT_SIDEBAR_ID).def?.compatibility,
+		).toMatchObject({
+			scope: 'surface_panel:current',
+			target: '→surface:right_sidebar',
+		});
+		expect(
+			registry.resolve(TAB_TO_MAIN_LEAF_ID).def?.compatibility,
+		).toMatchObject({
+			scope: 'surface_panel:current',
+			target: '→surface:main_leaf',
+		});
+		for (const id of ALL_SCOPED_PANEL_ACTION_IDS) {
+			const compat = registry.resolve(id).def?.compatibility;
+			if (
+				id === TAB_TO_LEFT_SIDEBAR_ID ||
+				id === TAB_TO_RIGHT_SIDEBAR_ID ||
+				id === TAB_TO_MAIN_LEAF_ID
+			) {
+				continue;
+			}
+			expect(compat?.scope, id).toBeUndefined();
+			expect(compat?.target, id).toBeUndefined();
+		}
 	});
 
 	it('el inspector expone la compatibilidad donde ya muestra limites', () => {
@@ -110,8 +246,14 @@ describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
 				'main_leaf',
 				'right_sidebar',
 			]);
-			expect(entry?.scope, id).toBe('workspace:last_focused');
 		}
+		// tabs-2: scope/target viajan en el mismo objeto, sin segunda fuente.
+		const left = entries.find(
+			(candidate) => candidate.id === TAB_TO_LEFT_SIDEBAR_ID,
+		);
+		expect(left?.scope).toBe('surface_panel:current');
+		expect(left?.compatibility?.scope).toBe('surface_panel:current');
+		expect(left?.compatibility?.target).toBe('→surface:left_sidebar');
 	});
 
 	it('los nodos ApiScene llevan la compatibilidad en su meta', () => {
@@ -121,12 +263,17 @@ describe('U200-L4 registro: 17 acciones con scope y compatibilidad', () => {
 			const node = nodes.find((candidate) => candidate.meta.sasiId === id);
 			expect(node, id).toBeDefined();
 			expect(node?.meta.compatibility, id).toBeDefined();
-			expect(node?.meta.scope, id).toBe('workspace:last_focused');
 		}
+		const main = nodes.find(
+			(candidate) => candidate.meta.sasiId === TAB_TO_MAIN_LEAF_ID,
+		);
+		expect(main?.meta.compatibility?.scope).toBe('surface_panel:current');
+		expect(main?.meta.compatibility?.target).toBe('→surface:main_leaf');
+		expect(main?.meta.scope).toBe('surface_panel:current');
 	});
 });
 
-describe('U200-L4 scope: el alcance decide que objetos se ven afectados', () => {
+describe('U200 scope: el alcance decide que objetos se ven afectados', () => {
 	const snapshot = layout('editor-tab-2');
 
 	it('workspace:last_focused cubre las tres superficies', () => {
@@ -140,6 +287,16 @@ describe('U200-L4 scope: el alcance decide que objetos se ven afectados', () => 
 			'v1',
 			'v2',
 		]);
+	});
+
+	it('surface_panel:current cubre lo enfocado este donde este', () => {
+		expect(scopedCandidateKeys(snapshot, 'surface_panel:current')).toEqual(
+			scopedCandidateKeys(snapshot, 'workspace:last_focused'),
+		);
+		expect(
+			resolveScopedFocus(snapshot, 'surface_panel:current', 'v2', null),
+		).toEqual({ ok: true, key: 'v2' });
+		expect(isKnownPanelScope('surface_panel:current')).toBe(true);
 	});
 
 	it('los alcances de superficie recortan el conjunto', () => {
@@ -196,45 +353,49 @@ describe('U200-L4 scope: el alcance decide que objetos se ven afectados', () => 
 	});
 });
 
-describe('U200-L4 plan: cada variacion mueve la hoja enfocada', () => {
-	it('reorden dentro del grupo con indices exactos', () => {
+describe('U200-L5 plan: reorden sin recrear (tabs-1)', () => {
+	it('reorden dentro del grupo planifica SIN trasplante', () => {
 		expect(planScopedMove(layout('b2'), 'reorder-left')).toEqual({
 			ok: true,
 			move: {
-				kind: 'leaf',
+				kind: 'reorder',
 				leafKey: 'b2',
 				fromGroupId: 'main_leaf:1',
 				toGroupId: 'main_leaf:1',
+				fromIndex: 1,
 				toIndex: 0,
 			},
 		});
 		expect(planScopedMove(layout('b2'), 'reorder-right')).toEqual({
 			ok: true,
 			move: {
-				kind: 'leaf',
+				kind: 'reorder',
 				leafKey: 'b2',
 				fromGroupId: 'main_leaf:1',
 				toGroupId: 'main_leaf:1',
+				fromIndex: 1,
 				toIndex: 2,
 			},
 		});
 		expect(planScopedMove(layout('b3'), 'reorder-start')).toEqual({
 			ok: true,
 			move: {
-				kind: 'leaf',
+				kind: 'reorder',
 				leafKey: 'b3',
 				fromGroupId: 'main_leaf:1',
 				toGroupId: 'main_leaf:1',
+				fromIndex: 2,
 				toIndex: 0,
 			},
 		});
 		expect(planScopedMove(layout('editor-tab-2'), 'reorder-end')).toEqual({
 			ok: true,
 			move: {
-				kind: 'leaf',
+				kind: 'reorder',
 				leafKey: 'editor-tab-2',
 				fromGroupId: 'main_leaf:1',
 				toGroupId: 'main_leaf:1',
+				fromIndex: 0,
 				toIndex: 2,
 			},
 		});
@@ -258,7 +419,455 @@ describe('U200-L4 plan: cada variacion mueve la hoja enfocada', () => {
 			reason: 'at-edge',
 		});
 	});
+});
 
+describe('U200-L5 reorderChildWithinParent: misma instancia, cero recreacion', () => {
+	function mockTabs(count: number): {
+		parent: {
+			children: unknown[];
+			tabHeaderEls: unknown[];
+			currentTab: number;
+			selectTabIndex: (index: number) => void;
+		};
+		leaves: { tabHeaderEl: unknown; detach: () => void; setViewState: () => void }[];
+		selectSpy: (index: number) => void;
+	} {
+		const container: {
+			children: unknown[];
+			insertBefore: (node: unknown, ref: unknown) => void;
+		} = {
+			children: [],
+			insertBefore(node, ref) {
+				const at = this.children.indexOf(node);
+				if (at >= 0) this.children.splice(at, 1);
+				const to = ref === null ? -1 : this.children.indexOf(ref);
+				if (to < 0) this.children.push(node);
+				else this.children.splice(to, 0, node);
+			},
+		};
+		const leaves: {
+			tabHeaderEl: unknown;
+			detach: () => void;
+			setViewState: () => void;
+		}[] = [];
+		for (let i = 0; i < count; i++) {
+			const header = {
+				id: `h${i}`,
+				parentNode: container,
+				remove(this: { parentNode: typeof container }): void {
+					const at = this.parentNode.children.indexOf(this);
+					if (at >= 0) this.parentNode.children.splice(at, 1);
+				},
+			};
+			container.children.push(header);
+			leaves.push({
+				tabHeaderEl: header,
+				detach: vi.fn(),
+				setViewState: vi.fn(),
+			});
+		}
+		const selectSpy = vi.fn((_index: number): void => undefined);
+		const parent = {
+			children: [...leaves] as unknown[],
+			tabHeaderEls: [...container.children] as unknown[],
+			currentTab: 1,
+			selectTabIndex: selectSpy,
+		};
+		return { parent, leaves, selectSpy };
+	}
+
+	it('mueve la hoja existente: misma identidad, headers en orden, foco sigue', () => {
+		const { parent, leaves, selectSpy } = mockTabs(3);
+		const target = leaves[1];
+		expect(reorderChildWithinParent(parent, target, 0)).toBe(true);
+		// Misma instancia (toBe, no toEqual) en la nueva posicion.
+		expect(parent.children[0]).toBe(target);
+		expect(parent.children).toEqual([leaves[1], leaves[0], leaves[2]]);
+		expect(parent.tabHeaderEls[0]).toBe(target?.tabHeaderEl);
+		expect(selectSpy).toHaveBeenCalledWith(0);
+		// Cero recreacion: la ruta no conoce detach/setViewState.
+		for (const leaf of leaves) {
+			expect(leaf.detach).not.toHaveBeenCalled();
+			expect(leaf.setViewState).not.toHaveBeenCalled();
+		}
+	});
+
+	it('al final y con indices recortados', () => {
+		const { parent, leaves } = mockTabs(2);
+		expect(reorderChildWithinParent(parent, leaves[0], 99)).toBe(true);
+		expect(parent.children).toEqual([leaves[1], leaves[0]]);
+	});
+
+	it('anomalo: padre nulo, hoja ajena y header huerfano no corrompen', () => {
+		const { parent, leaves } = mockTabs(2);
+		const before = [...parent.children];
+		expect(reorderChildWithinParent(null, leaves[0], 1)).toBe(false);
+		expect(reorderChildWithinParent(undefined, leaves[0], 1)).toBe(false);
+		expect(
+			reorderChildWithinParent(parent, { tabHeaderEl: null }, 1),
+		).toBe(false);
+		expect(parent.children).toEqual(before);
+		// Header sin parentNode: rollback de los arrays, orden intacto.
+		const orphan = {
+			tabHeaderEl: { remove: () => undefined },
+			detach: vi.fn(),
+			setViewState: vi.fn(),
+		};
+		(parent.children as unknown[]).push(orphan);
+		expect(reorderChildWithinParent(parent, orphan, 0)).toBe(false);
+		expect(parent.children[parent.children.length - 1]).toBe(orphan);
+	});
+});
+
+describe('U200-L5 plan: movimientos entre superficies (tabs-2)', () => {
+	it('aterrizan al final del ultimo grupo destino', () => {
+		expect(planScopedMove(layout('b2'), 'surface-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'b2',
+				fromGroupId: 'main_leaf:1',
+				toGroupId: 'left_sidebar:0',
+				toIndex: 2,
+			},
+		});
+		expect(planScopedMove(layout('v1'), 'surface-main')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'v1',
+				fromGroupId: 'left_sidebar:0',
+				toGroupId: 'main_leaf:2',
+				toIndex: 1,
+			},
+		});
+	});
+
+	it('ya en destino: reordena sin recrear o informa borde', () => {
+		// v2 esta al final del sidebar -> borde (ya no hay adonde ir).
+		expect(planScopedMove(layout('v2'), 'surface-left')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// Mismo grupo sin estar al final -> reorder al final, sin recrear.
+		const solo: ScopedLayoutSnapshot = {
+			groups: [
+				{
+					id: 'main_leaf:0',
+					surface: 'main_leaf',
+					leafKeys: ['k1', 'k2', 'k3'],
+					trail: [{ direction: 'vertical', index: 0 }],
+				},
+			],
+			focusedKey: 'k1',
+			isPopout: false,
+		};
+		expect(planScopedMove(solo, 'surface-main')).toEqual({
+			ok: true,
+			move: {
+				kind: 'reorder',
+				leafKey: 'k1',
+				fromGroupId: 'main_leaf:0',
+				toGroupId: 'main_leaf:0',
+				fromIndex: 0,
+				toIndex: 2,
+			},
+		});
+		// c1 esta al final de su grupo (el ultimo del main): borde.
+		expect(planScopedMove(layout('c1'), 'surface-main')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+	});
+
+	it('superficie destino sin grupos: plan de grupo nuevo', () => {
+		const snap = layout('b2');
+		const noRight: ScopedLayoutSnapshot = {
+			...snap,
+			groups: snap.groups.filter((g) => g.surface !== 'right_sidebar'),
+		};
+		// right_sidebar no existe en este fixture: el destino sin grupos
+		// pide creacion (el main si tiene grupos: caso leaf normal arriba).
+		const noLeft: ScopedLayoutSnapshot = {
+			...snap,
+			groups: snap.groups.filter((g) => g.surface !== 'left_sidebar'),
+		};
+		expect(planScopedMove(noLeft, 'surface-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'surface-new-group',
+				leafKey: 'b2',
+				fromGroupId: 'main_leaf:1',
+				surface: 'left_sidebar',
+			},
+		});
+		expect(noRight.groups.some((g) => g.surface === 'right_sidebar')).toBe(
+			false,
+		);
+		expect(planScopedMove(noRight, 'surface-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'surface-new-group',
+				leafKey: 'b2',
+				fromGroupId: 'main_leaf:1',
+				surface: 'right_sidebar',
+			},
+		});
+	});
+
+	it('guardas globales tambien valen entre superficies', () => {
+		expect(planScopedMove(layout('b2', true), 'surface-left')).toEqual({
+			ok: false,
+			reason: 'popout',
+		});
+		expect(planScopedMove(layout(null), 'surface-main')).toEqual({
+			ok: false,
+			reason: 'no-focused-panel',
+		});
+	});
+});
+
+describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
+	it('eje X bajo padre vertical: vecinos como L4', () => {
+		expect(planScopedMove(layout('b2'), 'direction-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'b2',
+				fromGroupId: 'main_leaf:1',
+				toGroupId: 'main_leaf:0',
+				toIndex: 2,
+			},
+		});
+		expect(planScopedMove(layout('b2'), 'direction-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'b2',
+				fromGroupId: 'main_leaf:1',
+				toGroupId: 'main_leaf:2',
+				toIndex: 1,
+			},
+		});
+		// Borde X: split vertical, como L4.
+		expect(planScopedMove(layout('a1'), 'direction-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'a1',
+				fromGroupId: 'main_leaf:0',
+				direction: 'vertical',
+				before: true,
+			},
+		});
+	});
+
+	it('eje Y bajo padre vertical: NO hay vecino (L4 saltaba mal)', () => {
+		// L4 devolvia leaf a main_leaf:1 (un grupo LATERAL) para un
+		// movimiento vertical. La regla madura pide split horizontal.
+		expect(planScopedMove(layout('c1'), 'direction-above')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'c1',
+				fromGroupId: 'main_leaf:2',
+				direction: 'horizontal',
+				before: true,
+			},
+		});
+		expect(planScopedMove(layout('c1'), 'direction-below')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'c1',
+				fromGroupId: 'main_leaf:2',
+				direction: 'horizontal',
+				before: false,
+			},
+		});
+		// El sidebar de un grupo tampoco cruza superficies: split propio.
+		expect(planScopedMove(layout('v2'), 'direction-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'v2',
+				fromGroupId: 'left_sidebar:0',
+				direction: 'vertical',
+				before: false,
+			},
+		});
+	});
+
+	it('par apilado (tabs-4A): arriba/abajo van al vecino real', () => {
+		expect(planScopedMove(pairLayout('d1'), 'direction-above')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'd1',
+				fromGroupId: 'main_leaf:1',
+				toGroupId: 'main_leaf:0',
+				toIndex: 2,
+			},
+		});
+		expect(planScopedMove(pairLayout('t2'), 'direction-below')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 't2',
+				fromGroupId: 'main_leaf:0',
+				toGroupId: 'main_leaf:1',
+				toIndex: 1,
+			},
+		});
+		// Eje contrario en par apilado: split, no salto lateral.
+		expect(planScopedMove(pairLayout('d1'), 'direction-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'd1',
+				fromGroupId: 'main_leaf:1',
+				direction: 'vertical',
+				before: true,
+			},
+		});
+	});
+
+	it('anidado: sube de nivel cuando el nivel propio no tiene el eje', () => {
+		// B esta bajo split horizontal: left sube al vertical y da A.
+		expect(planScopedMove(nestedLayout('b1'), 'direction-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'b1',
+				fromGroupId: 'main_leaf:1',
+				toGroupId: 'main_leaf:0',
+				toIndex: 1,
+			},
+		});
+		// A a la derecha: el subarbol hermano [B,C] aporta su borde (B).
+		expect(planScopedMove(nestedLayout('a1'), 'direction-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'a1',
+				fromGroupId: 'main_leaf:0',
+				toGroupId: 'main_leaf:1',
+				toIndex: 1,
+			},
+		});
+		// B arriba: borde de su columna -> split horizontal antes.
+		expect(planScopedMove(nestedLayout('b1'), 'direction-above')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf-split',
+				leafKey: 'b1',
+				fromGroupId: 'main_leaf:1',
+				direction: 'horizontal',
+				before: true,
+			},
+		});
+		// C arriba: B.
+		expect(planScopedMove(nestedLayout('c1'), 'direction-above')).toEqual({
+			ok: true,
+			move: {
+				kind: 'leaf',
+				leafKey: 'c1',
+				fromGroupId: 'main_leaf:2',
+				toGroupId: 'main_leaf:1',
+				toIndex: 1,
+			},
+		});
+	});
+
+	it('findDirectionalNeighbor: matriz de ejes y niveles', () => {
+		const groups = nestedLayout('a1').groups;
+		expect(axisOfDirectionVariation('direction-left')).toBe('x');
+		expect(axisOfDirectionVariation('direction-above')).toBe('y');
+		// A(0): x-1 nada, x+1 B(1), y nada.
+		expect(findDirectionalNeighbor(groups, 0, 'x', -1)).toBeNull();
+		expect(findDirectionalNeighbor(groups, 0, 'x', 1)).toBe(1);
+		expect(findDirectionalNeighbor(groups, 0, 'y', -1)).toBeNull();
+		expect(findDirectionalNeighbor(groups, 0, 'y', 1)).toBeNull();
+		// B(1): y+1 C(2), y-1 nada, x-1 A(0), x+1 nada.
+		expect(findDirectionalNeighbor(groups, 1, 'y', 1)).toBe(2);
+		expect(findDirectionalNeighbor(groups, 1, 'y', -1)).toBeNull();
+		expect(findDirectionalNeighbor(groups, 1, 'x', -1)).toBe(0);
+		expect(findDirectionalNeighbor(groups, 1, 'x', 1)).toBeNull();
+	});
+
+	it('grupo entero: direccion + reservas ortogonales, sin envoltura', () => {
+		// Plano vertical: left/right directos como L4.
+		expect(planScopedMove(layout('b2'), 'move-group-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'group-swap',
+				leafKey: 'b2',
+				activeGroupId: 'main_leaf:1',
+				neighborGroupId: 'main_leaf:2',
+			},
+		});
+		expect(planScopedMove(layout('b2'), 'move-group-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'group-swap',
+				leafKey: 'b2',
+				activeGroupId: 'main_leaf:1',
+				neighborGroupId: 'main_leaf:0',
+			},
+		});
+		// c1 right: sin vecino en ningun eje -> borde (no wrap, no split).
+		expect(planScopedMove(layout('c1'), 'move-group-right')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// L5 difiere de L4 aqui a proposito (fallback VSCode): a1 up no
+		// tiene vecino vertical, pero si lateral (B) -> swap.
+		expect(planScopedMove(layout('a1'), 'move-group-up')).toEqual({
+			ok: true,
+			move: {
+				kind: 'group-swap',
+				leafKey: 'a1',
+				activeGroupId: 'main_leaf:0',
+				neighborGroupId: 'main_leaf:1',
+			},
+		});
+		expect(planScopedMove(layout('v1'), 'move-group-down')).toEqual({
+			ok: false,
+			reason: 'single-group',
+		});
+		// Par apilado (tabs-4B): 1 swap basta en cada sentido.
+		expect(planScopedMove(pairLayout('t1'), 'move-group-down')).toEqual({
+			ok: true,
+			move: {
+				kind: 'group-swap',
+				leafKey: 't1',
+				activeGroupId: 'main_leaf:0',
+				neighborGroupId: 'main_leaf:1',
+			},
+		});
+		expect(planScopedMove(pairLayout('d1'), 'move-group-up')).toEqual({
+			ok: true,
+			move: {
+				kind: 'group-swap',
+				leafKey: 'd1',
+				activeGroupId: 'main_leaf:1',
+				neighborGroupId: 'main_leaf:0',
+			},
+		});
+	});
+
+	it('findGroupMoveNeighbor respeta el orden pedido-reservas', () => {
+		const groups = nestedLayout('b1').groups;
+		// B up: sin vertical propio ni columna vecina arriba -> lateral A.
+		expect(findGroupMoveNeighbor(groups, 1, 'move-group-up')).toBe(0);
+		// A left: nada en ningun eje -> null (borde).
+		expect(findGroupMoveNeighbor(groups, 0, 'move-group-left')).toBeNull();
+		// C down: sin abajo; reservas laterales: left sube de nivel -> A.
+		expect(findGroupMoveNeighbor(groups, 2, 'move-group-down')).toBe(0);
+	});
+});
+
+describe('U200 plan: previous/next envuelven; first/last van a los extremos', () => {
 	it('previous/next envuelven; first/last van a los extremos', () => {
 		expect(planScopedMove(layout('editor-tab-2'), 'group-next')).toEqual({
 			ok: true,
@@ -321,107 +930,10 @@ describe('U200-L4 plan: cada variacion mueve la hoja enfocada', () => {
 		});
 	});
 
-	it('los movimientos no cruzan superficies', () => {
+	it('los previous/next no cruzan superficies', () => {
 		// v2 esta en el unico grupo del sidebar: previous/next es single-group
 		// aunque el main tenga tres grupos.
 		expect(planScopedMove(layout('v2'), 'group-next')).toEqual({
-			ok: false,
-			reason: 'single-group',
-		});
-		// Direccional en el borde del sidebar crea split en vez de cruzar.
-		expect(planScopedMove(layout('v2'), 'direction-right')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf-split',
-				leafKey: 'v2',
-				fromGroupId: 'left_sidebar:0',
-				direction: 'vertical',
-				before: false,
-			},
-		});
-	});
-
-	it('direccionales con vecino mueven; sin vecino piden split', () => {
-		expect(planScopedMove(layout('b2'), 'direction-left')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf',
-				leafKey: 'b2',
-				fromGroupId: 'main_leaf:1',
-				toGroupId: 'main_leaf:0',
-				toIndex: 2,
-			},
-		});
-		expect(planScopedMove(layout('b2'), 'direction-right')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf',
-				leafKey: 'b2',
-				fromGroupId: 'main_leaf:1',
-				toGroupId: 'main_leaf:2',
-				toIndex: 1,
-			},
-		});
-		expect(planScopedMove(layout('a1'), 'direction-left')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf-split',
-				leafKey: 'a1',
-				fromGroupId: 'main_leaf:0',
-				direction: 'vertical',
-				before: true,
-			},
-		});
-		expect(planScopedMove(layout('c1'), 'direction-below')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf-split',
-				leafKey: 'c1',
-				fromGroupId: 'main_leaf:2',
-				direction: 'horizontal',
-				before: false,
-			},
-		});
-		expect(planScopedMove(layout('c1'), 'direction-above')).toEqual({
-			ok: true,
-			move: {
-				kind: 'leaf',
-				leafKey: 'c1',
-				fromGroupId: 'main_leaf:2',
-				toGroupId: 'main_leaf:1',
-				toIndex: 3,
-			},
-		});
-	});
-
-	it('grupo entero = intercambio con el vecino, sin envoltura', () => {
-		expect(planScopedMove(layout('b2'), 'move-group-right')).toEqual({
-			ok: true,
-			move: {
-				kind: 'group-swap',
-				leafKey: 'b2',
-				activeGroupId: 'main_leaf:1',
-				neighborGroupId: 'main_leaf:2',
-			},
-		});
-		expect(planScopedMove(layout('b2'), 'move-group-left')).toEqual({
-			ok: true,
-			move: {
-				kind: 'group-swap',
-				leafKey: 'b2',
-				activeGroupId: 'main_leaf:1',
-				neighborGroupId: 'main_leaf:0',
-			},
-		});
-		expect(planScopedMove(layout('c1'), 'move-group-right')).toEqual({
-			ok: false,
-			reason: 'at-edge',
-		});
-		expect(planScopedMove(layout('a1'), 'move-group-up')).toEqual({
-			ok: false,
-			reason: 'at-edge',
-		});
-		expect(planScopedMove(layout('v1'), 'move-group-down')).toEqual({
 			ok: false,
 			reason: 'single-group',
 		});
@@ -453,16 +965,7 @@ describe('U200-L4 plan: cada variacion mueve la hoja enfocada', () => {
 	});
 });
 
-describe('U200-L4 indices de insercion crear-primero-separar-despues', () => {
-	it('compensa el desplazamiento al separar la original', () => {
-		expect(adjustedInsertIndex(2, 0)).toBe(0);
-		expect(adjustedInsertIndex(2, 1)).toBe(1);
-		expect(adjustedInsertIndex(0, 2)).toBe(3);
-		expect(adjustedInsertIndex(1, 2)).toBe(3);
-	});
-});
-
-describe('U200-L4 maximize con scope: overlay reversible, no-ops explicitos', () => {
+describe('U200 maximize con scope: overlay reversible, no-ops explicitos', () => {
 	it('resuelve la hoja enfocada cuando hay con que contraponerla', () => {
 		expect(
 			resolveScopedMaximize({ focusedKey: 'b2', groupCount: 3, isPopout: false }),
@@ -508,7 +1011,7 @@ describe('U200-L4 maximize con scope: overlay reversible, no-ops explicitos', ()
 	});
 });
 
-describe('U200-L4 superficie por cadena de parents (API publica)', () => {
+describe('U200 superficie por cadena de parents (API publica)', () => {
 	it('clasifica left/main/right y unknown', () => {
 		const left = { parent: null };
 		const main = { parent: null };
@@ -525,10 +1028,10 @@ describe('U200-L4 superficie por cadena de parents (API publica)', () => {
 	});
 });
 
-describe('U200-L4 descriptores: 17 ids, nombres y biyeccion', () => {
+describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
 	it('id <-> variacion es biyectiva', () => {
 		const variations = Object.values(ACTION_ID_FOR_VARIATION);
-		expect(new Set(variations).size).toBe(16);
+		expect(new Set(variations).size).toBe(19);
 		for (const [variation, id] of Object.entries(ACTION_ID_FOR_VARIATION)) {
 			expect(variationForActionId(id)).toBe(variation);
 		}
@@ -536,7 +1039,7 @@ describe('U200-L4 descriptores: 17 ids, nombres y biyeccion', () => {
 		expect(variationForActionId(TOGGLE_MAXIMIZE_ID)).toBeNull();
 	});
 
-	it('los 17 descriptores son checkables con los nombres exactos', () => {
+	it('los 20 descriptores son checkables con los nombres exactos', () => {
 		const calls: Array<{ variation: ScopedMoveVariation; checking: boolean }> = [];
 		const descriptors = createScopedPanelCommandDescriptors(
 			(key) => en[key] ?? key,
@@ -564,6 +1067,9 @@ describe('U200-L4 descriptores: 17 ids, nombres y biyeccion', () => {
 			'Move active tab into the group to the right',
 			'Move active tab into the group above',
 			'Move active tab into the group below',
+			'Move active tab to left sidebar',
+			'Move active tab to right sidebar',
+			'Move active tab to main area',
 			'Move active tab group left',
 			'Move active tab group right',
 			'Move active tab group up',
@@ -585,6 +1091,9 @@ describe('U200-L4 descriptores: 17 ids, nombres y biyeccion', () => {
 			'sasi.move.tab_to_right_group',
 			'sasi.move.tab_to_above_group',
 			'sasi.move.tab_to_below_group',
+			'sasi.move.tab_to_left_sidebar',
+			'sasi.move.tab_to_right_sidebar',
+			'sasi.move.tab_to_main_leaf',
 			'sasi.move.group_up',
 			'sasi.move.group_down',
 			'sasi.move.tab.at_edge',
