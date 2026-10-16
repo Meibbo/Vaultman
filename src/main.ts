@@ -173,6 +173,14 @@ import {
 	FILTER_QUEUE_ACTIONS,
 	FILTER_QUEUE_ACTION_IDS,
 } from './logic/logicSasiFilterQueueActions';
+import {
+	WORKSPACE_FOCUS_LEFT_SIDEBAR_ID,
+	WORKSPACE_FOCUS_RIGHT_SIDEBAR_ID,
+	WORKSPACE_FOCUS_MAIN_AREA_ID,
+	createWorkspaceFocusCommandDescriptors,
+	findActiveLeafInSplit,
+	type WorkspaceFocusTarget,
+} from './logic/logicSasiWorkspaceFocusActions';
 import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
 import { createHoverSurfacesAdapter } from './services/serviceHoverSurfaces';
 import { vaultmanPerfMonitor } from './utils/performanceMonitor';
@@ -211,6 +219,9 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	'open-queue',
 	'open-api-scene',
 	'vaultman.scene.goto.apiscene',
+	WORKSPACE_FOCUS_LEFT_SIDEBAR_ID,
+	WORKSPACE_FOCUS_RIGHT_SIDEBAR_ID,
+	WORKSPACE_FOCUS_MAIN_AREA_ID,
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -709,6 +720,12 @@ export class VaultmanPlugin extends Plugin {
 		})) {
 			this.sasiCommandPublisher.register(descriptor);
 		}
+		for (const descriptor of createWorkspaceFocusCommandDescriptors(translate, {
+			runFocusWorkspaceSurface: (target) =>
+				this.runFocusWorkspaceSurface(target),
+		})) {
+			this.sasiCommandPublisher.register(descriptor);
+		}
 		for (const id of ['check_plugin_updates', 'update_all_plugins'] as const) {
 			this.sasiCommandPublisher.register({
 				id,
@@ -915,6 +932,20 @@ export class VaultmanPlugin extends Plugin {
 		}
 		if (actionId === 'go_to_setting_scene') {
 			void this.goToSettingSceneCommand();
+			return;
+		}
+		if (
+			actionId === WORKSPACE_FOCUS_LEFT_SIDEBAR_ID ||
+			actionId === WORKSPACE_FOCUS_RIGHT_SIDEBAR_ID ||
+			actionId === WORKSPACE_FOCUS_MAIN_AREA_ID
+		) {
+			const target: WorkspaceFocusTarget =
+				actionId === WORKSPACE_FOCUS_LEFT_SIDEBAR_ID
+					? 'leftSidebar'
+					: actionId === WORKSPACE_FOCUS_RIGHT_SIDEBAR_ID
+						? 'rightSidebar'
+						: 'mainArea';
+			this.runFocusWorkspaceSurface(target);
 			return;
 		}
 		if (actionId === 'apply-queue') {
@@ -1169,6 +1200,32 @@ export class VaultmanPlugin extends Plugin {
 			}
 			return false;
 		}
+	}
+
+	runFocusWorkspaceSurface(target: WorkspaceFocusTarget): boolean {
+		const workspace = this.app.workspace as any;
+		if (!workspace) return false;
+		let split: any = null;
+		if (target === 'leftSidebar') {
+			split = workspace.leftSplit;
+			if (split?.collapsed && typeof split.expand === 'function') {
+				split.expand();
+			}
+		} else if (target === 'rightSidebar') {
+			split = workspace.rightSplit;
+			if (split?.collapsed && typeof split.expand === 'function') {
+				split.expand();
+			}
+		} else if (target === 'mainArea') {
+			split = workspace.rootSplit;
+		}
+		if (!split) return false;
+		const leaf = findActiveLeafInSplit<WorkspaceLeaf>(split);
+		if (leaf && typeof workspace.setActiveLeaf === 'function') {
+			workspace.setActiveLeaf(leaf, { focus: true });
+			return true;
+		}
+		return false;
 	}
 
 	private async focusVaultmanContentSearch(
