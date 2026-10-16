@@ -1789,7 +1789,25 @@ export class PluginsExplorerPanel
 				if (this.interactionMode !== 'select') {
 					if (this.dataSource) {
 						const node = this.findNode(id);
+						// U200-L4 (cluster teclado): Enter alterna el
+						// `cell_toggle` cuando esta visible, igual que el
+						// click en la celda (`onCellClick`); solo sin toggle
+						// visible se activa la fila (open settings/instance).
+						const toggle = node ? this._visibleRowToggle(node) : undefined;
+						if (node && toggle) {
+							this.dataSource.cell(entityIdOf(node), toggle.id);
+							return;
+						}
 						if (node) this.dataSource.activate(entityIdOf(node));
+						return;
+					}
+					// U200-L4 (cluster teclado): Enter alterna el `cell_toggle`
+					// cuando esta visible (paridad con el nativo de Settings,
+					// como ya hace snippets); sin toggle (filas `node_settings`
+					// del puente, `cells: []`) se activa la fila como hasta hoy.
+					const settingNode = this.findNode(id);
+					if (settingNode && this._visibleRowToggle(settingNode)) {
+						void this.toggle(settingNode.meta);
 						return;
 					}
 					this._activateSettingSceneRow(id);
@@ -1979,6 +1997,24 @@ export class PluginsExplorerPanel
 				),
 			});
 		}
+	}
+
+	/**
+	 * U200-L4 (cluster teclado): el `cell_toggle` (`state`) de la fila si
+	 * esta VISIBLE para el teclado. Misma semantica que el filtro de la
+	 * vista (`viewTree` `_visibleCellsForNode` + `nodeCells`): el override
+	 * por nodo `scopeCellToggles` manda, si no el `visibleCells` base. Sin
+	 * celda toggle (filas `node_settings` del puente) no hay nada que
+	 * alternar y el Enter activa la fila.
+	 */
+	private _visibleRowToggle(node: TreeNode<PluginMeta>): TreeNodeCell | undefined {
+		const toggle = (node.cells ?? []).find(
+			(cell) => cell.id === 'state' && cell.kind === 'toggle',
+		);
+		if (!toggle) return undefined;
+		const override = node.scopeCellToggles?.[toggle.id];
+		if (override !== undefined) return override ? toggle : undefined;
+		return this.visibleCells.has(toggle.id) ? toggle : undefined;
 	}
 
 	private findNode(id: string): TreeNode<PluginMeta> | undefined {

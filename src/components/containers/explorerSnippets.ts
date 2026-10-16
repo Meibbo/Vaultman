@@ -1154,9 +1154,11 @@ export class SnippetsExplorerPanel
 					return;
 				}
 				if (this.interactionMode !== 'select') {
-					// The native Settings counterpart activates the snippet toggle.
+					// The native Settings counterpart activates the snippet toggle when visible.
 					const node = this.findNode(id);
-					if (node) void this.toggle(node.meta);
+					if (node && this._visibleRowToggle(node)) {
+						void this.toggle(node.meta);
+					}
 					return;
 				}
 				if (modifiers.shift || modifiers.ctrl || modifiers.meta) {
@@ -1318,6 +1320,20 @@ export class SnippetsExplorerPanel
 			findProjectedNode(this._lastProjectedTree, id) ??
 			this.nodes.find((node) => node.id === id || entityIdOf(node) === id)
 		);
+	}
+
+	/**
+	 * U200-L4 (cluster teclado): el `cell_toggle` (`state`) de la fila si
+	 * esta VISIBLE para el teclado.
+	 */
+	private _visibleRowToggle(node: TreeNode<SnippetMeta>): TreeNodeCell | undefined {
+		const toggle = (node.cells ?? []).find(
+			(cell) => cell.id === 'state' && cell.kind === 'toggle',
+		);
+		if (!toggle) return undefined;
+		const override = node.scopeCellToggles?.[toggle.id];
+		if (override !== undefined) return override ? toggle : undefined;
+		return this.visibleCells.has(toggle.id) ? toggle : undefined;
 	}
 
 	/** B-groupbody: el chevron y el fallback open del cuerpo. Puro toggle. */
