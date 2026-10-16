@@ -262,6 +262,7 @@ describe('hover-surfaces SCSS — cubre las cuatro superficies del servicio', ()
 			'body.mb-hide-sidebars',
 			'body.mb-hide-ribbons',
 			'body.mb-hide-tabbar',
+			'body.mb-hide-navbar',
 			'body.mb-hide-statusbar',
 		]) {
 			expect(cleaned.includes(cls), `clase ausente: ${cls}`).toBe(true);
@@ -356,12 +357,14 @@ describe('hover-surfaces SCSS — cubre las cuatro superficies del servicio', ()
 				sel.includes('mb-hide-sidebars') ||
 				sel.includes('mb-hide-ribbons') ||
 				sel.includes('mb-hide-tabbar') ||
+				sel.includes('mb-hide-navbar') ||
 				sel.includes('mb-hide-statusbar') ||
 				sel.includes('mb-nested-hover-ribbon') ||
 				sel.includes('.mb-ribbon-hovered') ||
 				sel.includes('.mb-sidebar-hovered') ||
 				sel.includes('.mb-sidebar-pinned') ||
 				sel.includes('.mb-tabbar-hovered') ||
+				sel.includes('.mb-navbar-hovered') ||
 				sel.includes('.mb-statusbar-hovered');
 			if (!gated) offenders.push(sel);
 		}

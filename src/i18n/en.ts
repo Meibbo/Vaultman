@@ -988,6 +988,9 @@ export const en: Record<string, string> = {
 	'sasi.hover.tabbar.hide': 'Hide tab bar',
 	'sasi.hover.tabbar.hover': 'Hover tabbar',
 	'sasi.hover.tabbar.pin': 'Pin tabbar',
+	'sasi.hover.navbar.hide': 'Hide nav bar',
+	'sasi.hover.navbar.hover': 'Hover nav bar',
+	'sasi.hover.navbar.pin': 'Pin nav bar',
 	'sasi.hover.statusbar.hide': 'Hide status bar',
 	'sasi.hover.statusbar.hover': 'Hover status bar',
 	'sasi.hover.statusbar.pin': 'Pin status bar',
@@ -1059,13 +1062,23 @@ export const en: Record<string, string> = {
 	'settings.chrome_hover.tabbar': 'Tab bar',
 	'settings.chrome_hover.tabbar.hide': 'Hide tab bar',
 	'settings.chrome_hover.tabbar.hide.desc':
-		'Collapse the tab bar and view header to zero height. Only then can hover reveal them.',
+		'Collapse the tab bar to zero height. Only then can hover reveal it.',
 	'settings.chrome_hover.tabbar.hover': 'Hover tab bar',
 	'settings.chrome_hover.tabbar.hover.desc':
 		'Reveal the hidden tab bar when the pointer reaches the top edge.',
 	'settings.chrome_hover.tabbar.pin': 'Pin tab bar',
 	'settings.chrome_hover.tabbar.pin.desc':
 		'Keep the revealed tab bar open while interacting with it.',
+	'settings.chrome_hover.navbar': 'Nav bar',
+	'settings.chrome_hover.navbar.hide': 'Hide nav bar',
+	'settings.chrome_hover.navbar.hide.desc':
+		'Collapse the leaf view header off-screen. Only then can hover reveal it.',
+	'settings.chrome_hover.navbar.hover': 'Hover nav bar',
+	'settings.chrome_hover.navbar.hover.desc':
+		'Reveal a hidden nav bar when the pointer reaches the top of the leaf.',
+	'settings.chrome_hover.navbar.pin': 'Pin nav bar',
+	'settings.chrome_hover.navbar.pin.desc':
+		'Keep a revealed nav bar open while interacting with it.',
 	'settings.chrome_hover.statusbar': 'Status bar',
 	'settings.chrome_hover.statusbar.hide': 'Hide status bar',
 	'settings.chrome_hover.statusbar.hide.desc':

@@ -156,19 +156,15 @@ body.mb-hide-sidebars.mb-hide-ribbons.mb-nested-hover-ribbon:has(.workspace-ribb
 }
 
 /* ----------------------------------------------------
- * TABBAR + VIEW HEADER — focus-mode hover reveal, SOLO con hide.
- * Sin body.mb-hide-tabbar el tabbar y el view-header quedan nativos.
+ * TABBAR — focus-mode hover reveal, SOLO con hide.
+ * Sin body.mb-hide-tabbar el tabbar queda nativo.
  * Con hide: altura 0 + reveal en hover via mb-tabbar-hovered.
  * ---------------------------------------------------- */
-body.mb-hide-tabbar .mod-root .workspace-tab-header-container,
-body.mb-hide-tabbar .mod-root .workspace-leaf .view-header {
+body.mb-hide-tabbar .mod-root .workspace-tab-header-container {
   transition:
     height 0.15s linear 0.05s,
     opacity 0.15s linear 0.05s,
     border-color 0.15s linear;
-}
-
-body.mb-hide-tabbar .mod-root .workspace-tab-header-container {
   height: 0;
   min-height: 0;
   overflow: visible;
@@ -176,7 +172,23 @@ body.mb-hide-tabbar .mod-root .workspace-tab-header-container {
   border-bottom: none;
 }
 
-body.mb-hide-tabbar .mod-root .workspace-leaf .view-header {
+body.mb-hide-tabbar .workspace-tab-header-container.mb-tabbar-hovered {
+  height: var(--header-height, 40px);
+  min-height: var(--header-height, 40px);
+  opacity: 1;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* ----------------------------------------------------
+ * NAVBAR (VIEW HEADER) — focus-mode hover reveal, SOLO con hide.
+ * Sin body.mb-hide-navbar el view-header queda nativo.
+ * Con hide: altura 0 + reveal en hover via mb-navbar-hovered.
+ * ---------------------------------------------------- */
+body.mb-hide-navbar .mod-root .workspace-leaf .view-header {
+  transition:
+    height 0.15s linear 0.05s,
+    opacity 0.15s linear 0.05s,
+    border-color 0.15s linear;
   height: 0;
   min-height: 0;
   overflow: visible;
@@ -184,8 +196,8 @@ body.mb-hide-tabbar .mod-root .workspace-leaf .view-header {
   position: relative;
 }
 
-body.mb-hide-tabbar .workspace-tab-header-container.mb-tabbar-hovered,
-body.mb-hide-tabbar .view-header.mb-tabbar-hovered {
+body.mb-hide-navbar .workspace-leaf .view-header.mb-navbar-hovered,
+body.mb-hide-navbar .view-header.mb-navbar-hovered {
   height: var(--header-height, 40px);
   min-height: var(--header-height, 40px);
   opacity: 1;
@@ -369,6 +381,19 @@ body.mb-hide-tabbar .mod-root .workspace-tab-header-container::before {
   pointer-events: auto;
 }
 
+/* NAVBAR: 16px hit-zone on the top edge of the view header, gated by mb-hide-navbar. */
+body.mb-hide-navbar .mod-root .workspace-leaf .view-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: transparent;
+  z-index: 200;
+  pointer-events: auto;
+}
+
 /* ----------------------------------------------------
  * STATUS BAR — hide SOLO con la accion hide + reveal en hover.
  * Sin body.mb-hide-statusbar la barra queda nativa.
@@ -427,7 +452,7 @@ body.mb-hover-locked .workspace-split.mod-right-split.is-sidedock-collapsed.mb-s
 body.mb-hover-locked .workspace-tab-header-container,
 body.mb-hover-locked .workspace-tab-header-container.mb-tabbar-hovered,
 body.mb-hover-locked .workspace-leaf .view-header,
-body.mb-hover-locked .workspace-leaf .view-header.mb-tabbar-hovered {
+body.mb-hover-locked .workspace-leaf .view-header.mb-navbar-hovered {
   height: 0;
   min-height: 0;
   opacity: 0;

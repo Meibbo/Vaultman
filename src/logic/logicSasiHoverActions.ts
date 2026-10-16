@@ -29,6 +29,7 @@ export const HOVER_SURFACE_IDS = [
 	'sidebars',
 	'ribbons',
 	'tabbar',
+	'navbar',
 	'statusbar',
 ] as const;
 
@@ -55,6 +56,11 @@ const LABEL_KEYS: Record<HoverSurface, { hide: string; hover: string; pin: strin
 		hover: 'sasi.hover.tabbar.hover',
 		pin: 'sasi.hover.tabbar.pin',
 	},
+	navbar: {
+		hide: 'sasi.hover.navbar.hide',
+		hover: 'sasi.hover.navbar.hover',
+		pin: 'sasi.hover.navbar.pin',
+	},
 	statusbar: {
 		hide: 'sasi.hover.statusbar.hide',
 		hover: 'sasi.hover.statusbar.hover',
@@ -66,6 +72,7 @@ const ICONS: Record<HoverSurface, { hide: string; hover: string; pin: string }> 
 	sidebars: { hide: 'lucide-panel-left-close', hover: 'lucide-panel-left', pin: 'lucide-pin' },
 	ribbons: { hide: 'lucide-panel-left-close', hover: 'lucide-ribbon', pin: 'lucide-pin' },
 	tabbar: { hide: 'lucide-panel-top', hover: 'lucide-rectangle-horizontal', pin: 'lucide-pin' },
+	navbar: { hide: 'lucide-panel-top-close', hover: 'lucide-panel-top', pin: 'lucide-pin' },
 	statusbar: { hide: 'lucide-panel-top', hover: 'lucide-bottom-bar', pin: 'lucide-pin' },
 };
 
@@ -102,6 +109,7 @@ const CONCRETE_SUPPORTS: Record<HoverSurface, readonly string[]> = {
 	sidebars: ['chrome:left-sidebar', 'chrome:right-sidebar'],
 	ribbons: ['chrome:left-ribbon', 'chrome:right-ribbon'],
 	tabbar: ['chrome:tabbar'],
+	navbar: ['chrome:navbar'],
 	statusbar: ['chrome:statusbar'],
 };
 

@@ -1555,6 +1555,7 @@ export class VaultmanPlugin extends Plugin {
 			sidebars: { ...s.sidebars },
 			ribbons: { ...s.ribbons },
 			tabbar: { ...s.tabbar },
+			navbar: { ...s.navbar },
 			statusbar: { ...s.statusbar },
 			lock: s.lock,
 			nestedRibbon: s.nestedRibbon,
@@ -1567,11 +1568,6 @@ export class VaultmanPlugin extends Plugin {
 	): void {
 		const s = this.settings.hoverSurfaces;
 		s[surface] = { ...s[surface], [kind]: !s[surface][kind] };
-		if (kind === 'hide' && !s[surface].hide) {
-			// Al mostrar de nuevo la superficie, el hover heredado dejaria de
-			// tener sentido: se apaga para no tocar superficies abiertas.
-			s[surface] = { ...s[surface], hover: false };
-		}
 		this.applyHoverSurfacesSettings();
 		void this.saveSettings();
 	}
