@@ -40,19 +40,48 @@ describe('page chord validator (isTreePageChord)', () => {
 		expect(isTreePageChord(pageEvent(' '))).toBeNull();
 	});
 
-	it('bubbles modified chords and IME composition', () => {
+	it('bubbles non-shift modified chords and IME composition', () => {
 		expect(isTreePageChord(pageEvent('PageDown', { ctrlKey: true }))).toBeNull();
-		expect(isTreePageChord(pageEvent('PageUp', { shiftKey: true }))).toBeNull();
 		expect(isTreePageChord(pageEvent('PageDown', { altKey: true }))).toBeNull();
 		expect(isTreePageChord(pageEvent('PageUp', { metaKey: true }))).toBeNull();
+		expect(isTreePageChord(pageEvent('PageUp', { isComposing: true }))).toBeNull();
+	});
+
+	it('accepts Shift modifier for range selection', () => {
+		expect(isTreePageChord(pageEvent('PageUp', { shiftKey: true }))).toEqual({
+			isPage: true,
+			shiftKey: true,
+			key: 'PageUp',
+		});
+		expect(isTreePageChord(pageEvent('PageDown', { shiftKey: true }))).toEqual({
+			isPage: true,
+			shiftKey: true,
+			key: 'PageDown',
+		});
+		expect(isTreePageChord(pageEvent('PageDown', { shiftKey: true, ctrlKey: true }), false)).toEqual({
+			isPage: true,
+			shiftKey: true,
+			isMod: true,
+			key: 'PageDown',
+		});
+		expect(isTreePageChord(pageEvent('PageUp', { shiftKey: true, metaKey: true }), true)).toEqual({
+			isPage: true,
+			shiftKey: true,
+			isMod: true,
+			key: 'PageUp',
+		});
 	});
 });
 
 describe('page scope chords (getTreePageScopeChords)', () => {
-	it('routes plain PageUp/PageDown only, separate from the frozen native allowlist', () => {
+	it('routes plain PageUp/PageDown, Shift, and Mod+Shift variants, separate from the frozen native allowlist', () => {
 		expect(getTreePageScopeChords()).toEqual([
 			{ modifiers: [], key: 'PageUp' },
+			{ modifiers: ['Shift'], key: 'PageUp' },
+			{ modifiers: ['Shift', 'Mod'], key: 'PageUp' },
 			{ modifiers: [], key: 'PageDown' },
+			{ modifiers: ['Shift'], key: 'PageDown' },
+			{ modifiers: ['Shift', 'Mod'], key: 'PageDown' },
 		]);
 	});
 });

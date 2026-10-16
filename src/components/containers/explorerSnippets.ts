@@ -1186,14 +1186,14 @@ export class SnippetsExplorerPanel
 				this._touchSelection();
 				this.render();
 			},
-			onRangeSelect: (anchorId: string, focusId: string) => {
+			onRangeSelect: (anchorId: string, focusId: string, options?: { additive?: boolean }) => {
 				if (this.interactionMode !== 'select') return;
 				const { selectedIds, anchorId: nextAnchor } = resolveContextClickSelection({
 					selectedIds: this.selectedNodeIds,
 					anchorId,
 					orderedVisibleIds: this._orderedVisibleTreeIds(),
 					invokedId: focusId,
-					modifiers: { shiftKey: true },
+					modifiers: { shiftKey: true, ctrlKey: options?.additive },
 				});
 				this.selectedNodeIds = selectedIds;
 				this.selectionAnchorId = nextAnchor;

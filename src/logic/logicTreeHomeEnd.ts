@@ -20,6 +20,7 @@ import { collectSiblingMembers } from './logicTreeNavigation';
 export interface TreeHomeEndChord {
 	readonly isHomeEnd: boolean;
 	readonly isWholeExplorer: boolean;
+	readonly shiftKey?: boolean;
 	readonly key: 'Home' | 'End';
 }
 
@@ -32,7 +33,7 @@ export function isTreeHomeEndChord(
 	isMacOS: boolean,
 ): TreeHomeEndChord | null {
 	if (event.key !== 'Home' && event.key !== 'End') return null;
-	if (event.isComposing || event.altKey || event.shiftKey) return null;
+	if (event.isComposing || event.altKey) return null;
 
 	if (isMacOS) {
 		// macOS: Ctrl is non-tree; Meta is Mod (whole-explorer).
@@ -40,6 +41,7 @@ export function isTreeHomeEndChord(
 		return {
 			isHomeEnd: true,
 			isWholeExplorer: event.metaKey,
+			...(event.shiftKey ? { shiftKey: true } : {}),
 			key: event.key,
 		};
 	}
@@ -49,6 +51,7 @@ export function isTreeHomeEndChord(
 	return {
 		isHomeEnd: true,
 		isWholeExplorer: event.ctrlKey,
+		...(event.shiftKey ? { shiftKey: true } : {}),
 		key: event.key,
 	};
 }

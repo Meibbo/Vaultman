@@ -3806,11 +3806,11 @@ export class PropsExplorerPanel extends Component {
 				}
 				this._handleNodeClick(node);
 			},
-			onRangeSelect: (anchorId: string, focusId: string) => {
+			onRangeSelect: (anchorId: string, focusId: string, options?: { additive?: boolean }) => {
 				const result = resolveCheckboxSelection({
 					selectedIds: this.selectedNodeIds, anchorId,
 					orderedVisibleIds: this._orderedVisibleTreeIds(), invokedId: focusId, selected: true,
-					modifiers: { shiftKey: true },
+					modifiers: { shiftKey: true, ctrlKey: options?.additive },
 				});
 				this._applyPropSelection(result.selectedIds, result.anchorId);
 			},

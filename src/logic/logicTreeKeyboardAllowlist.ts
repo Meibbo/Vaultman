@@ -17,9 +17,11 @@ export function getNativeTreeScopeChords(isMacOS: boolean): readonly ScopeKeyCho
 		{ modifiers: [], key: 'ArrowDown' },
 		{ modifiers: ['Shift'], key: 'ArrowDown' },
 		{ modifiers: ['Mod'], key: 'ArrowDown' },
+		{ modifiers: ['Shift', 'Mod'], key: 'ArrowDown' },
 		{ modifiers: [], key: 'ArrowUp' },
 		{ modifiers: ['Shift'], key: 'ArrowUp' },
 		{ modifiers: ['Mod'], key: 'ArrowUp' },
+		{ modifiers: ['Shift', 'Mod'], key: 'ArrowUp' },
 		{ modifiers: [], key: 'ArrowLeft' },
 		{ modifiers: ['Mod'], key: 'ArrowLeft' },
 		{ modifiers: [], key: 'ArrowRight' },
@@ -28,6 +30,8 @@ export function getNativeTreeScopeChords(isMacOS: boolean): readonly ScopeKeyCho
 		{ modifiers: [], key: 'Enter' },
 		{ modifiers: ['Mod'], key: 'Enter' },
 		{ modifiers: [], key: ' ' },
+		{ modifiers: ['Shift'], key: ' ' },
+		{ modifiers: ['Shift', 'Mod'], key: ' ' },
 		{ modifiers: [], key: 'F2' },
 		{ modifiers: [], key: 'ContextMenu' },
 		{ modifiers: ['Shift'], key: 'F10' },
@@ -76,22 +80,30 @@ export function getTreeLetterScopeChords(): readonly { readonly modifiers: reado
 export function getTreeHomeEndScopeChords(): readonly ScopeKeyChord[] {
 	return [
 		{ modifiers: [], key: 'Home' },
-		{ modifiers: [], key: 'End' },
+		{ modifiers: ['Shift'], key: 'Home' },
 		{ modifiers: ['Mod'], key: 'Home' },
+		{ modifiers: ['Shift', 'Mod'], key: 'Home' },
+		{ modifiers: [], key: 'End' },
+		{ modifiers: ['Shift'], key: 'End' },
 		{ modifiers: ['Mod'], key: 'End' },
+		{ modifiers: ['Shift', 'Mod'], key: 'End' },
 	];
 }
 
 /**
- * U130 tree Navco PageUp/PageDown routes: plain keys only (any modifier
- * bubbles: Shift+Page belongs to range selection, Ctrl/Meta+Page to the
- * platform). Deliberately SEPARATE from the frozen native allowlist above.
+ * U130 tree Navco PageUp/PageDown routes: plain keys and Shift+Page (range
+ * selection). Ctrl/Meta+Page bubble to the platform.
+ * Deliberately SEPARATE from the frozen native allowlist above.
  * These routes allow active-leaf BODY / neutral frame fallback to reach the
  * visible tree, where the view resolves frame-relative targets.
  */
 export function getTreePageScopeChords(): readonly ScopeKeyChord[] {
 	return [
 		{ modifiers: [], key: 'PageUp' },
+		{ modifiers: ['Shift'], key: 'PageUp' },
+		{ modifiers: ['Shift', 'Mod'], key: 'PageUp' },
 		{ modifiers: [], key: 'PageDown' },
+		{ modifiers: ['Shift'], key: 'PageDown' },
+		{ modifiers: ['Shift', 'Mod'], key: 'PageDown' },
 	];
 }

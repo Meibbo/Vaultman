@@ -30,6 +30,7 @@ export function updateFileSelection(
 	orderedPaths: readonly string[],
 	targetPath: string,
 	gesture: FileSelectionGesture,
+	additive?: boolean,
 ): { selectedPaths: Set<string>; anchorPath: string | null } {
 	if (gesture === 'open') {
 		return { selectedPaths: new Set([targetPath]), anchorPath: targetPath };
@@ -48,15 +49,22 @@ export function updateFileSelection(
 		? orderedPaths.indexOf(state.anchorPath)
 		: -1;
 	if (targetIndex < 0 || anchorIndex < 0) {
+		const selectedPaths = additive
+			? new Set([...state.selectedPaths, targetPath])
+			: new Set([targetPath]);
 		return {
-			selectedPaths: new Set([targetPath]),
+			selectedPaths,
 			anchorPath: targetPath,
 		};
 	}
 	const start = Math.min(anchorIndex, targetIndex);
 	const end = Math.max(anchorIndex, targetIndex);
+	const slice = orderedPaths.slice(start, end + 1);
+	const selectedPaths = additive
+		? new Set([...state.selectedPaths, ...slice])
+		: new Set(slice);
 	return {
-		selectedPaths: new Set(orderedPaths.slice(start, end + 1)),
+		selectedPaths,
 		anchorPath: state.anchorPath,
 	};
 }

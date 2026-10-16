@@ -3881,7 +3881,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 					}
 					this._treeRenderOpts?.onRowClick?.(id);
 				},
-				onRangeSelect: (anchorId: string, focusId: string) => {
+				onRangeSelect: (anchorId: string, focusId: string, options?: { additive?: boolean }) => {
 					this._applyFileSelection(
 						updateFileSelection(
 							{
@@ -3891,6 +3891,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 							this._orderedSelectableIds(),
 							focusId,
 							'range',
+							options?.additive,
 						),
 					);
 				},

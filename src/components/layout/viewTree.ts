@@ -349,7 +349,7 @@ export interface TreeViewOptions {
 	 */
 	onKeyboardActivate?: (id: string, modifiers: TreeKeyboardModifiers) => void;
 	/** Shift+Up/Down additive range. Absent = focus moves, selection untouched. */
-	onRangeSelect?: (anchorId: string, focusId: string) => void;
+	onRangeSelect?: (anchorId: string, focusId: string, options?: { additive?: boolean }) => void;
 	/** Shift+Up/Down native additive selection step (previous + current). */
 	onAdditiveSelect?: (previousId: string, currentId: string) => void;
 	/** Escape. Absent = release DOM focus. Returns false if nothing was selected. */
@@ -1626,9 +1626,9 @@ export class UnifiedTreeView {
 				// No cast: a keyboard activation is not a pointer event.
 				this._opts?.onRowClick(id);
 			},
-			onRangeSelect: (anchorId, focusId) => {
+			onRangeSelect: (anchorId, focusId, options) => {
 				if (this._opts?.onRangeSelect) {
-					this._opts.onRangeSelect(anchorId, focusId);
+					this._opts.onRangeSelect(anchorId, focusId, options);
 					return;
 				}
 				this._keyboardCallbacks().onFocus(focusId);
@@ -1788,7 +1788,16 @@ export class UnifiedTreeView {
 			});
 		}
 		if (!targetId) return false;
-		this._keyboardCallbacks().onFocus(targetId);
+		if (chord.shiftKey) {
+			const anchor = this._keyboard.anchorId ?? focusedId ?? targetId;
+			const isMod = Boolean(chord.isWholeExplorer);
+			this._keyboardCallbacks().onRangeSelect(anchor, targetId, { additive: isMod });
+			this._keyboardCallbacks().onFocus(targetId);
+			this._keyboard = { ...this._keyboard, focusedId: targetId, anchorId: anchor };
+		} else {
+			this._keyboardCallbacks().onFocus(targetId);
+			this._keyboard = { ...this._keyboard, focusedId: targetId, anchorId: targetId };
+		}
 		event.preventDefault();
 		event.stopPropagation();
 		this._letterPrevious = null;
@@ -1833,7 +1842,7 @@ export class UnifiedTreeView {
 		modelRows: readonly TreeKeyboardRow[],
 		focusedId: string | null,
 	): boolean {
-		const chord = isTreePageChord(event);
+		const chord = isTreePageChord(event, Platform.isMacOS);
 		if (!chord) return false;
 		const frame = this._frameEdges(modelRows);
 		const targetId =
@@ -1852,7 +1861,15 @@ export class UnifiedTreeView {
 					visibleCount: frame.visibleCount,
 				});
 		if (!targetId) return false;
-		this._keyboardCallbacks().onFocus(targetId);
+		if (chord.shiftKey) {
+			const anchor = this._keyboard.anchorId ?? focusedId ?? targetId;
+			this._keyboardCallbacks().onRangeSelect(anchor, targetId, { additive: Boolean(chord.isMod) });
+			this._keyboardCallbacks().onFocus(targetId);
+			this._keyboard = { ...this._keyboard, focusedId: targetId, anchorId: anchor };
+		} else {
+			this._keyboardCallbacks().onFocus(targetId);
+			this._keyboard = { ...this._keyboard, focusedId: targetId, anchorId: targetId };
+		}
 		event.preventDefault();
 		event.stopPropagation();
 		this._letterPrevious = null;

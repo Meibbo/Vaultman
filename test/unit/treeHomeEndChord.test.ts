@@ -39,11 +39,30 @@ describe('Tree Home/End chord validator (isTreeHomeEndChord)', () => {
 			expect(isTreeHomeEndChord(keyEvent('End', { metaKey: true }), false)).toBeNull();
 		});
 
-		it('rejects Alt and Shift modifiers', () => {
+		it('rejects Alt modifiers', () => {
 			expect(isTreeHomeEndChord(keyEvent('Home', { altKey: true }), false)).toBeNull();
-			expect(isTreeHomeEndChord(keyEvent('End', { shiftKey: true }), false)).toBeNull();
 			expect(isTreeHomeEndChord(keyEvent('Home', { ctrlKey: true, altKey: true }), false)).toBeNull();
-			expect(isTreeHomeEndChord(keyEvent('End', { ctrlKey: true, shiftKey: true }), false)).toBeNull();
+		});
+
+		it('accepts Shift modifiers for range selection', () => {
+			expect(isTreeHomeEndChord(keyEvent('Home', { shiftKey: true }), false)).toEqual({
+				isHomeEnd: true,
+				isWholeExplorer: false,
+				shiftKey: true,
+				key: 'Home',
+			});
+			expect(isTreeHomeEndChord(keyEvent('End', { shiftKey: true }), false)).toEqual({
+				isHomeEnd: true,
+				isWholeExplorer: false,
+				shiftKey: true,
+				key: 'End',
+			});
+			expect(isTreeHomeEndChord(keyEvent('End', { ctrlKey: true, shiftKey: true }), false)).toEqual({
+				isHomeEnd: true,
+				isWholeExplorer: true,
+				shiftKey: true,
+				key: 'End',
+			});
 		});
 
 		it('rejects non-Home/End keys and composing/IME', () => {
@@ -85,10 +104,24 @@ describe('Tree Home/End chord validator (isTreeHomeEndChord)', () => {
 			expect(isTreeHomeEndChord(keyEvent('End', { ctrlKey: true }), true)).toBeNull();
 		});
 
-		it('rejects Alt and Shift modifiers on macOS', () => {
+		it('rejects Alt modifiers on macOS', () => {
 			expect(isTreeHomeEndChord(keyEvent('Home', { altKey: true }), true)).toBeNull();
-			expect(isTreeHomeEndChord(keyEvent('End', { shiftKey: true }), true)).toBeNull();
 			expect(isTreeHomeEndChord(keyEvent('Home', { metaKey: true, altKey: true }), true)).toBeNull();
+		});
+
+		it('accepts Shift modifiers on macOS for range selection', () => {
+			expect(isTreeHomeEndChord(keyEvent('End', { shiftKey: true }), true)).toEqual({
+				isHomeEnd: true,
+				isWholeExplorer: false,
+				shiftKey: true,
+				key: 'End',
+			});
+			expect(isTreeHomeEndChord(keyEvent('Home', { metaKey: true, shiftKey: true }), true)).toEqual({
+				isHomeEnd: true,
+				isWholeExplorer: true,
+				shiftKey: true,
+				key: 'Home',
+			});
 		});
 	});
 });

@@ -43,7 +43,7 @@ export interface TreeKeyboardCallbacks {
 	/** Enter/Space activation with real modifier flags. */
 	onActivate(id: string, modifiers: TreeKeyboardModifiers): void;
 	/** Shift+Up/Down additive range from the anchor through the new focus. */
-	onRangeSelect(anchorId: string, focusId: string): void;
+	onRangeSelect(anchorId: string, focusId: string, options?: { additive?: boolean }): void;
 	/** Shift+Up/Down native additive selection step (adds previous and current). */
 	onAdditiveSelect?(previousId: string, currentId: string): void;
 	/** Escape: clear the current selection. Returns false if selection was already empty. */
@@ -178,11 +178,11 @@ export function handleTreeKeyboardKey(
 			}
 			const next = state.rows[nextIndex];
 			if (event.shiftKey) {
-				if (callbacks.onAdditiveSelect) {
+				if (callbacks.onAdditiveSelect && !isMod) {
 					callbacks.onAdditiveSelect(focused ?? next.id, next.id);
 				} else {
 					const anchor = state.anchorId ?? focused ?? next.id;
-					callbacks.onRangeSelect(anchor, next.id);
+					callbacks.onRangeSelect(anchor, next.id, { additive: isMod });
 				}
 				callbacks.onFocus(next.id);
 				return {
@@ -272,6 +272,14 @@ export function handleTreeKeyboardKey(
 		}
 		case ' ': {
 			if (!row) return { handled: false, next: state };
+			if (event.shiftKey) {
+				const anchor = state.anchorId ?? focused ?? row.id;
+				callbacks.onRangeSelect(anchor, row.id, { additive: isMod });
+				return {
+					handled: true,
+					next: { ...state, focusedId: row.id, anchorId: anchor },
+				};
+			}
 			callbacks.onActivate(row.id, modifiersOf(event));
 			return { handled: true, next: state };
 		}

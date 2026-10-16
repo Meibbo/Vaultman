@@ -26,19 +26,28 @@ console.debug('[vaultman-navco] page-jump wiring live');
 
 export interface TreePageChord {
 	readonly isPage: boolean;
+	readonly shiftKey?: boolean;
+	readonly isMod?: boolean;
 	readonly key: 'PageUp' | 'PageDown';
 }
 
 /**
- * Plain PageUp/PageDown chord. Any modifier (Ctrl/Meta/Alt/Shift) bubbles:
- * Shift+PageUp/Down belongs to range selection, Ctrl+Page* to the platform.
- * IME/composing is guarded by the caller and excluded here.
+ * PageUp/PageDown chord (plain, Shift for range selection, or Mod+Shift for additive range).
+ * Plain Mod+Page or Alt+Page bubble to the platform. IME/composing is guarded by caller.
  */
-export function isTreePageChord(event: KeyboardEvent): TreePageChord | null {
+export function isTreePageChord(event: KeyboardEvent, isMacOS = false): TreePageChord | null {
 	if (event.key !== 'PageUp' && event.key !== 'PageDown') return null;
-	if (event.isComposing) return null;
-	if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
-	return { isPage: true, key: event.key };
+	if (event.isComposing || event.altKey) return null;
+	const isMod = isMacOS ? event.metaKey : event.ctrlKey;
+	const nonModKey = isMacOS ? event.ctrlKey : event.metaKey;
+	if (nonModKey) return null;
+	if (isMod && !event.shiftKey) return null;
+	return {
+		isPage: true,
+		...(event.shiftKey ? { shiftKey: true } : {}),
+		...(isMod ? { isMod: true } : {}),
+		key: event.key,
+	};
 }
 
 export interface FrameEdgeTargetArgs {
