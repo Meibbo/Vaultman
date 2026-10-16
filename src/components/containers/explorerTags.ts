@@ -210,7 +210,9 @@ import {
 	resolveContextClickSelection,
 	resolveCheckboxSelection,
 	resolveSelectionTargets,
+	resolveSelectAllInScope,
 	shouldClearExplorerSelectionOnEscape,
+	shouldSelectAllInScopeOnKey,
 } from '../../logic/logicSelectionTargets';
 import {
 	readVaultmanDragPayload,
@@ -1195,7 +1197,22 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
+	selectAll(): void {
+		const { selectedIds, anchorId } = resolveSelectAllInScope(
+			this._orderedVisibleTreeIds(),
+		);
+		this.selectedNodeIds = selectedIds;
+		this.selectionAnchorId = anchorId;
+		this._touchSelection();
+		void this._render();
+	}
+
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (shouldSelectAllInScopeOnKey(event)) {
+			event.preventDefault();
+			this.selectAll();
+			return;
+		}
 		if (!shouldClearExplorerSelectionOnEscape(event)) return;
 		this.clearSelection();
 	};
@@ -2719,6 +2736,7 @@ export class TagsExplorerPanel extends Component {
 				this._touchSelection();
 				void this._render();
 			},
+			onSelectAll: () => this.selectAll(),
 			onRenameRequest: (id: string) => {
 				if (!this._canRenameNode(id)) return;
 				this.editingId = id;

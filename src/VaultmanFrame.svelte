@@ -848,6 +848,63 @@
 		return fileList.revealNode(folderPath) === true;
 	}
 
+	export function selectAllActiveNodes(): boolean {
+		switch (filtersActiveTab) {
+			case 'files':
+				if (fileList) {
+					fileList.selectAll();
+					return true;
+				}
+				break;
+			case 'plugins':
+				if (pluginsExplorer) {
+					pluginsExplorer.selectAll();
+					return true;
+				}
+				break;
+			case 'props':
+				if (propExplorer) {
+					propExplorer.selectAll();
+					return true;
+				}
+				break;
+			case 'snippets':
+				if (snippetsExplorer) {
+					snippetsExplorer.selectAll();
+					return true;
+				}
+				break;
+			case 'tags':
+				if (tagsExplorer) {
+					tagsExplorer.selectAll();
+					return true;
+				}
+				break;
+		}
+		return false;
+	}
+
+	export function copyActiveNode(): boolean {
+		if (filtersActiveTab === 'files' && fileList) {
+			return fileList.copySelectedNodes();
+		}
+		return false;
+	}
+
+	export function cutActiveNode(): boolean {
+		if (filtersActiveTab === 'files' && fileList) {
+			return fileList.cutSelectedNodes();
+		}
+		return false;
+	}
+
+	export async function pasteActiveNode(): Promise<boolean> {
+		if (filtersActiveTab === 'files' && fileList) {
+			return await fileList.pasteNodes();
+		}
+		return false;
+	}
+
 	function onContainerTransitionEnd(e: TransitionEvent) {
 		// Guard against child element transitions bubbling up
 		if (e.target === e.currentTarget && e.propertyName === 'transform') {

@@ -354,6 +354,8 @@ export interface TreeViewOptions {
 	onAdditiveSelect?: (previousId: string, currentId: string) => void;
 	/** Escape. Absent = release DOM focus. Returns false if nothing was selected. */
 	onClearSelection?: () => boolean | void;
+	/** Mod+A: select all in scope */
+	onSelectAll?: () => void;
 	/** F2. The scene's own rename affordance. */
 	onRenameRequest?: (id: string) => void;
 	/** Whether rename is available for this row. Absent = unavailable. */
@@ -1647,6 +1649,9 @@ export class UnifiedTreeView {
 				const active = this.containerEl.ownerDocument?.activeElement;
 				if (active instanceof HTMLElement) active.blur();
 				return false;
+			},
+			onSelectAll: () => {
+				this._opts?.onSelectAll?.();
 			},
 			onRename: (id) => {
 				this._opts?.onRenameRequest?.(id);

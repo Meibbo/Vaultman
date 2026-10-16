@@ -55,6 +55,7 @@ import {
 	parseObsidianFilesClipboard,
 	registerTreeClipboardHandler,
 	serializeObsidianFilesClipboard,
+	type ObsidianClipboardFilesPayload,
 	type TreeClipboardHandler,
 } from '../../logic/logicTreeClipboard';
 import { beginNativeExplorerDrag, nativeExplorerDragManager } from '../../logic/logicNativeExplorerDragStart';
@@ -1676,15 +1677,19 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		return this.hasSourceProjection;
 	}
 
+	selectAll(): void {
+		const { selectedIds, anchorId } = resolveSelectAllInScope(
+			this._orderedSelectableIds(),
+		);
+		this._applyFileSelection({ selectedPaths: selectedIds, anchorPath: anchorId });
+	}
+
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
 		// U130-GGC smoke 3.4: Ctrl+A works in any input mode, delimited by the
 		// active scope projection (visible selectable rows only, headers out).
 		if (shouldSelectAllInScopeOnKey(event)) {
 			event.preventDefault();
-			const { selectedIds, anchorId } = resolveSelectAllInScope(
-				this._orderedSelectableIds(),
-			);
-			this._applyFileSelection({ selectedPaths: selectedIds, anchorPath: anchorId });
+			this.selectAll();
 			return;
 		}
 		if (!shouldClearExplorerSelectionOnEscape(event)) return;
@@ -3911,6 +3916,9 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 						anchorPath: null,
 					});
 					return true;
+				},
+				onSelectAll: () => {
+					this.selectAll();
 				},
 				onCollapseAll: () => {
 					this.collapseAll();
@@ -6648,15 +6656,85 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		this._queueDeleteTargets(targets);
 	}
 
+	private _lastInternalClipboard: ObsidianClipboardFilesPayload | null = null;
+
+	private _writeClipboardText(text: string): void {
+		try {
+			if (typeof document !== 'undefined') {
+				const textarea = document.createElement('textarea');
+				textarea.value = text;
+				textarea.setAttribute('readonly', '');
+				textarea.style.position = 'fixed';
+				textarea.style.opacity = '0';
+				textarea.style.pointerEvents = 'none';
+				document.body.appendChild(textarea);
+				textarea.select();
+				const success = document.execCommand('copy');
+				document.body.removeChild(textarea);
+				if (success) return;
+			}
+		} catch {
+			// ignore execCommand errors
+		}
+		if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+			void navigator.clipboard.writeText(text).catch(() => {});
+		}
+	}
+
+	copySelectedNodes(): boolean {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return false;
+		const json = serializeObsidianFilesClipboard({ operation: 'copy', paths: filtered });
+		this._lastInternalClipboard = { operation: 'copy', paths: filtered };
+		this._writeClipboardText(json);
+		new Notice(`Copied ${filtered.length} item${filtered.length === 1 ? '' : 's'}`);
+		return true;
+	}
+
+	cutSelectedNodes(): boolean {
+		const paths = this._collectClipboardTargetPaths();
+		const filtered = filterDescendantPaths(paths);
+		if (filtered.length === 0) return false;
+		this._cutPaths.clear();
+		for (const p of filtered) this._cutPaths.add(p);
+		this._render();
+		const json = serializeObsidianFilesClipboard({ operation: 'cut', paths: filtered });
+		this._lastInternalClipboard = { operation: 'cut', paths: filtered };
+		this._writeClipboardText(json);
+		new Notice(`Cut ${filtered.length} item${filtered.length === 1 ? '' : 's'}`);
+		return true;
+	}
+
+	async pasteNodes(): Promise<boolean> {
+		let payload: ObsidianClipboardFilesPayload | null = this._lastInternalClipboard;
+		if (!payload && typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+			try {
+				const text = await Promise.race([
+					navigator.clipboard.readText(),
+					new Promise<string>((_, reject) =>
+						setTimeout(() => reject(new Error('clipboard read timeout')), 100),
+					),
+				]);
+				payload = parseObsidianFilesClipboard(text);
+			} catch {
+				// clipboard read denied, timed out, or unsupported
+			}
+		}
+		if (!payload || payload.paths.length === 0) return false;
+		await this._executePastePayload(payload);
+		return true;
+	}
+
 	handleCopy(event: ClipboardEvent): void {
 		const paths = this._collectClipboardTargetPaths();
 		const filtered = filterDescendantPaths(paths);
 		if (filtered.length === 0) return;
 		event.preventDefault();
-		event.clipboardData?.setData(
-			OBSIDIAN_FILES_MIME,
-			serializeObsidianFilesClipboard({ operation: 'copy', paths: filtered }),
-		);
+		const json = serializeObsidianFilesClipboard({ operation: 'copy', paths: filtered });
+		this._lastInternalClipboard = { operation: 'copy', paths: filtered };
+		event.clipboardData?.setData(OBSIDIAN_FILES_MIME, json);
+		event.clipboardData?.setData('text/plain', json);
 	}
 
 	handleCut(event: ClipboardEvent): void {
@@ -6667,18 +6745,37 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		for (const p of filtered) this._cutPaths.add(p);
 		this._render();
 		event.preventDefault();
-		event.clipboardData?.setData(
-			OBSIDIAN_FILES_MIME,
-			serializeObsidianFilesClipboard({ operation: 'cut', paths: filtered }),
-		);
+		const json = serializeObsidianFilesClipboard({ operation: 'cut', paths: filtered });
+		this._lastInternalClipboard = { operation: 'cut', paths: filtered };
+		event.clipboardData?.setData(OBSIDIAN_FILES_MIME, json);
+		event.clipboardData?.setData('text/plain', json);
 	}
 
 	async handlePaste(event: ClipboardEvent): Promise<void> {
-		const raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
-		const payload = parseObsidianFilesClipboard(raw);
+		let raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
+		if (!raw) {
+			raw = event.clipboardData?.getData('text/plain');
+		}
+		let payload = parseObsidianFilesClipboard(raw);
+		if (!payload) {
+			if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+				try {
+					const text = await navigator.clipboard.readText();
+					payload = parseObsidianFilesClipboard(text);
+				} catch {
+					// clipboard read denied or unsupported
+				}
+			}
+		}
+		if (!payload) {
+			payload = this._lastInternalClipboard;
+		}
 		if (!payload || payload.paths.length === 0) return;
 		event.preventDefault();
+		await this._executePastePayload(payload);
+	}
 
+	private async _executePastePayload(payload: ObsidianClipboardFilesPayload): Promise<void> {
 		const focusedId = this.treeView?.focusedId;
 		let targetFolder: TFolder | null = null;
 		if (focusedId) {
@@ -6729,6 +6826,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		if (outcome.staged === 0) return;
 		this._cutPaths.clear();
 		this._render();
+		new Notice(`Pasted ${operations.length} item${operations.length === 1 ? '' : 's'}`);
 	}
 
 	private _collectClipboardTargetPaths(): string[] {

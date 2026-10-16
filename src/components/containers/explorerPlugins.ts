@@ -145,7 +145,9 @@ import {
 import {
 	resolveContextClickSelection,
 	resolveCheckboxSelection,
+	resolveSelectAllInScope,
 	shouldClearExplorerSelectionOnEscape,
+	shouldSelectAllInScopeOnKey,
 } from '../../logic/logicSelectionTargets';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
 import {
@@ -653,7 +655,22 @@ export class PluginsExplorerPanel
 		this.render();
 	}
 
+	selectAll(): void {
+		const { selectedIds, anchorId } = resolveSelectAllInScope(
+			this._orderedVisibleTreeIds(),
+		);
+		this.selectedNodeIds = selectedIds;
+		this.selectionAnchorId = anchorId;
+		this._touchSelection();
+		this.render();
+	}
+
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (shouldSelectAllInScopeOnKey(event)) {
+			event.preventDefault();
+			this.selectAll();
+			return;
+		}
 		if (!shouldClearExplorerSelectionOnEscape(event)) return;
 		this.clearSelection();
 	};
@@ -1853,6 +1870,7 @@ export class PluginsExplorerPanel
 				this.render();
 			},
 			onClearSelection: () => this.clearSelection(),
+			onSelectAll: () => this.selectAll(),
 			// U130 tree Navco: letter jump gated on the EFFECTIVE tree-wide
 			// sort (plugins have no per-level sorts). `jump` arrives with
 			// the shared Floating Index helper (other lane).

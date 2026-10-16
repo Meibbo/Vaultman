@@ -8,6 +8,7 @@ import {
 	isTreeLetterJumpChord,
 } from './logic/logicTreeKeyboardAllowlist';
 import { routeTreeClipboardEvent } from './logic/logicTreeClipboard';
+import { isEditableKeyboardTarget } from './logic/logicTreeKeyboard';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
@@ -55,6 +56,10 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	addPropertyInReveal?(): Promise<boolean>;
 	openFilterScene?(): boolean;
 	openQueue?(): boolean;
+	selectAllActiveNodes?(): boolean;
+	copyActiveNode?(): boolean;
+	cutActiveNode?(): boolean;
+	pasteActiveNode?(): Promise<boolean>;
 };
 
 /**
@@ -108,6 +113,35 @@ export class VaultmanFrame extends ItemView {
 				return routeTreeKeyboardEvent(event, { frameEl: this.containerEl });
 			});
 		}
+		this.scope.register(['Mod'], 'a', (event: KeyboardEvent) => {
+			if (isEditableKeyboardTarget(event.target, null)) return undefined;
+			return this.selectAllActiveNodes() ? false : undefined;
+		});
+		this.scope.register(['Mod'], 'c', (event: KeyboardEvent) => {
+			if (isEditableKeyboardTarget(event.target, null)) return undefined;
+			return this.copyActiveNode() ? false : undefined;
+		});
+		this.scope.register(['Mod'], 'x', (event: KeyboardEvent) => {
+			if (isEditableKeyboardTarget(event.target, null)) return undefined;
+			return this.cutActiveNode() ? false : undefined;
+		});
+		this.scope.register(['Mod'], 'v', (event: KeyboardEvent) => {
+			if (isEditableKeyboardTarget(event.target, null)) return undefined;
+			void this.pasteActiveNode();
+			return false;
+		});
+
+		const routeClipboard = (type: 'copy' | 'cut' | 'paste') => (event: ClipboardEvent) => {
+			if (isEditableKeyboardTarget(event.target, null)) return;
+			const handled = routeTreeClipboardEvent(type, event, { frameEl: this.containerEl });
+			if (handled) {
+				event.preventDefault();
+			}
+		};
+		this.registerDomEvent(this.containerEl, 'copy', routeClipboard('copy'));
+		this.registerDomEvent(this.containerEl, 'cut', routeClipboard('cut'));
+		this.registerDomEvent(this.containerEl, 'paste', routeClipboard('paste'));
+
 		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
@@ -461,5 +495,21 @@ export class VaultmanFrame extends ItemView {
 
 	handlePaste(event: ClipboardEvent): void {
 		routeTreeClipboardEvent('paste', event, { frameEl: this.containerEl });
+	}
+
+	selectAllActiveNodes(): boolean {
+		return this.svelteApp?.selectAllActiveNodes?.() ?? false;
+	}
+
+	copyActiveNode(): boolean {
+		return this.svelteApp?.copyActiveNode?.() ?? false;
+	}
+
+	cutActiveNode(): boolean {
+		return this.svelteApp?.cutActiveNode?.() ?? false;
+	}
+
+	async pasteActiveNode(): Promise<boolean> {
+		return (await this.svelteApp?.pasteActiveNode?.()) ?? false;
 	}
 }

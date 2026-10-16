@@ -48,6 +48,8 @@ export interface TreeKeyboardCallbacks {
 	onAdditiveSelect?(previousId: string, currentId: string): void;
 	/** Escape: clear the current selection. Returns false if selection was already empty. */
 	onClearSelection(): boolean | void;
+	/** Mod+A: select all in scope */
+	onSelectAll?(): void;
 	/** F2 or macOS Enter: rename when the scene offers it. */
 	onRename(id: string): void;
 	/** Whether rename is available for this row. Absent = unavailable. */
@@ -290,6 +292,14 @@ export function handleTreeKeyboardKey(
 				return { handled: false, next: state };
 			}
 			return { handled: true, next: state };
+		}
+		case 'a':
+		case 'A': {
+			if (isMod && callbacks.onSelectAll) {
+				callbacks.onSelectAll();
+				return { handled: true, next: state };
+			}
+			return { handled: false, next: state };
 		}
 		case 'F2': {
 			if (!row || !callbacks.canRename || !callbacks.canRename(row.id)) {

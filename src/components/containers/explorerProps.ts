@@ -223,7 +223,9 @@ import {
 	resolveContextClickSelection,
 	resolveCheckboxSelection,
 	resolveSelectionTargets,
+	resolveSelectAllInScope,
 	shouldClearExplorerSelectionOnEscape,
+	shouldSelectAllInScopeOnKey,
 } from '../../logic/logicSelectionTargets';
 import {
 	addToFilesAvailability,
@@ -1550,7 +1552,19 @@ export class PropsExplorerPanel extends Component {
 		this._applyPropSelection(new Set(), null);
 	}
 
+	selectAll(): void {
+		const { selectedIds, anchorId } = resolveSelectAllInScope(
+			this._orderedVisibleTreeIds(),
+		);
+		this._applyPropSelection(selectedIds, anchorId);
+	}
+
 	private readonly _handleSelectionEscape = (event: KeyboardEvent): void => {
+		if (shouldSelectAllInScopeOnKey(event)) {
+			event.preventDefault();
+			this.selectAll();
+			return;
+		}
 		if (!shouldClearExplorerSelectionOnEscape(event)) return;
 		this.clearSelection();
 	};
@@ -3815,6 +3829,7 @@ export class PropsExplorerPanel extends Component {
 				this._applyPropSelection(result.selectedIds, result.anchorId);
 			},
 			onClearSelection: () => this._applyPropSelection(new Set(), null),
+			onSelectAll: () => this.selectAll(),
 			onRenameRequest: (id: string) => {
 				if (!this._canRenameNode(id)) return;
 				this._editingId = id;

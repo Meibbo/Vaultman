@@ -32,6 +32,7 @@ export function getNativeTreeScopeChords(isMacOS: boolean): readonly ScopeKeyCho
 		{ modifiers: [], key: ' ' },
 		{ modifiers: ['Shift'], key: ' ' },
 		{ modifiers: ['Shift', 'Mod'], key: ' ' },
+		{ modifiers: ['Mod'], key: 'a' },
 		{ modifiers: [], key: 'F2' },
 		{ modifiers: [], key: 'ContextMenu' },
 		{ modifiers: ['Shift'], key: 'F10' },

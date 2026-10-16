@@ -211,6 +211,9 @@ const SASI_PUBLISHED_DEFAULT_TRUE: ReadonlySet<string> = new Set([
 	'open-queue',
 	'open-api-scene',
 	'vaultman.scene.goto.apiscene',
+	'select-all-nodes',
+	'copy-node',
+	'paste-node',
 ]);
 
 export function sasiPublishedDefault(id: string): boolean {
@@ -757,6 +760,57 @@ export class VaultmanPlugin extends Plugin {
 			name: translate('sasi.scene.goto.apiscene'),
 			handler: () => {
 				void this.goToApiSceneCommand();
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'select-all-nodes',
+			name: translate('command.select_all_nodes'),
+			handler: () => {
+				const activeView = this.app.workspace.getActiveViewOfType(VaultmanFrame);
+				if (activeView) {
+					activeView.selectAllActiveNodes();
+					return;
+				}
+				for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+					if (leaf.view instanceof VaultmanFrame) {
+						leaf.view.selectAllActiveNodes();
+						break;
+					}
+				}
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'copy-node',
+			name: translate('command.copy_node'),
+			handler: () => {
+				const activeView = this.app.workspace.getActiveViewOfType(VaultmanFrame);
+				if (activeView) {
+					activeView.copyActiveNode();
+					return;
+				}
+				for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+					if (leaf.view instanceof VaultmanFrame) {
+						leaf.view.copyActiveNode();
+						break;
+					}
+				}
+			},
+		});
+		this.sasiCommandPublisher.register({
+			id: 'paste-node',
+			name: translate('command.paste_node'),
+			handler: () => {
+				const activeView = this.app.workspace.getActiveViewOfType(VaultmanFrame);
+				if (activeView) {
+					void activeView.pasteActiveNode();
+					return;
+				}
+				for (const leaf of this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)) {
+					if (leaf.view instanceof VaultmanFrame) {
+						void leaf.view.pasteActiveNode();
+						break;
+					}
+				}
 			},
 		});
 		if (this.settings.sasiCustomCommands) {
