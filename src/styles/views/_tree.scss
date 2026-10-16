@@ -936,7 +936,7 @@ body.vaultman-resizing {
    cells and depth indent identically to native and compatible tree. */
 body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-row.has-focus,
 body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-self.has-focus {
-  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 body:not(.is-phone) .workspace-leaf.mod-active .vaultman-native-tree-locked .vaultman-tree-row.has-focus .vaultman-tree-self.has-focus {
