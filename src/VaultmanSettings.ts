@@ -1079,6 +1079,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		});
 
 		items.push({
+			name: translate('settings.show_movement_notices'),
+			desc: translate('settings.show_movement_notices.desc'),
+			render: (setting: Setting) => {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.showMovementNotices === true)
+						.onChange(async (val) => {
+							this.plugin.settings.showMovementNotices = val;
+							await this.plugin.saveSettings();
+						}),
+				);
+			},
+		});
+
+		items.push({
 			name: translate('settings.data_transfer'),
 			desc: translate('settings.data_transfer.desc'),
 			render: (setting: Setting) => {

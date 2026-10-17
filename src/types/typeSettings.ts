@@ -530,6 +530,8 @@ export interface VaultmanSettings {
 	sasiCommandCustomScopes?: Record<string, string>;
 	sasiAnchorScope?: boolean;
 	showSasiInSceneMenu?: boolean;
+	/** Show toast notices when scoped panel movement commands are executed or blocked */
+	showMovementNotices: boolean;
 	/** API inspector options are not workspace instance declarations. */
 	apiSceneConfig?: import('./typeInstance').SceneConfig;
 	nativeSurfaceClickPrimary: NativeSurfaceClickAction;
@@ -766,4 +768,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	sasiCommandCustomScopes: {},
 	sasiAnchorScope: false,
 	showSasiInSceneMenu: false,
+	showMovementNotices: false,
 };

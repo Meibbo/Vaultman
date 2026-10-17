@@ -1,7 +1,7 @@
 import { createSasiRegistry, type SasiRegistry } from './logicSasiRegistry';
 import { registerAddonGroupToggleActions } from './logicAddonGroupToggle';
 import { registerMoveActions } from './logicSasiMoveActions';
-import { registerTabMoveActions } from './logicSasiTabMoveActions';
+import { registerScopedPanelActions } from './logicScopedPanelMoves';
 import { registerSceneInstanceActions } from './logicSasiSceneActions';
 import { registerPresentationActions } from './logicSasiPresentationActions';
 import { registerToolbarMenuActions } from './logicSasiToolbarActions';
@@ -103,7 +103,7 @@ export function createVaultmanSasi(): VaultmanSasi {
 	registerProviders(registry);
 	registerChromeSurfaces(registry);
 	registerMoveActions(registry);
-	registerTabMoveActions(registry);
+	registerScopedPanelActions(registry);
 	registerSceneInstanceActions(registry);
 	registerPresentationActions(registry);
 	registerToolbarMenuActions(registry);

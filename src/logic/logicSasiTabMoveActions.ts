@@ -1,4 +1,3 @@
-import type { SasiRegistry } from './logicSasiRegistry';
 import type { SasiCommandDescriptor } from './logicSasiCommands';
 
 /**
@@ -38,49 +37,6 @@ export function tabMoveActionId(direction: TabMoveDirection): string {
 
 export function groupMoveActionId(direction: GroupMoveDirection): string {
 	return direction === 'left' ? GROUP_MOVE_LEFT_ID : GROUP_MOVE_RIGHT_ID;
-}
-
-const TAB_MOVE_DEFS = [
-	{
-		id: TAB_MOVE_PREVIOUS_ID,
-		labelKey: 'sasi.move.tab_to_previous_group',
-		icon: 'lucide-arrow-left',
-	},
-	{
-		id: TAB_MOVE_NEXT_ID,
-		labelKey: 'sasi.move.tab_to_next_group',
-		icon: 'lucide-arrow-right',
-	},
-	{
-		id: GROUP_MOVE_LEFT_ID,
-		labelKey: 'sasi.move.group_left',
-		icon: 'lucide-chevrons-left',
-	},
-	{
-		id: GROUP_MOVE_RIGHT_ID,
-		labelKey: 'sasi.move.group_right',
-		icon: 'lucide-chevrons-right',
-	},
-	{
-		id: TOGGLE_MAXIMIZE_ID,
-		labelKey: 'sasi.toolbar.toggle_maximize',
-		icon: 'lucide-maximize',
-	},
-] as const;
-
-export function registerTabMoveActions(registry: SasiRegistry): void {
-	for (const def of TAB_MOVE_DEFS) {
-		registry.register({
-			id: def.id,
-			axis: 'function',
-			kind: 'action',
-			labelKey: def.labelKey,
-			icon: def.icon,
-			// Comandos de paleta sobre chrome del workspace: sin superficie
-			// de escena propia, igual que el catalogo estatico del toolbar.
-			supports: [{ surface: 'panelWidget' }],
-		});
-	}
 }
 
 //...----------—————————————(   GUARDS   )————————————------------...\\

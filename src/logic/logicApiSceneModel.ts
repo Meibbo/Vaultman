@@ -1,6 +1,10 @@
 import type { NodeGroupDef } from './logicNodeGroup';
 import { formatMembershipUrn } from './logicMembershipUrn';
-import type { SasiCatalogKind, SasiFunctionKind } from './logicSasiRegistry';
+import type {
+	SasiCatalogKind,
+	SasiCompatibility,
+	SasiFunctionKind,
+} from './logicSasiRegistry';
 
 export const API_SCENE_PROVIDER_ID = 'sasi';
 export const API_SCENE_IDENTITY_KIND = 'node_apis';
@@ -129,6 +133,8 @@ export interface ApiSceneNodeMeta {
 	supports: readonly string[];
 	composes: readonly string[];
 	scope?: string;
+	/** U200-L4: limites de la accion, misma fuente que el inspector. */
+	compatibility?: SasiCompatibility;
 	mutatesVault: boolean;
 	publishable: boolean;
 	published: boolean;
