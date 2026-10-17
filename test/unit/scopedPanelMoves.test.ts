@@ -432,12 +432,40 @@ describe('U200-L5 reorderChildWithinParent: misma instancia, cero recreacion', (
 		leaves: { tabHeaderEl: unknown; detach: () => void; setViewState: () => void }[];
 		selectSpy: (index: number) => void;
 	} {
-		const container: {
-			children: unknown[];
-			insertBefore: (node: unknown, ref: unknown) => void;
-		} = {
-			children: [],
-			insertBefore(node, ref) {
+		class MockHTMLCollection {
+			[index: number]: unknown;
+			get length(): number {
+				let count = 0;
+				while (this[count] !== undefined) count++;
+				return count;
+			}
+			push(item: unknown): void {
+				const len = this.length;
+				this[len] = item;
+			}
+			indexOf(item: unknown): number {
+				const len = this.length;
+				for (let i = 0; i < len; i++) {
+					if (this[i] === item) return i;
+				}
+				return -1;
+			}
+			splice(start: number, deleteCount: number, ...items: unknown[]): void {
+				const arr: unknown[] = [];
+				const len = this.length;
+				for (let i = 0; i < len; i++) {
+					arr.push(this[i]);
+					delete this[i];
+				}
+				arr.splice(start, deleteCount, ...items);
+				for (let i = 0; i < arr.length; i++) {
+					this[i] = arr[i];
+				}
+			}
+		}
+		const container = {
+			children: new MockHTMLCollection(),
+			insertBefore(node: unknown, ref: unknown) {
 				const at = this.children.indexOf(node);
 				if (at >= 0) this.children.splice(at, 1);
 				const to = ref === null ? -1 : this.children.indexOf(ref);
@@ -454,10 +482,6 @@ describe('U200-L5 reorderChildWithinParent: misma instancia, cero recreacion', (
 			const header = {
 				id: `h${i}`,
 				parentNode: container,
-				remove(this: { parentNode: typeof container }): void {
-					const at = this.parentNode.children.indexOf(this);
-					if (at >= 0) this.parentNode.children.splice(at, 1);
-				},
 			};
 			container.children.push(header);
 			leaves.push({
@@ -469,7 +493,7 @@ describe('U200-L5 reorderChildWithinParent: misma instancia, cero recreacion', (
 		const selectSpy = vi.fn((_index: number): void => undefined);
 		const parent = {
 			children: [...leaves] as unknown[],
-			tabHeaderEls: [...container.children] as unknown[],
+			tabHeaderEls: Array.from({ length: count }, (_, i) => container.children[i]),
 			currentTab: 1,
 			selectTabIndex: selectSpy,
 		};

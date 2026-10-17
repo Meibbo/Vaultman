@@ -717,19 +717,23 @@ export function reorderChildWithinParent(
 				children?: unknown;
 				insertBefore?: unknown;
 			} | null;
-			const remove = (headerEl as { remove?: unknown }).remove;
+			const hasCollection = Boolean(
+				containerLike &&
+					containerLike.children &&
+					typeof (containerLike.children as { length?: unknown }).length === 'number',
+			);
 			if (
 				!containerLike ||
-				!Array.isArray(containerLike.children) ||
-				typeof containerLike.insertBefore !== 'function' ||
-				typeof remove !== 'function'
+				!hasCollection ||
+				typeof containerLike.insertBefore !== 'function'
 			) {
 				rollback();
 				return false;
 			}
 			try {
-				(remove as () => void).call(headerEl);
-				const ref = (containerLike.children as unknown[])[to] ?? null;
+				const collection = containerLike.children as Record<number, unknown>;
+				const refIndex = from < to ? to + 1 : to;
+				const ref = collection[refIndex] ?? null;
 				(
 					containerLike.insertBefore as (
 						node: unknown,
