@@ -185,4 +185,82 @@ describe('U200-L4 Symptom 3: Shift range selection', () => {
 		expect(Array.from(result.selectedIds).sort()).toEqual(['a', 'b', 'd', 'e', 'f']);
 		expect(result.anchorId).toBe('d');
 	});
+
+	it('ArrowDown and ArrowUp preserve existing anchorId when navigating without Shift', () => {
+		const callbacks: TreeKeyboardCallbacks = {
+			onFocus: vi.fn(),
+			onRangeSelect: vi.fn(),
+			onToggleExpand: vi.fn(),
+			onActivate: vi.fn(),
+			onClearSelection: vi.fn(),
+			onRename: vi.fn(),
+		};
+
+		const downEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: false });
+		const state = {
+			rows: ROWS,
+			focusedId: 'b',
+			anchorId: 'b',
+		};
+
+		const downResult = handleTreeKeyboardKey(downEvent, state, callbacks);
+		expect(downResult.handled).toBe(true);
+		expect(downResult.next.focusedId).toBe('c');
+		expect(downResult.next.anchorId).toBe('b');
+
+		const upEvent = new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: false });
+		const upResult = handleTreeKeyboardKey(upEvent, downResult.next, callbacks);
+		expect(upResult.handled).toBe(true);
+		expect(upResult.next.focusedId).toBe('b');
+		expect(upResult.next.anchorId).toBe('b');
+	});
+
+	it('navigating with arrows preserves anchor for subsequent Ctrl+Shift+Space range selection', () => {
+		const onRangeSelect = vi.fn();
+		const callbacks: TreeKeyboardCallbacks = {
+			onFocus: vi.fn(),
+			onRangeSelect,
+			onToggleExpand: vi.fn(),
+			onActivate: vi.fn(),
+			onClearSelection: vi.fn(),
+			onRename: vi.fn(),
+		};
+
+		// 1. Shift+Space on 'b' establishes anchor 'b'
+		const selectB = handleTreeKeyboardKey(
+			new KeyboardEvent('keydown', { key: ' ', shiftKey: true }),
+			{ rows: ROWS, focusedId: 'b', anchorId: null },
+			callbacks,
+		);
+		expect(selectB.next.anchorId).toBe('b');
+		expect(onRangeSelect).toHaveBeenCalledWith('b', 'b', { additive: false });
+
+		// 2. Navigate down with ArrowDown twice to 'd' without Shift
+		const step1 = handleTreeKeyboardKey(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: false }),
+			selectB.next,
+			callbacks,
+		);
+		expect(step1.next.focusedId).toBe('c');
+		expect(step1.next.anchorId).toBe('b');
+
+		const step2 = handleTreeKeyboardKey(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: false }),
+			step1.next,
+			callbacks,
+		);
+		expect(step2.next.focusedId).toBe('d');
+		expect(step2.next.anchorId).toBe('b');
+
+		// 3. Ctrl+Shift+Space on 'd' triggers range selection from 'b' to 'd' with additive: true
+		const rangeResult = handleTreeKeyboardKey(
+			new KeyboardEvent('keydown', { key: ' ', shiftKey: true, ctrlKey: true }),
+			step2.next,
+			callbacks,
+		);
+		expect(rangeResult.handled).toBe(true);
+		expect(onRangeSelect).toHaveBeenCalledWith('b', 'd', { additive: true });
+		expect(rangeResult.next.anchorId).toBe('b');
+	});
 });
+

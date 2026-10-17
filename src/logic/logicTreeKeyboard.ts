@@ -199,13 +199,13 @@ export function handleTreeKeyboardKey(
 				}
 				return {
 					handled: true,
-					next: { ...state, focusedId: next.id, anchorId: next.id },
+					next: { ...state, focusedId: next.id, anchorId: state.anchorId },
 				};
 			}
 			callbacks.onFocus(next.id);
 			return {
 				handled: true,
-				next: { ...state, focusedId: next.id, anchorId: next.id },
+				next: { ...state, focusedId: next.id, anchorId: state.anchorId },
 			};
 		}
 		case 'ArrowLeft': {
@@ -221,7 +221,7 @@ export function handleTreeKeyboardKey(
 					callbacks.onFocus(target.id);
 					return {
 						handled: true,
-						next: { ...state, focusedId: target.id, anchorId: target.id },
+						next: { ...state, focusedId: target.id, anchorId: state.anchorId },
 					};
 				}
 				return { handled: true, next: state };
@@ -233,7 +233,7 @@ export function handleTreeKeyboardKey(
 				callbacks.onFocus(target.id);
 				return {
 					handled: true,
-					next: { ...state, focusedId: target.id, anchorId: target.id },
+					next: { ...state, focusedId: target.id, anchorId: state.anchorId },
 				};
 			}
 			// Root file: collapse all
@@ -252,7 +252,7 @@ export function handleTreeKeyboardKey(
 					callbacks.onFocus(child.id);
 					return {
 						handled: true,
-						next: { ...state, focusedId: child.id, anchorId: child.id },
+						next: { ...state, focusedId: child.id, anchorId: state.anchorId },
 					};
 				}
 				return { handled: true, next: state };

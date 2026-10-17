@@ -108,19 +108,20 @@ function publisherFor(ids: readonly string[]) {
 }
 
 describe('U130L apiScene: grupos', () => {
-	it('los 9 grupos existen con ids estables', () => {
+	it('los grupos existen con ids estables', () => {
 		const groups = buildApiSceneGroups((name) => name);
 		expect(groups.map((g) => g.id)).toEqual(
 			API_SCENE_GROUP_NAMES.map((name) => API_SCENE_GROUP_IDS[name]),
 		);
-		expect(groups).toHaveLength(9);
+		expect(groups).toHaveLength(API_SCENE_GROUP_NAMES.length);
+		expect(groups.some((g) => g.id === API_SCENE_GROUP_IDS.input)).toBe(true);
 	});
 
-	it('la proyeccion emite las 9 cabeceras con meta propia y sin fantasma', () => {
+	it('la proyeccion emite las cabeceras con meta propia y sin fantasma', () => {
 		const { registry } = createVaultmanSasi();
 		const nodes = buildApiSceneNodes(registry, fakePublisher(), fakeInstances());
 		const tree = projectApiSceneTree(nodes);
-		// Sin fantasma `vaultman.group.none`: los 9 grupos particionan todo.
+		// Sin fantasma `vaultman.group.none`: los grupos particionan todo.
 		expect(tree.some((row) => row.id === NO_GROUP_ID)).toBe(false);
 		const headers = tree.filter((row) => row.isGroupHeader === true);
 		expect(headers.map((h) => h.id).sort()).toEqual(
@@ -140,6 +141,11 @@ describe('U130L apiScene: grupos', () => {
 		);
 		expect(commandHeader).toBeDefined();
 		expect(commandHeader?.children ?? []).toEqual([]);
+
+		// Input header includes keyboard and mouse navigation p-nodes
+		const inputHeader = headers.find((h) => h.id === API_SCENE_GROUP_IDS.input);
+		expect(inputHeader).toBeDefined();
+		expect((inputHeader?.children ?? []).length).toBe(2);
 	});
 });
 

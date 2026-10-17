@@ -3891,7 +3891,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 						updateFileSelection(
 							{
 								selectedPaths: this.selectedFilePaths,
-								anchorPath: anchorId,
+								anchorPath: this.selectionAnchorPath ?? anchorId,
 							},
 							this._orderedSelectableIds(),
 							focusId,
@@ -6915,6 +6915,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		this.selectedFilePaths = selectedPaths;
 		this._touchSelection();
 		this.selectionAnchorPath = anchorPath;
+		this.treeView?.setAnchorId(anchorPath);
 		this.tableView?.setSelectedPaths(selectedPaths);
 		this.gridView?.setSelectedPaths(selectedPaths);
 		this.plugin.filterService.setSelectedFiles(this.getSelectedFiles());

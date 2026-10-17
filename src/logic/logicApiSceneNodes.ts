@@ -573,6 +573,161 @@ function appendScopeSubgroups(
 	}
 }
 
+function appendInputNodes(context: NodeBuildContext): void {
+	const keyboardShortcuts: Array<{
+		id: string;
+		labelKey: string;
+		icon: string;
+		keys: readonly string[];
+	}> = [
+		{ id: 'toggle_enter', labelKey: 'sasi.input.keyboard.toggle_enter', icon: 'lucide-corner-down-left', keys: ['Enter'] },
+		{ id: 'open_space', labelKey: 'sasi.input.keyboard.open_space', icon: 'lucide-space', keys: ['Space'] },
+		{ id: 'range_select', labelKey: 'sasi.input.keyboard.range_select', icon: 'lucide-text-cursor-input', keys: ['Shift', 'Space'] },
+		{ id: 'additive_range_select', labelKey: 'sasi.input.keyboard.additive_range_select', icon: 'lucide-plus-square', keys: ['Ctrl', 'Shift', 'Space'] },
+		{ id: 'select_all', labelKey: 'sasi.input.keyboard.select_all', icon: 'lucide-check-check', keys: ['Ctrl', 'A'] },
+		{ id: 'copy_node', labelKey: 'sasi.input.keyboard.copy_node', icon: 'lucide-copy', keys: ['Ctrl', 'C'] },
+		{ id: 'paste_node', labelKey: 'sasi.input.keyboard.paste_node', icon: 'lucide-clipboard-paste', keys: ['Ctrl', 'V'] },
+		{ id: 'prefix_jump', labelKey: 'sasi.input.keyboard.prefix_jump', icon: 'lucide-arrow-down-a-z', keys: ['A-Z'] },
+		{ id: 'shift_arrows', labelKey: 'sasi.input.keyboard.shift_arrows', icon: 'lucide-move-vertical', keys: ['Shift', '↑/↓'] },
+		{ id: 'ctrl_shift_arrows', labelKey: 'sasi.input.keyboard.ctrl_shift_arrows', icon: 'lucide-list-plus', keys: ['Ctrl', 'Shift', '↑/↓'] },
+		{ id: 'shift_home_end', labelKey: 'sasi.input.keyboard.shift_home_end', icon: 'lucide-chevrons-up-down', keys: ['Shift', 'Home/End'] },
+		{ id: 'shift_page_jump', labelKey: 'sasi.input.keyboard.shift_page_jump', icon: 'lucide-book-open', keys: ['Shift', 'PgUp/PgDn'] },
+		{ id: 'step_open', labelKey: 'sasi.input.keyboard.step_open', icon: 'lucide-eye', keys: ['Ctrl', '↑/↓'] },
+		{ id: 'collapse_expand', labelKey: 'sasi.input.keyboard.collapse_expand', icon: 'lucide-fold-horizontal', keys: ['← / →'] },
+		{ id: 'clear_selection', labelKey: 'sasi.input.keyboard.clear_selection', icon: 'lucide-x', keys: ['Esc'] },
+		{ id: 'rename_node', labelKey: 'sasi.input.keyboard.rename_node', icon: 'lucide-edit-3', keys: ['F2'] },
+	];
+
+	const keyboardChildren: TreeNode<ApiSceneNodeMeta>[] = keyboardShortcuts.map((item) => ({
+		id: `sasi:input:keyboard:${item.id}`,
+		label: item.labelKey,
+		icon: item.icon,
+		typeText: 'shortcut',
+		depth: 2,
+		cells: [
+			{
+				id: 'keys',
+				kind: 'keys',
+				keys: item.keys,
+				label: item.keys.join(' + '),
+			},
+		],
+		meta: {
+			identityKind: 'node_input_keyboard',
+			urn: apiSceneUrnFor(`input:keyboard:${item.id}`, item.id, 'node_input_keyboard'),
+			group: 'input',
+			subgroup: 'input.keyboard',
+			sasiId: `keyboard:${item.id}`,
+			labelKey: item.labelKey,
+			sasiKind: null,
+			supports: [],
+			composes: [],
+			mutatesVault: false,
+			publishable: false,
+			published: false,
+		},
+	}));
+
+	const keyboardNode: TreeNode<ApiSceneNodeMeta> = {
+		id: 'sasi:input:keyboard',
+		label: 'sasi.input.keyboard',
+		icon: 'lucide-keyboard',
+		typeText: 'input_keyboard',
+		depth: 1,
+		showCaret: true,
+		children: keyboardChildren,
+		meta: {
+			identityKind: 'node_inputs',
+			urn: apiSceneUrnFor('input:keyboard', 'Keyboard', 'node_inputs'),
+			group: 'input',
+			subgroup: 'input.keyboard',
+			sasiId: 'input:keyboard',
+			labelKey: 'sasi.input.keyboard',
+			sasiKind: null,
+			supports: [],
+			composes: [],
+			mutatesVault: false,
+			publishable: false,
+			published: false,
+		},
+	};
+
+	const mouseGestures: Array<{
+		id: string;
+		labelKey: string;
+		icon: string;
+		keys?: readonly string[];
+		mouseAction: 'click' | 'left-click' | 'hold-click' | 'right-click' | 'double-click' | 'middle-click' | 'drag';
+	}> = [
+		{ id: 'hold_click_expand', labelKey: 'sasi.input.mouse.hold_click_expand', icon: 'lucide-chevrons-down', mouseAction: 'hold-click' },
+		{ id: 'left_click', labelKey: 'sasi.input.mouse.left_click', icon: 'lucide-mouse-pointer', mouseAction: 'left-click' },
+		{ id: 'ctrl_click', labelKey: 'sasi.input.mouse.ctrl_click', icon: 'lucide-plus', keys: ['Ctrl'], mouseAction: 'left-click' },
+		{ id: 'shift_click', labelKey: 'sasi.input.mouse.shift_click', icon: 'lucide-arrow-right-left', keys: ['Shift'], mouseAction: 'left-click' },
+		{ id: 'ctrl_shift_click', labelKey: 'sasi.input.mouse.ctrl_shift_click', icon: 'lucide-list-plus', keys: ['Ctrl', 'Shift'], mouseAction: 'left-click' },
+		{ id: 'double_click', labelKey: 'sasi.input.mouse.double_click', icon: 'lucide-external-link', mouseAction: 'double-click' },
+		{ id: 'right_click', labelKey: 'sasi.input.mouse.right_click', icon: 'lucide-menu', mouseAction: 'right-click' },
+		{ id: 'drag_drop', labelKey: 'sasi.input.mouse.drag_drop', icon: 'lucide-grab', mouseAction: 'drag' },
+	];
+
+	const mouseChildren: TreeNode<ApiSceneNodeMeta>[] = mouseGestures.map((item) => ({
+		id: `sasi:input:mouse:${item.id}`,
+		label: item.labelKey,
+		icon: item.icon,
+		typeText: 'gesture',
+		depth: 2,
+		cells: [
+			{
+				id: 'keys',
+				kind: 'keys',
+				...(item.keys ? { keys: item.keys } : {}),
+				mouseAction: item.mouseAction,
+				label: item.keys ? `${item.keys.join(' + ')} + ${item.mouseAction}` : item.mouseAction,
+			},
+		],
+		meta: {
+			identityKind: 'node_input_mouse',
+			urn: apiSceneUrnFor(`input:mouse:${item.id}`, item.id, 'node_input_mouse'),
+			group: 'input',
+			subgroup: 'input.mouse',
+			sasiId: `mouse:${item.id}`,
+			labelKey: item.labelKey,
+			sasiKind: null,
+			supports: [],
+			composes: [],
+			mutatesVault: false,
+			publishable: false,
+			published: false,
+		},
+	}));
+
+	const mouseNode: TreeNode<ApiSceneNodeMeta> = {
+		id: 'sasi:input:mouse',
+		label: 'sasi.input.mouse',
+		icon: 'lucide-mouse',
+		typeText: 'input_mouse',
+		depth: 1,
+		showCaret: true,
+		children: mouseChildren,
+		meta: {
+			identityKind: 'node_inputs',
+			urn: apiSceneUrnFor('input:mouse', 'Mouse', 'node_inputs'),
+			group: 'input',
+			subgroup: 'input.mouse',
+			sasiId: 'input:mouse',
+			labelKey: 'sasi.input.mouse',
+			sasiKind: null,
+			supports: [],
+			composes: [],
+			mutatesVault: false,
+			publishable: false,
+			published: false,
+		},
+	};
+
+	context.out.push(keyboardNode);
+	context.out.push(mouseNode);
+}
+
 export interface BuildApiSceneNodesOptions {
 	customCommands?: Record<
 		string,
@@ -611,6 +766,7 @@ export function buildApiSceneNodes(
 		providedCommands: options.providedCommands,
 		communityPluginNames: options.communityPluginNames,
 	});
+	appendInputNodes(context);
 	appendAxisNodes(context, registry.list('kind'), 'kind');
 	appendKindSubgroups(context);
 	appendAxisNodes(context, registry.list('provider'), 'provider');

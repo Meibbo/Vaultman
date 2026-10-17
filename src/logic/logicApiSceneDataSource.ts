@@ -18,7 +18,7 @@ import { showInputModal } from '../utils/inputModal';
 import { entityIdOf } from './logicTreeGroupProjection';
 import { executeObsidianCommand, listObsidianCommands } from '../utils/obsidianCommands';
 import { refreshCommandPaletteCache } from './logicCommandPaletteInterceptor';
-import type { PluginMeta, TreeNode } from '../types/typeTree';
+import type { PluginMeta, TreeNode, TreeNodeCell } from '../types/typeTree';
 
 export interface ApiSceneDataSourceOptions {
 	onClose?: () => void;
@@ -46,6 +46,29 @@ export function createApiSceneDataSource(
 		};
 	};
 
+	const mapApiSceneCell = (cell: TreeNodeCell): TreeNodeCell => {
+		if (cell.kind === 'toggle') {
+			return {
+				...cell,
+				id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id,
+				label: translate(cell.label) || cell.label,
+			};
+		}
+		if (cell.kind === 'action') {
+			return {
+				...cell,
+				label: translate(cell.label) || cell.label,
+			};
+		}
+		if (cell.kind === 'keys' && cell.label) {
+			return {
+				...cell,
+				label: translate(cell.label) || cell.label,
+			};
+		}
+		return cell;
+	};
+
 	const projectRowChildren = (
 		children: TreeNode<ApiSceneNodeMeta>[] | undefined,
 		cTime?: number,
@@ -59,11 +82,7 @@ export function createApiSceneDataSource(
 			ctimeText: formatAddonTimestamp(cTime),
 			mtimeText: formatAddonTimestamp(mTime),
 			label: translate(ch.meta?.labelKey ?? '') || ch.label,
-			cells: ch.cells?.map((cell) =>
-				'label' in cell
-					? { ...cell, id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id, label: translate(cell.label) || cell.label }
-					: cell,
-			),
+			cells: ch.cells?.map(mapApiSceneCell),
 			meta: {
 				...ch.meta,
 				pluginId: ch.id,
@@ -117,11 +136,7 @@ export function createApiSceneDataSource(
 				ctimeText: formatAddonTimestamp(createdAt),
 				mtimeText: formatAddonTimestamp(updatedAt),
 				label: translate(node.meta.labelKey) || node.label,
-				cells: node.cells?.map((cell) =>
-					'label' in cell
-						? { ...cell, id: cell.id === PUBLISH_CELL_ID ? 'state' : cell.id, label: translate(cell.label) || cell.label }
-						: cell,
-				),
+				cells: node.cells?.map(mapApiSceneCell),
 				meta: {
 					...node.meta,
 					pluginId: node.id,

@@ -17,12 +17,16 @@ export type ApiSceneIdentityKind =
 	| 'node_instances'
 	| 'node_scenes'
 	| 'node_surfaces'
-	| 'node_apis';
+	| 'node_apis'
+	| 'node_inputs'
+	| 'node_input_keyboard'
+	| 'node_input_mouse';
 
 export type ApiSceneGroupName =
 	| 'action'
 	| 'operation'
 	| 'command'
+	| 'input'
 	| 'kind'
 	| 'provider'
 	| 'instance'
@@ -34,6 +38,7 @@ export const API_SCENE_GROUP_NAMES: readonly ApiSceneGroupName[] = [
 	'action',
 	'operation',
 	'command',
+	'input',
 	'kind',
 	'provider',
 	'instance',
@@ -46,6 +51,7 @@ export const API_SCENE_GROUP_IDS: Record<ApiSceneGroupName, string> = {
 	action: 'sasi.group.action',
 	operation: 'sasi.group.operation',
 	command: 'sasi.group.command',
+	input: 'sasi.group.input',
 	kind: 'sasi.group.kind',
 	provider: 'sasi.group.provider',
 	instance: 'sasi.group.instance',
@@ -58,6 +64,7 @@ export const API_SCENE_GROUP_LABEL_KEYS: Record<ApiSceneGroupName, string> = {
 	action: 'sasi.apiscene.group.action',
 	operation: 'sasi.apiscene.group.operation',
 	command: 'sasi.apiscene.group.command',
+	input: 'sasi.apiscene.group.input',
 	kind: 'sasi.apiscene.group.kind',
 	provider: 'sasi.apiscene.group.provider',
 	instance: 'sasi.apiscene.group.instance',
@@ -82,6 +89,8 @@ export function apiSceneIdentityKindFor(
 			return 'node_operations';
 		case 'command':
 			return 'node_commands';
+		case 'input':
+			return 'node_inputs';
 		case 'scope':
 			return 'node_scopes';
 		case 'kind':

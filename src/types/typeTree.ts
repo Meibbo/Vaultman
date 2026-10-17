@@ -71,6 +71,13 @@ export type TreeNodeCell =
 				label: string;
 			}>;
 			disabled?: boolean;
+		}
+	| {
+			id: string;
+			kind: 'keys';
+			keys?: readonly string[];
+			mouseAction?: 'click' | 'left-click' | 'hold-click' | 'right-click' | 'double-click' | 'middle-click' | 'drag';
+			label?: string;
 		};
 
 /** BT5-017: activity projected from descendants hidden by a collapsed node. */
