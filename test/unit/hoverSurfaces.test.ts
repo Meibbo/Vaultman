@@ -469,6 +469,7 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 			sidebars: { hide: true, hover: true, pin: true },
 			ribbons: { hide: true, hover: true, pin: false },
 			tabbar: { hide: true, hover: true, pin: false },
+			navbar: { hide: true, hover: true, pin: false },
 			statusbar: { hide: true, hover: true, pin: false },
 			...overrides,
 		});
@@ -505,11 +506,11 @@ describe('HoverSurfacesAdapter — comportamiento hover/pin/lock', () => {
 		expect(tabbar.classList.contains('mb-tabbar-hovered')).toBe(true);
 	});
 
-	it('pointermove sobre .view-header pone mb-tabbar-hovered', () => {
+	it('pointermove sobre .view-header pone mb-navbar-hovered', () => {
 		const { viewHeader } = setUpSurfaces();
 		enableHideHover();
 		dispatch(fixture.doc, 'pointermove', makeEvent(viewHeader, { clientX: 5, clientY: 5 }));
-		expect(viewHeader.classList.contains('mb-tabbar-hovered')).toBe(true);
+		expect(viewHeader.classList.contains('mb-navbar-hovered')).toBe(true);
 	});
 
 	it('pointermove sobre .status-bar pone mb-statusbar-hovered', () => {

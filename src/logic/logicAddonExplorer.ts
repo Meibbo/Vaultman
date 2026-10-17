@@ -42,6 +42,9 @@ export function sortAddonEntries<T extends AddonEntryProjection>(
 	entries: readonly T[],
 	sort: ScopeSort,
 ): T[] {
+	if (sort.sortBy === 'provided') {
+		return sort.direction === 'desc' ? [...entries].reverse() : [...entries];
+	}
 	const direction = sort.direction === 'asc' ? 1 : -1;
 	const numeric = { numeric: true, sensitivity: 'base' } as const;
 	return [...entries].sort((a, b) => {
@@ -81,6 +84,45 @@ export function sortAddonEntries<T extends AddonEntryProjection>(
  */
 export function addonSortFallbackSortBy(): 'name' {
 	return 'name';
+}
+
+export function sortAddonNodes<T extends TreeNode<PluginMeta>>(
+	nodes: readonly T[],
+	sort?: ScopeSort,
+): T[] {
+	if (!sort) return [...nodes];
+	if (sort.sortBy === 'provided') {
+		return sort.direction === 'desc' ? [...nodes].reverse() : [...nodes];
+	}
+	const direction = sort.direction === 'asc' ? 1 : -1;
+	const numeric = { numeric: true, sensitivity: 'base' } as const;
+	return [...nodes].sort((a, b) => {
+		if (sort.sortBy === 'state' && a.meta?.enabled !== b.meta?.enabled) {
+			return direction * (Number(a.meta?.enabled ?? false) - Number(b.meta?.enabled ?? false));
+		}
+		if (sort.sortBy === 'cell_update') {
+			const leftHasUpdate = a.meta?.updateVersion !== undefined;
+			const rightHasUpdate = b.meta?.updateVersion !== undefined;
+			if (leftHasUpdate !== rightHasUpdate) {
+				return direction * (Number(leftHasUpdate) - Number(rightHasUpdate));
+			}
+		}
+		if (sort.sortBy === 'installed' || sort.sortBy === 'updated') {
+			const field =
+				sort.sortBy === 'installed' ? 'installedTime' : 'updatedTime';
+			const left = a.meta?.[field];
+			const right = b.meta?.[field];
+			if (left == null && right != null) return 1;
+			if (left != null && right == null) return -1;
+			if (left != null && right != null && left !== right) {
+				return direction * (left - right);
+			}
+		}
+		const nameA = a.label || a.meta?.name || '';
+		const nameB = b.label || b.meta?.name || '';
+		const byName = nameA.localeCompare(nameB, undefined, numeric);
+		return sort.sortBy === 'name' ? direction * byName : byName;
+	});
 }
 
 export function filterAddonEntries<T>(
@@ -809,6 +851,7 @@ export function resolvePluginSettingsChildren(
 	app: unknown,
 	pluginId: string,
 	baseNode: TreeNode<PluginMeta>,
+	sort?: ScopeSort,
 ): TreeNode<PluginMeta>[] {
 	// Puerta canónica 2026-09-25: solo el estado habilitado. La exigencia
 	// de entrada en `pluginTabs` (prohibición F10) queda revocada: los
@@ -883,7 +926,9 @@ export function resolvePluginSettingsChildren(
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			});
 		}
-		const allKids = [...subpageNodes, ...defNodes];
+		const sortedSubpages = sortAddonNodes(subpageNodes, sort);
+		const sortedDefs = sortAddonNodes(defNodes, sort);
+		const allKids = [...sortedSubpages, ...sortedDefs];
 		const pageRef = {
 			tab,
 			page: builder.page,
@@ -1035,8 +1080,12 @@ export function resolvePluginSettingsChildren(
 
 		if (pageNodes.length === 0 && defNodes.length === 0) continue; // F4: sin contenido no hay tab
 
+		const sortedPageNodes = sortAddonNodes(pageNodes, sort);
+		const sortedDefNodes = sortAddonNodes(defNodes, sort);
+		const tabKids = [...sortedPageNodes, ...sortedDefNodes];
+
 		if (isHomonym) {
-			for (const n of [...pageNodes, ...defNodes]) {
+			for (const n of tabKids) {
 				childNodes.push(n);
 			}
 			continue;
@@ -1050,7 +1099,7 @@ export function resolvePluginSettingsChildren(
 			depth: baseDepth + 1,
 			cells: [],
 			showCaret: true,
-			children: [...pageNodes, ...defNodes],
+			children: tabKids,
 			meta: withSettingsRef(
 				{
 					pluginId: '',
@@ -1065,8 +1114,10 @@ export function resolvePluginSettingsChildren(
 		});
 	}
 
+	const sortedChildNodes = sortAddonNodes(childNodes, sort);
+
 	// F4: sin hijos tras el filtrado el plugin queda hoja.
-	if (childNodes.length === 0) {
+	if (sortedChildNodes.length === 0) {
 		return [
 			{
 				...baseNode,
@@ -1082,7 +1133,7 @@ export function resolvePluginSettingsChildren(
 		{
 			...baseNode,
 			showCaret: true,
-			children: childNodes,
+			children: sortedChildNodes,
 		},
 	];
 }
@@ -1151,6 +1202,7 @@ export interface CanonicalRestRootsInput {
 	 * agrupada core/community (compat con llamadores no migrados).
 	 */
 	groupPreset?: GroupPreset;
+	sort?: ScopeSort;
 }
 
 /**
@@ -1268,6 +1320,7 @@ export function buildGlobalSettingsNodes(
 	app: unknown,
 	communityIds: Iterable<string>,
 	groupPreset?: GroupPreset,
+	sort?: ScopeSort,
 ): TreeNode<PluginMeta>[] {
 	const known = new Set<string>();
 	for (const id of communityIds) known.add(canonicalPluginId(id));
@@ -1313,18 +1366,19 @@ export function buildGlobalSettingsNodes(
 			coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		});
 	}
-	return out;
+	return sort ? sortAddonNodes(out, sort) : out;
 }
 
 function resolveRestPluginNode(
 	app: unknown,
 	node: TreeNode<PluginMeta>,
 	depth: number,
+	sort?: ScopeSort,
 ): TreeNode<PluginMeta> | null {
 	const pluginId = node.meta?.pluginId ?? '';
 	if (pluginId === '') return null; // F4: sin identidad no se agrupa
 	const base: TreeNode<PluginMeta> = { ...node, depth };
-	const resolved = resolvePluginSettingsChildren(app, pluginId, base);
+	const resolved = resolvePluginSettingsChildren(app, pluginId, base, sort);
 	return (
 		resolved[0] ?? {
 			...base,
@@ -1358,11 +1412,11 @@ export function buildCanonicalRestRoots(
 ): TreeNode<PluginMeta>[] {
 	if (input.groupPreset) {
 		const flat: TreeNode<PluginMeta>[] = [];
-		for (const global of buildGlobalSettingsNodes(input.app, input.communityIds, input.groupPreset)) {
+		for (const global of buildGlobalSettingsNodes(input.app, input.communityIds, input.groupPreset, input.sort)) {
 			flat.push(global);
 		}
 		for (const node of input.pluginNodes) {
-			const withKids = resolveRestPluginNode(input.app, node, 0);
+			const withKids = resolveRestPluginNode(input.app, node, 0, input.sort);
 			if (withKids) flat.push(withKids);
 		}
 		return flat;
@@ -1371,7 +1425,7 @@ export function buildCanonicalRestRoots(
 	const communityKids: TreeNode<PluginMeta>[] = [];
 	for (const node of input.pluginNodes) {
 		const pluginId = node.meta?.pluginId ?? '';
-		const withKids = resolveRestPluginNode(input.app, node, 1);
+		const withKids = resolveRestPluginNode(input.app, node, 1, input.sort);
 		if (!withKids) continue;
 		if (pluginCanonicalGroup(pluginId, input.communityIds) === 'core') {
 			coreKids.push(withKids);

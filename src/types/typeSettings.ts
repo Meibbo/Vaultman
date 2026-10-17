@@ -144,6 +144,7 @@ export interface VaultmanSettings {
 		sidebars: HoverSurfaceSwitches;
 		ribbons: HoverSurfaceSwitches;
 		tabbar: HoverSurfaceSwitches;
+		navbar: HoverSurfaceSwitches;
 		statusbar: HoverSurfaceSwitches;
 		/** Modo global: sin hover en ninguna, pero las cuatro siguen ocultas. */
 		lock: boolean;
@@ -613,6 +614,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 		sidebars: { hide: false, hover: false, pin: true },
 		ribbons: { hide: false, hover: false, pin: false },
 		tabbar: { hide: false, hover: false, pin: false },
+		navbar: { hide: false, hover: false, pin: false },
 		statusbar: { hide: false, hover: false, pin: false },
 		lock: false,
 		nestedRibbon: false,

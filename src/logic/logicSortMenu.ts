@@ -135,6 +135,7 @@ export const SORT_MENU_OPTIONS: Record<
 			icon: 'lucide-calendar-clock',
 			labelKey: 'sort.by.updated',
 		},
+		{ id: 'provided', icon: 'lucide-list-ordered', labelKey: 'sort.by.provided' },
 	],
 };
 

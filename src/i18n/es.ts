@@ -965,6 +965,9 @@ export const es: Record<string, string> = {
 	'sasi.move.tab_group.coming_soon': 'Los movimientos de pestañas y grupos llegan en una continuación',
 	'sasi.toolbar.toggle_maximize': 'Alternar maximizado del panel Vaultman',
 	'sasi.toolbar.maximize_no_target': 'No hay panel Vaultman que maximizar',
+	'sasi.workspace.focus_left_sidebar': 'Enfocar barra lateral izquierda',
+	'sasi.workspace.focus_right_sidebar': 'Enfocar barra lateral derecha',
+	'sasi.workspace.focus_main_area': 'Enfocar área principal',
 	'sasi.search.cycle_category': 'Categoría de búsqueda',
 	'sasi.search.create_target': 'Crear',
 	'sasi.addons.toggle_group_plugins': 'Conmutar grupo de plugins',
@@ -1038,6 +1041,9 @@ export const es: Record<string, string> = {
 	'sasi.hover.tabbar.hide': 'Ocultar la barra de pestañas',
 	'sasi.hover.tabbar.hover': 'Pasar el cursor por la barra de pestañas',
 	'sasi.hover.tabbar.pin': 'Fijar la barra de pestañas',
+	'sasi.hover.navbar.hide': 'Ocultar la barra de navegación',
+	'sasi.hover.navbar.hover': 'Pasar el cursor por la barra de navegación',
+	'sasi.hover.navbar.pin': 'Fijar la barra de navegación',
 	'sasi.hover.statusbar.hide': 'Ocultar la barra de estado',
 	'sasi.hover.statusbar.hover': 'Pasar el cursor por la barra de estado',
 	'sasi.hover.statusbar.pin': 'Fijar la barra de estado',
@@ -1105,12 +1111,22 @@ export const es: Record<string, string> = {
 	'settings.chrome_hover.tabbar': 'Barra de pestañas',
 	'settings.chrome_hover.tabbar.hide': 'Ocultar la barra de pestañas',
 	'settings.chrome_hover.tabbar.hide.desc':
-		'Colapsa la barra de pestañas y el encabezado a altura cero. Solo entonces el hover puede revelarlos.',
+		'Colapsa la barra de pestañas a altura cero. Solo entonces el hover puede revelarla.',
 	'settings.chrome_hover.tabbar.hover': 'Hover de la barra de pestañas',
 	'settings.chrome_hover.tabbar.hover.desc':
 		'Revela la barra oculta cuando el puntero alcanza el borde superior.',
 	'settings.chrome_hover.tabbar.pin': 'Fijar la barra de pestañas',
 	'settings.chrome_hover.tabbar.pin.desc':
+		'Mantiene abierta la barra revelada mientras se interactua con ella.',
+	'settings.chrome_hover.navbar': 'Barra de navegación',
+	'settings.chrome_hover.navbar.hide': 'Ocultar la barra de navegación',
+	'settings.chrome_hover.navbar.hide.desc':
+		'Colapsa la cabecera de la hoja fuera de pantalla. Solo entonces el hover puede revelarla.',
+	'settings.chrome_hover.navbar.hover': 'Hover de la barra de navegación',
+	'settings.chrome_hover.navbar.hover.desc':
+		'Revela la barra oculta cuando el puntero alcanza el borde superior.',
+	'settings.chrome_hover.navbar.pin': 'Fijar la barra de navegación',
+	'settings.chrome_hover.navbar.pin.desc':
 		'Mantiene abierta la barra revelada mientras se interactua con ella.',
 	'settings.chrome_hover.statusbar': 'Barra de estado',
 	'settings.chrome_hover.statusbar.hide': 'Ocultar la barra de estado',
@@ -1438,6 +1454,7 @@ export const es: Record<string, string> = {
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.note': 'Nota',
 	'sort.by.columns': 'Columnas',
+	'sort.by.provided': 'Provisto',
 	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',
 	'sort.vertcol.by_values':
@@ -1839,5 +1856,5 @@ export const es: Record<string, string> = {
 	'sasi.kind.group.groups': 'Kinds / Grupos',
 	'sasi.apiscene.command.actions_group': 'Acciones',
 	'sasi.apiscene.command.scope_group': 'Ámbito',
-	'scene_menu.tab.apiscene': 'Registro SASI',
+	'scene_menu.tab.apiscene': 'API',
 };

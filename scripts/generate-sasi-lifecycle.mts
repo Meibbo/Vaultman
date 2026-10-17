@@ -7,6 +7,7 @@ const sources = [
 	'logicSasiSceneActions', 'logicSasiToolbarActions', 'logicToolbarMenuCatalog',
 	'logicSasiFilterQueueActions', 'logicSasiSearchActions', 'logicSasiSettingsActions', 'logicSasiSettingScene',
 	'logicGroupSelectionTransaction', 'logicApiScene', 'logicApiSceneModel',
+	'logicSasiWorkspaceFocusActions',
 ].map((name) => `src/logic/${name}.ts`);
 sources.push('src/main.ts');
 type Lifecycle = { createdAt: number; updatedAt: number; source: string; precision: 'declaration-module' };

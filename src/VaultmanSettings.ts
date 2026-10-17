@@ -1231,6 +1231,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			'sidebars',
 			'ribbons',
 			'tabbar',
+			'navbar',
 			'statusbar',
 		] as const;
 		for (const surface of surfaces) {
@@ -1245,9 +1246,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 								.setValue(hs()[surface][kind])
 								.onChange(async (value) => {
 									hs()[surface] = { ...hs()[surface], [kind]: value };
-									if (kind === 'hide' && !value) {
-										hs()[surface] = { ...hs()[surface], hover: false };
-									}
 									await apply();
 								}),
 						);

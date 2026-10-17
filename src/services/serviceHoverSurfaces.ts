@@ -14,12 +14,18 @@ const MOBILE_BODY_CLASSES = [
 
 export const HOVER_SURFACES_ADAPTER_ID = 'hover-surfaces';
 
-export type HoverSurfaceId = 'sidebars' | 'ribbons' | 'tabbar' | 'statusbar';
+export type HoverSurfaceId =
+	| 'sidebars'
+	| 'ribbons'
+	| 'tabbar'
+	| 'navbar'
+	| 'statusbar';
 
 export const HOVER_SURFACES: readonly HoverSurfaceId[] = [
 	'sidebars',
 	'ribbons',
 	'tabbar',
+	'navbar',
 	'statusbar',
 ] as const;
 
@@ -38,6 +44,7 @@ export interface HoverSurfacesConfig {
 	readonly sidebars: HoverSurfaceSwitches;
 	readonly ribbons: HoverSurfaceSwitches;
 	readonly tabbar: HoverSurfaceSwitches;
+	readonly navbar: HoverSurfaceSwitches;
 	readonly statusbar: HoverSurfaceSwitches;
 	readonly lock: boolean;
 	readonly nestedRibbon: boolean;
@@ -47,6 +54,7 @@ export const DEFAULT_HOVER_SURFACES_CONFIG: HoverSurfacesConfig = {
 	sidebars: { hide: false, hover: false, pin: true },
 	ribbons: { hide: false, hover: false, pin: false },
 	tabbar: { hide: false, hover: false, pin: false },
+	navbar: { hide: false, hover: false, pin: false },
 	statusbar: { hide: false, hover: false, pin: false },
 	lock: false,
 	nestedRibbon: false,
@@ -55,8 +63,8 @@ export const DEFAULT_HOVER_SURFACES_CONFIG: HoverSurfacesConfig = {
 const SIDEBAR_SELECTOR =
 	'.workspace-split.mod-left-split, .workspace-split.mod-right-split';
 const RIBBON_SELECTOR = '.workspace-ribbon.mod-left, .workspace-ribbon.mod-right';
-const TABBAR_CONTAINER_SELECTOR =
-	'.workspace-tab-header-container, .view-header';
+const TABBAR_CONTAINER_SELECTOR = '.workspace-tab-header-container';
+const NAVBAR_CONTAINER_SELECTOR = '.workspace-leaf .view-header, .view-header';
 const STATUSBAR_SELECTOR = '.status-bar';
 
 const OVERLAY_SELECTOR = [
@@ -107,11 +115,13 @@ const BODY_CLASS_HIDE_SIDEBARS = 'mb-hide-sidebars';
 const BODY_CLASS_HOVER_SIDEBARS = 'mb-hover-sidebars';
 const BODY_CLASS_HIDE_RIBBONS = 'mb-hide-ribbons';
 const BODY_CLASS_HIDE_TABBAR = 'mb-hide-tabbar';
+const BODY_CLASS_HIDE_NAVBAR = 'mb-hide-navbar';
 const BODY_CLASS_HIDE_STATUSBAR = 'mb-hide-statusbar';
 const SIDEBAR_HOVERED_CLASS = 'mb-sidebar-hovered';
 const SIDEBAR_PINNED_CLASS = 'mb-sidebar-pinned';
 const RIBBON_HOVERED_CLASS = 'mb-ribbon-hovered';
 const TABBAR_HOVERED_CLASS = 'mb-tabbar-hovered';
+const NAVBAR_HOVERED_CLASS = 'mb-navbar-hovered';
 const STATUSBAR_HOVERED_CLASS = 'mb-statusbar-hovered';
 
 const MB_CLASS_PREFIX = 'mb-';
@@ -198,8 +208,9 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		title: 'Hover, pin and lock surfaces',
 		summary:
 			'Puts and removes mb-sidebar-hovered / mb-sidebar-pinned on left+right sidebars, ' +
-			'mb-ribbon-hovered on ribbons, mb-tabbar-hovered on tab headers / view headers, ' +
-			'mb-statusbar-hovered on the status bar; mb-hide-{sidebars,ribbons,tabbar,statusbar} ' +
+			'mb-ribbon-hovered on ribbons, mb-tabbar-hovered on tab headers, ' +
+			'mb-navbar-hovered on view headers, ' +
+			'mb-statusbar-hovered on the status bar; mb-hide-{sidebars,ribbons,tabbar,navbar,statusbar} ' +
 			'on body collapse each surface (hide action), mb-nested-hover-ribbon makes a hidden ' +
 			'ribbon the trigger that reveals the sidebar, and mb-hover-locked on body when lock is on. ' +
 			'Hover/pin act on hidden (hide action) or natively collapsed (.is-sidedock-collapsed) ' +
@@ -211,6 +222,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 				SIDEBAR_SELECTOR,
 				RIBBON_SELECTOR,
 				TABBAR_CONTAINER_SELECTOR,
+				NAVBAR_CONTAINER_SELECTOR,
 				STATUSBAR_SELECTOR,
 				OVERLAY_SELECTOR,
 				PERSISTENT_SELECTOR,
@@ -309,6 +321,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (config.sidebars.hover) body.classList.add(BODY_CLASS_HOVER_SIDEBARS);
 		if (config.ribbons.hide) body.classList.add(BODY_CLASS_HIDE_RIBBONS);
 		if (config.tabbar.hide) body.classList.add(BODY_CLASS_HIDE_TABBAR);
+		if (config.navbar.hide) body.classList.add(BODY_CLASS_HIDE_NAVBAR);
 		if (config.statusbar.hide) body.classList.add(BODY_CLASS_HIDE_STATUSBAR);
 	}
 
@@ -503,6 +516,14 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		});
 	}
 
+	private clearNavbarHover(): void {
+		const ctx = this.ctx;
+		if (!ctx) return;
+		ctx.doc.querySelectorAll(NAVBAR_CONTAINER_SELECTOR).forEach((el) => {
+			el.classList.remove(NAVBAR_HOVERED_CLASS);
+		});
+	}
+
 	private clearStatusbarHover(): void {
 		const ctx = this.ctx;
 		if (!ctx) return;
@@ -516,6 +537,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		this.clearSidebarHoverExceptPinned();
 		this.clearRibbonHover();
 		this.clearTabbarHover();
+		this.clearNavbarHover();
 		this.clearStatusbarHover();
 		this.activeSurface = null;
 	}
@@ -540,6 +562,11 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 	private setTabbarHovered(tabbar: Element): void {
 		tabbar.classList.add(TABBAR_HOVERED_CLASS);
 		this.activeSurface = tabbar;
+	}
+
+	private setNavbarHovered(navbar: Element): void {
+		navbar.classList.add(NAVBAR_HOVERED_CLASS);
+		this.activeSurface = navbar;
 	}
 
 	private setStatusbarHovered(statusbar: Element): void {
@@ -628,6 +655,13 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 				return;
 			}
 		}
+		if (config.navbar.hide && config.navbar.hover) {
+			const navbar = closest(pe.target, NAVBAR_CONTAINER_SELECTOR);
+			if (navbar) {
+				this.setNavbarHovered(navbar);
+				return;
+			}
+		}
 		if (config.statusbar.hide && config.statusbar.hover) {
 			const statusbar = closest(pe.target, STATUSBAR_SELECTOR);
 			if (statusbar) {
@@ -644,6 +678,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
 		if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
 		if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
+		if (config.navbar.hide && config.navbar.hover) this.clearNavbarHover();
 		if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();
 		this.activeSurface = null;
 	}
@@ -725,6 +760,7 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 			if (config.sidebars.hover) this.clearSidebarHoverExceptPinned();
 			if (config.ribbons.hide && config.ribbons.hover) this.clearRibbonHover();
 			if (config.tabbar.hide && config.tabbar.hover) this.clearTabbarHover();
+			if (config.navbar.hide && config.navbar.hover) this.clearNavbarHover();
 			if (config.statusbar.hide && config.statusbar.hover) this.clearStatusbarHover();
 			this.activeSurface = null;
 		}
@@ -742,6 +778,9 @@ export class HoverSurfacesAdapter implements PlatformAdapter {
 		});
 		ctx.doc.querySelectorAll(TABBAR_CONTAINER_SELECTOR).forEach((el) => {
 			el.classList.remove(TABBAR_HOVERED_CLASS);
+		});
+		ctx.doc.querySelectorAll(NAVBAR_CONTAINER_SELECTOR).forEach((el) => {
+			el.classList.remove(NAVBAR_HOVERED_CLASS);
 		});
 		ctx.doc.querySelectorAll(STATUSBAR_SELECTOR).forEach((el) => {
 			el.classList.remove(STATUSBAR_HOVERED_CLASS);

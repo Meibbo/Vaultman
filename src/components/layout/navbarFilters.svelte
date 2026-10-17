@@ -1564,11 +1564,20 @@
 	const expansionIcon = $derived(
 		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
 	);
-	const currentTabsOption = $derived(
-		tabOptions.find((option) => option.id === activeSectionTab) ??
+	const currentTabsOption = $derived.by(() => {
+		if (activeSectionTab === 'apiscene') {
+			return {
+				id: 'apiscene',
+				label: translate('scene_menu.tab.apiscene') || 'API',
+				icon: 'lucide-cpu',
+			};
+		}
+		return (
+			tabOptions.find((option) => option.id === activeSectionTab) ??
 			tabOptions[0] ??
-			null,
-	);
+			null
+		);
+	});
 	const currentTabsIcon = $derived(
 		currentTabsOption?.icon ?? 'lucide-panels-top-left',
 	);
@@ -1716,7 +1725,7 @@
 				30,
 			);
 		}
-		if (activeTab === 'plugins') {
+		if (activeTab === 'plugins' && providerId === 'plugins') {
 			for (const [
 				index,
 				[id, labelKey, iconName],
@@ -3891,7 +3900,7 @@
 			if (showSasiInSceneMenu) {
 				nodes.push(
 					nativeMenuItem('scene_menu.tab.apiscene', {
-						title: translate('scene_menu.tab.apiscene') || 'SASI Registry',
+						title: translate('scene_menu.tab.apiscene') || 'API',
 						icon: 'lucide-cpu',
 						checked: activeSectionTab === 'apiscene',
 						onClick: () => onSectionTabChange?.('apiscene'),
@@ -5507,7 +5516,7 @@
 								{/if}
 							</div>
 						{/if}
-						{#if activeTab === 'plugins'}
+						{#if activeTab === 'plugins' && providerId === 'plugins'}
 							{#each PLUGIN_UPDATE_TOOLBAR_ACTIONS as [id, labelKey, iconName] (id)}
 								{#if toolbarNodeVisible(id) && isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)}
 									<div

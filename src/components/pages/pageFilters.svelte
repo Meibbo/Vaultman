@@ -523,7 +523,7 @@
 			{
 				id: 'plugins',
 				label: translate('filter.tab.plugins'),
-				icon: 'lucide-plug',
+				icon: 'lucide-settings',
 			},
 		];
 	});
@@ -1095,7 +1095,8 @@
 			tab === 'tags' ||
 			tab === 'content' ||
 			tab === 'snippets' ||
-			tab === 'plugins'
+			tab === 'plugins' ||
+			tab === 'apiscene'
 		);
 	}
 
@@ -1976,6 +1977,10 @@
 
 	$effect(() => {
 		void settingsRevision;
+		if (filtersActiveTab === 'apiscene') {
+			onPanelWidgetStateChange?.(null);
+			return;
+		}
 		const state: NavbarPanelWidgetState & { sceneConfigPort: SceneConfigPort } =
 			{
 				providerId: filtersActiveTab,
@@ -2245,6 +2250,10 @@
 				active={filtersActiveTab === 'apiscene'}
 				searchTerm={filtersSearchByTab.plugins}
 				bind:panel={apiSceneExplorer}
+				tabOptions={filterTabOptions}
+				{tabMenuActions}
+				activeSectionTab={filtersActiveTab}
+				onSectionTabChange={switchFiltersTab}
 			/>
 		</div>
 	{/if}

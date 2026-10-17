@@ -1249,8 +1249,14 @@ export class PluginsExplorerPanel
 
 		let rawRoots: TreeNode<PluginMeta>[];
 		if (!nestedOn) {
+			const globalNodes = buildGlobalSettingsNodes(
+				this.plugin.app,
+				communityIds,
+				this.groupPreset,
+				scopeSort,
+			);
 			const flat = [
-				...buildGlobalSettingsNodes(this.plugin.app, communityIds, this.groupPreset),
+				...globalNodes,
 				...communityNodes,
 				...coreNodes,
 			];
@@ -1265,6 +1271,7 @@ export class PluginsExplorerPanel
 				pluginNodes: [...communityNodes, ...coreNodes],
 				communityIds,
 				groupPreset: this.groupPreset,
+				sort: scopeSort,
 			});
 		}
 
@@ -1590,48 +1597,51 @@ export class PluginsExplorerPanel
 	private withGroupToggleCells(
 		rows: readonly TreeNode<PluginMeta>[],
 	): TreeNode<PluginMeta>[] {
-		if (this.dataSource) return [...rows];
-		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
-			return rows as TreeNode<PluginMeta>[];
-		}
-		return rows.map((row) => {
-			if (!isGroupHeader(row.id, this._groupIds)) return row;
-			if (!row.children?.length) return row;
-			// U130 Slice A: las filas `node_settings` no tienen toggle (sin
-			// celdas) y el toggle de grupo solo despacha a plugins con
-			// `pluginId`; el agregado se calcula sobre esos mismos miembros.
-			// Sin filas de settings el filtro es no-op (camino legacy idéntico).
-			const actionable = row.children.filter(
-				(child) => child.meta?.pluginId,
-			);
-			if (actionable.length === 0) return row;
-			const states = actionable.map(
-				(child) => child.meta?.enabled ?? false,
-			);
-			const { enabled, mixed } = summarizeGroupToggleState(states);
-			const pending = actionable.some((child) =>
-				this.pendingToggleIds.has(child.meta?.pluginId ?? ''),
-			);
-			const cells: TreeNodeCell[] = [
-				{
-					id: 'state',
-					kind: 'toggle',
-					enabled,
-					mixed,
-					style: this.cellStyle,
-					label: translate(
-						mixed
-							? 'addons.mixed'
-							: enabled
-								? 'addons.enabled'
-								: 'addons.disabled',
-					),
-					disabled: pending,
-					busy: pending,
-				},
-			];
-			return { ...row, cells };
-		});
+		const isHeader = (row: TreeNode<PluginMeta>) =>
+			row.isGroupHeader === true || isGroupHeader(row.id, this._groupIds);
+
+		const processRows = (list: readonly TreeNode<PluginMeta>[]): TreeNode<PluginMeta>[] => {
+			return list.map((row) => {
+				const children = row.children?.length ? processRows(row.children) : row.children;
+				if (!isHeader(row)) {
+					return children !== row.children ? { ...row, children } : row;
+				}
+				const actionable = (children ?? []).filter(
+					(child) => (child.meta as any)?.publishable !== false && Boolean(child.meta?.pluginId),
+				);
+				if (actionable.length === 0) {
+					return children !== row.children ? { ...row, children } : row;
+				}
+				const states = actionable.map(
+					(child) => child.meta?.enabled ?? false,
+				);
+				const { enabled, mixed } = summarizeGroupToggleState(states);
+				const pending = actionable.some((child) =>
+					this.pendingToggleIds.has(child.meta?.pluginId ?? ''),
+				);
+				const cells: TreeNodeCell[] = [
+					{
+						id: 'state',
+						kind: 'toggle',
+						enabled,
+						mixed,
+						style: this.cellStyle,
+						label: translate(
+							mixed
+								? 'addons.mixed'
+								: enabled
+									? 'addons.enabled'
+									: 'addons.disabled',
+						),
+						disabled: pending,
+						busy: pending,
+					},
+				];
+				return { ...row, children, cells };
+			});
+		};
+
+		return processRows(rows);
 	}
 
 	private render(): void {
@@ -1888,7 +1898,14 @@ export class PluginsExplorerPanel
 			onCellClick: (id, cellId) => {
 				if (this.dataSource) {
 					const node = this.findNode(id);
-					if (node && !node.isGroupHeader) this.dataSource.cell(entityIdOf(node), cellId);
+					if (node) {
+						if (node.isGroupHeader || isGroupHeader(id, this._groupIds)) {
+							if (cellId === 'state') void this.toggleGroup(id);
+						} else {
+							this.dataSource.cell(entityIdOf(node), cellId);
+							this.rebuildNodes();
+						}
+					}
 					return;
 				}
 				if (isGroupHeader(id, this._groupIds)) {
@@ -2314,6 +2331,28 @@ export class PluginsExplorerPanel
 	 * todo; solo con todo apagado la siguiente ENCIENDE todo.
 	 */
 	private async toggleGroup(groupId: string): Promise<void> {
+		if (this.dataSource) {
+			const header = findProjectedNode(this.projectedNodes(), groupId);
+			const actionable = (header?.children ?? []).filter(
+				(child) => (child.meta as any)?.publishable !== false && Boolean(child.meta?.pluginId),
+			);
+			if (actionable.length === 0) return;
+			const memberIds = actionable.map((child) => entityIdOf(child));
+			if (this.dataSource.toggleGroup) {
+				this.dataSource.toggleGroup(groupId, memberIds);
+			} else {
+				const target = resolveGroupToggleTarget(
+					actionable.map((child) => child.meta?.enabled ?? false),
+				);
+				for (const child of actionable) {
+					if (child.meta?.enabled !== target) {
+						this.dataSource.cell(entityIdOf(child), 'state');
+					}
+				}
+			}
+			this.rebuildNodes();
+			return;
+		}
 		const header = this.projectedNodes().find(
 			(node) => node.id === groupId,
 		);

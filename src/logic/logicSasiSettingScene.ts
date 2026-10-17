@@ -20,7 +20,7 @@ export function registerSettingSceneCatalog(registry: SasiRegistry): void {
 		type: 'settingScene',
 		catalogKind: 'settingScene',
 		labelKey: 'sasi.settingScene.provider.plugins',
-		icon: 'lucide-plug',
+		icon: 'lucide-settings',
 		supports: [
 			{ surface: SETTING_SCENE_SURFACE, panelType: 'panelExplorer' },
 			{ surface: SETTING_SCENE_SURFACE, panelType: 'panelContent' },

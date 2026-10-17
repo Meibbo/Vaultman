@@ -104,7 +104,7 @@ const SCENE_MENU_ACTIONS: readonly ToolbarMenuActionDefinition[] = [
 	{ id: 'scene_menu.launcher.queue', labelKey: 'ops.tab.queue', icon: 'lucide-list-checks', section: 'launchers', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.floating_toc', labelKey: 'floating_toc.menu', icon: 'lucide-a-arrow-down', section: 'floating-toc', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.tab.snippets', labelKey: 'filter.tab.snippets', icon: 'lucide-file-code', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
-	{ id: 'scene_menu.tab.plugins', labelKey: 'filter.tab.plugins', icon: 'lucide-plug', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
+	{ id: 'scene_menu.tab.plugins', labelKey: 'filter.tab.plugins', icon: 'lucide-settings', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.launcher.statistics', labelKey: 'nav.statistics', icon: 'lucide-chart-column', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 	{ id: 'scene_menu.tab.apiscene', labelKey: 'sasi.apiscene.scene', icon: 'lucide-cpu', section: 'statistics', requires: NO_REQUIREMENTS, availability: ALL_TABS_AVAILABILITY },
 ];
