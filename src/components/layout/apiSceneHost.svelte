@@ -16,7 +16,7 @@
 		sceneConfigPort,
 		tabOptions,
 		tabMenuActions,
-		activeSectionTab = 'plugins',
+		activeSectionTab = 'apiscene',
 		onSectionTabChange,
 	}: {
 		plugin: VaultmanPlugin;

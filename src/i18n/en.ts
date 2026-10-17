@@ -1911,5 +1911,5 @@ export const en: Record<string, string> = {
 	'sasi.kind.group.groups': 'Kinds / Groups',
 	'sasi.apiscene.command.actions_group': 'Actions',
 	'sasi.apiscene.command.scope_group': 'Scope',
-	'scene_menu.tab.apiscene': 'SASI Registry',
+	'scene_menu.tab.apiscene': 'API',
 };
