@@ -1231,8 +1231,14 @@ export class PluginsExplorerPanel
 
 		let rawRoots: TreeNode<PluginMeta>[];
 		if (!nestedOn) {
+			const globalNodes = buildGlobalSettingsNodes(
+				this.plugin.app,
+				communityIds,
+				this.groupPreset,
+				scopeSort,
+			);
 			const flat = [
-				...buildGlobalSettingsNodes(this.plugin.app, communityIds, this.groupPreset),
+				...globalNodes,
 				...communityNodes,
 				...coreNodes,
 			];
@@ -1247,6 +1253,7 @@ export class PluginsExplorerPanel
 				pluginNodes: [...communityNodes, ...coreNodes],
 				communityIds,
 				groupPreset: this.groupPreset,
+				sort: scopeSort,
 			});
 		}
 

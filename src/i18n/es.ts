@@ -1423,6 +1423,7 @@ export const es: Record<string, string> = {
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.note': 'Nota',
 	'sort.by.columns': 'Columnas',
+	'sort.by.provided': 'Provisto',
 	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',
 	'sort.vertcol.by_values':

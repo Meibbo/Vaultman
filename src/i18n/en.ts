@@ -1530,6 +1530,7 @@ export const en: Record<string, string> = {
 	'sort.by.subtags': 'Sub-tags',
 	'sort.by.note': 'Note',
 	'sort.by.columns': 'Columns',
+	'sort.by.provided': 'Provided',
 	'sort.parents_first': 'Folders first',
 	'sort.scope.label': 'Sort scope',
 	'sort.scope.all': 'All vault',
