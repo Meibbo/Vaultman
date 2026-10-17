@@ -179,7 +179,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		label: item.label,
 		icon: item.icon,
 		typeText: 'file_type',
-		depth: 2,
+		depth: 1,
 		meta: {
 			identityKind: 'node_kinds',
 			urn: apiSceneUrnFor(`kind:nodes:files:${item.id}`, item.label, 'node_kinds'),
@@ -201,7 +201,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		label: 'Files',
 		icon: 'lucide-file',
 		typeText: 'p-node',
-		depth: 1,
+		depth: 0,
 		showCaret: true,
 		children: filesChildren,
 		meta: {
@@ -232,7 +232,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		label: item.label,
 		icon: item.icon,
 		typeText: 'value_type',
-		depth: 2,
+		depth: 1,
 		meta: {
 			identityKind: 'node_kinds',
 			urn: apiSceneUrnFor(`kind:nodes:values:${item.id}`, item.label, 'node_kinds'),
@@ -254,7 +254,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		label: 'Values',
 		icon: 'lucide-binary',
 		typeText: 'p-node',
-		depth: 1,
+		depth: 0,
 		showCaret: true,
 		children: valuesChildren,
 		meta: {
@@ -282,7 +282,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 		label: item.label,
 		icon: item.icon,
 		typeText: 'node_type',
-		depth: 1,
+		depth: 0,
 		meta: {
 			identityKind: 'node_kinds',
 			urn: apiSceneUrnFor(`kind:nodes:${item.id}`, item.label, 'node_kinds'),
@@ -317,7 +317,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			label: cell.label,
 			icon: cell.icon,
 			typeText: 'cell_kind',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_kinds',
 				urn: apiSceneUrnFor(`kind:cells:${cell.id}`, cell.label, 'node_kinds'),
@@ -353,7 +353,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			label: surface.label,
 			icon: surface.icon,
 			typeText: 'surface_kind',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_kinds',
 				urn: apiSceneUrnFor(`kind:surfaces:${surface.id}`, surface.label, 'node_kinds'),
@@ -385,7 +385,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			label: sort.label,
 			icon: sort.icon,
 			typeText: 'sort_kind',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_kinds',
 				urn: apiSceneUrnFor(`kind:sorts:${sort.id}`, sort.label, 'node_kinds'),
@@ -415,7 +415,7 @@ function appendKindSubgroups(context: NodeBuildContext): void {
 			label: group.label,
 			icon: group.icon,
 			typeText: 'group_kind',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_kinds',
 				urn: apiSceneUrnFor(`kind:groups:${group.id}`, group.label, 'node_kinds'),
@@ -473,7 +473,7 @@ function appendScopeSubgroups(
 			label: sc.labelKey,
 			icon: sc.icon,
 			typeText: 'scope',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_scopes',
 				urn: apiSceneUrnFor(`scope:workspace:${sc.id}`, sc.id, 'node_scopes'),
@@ -502,7 +502,7 @@ function appendScopeSubgroups(
 			label: `instance: ${displayName}`,
 			icon: 'lucide-app-window',
 			typeText: 'scope',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_scopes',
 				urn: apiSceneUrnFor(`scope:instances:${record.id}`, record.id, 'node_scopes'),
@@ -529,7 +529,7 @@ function appendScopeSubgroups(
 			label: surface.labelKey,
 			icon: surface.icon ?? 'lucide-layout-template',
 			typeText: 'scope',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_scopes',
 				urn: apiSceneUrnFor(`scope:surfaces:${surface.id}`, surface.id, 'node_scopes'),
@@ -554,7 +554,7 @@ function appendScopeSubgroups(
 			label: `sasi.scene.goto.${tab}`,
 			icon: 'lucide-layers',
 			typeText: 'scope',
-			depth: 1,
+			depth: 0,
 			meta: {
 				identityKind: 'node_scopes',
 				urn: apiSceneUrnFor(`scope:scenes:${tab}`, tab, 'node_scopes'),

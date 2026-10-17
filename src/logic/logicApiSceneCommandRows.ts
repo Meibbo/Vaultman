@@ -234,7 +234,7 @@ function buildCompoundCommandNode(
 	context: CommandNodeContext,
 	spec: CommandNodeSpec,
 ): TreeNode<ApiSceneNodeMeta> {
-	const depth = spec.depth ?? 2;
+	const depth = spec.depth ?? 1;
 	const cmdScope = resolveScopeForCommand(spec.id, context.customScopes);
 	const actionIds =
 		spec.composes && spec.composes.length > 0
@@ -419,7 +419,7 @@ function buildCompoundCommandNode(
 function buildProvidedCommandNode(
 	context: CommandNodeContext,
 	cmd: { id: string; name: string; icon?: string },
-	depth = 3,
+	depth = 2,
 	subgroup = 'command.provided',
 ): TreeNode<ApiSceneNodeMeta> {
 	const displayName = context.customNames?.[cmd.id] ?? cmd.name;
@@ -529,7 +529,7 @@ export function appendApiSceneCommandNodes({
 				supports: def.supports.map((support) => support.surface),
 				composes: def.composes ?? [],
 				...(def.icon ? { icon: def.icon } : {}),
-				depth: 2,
+				depth: 1,
 			}),
 		);
 	}
@@ -548,7 +548,7 @@ export function appendApiSceneCommandNodes({
 				composes:
 					(entry.descriptor as { composes?: readonly string[] } | undefined)
 						?.composes ?? [],
-				depth: 2,
+				depth: 1,
 			}),
 		);
 	}
@@ -565,7 +565,7 @@ export function appendApiSceneCommandNodes({
 				supports: [],
 				composes: customCmd.composes ?? [],
 				icon: 'lucide-sparkles',
-				depth: 2,
+				depth: 1,
 			}),
 		);
 	}
@@ -588,7 +588,7 @@ export function appendApiSceneCommandNodes({
 
 		if (pluginId === 'core') {
 			coreProvidedNodes.push(
-				buildProvidedCommandNode(context, prov, 3, 'command.provided.core'),
+				buildProvidedCommandNode(context, prov, 2, 'command.provided.core'),
 			);
 		} else {
 			let list = communityProvidedMap.get(pluginId);
@@ -600,7 +600,7 @@ export function appendApiSceneCommandNodes({
 				buildProvidedCommandNode(
 					context,
 					prov,
-					3,
+					2,
 					`command.provided.${pluginId}`,
 				),
 			);
@@ -615,7 +615,7 @@ export function appendApiSceneCommandNodes({
 			label: 'Obsidian',
 			icon: 'lucide-app-window',
 			typeText: 'node_group',
-			depth: 2,
+			depth: 1,
 			showCaret: true,
 			children: coreProvidedNodes,
 			meta: {
@@ -648,7 +648,7 @@ export function appendApiSceneCommandNodes({
 			label: pluginName,
 			icon: 'lucide-puzzle',
 			typeText: 'node_group',
-			depth: 2,
+			depth: 1,
 			showCaret: true,
 			children: cmdNodes,
 			meta: {
@@ -679,7 +679,7 @@ export function appendApiSceneCommandNodes({
 			label: 'Vaultman',
 			icon: 'lucide-shield',
 			typeText: 'node_group',
-			depth: 1,
+			depth: 0,
 			showCaret: true,
 			children: vaultmanNodes,
 			meta: {
@@ -709,7 +709,7 @@ export function appendApiSceneCommandNodes({
 			label: 'Custom',
 			icon: 'lucide-sparkles',
 			typeText: 'node_group',
-			depth: 1,
+			depth: 0,
 			showCaret: true,
 			children: customNodes,
 			meta: {
@@ -739,7 +739,7 @@ export function appendApiSceneCommandNodes({
 			label: 'Provided',
 			icon: 'lucide-terminal',
 			typeText: 'node_group',
-			depth: 1,
+			depth: 0,
 			showCaret: true,
 			children: providedSubgroups,
 			meta: {
