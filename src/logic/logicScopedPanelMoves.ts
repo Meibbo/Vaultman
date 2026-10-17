@@ -70,6 +70,11 @@ export const TAB_TO_MAIN_LEAF_ID = 'vaultman.move.tabToMainLeaf';
 /** Grupo entero (los dos horizontales ya existian en L2). */
 export const GROUP_MOVE_UP_ID = 'vaultman.move.groupUp';
 export const GROUP_MOVE_DOWN_ID = 'vaultman.move.groupDown';
+/** Estructurales: mover columna o fila entera sin destruir hojas ni vistas. */
+export const COLUMN_MOVE_LEFT_ID = 'vaultman.move.columnLeft';
+export const COLUMN_MOVE_RIGHT_ID = 'vaultman.move.columnRight';
+export const ROW_MOVE_UP_ID = 'vaultman.move.rowUp';
+export const ROW_MOVE_DOWN_ID = 'vaultman.move.rowDown';
 
 export const ALL_SCOPED_PANEL_ACTION_IDS = [
 	TAB_REORDER_LEFT_ID,
@@ -91,6 +96,10 @@ export const ALL_SCOPED_PANEL_ACTION_IDS = [
 	GROUP_MOVE_RIGHT_ID,
 	GROUP_MOVE_UP_ID,
 	GROUP_MOVE_DOWN_ID,
+	COLUMN_MOVE_LEFT_ID,
+	COLUMN_MOVE_RIGHT_ID,
+	ROW_MOVE_UP_ID,
+	ROW_MOVE_DOWN_ID,
 	TOGGLE_MAXIMIZE_ID,
 ] as const;
 
@@ -113,7 +122,11 @@ export type ScopedMoveVariation =
 	| 'move-group-left'
 	| 'move-group-right'
 	| 'move-group-up'
-	| 'move-group-down';
+	| 'move-group-down'
+	| 'move-column-left'
+	| 'move-column-right'
+	| 'move-row-up'
+	| 'move-row-down';
 
 const ACTION_ID_TO_VARIATION: Readonly<Record<string, ScopedMoveVariation>> = {
 	[TAB_REORDER_LEFT_ID]: 'reorder-left',
@@ -135,6 +148,10 @@ const ACTION_ID_TO_VARIATION: Readonly<Record<string, ScopedMoveVariation>> = {
 	[GROUP_MOVE_RIGHT_ID]: 'move-group-right',
 	[GROUP_MOVE_UP_ID]: 'move-group-up',
 	[GROUP_MOVE_DOWN_ID]: 'move-group-down',
+	[COLUMN_MOVE_LEFT_ID]: 'move-column-left',
+	[COLUMN_MOVE_RIGHT_ID]: 'move-column-right',
+	[ROW_MOVE_UP_ID]: 'move-row-up',
+	[ROW_MOVE_DOWN_ID]: 'move-row-down',
 };
 
 export function variationForActionId(actionId: string): ScopedMoveVariation | null {
@@ -162,6 +179,10 @@ export const ACTION_ID_FOR_VARIATION: Readonly<Record<ScopedMoveVariation, strin
 	'move-group-right': GROUP_MOVE_RIGHT_ID,
 	'move-group-up': GROUP_MOVE_UP_ID,
 	'move-group-down': GROUP_MOVE_DOWN_ID,
+	'move-column-left': COLUMN_MOVE_LEFT_ID,
+	'move-column-right': COLUMN_MOVE_RIGHT_ID,
+	'move-row-up': ROW_MOVE_UP_ID,
+	'move-row-down': ROW_MOVE_DOWN_ID,
 };
 
 /** Compatibilidad con la direccion de `main.ts` (`previous`/`next`, ...). */
@@ -277,6 +298,10 @@ const SCOPED_PANEL_DEFS = [
 	{ id: GROUP_MOVE_RIGHT_ID, labelKey: 'sasi.move.group_right', icon: 'lucide-chevrons-right', compatibility: SCOPED_MOVE_COMPATIBILITY },
 	{ id: GROUP_MOVE_UP_ID, labelKey: 'sasi.move.group_up', icon: 'lucide-chevrons-up', compatibility: SCOPED_MOVE_COMPATIBILITY },
 	{ id: GROUP_MOVE_DOWN_ID, labelKey: 'sasi.move.group_down', icon: 'lucide-chevrons-down', compatibility: SCOPED_MOVE_COMPATIBILITY },
+	{ id: COLUMN_MOVE_LEFT_ID, labelKey: 'sasi.move.column_left', icon: 'lucide-chevrons-left', compatibility: SCOPED_MOVE_COMPATIBILITY },
+	{ id: COLUMN_MOVE_RIGHT_ID, labelKey: 'sasi.move.column_right', icon: 'lucide-chevrons-right', compatibility: SCOPED_MOVE_COMPATIBILITY },
+	{ id: ROW_MOVE_UP_ID, labelKey: 'sasi.move.row_up', icon: 'lucide-chevrons-up', compatibility: SCOPED_MOVE_COMPATIBILITY },
+	{ id: ROW_MOVE_DOWN_ID, labelKey: 'sasi.move.row_down', icon: 'lucide-chevrons-down', compatibility: SCOPED_MOVE_COMPATIBILITY },
 	{ id: TOGGLE_MAXIMIZE_ID, labelKey: 'sasi.toolbar.toggle_maximize', icon: 'lucide-maximize', compatibility: SCOPED_MAXIMIZE_COMPATIBILITY },
 ] as const;
 
@@ -491,6 +516,19 @@ export interface ScopedGroupSwapPlan {
 	neighborGroupId: string;
 }
 
+/**
+ * U200-L5b: movimiento estructural de columna o fila entera en el split contenedor.
+ */
+export interface ScopedStructurePlan {
+	kind: 'structure-move';
+	leafKey: string;
+	dimension: 'column' | 'row';
+	direction: -1 | 1;
+	splitLevel: number;
+	fromIndex: number;
+	toIndex: number;
+}
+
 export type ScopedMovePlan =
 	| {
 		ok: true;
@@ -499,7 +537,8 @@ export type ScopedMovePlan =
 		| ScopedReorderPlan
 		| ScopedSplitPlan
 		| ScopedSurfaceNewGroupPlan
-		| ScopedGroupSwapPlan;
+		| ScopedGroupSwapPlan
+		| ScopedStructurePlan;
 	}
 	| { ok: false; reason: ScopedMoveBlockReason };
 
@@ -938,6 +977,82 @@ export function planScopedMove(
 				},
 			};
 		}
+		case 'move-column-left':
+		case 'move-column-right': {
+			let level = -1;
+			for (let i = group.trail.length - 1; i >= 0; i--) {
+				if (group.trail[i]?.direction === 'vertical') {
+					level = i;
+					break;
+				}
+			}
+			if (level < 0) return { ok: false, reason: 'single-group' };
+			const segment = group.trail[level] as ScopedGroupTrailSegment;
+			const siblings = snapshot.groups.filter((g) => {
+				if (g.surface !== group.surface) return false;
+				if (g.trail.length <= level) return false;
+				for (let k = 0; k < level; k++) {
+					if (g.trail[k]?.index !== group.trail[k]?.index) return false;
+				}
+				return true;
+			});
+			const maxIndex = Math.max(...siblings.map((g) => g.trail[level]?.index ?? 0));
+			const count = maxIndex + 1;
+			if (count <= 1) return { ok: false, reason: 'single-group' };
+			const delta = variation === 'move-column-left' ? -1 : 1;
+			const toIndex = segment.index + delta;
+			if (toIndex < 0 || toIndex >= count) return { ok: false, reason: 'at-edge' };
+			return {
+				ok: true,
+				move: {
+					kind: 'structure-move',
+					leafKey: snapshot.focusedKey,
+					dimension: 'column',
+					direction: delta,
+					splitLevel: level,
+					fromIndex: segment.index,
+					toIndex,
+				},
+			};
+		}
+		case 'move-row-up':
+		case 'move-row-down': {
+			let level = -1;
+			for (let i = group.trail.length - 1; i >= 0; i--) {
+				if (group.trail[i]?.direction === 'horizontal') {
+					level = i;
+					break;
+				}
+			}
+			if (level < 0) return { ok: false, reason: 'single-group' };
+			const segment = group.trail[level] as ScopedGroupTrailSegment;
+			const siblings = snapshot.groups.filter((g) => {
+				if (g.surface !== group.surface) return false;
+				if (g.trail.length <= level) return false;
+				for (let k = 0; k < level; k++) {
+					if (g.trail[k]?.index !== group.trail[k]?.index) return false;
+				}
+				return true;
+			});
+			const maxIndex = Math.max(...siblings.map((g) => g.trail[level]?.index ?? 0));
+			const count = maxIndex + 1;
+			if (count <= 1) return { ok: false, reason: 'single-group' };
+			const delta = variation === 'move-row-up' ? -1 : 1;
+			const toIndex = segment.index + delta;
+			if (toIndex < 0 || toIndex >= count) return { ok: false, reason: 'at-edge' };
+			return {
+				ok: true,
+				move: {
+					kind: 'structure-move',
+					leafKey: snapshot.focusedKey,
+					dimension: 'row',
+					direction: delta,
+					splitLevel: level,
+					fromIndex: segment.index,
+					toIndex,
+				},
+			};
+		}
 	}
 }
 
@@ -1051,6 +1166,10 @@ export function createScopedPanelCommandDescriptors(
 		move(GROUP_MOVE_RIGHT_ID, 'move-group-right'),
 		move(GROUP_MOVE_UP_ID, 'move-group-up'),
 		move(GROUP_MOVE_DOWN_ID, 'move-group-down'),
+		move(COLUMN_MOVE_LEFT_ID, 'move-column-left'),
+		move(COLUMN_MOVE_RIGHT_ID, 'move-column-right'),
+		move(ROW_MOVE_UP_ID, 'move-row-up'),
+		move(ROW_MOVE_DOWN_ID, 'move-row-down'),
 		{
 			id: TOGGLE_MAXIMIZE_ID,
 			name: t('sasi.toolbar.toggle_maximize'),

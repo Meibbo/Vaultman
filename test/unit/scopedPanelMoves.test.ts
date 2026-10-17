@@ -245,10 +245,10 @@ function grid3x3Layout(focusedKey: string | null): ScopedLayoutSnapshot {
 	};
 }
 
-describe('U200-L5 registro: 20 acciones con scope y compatibilidad', () => {
-	it('registra las 20 como actions con las tres superficies', () => {
+describe('U200-L5 registro: 24 acciones con scope y compatibilidad', () => {
+	it('registra las 24 como actions con las tres superficies', () => {
 		const { registry } = createVaultmanSasi();
-		expect(ALL_SCOPED_PANEL_ACTION_IDS).toHaveLength(20);
+		expect(ALL_SCOPED_PANEL_ACTION_IDS).toHaveLength(24);
 		for (const id of ALL_SCOPED_PANEL_ACTION_IDS) {
 			const resolved = registry.resolve(id);
 			expect(resolved.def, id).not.toBeNull();
@@ -1247,10 +1247,10 @@ describe('U200 superficie por cadena de parents (API publica)', () => {
 	});
 });
 
-describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
+describe('U200 descriptores: 24 ids, nombres y biyeccion', () => {
 	it('id <-> variacion es biyectiva', () => {
 		const variations = Object.values(ACTION_ID_FOR_VARIATION);
-		expect(new Set(variations).size).toBe(19);
+		expect(new Set(variations).size).toBe(23);
 		for (const [variation, id] of Object.entries(ACTION_ID_FOR_VARIATION)) {
 			expect(variationForActionId(id)).toBe(variation);
 		}
@@ -1258,7 +1258,7 @@ describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
 		expect(variationForActionId(TOGGLE_MAXIMIZE_ID)).toBeNull();
 	});
 
-	it('los 20 descriptores son checkables con los nombres exactos', () => {
+	it('los 24 descriptores son checkables con los nombres exactos', () => {
 		const calls: Array<{ variation: ScopedMoveVariation; checking: boolean }> = [];
 		const descriptors = createScopedPanelCommandDescriptors(
 			(key) => en[key] ?? key,
@@ -1293,6 +1293,10 @@ describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
 			'Move active tab group right',
 			'Move active tab group up',
 			'Move active tab group down',
+			'Move column left',
+			'Move column right',
+			'Move row up',
+			'Move row down',
 			'Toggle focused panel maximize',
 		]);
 		for (const d of descriptors) expect(d.handler.length).toBe(1);
@@ -1315,6 +1319,10 @@ describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
 			'sasi.move.tab_to_main_leaf',
 			'sasi.move.group_up',
 			'sasi.move.group_down',
+			'sasi.move.column_left',
+			'sasi.move.column_right',
+			'sasi.move.row_up',
+			'sasi.move.row_down',
 			'sasi.move.tab.at_edge',
 			'sasi.move.tab.no_focused_panel',
 			'sasi.move.tab.unknown_scope',
@@ -1326,5 +1334,102 @@ describe('U200 descriptores: 20 ids, nombres y biyeccion', () => {
 			expect(es[key], key).not.toBe(key);
 			expect(es[key], key).not.toBe(en[key]);
 		}
+	});
+});
+
+describe('U200-L5b movimientos estructurales de columnas y filas (Briefing D)', () => {
+	it('mueve columnas en layout de columnas', () => {
+		// layout('b2') tiene 3 columnas (indices 0, 1, 2). b2 esta en col 1.
+		expect(planScopedMove(layout('b2'), 'move-column-left')).toEqual({
+			ok: true,
+			move: {
+				kind: 'structure-move',
+				leafKey: 'b2',
+				dimension: 'column',
+				direction: -1,
+				splitLevel: 0,
+				fromIndex: 1,
+				toIndex: 0,
+			},
+		});
+		expect(planScopedMove(layout('b2'), 'move-column-right')).toEqual({
+			ok: true,
+			move: {
+				kind: 'structure-move',
+				leafKey: 'b2',
+				dimension: 'column',
+				direction: 1,
+				splitLevel: 0,
+				fromIndex: 1,
+				toIndex: 2,
+			},
+		});
+		// a1 esta en col 0: move-column-left -> at-edge.
+		expect(planScopedMove(layout('a1'), 'move-column-left')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// c1 esta en col 2: move-column-right -> at-edge.
+		expect(planScopedMove(layout('c1'), 'move-column-right')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// No hay filas en layout(): move-row-up/down -> single-group.
+		expect(planScopedMove(layout('b2'), 'move-row-up')).toEqual({
+			ok: false,
+			reason: 'single-group',
+		});
+	});
+
+	it('mueve filas en layout apilado o anidado', () => {
+		// pairLayout tiene 2 filas (indices 0, 1). d1 esta en fila 1.
+		expect(planScopedMove(pairLayout('d1'), 'move-row-up')).toEqual({
+			ok: true,
+			move: {
+				kind: 'structure-move',
+				leafKey: 'd1',
+				dimension: 'row',
+				direction: -1,
+				splitLevel: 0,
+				fromIndex: 1,
+				toIndex: 0,
+			},
+		});
+		expect(planScopedMove(pairLayout('t1'), 'move-row-down')).toEqual({
+			ok: true,
+			move: {
+				kind: 'structure-move',
+				leafKey: 't1',
+				dimension: 'row',
+				direction: 1,
+				splitLevel: 0,
+				fromIndex: 0,
+				toIndex: 1,
+			},
+		});
+		// t1 esta en fila 0: move-row-up -> at-edge.
+		expect(planScopedMove(pairLayout('t1'), 'move-row-up')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// No hay columnas en pairLayout: move-column-left -> single-group.
+		expect(planScopedMove(pairLayout('t1'), 'move-column-left')).toEqual({
+			ok: false,
+			reason: 'single-group',
+		});
+
+		// nestedLayout: columna 1 tiene 2 filas (B=fila 0, C=fila 1 a nivel splitLevel 1).
+		expect(planScopedMove(nestedLayout('c1'), 'move-row-up')).toEqual({
+			ok: true,
+			move: {
+				kind: 'structure-move',
+				leafKey: 'c1',
+				dimension: 'row',
+				direction: -1,
+				splitLevel: 1,
+				fromIndex: 1,
+				toIndex: 0,
+			},
+		});
 	});
 });

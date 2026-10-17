@@ -184,6 +184,7 @@ import {
 	type ScopedMoveVariation,
 	type ScopedReorderPlan,
 	type ScopedSplitPlan,
+	type ScopedStructurePlan,
 	type ScopedSurfaceNewGroupPlan,
 } from './logic/logicScopedPanelMoves';
 import {
@@ -1091,23 +1092,27 @@ export class VaultmanPlugin extends Plugin {
 
 	private tabGroupNodes(
 		root: unknown,
-	): { node: unknown; trail: ScopedGroupTrailSegment[] }[] {
-		const out: { node: unknown; trail: ScopedGroupTrailSegment[] }[] = [];
-		const visit = (node: unknown, trail: ScopedGroupTrailSegment[]): void => {
+	): { node: unknown; trail: ScopedGroupTrailSegment[]; splits: unknown[] }[] {
+		const out: { node: unknown; trail: ScopedGroupTrailSegment[]; splits: unknown[] }[] = [];
+		const visit = (
+			node: unknown,
+			trail: ScopedGroupTrailSegment[],
+			splits: unknown[],
+		): void => {
 			const children = this.scopedChildrenOf(node);
 			if (!children) return;
 			if (children.length > 0 && this.isLeafLikeNode(children[0])) {
-				out.push({ node, trail });
+				out.push({ node, trail, splits });
 				return;
 			}
 			// U200-L5 (tabs-3): la direccion del split ancestro alimenta la
 			// regla direccional geometrica (`findDirectionalNeighbor`).
 			const direction = this.splitDirectionOf(node);
 			children.forEach((child, index) => {
-				visit(child, [...trail, { direction, index }]);
+				visit(child, [...trail, { direction, index }], [...splits, node]);
 			});
 		};
-		visit(root, []);
+		visit(root, [], []);
 		return out;
 	}
 
@@ -1115,9 +1120,11 @@ export class VaultmanPlugin extends Plugin {
 		groups: ScopedGroupSnapshot[];
 		leaves: Map<string, WorkspaceLeaf>;
 		parents: Map<string, unknown>;
+		splits: Map<string, unknown[]>;
 	} {
 		const leaves = new Map<string, WorkspaceLeaf>();
 		const parents = new Map<string, unknown>();
+		const splits = new Map<string, unknown[]>();
 		const groups: ScopedGroupSnapshot[] = [];
 		const surfaces = [
 			{ surface: 'left_sidebar', root: this.app.workspace.leftSplit },
@@ -1126,7 +1133,7 @@ export class VaultmanPlugin extends Plugin {
 		] as const;
 		for (const { surface, root } of surfaces) {
 			let counter = 0;
-			for (const { node: groupNode, trail } of this.tabGroupNodes(root)) {
+			for (const { node: groupNode, trail, splits: groupSplits } of this.tabGroupNodes(root)) {
 				const children = this.scopedChildrenOf(groupNode) ?? [];
 				const id = `${surface}:${counter++}`;
 				const leafKeys: string[] = [];
@@ -1137,10 +1144,11 @@ export class VaultmanPlugin extends Plugin {
 					leaves.set(key, child);
 				});
 				parents.set(id, groupNode);
+				splits.set(id, groupSplits);
 				groups.push({ id, surface, leafKeys, trail });
 			}
 		}
-		return { groups, leaves, parents };
+		return { groups, leaves, parents, splits };
 	}
 
 	private leafKeyForLeaf(
@@ -1181,10 +1189,15 @@ export class VaultmanPlugin extends Plugin {
 		}
 	}
 
+	private isScopedMoveInFlight = false;
+
 	private runPanelMoveCommand(
 		variation: ScopedMoveVariation,
 		checking: boolean,
 	): boolean {
+		if (this.isScopedMoveInFlight) {
+			return false;
+		}
 		try {
 			const actionId = ACTION_ID_FOR_VARIATION[variation];
 			const layout = this.scopedPanelLayout();
@@ -1216,9 +1229,13 @@ export class VaultmanPlugin extends Plugin {
 				return false;
 			}
 			if (checking) return true;
-			void this.executeScopedMovePlan(layout, plan.move);
+			this.isScopedMoveInFlight = true;
+			void this.executeScopedMovePlan(layout, plan.move).finally(() => {
+				this.isScopedMoveInFlight = false;
+			});
 			return true;
 		} catch {
+			this.isScopedMoveInFlight = false;
 			if (!checking) {
 				this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			}
@@ -1228,15 +1245,18 @@ export class VaultmanPlugin extends Plugin {
 
 	private async executeScopedMovePlan(
 		layout: {
+			groups: ScopedGroupSnapshot[];
 			leaves: Map<string, WorkspaceLeaf>;
 			parents: Map<string, unknown>;
+			splits: Map<string, unknown[]>;
 		},
 		move:
 		| ScopedLeafPlan
 		| ScopedReorderPlan
 		| ScopedSplitPlan
 		| ScopedSurfaceNewGroupPlan
-		| ScopedGroupSwapPlan,
+		| ScopedGroupSwapPlan
+		| ScopedStructurePlan,
 	): Promise<void> {
 		try {
 			await this.doExecuteScopedMovePlan(layout, move);
@@ -1247,16 +1267,28 @@ export class VaultmanPlugin extends Plugin {
 
 	private async doExecuteScopedMovePlan(
 		layout: {
+			groups: ScopedGroupSnapshot[];
 			leaves: Map<string, WorkspaceLeaf>;
 			parents: Map<string, unknown>;
+			splits: Map<string, unknown[]>;
 		},
 		move:
 		| ScopedLeafPlan
 		| ScopedReorderPlan
 		| ScopedSplitPlan
 		| ScopedSurfaceNewGroupPlan
-		| ScopedGroupSwapPlan,
+		| ScopedGroupSwapPlan
+		| ScopedStructurePlan,
 	): Promise<void> {
+		if (move.kind === 'structure-move') {
+			const activeGroupId = this.groupIdForLeafKey(move.leafKey);
+			const splitAncestors = layout.splits.get(activeGroupId);
+			const splitNode = splitAncestors?.[move.splitLevel];
+			if (!this.executeStructureMove(splitNode, move.fromIndex, move.toIndex)) {
+				this.notifyMovement(translate('sasi.move.tab.unknown_target'));
+			}
+			return;
+		}
 		if (move.kind === 'group-swap') {
 			const activeParent = layout.parents.get(move.activeGroupId);
 			const neighborParent = layout.parents.get(move.neighborGroupId);
@@ -1274,7 +1306,7 @@ export class VaultmanPlugin extends Plugin {
 			return;
 		}
 		if (move.kind === 'leaf-split') {
-			await this.executeSplitMove(leaf, move.direction, move.before);
+			await this.executeSplitMove(leaf, move.direction, move.before, move.targetLevel ?? 'cell');
 			return;
 		}
 		if (move.kind === 'surface-new-group') {
@@ -1298,9 +1330,139 @@ export class VaultmanPlugin extends Plugin {
 			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
+		// U200-L5b (Briefing B): reparenting nativo genuino (zero-recreation).
+		if (await this.reparentLeafToGroup(leaf, targetParent, move.toIndex)) {
+			return;
+		}
 		const fresh = await this.transplantLeafState(leaf, targetParent, move.toIndex);
 		if (!fresh) {
 			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
+		}
+	}
+
+	private groupIdForLeafKey(leafKey: string): string {
+		const parts = leafKey.split(':');
+		return `${parts[0]}:${parts[1]}`;
+	}
+
+	private executeStructureMove(
+		splitNode: unknown,
+		fromIndex: number,
+		toIndex: number,
+	): boolean {
+		if (!splitNode) return false;
+		const children = this.scopedChildrenOf(splitNode);
+		if (
+			!children ||
+			fromIndex < 0 ||
+			fromIndex >= children.length ||
+			toIndex < 0 ||
+			toIndex >= children.length
+		) {
+			return false;
+		}
+
+		const container = (splitNode as { containerEl?: unknown }).containerEl as {
+			insertBefore?: (node: unknown, ref: unknown) => void;
+		} | null;
+		const moved = children[fromIndex];
+		const movedEl = (moved as { containerEl?: unknown })?.containerEl;
+		const targetChild = children[toIndex] as { containerEl?: { nextSibling?: unknown } } | undefined;
+		const targetEl = targetChild?.containerEl;
+		const refEl = fromIndex < toIndex ? (targetEl?.nextSibling ?? null) : (targetEl ?? null);
+
+		children.splice(fromIndex, 1);
+		children.splice(toIndex, 0, moved);
+
+		if (container && movedEl && typeof container.insertBefore === 'function') {
+			try {
+				container.insertBefore(movedEl, refEl);
+			} catch {
+				// Best effort.
+			}
+		}
+		try {
+			if (
+				typeof (splitNode as { recomputeChildrenDimensions?: () => void })
+					.recomputeChildrenDimensions === 'function'
+			) {
+				(
+					splitNode as { recomputeChildrenDimensions: () => void }
+				).recomputeChildrenDimensions();
+			}
+			(
+				this.app.workspace as {
+					onLayoutChange?: (item: unknown) => void;
+				}
+			).onLayoutChange?.(splitNode);
+		} catch {
+			// Best effort.
+		}
+		return true;
+	}
+
+	/**
+	 * U200-L5b (Briefing B): Reparenting nativo genuino (zero-recreation).
+	 * Extrae la hoja con removeChild(leaf) e inserta con insertChild(index, leaf).
+	 * Preserva la misma instancia de WorkspaceLeaf, View, cursor, historial y scroll.
+	 * Reubica tabHeaderEl en tabHeaderContainerEl y ejecuta cleanUpEmptySplits si queda vacio.
+	 */
+	private async reparentLeafToGroup(
+		leaf: WorkspaceLeaf,
+		targetParent: unknown,
+		toIndex: number,
+	): Promise<boolean> {
+		const oldParent = (leaf as { parent?: unknown }).parent as {
+			removeChild?: (child: unknown) => void;
+			children?: unknown[];
+		} | null;
+		const target = targetParent as {
+			insertChild?: (index: number, child: unknown) => void;
+			selectTabIndex?: (index: number) => void;
+			children?: unknown[];
+			tabHeaderContainerEl?: unknown;
+		} | null;
+		if (
+			!oldParent ||
+			typeof oldParent.removeChild !== 'function' ||
+			!target ||
+			typeof target.insertChild !== 'function'
+		) {
+			return false;
+		}
+		try {
+			oldParent.removeChild(leaf);
+			target.insertChild(toIndex, leaf);
+
+			// Anclaje DOM del header: reubicar tabHeaderEl en el nuevo contenedor
+			const targetHeaderContainer = target.tabHeaderContainerEl as {
+				insertBefore?: (node: unknown, ref: unknown) => void;
+			} | null;
+			const nextLeaf = target.children?.[toIndex + 1] as { tabHeaderEl?: unknown } | undefined;
+			const refHeader = nextLeaf?.tabHeaderEl ?? null;
+			const tabHeaderEl = (leaf as { tabHeaderEl?: unknown }).tabHeaderEl;
+			if (targetHeaderContainer && tabHeaderEl && typeof targetHeaderContainer.insertBefore === 'function') {
+				try {
+					targetHeaderContainer.insertBefore(tabHeaderEl, refHeader);
+				} catch {
+					// Best effort.
+				}
+			}
+
+			if (typeof target.selectTabIndex === 'function') {
+				target.selectTabIndex(toIndex);
+			}
+
+			if (oldParent.children && oldParent.children.length === 0) {
+				(this.app.workspace as unknown as { cleanUpEmptySplits?: () => void }).cleanUpEmptySplits?.();
+			}
+
+			await this.app.workspace.revealLeaf(leaf);
+			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+			this.lastFocusedPanelLeaf = leaf;
+			return true;
+		} catch {
+			return false;
 		}
 	}
 
@@ -1522,6 +1684,7 @@ export class VaultmanPlugin extends Plugin {
 		leaf: WorkspaceLeaf,
 		direction: 'vertical' | 'horizontal',
 		before: boolean,
+		targetLevel: 'cell' | 'root' = 'cell',
 	): Promise<void> {
 		const saved = this.readLeafState(leaf);
 		if (!saved) {
@@ -1531,33 +1694,24 @@ export class VaultmanPlugin extends Plugin {
 		const expectedInstanceId = this.freeInstanceClaim(leaf);
 		let splitLeaf: WorkspaceLeaf;
 		try {
-			splitLeaf = this.app.workspace.createLeafBySplit(leaf, direction, before);
+			if (targetLevel === 'root' && this.app.workspace.rootSplit) {
+				const root = this.app.workspace.rootSplit;
+				const children = this.scopedChildrenOf(root) ?? [];
+				const insertIndex = before ? 0 : children.length;
+				splitLeaf = this.app.workspace.createLeafInParent(
+					root as unknown as WorkspaceSplit,
+					insertIndex,
+				);
+			} else {
+				splitLeaf = this.app.workspace.createLeafBySplit(leaf, direction, before);
+			}
 		} catch {
 			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
-		if (!(await this.placeLeafState(splitLeaf, saved))) {
-			try {
-				splitLeaf.detach();
-			} catch {
-				// Best effort.
-			}
+		if (!(await this.adoptFreshLeaf(leaf, splitLeaf, saved, expectedInstanceId))) {
 			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
-			return;
 		}
-		if (!this.verifyInstanceAnchor(splitLeaf, expectedInstanceId)) {
-			try {
-				splitLeaf.detach();
-			} catch {
-				// Best effort.
-			}
-			new Notice(translate(apiSceneInstanceFailureNoticeKey('mount-conflict')));
-			return;
-		}
-		leaf.detach();
-		await this.app.workspace.revealLeaf(splitLeaf);
-		this.app.workspace.setActiveLeaf(splitLeaf, { focus: true });
-		this.lastFocusedPanelLeaf = splitLeaf;
 	}
 
 	private async executeGroupSwap(
