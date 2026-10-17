@@ -145,6 +145,106 @@ function pairLayout(focusedKey: string | null): ScopedLayoutSnapshot {
 	};
 }
 
+/**
+ * U200-L5b (Briefing C): Grid 3x3 asimetrico con sub-splits a distintas profundidades.
+ */
+function grid3x3Layout(focusedKey: string | null): ScopedLayoutSnapshot {
+	return {
+		groups: [
+			// Col 0: fila 0 normal, filas 1 y 2 en sub-split horizontal
+			{
+				id: 'grid:0:0',
+				surface: 'main_leaf',
+				leafKeys: ['cell-0-0'],
+				trail: [
+					{ direction: 'vertical', index: 0 },
+					{ direction: 'horizontal', index: 0 },
+				],
+			},
+			{
+				id: 'grid:1:0',
+				surface: 'main_leaf',
+				leafKeys: ['cell-1-0'],
+				trail: [
+					{ direction: 'vertical', index: 0 },
+					{ direction: 'horizontal', index: 1 },
+					{ direction: 'horizontal', index: 0 },
+				],
+			},
+			{
+				id: 'grid:2:0',
+				surface: 'main_leaf',
+				leafKeys: ['cell-2-0'],
+				trail: [
+					{ direction: 'vertical', index: 0 },
+					{ direction: 'horizontal', index: 1 },
+					{ direction: 'horizontal', index: 1 },
+				],
+			},
+			// Col 1: filas 0 y 1 en sub-split, fila 2 normal
+			{
+				id: 'grid:0:1',
+				surface: 'main_leaf',
+				leafKeys: ['cell-0-1'],
+				trail: [
+					{ direction: 'vertical', index: 1 },
+					{ direction: 'horizontal', index: 0 },
+					{ direction: 'horizontal', index: 0 },
+				],
+			},
+			{
+				id: 'grid:1:1',
+				surface: 'main_leaf',
+				leafKeys: ['cell-1-1'],
+				trail: [
+					{ direction: 'vertical', index: 1 },
+					{ direction: 'horizontal', index: 0 },
+					{ direction: 'horizontal', index: 1 },
+				],
+			},
+			{
+				id: 'grid:2:1',
+				surface: 'main_leaf',
+				leafKeys: ['cell-2-1'],
+				trail: [
+					{ direction: 'vertical', index: 1 },
+					{ direction: 'horizontal', index: 1 },
+				],
+			},
+			// Col 2: 3 filas en split horizontal directo
+			{
+				id: 'grid:0:2',
+				surface: 'main_leaf',
+				leafKeys: ['cell-0-2'],
+				trail: [
+					{ direction: 'vertical', index: 2 },
+					{ direction: 'horizontal', index: 0 },
+				],
+			},
+			{
+				id: 'grid:1:2',
+				surface: 'main_leaf',
+				leafKeys: ['cell-1-2'],
+				trail: [
+					{ direction: 'vertical', index: 2 },
+					{ direction: 'horizontal', index: 1 },
+				],
+			},
+			{
+				id: 'grid:2:2',
+				surface: 'main_leaf',
+				leafKeys: ['cell-2-2'],
+				trail: [
+					{ direction: 'vertical', index: 2 },
+					{ direction: 'horizontal', index: 2 },
+				],
+			},
+		],
+		focusedKey,
+		isPopout: false,
+	};
+}
+
 describe('U200-L5 registro: 20 acciones con scope y compatibilidad', () => {
 	it('registra las 20 como actions con las tres superficies', () => {
 		const { registry } = createVaultmanSasi();
@@ -697,6 +797,7 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				fromGroupId: 'main_leaf:2',
 				direction: 'horizontal',
 				before: true,
+				targetLevel: 'root',
 			},
 		});
 		expect(planScopedMove(layout('c1'), 'direction-below')).toEqual({
@@ -707,6 +808,7 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				fromGroupId: 'main_leaf:2',
 				direction: 'horizontal',
 				before: false,
+				targetLevel: 'root',
 			},
 		});
 		// El sidebar de un grupo tampoco cruza superficies: split propio.
@@ -743,7 +845,7 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				toIndex: 1,
 			},
 		});
-		// Eje contrario en par apilado: split, no salto lateral.
+		// Eje contrario en par apilado: split de raiz, no salto lateral.
 		expect(planScopedMove(pairLayout('d1'), 'direction-left')).toEqual({
 			ok: true,
 			move: {
@@ -752,6 +854,7 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				fromGroupId: 'main_leaf:1',
 				direction: 'vertical',
 				before: true,
+				targetLevel: 'root',
 			},
 		});
 	});
@@ -779,8 +882,15 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				toIndex: 1,
 			},
 		});
-		// B arriba: borde de su columna -> split horizontal antes.
+		// B arriba: borde de su columna (aislada) -> at-edge (evita bucles infinitos de splits).
 		expect(planScopedMove(nestedLayout('b1'), 'direction-above')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		// Si tiene multiples tabs, si hace split para separar la pestana activa.
+		const nestedMulti = nestedLayout('b1');
+		nestedMulti.groups[1]!.leafKeys = ['b1', 'b2'];
+		expect(planScopedMove(nestedMulti, 'direction-above')).toEqual({
 			ok: true,
 			move: {
 				kind: 'leaf-split',
@@ -844,22 +954,16 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 			ok: false,
 			reason: 'at-edge',
 		});
-		// L5 difiere de L4 aqui a proposito (fallback VSCode): a1 up no
-		// tiene vecino vertical, pero si lateral (B) -> swap.
+		// En layout de columnas verticales, up no tiene vecino vertical -> at-edge (sin falsos swaps laterales).
 		expect(planScopedMove(layout('a1'), 'move-group-up')).toEqual({
-			ok: true,
-			move: {
-				kind: 'group-swap',
-				leafKey: 'a1',
-				activeGroupId: 'main_leaf:0',
-				neighborGroupId: 'main_leaf:1',
-			},
+			ok: false,
+			reason: 'at-edge',
 		});
 		expect(planScopedMove(layout('v1'), 'move-group-down')).toEqual({
 			ok: false,
 			reason: 'single-group',
 		});
-		// Par apilado (tabs-4B): 1 swap basta en cada sentido.
+		// Par apilado (tabs-4B): 1 swap basta en cada sentido vertical.
 		expect(planScopedMove(pairLayout('t1'), 'move-group-down')).toEqual({
 			ok: true,
 			move: {
@@ -878,16 +982,107 @@ describe('U200-L5 plan: regla direccional geometrica (tabs-3)', () => {
 				neighborGroupId: 'main_leaf:0',
 			},
 		});
+		// En par apilado (horizontal), left/right no intercambian verticalmente.
+		expect(planScopedMove(pairLayout('t1'), 'move-group-left')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		expect(planScopedMove(pairLayout('t1'), 'move-group-right')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
 	});
 
-	it('findGroupMoveNeighbor respeta el orden pedido-reservas', () => {
+	it('findGroupMoveNeighbor respeta el eje pedido sin saltos ortogonales involuntarios', () => {
 		const groups = nestedLayout('b1').groups;
-		// B up: sin vertical propio ni columna vecina arriba -> lateral A.
-		expect(findGroupMoveNeighbor(groups, 1, 'move-group-up')).toBe(0);
+		// B up: sin vertical propio ni columna vecina arriba -> null (at-edge).
+		expect(findGroupMoveNeighbor(groups, 1, 'move-group-up')).toBeNull();
+		// B left: sube de nivel en el split vertical -> lateral A (0).
+		expect(findGroupMoveNeighbor(groups, 1, 'move-group-left')).toBe(0);
+		// B down: vecino en su propio sub-split horizontal -> C (2).
+		expect(findGroupMoveNeighbor(groups, 1, 'move-group-down')).toBe(2);
 		// A left: nada en ningun eje -> null (borde).
 		expect(findGroupMoveNeighbor(groups, 0, 'move-group-left')).toBeNull();
-		// C down: sin abajo; reservas laterales: left sube de nivel -> A.
-		expect(findGroupMoveNeighbor(groups, 2, 'move-group-down')).toBe(0);
+		// C down: borde inferior -> null.
+		expect(findGroupMoveNeighbor(groups, 2, 'move-group-down')).toBeNull();
+		// Par apilado (horizontal): left/right son at-edge (null), NO intercambian verticalmente.
+		const pairGroups = pairLayout('t1').groups;
+		expect(findGroupMoveNeighbor(pairGroups, 0, 'move-group-left')).toBeNull();
+		expect(findGroupMoveNeighbor(pairGroups, 0, 'move-group-right')).toBeNull();
+		expect(findGroupMoveNeighbor(pairGroups, 0, 'move-group-down')).toBe(1);
+		expect(findGroupMoveNeighbor(pairGroups, 1, 'move-group-up')).toBe(0);
+	});
+
+	it('grid 3x3 asimetrico: permite navegar entre celdas contiguas sin falsos at-edge', () => {
+		// Vertical dentro de col 0 (anidamiento asimetrico)
+		expect(planScopedMove(grid3x3Layout('cell-0-0'), 'direction-below')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:1:0' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-0'), 'direction-below')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:2:0' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-0'), 'direction-above')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:1:0' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-0'), 'direction-above')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:0:0' },
+		});
+
+		// Vertical dentro de col 1 (anidamiento asimetrico invertido)
+		expect(planScopedMove(grid3x3Layout('cell-0-1'), 'direction-below')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:1:1' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-1'), 'direction-below')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:2:1' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-1'), 'direction-above')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:1:1' },
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-1'), 'direction-above')).toMatchObject({
+			ok: true,
+			move: { kind: 'leaf', toGroupId: 'grid:0:1' },
+		});
+
+		// Horizontal entre columnas contiguas
+		expect(planScopedMove(grid3x3Layout('cell-0-0'), 'direction-right')).toMatchObject({
+			ok: true,
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-0'), 'direction-right')).toMatchObject({
+			ok: true,
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-0'), 'direction-right')).toMatchObject({
+			ok: true,
+		});
+		expect(planScopedMove(grid3x3Layout('cell-0-1'), 'direction-left')).toMatchObject({
+			ok: true,
+		});
+		expect(planScopedMove(grid3x3Layout('cell-1-1'), 'direction-left')).toMatchObject({
+			ok: true,
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-1'), 'direction-left')).toMatchObject({
+			ok: true,
+		});
+
+		// Bordes reales devuelven at-edge en celdas aisladas
+		expect(planScopedMove(grid3x3Layout('cell-0-0'), 'direction-above')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-0'), 'direction-below')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
+		expect(planScopedMove(grid3x3Layout('cell-2-2'), 'direction-below')).toEqual({
+			ok: false,
+			reason: 'at-edge',
+		});
 	});
 });
 

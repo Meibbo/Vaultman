@@ -470,6 +470,7 @@ export interface ScopedSplitPlan {
 	fromGroupId: string;
 	direction: 'vertical' | 'horizontal';
 	before: boolean;
+	targetLevel?: 'cell' | 'root';
 }
 
 /**
@@ -602,31 +603,22 @@ export function findDirectionalNeighbor(
 }
 
 /**
- * Vecino para mover el GRUPO entero: direccion pedida primero y, como VSCode
- * (`findTargetGroup`, issue #50741), reservas ortogonales despues
- * (LEFT/RIGHT prueban UP,DOWN; UP/DOWN prueban LEFT,RIGHT). Sin envoltura,
- * sin crear grupos: sin candidato = borde.
+ * Vecino para mover el GRUPO entero: direccion pedida en su eje geometrico
+ * recorriendo splits ancestros (findDirectionalNeighbor). Sin envoltura,
+ * sin crear grupos y sin saltos ortogonales involuntarios: sin candidato = borde.
  */
 export function findGroupMoveNeighbor(
 	groups: readonly ScopedGroupSnapshot[],
 	activeIndex: number,
 	variation: 'move-group-left' | 'move-group-right' | 'move-group-up' | 'move-group-down',
 ): number | null {
-	const axes: ScopedMoveAxis[] =
+	const axis: ScopedMoveAxis =
 		variation === 'move-group-left' || variation === 'move-group-right'
-			? ['x', 'y']
-			: ['y', 'x'];
-	const primaryDelta: -1 | 1 =
+			? 'x'
+			: 'y';
+	const delta: -1 | 1 =
 		variation === 'move-group-left' || variation === 'move-group-up' ? -1 : 1;
-	for (let a = 0; a < axes.length; a++) {
-		const axis = axes[a] as ScopedMoveAxis;
-		const deltas: ReadonlyArray<-1 | 1> = a === 0 ? [primaryDelta] : [-1, 1];
-		for (const delta of deltas) {
-			const found = findDirectionalNeighbor(groups, activeIndex, axis, delta);
-			if (found !== null) return found;
-		}
-	}
-	return null;
+	return findDirectionalNeighbor(groups, activeIndex, axis, delta);
 }
 
 /**
@@ -853,6 +845,18 @@ export function planScopedMove(
 				delta,
 			);
 			if (neighborOrdinal === null) {
+				const isIsolated = group.leafKeys.length <= 1;
+				const currentSplitDir =
+					group.trail.length > 0
+						? group.trail[group.trail.length - 1]?.direction ?? null
+						: null;
+				const isSameAxis =
+					(axis === 'x' && currentSplitDir === 'vertical') ||
+					(axis === 'y' && currentSplitDir === 'horizontal');
+				if (isIsolated && isSameAxis) {
+					return { ok: false, reason: 'at-edge' };
+				}
+				const isRootSplit = isIsolated && !isSameAxis;
 				return {
 					ok: true,
 					move: {
@@ -865,6 +869,7 @@ export function planScopedMove(
 								: 'horizontal',
 						before:
 							variation === 'direction-left' || variation === 'direction-above',
+						...(isRootSplit ? { targetLevel: 'root' as const } : {}),
 					},
 				};
 			}
