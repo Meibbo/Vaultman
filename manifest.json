@@ -1,7 +1,7 @@
 {
 	"id": "vaultman",
 	"name": "Vaultman",
-	"version": "1.3.0-beta.9",
+	"version": "1.3.0-beta.10",
 	"minAppVersion": "1.13.0",
 	"description": "Files, content and frontmatter advanced management. Queue and preview your changes, filter your lists, group your nodes, save your layouts, and scope your actions to the finest detail. All within YOUR modular workspace UI/UX components.",
 	"author": "Meibbo",

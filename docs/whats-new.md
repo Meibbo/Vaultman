@@ -20,6 +20,21 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-3-0-beta-10"></a>
+
+## 1.3.0-beta.10 — Keyboard mastery, fluid panel movement, and unified scenes
+
+<!-- reviewed: true -->
+
+Vaultman 1.3.0-beta.10 brings native multi-range keyboard selection, clipboard actions, zero-recreation tab moves, and clean, single-toolbar scene integration.
+
+- **Fluid panel and tab moves:** Move tabs between groups and split containers with zero-recreation native reparenting, silent operation by default, and structural column moves that keep your resize handles intact.
+- **Power keyboarding:** Select ranges with Shift and Ctrl+Shift chords, jump directly by typing node prefixes, and trigger Select All, Copy, and Paste straight from the keyboard.
+- **Workspace focus commands:** Jump focus instantly to the left sidebar, right sidebar, or main area via dedicated SASI actions.
+- **Polished scenes:** Cleaner API Scene with single-toolbar projection, Lucide icon consistency, and interactive 3-state grouping.
+
+[Full changelog](../CHANGELOG.md#130-beta10---2026-10-17)
+
 <a id="v1-3-0-beta-9"></a>
 
 ## 1.3.0-beta.9 — Plugin upkeep on autopilot, headers that keep up
