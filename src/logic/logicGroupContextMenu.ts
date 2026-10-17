@@ -509,7 +509,7 @@ export function resolveGroupCopyId(ctx: MenuCtx): string {
  */
 export async function writeGroupCopyIdToClipboard(id: string): Promise<boolean> {
 	try {
-		const scope = globalThis as unknown as {
+		const scope = window as unknown as {
 			navigator?: { clipboard?: { writeText?: (text: string) => Promise<unknown> } };
 		};
 		const writeText = scope.navigator?.clipboard?.writeText?.bind(
@@ -527,7 +527,7 @@ export async function writeGroupCopyIdToClipboard(id: string): Promise<boolean> 
 
 function legacyCopyGroupId(text: string): boolean {
 	try {
-		const scope = globalThis as unknown as {
+		const scope = window as unknown as {
 			document?: Document;
 		};
 		const doc = scope.document;

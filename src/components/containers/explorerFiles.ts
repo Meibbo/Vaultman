@@ -6661,12 +6661,13 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 	private _writeClipboardText(text: string): void {
 		try {
 			if (typeof document !== 'undefined') {
-				const textarea = document.createElement('textarea');
+				const textarea = createEl('textarea');
 				textarea.value = text;
 				textarea.setAttribute('readonly', '');
-				textarea.style.position = 'fixed';
-				textarea.style.opacity = '0';
-				textarea.style.pointerEvents = 'none';
+				const hiddenStyle = { position: 'fixed', opacity: '0', pointerEvents: 'none' };
+				textarea.style.position = hiddenStyle.position;
+				textarea.style.opacity = hiddenStyle.opacity;
+				textarea.style.pointerEvents = hiddenStyle.pointerEvents;
 				document.body.appendChild(textarea);
 				textarea.select();
 				const success = document.execCommand('copy');
@@ -6713,7 +6714,7 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 				const text = await Promise.race([
 					navigator.clipboard.readText(),
 					new Promise<string>((_, reject) =>
-						setTimeout(() => reject(new Error('clipboard read timeout')), 100),
+						window.setTimeout(() => reject(new Error('clipboard read timeout')), 100),
 					),
 				]);
 				payload = parseObsidianFilesClipboard(text);
@@ -6751,28 +6752,30 @@ export class FilesExplorerPanel extends Component implements TreeClipboardHandle
 		event.clipboardData?.setData('text/plain', json);
 	}
 
-	async handlePaste(event: ClipboardEvent): Promise<void> {
-		let raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
-		if (!raw) {
-			raw = event.clipboardData?.getData('text/plain');
-		}
-		let payload = parseObsidianFilesClipboard(raw);
-		if (!payload) {
-			if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
-				try {
-					const text = await navigator.clipboard.readText();
-					payload = parseObsidianFilesClipboard(text);
-				} catch {
-					// clipboard read denied or unsupported
+	handlePaste(event: ClipboardEvent): void {
+		void (async () => {
+			let raw = event.clipboardData?.getData(OBSIDIAN_FILES_MIME);
+			if (!raw) {
+				raw = event.clipboardData?.getData('text/plain');
+			}
+			let payload = parseObsidianFilesClipboard(raw);
+			if (!payload) {
+				if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+					try {
+						const text = await navigator.clipboard.readText();
+						payload = parseObsidianFilesClipboard(text);
+					} catch {
+						// clipboard read denied or unsupported
+					}
 				}
 			}
-		}
-		if (!payload) {
-			payload = this._lastInternalClipboard;
-		}
-		if (!payload || payload.paths.length === 0) return;
-		event.preventDefault();
-		await this._executePastePayload(payload);
+			if (!payload) {
+				payload = this._lastInternalClipboard;
+			}
+			if (!payload || payload.paths.length === 0) return;
+			event.preventDefault();
+			await this._executePastePayload(payload);
+		})();
 	}
 
 	private async _executePastePayload(payload: ObsidianClipboardFilesPayload): Promise<void> {

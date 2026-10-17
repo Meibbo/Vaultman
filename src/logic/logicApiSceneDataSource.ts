@@ -1,4 +1,4 @@
-import { Menu, Notice } from 'obsidian';
+import { Menu, type MenuItem, Notice } from 'obsidian';
 import type { VaultmanPlugin } from '../main';
 import { translate } from '../i18n';
 import type { AddonExplorerDataSource } from './logicAddonDataSource';
@@ -100,12 +100,14 @@ export function createApiSceneDataSource(
 		const instances = plugin.settings.instanceRegistry;
 		const view = publisherView();
 		const provided = listObsidianCommands(plugin.app);
-		const manifests = (plugin.app as any).plugins?.manifests;
+		const manifests = (plugin.app as unknown as {
+			plugins?: { manifests?: Record<string, { name?: unknown }> };
+		}).plugins?.manifests;
 		const communityPluginNames: Record<string, string> = {};
 		if (manifests) {
 			for (const [id, m] of Object.entries(manifests)) {
-				if (m && typeof (m as any).name === 'string') {
-					communityPluginNames[id] = (m as any).name;
+				if (m && typeof m.name === 'string') {
+					communityPluginNames[id] = m.name;
 				}
 			}
 		}
@@ -530,18 +532,20 @@ export function createApiSceneDataSource(
 				});
 				menu.addItem((item) => {
 					item.setTitle(translate('sasi.apiscene.instance.relocate') || 'Cambiar ubicación');
-					const sub = (item as any).setSubmenu ? (item as any).setSubmenu() : menu;
-					sub.addItem((subItem: any) => {
+					const sub = typeof (item as MenuItem & { setSubmenu?: () => Menu }).setSubmenu === 'function'
+						? (item as MenuItem & { setSubmenu: () => Menu }).setSubmenu()
+						: menu;
+					sub.addItem((subItem: MenuItem) => {
 						subItem.setTitle('Left sidebar').onClick(() => {
 							void handleRelocateInstance(instId, 'left-sidebar');
 						});
 					});
-					sub.addItem((subItem: any) => {
+					sub.addItem((subItem: MenuItem) => {
 						subItem.setTitle('Right sidebar').onClick(() => {
 							void handleRelocateInstance(instId, 'right-sidebar');
 						});
 					});
-					sub.addItem((subItem: any) => {
+					sub.addItem((subItem: MenuItem) => {
 						subItem.setTitle('Main leaf').onClick(() => {
 							void handleRelocateInstance(instId, 'main-leaf');
 						});

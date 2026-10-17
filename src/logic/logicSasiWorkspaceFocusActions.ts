@@ -42,12 +42,12 @@ export function registerWorkspaceFocusActions(registry: SasiRegistry): void {
 }
 
 export interface WorkspaceSplitLike {
-	children?: any[];
+	children?: unknown[];
 	currentTab?: number;
 	collapsed?: boolean;
 	expand?: () => void;
-	view?: any;
-	getViewState?: () => any;
+	view?: unknown;
+	getViewState?: () => unknown;
 }
 
 /**
@@ -55,7 +55,7 @@ export interface WorkspaceSplitLike {
  * looking for the active tab (WorkspaceTabs children[currentTab]) or the first
  * leaf found.
  */
-export function findActiveLeafInSplit<T = any>(
+export function findActiveLeafInSplit<T = unknown>(
 	split: WorkspaceSplitLike | null | undefined,
 ): T | null {
 	if (!split) return null;

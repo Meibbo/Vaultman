@@ -290,7 +290,7 @@ export function createHoverExpandTracker(
 	let pendingKey: string | null = null;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const clear = (): void => {
-		if (timer !== null) clearTimeout(timer);
+		if (timer !== null) window.clearTimeout(timer);
 		timer = null;
 		pendingKey = null;
 	};
@@ -303,7 +303,7 @@ export function createHoverExpandTracker(
 			if (pendingKey === targetKey) return;
 			clear();
 			pendingKey = targetKey;
-			timer = setTimeout(() => {
+			timer = window.setTimeout(() => {
 				clear();
 				onExpand(targetKey);
 			}, delayMs);

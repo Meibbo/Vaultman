@@ -912,7 +912,7 @@ export function planScopedMove(
 					},
 				};
 			}
-			const neighbor = snapshot.groups[neighborOrdinal] as ScopedGroupSnapshot;
+			const neighbor = snapshot.groups[neighborOrdinal];
 			return leafTo(neighbor, neighbor.leafKeys.length);
 		}
 		case 'surface-left':
@@ -934,13 +934,13 @@ export function planScopedMove(
 					ok: true,
 					move: {
 						kind: 'surface-new-group',
-						leafKey: snapshot.focusedKey as string,
+						leafKey: snapshot.focusedKey,
 						fromGroupId: group.id,
 						surface: dest,
 					},
 				};
 			}
-			const target = destGroups[destGroups.length - 1] as ScopedGroupSnapshot;
+			const target = destGroups[destGroups.length - 1];
 			if (target.id === group.id) {
 				if (index >= group.leafKeys.length - 1) {
 					return { ok: false, reason: 'at-edge' };
@@ -966,7 +966,7 @@ export function planScopedMove(
 			);
 			// Sin vecino geometrico en ningun eje: borde, no salto mudo.
 			if (neighborOrdinal === null) return { ok: false, reason: 'at-edge' };
-			const neighbor = snapshot.groups[neighborOrdinal] as ScopedGroupSnapshot;
+			const neighbor = snapshot.groups[neighborOrdinal];
 			return {
 				ok: true,
 				move: {
@@ -987,7 +987,7 @@ export function planScopedMove(
 				}
 			}
 			if (level < 0) return { ok: false, reason: 'single-group' };
-			const segment = group.trail[level] as ScopedGroupTrailSegment;
+			const segment = group.trail[level];
 			const siblings = snapshot.groups.filter((g) => {
 				if (g.surface !== group.surface) return false;
 				if (g.trail.length <= level) return false;
@@ -1025,7 +1025,7 @@ export function planScopedMove(
 				}
 			}
 			if (level < 0) return { ok: false, reason: 'single-group' };
-			const segment = group.trail[level] as ScopedGroupTrailSegment;
+			const segment = group.trail[level];
 			const siblings = snapshot.groups.filter((g) => {
 				if (g.surface !== group.surface) return false;
 				if (g.trail.length <= level) return false;

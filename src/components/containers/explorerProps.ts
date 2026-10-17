@@ -1106,7 +1106,7 @@ export class PropsExplorerPanel extends Component {
 		const isTextEditing =
 			active instanceof HTMLElement &&
 			this.containerEl.contains(active) &&
-			((active instanceof HTMLInputElement &&
+			((active.instanceOf(HTMLInputElement) &&
 				active.type !== 'checkbox' &&
 				active.type !== 'radio' &&
 				active.type !== 'button' &&
@@ -4450,7 +4450,7 @@ export class PropsExplorerPanel extends Component {
 			// Native parity: the core value/name popovers carry
 			// `mod-property-value` for theming.
 			nameSuggest.popoverEl.addClass('mod-property-value');
-			setTimeout(() => {
+			window.setTimeout(() => {
 				inputEl.focus();
 				inputEl.dispatchEvent(new Event('input'));
 			}, 10);
@@ -4491,13 +4491,13 @@ export class PropsExplorerPanel extends Component {
 				'data-property-key',
 				propName.toLowerCase(),
 			);
-			setTimeout(() => {
+			window.setTimeout(() => {
 				inputEl.focus();
 				inputEl.select();
 				inputEl.dispatchEvent(new Event('input'));
 			}, 10);
 		} else {
-			setTimeout(() => {
+			window.setTimeout(() => {
 				inputEl.focus();
 				inputEl.select();
 			}, 10);

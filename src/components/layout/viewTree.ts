@@ -1292,7 +1292,7 @@ export class UnifiedTreeView {
 			// Remove rows from cache so _renderWindow recreates them
 			// in _contentEl at their correct absolute positions.
 			for (const child of Array.from(this._drawerEl.children)) {
-				if (child instanceof HTMLElement && child.dataset.id) {
+				if (child.instanceOf(HTMLElement) && child.dataset.id) {
 					this._unobserveRow(child);
 					this.rowEls.delete(child.dataset.id);
 				}
@@ -1368,7 +1368,7 @@ export class UnifiedTreeView {
 			for (const entry of entries) {
 				const target = entry.target;
 				if (
-					!(target instanceof HTMLElement) ||
+					!(target.instanceOf(HTMLElement)) ||
 					target.ownerDocument !== this.containerEl.ownerDocument ||
 					!target.isConnected
 				) {
@@ -1611,7 +1611,7 @@ export class UnifiedTreeView {
 				// Native navigation blurs DOM focus; logical focus survives recycling.
 				const doc = this.containerEl.ownerDocument;
 				const active = doc?.activeElement;
-				if (active && active !== doc.body && !isEditableKeyboardTarget(active, null) && 'blur' in active && typeof active.blur === 'function') {
+				if (active instanceof HTMLElement && active !== doc.body && !isEditableKeyboardTarget(active, null)) {
 					active.blur();
 				}
 				doc?.getSelection()?.removeAllRanges();
@@ -2080,7 +2080,7 @@ export class UnifiedTreeView {
 
 	private _renderStickyRows(scrollTop: number, viewportHeight: number, rowHeight: number): void {
 		if (!this._stickyLayerEl || !this._opts?.stickyParentRows) {
-			if (this._contentEl) this._contentEl.style.clipPath = '';
+			if (this._contentEl) this._contentEl.style.removeProperty('clip-path');
 			this.removeStaleRows(new Set(), this.stickyRowEls);
 			this._syncStickyTwins(new Set());
 			return;
@@ -3006,7 +3006,7 @@ export class UnifiedTreeView {
 					for (const el of host.querySelectorAll(
 						':scope > span.vaultman-tree-label',
 					)) {
-						if (!(el instanceof HTMLElement)) continue;
+						if (!(el.instanceOf(HTMLElement))) continue;
 						for (const cls of inner) el.addClass(cls);
 						projectTextCaseElement(el, mode);
 					}
@@ -3609,6 +3609,7 @@ export class UnifiedTreeView {
 				const mouseChip = keysContainer.createSpan({
 					cls: `vaultman-mouse-chip vaultman-mouse-chip--${cell.mouseAction}`,
 				});
+				/* eslint-disable-next-line no-unsanitized/property -- Mouse chip SVGs are static SVG markup */
 				mouseChip.innerHTML = this._getMouseChipSvg(cell.mouseAction);
 			}
 			return;

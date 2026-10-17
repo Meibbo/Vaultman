@@ -380,7 +380,7 @@ export class NodeBindingService extends Events {
 					this.recentlyCreatedTokens.delete(tok);
 				}
 			}
-			setTimeout(() => {
+			window.setTimeout(() => {
 				this.deletedPaths.delete(deletedPath);
 			}, 2000);
 		}

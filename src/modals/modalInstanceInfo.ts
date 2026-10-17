@@ -281,11 +281,13 @@ export class InstanceInfoModal extends Modal {
 			});
 			option.selected = optDef.id === model.surfacePosition;
 		}
-		surfaceSelect.addEventListener('change', async () => {
-			const target = surfaceSelect.value as NonNullable<WorkspaceInstanceRecord['surfacePosition']>;
-			if (target === model.surfacePosition) return;
-			await this.onMoveSurface?.(model.id, target);
-			this.close();
+		surfaceSelect.addEventListener('change', () => {
+			void (async () => {
+				const target = surfaceSelect.value as NonNullable<WorkspaceInstanceRecord['surfacePosition']>;
+				if (target === model.surfacePosition) return;
+				await this.onMoveSurface?.(model.id, target);
+				this.close();
+			})();
 		});
 
 		row('toolbar.instance_info.created', new Date(model.createdAt).toLocaleString());
@@ -301,9 +303,11 @@ export class InstanceInfoModal extends Modal {
 				cls: 'mod-cta vaultman-instance-info-split-btn',
 				text: translate('toolbar.instance_info.create_split'),
 			});
-			splitBtn.addEventListener('click', async () => {
-				await this.onSplitInstance?.(model.id);
-				this.close();
+			splitBtn.addEventListener('click', () => {
+				void (async () => {
+					await this.onSplitInstance?.(model.id);
+					this.close();
+				})();
 			});
 		}
 	}
@@ -442,7 +446,7 @@ export class InstanceInfoModal extends Modal {
 		if (boundaries.length === 0) return;
 
 		const heading = parent.createDiv({ cls: 'vaultman-instance-info-field' });
-		heading.createEl('div', {
+		heading.createDiv({
 			cls: 'vaultman-instance-info-field-label',
 			text: translate('toolbar.instance_info.native_compat'),
 		});
@@ -472,7 +476,7 @@ export class InstanceInfoModal extends Modal {
 				const next = applySceneConfigPath(
 					this.currentLayer(target),
 					['nativeCompat', boundary],
-					mode === 'inherit' ? undefined : (mode as NativeCompatMode),
+					mode === 'inherit' ? undefined : mode,
 				);
 				this.persistLayer(target, next);
 			});

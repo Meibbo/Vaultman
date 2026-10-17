@@ -579,7 +579,7 @@ export function appendApiSceneCommandNodes({
 				groupKind: 'command.vaultman',
 				supports: [],
 				composes:
-					(entry.descriptor as { composes?: readonly string[] } | undefined)
+					(entry.descriptor)
 						?.composes ?? [],
 				depth: 1,
 			}),

@@ -52,6 +52,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	setSceneEngine?(surface: SceneEngineSurface | undefined, mode: ExplorerViewMode): boolean;
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
 	invokeScenePresentationSasiAction?(actionId: string, scope?: string): Promise<boolean>;
+	invokeIslandSasiAction?(actionId: string): Promise<boolean>;
 	switchScene?(tab: StatisticsDataTab | 'apiscene'): boolean;
 	addPropertyInReveal?(): Promise<boolean>;
 	openFilterScene?(): boolean;

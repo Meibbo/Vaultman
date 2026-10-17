@@ -101,11 +101,11 @@ export function sceneConfigEditorOptions(
 	switch (field) {
 		case 'viewMode': {
 			if (!tab) return ['tree', 'table', 'dnd', 'grid', 'cards'];
-			return [...selectableViewModesForDataSurface(tab as ExplorerTabId)];
+			return [...selectableViewModesForDataSurface(tab)];
 		}
 		case 'interactionMode': {
 			if (!tab) return ['open', 'filter', 'add', 'select', 'input'];
-			return interactionModesForTab(tab as ExplorerTabId);
+			return interactionModesForTab(tab);
 		}
 		case 'taskCellDisplayMode':
 			return ['auto', 'pending', 'done-total'];
@@ -153,7 +153,7 @@ export function validateSceneConfigInput(
 		if (!isStringArray(value)) return { ok: false, reason: 'incompatible-value' };
 		if (field === 'visibleCells' && tab) {
 			const normalized = normalizeVisibleCellIds(
-				tab as ExplorerTabId,
+				tab,
 				value,
 				viewMode,
 			);
@@ -167,7 +167,7 @@ export function validateSceneConfigInput(
 	if (!isRecord(value)) return { ok: false, reason: 'incompatible-value' };
 	switch (field) {
 		case 'sortState': {
-			const sortTab = (tab ?? 'files') as ExplorerTabId;
+			const sortTab = (tab ?? 'files');
 			if (!hasOnlyKeys(value, [
 				'sorts', 'scopeState', 'activeScope', 'drillNodeId', 'hiddenScopes',
 				'nodeTypeFilter', 'nodeTypeFilters', 'parentsFirst', 'addPropertyFirst',
@@ -179,7 +179,7 @@ export function validateSceneConfigInput(
 				: { ok: false, reason: 'incompatible-value' };
 		}
 		case 'groupPreset': {
-			const groupTab = (tab ?? 'files') as ExplorerTabId;
+			const groupTab = (tab ?? 'files');
 			if (!hasOnlyKeys(value, [
 				'kind', 'direction', 'counterRanges', 'partitionPresentation',
 			])) return { ok: false, reason: 'incompatible-value' };
@@ -229,7 +229,7 @@ export function validateSceneConfigInput(
 		case 'textCase':
 			return Object.entries(value).every(([cell, mode]) => cell.length > 0 && isTextCaseOption(mode)) &&
 				sameJson(normalizeTextCaseMap(value), value)
-				? { ok: true, value: { ...value } as Record<string, TextCaseOption> }
+				? { ok: true, value: { ...value } }
 				: { ok: false, reason: 'incompatible-value' };
 		case 'nativeCompat':
 			return Object.entries(value).every(([boundary, mode]) =>
@@ -267,7 +267,7 @@ export function parseSceneConfigEditorInput(
 export function applySceneConfigPath(
 	config: SceneConfig,
 	path: readonly string[],
-	value: unknown | undefined,
+	value: unknown,
 ): SceneConfig {
 	if (path.length === 0) return config;
 	const root = cloneJsonRecord(config as Record<string, unknown>);
@@ -277,18 +277,18 @@ export function applySceneConfigPath(
 		if (!isRecord(child)) cursor[key] = {};
 		cursor = cursor[key] as Record<string, unknown>;
 	}
-	const leaf = path[path.length - 1]!;
+	const leaf = path[path.length - 1];
 	if (value === undefined) delete cursor[leaf];
 	else cursor[leaf] = cloneJsonValue(value);
 	for (let index = path.length - 2; index >= 0; index -= 1) {
-		const key = path[index]!;
+		const key = path[index];
 		const child = cursorAt(root, path.slice(0, index + 1));
 		if (isRecord(child) && Object.keys(child).length === 0) {
 			const parent = cursorAt(root, path.slice(0, index));
 			if (parent) delete parent[key];
 		}
 	}
-	return root as SceneConfig;
+	return root;
 }
 
 export function formatSceneConfigFieldLabel(field: string): string {

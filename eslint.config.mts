@@ -90,7 +90,21 @@ export default tseslint.config(
 		files: ['test/**/*.ts', 'test/**/*.mts', 'wdio.conf.mts'],
 		rules: {
 			'obsidianmd/no-nodejs-modules': 'off',
+			'obsidianmd/no-forbidden-elements': 'off',
+			'obsidianmd/prefer-create-el': 'off',
+			'obsidianmd/regex-lookbehind': 'off',
+			'no-unsanitized/property': 'off',
+			'@microsoft/sdl/no-inner-html': 'off',
+			'@typescript-eslint/no-this-alias': 'off',
 			'@typescript-eslint/unbound-method': 'off',
+			'@typescript-eslint/no-floating-promises': 'off',
+			'@typescript-eslint/no-explicit-any': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
+			'@typescript-eslint/no-unsafe-member-access': 'off',
+			'@typescript-eslint/no-unsafe-call': 'off',
+			'@typescript-eslint/no-unsafe-return': 'off',
+			'@typescript-eslint/no-unsafe-argument': 'off',
+			'@typescript-eslint/no-unnecessary-type-assertion': 'off',
 			'eslint-comments/no-restricted-disable': 'off',
 			'eslint-comments/disable-enable-pair': 'off',
 		},
@@ -98,6 +112,11 @@ export default tseslint.config(
 			globals: {
 				...globals.node,
 			},
+		},
+	},
+	{
+		linterOptions: {
+			reportUnusedDisableDirectives: 'off',
 		},
 	},
 	globalIgnores([

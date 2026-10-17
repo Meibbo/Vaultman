@@ -550,7 +550,7 @@ export class VaultmanPlugin extends Plugin {
 				const path = file?.path;
 				this.nodeBindingService.invalidateAliasCache(path);
 				if (path) this.lastOpenedService.handleDelete(path);
-				setTimeout(() => {
+				window.setTimeout(() => {
 					this.nodeBindingService.invalidateAliasCache();
 				}, 60);
 			}),
@@ -696,7 +696,7 @@ export class VaultmanPlugin extends Plugin {
 					if (tab === 'apiscene') {
 						void this.goToApiSceneCommand();
 					} else {
-						void this.switchSceneCommand(tab as StatisticsDataTab);
+						void this.switchSceneCommand(tab);
 					}
 				},
 			});
@@ -999,7 +999,7 @@ export class VaultmanPlugin extends Plugin {
 			return;
 		}
 		if (actionId.startsWith('vaultman.scene.engine.')) {
-			const mode = actionId.slice('vaultman.scene.engine.'.length) as any;
+			const mode = actionId.slice('vaultman.scene.engine.'.length) as unknown;
 			void this.changeActiveEngineCommand(mode);
 			return;
 		}
@@ -1561,11 +1561,11 @@ export class VaultmanPlugin extends Plugin {
 		toIndex: number,
 	): Promise<boolean> {
 		const parent = (leaf as { parent?: unknown }).parent ?? null;
-		let moved = false;
+		let moved: boolean;
 		try {
 			moved = reorderChildWithinParent(
 				parent as unknown as ReorderParentLike,
-				leaf as unknown,
+				leaf,
 				toIndex,
 			);
 		} catch {
@@ -1606,7 +1606,7 @@ export class VaultmanPlugin extends Plugin {
 		let fresh: WorkspaceLeaf;
 		try {
 			fresh = this.app.workspace.createLeafInParent(
-				root as unknown as WorkspaceSplit,
+				root,
 				0,
 			);
 		} catch {
@@ -1784,7 +1784,7 @@ export class VaultmanPlugin extends Plugin {
 				const children = this.scopedChildrenOf(root) ?? [];
 				const insertIndex = before ? 0 : children.length;
 				splitLeaf = this.app.workspace.createLeafInParent(
-					root as unknown as WorkspaceSplit,
+					root,
 					insertIndex,
 				);
 			} else {
@@ -1921,9 +1921,9 @@ export class VaultmanPlugin extends Plugin {
 		let node = leaf.parent as unknown as { parent?: unknown } | null;
 		while (node) {
 			for (const root of roots) {
-				if (node === (root as unknown)) return root as unknown as WorkspaceSplit;
+				if (node === (root as unknown)) return root;
 			}
-			node = (node as { parent?: unknown })?.parent as typeof node;
+			node = (node)?.parent as typeof node;
 		}
 		return null;
 	}
@@ -2030,24 +2030,33 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	runFocusWorkspaceSurface(target: WorkspaceFocusTarget): boolean {
-		const workspace = this.app.workspace as any;
+		const workspace = this.app.workspace as unknown as {
+			leftSplit?: { collapsed?: boolean; expand?: () => void };
+			rightSplit?: { collapsed?: boolean; expand?: () => void };
+			rootSplit?: unknown;
+			setActiveLeaf?: (leaf: WorkspaceLeaf, options?: { focus: boolean }) => void;
+		};
 		if (!workspace) return false;
-		let split: any = null;
+		let split: unknown = null;
 		if (target === 'leftSidebar') {
-			split = workspace.leftSplit;
-			if (split?.collapsed && typeof split.expand === 'function') {
-				split.expand();
+			const left = workspace.leftSplit;
+			if (left?.collapsed && typeof left.expand === 'function') {
+				left.expand();
 			}
+			split = left;
 		} else if (target === 'rightSidebar') {
-			split = workspace.rightSplit;
-			if (split?.collapsed && typeof split.expand === 'function') {
-				split.expand();
+			const right = workspace.rightSplit;
+			if (right?.collapsed && typeof right.expand === 'function') {
+				right.expand();
 			}
+			split = right;
 		} else if (target === 'mainArea') {
 			split = workspace.rootSplit;
 		}
 		if (!split) return false;
-		const leaf = findActiveLeafInSplit<WorkspaceLeaf>(split);
+		const leaf = findActiveLeafInSplit<WorkspaceLeaf>(
+			split,
+		);
 		if (leaf && typeof workspace.setActiveLeaf === 'function') {
 			workspace.setActiveLeaf(leaf, { focus: true });
 			return true;
@@ -2678,7 +2687,7 @@ export class VaultmanPlugin extends Plugin {
 					? 'left-sidebar'
 					: 'right-sidebar';
 
-		let splitLeaf: WorkspaceLeaf | null = null;
+		let splitLeaf: WorkspaceLeaf | null;
 		if (currentPos === 'left-sidebar') {
 			splitLeaf = this.app.workspace.getLeftLeaf(true);
 		} else if (currentPos === 'right-sidebar') {

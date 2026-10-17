@@ -333,7 +333,7 @@ export class LastOpenedService extends Component {
 
 	private _scheduleFlush(): void {
 		if (this.flushTimer !== null) return;
-		this.flushTimer = setTimeout(() => {
+		this.flushTimer = window.setTimeout(() => {
 			this.flushTimer = null;
 			this._flushInBackground();
 		}, this.flushDelayMs);
@@ -341,7 +341,7 @@ export class LastOpenedService extends Component {
 
 	private _cancelFlush(): void {
 		if (this.flushTimer === null) return;
-		clearTimeout(this.flushTimer);
+		window.clearTimeout(this.flushTimer);
 		this.flushTimer = null;
 	}
 

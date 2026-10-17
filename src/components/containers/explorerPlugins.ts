@@ -1561,11 +1561,11 @@ export class PluginsExplorerPanel
 						// PluginMeta cannot express this marker (see
 						// ApiSceneGroupMeta), hence the documented escape below
 						// with zero runtime change.
-						// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- intentional non-PluginMeta group marker, see comment above
+						 
 						header.meta = {
 							identityKind: API_SCENE_GROUP_KIND,
 							group: sasiKey,
-						} as any;
+						} as unknown;
 					}
 				}
 			},
@@ -1607,7 +1607,7 @@ export class PluginsExplorerPanel
 					return children !== row.children ? { ...row, children } : row;
 				}
 				const actionable = (children ?? []).filter(
-					(child) => (child.meta as any)?.publishable !== false && Boolean(child.meta?.pluginId),
+					(child) => (child.meta as unknown)?.publishable !== false && Boolean(child.meta?.pluginId),
 				);
 				if (actionable.length === 0) {
 					return children !== row.children ? { ...row, children } : row;
@@ -2334,7 +2334,7 @@ export class PluginsExplorerPanel
 		if (this.dataSource) {
 			const header = findProjectedNode(this.projectedNodes(), groupId);
 			const actionable = (header?.children ?? []).filter(
-				(child) => (child.meta as any)?.publishable !== false && Boolean(child.meta?.pluginId),
+				(child) => (child.meta as unknown)?.publishable !== false && Boolean(child.meta?.pluginId),
 			);
 			if (actionable.length === 0) return;
 			const memberIds = actionable.map((child) => entityIdOf(child));
@@ -2413,9 +2413,9 @@ export class PluginsExplorerPanel
 		// Crucial: yield to the event loop so the browser paints the loading spinner (rueda de carga)
 		await new Promise<void>((resolve) => {
 			if (typeof requestAnimationFrame === 'function') {
-				requestAnimationFrame(() => setTimeout(resolve, 0));
+				window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
 			} else {
-				setTimeout(resolve, 0);
+				window.setTimeout(resolve, 0);
 			}
 		});
 		let callerWillUnload = false;

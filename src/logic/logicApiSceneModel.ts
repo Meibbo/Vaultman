@@ -123,7 +123,7 @@ export const API_SCENE_TABS = [
 export const API_SCENE_SELF_ID = 'vaultman.scene.apiscene';
 
 export interface ApiSceneNodeMeta {
-	identityKind: ApiSceneIdentityKind | typeof API_SCENE_IDENTITY_KIND | string;
+	identityKind: ApiSceneIdentityKind | (string & {});
 	urn: string;
 	group: ApiSceneGroupName;
 	sasiId: string;

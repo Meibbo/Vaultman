@@ -135,17 +135,19 @@ export class InstanceSearchModal extends SuggestModal<InstanceChoice> {
 		}
 	}
 
-	async onChooseSuggestion(
+	onChooseSuggestion(
 		item: InstanceChoice,
 		_evt: MouseEvent | KeyboardEvent,
-	): Promise<void> {
-		if (item.kind === 'existing') {
-			await this.plugin.openWorkspaceInstance(item.id);
-		} else {
-			await this.plugin.createAndOpenWorkspaceInstance(
-				undefined,
-				item.id || undefined,
-			);
-		}
+	): void {
+		void (async () => {
+			if (item.kind === 'existing') {
+				await this.plugin.openWorkspaceInstance(item.id);
+			} else {
+				await this.plugin.createAndOpenWorkspaceInstance(
+					undefined,
+					item.id || undefined,
+				);
+			}
+		})();
 	}
 }

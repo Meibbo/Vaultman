@@ -23,7 +23,7 @@ import type { ExplorerTabId } from '../types/typeUI';
  */
 export interface CascadeInput {
 	defaults: Required<SceneConfig>;
-	global?: SceneConfig;
+	window?: SceneConfig;
 	instanceSelf?: SceneConfig;
 	scene?: SceneConfig;
 	outlet?: SceneConfig;

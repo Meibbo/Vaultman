@@ -244,7 +244,7 @@ export class GroupSuggesterModal extends Modal {
 			});
 
 		if (this.suggestions.length > 0) {
-			contentEl.createEl('div', {
+			contentEl.createDiv({
 				cls: 'vaultman-suggester-section-title',
 				text: `${translate('group.preset.custom')} / ${translate('settings.templates')}`,
 			});
