@@ -165,17 +165,11 @@ describe('UnifiedTreeView Home/End Navco Integration', () => {
 		expect(ctrlEnd.defaultPrevented).toBe(true);
 	});
 
-	it('rejects modifier chords (Alt, Shift, Meta on Linux) and composing IME events', () => {
+	it('rejects modifier chords (Alt, Meta on Linux) and composing IME events', () => {
 		const container = document.createElement('div');
 		const view = createSampleView(container);
 
 		view.setFocusedId('f2');
-
-		// Shift+Home
-		const shiftHome = new KeyboardEvent('keydown', { key: 'Home', shiftKey: true, bubbles: true, cancelable: true });
-		container.dispatchEvent(shiftHome);
-		expect(view.focusedId).toBe('f2');
-		expect(shiftHome.defaultPrevented).toBe(false);
 
 		// Alt+Home
 		const altHome = new KeyboardEvent('keydown', { key: 'Home', altKey: true, bubbles: true, cancelable: true });

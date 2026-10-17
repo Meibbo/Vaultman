@@ -1565,7 +1565,7 @@ export class PluginsExplorerPanel
 						header.meta = {
 							identityKind: API_SCENE_GROUP_KIND,
 							group: sasiKey,
-						} as unknown;
+						} as unknown as PluginMeta;
 					}
 				}
 			},
@@ -1597,6 +1597,9 @@ export class PluginsExplorerPanel
 	private withGroupToggleCells(
 		rows: readonly TreeNode<PluginMeta>[],
 	): TreeNode<PluginMeta>[] {
+		if (!rows.some((row) => isGroupHeader(row.id, this._groupIds))) {
+			return rows as TreeNode<PluginMeta>[];
+		}
 		const isHeader = (row: TreeNode<PluginMeta>) =>
 			row.isGroupHeader === true || isGroupHeader(row.id, this._groupIds);
 
@@ -1607,7 +1610,7 @@ export class PluginsExplorerPanel
 					return children !== row.children ? { ...row, children } : row;
 				}
 				const actionable = (children ?? []).filter(
-					(child) => (child.meta as unknown)?.publishable !== false && Boolean(child.meta?.pluginId),
+					(child) => (child.meta as { publishable?: boolean } | undefined)?.publishable !== false && Boolean(child.meta?.pluginId),
 				);
 				if (actionable.length === 0) {
 					return children !== row.children ? { ...row, children } : row;
@@ -2334,7 +2337,7 @@ export class PluginsExplorerPanel
 		if (this.dataSource) {
 			const header = findProjectedNode(this.projectedNodes(), groupId);
 			const actionable = (header?.children ?? []).filter(
-				(child) => (child.meta as unknown)?.publishable !== false && Boolean(child.meta?.pluginId),
+				(child) => (child.meta as { publishable?: boolean } | undefined)?.publishable !== false && Boolean(child.meta?.pluginId),
 			);
 			if (actionable.length === 0) return;
 			const memberIds = actionable.map((child) => entityIdOf(child));
@@ -2412,10 +2415,19 @@ export class PluginsExplorerPanel
 		this.rebuildNodes();
 		// Crucial: yield to the event loop so the browser paints the loading spinner (rueda de carga)
 		await new Promise<void>((resolve) => {
-			if (typeof requestAnimationFrame === 'function') {
-				window.requestAnimationFrame(() => window.setTimeout(resolve, 0));
+			const delay = () => {
+				if (typeof window !== 'undefined') {
+					window.setTimeout(resolve, 0);
+				} else {
+					setTimeout(resolve, 0);
+				}
+			};
+			if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+				window.requestAnimationFrame(delay);
+			} else if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(delay);
 			} else {
-				window.setTimeout(resolve, 0);
+				delay();
 			}
 		});
 		let callerWillUnload = false;

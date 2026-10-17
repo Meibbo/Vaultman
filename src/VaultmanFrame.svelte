@@ -52,7 +52,10 @@
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 	import { createSceneConfigPort } from './logic/logicSceneConfigPort';
 	import { acquireNativeBridge } from './services/serviceNativeBridge';
-	import { EMPTY_REGISTRY, setInstanceCellName } from './logic/logicInstanceRegistry';
+	import {
+		EMPTY_REGISTRY,
+		setInstanceCellName,
+	} from './logic/logicInstanceRegistry';
 	import { normalizeExplorerSortState } from './logic/logicScopedSort';
 	import { NO_GROUP_PRESET } from './types/typeGroupPreset';
 	import { DEFAULT_INTERACTION_MODE } from './logic/logicInteractionMode';
@@ -112,7 +115,10 @@
 		sceneConfigPort.setInstanceId(id);
 	}
 
-	async function renameWorkspaceInstance(id: string, name: string): Promise<void> {
+	async function renameWorkspaceInstance(
+		id: string,
+		name: string,
+	): Promise<void> {
 		const registry = plugin.settings.instanceRegistry ?? EMPTY_REGISTRY;
 		const next = setInstanceCellName(registry, id, name);
 		if (next === registry) return;
@@ -211,7 +217,12 @@
 		mode: ExplorerViewMode,
 	): boolean {
 		const targetTab = (surface ?? filtersActiveTab) as FiltersTab;
-		return panelWidgetHostRef?.setSceneEngine?.(targetTab as SceneEngineSurface, mode) ?? false;
+		return (
+			panelWidgetHostRef?.setSceneEngine?.(
+				targetTab as SceneEngineSurface,
+				mode,
+			) ?? false
+		);
 	}
 
 	/** Apply a scoped SASI presentation action to this live instance's scene layer. */
@@ -221,7 +232,9 @@
 	): Promise<boolean> {
 		const action = parseScenePresentationAction(actionId);
 		if (!action) return false;
-		const scopedScene = scope?.startsWith('scene:') ? scope.slice('scene:'.length) : '';
+		const scopedScene = scope?.startsWith('scene:')
+			? scope.slice('scene:'.length)
+			: '';
 		const target = isPresentationSceneId(scopedScene)
 			? scopedScene
 			: isPresentationSceneId(filtersActiveTab)
@@ -230,7 +243,12 @@
 		if (!target) return false;
 		const current = sceneConfigPort.read(target);
 		const layer = sceneConfigPort.readSceneOverrides?.(target) ?? {};
-		const next = applyScenePresentationAction(layer, target, action, current.viewMode);
+		const next = applyScenePresentationAction(
+			layer,
+			target,
+			action,
+			current.viewMode,
+		);
 		await sceneConfigPort.proposeSceneOverrides?.(target, next);
 		return true;
 	}
@@ -254,7 +272,10 @@
 			filtersIsland?.focusFirstControl();
 			return Boolean(filtersIsland);
 		}
-		if (actionId === FILTERS_TEMPLATES_ID || actionId === FILTERS_BASES_INTEROP_ID) {
+		if (
+			actionId === FILTERS_TEMPLATES_ID ||
+			actionId === FILTERS_BASES_INTEROP_ID
+		) {
 			if (activePage !== 'filters') navigateTo('filters');
 			closeQueueIsland();
 			if (!filtersIslandOpen) openFiltersIsland(false);
@@ -504,7 +525,13 @@
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
 
 	type FiltersTab =
-		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins' | 'apiscene';
+		| 'files'
+		| 'tags'
+		| 'props'
+		| 'content'
+		| 'snippets'
+		| 'plugins'
+		| 'apiscene';
 	type SearchTab = Exclude<FiltersTab, 'content' | 'apiscene'>;
 	// Se siembra desde el puerto: si esta instancia ya estuvo en una scene, vuelve a ella en vez
 	// de empezar siempre en Files. Lo pidio el dev el 2026-08-20 tras ver que dos instancias
@@ -554,7 +581,8 @@
 			sceneLabelMode: 'auto',
 			autoRevealMode: 'auto',
 			hiddenToolbarNodes: [],
-			toolbarNodeIcons: {}, toolbarNodeLabels: {},
+			toolbarNodeIcons: {},
+			toolbarNodeLabels: {},
 			// U130 polishing: sin comandos extra per-instance por defecto.
 			toolbarCommandActions: [],
 			// U130 polishing: la ubicación de creación sigue al setting
@@ -823,7 +851,8 @@
 	}
 
 	export function refreshActiveExplorerViewport(): boolean {
-		if (filtersActiveTab === 'apiscene' || filtersActiveTab === 'content') return false;
+		if (filtersActiveTab === 'apiscene' || filtersActiveTab === 'content')
+			return false;
 		return refreshExplorerViewport(filtersActiveTab as any, {
 			files: fileList,
 			props: propExplorer,
@@ -1902,7 +1931,8 @@
 								{settingsRevision}
 								onNavigateToDataTab={navigateToDataTab}
 								toolbarShown={frameShowToolbar}
-								onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
+								onToggleToolbar={() =>
+									handleShowToolbarChange(!frameShowToolbar)}
 								filterRuleCount={displayedFilterRuleCount}
 								filteredCount={displayedFilteredCount}
 								{queuedCount}

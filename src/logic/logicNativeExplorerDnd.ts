@@ -288,9 +288,15 @@ export function createHoverExpandTracker(
 	delayMs: number = NATIVE_EXPLORER_HOVER_EXPAND_MS,
 ): HoverExpandTracker {
 	let pendingKey: string | null = null;
-	let timer: ReturnType<typeof setTimeout> | null = null;
+	let timer: number | null = null;
 	const clear = (): void => {
-		if (timer !== null) window.clearTimeout(timer);
+		if (timer !== null) {
+			if (typeof window !== 'undefined') {
+				window.clearTimeout(timer);
+			} else {
+				clearTimeout(timer);
+			}
+		}
 		timer = null;
 		pendingKey = null;
 	};
@@ -303,10 +309,13 @@ export function createHoverExpandTracker(
 			if (pendingKey === targetKey) return;
 			clear();
 			pendingKey = targetKey;
-			timer = window.setTimeout(() => {
+			const onTimeout = () => {
 				clear();
 				onExpand(targetKey);
-			}, delayMs);
+			};
+			timer = (typeof window !== 'undefined'
+				? window.setTimeout(onTimeout, delayMs)
+				: setTimeout(onTimeout, delayMs)) as unknown as number;
 		},
 		cancel(): void {
 			clear();

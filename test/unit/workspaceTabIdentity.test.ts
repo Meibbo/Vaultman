@@ -7,7 +7,7 @@ describe('workspace tab scene identity', () => {
 	});
 	it('uses scene menu metadata when mirroring is on', () => {
 		expect(workspaceTabIdentity(true, 'files')).toEqual({ labelKey: 'filter.tab.files', icon: 'lucide-folder' });
-		expect(workspaceTabIdentity(true, 'plugins')).toEqual({ labelKey: 'filter.tab.plugins', icon: 'lucide-plug' });
+		expect(workspaceTabIdentity(true, 'plugins')).toEqual({ labelKey: 'filter.tab.plugins', icon: 'lucide-settings' });
 	});
 	it('does not invent a scene identity for a missing instance or unknown scene', () => {
 		expect(workspaceTabIdentity(true, undefined)).toEqual(workspaceTabIdentity(false, 'files'));

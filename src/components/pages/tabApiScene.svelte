@@ -7,7 +7,7 @@
 	import { createApiSceneDataSource } from '../../logic/logicApiSceneDataSource';
 
 	import type {
-		NavbarPanelWidgetTabOption,
+		PanelWidgetHeaderTabOption,
 		PanelWidgetHeaderMenuAction,
 	} from '../../types/typePanelWidget';
 
@@ -25,7 +25,7 @@
 		active?: boolean;
 		searchTerm?: string;
 		panel?: PluginsExplorerPanel;
-		tabOptions?: NavbarPanelWidgetTabOption[];
+		tabOptions?: PanelWidgetHeaderTabOption[];
 		tabMenuActions?: PanelWidgetHeaderMenuAction[];
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;

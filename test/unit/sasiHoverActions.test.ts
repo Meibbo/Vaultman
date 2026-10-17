@@ -24,7 +24,7 @@ const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * mantener.
  */
 describe('U130-? SASI hover actions', () => {
-	it('registra 14 actions: 3 por surface + lock + nested-ribbon', () => {
+	it('registra 17 actions: 3 por surface + lock + nested-ribbon', () => {
 		const registry = createSasiRegistry();
 		registerHoverActions(registry);
 		const expected = [
@@ -36,7 +36,7 @@ describe('U130-? SASI hover actions', () => {
 				hoverActionId({ surface, kind: 'pin' }),
 			]),
 		];
-		expect(expected.length).toBe(14);
+		expect(expected.length).toBe(17);
 		for (const id of expected) {
 			const def = registry.resolve(id).def;
 			expect(def, `id registrado: ${id}`).not.toBeNull();
@@ -67,7 +67,7 @@ describe('U130-? SASI hover actions', () => {
 		const { registry } = createVaultmanSasi();
 		const ids = registry.list('function').map((def) => def.id);
 		const hoverIds = ids.filter((id) => id.startsWith('vaultman.hover.'));
-		expect(hoverIds.length).toBe(14);
+		expect(hoverIds.length).toBe(17);
 		for (const id of hoverIds) {
 			expect(id.startsWith('vaultman.move.')).toBe(false);
 			expect(id.startsWith('vaultman.search.')).toBe(false);

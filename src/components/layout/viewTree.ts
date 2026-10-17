@@ -505,11 +505,14 @@ export class UnifiedTreeView {
 		this._editingCounterRange = { id, mode };
 		this._editingCounterRangeId = id;
 		this._renderWindow();
-		this._treeWindow().requestAnimationFrame(() => {
-			this.rowEls.get(id)?.querySelector<HTMLInputElement>(
-				'.vaultman-counter-range-editor input',
-			)?.focus();
-		});
+		const treeWin = this._treeWindow();
+		if (treeWin && typeof treeWin.requestAnimationFrame === 'function') {
+			treeWin.requestAnimationFrame(() => {
+				this.rowEls.get(id)?.querySelector<HTMLInputElement>(
+					'.vaultman-counter-range-editor input',
+				)?.focus();
+			});
+		}
 		return true;
 	}
 
@@ -750,15 +753,28 @@ export class UnifiedTreeView {
 			this._pendingRaf = null;
 		}
 		if (this._pendingScrollTimer !== null) {
-			window.clearTimeout(this._pendingScrollTimer);
+			if (typeof window !== 'undefined') {
+				window.clearTimeout(this._pendingScrollTimer);
+			} else {
+				clearTimeout(this._pendingScrollTimer);
+			}
 			this._pendingScrollTimer = null;
 		}
 		if (this._structureAnimationTimer !== null) {
-			this._treeWindow().clearTimeout(this._structureAnimationTimer);
+			const win = this._treeWindow();
+			if (win) {
+				win.clearTimeout(this._structureAnimationTimer);
+			} else {
+				clearTimeout(this._structureAnimationTimer);
+			}
 			this._structureAnimationTimer = null;
 		}
 		if (this._scrollGestureTimer !== null) {
-			window.clearTimeout(this._scrollGestureTimer);
+			if (typeof window !== 'undefined') {
+				window.clearTimeout(this._scrollGestureTimer);
+			} else {
+				clearTimeout(this._scrollGestureTimer);
+			}
 			this._scrollGestureTimer = null;
 			this._scrollGestureStart = null;
 		}
@@ -1304,7 +1320,12 @@ export class UnifiedTreeView {
 	}
 
 	private _treeWindow(): Window {
-		return this.containerEl.ownerDocument?.defaultView ?? window;
+		return (
+			this.containerEl.ownerDocument?.defaultView ??
+			(typeof window !== 'undefined'
+				? window
+				: (globalThis as unknown as Window))
+		);
 	}
 
 	private _ensureScaffold(): void {
@@ -1674,15 +1695,18 @@ export class UnifiedTreeView {
 			onContextMenu: (id) => {
 				const row = this.rowEls.get(id);
 				const rect = row?.getBoundingClientRect();
-				const win = this.containerEl.ownerDocument?.defaultView ?? window;
-				const synthEvent = new win.MouseEvent('contextmenu', {
+				const eventInit: MouseEventInit = {
 					bubbles: true,
 					cancelable: true,
 					clientX: rect ? rect.left + Math.min(rect.width / 2, 80) : 0,
 					clientY: rect ? rect.top + rect.height / 2 : 0,
 					button: 2,
 					buttons: 2,
-				});
+				};
+				const synthEvent =
+					typeof MouseEvent !== 'undefined'
+						? new MouseEvent('contextmenu', eventInit)
+						: (eventInit as MouseEvent);
 				this._opts?.onContextMenu(id, synthEvent);
 			},
 		};
@@ -2001,7 +2025,12 @@ export class UnifiedTreeView {
 			this._cancelWindowRender();
 			this._renderWindow();
 		};
-		this._pendingRaf = treeWindow.requestAnimationFrame(run);
+		this._pendingRaf =
+			typeof treeWindow.requestAnimationFrame === 'function'
+				? treeWindow.requestAnimationFrame(run)
+				: typeof window !== 'undefined'
+					? window.requestAnimationFrame(run)
+					: null;
 		this._pendingScrollTimer = treeWindow.setTimeout(run, 32);
 	}
 

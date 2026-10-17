@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
-	import { applyNativeCompatClasses, NATIVE_BRIDGE_HOSTS, resolveNativeCompatMode, toNativeSceneId } from '../../logic/logicNativeTreeCompat';
+	import {
+		applyNativeCompatClasses,
+		NATIVE_BRIDGE_HOSTS,
+		resolveNativeCompatMode,
+		toNativeSceneId,
+	} from '../../logic/logicNativeTreeCompat';
 	import { Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
@@ -81,7 +86,13 @@
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab =
-		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins' | 'apiscene';
+		| 'files'
+		| 'props'
+		| 'tags'
+		| 'content'
+		| 'snippets'
+		| 'plugins'
+		| 'apiscene';
 	type SearchTab = Exclude<FiltersTab, 'content' | 'apiscene'>;
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
@@ -392,7 +403,9 @@
 	});
 
 	const explorerActiveTab = $derived<SearchTab>(
-		filtersActiveTab === 'content' || filtersActiveTab === 'apiscene' ? 'props' : filtersActiveTab,
+		filtersActiveTab === 'content' || filtersActiveTab === 'apiscene'
+			? 'props'
+			: filtersActiveTab,
 	);
 	const explorerSearchTab = $derived<SearchTab>(explorerActiveTab);
 	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
@@ -2105,9 +2118,15 @@
 		if (scene) {
 			leaf.dataset.vaultmanNativeType = NATIVE_BRIDGE_HOSTS[scene][0];
 			leaf.dataset.vaultmanNativeScene = scene;
-			applyNativeCompatClasses(leaf, 'container', resolveNativeCompatMode(
-				'container', plugin.settings.nativeCompatDefaults, sceneConfigPort.read(scene).nativeCompat,
-			));
+			applyNativeCompatClasses(
+				leaf,
+				'container',
+				resolveNativeCompatMode(
+					'container',
+					plugin.settings.nativeCompatDefaults,
+					sceneConfigPort.read(scene).nativeCompat,
+				),
+			);
 		} else {
 			delete leaf.dataset.vaultmanNativeType;
 			delete leaf.dataset.vaultmanNativeScene;
@@ -2115,7 +2134,10 @@
 		return () => {
 			delete leaf.dataset.vaultmanNativeType;
 			delete leaf.dataset.vaultmanNativeScene;
-			leaf.classList.remove('vaultman-native-container-compat', 'vaultman-native-container-locked');
+			leaf.classList.remove(
+				'vaultman-native-container-compat',
+				'vaultman-native-container-locked',
+			);
 		};
 	});
 </script>

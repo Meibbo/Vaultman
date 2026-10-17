@@ -469,7 +469,7 @@ describe('BT5-019 panel wiring guards', () => {
 		expect(pluginsLogicSource).toContain("id: 'plugin.toggle'");
 		expect(pluginsLogicSource).toContain('canToggleCommunityPlugin(meta)');
 		expect(pluginsLogicSource).toContain('canUninstallCommunityPlugin(meta)');
-		expect(pluginsLogicSource).toContain('toggleCommunityPlugin(plugin.app, meta)');
+		expect(pluginsLogicSource).toContain('togglePlugin(plugin.app, meta)');
 		expect(pluginsLogicSource).toContain('addon.icon.change');
 	});
 });

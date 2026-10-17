@@ -253,8 +253,13 @@ export class ActiveFiltersIslandComponent {
 			this.islandEl.addClass('is-open');
 			if (this.focusOnMount) this.focusFirstControl();
 		};
-		if (view?.requestAnimationFrame) view.requestAnimationFrame(open);
-		else open();
+		if (view?.requestAnimationFrame) {
+			view.requestAnimationFrame(open);
+		} else if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+			window.requestAnimationFrame(open);
+		} else {
+			open();
+		}
 	}
 
 	focusFirstControl(): void {

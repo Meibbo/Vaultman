@@ -231,24 +231,20 @@
 			actionId === TOOLBAR_SEARCHBOX_ID ||
 			actionId === TOOLBAR_FOCUS_SEARCH_ID
 		) {
-			const isSearchOpenAndFocused =
-				minimalStyle
-					? searchExpanded
-					: searchInputs().some(
-							(input) =>
-								document.activeElement === input ||
-								input.contains(document.activeElement),
-					  );
+			const isSearchOpenAndFocused = minimalStyle
+				? searchExpanded
+				: searchInputs().some(
+						(input) =>
+							document.activeElement === input ||
+							input.contains(document.activeElement),
+					);
 
 			if (isSearchOpenAndFocused) {
 				if (minimalStyle) {
 					setSearchExpanded(false);
 				}
 				blurSearchInputs();
-				if (
-					searchReturnFocusElement &&
-					searchReturnFocusElement.isConnected
-				) {
+				if (searchReturnFocusElement && searchReturnFocusElement.isConnected) {
 					searchReturnFocusElement.focus();
 				}
 				searchReturnFocusElement = null;
@@ -1133,11 +1129,14 @@
 			? cloneScopeState(currentSort.scopeState)
 			: scopeStateFromLegacy(tab, currentSort, configByTab[tab].groupPreset);
 		const targetParentId = parentOfScope(target);
-		const targetLevel = target === 'all'
-			? undefined
-			: targetParentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0).base + 1
-				: (levelOfScope(target) ?? undefined);
+		const targetLevel =
+			target === 'all'
+				? undefined
+				: targetParentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(targetParentId) ?? 0,
+						).base + 1
+					: (levelOfScope(target) ?? undefined);
 		const preset =
 			scopeState.sets[target]?.groupPreset ??
 			resolveScopeSet(
@@ -1158,11 +1157,14 @@
 			currentSort.activeScope,
 		) as ScopeTarget;
 		const parentId = parentOfScope(cursor);
-		const level = cursor === 'all'
-			? undefined
-			: parentId
-				? parseScopeLevel(treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0).base + 1
-				: (levelOfScope(cursor) ?? undefined);
+		const level =
+			cursor === 'all'
+				? undefined
+				: parentId
+					? parseScopeLevel(
+							treePanelForTab(tab)?.scopeLevelForNode?.(parentId) ?? 0,
+						).base + 1
+					: (levelOfScope(cursor) ?? undefined);
 		const effectivePreset = resolveScopeSet(
 			scopeState,
 			{ level, parentId },
@@ -1731,7 +1733,8 @@
 				[id, labelKey, iconName],
 			] of PLUGIN_UPDATE_TOOLBAR_ACTIONS.entries()) {
 				// C2: mount update_all only when the eligible pending count > 0.
-				if (!isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)) continue;
+				if (!isPluginUpdateToolbarActionVisible(id, pendingUpdateCount))
+					continue;
 				append(
 					id,
 					translate(labelKey),
@@ -2652,7 +2655,10 @@
 			/** U130 polishing: view_option `tooltips`, per_instance. */
 			tooltips?: boolean;
 			/** U130 native polish: resolved per-cell display case (global + scene). */
-			textCase?: Record<string, import('../../logic/logicTextCaseProjection').TextCaseOption>;
+			textCase?: Record<
+				string,
+				import('../../logic/logicTextCaseProjection').TextCaseOption
+			>;
 			/** U130 native polish: compatible/locked policy per boundary. */
 			nativeCompat?: Partial<
 				Record<
@@ -3879,7 +3885,8 @@
 		}
 		// Add-on explorers section (snippets, then settings).
 		const showSasiInSceneMenu = Boolean(
-			(app as any)?.plugins?.plugins?.['vaultman']?.settings?.showSasiInSceneMenu,
+			(app as any)?.plugins?.plugins?.['vaultman']?.settings
+				?.showSasiInSceneMenu,
 		);
 		if (addonTabOptions.length > 0 || showSasiInSceneMenu) {
 			nodes.push(nativeMenuDivider('scene_menu.divider.addons'));
@@ -3949,18 +3956,18 @@
 							tagsExplorer.hasSortNode?.(id) ?? false,
 					}
 				: {}),
-		...(validateDrill && tab === 'props' && propExplorer
-			? {
-					isValidDrillNode: (id: string) =>
-						propExplorer?.hasSortNode?.(id) ?? false,
-				}
-			: {}),
-		...(validateDrill && tab === 'plugins' && pluginsExplorer
-			? {
-					isValidDrillNode: (id: string) =>
-						pluginsExplorer.hasSortNode?.(id) ?? false,
-				}
-			: {}),
+			...(validateDrill && tab === 'props' && propExplorer
+				? {
+						isValidDrillNode: (id: string) =>
+							propExplorer?.hasSortNode?.(id) ?? false,
+					}
+				: {}),
+			...(validateDrill && tab === 'plugins' && pluginsExplorer
+				? {
+						isValidDrillNode: (id: string) =>
+							pluginsExplorer.hasSortNode?.(id) ?? false,
+					}
+				: {}),
 		});
 		return {
 			...normalized,
@@ -4458,7 +4465,10 @@
 	/** U130 native polish: resolved per-cell display case → scene port. */
 	function applyTextCase(
 		tab: FiltersTab,
-		textCase: Record<string, import('../../logic/logicTextCaseProjection').TextCaseOption>,
+		textCase: Record<
+			string,
+			import('../../logic/logicTextCaseProjection').TextCaseOption
+		>,
 	) {
 		explorerPortForTab(tab)?.setTextCase?.(textCase);
 	}
@@ -4470,7 +4480,7 @@
 			Record<
 				'tree' | 'toolbar' | 'container' | 'menu',
 				import('../../logic/logicNativeTreeCompat').NativeCompatMode
-				>
+			>
 		>,
 	) {
 		explorerPortForTab(tab)?.setNativeCompat?.(policy);
@@ -4503,7 +4513,9 @@
 	// U130 polish: Limpiar tooltips huérfanos al alternar vistas/escenas
 	$effect(() => {
 		if (activeTab) {
-			const doc = activeDocument ?? (typeof document !== 'undefined' ? document : null);
+			const doc =
+				(typeof activeDocument !== 'undefined' ? activeDocument : null) ??
+				(typeof document !== 'undefined' ? document : null);
 			doc?.querySelectorAll?.('.tooltip')?.forEach?.((el) => el.remove());
 		}
 	});
@@ -4718,7 +4730,9 @@
 							icon: 'lucide-trash-2',
 							onClick: () => deleteCustomGroup(activeTab, entry.id),
 						}),
-						nativeMenuDivider(`sort_menu.groups.custom.${entry.id}.divider.scope`),
+						nativeMenuDivider(
+							`sort_menu.groups.custom.${entry.id}.divider.scope`,
+						),
 						nativeMenuItem(`sort_menu.groups.custom.${entry.id}.scope`, {
 							title: `${translate('sort.scope.title')}: ${entry.scopeLabel ?? ''}`,
 							icon: 'lucide-layers',
@@ -5261,7 +5275,9 @@
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
 								class:is-active={action.checked}
-								class:vaultman-header-action-with-label={isNodeLabelVisible(`header:${action.id}`)}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(
+									`header:${action.id}`,
+								)}
 								class:vaultman-reveal-out-of-list={headerRevealFaint &&
 									REVEAL_HEADER_ACTION_IDS.has(action.id)}
 								data-panel-widget-node-id={panelWidgetNodeId(
@@ -5314,7 +5330,9 @@
 						{#if toolbarNodeVisible('view')}
 							<div
 								class={headerActionClass}
-								class:vaultman-header-action-with-label={isNodeLabelVisible('view')}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(
+									'view',
+								)}
 								data-panel-widget-node-id={panelWidgetNodeId('view')}
 								style:order={panelWidgetNodeOrder('view')}
 								role="button"
@@ -5352,7 +5370,9 @@
 						{#if toolbarNodeVisible('sort')}
 							<div
 								class={headerActionClass}
-								class:vaultman-header-action-with-label={isNodeLabelVisible('sort')}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(
+									'sort',
+								)}
 								data-panel-widget-node-id={panelWidgetNodeId('sort')}
 								style:order={panelWidgetNodeOrder('sort')}
 								role="button"
@@ -5435,7 +5455,9 @@
 							<div
 								class={headerActionClass}
 								class:vaultman-reveal-out-of-list={filesRevealFaint}
-								class:vaultman-header-action-with-label={isNodeLabelVisible('reveal-active-file')}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(
+									'reveal-active-file',
+								)}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									'reveal-active-file',
 								)}
@@ -5477,7 +5499,9 @@
 						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible('toggle-expansion')}
 							<div
 								class={headerActionClass}
-								class:vaultman-header-action-with-label={isNodeLabelVisible('toggle-expansion')}
+								class:vaultman-header-action-with-label={isNodeLabelVisible(
+									'toggle-expansion',
+								)}
 								data-panel-widget-node-id={panelWidgetNodeId(
 									'toggle-expansion',
 								)}
@@ -5521,7 +5545,9 @@
 								{#if toolbarNodeVisible(id) && isPluginUpdateToolbarActionVisible(id, pendingUpdateCount)}
 									<div
 										class={headerActionClass}
-										class:vaultman-header-action-with-label={isNodeLabelVisible(id)}
+										class:vaultman-header-action-with-label={isNodeLabelVisible(
+											id,
+										)}
 										data-panel-widget-node-id={panelWidgetNodeId(id)}
 										style:order={panelWidgetNodeOrder(id)}
 										role="button"
@@ -5545,11 +5571,9 @@
 											class="vaultman-header-action-icon"
 											class:is-busy={pluginToolbarBusy(id)}
 											aria-hidden="true"
-											use:icon={
-												pluginToolbarBusy(id)
-													? 'lucide-loader-circle'
-													: panelWidgetNodeIcon(id, iconName)
-											}
+											use:icon={pluginToolbarBusy(id)
+												? 'lucide-loader-circle'
+												: panelWidgetNodeIcon(id, iconName)}
 										></span>
 										{#if isNodeLabelVisible(id)}
 											<span class="vaultman-header-action-label">
@@ -5565,7 +5589,9 @@
 							{#if toolbarNodeVisible('create-file')}
 								<div
 									class={headerActionClass}
-									class:vaultman-header-action-with-label={isNodeLabelVisible('create-file')}
+									class:vaultman-header-action-with-label={isNodeLabelVisible(
+										'create-file',
+									)}
 									data-panel-widget-node-id={panelWidgetNodeId('create-file')}
 									style:order={panelWidgetNodeOrder('create-file')}
 									role="button"
@@ -5607,7 +5633,9 @@
 							{#if toolbarNodeVisible('create-folder')}
 								<div
 									class={headerActionClass}
-									class:vaultman-header-action-with-label={isNodeLabelVisible('create-folder')}
+									class:vaultman-header-action-with-label={isNodeLabelVisible(
+										'create-folder',
+									)}
 									data-panel-widget-node-id={panelWidgetNodeId('create-folder')}
 									style:order={panelWidgetNodeOrder('create-folder')}
 									role="button"
@@ -5653,7 +5681,9 @@
 								<div
 									class={headerActionClass}
 									class:is-disabled={!command.available}
-									class:vaultman-header-action-with-label={isNodeLabelVisible(`command:${command.id}`)}
+									class:vaultman-header-action-with-label={isNodeLabelVisible(
+										`command:${command.id}`,
+									)}
 									data-panel-widget-node-id={panelWidgetNodeId(
 										`command:${command.id}`,
 									)}
@@ -5662,7 +5692,10 @@
 									tabindex="0"
 									aria-label={command.available
 										? command.label
-										: translate('command.unavailable').replace('{id}', command.id)}
+										: translate('command.unavailable').replace(
+												'{id}',
+												command.id,
+											)}
 									onclick={() => {
 										if (command.available) {
 											invokeSceneAction(`command:${command.id}`, 'pointer');

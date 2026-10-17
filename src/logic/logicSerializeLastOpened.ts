@@ -17,7 +17,13 @@ export async function serializeLastOpened(record: LastOpenedRecord): Promise<str
 		if (performance.now() >= deadline) {
 			chunks.push(chunk);
 			chunk = '';
-			await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+			await new Promise<void>((resolve) => {
+				if (typeof window !== 'undefined') {
+					window.setTimeout(resolve, 0);
+				} else {
+					setTimeout(resolve, 0);
+				}
+			});
 			deadline = performance.now() + 4;
 		}
 	}

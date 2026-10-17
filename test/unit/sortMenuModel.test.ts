@@ -69,8 +69,8 @@ describe('BT5-007 shared sort menu model', () => {
 			canPickLevel: true,
 		};
 		const fresh = scopeMenuModel('files', stateFor('files'), scene);
-		expect(fresh?.titleKind).toBe('level');
-		expect(fresh?.titleArg).toBe('Level 1');
+		expect(fresh?.titleKind).toBe('all');
+		expect(fresh?.titleArg).toBe('');
 		expect(fresh?.items.map((item) => item.id)).toEqual([
 			'all',
 			'drill',
@@ -78,7 +78,7 @@ describe('BT5-007 shared sort menu model', () => {
 		]);
 		expect(fresh?.items.find((item) => item.id === 'all')).toMatchObject({
 			kind: 'pick',
-			checked: false,
+			checked: true,
 		});
 		const constrained = scopeMenuModel('files', stateFor('files'), {
 			...scene,

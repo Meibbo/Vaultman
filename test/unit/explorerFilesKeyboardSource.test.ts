@@ -3,7 +3,7 @@ import explorerFilesSource from '../../src/components/containers/explorerFiles.t
 
 describe('FilesExplorerPanel keyboard and clipboard parity', () => {
 	it('keeps pending paste operations inside the existing queue policy without direct vault writes', () => {
-		const paste = explorerFilesSource.split('async handlePaste(event: ClipboardEvent)')[1]?.split('private _collectClipboardTargetPaths')[0] ?? '';
+		const paste = explorerFilesSource.split('handlePaste(event: ClipboardEvent)')[1]?.split('private _collectClipboardTargetPaths')[0] ?? '';
 		expect(paste).toContain('buildNodeMoveQueueChanges');
 		expect(paste).toContain('stageNodeMovePlan');
 		expect(paste).not.toMatch(/vault\.(copy|rename)\(/);

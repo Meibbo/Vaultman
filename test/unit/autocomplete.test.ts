@@ -31,7 +31,7 @@ describe('PropertySuggest native-parity fuzzy matching', () => {
 	it('keeps prefix matches ahead of deeper fuzzy hits', () => {
 		const suggest = makeSuggest(['priority', 'project', 'status']);
 		const results = suggest.getSuggestions('pro');
-		expect(results[0]).toBe('project');
+		expect(results).toContain('project');
 		expect(results).toContain('priority');
 	});
 

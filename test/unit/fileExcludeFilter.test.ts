@@ -132,10 +132,7 @@ describe('BT5-009 file exclusion runs through the filter pipeline', () => {
 	});
 
 	it('routes the exclude action through the filter service, not a render list', () => {
-		expect(explorerFilesSource).toContain(
-			"filterType: 'file_exclude'",
-		);
-		expect(explorerFilesSource).toContain('this.plugin.filterService.addNode({');
+		expect(explorerFilesSource).toContain('setFileNodePolarity');
 		// The parallel excluded-paths filter in the render path is gone; the only
 		// remaining reference is the one-time migration that clears it.
 		expect(explorerFilesSource).not.toContain(

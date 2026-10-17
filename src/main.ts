@@ -999,7 +999,7 @@ export class VaultmanPlugin extends Plugin {
 			return;
 		}
 		if (actionId.startsWith('vaultman.scene.engine.')) {
-			const mode = actionId.slice('vaultman.scene.engine.'.length) as unknown;
+			const mode = actionId.slice('vaultman.scene.engine.'.length) as ExplorerViewMode;
 			void this.changeActiveEngineCommand(mode);
 			return;
 		}
@@ -1145,7 +1145,7 @@ export class VaultmanPlugin extends Plugin {
 
 	private async invokeIslandSasiAction(actionId: string): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
-		if (view) await view.invokeIslandSasiAction?.(actionId);
+		if (view) view.invokeIslandSasiAction?.(actionId);
 	}
 
 	/**

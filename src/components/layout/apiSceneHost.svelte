@@ -2,9 +2,10 @@
 	import NavbarPanelWidgetHost from './navbarPanelWidgetHost.svelte';
 	import type { VaultmanPlugin } from '../../main';
 	import type { PluginsExplorerPanel } from '../containers/explorerPlugins';
+	import type { SceneConfigPort } from '../../logic/logicSceneConfigPort';
 	import type {
 		NavbarPanelWidgetState,
-		NavbarPanelWidgetTabOption,
+		PanelWidgetHeaderTabOption,
 		PanelWidgetHeaderMenuAction,
 	} from '../../types/typePanelWidget';
 	import { translate } from '../../i18n/index';
@@ -22,7 +23,7 @@
 		plugin: VaultmanPlugin;
 		explorer: PluginsExplorerPanel;
 		sceneConfigPort: SceneConfigPort;
-		tabOptions?: NavbarPanelWidgetTabOption[];
+		tabOptions?: PanelWidgetHeaderTabOption[];
 		tabMenuActions?: PanelWidgetHeaderMenuAction[];
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;

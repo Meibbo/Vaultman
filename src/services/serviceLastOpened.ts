@@ -34,7 +34,7 @@ export class LastOpenedService extends Component {
 	private record: Record<string, number> = {};
 	private loaded = false;
 	private dirty = false;
-	private flushTimer: ReturnType<typeof setTimeout> | null = null;
+	private flushTimer: number | null = null;
 	/** BT5-090: folder recency, rebuilt lazily after the record changes. */
 	private folderRecency: ReadonlyMap<string, number> | null = null;
 	private readonly changes = new Set<(record: LastOpenedRecord) => void>();
@@ -333,15 +333,22 @@ export class LastOpenedService extends Component {
 
 	private _scheduleFlush(): void {
 		if (this.flushTimer !== null) return;
-		this.flushTimer = window.setTimeout(() => {
+		const callback = () => {
 			this.flushTimer = null;
 			this._flushInBackground();
-		}, this.flushDelayMs);
+		};
+		this.flushTimer = (typeof window !== 'undefined'
+			? window.setTimeout(callback, this.flushDelayMs)
+			: setTimeout(callback, this.flushDelayMs)) as unknown as number;
 	}
 
 	private _cancelFlush(): void {
 		if (this.flushTimer === null) return;
-		window.clearTimeout(this.flushTimer);
+		if (typeof window !== 'undefined') {
+			window.clearTimeout(this.flushTimer);
+		} else {
+			clearTimeout(this.flushTimer);
+		}
 		this.flushTimer = null;
 	}
 

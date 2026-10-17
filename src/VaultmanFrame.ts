@@ -52,7 +52,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	setSceneEngine?(surface: SceneEngineSurface | undefined, mode: ExplorerViewMode): boolean;
 	invokeToolbarSasiAction?(actionId: string): Promise<boolean>;
 	invokeScenePresentationSasiAction?(actionId: string, scope?: string): Promise<boolean>;
-	invokeIslandSasiAction?(actionId: string): Promise<boolean>;
+	invokeIslandSasiAction?(actionId: string): boolean;
 	switchScene?(tab: StatisticsDataTab | 'apiscene'): boolean;
 	addPropertyInReveal?(): Promise<boolean>;
 	openFilterScene?(): boolean;
@@ -139,9 +139,15 @@ export class VaultmanFrame extends ItemView {
 				event.preventDefault();
 			}
 		};
-		this.registerDomEvent(this.containerEl, 'copy', routeClipboard('copy'));
-		this.registerDomEvent(this.containerEl, 'cut', routeClipboard('cut'));
-		this.registerDomEvent(this.containerEl, 'paste', routeClipboard('paste'));
+		if (typeof this.registerDomEvent === 'function') {
+			this.registerDomEvent(this.containerEl, 'copy', routeClipboard('copy'));
+			this.registerDomEvent(this.containerEl, 'cut', routeClipboard('cut'));
+			this.registerDomEvent(this.containerEl, 'paste', routeClipboard('paste'));
+		} else if (this.containerEl?.addEventListener) {
+			this.containerEl.addEventListener('copy', routeClipboard('copy') as EventListener);
+			this.containerEl.addEventListener('cut', routeClipboard('cut') as EventListener);
+			this.containerEl.addEventListener('paste', routeClipboard('paste') as EventListener);
+		}
 
 		this.register(plugin.onSettingsChange(() => this.refreshTabIdentity()));
 		this.registerEvent(
@@ -386,8 +392,8 @@ export class VaultmanFrame extends ItemView {
 		return (await this.svelteApp?.invokeScenePresentationSasiAction?.(actionId, scope)) ?? false;
 	}
 
-	async invokeIslandSasiAction(actionId: string): Promise<boolean> {
-		return (await this.svelteApp?.invokeIslandSasiAction?.(actionId)) ?? false;
+	invokeIslandSasiAction(actionId: string): boolean {
+		return this.svelteApp?.invokeIslandSasiAction?.(actionId) ?? false;
 	}
 
 	switchScene(tab: StatisticsDataTab | 'apiscene'): boolean {

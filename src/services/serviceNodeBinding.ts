@@ -380,9 +380,14 @@ export class NodeBindingService extends Events {
 					this.recentlyCreatedTokens.delete(tok);
 				}
 			}
-			window.setTimeout(() => {
+			const cleanup = () => {
 				this.deletedPaths.delete(deletedPath);
-			}, 2000);
+			};
+			if (typeof window !== 'undefined') {
+				window.setTimeout(cleanup, 2000);
+			} else {
+				setTimeout(cleanup, 2000);
+			}
 		}
 		this.cachedAliasSet = null;
 		this.trigger('changed');

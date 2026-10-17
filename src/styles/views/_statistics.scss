@@ -362,7 +362,7 @@
 }
 
 /* U130 native polish: the slot owns structural indentation (host-qualified,
-   stronger than the native collapsible padding, no !important). */
+   stronger than the native collapsible padding, no overrides). */
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row {
   padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));

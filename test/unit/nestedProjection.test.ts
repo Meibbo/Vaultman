@@ -88,7 +88,7 @@ describe('U130 parity B · projection source guards', () => {
 		// No `checkbox`: intentionally off by default since the checkbox-flash
 		// fix (panel starts without checkbox flash by design).
 		expect(pluginsSource).toContain(
-			"new Set(['icon', 'text', 'state', 'config', 'nested'])",
+			"new Set(['icon', 'text', 'state', 'config', 'nested', 'keys'])",
 		);
 	});
 

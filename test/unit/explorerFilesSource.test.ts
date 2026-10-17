@@ -325,7 +325,7 @@ describe('exclude file (BT5-009, was BT4-015 / D39)', () => {
 		expect(explorerFilesSource).toContain("id: 'file.exclude'");
 		// BT5-009: the exclude action adds a filter node; the render path no
 		// longer carries its own excluded-paths pass.
-		expect(explorerFilesSource).toContain("filterType: 'file_exclude'");
+		expect(explorerFilesSource).toContain('setFileNodePolarity');
 		const display = explorerFilesSource.slice(
 			explorerFilesSource.indexOf('private _filesForDisplay()'),
 			explorerFilesSource.indexOf('private _fileTypeId('),

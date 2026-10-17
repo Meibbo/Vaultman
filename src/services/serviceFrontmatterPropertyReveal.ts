@@ -181,8 +181,10 @@ async function expandMetadataContainer(root: {
 		if (typeof heading?.click === 'function') heading.click();
 		if (cls.contains('is-collapsed')) cls.remove('is-collapsed');
 		await new Promise<void>((resolve) => {
-			if (typeof requestAnimationFrame === 'function') {
+			if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
 				window.requestAnimationFrame(() => resolve());
+			} else if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(() => resolve());
 			} else {
 				resolve();
 			}

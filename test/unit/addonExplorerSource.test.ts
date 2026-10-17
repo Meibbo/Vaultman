@@ -34,7 +34,7 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 
 	it('exposes safe toggle actions while allowing Vaultman to disable itself', () => {
 		expect(snippetsPanelSource).toContain('setCssSnippetEnabled');
-		expect(pluginsPanelSource).toContain('toggleCommunityPlugin');
+		expect(pluginsPanelSource).toContain('setCommunityPluginEnabled');
 		expect(pluginsPanelSource).not.toContain('addons.plugins.self_protected');
 		expect(menuTypesSource).toContain("| 'snippet'");
 		expect(menuTypesSource).toContain("| 'plugin'");

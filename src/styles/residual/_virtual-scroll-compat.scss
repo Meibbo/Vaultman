@@ -137,7 +137,7 @@ settings:
 
 /* U130 native polish: the slot owns structural indentation with a
    host-qualified rule that outranks the native collapsible padding without
-   !important. The inner self adds no indent of its own. */
+   overrides. The inner self adds no indent of its own. */
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-virtual-viewport .vaultman-tree-row,
 .workspace-leaf-content[data-type="vaultman-view"] .vaultman-tree-virtual-viewport .vaultman-tree-row {
 	padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));

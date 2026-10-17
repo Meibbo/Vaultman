@@ -1,5 +1,5 @@
 import type { SceneConfig, SceneDefinitionId } from '../types/typeInstance';
-import type { ExplorerTabId, ExplorerViewMode } from '../types/typeUI';
+import type { ExplorerViewMode } from '../types/typeUI';
 import {
 	interactionModesForTab,
 } from './logicInteractionMode';
@@ -23,7 +23,6 @@ import {
 import {
 	isTextCaseOption,
 	normalizeTextCaseMap,
-	type TextCaseOption,
 } from './logicTextCaseProjection';
 import { parseMembershipUrn } from './logicMembershipUrn';
 

@@ -56,24 +56,25 @@ export interface WorkspaceSplitLike {
  * leaf found.
  */
 export function findActiveLeafInSplit<T = unknown>(
-	split: WorkspaceSplitLike | null | undefined,
+	split: unknown,
 ): T | null {
-	if (!split) return null;
-	if (typeof split.getViewState === 'function' || split.view) {
+	if (!split || typeof split !== 'object') return null;
+	const s = split as WorkspaceSplitLike;
+	if (typeof s.getViewState === 'function' || s.view) {
 		return split as unknown as T;
 	}
-	if (Array.isArray(split.children) && split.children.length > 0) {
+	if (Array.isArray(s.children) && s.children.length > 0) {
 		if (
-			typeof split.currentTab === 'number' &&
-			split.currentTab >= 0 &&
-			split.currentTab < split.children.length
+			typeof s.currentTab === 'number' &&
+			s.currentTab >= 0 &&
+			s.currentTab < s.children.length
 		) {
 			const candidate = findActiveLeafInSplit<T>(
-				split.children[split.currentTab],
+				s.children[s.currentTab],
 			);
 			if (candidate) return candidate;
 		}
-		for (const child of split.children) {
+		for (const child of s.children) {
 			const candidate = findActiveLeafInSplit<T>(child);
 			if (candidate) return candidate;
 		}

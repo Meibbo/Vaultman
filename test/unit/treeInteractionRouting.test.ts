@@ -102,7 +102,7 @@ describe('native modifier allowlist on the DOM event path', () => {
  };
  it.each([
   [' ', { ctrlKey: true }], ['Enter', { shiftKey: true }],
-  ['ArrowRight', { shiftKey: true }], ['ArrowDown', { ctrlKey: true, shiftKey: true }],
+  ['ArrowRight', { shiftKey: true }], ['ArrowDown', { altKey: true }],
   ['ArrowDown', { metaKey: true }], ['F2', { ctrlKey: true }],
  ])('leaves unsupported %s modifiers to the platform', (key, modifiers) => {
   const event = new KeyboardEvent('keydown', { key, ...modifiers });

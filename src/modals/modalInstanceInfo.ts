@@ -19,7 +19,6 @@ import {
 } from '../logic/logicSceneConfigEditor';
 import {
 	NATIVE_COMPAT_BOUNDARIES,
-	type NativeCompatMode,
 } from '../logic/logicNativeTreeCompat';
 
 type OverrideTarget =
