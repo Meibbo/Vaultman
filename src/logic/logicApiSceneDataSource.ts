@@ -340,6 +340,29 @@ export function createApiSceneDataSource(
 			}
 		},
 		cell: (id: string, cellId: string) => handleCell(id, cellId),
+		toggleGroup: (_groupId: string, memberIds?: readonly string[]) => {
+			const targetNodes = memberIds?.length
+				? flatNodes.filter(
+						(n) => (memberIds.includes(n.id) || (n.meta?.sasiId && memberIds.includes(n.meta.sasiId))) && n.meta.publishable,
+				  )
+				: flatNodes.filter((n) => n.meta.publishable);
+			if (targetNodes.length === 0) return;
+			const targetEnabled = resolveGroupToggleTarget(
+				targetNodes.map((n) => n.meta.published),
+			);
+			for (const sel of targetNodes) {
+				sel.meta.published = targetEnabled;
+				if (plugin.sasiCommandPublisher?.isPublishable(sel.meta.sasiId)) {
+					plugin.sasiCommandPublisher.setPublished(sel.meta.sasiId, targetEnabled);
+				}
+				if (!plugin.settings.sasiPublishedCommands) {
+					plugin.settings.sasiPublishedCommands = {};
+				}
+				plugin.settings.sasiPublishedCommands[sel.meta.sasiId] = targetEnabled;
+			}
+			void plugin.saveData(plugin.settings);
+			refreshCommandPaletteCache(plugin.app);
+		},
 		tooltip: (node: TreeNode<PluginMeta>) => {
 			const meta = node.meta as unknown as ApiSceneNodeMeta;
 			if (meta?.group === 'instance' || meta?.subgroup === 'scope.instances') {

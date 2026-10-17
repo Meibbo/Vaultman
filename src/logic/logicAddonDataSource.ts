@@ -12,6 +12,7 @@ export interface AddonExplorerDataSource {
 	urnOf(node: TreeNode<PluginMeta>): string;
 	activate(id: string): void;
 	cell(id: string, cellId: string): void;
+	toggleGroup?(groupId: string, memberIds?: readonly string[]): void;
 	tooltip(node: TreeNode<PluginMeta>): string;
 	contextMenu?(node: TreeNode<PluginMeta>, event: MouseEvent, selectedNodeIds: ReadonlySet<string>): boolean | void;
 }
