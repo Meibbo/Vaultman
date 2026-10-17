@@ -71,13 +71,13 @@ export function sceneGotoLabelKey(tab: StatisticsDataTab | 'apiscene'): string {
 	return 'sasi.scene.goto.' + tab;
 }
 
-const GOTO_ICONS: Record<StatisticsDataTab | 'apiscene', string> = {
+export const GOTO_ICONS: Record<StatisticsDataTab | 'apiscene', string> = {
 	files: 'lucide-folder',
 	props: 'lucide-archive',
 	tags: 'lucide-tag',
 	content: 'lucide-file-search',
 	snippets: 'lucide-file-code',
-	plugins: 'lucide-plug',
+	plugins: 'lucide-settings',
 	apiscene: 'lucide-cpu',
 };
 

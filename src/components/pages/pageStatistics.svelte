@@ -304,7 +304,7 @@
 		{
 			id: 'plugins',
 			label: translate('filter.tab.plugins'),
-			icon: 'lucide-plug',
+			icon: 'lucide-settings',
 		},
 		{
 			id: 'statistics',

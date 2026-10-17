@@ -10,7 +10,7 @@
 		props: 'lucide-archive',
 		content: 'lucide-file-search',
 		snippets: 'lucide-file-code',
-		plugins: 'lucide-plug',
+		plugins: 'lucide-settings',
 	};
 	const FILTER_TABS: FiltersTab[] = [
 		'files',
