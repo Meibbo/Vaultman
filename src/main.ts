@@ -1175,6 +1175,12 @@ export class VaultmanPlugin extends Plugin {
 		return !(leaf.getContainer() instanceof WorkspaceRoot);
 	}
 
+	private notifyMovement(message: string): void {
+		if (this.settings.showMovementNotices) {
+			new Notice(message);
+		}
+	}
+
 	private runPanelMoveCommand(
 		variation: ScopedMoveVariation,
 		checking: boolean,
@@ -1190,7 +1196,7 @@ export class VaultmanPlugin extends Plugin {
 			);
 			if (!focus.ok) {
 				if (!checking) {
-					new Notice(translate(scopedMoveGuardMessageKey(focus.reason)));
+					this.notifyMovement(translate(scopedMoveGuardMessageKey(focus.reason)));
 				}
 				return false;
 			}
@@ -1205,7 +1211,7 @@ export class VaultmanPlugin extends Plugin {
 			);
 			if (!plan.ok) {
 				if (!checking) {
-					new Notice(translate(scopedMoveGuardMessageKey(plan.reason)));
+					this.notifyMovement(translate(scopedMoveGuardMessageKey(plan.reason)));
 				}
 				return false;
 			}
@@ -1214,7 +1220,7 @@ export class VaultmanPlugin extends Plugin {
 			return true;
 		} catch {
 			if (!checking) {
-				new Notice(translate('sasi.move.tab.unknown_target'));
+				this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			}
 			return false;
 		}
@@ -1235,7 +1241,7 @@ export class VaultmanPlugin extends Plugin {
 		try {
 			await this.doExecuteScopedMovePlan(layout, move);
 		} catch {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 		}
 	}
 
@@ -1256,7 +1262,7 @@ export class VaultmanPlugin extends Plugin {
 			const neighborParent = layout.parents.get(move.neighborGroupId);
 			const focusedLeaf = layout.leaves.get(move.leafKey) ?? null;
 			if (!activeParent || !neighborParent || !focusedLeaf) {
-				new Notice(translate('sasi.move.tab.unknown_target'));
+				this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 				return;
 			}
 			await this.executeGroupSwap(activeParent, neighborParent, focusedLeaf);
@@ -1264,7 +1270,7 @@ export class VaultmanPlugin extends Plugin {
 		}
 		const leaf = layout.leaves.get(move.leafKey);
 		if (!leaf) {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		if (move.kind === 'leaf-split') {
@@ -1283,18 +1289,18 @@ export class VaultmanPlugin extends Plugin {
 			// recrear (misma hoja/vista). Defensa en profundidad: aunque el
 			// plan llegase como `leaf`, el trasplante esta prohibido aqui.
 			if (!(await this.reorderLeafWithinParent(leaf, move.toIndex))) {
-				new Notice(translate('sasi.move.tab.unknown_target'));
+				this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			}
 			return;
 		}
 		const targetParent = layout.parents.get(move.toGroupId);
 		if (!targetParent) {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		const fresh = await this.transplantLeafState(leaf, targetParent, move.toIndex);
 		if (!fresh) {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 		}
 	}
 
@@ -1519,7 +1525,7 @@ export class VaultmanPlugin extends Plugin {
 	): Promise<void> {
 		const saved = this.readLeafState(leaf);
 		if (!saved) {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		const expectedInstanceId = this.freeInstanceClaim(leaf);
@@ -1527,7 +1533,7 @@ export class VaultmanPlugin extends Plugin {
 		try {
 			splitLeaf = this.app.workspace.createLeafBySplit(leaf, direction, before);
 		} catch {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		if (!(await this.placeLeafState(splitLeaf, saved))) {
@@ -1536,7 +1542,7 @@ export class VaultmanPlugin extends Plugin {
 			} catch {
 				// Best effort.
 			}
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		if (!this.verifyInstanceAnchor(splitLeaf, expectedInstanceId)) {
@@ -1568,7 +1574,7 @@ export class VaultmanPlugin extends Plugin {
 		const statesActive = activeKids.map((leaf) => this.readLeafState(leaf));
 		const statesNeighbor = neighborKids.map((leaf) => this.readLeafState(leaf));
 		if (statesActive.includes(null) || statesNeighbor.includes(null)) {
-			new Notice(translate('sasi.move.tab.unknown_target'));
+			this.notifyMovement(translate('sasi.move.tab.unknown_target'));
 			return;
 		}
 		const savedActive = statesActive as NonNullable<(typeof statesActive)[number]>[];

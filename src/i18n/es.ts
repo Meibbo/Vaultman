@@ -1801,6 +1801,8 @@ export const es: Record<string, string> = {
 		'El modo grupo necesita una agrupación activa',
 	'settings.sasi_scene_menu': 'Mostrar registro SASI en menú de escenas',
 	'settings.sasi_scene_menu.desc': 'Permite seleccionar la API Scene (registro SASI) en el menú de escenas para proyectarla dentro del frame de la instancia.',
+	'settings.show_movement_notices': 'Mostrar avisos de movimiento de paneles',
+	'settings.show_movement_notices.desc': 'Muestra avisos flotantes al mover pestañas o grupos entre paneles, o al alcanzar un borde.',
 	'sasi.scene.goto.apiscene': 'Ir a la escena API',
 	'sasi.scene.engine.tree': 'Cambiar motor a Árbol',
 	'sasi.scene.engine.cards': 'Cambiar motor a Tarjetas',

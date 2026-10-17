@@ -1888,6 +1888,8 @@ export const en: Record<string, string> = {
 		'Group mode needs an active grouping',
 	'settings.sasi_scene_menu': 'Show SASI Registry in scene menu',
 	'settings.sasi_scene_menu.desc': 'Allows selecting the API Scene (SASI Registry) in the scene menu to project it inside the instance frame.',
+	'settings.show_movement_notices': 'Show panel move notices',
+	'settings.show_movement_notices.desc': 'Show toast notices when moving tabs or groups between panels, or when reaching an edge.',
 	'sasi.scene.goto.apiscene': 'Go to API scene',
 	'sasi.scene.engine.tree': 'Change engine to Tree',
 	'sasi.scene.engine.cards': 'Change engine to Cards',

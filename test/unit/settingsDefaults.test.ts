@@ -11,6 +11,10 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.performanceHudEnabled).toBe(false);
 	});
 
+	it('keeps movement notices disabled by default', () => {
+		expect(DEFAULT_SETTINGS.showMovementNotices).toBe(false);
+	});
+
 	it('shows bulk operation warnings by default', () => {
 		expect(DEFAULT_SETTINGS.suppressBulkOperationWarning).toBe(false);
 	});
