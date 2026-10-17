@@ -734,6 +734,15 @@ export class UnifiedTreeView {
 	}
 
 	destroy(): void {
+		if (this._scrollGestureTimer !== null) {
+			if (typeof window !== 'undefined') {
+				window.clearTimeout(this._scrollGestureTimer);
+			} else {
+				clearTimeout(this._scrollGestureTimer);
+			}
+			this._scrollGestureTimer = null;
+			this._scrollGestureStart = null;
+		}
 		this._keyboardBoundaryOff?.();
 		this._keyboardBoundaryOff = null;
 		for (const row of [...this.rowEls.values(), ...this.stickyRowEls.values()]) this._opts?.cellContributions?.unbind(row);
@@ -768,15 +777,6 @@ export class UnifiedTreeView {
 				clearTimeout(this._structureAnimationTimer);
 			}
 			this._structureAnimationTimer = null;
-		}
-		if (this._scrollGestureTimer !== null) {
-			if (typeof window !== 'undefined') {
-				window.clearTimeout(this._scrollGestureTimer);
-			} else {
-				clearTimeout(this._scrollGestureTimer);
-			}
-			this._scrollGestureTimer = null;
-			this._scrollGestureStart = null;
 		}
 		if (this.containerEl.dataset.vaultmanTreeOwner === this._ownerId) {
 			delete this.containerEl.dataset.vaultmanTreeOwner;
